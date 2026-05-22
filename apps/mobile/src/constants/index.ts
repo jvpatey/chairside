@@ -6,7 +6,7 @@ export const ROLE_OPTIONS = [
   {
     role: 'worker' as const,
     title: 'Find work',
-    description: 'Browse shifts and permanent roles in Nova Scotia',
+    description: 'Browse shifts and permanent roles',
     icon: 'briefcase-outline' as const,
   },
   {

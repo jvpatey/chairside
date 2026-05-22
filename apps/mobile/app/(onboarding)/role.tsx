@@ -45,7 +45,7 @@ export default function RoleScreen() {
       }>
       <AuthScreenHeader
         title="How will you use Chairside?"
-        subtitle="Choose the path that fits you. You can update this later in settings."
+        subtitle="Choose the path that fits you."
         onBack={() => router.back()}
       />
       <View style={styles.cards}>
