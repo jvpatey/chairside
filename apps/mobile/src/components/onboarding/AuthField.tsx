@@ -1,4 +1,4 @@
-import { Text, TextInput, View } from 'react-native';
+import { Platform, Text, TextInput, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -34,15 +34,17 @@ export function AuthField({
       color: colors.labelSecondary,
     },
     input: {
-      ...typography.body,
+      fontSize: typography.body.fontSize,
+      fontWeight: '400',
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.separator,
       borderRadius: 12,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md,
+      paddingVertical: Platform.OS === 'ios' ? 14 : 10,
       color: colors.labelPrimary,
       minHeight: 50,
+      ...(Platform.OS === 'android' ? { textAlignVertical: 'center' as const } : {}),
     },
     inputDisabled: {
       color: colors.labelTertiary,

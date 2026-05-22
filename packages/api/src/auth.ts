@@ -182,6 +182,10 @@ export function getAuthErrorMessage(error: unknown): string {
 
     const message = error.message.toLowerCase();
 
+    if (message.includes('json parse error') || message.includes('unexpected end of input')) {
+      return 'Could not reach Supabase. Check that EXPO_PUBLIC_SUPABASE_URL uses https:// in apps/mobile/.env, then restart Expo.';
+    }
+
     if (message.includes('invalid login credentials')) {
       return 'Incorrect email or password.';
     }

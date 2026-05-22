@@ -1,7 +1,7 @@
-import * as AppleAuthentication from 'expo-apple-authentication';
-import { Platform, Text, View } from 'react-native';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Platform, Pressable, Text, View } from 'react-native';
 
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useThemedStyles } from '@/theme';
 
 type SocialAuthButtonsProps = {
@@ -9,6 +9,84 @@ type SocialAuthButtonsProps = {
   onApplePress?: () => void;
   onGooglePress?: () => void;
 };
+
+type SocialAuthButtonProps = {
+  label: string;
+  disabled?: boolean;
+  onPress?: () => void;
+  variant: 'apple' | 'google';
+};
+
+function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButtonProps) {
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
+    button: {
+      borderRadius: 12,
+      minHeight: 50,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingHorizontal: spacing.md,
+      opacity: disabled ? 0.55 : 1,
+    },
+    apple: {
+      backgroundColor: isDark ? colors.surface : '#000000',
+      borderWidth: 1,
+      borderColor: isDark ? colors.separator : '#000000',
+    },
+    applePressed: {
+      backgroundColor: isDark ? colors.surfaceElevated : '#1C1C1E',
+    },
+    google: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
+    googlePressed: {
+      backgroundColor: colors.backgroundGrouped,
+    },
+    content: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: spacing.sm,
+    },
+    label: {
+      ...typography.body,
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '600' as const,
+    },
+    appleLabel: {
+      color: '#FFFFFF',
+    },
+    googleLabel: {
+      color: colors.labelPrimary,
+    },
+  }));
+
+  const isApple = variant === 'apple';
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        isApple
+          ? [styles.apple, pressed && !disabled && styles.applePressed]
+          : [styles.google, pressed && !disabled && styles.googlePressed],
+      ]}>
+      <View style={styles.content}>
+        {isApple ? (
+          <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
+        ) : (
+          <AntDesign name="google" size={20} color="#4285F4" />
+        )}
+        <Text style={[styles.label, isApple ? styles.appleLabel : styles.googleLabel]}>{label}</Text>
+      </View>
+    </Pressable>
+  );
+}
 
 export function SocialAuthButtons({
   disabled,
@@ -35,10 +113,6 @@ export function SocialAuthButtons({
       fontWeight: '600',
       color: colors.labelTertiary,
     },
-    appleButton: {
-      width: '100%',
-      height: 50,
-    },
   }));
 
   const showApple = Platform.OS === 'ios' && onApplePress;
@@ -50,18 +124,17 @@ export function SocialAuthButtons({
   return (
     <View style={styles.wrap}>
       {showApple ? (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={12}
-          style={styles.appleButton}
+        <SocialAuthButton
+          label="Continue with Apple"
+          variant="apple"
+          disabled={disabled}
           onPress={onApplePress}
         />
       ) : null}
       {onGooglePress ? (
-        <OnboardingButton
+        <SocialAuthButton
           label="Continue with Google"
-          variant="secondary"
+          variant="google"
           disabled={disabled}
           onPress={onGooglePress}
         />

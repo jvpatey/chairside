@@ -15,10 +15,11 @@ import type { UserRole } from '@/types';
 
 export default function RoleScreen() {
   const { fromAuth } = useLocalSearchParams<{ fromAuth?: string }>();
-  const { session } = useAuth();
-  const { completeOnboarding } = useOnboarding();
+  const { session, signOut } = useAuth();
+  const { completeOnboarding, resetOnboarding } = useOnboarding();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isPostAuth = fromAuth === '1';
 
   const styles = useThemedStyles(({ spacing }) => ({
     cards: {
@@ -31,10 +32,38 @@ export default function RoleScreen() {
     },
   }));
 
+  const handleBack = async () => {
+    if (isPostAuth) {
+      if (isSubmitting) return;
+
+      setIsSubmitting(true);
+      try {
+        await signOut();
+        await resetOnboarding();
+        router.replace('/(onboarding)/welcome');
+      } catch (error) {
+        Alert.alert(
+          'Sign out failed',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace('/(onboarding)/welcome');
+  };
+
   const handleContinue = async () => {
     if (!selectedRole || isSubmitting) return;
 
-    if (fromAuth === '1' && session?.user) {
+    if (isPostAuth && session?.user) {
       setIsSubmitting(true);
       try {
         await setProfileRole(session.user.id, selectedRole);
@@ -71,11 +100,12 @@ export default function RoleScreen() {
       <AuthScreenHeader
         title="How will you use Chairside?"
         subtitle={
-          fromAuth === '1'
+          isPostAuth
             ? 'One last step — choose worker or clinic.'
             : 'Choose the path that fits you.'
         }
-        onBack={() => router.back()}
+        backLabel={isPostAuth ? 'Sign out' : 'Back'}
+        onBack={handleBack}
       />
       <View style={styles.cards}>
         {ROLE_OPTIONS.map((option) => (

@@ -1,6 +1,7 @@
 export const APP_NAME = 'Chairside';
 
-export const ONBOARDING_SUBTITLE = 'Dental staffing, simplified.';
+export const ONBOARDING_SUBTITLE =
+  'Hire staff, find work, and fill same-day shifts—all in one place.';
 
 export const ROLE_OPTIONS = [
   {

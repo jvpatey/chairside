@@ -8,7 +8,7 @@ export function WelcomeHero() {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     container: {
       alignItems: 'center',
-      gap: spacing.lg,
+      gap: spacing.md,
     },
     wordmarkWrap: {
       alignSelf: 'stretch',

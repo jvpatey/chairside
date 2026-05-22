@@ -15,14 +15,15 @@ export async function getProfile(userId: string) {
 
 export async function setProfileRole(userId: string, role: UserRole) {
   const supabase = getSupabaseClient();
+  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('profiles')
-    .update({
+    .upsert({
+      id: userId,
       role,
-      onboarding_completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      onboarding_completed_at: now,
+      updated_at: now,
     })
-    .eq('id', userId)
     .select('*')
     .single();
 

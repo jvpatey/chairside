@@ -16,7 +16,6 @@ import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
-import { ROLE_OPTIONS } from '@/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
@@ -33,7 +32,6 @@ export default function SignUpScreen() {
   const role = parseRole(roleParam);
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
-  const roleLabel = ROLE_OPTIONS.find((o) => o.role === role)?.title ?? 'your role';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -42,19 +40,6 @@ export default function SignUpScreen() {
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
       gap: spacing.md,
-    },
-    roleBadge: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 8,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      marginBottom: spacing.sm,
-    },
-    roleBadgeText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
     },
     footer: {
       gap: spacing.md,
@@ -153,12 +138,6 @@ export default function SignUpScreen() {
     }
   };
 
-  const handlePreviewApp = async () => {
-    if (!role || !__DEV__) return;
-    await completeOnboarding(role);
-    router.replace('/(tabs)');
-  };
-
   if (!role) {
     return <Redirect href="/(onboarding)/role" />;
   }
@@ -172,14 +151,6 @@ export default function SignUpScreen() {
             disabled={isSubmitting}
             onPress={handleCreateAccount}
           />
-          {__DEV__ ? (
-            <OnboardingButton
-              label="Preview app (dev only)"
-              variant="ghost"
-              disabled={isSubmitting}
-              onPress={handlePreviewApp}
-            />
-          ) : null}
           <View style={styles.switchRow}>
             <Text style={styles.switchMuted}>Already have an account?</Text>
             <Pressable
@@ -195,9 +166,6 @@ export default function SignUpScreen() {
         subtitle="A few details to get you into Chairside."
         onBack={() => router.back()}
       />
-      <View style={styles.roleBadge}>
-        <Text style={styles.roleBadgeText}>Signing up to {roleLabel}</Text>
-      </View>
       <SocialAuthButtons
         disabled={isSubmitting}
         onApplePress={() => runSocialSignIn(signInWithApple)}
