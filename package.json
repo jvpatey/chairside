@@ -1,0 +1,16 @@
+{
+  "name": "chairside",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "dev": "pnpm --filter mobile dev",
+    "ios": "pnpm --filter mobile ios",
+    "android": "pnpm --filter mobile android",
+    "web": "pnpm --filter mobile web",
+    "lint": "pnpm --filter mobile lint"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3"
+  }
+}
