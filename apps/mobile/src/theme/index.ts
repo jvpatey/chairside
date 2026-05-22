@@ -4,6 +4,7 @@ import { StyleSheet, useColorScheme } from 'react-native';
 import { Colors, getColors, lightColors } from './colors';
 
 export { Colors, darkColors, getColors, lightColors } from './colors';
+export { fontWordmark } from './fonts';
 
 export const spacing = {
   xs: 4,
