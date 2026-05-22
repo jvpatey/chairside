@@ -28,10 +28,10 @@ export function ChairsideWordmark({ variant = 'hero' }: ChairsideWordmarkProps) 
           fontFamily: fontWordmark,
           fontSize,
           letterSpacing,
-          color: colors.labelPrimary,
           textTransform: 'lowercase',
         }}>
-        chairside
+        <Text style={{ color: colors.labelPrimary }}>chair</Text>
+        <Text style={{ color: colors.primary }}>side</Text>
       </Text>
     </View>
   );

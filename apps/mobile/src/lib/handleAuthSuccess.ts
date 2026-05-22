@@ -1,0 +1,18 @@
+import { router } from 'expo-router';
+
+import type { UserRole } from '@/types';
+
+export async function handleAuthSuccess(
+  refreshProfile: () => Promise<{ role: UserRole | null } | null>,
+  completeOnboarding: (role: UserRole) => Promise<void>,
+) {
+  const profile = await refreshProfile();
+
+  if (!profile?.role) {
+    router.replace('/(onboarding)/role?fromAuth=1');
+    return;
+  }
+
+  await completeOnboarding(profile.role);
+  router.replace('/(tabs)');
+}

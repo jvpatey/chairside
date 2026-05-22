@@ -6,16 +6,40 @@ A mobile-first dental staffing app for Nova Scotia clinics and dental profession
 
 - Node.js 20+
 - [pnpm](https://pnpm.io/)
-- [Xcode](https://developer.apple.com/xcode/) (for iOS simulator)
+- [Xcode](https://developer.apple.com/xcode/) (for iOS simulator / dev builds)
 
 ## Getting started
 
 ```bash
 pnpm install
+cp .env.example apps/mobile/.env
+```
+
+Edit `apps/mobile/.env` and set both values from Supabase → Project Settings → API:
+
+- `EXPO_PUBLIC_SUPABASE_URL` — your project URL (`https://<ref>.supabase.co`)
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the anon / publishable key
+
+Run all database migrations in [`supabase/migrations/`](supabase/migrations/) **in order** in the Supabase SQL editor:
+
+1. [`001_profiles.sql`](supabase/migrations/001_profiles.sql) — profiles table, RLS, signup trigger
+2. [`002_profiles_insert_policy.sql`](supabase/migrations/002_profiles_insert_policy.sql) — allows clients to insert/upsert their own profile under RLS
+3. [`003_profiles_update_policy_check.sql`](supabase/migrations/003_profiles_update_policy_check.sql) — tightens UPDATE policy with `WITH CHECK`
+4. [`004_handle_new_user_role_coercion.sql`](supabase/migrations/004_handle_new_user_role_coercion.sql) — invalid signup roles become `NULL` instead of blocking sign-up
+
+If you already ran `001` before the later files existed, run `002`–`004` only.
+
+```bash
 pnpm dev
 ```
 
 Press `i` in the Expo dev tools to open the iOS simulator.
+
+### Auth notes
+
+- **Email / Google:** work in Expo Go once Supabase env vars and redirect URLs (`chairside://**`) are configured.
+- **Sign in with Apple:** requires a dev build — `npx expo run:ios` (not Expo Go).
+- Supabase → Authentication → URL Configuration must include `chairside://**`.
 
 ## Scripts
 
@@ -31,8 +55,10 @@ Press `i` in the Expo dev tools to open the iOS simulator.
 
 ```
 chairside/
-├── apps/mobile/     # Expo app (iOS/Android now, web later)
-└── packages/        # Shared packages (config, core, api, ui)
+├── apps/mobile/        # Expo app (iOS/Android now, web later)
+├── packages/api/       # Supabase client and auth helpers
+├── supabase/           # SQL migrations
+└── packages/           # config, core, ui (stubs)
 ```
 
 ## Web (later)
@@ -41,8 +67,7 @@ This project is mobile-first. Expo Router supports web out of the box — run `p
 
 ## What's not included yet
 
-- Supabase auth and database
 - Push notifications
-- Job posts, profiles, and matching features
+- Job posts, full profiles, and matching features
 
 Add these incrementally as you build out the MVP.

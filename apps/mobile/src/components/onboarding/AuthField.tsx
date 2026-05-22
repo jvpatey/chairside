@@ -1,24 +1,27 @@
-import { Text, TextInput, View } from 'react-native';
+import { Platform, Text, TextInput, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
 
 type AuthFieldProps = {
   label: string;
   placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   keyboardType?: 'default' | 'email-address';
-  /** When false, field is visible but not editable until auth is wired. */
   editable?: boolean;
 };
 
 export function AuthField({
   label,
   placeholder,
+  value,
+  onChangeText,
   secureTextEntry,
   autoCapitalize = 'none',
   keyboardType = 'default',
-  editable = false,
+  editable = true,
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -31,15 +34,17 @@ export function AuthField({
       color: colors.labelSecondary,
     },
     input: {
-      ...typography.body,
+      fontSize: typography.body.fontSize,
+      fontWeight: '400',
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.separator,
       borderRadius: 12,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md,
+      paddingVertical: Platform.OS === 'ios' ? 14 : 10,
       color: colors.labelPrimary,
       minHeight: 50,
+      ...(Platform.OS === 'android' ? { textAlignVertical: 'center' as const } : {}),
     },
     inputDisabled: {
       color: colors.labelTertiary,
@@ -54,6 +59,8 @@ export function AuthField({
         style={[styles.input, !editable && styles.inputDisabled]}
         placeholder={placeholder}
         placeholderTextColor={colors.labelTertiary}
+        value={value}
+        onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}

@@ -6,9 +6,15 @@ type AuthScreenHeaderProps = {
   title: string;
   subtitle?: string;
   onBack?: () => void;
+  backLabel?: string;
 };
 
-export function AuthScreenHeader({ title, subtitle, onBack }: AuthScreenHeaderProps) {
+export function AuthScreenHeader({
+  title,
+  subtitle,
+  onBack,
+  backLabel = 'Back',
+}: AuthScreenHeaderProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.sm,
@@ -44,7 +50,7 @@ export function AuthScreenHeader({ title, subtitle, onBack }: AuthScreenHeaderPr
           accessibilityLabel="Go back"
           onPress={onBack}
           style={styles.back}>
-          <Text style={styles.backText}>Back</Text>
+          <Text style={styles.backText}>{backLabel}</Text>
         </Pressable>
       ) : (
         <View style={styles.placeholder} />
