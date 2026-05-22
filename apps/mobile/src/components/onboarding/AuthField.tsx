@@ -5,20 +5,23 @@ import { useTheme, useThemedStyles } from '@/theme';
 type AuthFieldProps = {
   label: string;
   placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   keyboardType?: 'default' | 'email-address';
-  /** When false, field is visible but not editable until auth is wired. */
   editable?: boolean;
 };
 
 export function AuthField({
   label,
   placeholder,
+  value,
+  onChangeText,
   secureTextEntry,
   autoCapitalize = 'none',
   keyboardType = 'default',
-  editable = false,
+  editable = true,
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -54,6 +57,8 @@ export function AuthField({
         style={[styles.input, !editable && styles.inputDisabled]}
         placeholder={placeholder}
         placeholderTextColor={colors.labelTertiary}
+        value={value}
+        onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}

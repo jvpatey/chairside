@@ -12,6 +12,7 @@ import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -26,12 +27,13 @@ export const unstable_settings = {
 
 function SplashScreenController({ fontsReady }: { fontsReady: boolean }) {
   const { isHydrated } = useOnboarding();
+  const { isAuthReady } = useAuth();
 
   useEffect(() => {
-    if (fontsReady && isHydrated) {
+    if (fontsReady && isHydrated && isAuthReady) {
       void SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsReady, isHydrated]);
+  }, [fontsReady, isHydrated, isAuthReady]);
 
   return null;
 }
@@ -52,15 +54,18 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <OnboardingProvider>
-        <SplashScreenController fontsReady={fontsReady} />
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack>
-      </OnboardingProvider>
+      <AuthProvider>
+        <OnboardingProvider>
+          <SplashScreenController fontsReady={fontsReady} />
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+          </Stack>
+        </OnboardingProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

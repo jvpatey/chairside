@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chairside.app"
+      "bundleIdentifier": "com.chairside.app",
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -41,6 +42,7 @@
         }
       ],
       "expo-font",
+      "expo-apple-authentication",
       "expo-web-browser"
     ],
     "experiments": {

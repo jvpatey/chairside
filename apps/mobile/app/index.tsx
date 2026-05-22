@@ -1,14 +1,16 @@
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
+import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useTheme } from '@/theme';
 
 export default function Index() {
   const { colors } = useTheme();
-  const { isHydrated, hasCompletedOnboarding } = useOnboarding();
+  const { isHydrated } = useOnboarding();
+  const { isAuthReady, session, profile } = useAuth();
 
-  if (!isHydrated) {
+  if (!isHydrated || !isAuthReady) {
     return (
       <View
         style={{
@@ -22,8 +24,12 @@ export default function Index() {
     );
   }
 
-  if (!hasCompletedOnboarding) {
+  if (!session) {
     return <Redirect href="/(onboarding)/welcome" />;
+  }
+
+  if (!profile?.role) {
+    return <Redirect href="/(onboarding)/role?fromAuth=1" />;
   }
 
   return <Redirect href="/(tabs)" />;

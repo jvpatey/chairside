@@ -6,16 +6,30 @@ A mobile-first dental staffing app for Nova Scotia clinics and dental profession
 
 - Node.js 20+
 - [pnpm](https://pnpm.io/)
-- [Xcode](https://developer.apple.com/xcode/) (for iOS simulator)
+- [Xcode](https://developer.apple.com/xcode/) (for iOS simulator / dev builds)
 
 ## Getting started
 
 ```bash
 pnpm install
+cp .env.example apps/mobile/.env
+```
+
+Edit `apps/mobile/.env` and set `EXPO_PUBLIC_SUPABASE_ANON_KEY` from Supabase → Project Settings → API.
+
+Run the database migration in Supabase SQL editor: [`supabase/migrations/001_profiles.sql`](supabase/migrations/001_profiles.sql).
+
+```bash
 pnpm dev
 ```
 
 Press `i` in the Expo dev tools to open the iOS simulator.
+
+### Auth notes
+
+- **Email / Google:** work in Expo Go once Supabase env vars and redirect URLs (`chairside://**`) are configured.
+- **Sign in with Apple:** requires a dev build — `npx expo run:ios` (not Expo Go).
+- Supabase → Authentication → URL Configuration must include `chairside://**`.
 
 ## Scripts
 
@@ -31,8 +45,10 @@ Press `i` in the Expo dev tools to open the iOS simulator.
 
 ```
 chairside/
-├── apps/mobile/     # Expo app (iOS/Android now, web later)
-└── packages/        # Shared packages (config, core, api, ui)
+├── apps/mobile/        # Expo app (iOS/Android now, web later)
+├── packages/api/       # Supabase client and auth helpers
+├── supabase/           # SQL migrations
+└── packages/           # config, core, ui (stubs)
 ```
 
 ## Web (later)
@@ -41,8 +57,7 @@ This project is mobile-first. Expo Router supports web out of the box — run `p
 
 ## What's not included yet
 
-- Supabase auth and database
 - Push notifications
-- Job posts, profiles, and matching features
+- Job posts, full profiles, and matching features
 
 Add these incrementally as you build out the MVP.
