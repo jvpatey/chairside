@@ -1,13 +1,10 @@
-export const colors = {
-  background: '#FFFFFF',
-  surface: '#F8FAFC',
-  text: '#0F172A',
-  textSecondary: '#64748B',
-  primary: '#0D9488',
-  primaryLight: '#CCFBF1',
-  border: '#E2E8F0',
-  tabInactive: '#94A3B8',
-} as const;
+import { useMemo } from 'react';
+import { StyleSheet, useColorScheme } from 'react-native';
+
+import { Colors, getColors, lightColors } from './colors';
+
+export { Colors, darkColors, getColors, lightColors } from './colors';
+export { fontWordmark } from './fonts';
 
 export const spacing = {
   xs: 4,
@@ -17,22 +14,82 @@ export const spacing = {
   xl: 32,
 } as const;
 
-export const typography = {
+export type Typography = {
   title: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    color: colors.text,
-  },
+    fontSize: number;
+    fontWeight: '700';
+    color: string;
+  };
   subtitle: {
-    fontSize: 16,
-    fontWeight: '400' as const,
-    color: colors.textSecondary,
-    lineHeight: 24,
-  },
+    fontSize: number;
+    fontWeight: '400';
+    color: string;
+    lineHeight: number;
+  };
   body: {
-    fontSize: 16,
-    fontWeight: '400' as const,
-    color: colors.text,
-    lineHeight: 24,
-  },
-} as const;
+    fontSize: number;
+    fontWeight: '400';
+    color: string;
+    lineHeight: number;
+  };
+};
+
+export function createTypography(colors: Colors): Typography {
+  return {
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.labelPrimary,
+    },
+    subtitle: {
+      fontSize: 16,
+      fontWeight: '400',
+      color: colors.labelSecondary,
+      lineHeight: 24,
+    },
+    body: {
+      fontSize: 16,
+      fontWeight: '400',
+      color: colors.labelPrimary,
+      lineHeight: 24,
+    },
+  };
+}
+
+export type Theme = {
+  colors: Colors;
+  spacing: typeof spacing;
+  typography: Typography;
+  isDark: boolean;
+};
+
+export function useTheme(): Theme {
+  const scheme = useColorScheme();
+
+  return useMemo(() => {
+    const colors = getColors(scheme);
+
+    return {
+      colors,
+      spacing,
+      typography: createTypography(colors),
+      isDark: scheme === 'dark',
+    };
+  }, [scheme]);
+}
+
+export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(
+  factory: (theme: Theme) => T,
+): T {
+  const theme = useTheme();
+
+  // factory is defined inline at each call site; theme is the only reactive input
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
+  return useMemo(() => StyleSheet.create(factory(theme)), [theme]);
+}
+
+/** @deprecated Use `useTheme().colors` for light/dark support. */
+export const colors = lightColors;
+
+/** @deprecated Use `useTheme().typography` for light/dark support. */
+export const typography = createTypography(lightColors);

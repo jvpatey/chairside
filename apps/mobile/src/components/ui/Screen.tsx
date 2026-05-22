@@ -1,8 +1,8 @@
 import { ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing, typography } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 type ScreenProps = {
   title: string;
@@ -12,13 +12,29 @@ type ScreenProps = {
 
 export function Screen({ title, subtitle, children }: ScreenProps) {
   const insets = useSafeAreaInsets();
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.backgroundGrouped,
+    },
+    content: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.lg,
+    },
+    header: {
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    title: typography.title,
+    subtitle: typography.subtitle,
+  }));
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg },
+        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
       ]}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
@@ -28,20 +44,3 @@ export function Screen({ title, subtitle, children }: ScreenProps) {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  header: {
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  title: typography.title,
-  subtitle: typography.subtitle,
-});
