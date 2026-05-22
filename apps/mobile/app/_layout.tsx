@@ -11,18 +11,30 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { OnboardingProvider } from '@/contexts/OnboardingContext';
+import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export const unstable_settings = {
   initialRouteName: 'index',
 };
+
+function SplashScreenController({ fontsReady }: { fontsReady: boolean }) {
+  const { isHydrated } = useOnboarding();
+
+  useEffect(() => {
+    if (fontsReady && isHydrated) {
+      void SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsReady, isHydrated]);
+
+  return null;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -32,19 +44,16 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
   });
 
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+  const fontsReady = fontsLoaded || !!fontError;
 
-  if (!fontsLoaded && !fontError) {
+  if (!fontsReady) {
     return null;
   }
 
   return (
     <SafeAreaProvider>
       <OnboardingProvider>
+        <SplashScreenController fontsReady={fontsReady} />
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />

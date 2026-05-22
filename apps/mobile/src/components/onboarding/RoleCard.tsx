@@ -28,20 +28,24 @@ export function RoleCard({
       backgroundColor: colors.surface,
       borderRadius: 12,
       borderWidth: 2,
-      borderColor: selected ? colors.primary : colors.separator,
+      borderColor: colors.separator,
       padding: spacing.lg,
       minHeight: 44,
     },
     cardSelected: {
       backgroundColor: colors.primarySubtle,
+      borderColor: colors.primary,
     },
     iconWrap: {
       width: 40,
       height: 40,
       borderRadius: 10,
-      backgroundColor: selected ? colors.primary : colors.fillSubtle,
+      backgroundColor: colors.fillSubtle,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    iconWrapSelected: {
+      backgroundColor: colors.primary,
     },
     textBlock: {
       flex: 1,
@@ -71,7 +75,7 @@ export function RoleCard({
         selected && styles.cardSelected,
         pressed && { opacity: 0.85 },
       ]}>
-      <View style={styles.iconWrap}>
+      <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
         <Ionicons
           name={icon}
           size={22}
