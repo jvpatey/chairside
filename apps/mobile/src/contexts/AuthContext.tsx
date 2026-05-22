@@ -11,6 +11,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -31,20 +32,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const profileRequestRef = useRef(0);
 
   const refreshProfile = useCallback(async () => {
-    if (!user) {
+    const userId = user?.id;
+    if (!userId) {
       setProfile(null);
       return null;
     }
 
-    const nextProfile = await getProfile(user.id);
-    setProfile(nextProfile);
-    return nextProfile;
+    const requestId = ++profileRequestRef.current;
+
+    try {
+      const nextProfile = await getProfile(userId);
+      if (requestId !== profileRequestRef.current) return null;
+      setProfile(nextProfile);
+      return nextProfile;
+    } catch {
+      if (requestId === profileRequestRef.current) setProfile(null);
+      return null;
+    }
   }, [user]);
 
   useEffect(() => {
     let cancelled = false;
+
+    async function loadProfile(userId: string, requestId: number) {
+      try {
+        const nextProfile = await getProfile(userId);
+        if (cancelled || requestId !== profileRequestRef.current) return;
+        setProfile(nextProfile);
+      } catch {
+        if (!cancelled && requestId === profileRequestRef.current) {
+          setProfile(null);
+        }
+      }
+    }
 
     async function bootstrapAuth() {
       try {
@@ -57,11 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(data.session?.user ?? null);
 
         if (data.session?.user) {
-          const nextProfile = await getProfile(data.session.user.id);
-          if (!cancelled) setProfile(nextProfile);
+          const requestId = ++profileRequestRef.current;
+          await loadProfile(data.session.user.id, requestId);
+        } else {
+          profileRequestRef.current += 1;
+          setProfile(null);
         }
       } catch {
         if (!cancelled) {
+          profileRequestRef.current += 1;
           setSession(null);
           setUser(null);
           setProfile(null);
@@ -82,17 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(nextSession?.user ?? null);
 
         if (!nextSession?.user) {
+          profileRequestRef.current += 1;
           setProfile(null);
           return;
         }
 
-        void getProfile(nextSession.user.id)
-          .then((nextProfile) => {
-            if (!cancelled) setProfile(nextProfile);
-          })
-          .catch(() => {
-            if (!cancelled) setProfile(null);
-          });
+        const requestId = ++profileRequestRef.current;
+        void loadProfile(nextSession.user.id, requestId);
       });
       subscription = result.data.subscription;
     } catch {
@@ -101,11 +124,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      profileRequestRef.current += 1;
       subscription?.unsubscribe();
     };
   }, []);
 
   const signOut = useCallback(async () => {
+    profileRequestRef.current += 1;
     await apiSignOut();
     setSession(null);
     setUser(null);

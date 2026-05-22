@@ -76,6 +76,7 @@ export default function SignUpScreen() {
 
       if (!profile?.role && role && profile?.id) {
         await setProfileRole(profile.id, role);
+        await refreshProfile();
         await completeOnboarding(role);
         router.replace('/(tabs)');
         return;

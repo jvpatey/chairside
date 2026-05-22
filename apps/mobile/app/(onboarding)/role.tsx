@@ -15,7 +15,7 @@ import type { UserRole } from '@/types';
 
 export default function RoleScreen() {
   const { fromAuth } = useLocalSearchParams<{ fromAuth?: string }>();
-  const { session, signOut } = useAuth();
+  const { session, signOut, refreshProfile } = useAuth();
   const { completeOnboarding, resetOnboarding } = useOnboarding();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +67,7 @@ export default function RoleScreen() {
       setIsSubmitting(true);
       try {
         await setProfileRole(session.user.id, selectedRole);
+        await refreshProfile();
         await completeOnboarding(selectedRole);
         router.replace('/(tabs)');
       } catch (error) {

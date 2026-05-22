@@ -14,7 +14,9 @@ create policy "Users read own profile"
   on public.profiles for select using (auth.uid() = id);
 
 create policy "Users update own profile"
-  on public.profiles for update using (auth.uid() = id);
+  on public.profiles for update
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -22,7 +24,11 @@ begin
   insert into public.profiles (id, role)
   values (
     new.id,
-    nullif(new.raw_user_meta_data->>'role', '')::text
+    case
+      when new.raw_user_meta_data->>'role' in ('worker', 'clinic')
+        then new.raw_user_meta_data->>'role'
+      else null
+    end
   );
   return new;
 end;

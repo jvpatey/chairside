@@ -1,10 +1,10 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
 import { getSupabaseClient } from './client';
+import { parseAuthRedirectUrl } from './parseAuthRedirectUrl';
 import type { UserRole } from './types';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -15,7 +15,7 @@ function getOAuthRedirectUrl() {
 
 export async function createSessionFromUrl(url: string) {
   const supabase = getSupabaseClient();
-  const { params, errorCode } = QueryParams.getQueryParams(url);
+  const { params, errorCode } = parseAuthRedirectUrl(url);
 
   if (errorCode) {
     throw new Error(errorCode);
