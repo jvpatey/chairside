@@ -2,6 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 
+import {
+  DashboardTabBarButton,
+  DashboardTabIcon,
+} from '@/components/navigation/DashboardTabBarButton';
 import { useTheme } from '@/theme';
 
 export default function ClinicTabLayout() {
@@ -18,7 +22,7 @@ export default function ClinicTabLayout() {
           ...(Platform.OS === 'ios' ? { borderTopWidth: 0.5 } : {}),
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '500',
         },
         headerShown: false,
@@ -26,13 +30,6 @@ export default function ClinicTabLayout() {
           backgroundColor: colors.backgroundGrouped,
         },
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color }) => <Ionicons name="grid" size={22} color={color} />,
-        }}
-      />
       <Tabs.Screen
         name="postings"
         options={{
@@ -44,7 +41,19 @@ export default function ClinicTabLayout() {
         name="applications"
         options={{
           title: 'Applications',
+          tabBarAccessibilityLabel: 'Applications',
           tabBarIcon: ({ color }) => <Ionicons name="people" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Dashboard',
+          tabBarAccessibilityLabel: 'Dashboard',
+          tabBarLabel: () => null,
+          tabBarItemStyle: { paddingVertical: 6 },
+          tabBarButton: (props) => <DashboardTabBarButton {...props} />,
+          tabBarIcon: ({ focused }) => <DashboardTabIcon focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -52,6 +61,13 @@ export default function ClinicTabLayout() {
         options={{
           title: 'Clinic',
           tabBarIcon: ({ color }) => <Ionicons name="business" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <Ionicons name="person" size={22} color={color} />,
         }}
       />
       <Tabs.Screen name="post-job" options={{ href: null }} />

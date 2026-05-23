@@ -67,6 +67,19 @@ export async function signOut() {
   if (error) throw error;
 }
 
+export async function deleteAccount() {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.functions.invoke('delete-account');
+
+  if (error) throw error;
+
+  if (data && typeof data === 'object' && 'error' in data && data.error) {
+    throw new Error(String(data.error));
+  }
+
+  return data;
+}
+
 export async function resetPasswordForEmail(email: string) {
   const supabase = getSupabaseClient();
   const redirectTo = getOAuthRedirectUrl();

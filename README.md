@@ -31,8 +31,37 @@ Run all database migrations in [`supabase/migrations/`](supabase/migrations/) **
 6. [`006_job_shift_posts.sql`](supabase/migrations/006_job_shift_posts.sql) — job and shift post tables
 7. [`007_applications.sql`](supabase/migrations/007_applications.sql) — applications table
 8. [`008_team_size_range.sql`](supabase/migrations/008_team_size_range.sql) — team size as range buckets
+9. [`009_role_type_dentist_other.sql`](supabase/migrations/009_role_type_dentist_other.sql) — dentist and other role types
+10. [`010_job_post_offerings.sql`](supabase/migrations/010_job_post_offerings.sql) — perks/offerings on job posts
+11. [`011_job_post_paused_status.sql`](supabase/migrations/011_job_post_paused_status.sql) — paused status and delete policy for job posts
 
-If you already ran `001` before the later files existed, run `002`–`008` only.
+If you already ran `001` before the later files existed, run only the migrations you have not applied yet.
+
+### Account deletion (Edge Function)
+
+Clinic users can delete their account from the **Profile** tab. Deletion requires a Supabase Edge Function because clients cannot remove auth users directly.
+
+**IDE setup:** Edge Functions run on Deno. Install the [Deno extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno) in Cursor/VS Code (the repo includes `.vscode/settings.json` so only `supabase/functions` uses Deno — the rest of the monorepo stays on TypeScript).
+
+Deploy from the project root (requires [Supabase CLI](https://supabase.com/docs/guides/cli)):
+
+```bash
+supabase functions deploy delete-account
+```
+
+If bundling fails locally (Docker not running), use server-side bundling:
+
+```bash
+supabase functions deploy delete-account --use-api
+```
+
+The function uses these secrets (set automatically when linked to your project, or configure in Supabase → Edge Functions → delete-account → Secrets):
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Deleting a user removes the auth account and cascades to `profiles`, `clinic_profiles`, `job_posts`, `shift_posts`, and related `applications` per the database schema. This action is permanent.
 
 ```bash
 pnpm dev
@@ -62,7 +91,7 @@ Press `i` in the Expo dev tools to open the iOS simulator.
 chairside/
 ├── apps/mobile/        # Expo app (iOS/Android now, web later)
 ├── packages/api/       # Supabase client and auth helpers
-├── supabase/           # SQL migrations
+├── supabase/           # SQL migrations and Edge Functions
 └── packages/           # config, core, ui (stubs)
 ```
 

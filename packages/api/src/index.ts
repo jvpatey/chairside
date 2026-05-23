@@ -8,6 +8,7 @@ export {
   signInWithGoogle,
   signOut,
   signUpWithEmail,
+  deleteAccount,
 } from './auth';
 export {
   completeClinicSetup,

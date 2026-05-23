@@ -52,29 +52,48 @@ export function DetailSectionDivider({ children }: { children: ReactNode }) {
   return <View style={styles.divider}>{children}</View>;
 }
 
-export function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
+export function DetailRow({
+  label,
+  value,
+  layout = 'inline',
+}: {
+  label: string;
+  value: string | null | undefined;
+  layout?: 'inline' | 'stacked';
+}) {
   const display = value?.trim() || '—';
 
   const styles = useThemedStyles(({ spacing, colors }) => ({
-    row: {
+    rowInline: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: spacing.md,
       paddingVertical: spacing.sm + 2,
     },
+    rowStacked: {
+      gap: spacing.xs,
+      paddingVertical: spacing.sm + 2,
+    },
     label: {
-      flex: 1,
       fontSize: 15,
       lineHeight: 20,
       color: colors.labelSecondary,
     },
-    value: {
+    labelInline: {
+      flex: 1,
+    },
+    valueInline: {
       flex: 1,
       fontSize: 15,
       lineHeight: 20,
       color: colors.labelPrimary,
       textAlign: 'right',
+    },
+    valueStacked: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.labelPrimary,
     },
     valueEmpty: {
       color: colors.labelTertiary,
@@ -83,10 +102,19 @@ export function DetailRow({ label, value }: { label: string; value: string | nul
 
   const isEmpty = display === '—';
 
+  if (layout === 'stacked') {
+    return (
+      <View style={styles.rowStacked}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.valueStacked, isEmpty && styles.valueEmpty]}>{display}</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, isEmpty && styles.valueEmpty]}>{display}</Text>
+    <View style={styles.rowInline}>
+      <Text style={[styles.label, styles.labelInline]}>{label}</Text>
+      <Text style={[styles.valueInline, isEmpty && styles.valueEmpty]}>{display}</Text>
     </View>
   );
 }

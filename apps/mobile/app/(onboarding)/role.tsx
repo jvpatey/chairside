@@ -10,14 +10,16 @@ import { RoleCard } from '@/components/onboarding/RoleCard';
 import { ROLE_OPTIONS } from '@/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { useSignOut } from '@/hooks/useSignOut';
 import { getHomeRouteForRole } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
 
 export default function RoleScreen() {
   const { fromAuth } = useLocalSearchParams<{ fromAuth?: string }>();
-  const { session, signOut, refreshProfile } = useAuth();
-  const { completeOnboarding, resetOnboarding } = useOnboarding();
+  const { session, refreshProfile } = useAuth();
+  const { completeOnboarding } = useOnboarding();
+  const { isSigningOut, signOut } = useSignOut();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isPostAuth = fromAuth === '1';
@@ -35,21 +37,8 @@ export default function RoleScreen() {
 
   const handleBack = async () => {
     if (isPostAuth) {
-      if (isSubmitting) return;
-
-      setIsSubmitting(true);
-      try {
-        await signOut();
-        await resetOnboarding();
-        router.replace('/(onboarding)/welcome');
-      } catch (error) {
-        Alert.alert(
-          'Sign out failed',
-          error instanceof Error ? error.message : 'Please try again.',
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
+      if (isSubmitting || isSigningOut) return;
+      await signOut();
       return;
     }
 
@@ -94,7 +83,7 @@ export default function RoleScreen() {
         <View style={styles.footer}>
           <OnboardingButton
             label={isSubmitting ? 'Saving…' : 'Continue'}
-            disabled={selectedRole === null || isSubmitting}
+            disabled={selectedRole === null || isSubmitting || isSigningOut}
             onPress={handleContinue}
           />
         </View>
@@ -106,7 +95,7 @@ export default function RoleScreen() {
             ? 'One last step — choose worker or clinic.'
             : 'Choose the path that fits you.'
         }
-        backLabel={isPostAuth ? 'Sign out' : 'Back'}
+        backLabel={isPostAuth ? (isSigningOut ? 'Signing out…' : 'Sign out') : 'Back'}
         onBack={handleBack}
       />
       <View style={styles.cards}>
