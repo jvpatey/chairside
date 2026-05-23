@@ -70,6 +70,8 @@ type DashboardHeroProps = {
   clinicName?: string | null;
 };
 
+const CLINIC_NAME_PLACEHOLDER = 'Your practice';
+
 export function DashboardHero({ clinicName }: DashboardHeroProps) {
   const greeting = getTimeOfDayGreeting();
   const displayName = clinicName?.trim();
@@ -106,7 +108,7 @@ export function DashboardHero({ clinicName }: DashboardHeroProps) {
         numberOfLines={1}
         accessibilityElementsHidden={!displayName}
         importantForAccessibility={displayName ? 'yes' : 'no-hide-descendants'}>
-        {displayName || 'Clinic name'}
+        {displayName || CLINIC_NAME_PLACEHOLDER}
       </Text>
     </View>
   );

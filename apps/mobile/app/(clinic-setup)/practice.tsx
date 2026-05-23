@@ -1,4 +1,11 @@
-import { SPECIALTY_OPTIONS, SOFTWARE_OPTIONS, type ClinicSpecialty } from '@chairside/config';
+import {
+  SPECIALTY_OPTIONS,
+  SOFTWARE_OPTIONS,
+  TEAM_SIZE_RANGE_OPTIONS,
+  resolveSoftwareSelection,
+  type ClinicSpecialty,
+  type TeamSizeRange,
+} from '@chairside/config';
 import { router } from 'expo-router';
 import { CLINIC_SETUP_ABOUT } from '@/lib/routing';
 import { useEffect, useState } from 'react';
@@ -19,7 +26,7 @@ export default function ClinicPracticeScreen() {
   const [specialty, setSpecialty] = useState<ClinicSpecialty>('general');
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
   const [operatories, setOperatories] = useState('');
-  const [teamSize, setTeamSize] = useState('');
+  const [teamSizeRange, setTeamSizeRange] = useState<TeamSizeRange | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
@@ -32,7 +39,6 @@ export default function ClinicPracticeScreen() {
       fontWeight: '600',
     },
     hint: typography.subtitle,
-    row: { gap: spacing.md },
   }));
 
   useEffect(() => {
@@ -40,7 +46,7 @@ export default function ClinicPracticeScreen() {
     setSpecialty(clinicProfile.specialty ?? 'general');
     setSoftwareUsed(clinicProfile.software_used ?? []);
     setOperatories(clinicProfile.operatories_count?.toString() ?? '');
-    setTeamSize(clinicProfile.team_size?.toString() ?? '');
+    setTeamSizeRange(clinicProfile.team_size_range ?? null);
   }, [clinicProfile]);
 
   const handleContinue = async () => {
@@ -55,7 +61,7 @@ export default function ClinicPracticeScreen() {
         specialty,
         software_used: softwareUsed,
         operatories_count: operatories ? Number(operatories) : null,
-        team_size: teamSize ? Number(teamSize) : null,
+        team_size_range: teamSizeRange,
       });
       router.push(CLINIC_SETUP_ABOUT);
     } catch (error) {
@@ -97,29 +103,30 @@ export default function ClinicPracticeScreen() {
             onChange={(value) => setSpecialty(value as ClinicSpecialty)}
           />
         </View>
+        <AuthField
+          label="Operatories (optional)"
+          placeholder="4"
+          value={operatories}
+          onChangeText={setOperatories}
+          keyboardType="number-pad"
+        />
+        <View style={styles.section}>
+          <Text style={styles.label}>Team size (optional)</Text>
+          <ChipSelector
+            options={TEAM_SIZE_RANGE_OPTIONS}
+            selected={teamSizeRange}
+            onChange={(value) => setTeamSizeRange(value as TeamSizeRange)}
+          />
+        </View>
         <View style={styles.section}>
           <Text style={styles.label}>Software used</Text>
           <ChipSelector
             options={SOFTWARE_OPTIONS.map((item) => ({ value: item, label: item }))}
             selected={softwareUsed}
             multiple
-            onChange={(value) => setSoftwareUsed(value as string[])}
-          />
-        </View>
-        <View style={styles.row}>
-          <AuthField
-            label="Operatories (optional)"
-            placeholder="4"
-            value={operatories}
-            onChangeText={setOperatories}
-            keyboardType="numeric"
-          />
-          <AuthField
-            label="Team size (optional)"
-            placeholder="8"
-            value={teamSize}
-            onChangeText={setTeamSize}
-            keyboardType="numeric"
+            onChange={(value) =>
+              setSoftwareUsed(resolveSoftwareSelection(softwareUsed, value as string[]))
+            }
           />
         </View>
       </View>

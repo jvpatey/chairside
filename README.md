@@ -30,8 +30,9 @@ Run all database migrations in [`supabase/migrations/`](supabase/migrations/) **
 5. [`005_clinic_profiles.sql`](supabase/migrations/005_clinic_profiles.sql) — clinic profile table and RLS
 6. [`006_job_shift_posts.sql`](supabase/migrations/006_job_shift_posts.sql) — job and shift post tables
 7. [`007_applications.sql`](supabase/migrations/007_applications.sql) — applications table
+8. [`008_team_size_range.sql`](supabase/migrations/008_team_size_range.sql) — team size as range buckets
 
-If you already ran `001` before the later files existed, run `002`–`007` only.
+If you already ran `001` before the later files existed, run `002`–`008` only.
 
 ```bash
 pnpm dev

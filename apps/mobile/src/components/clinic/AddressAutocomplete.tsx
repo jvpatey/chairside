@@ -1,6 +1,6 @@
 import { parseMapboxFeature, searchAddresses, type ParsedAddress } from '@chairside/api';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Keyboard, Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -32,13 +32,37 @@ const emptyValue: AddressFormValue = {
   formatted: '',
 };
 
+function shouldUseManualMode(value: AddressFormValue): boolean {
+  return Boolean(value.address_line1.trim()) && !value.formatted.trim();
+}
+
 export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProps) {
   const { colors } = useTheme();
   const [query, setQuery] = useState(value.formatted || value.address_line1);
   const [suggestions, setSuggestions] = useState<{ id: string; label: string; parsed: ParsedAddress }[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [manualMode, setManualMode] = useState(Boolean(value.address_line1 && !value.formatted));
+  const [manualMode, setManualMode] = useState(shouldUseManualMode(value));
   const [searchError, setSearchError] = useState<string | null>(null);
+  const suppressSearchRef = useRef(false);
+
+  const isQueryCommitted =
+    Boolean(value.formatted.trim()) && query.trim() === value.formatted.trim();
+
+  useEffect(() => {
+    setQuery(value.formatted || value.address_line1);
+    setManualMode(shouldUseManualMode(value));
+    setSuggestions([]);
+    setSearchError(null);
+  }, [
+    value.address_line1,
+    value.address_line2,
+    value.city,
+    value.postal_code,
+    value.province,
+    value.latitude,
+    value.longitude,
+    value.formatted,
+  ]);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -83,7 +107,7 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
   }));
 
   useEffect(() => {
-    if (manualMode || query.trim().length < 3) {
+    if (manualMode || suppressSearchRef.current || isQueryCommitted || query.trim().length < 3) {
       setSuggestions([]);
       return;
     }
@@ -107,9 +131,24 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, manualMode]);
+  }, [query, manualMode, isQueryCommitted]);
+
+  const handleQueryChange = (text: string) => {
+    suppressSearchRef.current = false;
+    setQuery(text);
+
+    if (value.formatted.trim() && text.trim() !== value.formatted.trim()) {
+      onChange({
+        ...value,
+        formatted: '',
+        latitude: null,
+        longitude: null,
+      });
+    }
+  };
 
   const applyParsed = (parsed: ParsedAddress) => {
+    suppressSearchRef.current = true;
     onChange({
       address_line1: parsed.address_line1,
       address_line2: value.address_line2,
@@ -123,6 +162,7 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
     setQuery(parsed.formatted);
     setSuggestions([]);
     setManualMode(false);
+    Keyboard.dismiss();
   };
 
   return (
@@ -133,7 +173,7 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
             label="Search address"
             placeholder="Start typing your clinic address"
             value={query}
-            onChangeText={setQuery}
+            onChangeText={handleQueryChange}
             autoCapitalize="words"
           />
           {isSearching ? <ActivityIndicator color={colors.primary} /> : null}
@@ -200,6 +240,13 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
         <View style={styles.preview}>
           <Text style={styles.previewLabel}>Selected address</Text>
           <Text style={styles.previewText}>{value.formatted}</Text>
+        </View>
+      ) : manualMode && value.address_line1.trim() ? (
+        <View style={styles.preview}>
+          <Text style={styles.previewLabel}>Saved address</Text>
+          <Text style={styles.previewText}>
+            {[value.address_line1, value.city, value.postal_code].filter(Boolean).join(', ')}
+          </Text>
         </View>
       ) : null}
     </View>

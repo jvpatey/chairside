@@ -1,4 +1,4 @@
-import type { ClinicSpecialty } from '@chairside/config';
+import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
 import { getSupabaseClient } from './client';
 import type { Database } from './types';
 
@@ -103,7 +103,9 @@ export async function upsertClinicProfile(
   if (partial.specialty !== undefined) payload.specialty = normalizeSpecialty(partial.specialty);
   if (partial.software_used !== undefined) payload.software_used = partial.software_used;
   if (partial.operatories_count !== undefined) payload.operatories_count = partial.operatories_count;
-  if (partial.team_size !== undefined) payload.team_size = partial.team_size;
+  if (partial.team_size_range !== undefined) {
+    payload.team_size_range = partial.team_size_range;
+  }
   if (partial.website !== undefined) payload.website = partial.website;
   if (partial.description !== undefined) payload.description = partial.description;
   if (partial.setup_completed_at !== undefined) {

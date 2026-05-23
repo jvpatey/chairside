@@ -8,6 +8,7 @@ import {
   ROLE_TYPE_OPTIONS,
   SOFTWARE_OPTIONS,
   SPECIALTY_OPTIONS,
+  resolveSoftwareSelection,
   type ClinicSpecialty,
 } from '@chairside/config';
 import { router } from 'expo-router';
@@ -134,7 +135,9 @@ export default function PostJobScreen() {
           options={SOFTWARE_OPTIONS.map((item) => ({ value: item, label: item }))}
           selected={softwareUsed}
           multiple
-          onChange={(value) => setSoftwareUsed(value as string[])}
+          onChange={(value) =>
+            setSoftwareUsed(resolveSoftwareSelection(softwareUsed, value as string[]))
+          }
         />
       </View>
 

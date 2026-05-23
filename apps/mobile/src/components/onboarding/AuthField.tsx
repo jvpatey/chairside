@@ -9,7 +9,7 @@ type AuthFieldProps = {
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'url';
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'number-pad' | 'url';
   editable?: boolean;
   multiline?: boolean;
 };

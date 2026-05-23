@@ -12,6 +12,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicBasicsScreen() {
@@ -32,7 +33,7 @@ export default function ClinicBasicsScreen() {
     if (!clinicProfile) return;
     setClinicName(clinicProfile.clinic_name ?? '');
     setContactName(clinicProfile.contact_name ?? '');
-    setPhone(clinicProfile.phone ?? '');
+    setPhone(clinicProfile.phone ? formatPhoneNumber(clinicProfile.phone) : '');
   }, [clinicProfile]);
 
   const handleContinue = async () => {
@@ -81,7 +82,7 @@ export default function ClinicBasicsScreen() {
       <View style={styles.form}>
         <AuthField
           label="Clinic name"
-          placeholder="Harbourview Dental"
+          placeholder="Practice name"
           value={clinicName}
           onChangeText={setClinicName}
           autoCapitalize="words"
@@ -95,9 +96,9 @@ export default function ClinicBasicsScreen() {
         />
         <AuthField
           label="Phone"
-          placeholder="(902) 555-0100"
+          placeholder={PHONE_NUMBER_PLACEHOLDER}
           value={phone}
-          onChangeText={setPhone}
+          onChangeText={(text) => setPhone(formatPhoneNumber(text))}
           keyboardType="phone-pad"
         />
       </View>

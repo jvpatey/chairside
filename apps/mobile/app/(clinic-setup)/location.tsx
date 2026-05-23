@@ -15,23 +15,38 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useThemedStyles } from '@/theme';
 
+function buildFormattedAddress(
+  profile: NonNullable<ReturnType<typeof useClinicProfile>['clinicProfile']>,
+): string {
+  const cityLine = [profile.city, profile.province, profile.postal_code].filter(Boolean).join(', ');
+  return [profile.address_line1, cityLine].filter(Boolean).join(', ');
+}
+
 function profileToAddress(profile: NonNullable<ReturnType<typeof useClinicProfile>['clinicProfile']>): AddressFormValue {
+  const address_line1 = profile.address_line1 ?? '';
+  const city = profile.city ?? '';
+  const postal_code = profile.postal_code ?? '';
+  const hasCoordinates = profile.latitude != null && profile.longitude != null;
+  const formatted = hasCoordinates && address_line1 ? buildFormattedAddress(profile) : '';
+
   return {
-    address_line1: profile.address_line1 ?? '',
+    address_line1,
     address_line2: profile.address_line2 ?? '',
-    city: profile.city ?? '',
+    city,
     province: profile.province ?? 'NS',
-    postal_code: profile.postal_code ?? '',
+    postal_code,
     latitude: profile.latitude,
     longitude: profile.longitude,
-    formatted: '',
+    formatted,
   };
 }
 
 export default function ClinicLocationScreen() {
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
   const { save } = useClinicSetupSave();
-  const [address, setAddress] = useState<AddressFormValue>(createEmptyAddressValue());
+  const [address, setAddress] = useState<AddressFormValue>(() =>
+    clinicProfile ? profileToAddress(clinicProfile) : createEmptyAddressValue(),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = useThemedStyles(({ spacing }) => ({

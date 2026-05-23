@@ -1,5 +1,5 @@
 import { completeClinicSetup, getMissingClinicProfileFields } from '@chairside/api';
-import { SPECIALTY_OPTIONS } from '@chairside/config';
+import { SPECIALTY_OPTIONS, getTeamSizeRangeLabel } from '@chairside/config';
 import { router } from 'expo-router';
 import { CLINIC_HOME } from '@/lib/routing';
 import { useState } from 'react';
@@ -111,6 +111,14 @@ export default function ClinicReviewScreen() {
             .join(', ')}
         />
         <ReviewRow label="Specialty" value={specialtyLabel} />
+        <ReviewRow
+          label="Operatories"
+          value={clinicProfile.operatories_count?.toString() ?? ''}
+        />
+        <ReviewRow
+          label="Team size"
+          value={getTeamSizeRangeLabel(clinicProfile.team_size_range) ?? ''}
+        />
         <ReviewRow label="Software" value={clinicProfile.software_used.join(', ')} />
         <ReviewRow label="Description" value={clinicProfile.description ?? ''} />
       </View>

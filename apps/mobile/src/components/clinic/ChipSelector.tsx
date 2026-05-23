@@ -4,7 +4,7 @@ import { useThemedStyles } from '@/theme';
 
 type ChipSelectorProps<T extends string> = {
   options: { value: T; label: string }[];
-  selected: T | T[];
+  selected: T | T[] | null;
   multiple?: boolean;
   onChange: (value: T | T[]) => void;
 };

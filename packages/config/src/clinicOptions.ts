@@ -24,10 +24,22 @@ export const SOFTWARE_OPTIONS = [
   'Open Dental',
   'Curve Dental',
   'Tracker',
+  'Power Practice',
+  'None',
   'Other',
 ] as const;
 
 export type ClinicSoftware = (typeof SOFTWARE_OPTIONS)[number];
+
+/** "None" cannot be combined with other software selections. */
+export function resolveSoftwareSelection(current: string[], next: string[]): string[] {
+  const selectedNone = next.includes('None') && !current.includes('None');
+  if (selectedNone) return ['None'];
+  if (next.includes('None') && next.length > 1) {
+    return next.filter((item) => item !== 'None');
+  }
+  return next;
+}
 
 export const ROLE_TYPE_OPTIONS = [
   { value: 'hygienist' as const, label: 'Dental hygienist' },
@@ -47,3 +59,19 @@ export const URGENCY_OPTIONS = [
   { value: 'urgent' as const, label: 'Urgent' },
   { value: 'same_day' as const, label: 'Same day' },
 ];
+
+export type TeamSizeRange = '1-5' | '6-10' | '11-20' | '21-50' | '51+' | 'prefer_not_to_say';
+
+export const TEAM_SIZE_RANGE_OPTIONS: { value: TeamSizeRange; label: string }[] = [
+  { value: '1-5', label: '1–5 people' },
+  { value: '6-10', label: '6–10 people' },
+  { value: '11-20', label: '11–20 people' },
+  { value: '21-50', label: '21–50 people' },
+  { value: '51+', label: '51+ people' },
+  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
+export function getTeamSizeRangeLabel(value: TeamSizeRange | null | undefined): string | null {
+  if (!value) return null;
+  return TEAM_SIZE_RANGE_OPTIONS.find((option) => option.value === value)?.label ?? null;
+}

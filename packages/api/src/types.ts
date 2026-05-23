@@ -1,4 +1,4 @@
-import type { ClinicSpecialty } from '@chairside/config';
+import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
 
 export type UserRole = 'worker' | 'clinic';
 
@@ -26,7 +26,7 @@ export type ClinicProfileRow = {
   specialty: ClinicSpecialty;
   software_used: string[];
   operatories_count: number | null;
-  team_size: number | null;
+  team_size_range: TeamSizeRange | null;
   website: string | null;
   description: string | null;
   setup_completed_at: string | null;
@@ -119,7 +119,7 @@ export type Database = {
           specialty?: ClinicSpecialty;
           software_used?: string[];
           operatories_count?: number | null;
-          team_size?: number | null;
+          team_size_range?: TeamSizeRange | null;
           website?: string | null;
           description?: string | null;
           setup_completed_at?: string | null;
