@@ -48,6 +48,7 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
   const viewportHeightRef = useRef(0);
   const keyboardHeightRef = useRef(0);
   const pendingScrollRef = useRef<View | null>(null);
+  const scrollTimeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -69,10 +70,6 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
       backgroundColor: colors.background,
-    },
-    footerBorder: {
-      borderTopWidth: 1,
-      borderTopColor: colors.separator,
     },
   }));
 
@@ -104,20 +101,33 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
     [footer],
   );
 
+  const clearScrollTimeouts = useCallback(() => {
+    for (const id of scrollTimeoutIdsRef.current) {
+      clearTimeout(id);
+    }
+    scrollTimeoutIdsRef.current = [];
+  }, []);
+
+  const scheduleDelayedRuns = useCallback(
+    (run: () => void) => {
+      clearScrollTimeouts();
+      run();
+      for (const delay of SCROLL_INTO_VIEW_DELAYS_MS) {
+        const id = setTimeout(run, delay);
+        scrollTimeoutIdsRef.current.push(id);
+      }
+    },
+    [clearScrollTimeouts],
+  );
+
   const scheduleScrollIntoView = useCallback(
     (wrapRef: View | null) => {
       if (!wrapRef) return;
 
       pendingScrollRef.current = wrapRef;
-
-      const run = () => performScroll(wrapRef, keyboardHeightRef.current);
-
-      run();
-      for (const delay of SCROLL_INTO_VIEW_DELAYS_MS) {
-        setTimeout(run, delay);
-      }
+      scheduleDelayedRuns(() => performScroll(wrapRef, keyboardHeightRef.current));
     },
-    [performScroll],
+    [performScroll, scheduleDelayedRuns],
   );
 
   useEffect(() => {
@@ -130,10 +140,8 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       setKeyboardHeight(height);
 
       if (pendingScrollRef.current) {
-        performScroll(pendingScrollRef.current, height);
-        for (const delay of SCROLL_INTO_VIEW_DELAYS_MS) {
-          setTimeout(() => performScroll(pendingScrollRef.current, height), delay);
-        }
+        const pending = pendingScrollRef.current;
+        scheduleDelayedRuns(() => performScroll(pending, height));
       }
     });
 
@@ -141,13 +149,15 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       keyboardHeightRef.current = 0;
       setKeyboardHeight(0);
       pendingScrollRef.current = null;
+      clearScrollTimeouts();
     });
 
     return () => {
       showSubscription.remove();
       hideSubscription.remove();
+      clearScrollTimeouts();
     };
-  }, [performScroll]);
+  }, [performScroll, scheduleDelayedRuns, clearScrollTimeouts]);
 
   const footerPaddingBottom = footer ? spacing.md : insets.bottom + spacing.md;
 
@@ -188,7 +198,7 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {scrollView}
-      <View style={[styles.footer, styles.footerBorder, { paddingBottom: footerPaddingBottom }]}>
+      <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
         {footer}
       </View>
     </KeyboardAvoidingView>

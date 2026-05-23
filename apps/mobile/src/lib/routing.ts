@@ -28,8 +28,8 @@ export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
 }
 
 export function getClinicHomeRoute(overview?: DashboardOverviewParam): Href {
-  if (overview === 'fill-ins') {
-    return { pathname: '/(clinic-tabs)', params: { overview: 'fill-ins' } } as Href;
+  if (overview) {
+    return { pathname: '/(clinic-tabs)', params: { overview } } as Href;
   }
   return CLINIC_HOME;
 }

@@ -86,8 +86,8 @@ export default function ClinicDashboardScreen() {
   useRefreshOnFocus(loadDashboard);
 
   useEffect(() => {
-    if (overview === 'fill-ins') {
-      setSelectedOverview('fill-ins');
+    if (overview === 'roles' || overview === 'fill-ins' || overview === 'applications') {
+      setSelectedOverview(overview);
     }
   }, [overview]);
 

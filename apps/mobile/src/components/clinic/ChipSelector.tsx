@@ -53,16 +53,21 @@ export function ChipSelector<T extends string>({
     },
   }));
 
+  const selectedItems: T[] = multiple
+    ? Array.isArray(selected)
+      ? selected
+      : []
+    : [];
+
   const isSelected = (value: T) =>
-    multiple ? (selected as T[]).includes(value) : selected === value;
+    multiple ? selectedItems.includes(value) : selected === value;
 
   const handlePress = (value: T) => {
     if (multiple) {
-      const current = selected as T[];
-      if (current.includes(value)) {
-        onChange(current.filter((item) => item !== value));
+      if (selectedItems.includes(value)) {
+        onChange(selectedItems.filter((item) => item !== value));
       } else {
-        onChange([...current, value]);
+        onChange([...selectedItems, value]);
       }
       return;
     }

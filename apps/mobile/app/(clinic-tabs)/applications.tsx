@@ -84,9 +84,21 @@ export default function ClinicApplicationsScreen() {
   }));
 
   const load = useCallback(async () => {
-    if (!user?.id) return;
-    const rows = await listClinicApplications(user.id);
-    setApplications(rows);
+    if (!user?.id) {
+      setApplications([]);
+      return;
+    }
+
+    try {
+      const rows = await listClinicApplications(user.id);
+      setApplications(rows);
+    } catch (error) {
+      setApplications([]);
+      Alert.alert(
+        'Could not load applications',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
   }, [user?.id]);
 
   useEffect(() => {

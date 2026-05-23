@@ -73,7 +73,7 @@ export default function ClinicLocationScreen() {
         address_line1: address.address_line1.trim(),
         address_line2: address.address_line2.trim() || null,
         city: address.city.trim(),
-        province: 'NS',
+        province: address.province.trim() || 'NS',
         postal_code: address.postal_code.trim(),
         latitude: address.latitude,
         longitude: address.longitude,
