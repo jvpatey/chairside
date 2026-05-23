@@ -14,6 +14,14 @@ export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;
 export const CLINIC_POSTINGS: Href = '/(clinic-tabs)/postings' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 
+export function getJobDetailRoute(jobId: string): Href {
+  return { pathname: '/(clinic-tabs)/job/[id]', params: { id: jobId } } as Href;
+}
+
+export function getEditJobRoute(jobId: string): Href {
+  return { pathname: '/(clinic-tabs)/post-job', params: { id: jobId } } as Href;
+}
+
 export function getHomeRouteForRole(role: UserRole): Href {
   return role === 'clinic' ? CLINIC_HOME : WORKER_HOME;
 }

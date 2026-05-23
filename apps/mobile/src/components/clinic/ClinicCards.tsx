@@ -316,16 +316,19 @@ type DashboardOverviewPanelProps = {
   jobs: JobPost[];
   shifts: ShiftPost[];
   applications: ClinicApplication[];
+  onJobPress?: (jobId: string) => void;
 };
 
 function DashboardListCard({
   title,
   subtitle,
   meta,
+  onPress,
 }: {
   title: string;
   subtitle: string;
   meta?: string;
+  onPress?: () => void;
 }) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -335,6 +338,9 @@ function DashboardListCard({
       borderColor: colors.separator,
       padding: spacing.md,
       gap: spacing.xs,
+    },
+    cardPressed: {
+      opacity: 0.9,
     },
     title: {
       ...typography.body,
@@ -348,12 +354,30 @@ function DashboardListCard({
     },
   }));
 
-  return (
-    <View style={styles.card}>
+  const content = (
+    <>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
       {meta ? <Text style={styles.meta}>{meta}</Text> : null}
-    </View>
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={styles.card}>{content}</View>;
+  }
+
+  const handlePress = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress();
+  };
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={handlePress}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      {content}
+    </Pressable>
   );
 }
 
@@ -401,6 +425,7 @@ export function DashboardOverviewPanel({
   jobs,
   shifts,
   applications,
+  onJobPress,
 }: DashboardOverviewPanelProps) {
   const styles = useThemedStyles(({ spacing }) => ({
     list: {
@@ -430,6 +455,7 @@ export function DashboardOverviewPanel({
                   title={job.title}
                   subtitle={`${roleLabel} · ${job.employment_type}`}
                   meta={job.wage_range ?? undefined}
+                  onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                 />
               );
             })}

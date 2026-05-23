@@ -20,14 +20,33 @@ export function formatWageRange(min: string, max: string): string {
   return `Up to $${maxValue}/hr`;
 }
 
+export function parseWageRange(wageRange: string): { min: string; max: string } {
+  const range = wageRange.trim();
+  const rangeMatch = /^\$(\d+)–\$(\d+)\/hr$/.exec(range);
+  if (rangeMatch) return { min: rangeMatch[1], max: rangeMatch[2] };
+
+  const fromMatch = /^From \$(\d+)\/hr$/.exec(range);
+  if (fromMatch) return { min: fromMatch[1], max: '' };
+
+  const upToMatch = /^Up to \$(\d+)\/hr$/.exec(range);
+  if (upToMatch) return { min: '', max: upToMatch[1] };
+
+  const singleMatch = /^\$(\d+)\/hr$/.exec(range);
+  if (singleMatch) return { min: singleMatch[1], max: singleMatch[1] };
+
+  return { min: '', max: '' };
+}
+
 type WageRangeInputProps = {
   onChange: (wageRange: string) => void;
+  initialValue?: string;
 };
 
-export function WageRangeInput({ onChange }: WageRangeInputProps) {
+export function WageRangeInput({ onChange, initialValue }: WageRangeInputProps) {
   const { colors } = useTheme();
-  const [min, setMin] = useState('');
-  const [max, setMax] = useState('');
+  const parsedInitial = parseWageRange(initialValue ?? '');
+  const [min, setMin] = useState(parsedInitial.min);
+  const [max, setMax] = useState(parsedInitial.max);
 
   const preview = formatWageRange(min, max);
   const isInvalid = Boolean(min && max && Number(min) > Number(max));

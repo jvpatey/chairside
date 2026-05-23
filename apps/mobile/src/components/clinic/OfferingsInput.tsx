@@ -8,6 +8,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 type OfferingsInputProps = {
   onChange: (offerings: string[]) => void;
+  initialValue?: string[];
 };
 
 function hasOffering(items: string[], label: string): boolean {
@@ -20,9 +21,9 @@ function withoutOffering(items: string[], label: string): string[] {
   return items.filter((item) => item.trim().toLowerCase() !== normalized);
 }
 
-export function OfferingsInput({ onChange }: OfferingsInputProps) {
+export function OfferingsInput({ onChange, initialValue }: OfferingsInputProps) {
   const { colors } = useTheme();
-  const [items, setItems] = useState<string[]>([]);
+  const [items, setItems] = useState<string[]>(initialValue ?? []);
   const [draft, setDraft] = useState('');
 
   const selectedPresets = useMemo(

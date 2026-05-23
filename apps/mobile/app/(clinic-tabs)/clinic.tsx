@@ -21,14 +21,16 @@ export default function ClinicProfileScreen() {
     hint: {
       ...typography.subtitle,
       fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
       backgroundColor: colors.primarySubtle,
       borderRadius: 12,
       padding: spacing.md,
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
     },
     actions: {
       gap: spacing.sm,
-      marginTop: spacing.lg,
+      marginTop: spacing.md,
     },
   }));
 
@@ -50,12 +52,12 @@ export default function ClinicProfileScreen() {
   };
 
   return (
-    <Screen title="Clinic" subtitle="Your practice profile and account.">
+    <Screen title="Clinic" showHeader={false}>
       {!isProfileComplete ? (
         <Text style={styles.hint}>Finish setup to unlock posting roles and fill-in shifts.</Text>
       ) : null}
 
-      <ClinicProfileView profile={clinicProfile} />
+      <ClinicProfileView profile={clinicProfile} isProfileComplete={isProfileComplete} />
 
       <View style={styles.actions}>
         <OnboardingButton

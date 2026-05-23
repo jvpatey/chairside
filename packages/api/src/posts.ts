@@ -74,6 +74,8 @@ export type CreateShiftPostInput = {
   status?: PostStatus;
 };
 
+export type UpdateJobPostInput = Partial<CreateJobPostInput>;
+
 export async function listJobPosts(clinicId: string): Promise<JobPost[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -96,6 +98,54 @@ export async function listShiftPosts(clinicId: string): Promise<ShiftPost[]> {
 
   if (error) throw error;
   return (data ?? []) as ShiftPost[];
+}
+
+export async function getJobPost(clinicId: string, jobId: string): Promise<JobPost | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('job_posts')
+    .select('*')
+    .eq('id', jobId)
+    .eq('clinic_id', clinicId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as JobPost | null;
+}
+
+export async function updateJobPost(
+  clinicId: string,
+  jobId: string,
+  input: UpdateJobPostInput,
+): Promise<JobPost> {
+  const supabase = getSupabaseClient();
+  const now = new Date().toISOString();
+
+  const patch: Record<string, unknown> = { updated_at: now };
+
+  if (input.role_type !== undefined) patch.role_type = input.role_type;
+  if (input.employment_type !== undefined) patch.employment_type = input.employment_type;
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.wage_range !== undefined) patch.wage_range = input.wage_range || null;
+  if (input.schedule !== undefined) patch.schedule = input.schedule || null;
+  if (input.description !== undefined) patch.description = input.description || null;
+  if (input.specialty !== undefined) patch.specialty = input.specialty;
+  if (input.software_used !== undefined) patch.software_used = input.software_used;
+  if (input.start_date !== undefined) patch.start_date = input.start_date || null;
+  if (input.benefits !== undefined) patch.benefits = input.benefits || null;
+  if (input.offerings !== undefined) patch.offerings = input.offerings;
+  if (input.status !== undefined) patch.status = input.status;
+
+  const { data, error } = await supabase
+    .from('job_posts')
+    .update(patch)
+    .eq('id', jobId)
+    .eq('clinic_id', clinicId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as JobPost;
 }
 
 export async function createJobPost(

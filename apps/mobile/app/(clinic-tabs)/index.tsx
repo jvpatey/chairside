@@ -31,6 +31,7 @@ import {
   CLINIC_POST_JOB,
   CLINIC_POST_SHIFT,
   CLINIC_SETUP_BASICS,
+  getJobDetailRoute,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
@@ -147,6 +148,7 @@ export default function ClinicDashboardScreen() {
           jobs={jobs}
           shifts={shifts}
           applications={applications}
+          onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
         />
       </View>
     </Screen>

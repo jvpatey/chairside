@@ -23,8 +23,10 @@ export {
   createJobPost,
   createShiftPost,
   getClinicDashboardCounts,
+  getJobPost,
   listJobPosts,
   listShiftPosts,
+  updateJobPost,
   type ClinicDashboardCounts,
   type CreateJobPostInput,
   type CreateShiftPostInput,
@@ -34,6 +36,7 @@ export {
   type RoleType,
   type ShiftPost,
   type ShiftUrgency,
+  type UpdateJobPostInput,
 } from './posts';
 export {
   listClinicApplications,

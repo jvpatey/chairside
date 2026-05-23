@@ -1,9 +1,9 @@
 import { listJobPosts, listShiftPosts, type JobPost, type ShiftPost } from '@chairside/api';
 import { ROLE_TYPE_OPTIONS, SPECIALTY_OPTIONS } from '@chairside/config';
 import { router } from 'expo-router';
-import { CLINIC_POST_JOB, CLINIC_POST_SHIFT } from '@/lib/routing';
+import { CLINIC_POST_JOB, CLINIC_POST_SHIFT, getJobDetailRoute } from '@/lib/routing';
 import { useCallback, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { BulletList } from '@/components/clinic/BulletList';
@@ -19,12 +19,14 @@ function PostingCard({
   details,
   offerings,
   status,
+  onPress,
 }: {
   title: string;
   subtitle: string;
   details?: string;
   offerings?: string[];
   status: string;
+  onPress?: () => void;
 }) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -34,6 +36,9 @@ function PostingCard({
       borderColor: colors.separator,
       padding: spacing.lg,
       gap: spacing.sm,
+    },
+    cardPressed: {
+      opacity: 0.9,
     },
     title: {
       ...typography.body,
@@ -56,8 +61,8 @@ function PostingCard({
     },
   }));
 
-  return (
-    <View style={styles.card}>
+  const content = (
+    <>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
       {details ? <Text style={styles.subtitle}>{details}</Text> : null}
@@ -65,7 +70,20 @@ function PostingCard({
       <View style={styles.badge}>
         <Text style={styles.badgeText}>{status}</Text>
       </View>
-    </View>
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={styles.card}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      {content}
+    </Pressable>
   );
 }
 
@@ -170,6 +188,7 @@ export default function ClinicPostingsScreen() {
                     details={formatJobDetails(job)}
                     offerings={job.offerings ?? []}
                     status={job.status}
+                    onPress={() => router.push(getJobDetailRoute(job.id))}
                   />
                 );
               })

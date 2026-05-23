@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useThemedStyles } from '@/theme';
 
 type AuthScreenHeaderProps = {
-  title: string;
+  title?: string;
   subtitle?: string;
   onBack?: () => void;
   backLabel?: string;
@@ -18,7 +18,7 @@ export function AuthScreenHeader({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.sm,
-      marginBottom: spacing.lg,
+      marginBottom: spacing.md,
     },
     back: {
       alignSelf: 'flex-start',
@@ -55,7 +55,7 @@ export function AuthScreenHeader({
       ) : (
         <View style={styles.placeholder} />
       )}
-      <Text style={styles.title}>{title}</Text>
+      {title ? <Text style={styles.title}>{title}</Text> : null}
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );

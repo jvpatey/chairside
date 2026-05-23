@@ -205,14 +205,15 @@ type HoursMode = (typeof HOURS_MODE_OPTIONS)[number]['value'];
 
 type ScheduleInputProps = {
   onChange: (schedule: string) => void;
+  initialValue?: string;
 };
 
-export function ScheduleInput({ onChange }: ScheduleInputProps) {
+export function ScheduleInput({ onChange, initialValue }: ScheduleInputProps) {
   const [days, setDays] = useState<ScheduleDay[]>([]);
   const [daySchedules, setDaySchedules] = useState<DaySchedules>({});
   const [hoursMode, setHoursMode] = useState<HoursMode>('same');
   const [sharedSchedule, setSharedSchedule] = useState<DaySchedule>({ startTime: '', endTime: '' });
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(initialValue?.trim() ?? '');
 
   const preview = buildScheduleString(days, daySchedules, notes);
 
