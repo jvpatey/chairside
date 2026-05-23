@@ -6,9 +6,9 @@ import { Pressable, Text, View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
+import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { getTimeOfDayGreeting } from '@/lib/greeting';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type SetupBannerProps = {
@@ -78,7 +78,6 @@ type DashboardHeroProps = {
 const CLINIC_NAME_PLACEHOLDER = 'Your practice';
 
 export function DashboardHero({ clinicName }: DashboardHeroProps) {
-  const greeting = getTimeOfDayGreeting();
   const displayName = clinicName?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -88,17 +87,17 @@ export function DashboardHero({ clinicName }: DashboardHeroProps) {
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.lg,
-      gap: spacing.xs,
+      gap: spacing.sm,
     },
-    greeting: {
-      ...typography.subtitle,
-      fontSize: 15,
+    wordmarkWrap: {
+      alignItems: 'center',
     },
     name: {
       ...typography.title,
       fontSize: 26,
       lineHeight: 32,
       minHeight: 32,
+      textAlign: 'center',
     },
     nameHidden: {
       opacity: 0,
@@ -107,12 +106,15 @@ export function DashboardHero({ clinicName }: DashboardHeroProps) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.greeting}>{greeting}</Text>
+      <View style={styles.wordmarkWrap}>
+        <ChairsideWordmark variant="small" />
+      </View>
       <Text
         style={[styles.name, !displayName && styles.nameHidden]}
         numberOfLines={1}
         accessibilityElementsHidden={!displayName}
-        importantForAccessibility={displayName ? 'yes' : 'no-hide-descendants'}>
+        importantForAccessibility={displayName ? 'yes' : 'no-hide-descendants'}
+      >
         {displayName || CLINIC_NAME_PLACEHOLDER}
       </Text>
     </View>
