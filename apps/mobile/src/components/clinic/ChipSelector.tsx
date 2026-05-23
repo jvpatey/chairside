@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useThemedStyles } from '@/theme';
 
@@ -6,6 +6,8 @@ type ChipSelectorProps<T extends string> = {
   options: { value: T; label: string }[];
   selected: T | T[] | null;
   multiple?: boolean;
+  horizontal?: boolean;
+  compact?: boolean;
   onChange: (value: T | T[]) => void;
 };
 
@@ -13,6 +15,8 @@ export function ChipSelector<T extends string>({
   options,
   selected,
   multiple = false,
+  horizontal = false,
+  compact = false,
   onChange,
 }: ChipSelectorProps<T>) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -21,13 +25,18 @@ export function ChipSelector<T extends string>({
       flexWrap: 'wrap',
       gap: spacing.sm,
     },
+    horizontalContent: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingRight: spacing.xs,
+    },
     chip: {
       borderRadius: 999,
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: compact ? spacing.sm + 2 : spacing.md,
+      paddingVertical: compact ? 6 : spacing.sm,
     },
     chipSelected: {
       borderColor: colors.primary,
@@ -35,7 +44,7 @@ export function ChipSelector<T extends string>({
     },
     label: {
       ...typography.body,
-      fontSize: 14,
+      fontSize: compact ? 13 : 14,
       color: colors.labelPrimary,
     },
     labelSelected: {
@@ -60,21 +69,30 @@ export function ChipSelector<T extends string>({
     onChange(value);
   };
 
-  return (
-    <View style={styles.wrap}>
-      {options.map((option) => {
-        const active = isSelected(option.value);
-        return (
-          <Pressable
-            key={option.value}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            onPress={() => handlePress(option.value)}
-            style={[styles.chip, active && styles.chipSelected]}>
-            <Text style={[styles.label, active && styles.labelSelected]}>{option.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
+  const chips = options.map((option) => {
+    const active = isSelected(option.value);
+    return (
+      <Pressable
+        key={option.value}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}
+        onPress={() => handlePress(option.value)}
+        style={[styles.chip, active && styles.chipSelected]}
+      >
+        <Text style={[styles.label, active && styles.labelSelected]}>{option.label}</Text>
+      </Pressable>
+    );
+  });
+
+  return horizontal ? (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.horizontalContent}
+    >
+      {chips}
+    </ScrollView>
+  ) : (
+    <View style={styles.wrap}>{chips}</View>
   );
 }

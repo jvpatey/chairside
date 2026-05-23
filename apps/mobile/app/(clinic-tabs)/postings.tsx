@@ -11,8 +11,8 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
-import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
+import { RolePostingFilters, ShiftPostingFilters } from '@/components/clinic/PostingFilters';
 import { PostingsTabBar, type PostingsTab } from '@/components/clinic/PostingsTabBar';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -20,29 +20,15 @@ import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import {
+  filterJobPosts,
+  filterShiftPosts,
+  type JobStatusFilter,
+  type RoleTypeFilter,
+  type ShiftDateFilter,
+  type ShiftStatusFilter,
+} from '@/lib/postingFilters';
 import { useTheme, useThemedStyles } from '@/theme';
-
-type JobFilter = 'active' | 'paused' | 'archived' | 'all';
-
-const JOB_FILTER_OPTIONS: { value: JobFilter; label: string }[] = [
-  { value: 'active', label: 'Active' },
-  { value: 'paused', label: 'Paused' },
-  { value: 'archived', label: 'Archived' },
-  { value: 'all', label: 'All' },
-];
-
-function filterJobs(jobs: JobPost[], filter: JobFilter): JobPost[] {
-  switch (filter) {
-    case 'active':
-      return jobs.filter((job) => job.status === 'live');
-    case 'paused':
-      return jobs.filter((job) => job.status === 'paused');
-    case 'archived':
-      return jobs.filter((job) => job.status === 'filled' || job.status === 'closed');
-    case 'all':
-      return jobs;
-  }
-}
 
 function PostingListEmptyState({
   icon,
@@ -104,7 +90,11 @@ export default function ClinicPostingsScreen() {
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [selectedTab, setSelectedTab] = useState<PostingsTab>('roles');
-  const [jobFilter, setJobFilter] = useState<JobFilter>('active');
+  const [jobStatusFilter, setJobStatusFilter] = useState<JobStatusFilter>('active');
+  const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
+  const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
+  const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
+  const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -113,7 +103,15 @@ export default function ClinicPostingsScreen() {
     }
   }, [tab]);
 
-  const filteredJobs = useMemo(() => filterJobs(jobs, jobFilter), [jobs, jobFilter]);
+  const filteredJobs = useMemo(
+    () => filterJobPosts(jobs, jobStatusFilter, jobRoleTypeFilter),
+    [jobs, jobStatusFilter, jobRoleTypeFilter],
+  );
+
+  const filteredShifts = useMemo(
+    () => filterShiftPosts(shifts, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter),
+    [shifts, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter],
+  );
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     wrap: {
@@ -122,7 +120,6 @@ export default function ClinicPostingsScreen() {
     list: {
       gap: spacing.sm,
     },
-    empty: typography.subtitle,
     loading: typography.subtitle,
   }));
 
@@ -182,10 +179,11 @@ export default function ClinicPostingsScreen() {
         ) : selectedTab === 'roles' ? (
           <>
             {jobs.length > 0 ? (
-              <ChipSelector
-                options={JOB_FILTER_OPTIONS}
-                selected={jobFilter}
-                onChange={(value) => setJobFilter(value as JobFilter)}
+              <RolePostingFilters
+                statusFilter={jobStatusFilter}
+                roleTypeFilter={jobRoleTypeFilter}
+                onStatusChange={setJobStatusFilter}
+                onRoleTypeChange={setJobRoleTypeFilter}
               />
             ) : null}
 
@@ -213,22 +211,43 @@ export default function ClinicPostingsScreen() {
               </View>
             )}
           </>
-        ) : shifts.length === 0 ? (
-          <PostingListEmptyState
-            icon="calendar-outline"
-            title="No fill-ins yet"
-            body="Post a fill-in shift when you need temporary or urgent coverage."
-          />
         ) : (
-          <View style={styles.list}>
-            {shifts.map((shift) => (
-              <FillInPostingCard
-                key={shift.id}
-                shift={shift}
-                onPress={() => router.push(getShiftDetailRoute(shift.id, fillInReturnTo))}
+          <>
+            {shifts.length > 0 ? (
+              <ShiftPostingFilters
+                statusFilter={shiftStatusFilter}
+                roleTypeFilter={shiftRoleTypeFilter}
+                shiftDateFilter={shiftDateFilter}
+                onStatusChange={setShiftStatusFilter}
+                onRoleTypeChange={setShiftRoleTypeFilter}
+                onShiftDateChange={setShiftDateFilter}
               />
-            ))}
-          </View>
+            ) : null}
+
+            {shifts.length === 0 ? (
+              <PostingListEmptyState
+                icon="calendar-outline"
+                title="No fill-ins yet"
+                body="Post a fill-in shift when you need temporary or urgent coverage."
+              />
+            ) : filteredShifts.length === 0 ? (
+              <PostingListEmptyState
+                icon="filter-outline"
+                title="No fill-ins in this filter"
+                body="Try a different filter or post a new fill-in shift."
+              />
+            ) : (
+              <View style={styles.list}>
+                {filteredShifts.map((shift) => (
+                  <FillInPostingCard
+                    key={shift.id}
+                    shift={shift}
+                    onPress={() => router.push(getShiftDetailRoute(shift.id, fillInReturnTo))}
+                  />
+                ))}
+              </View>
+            )}
+          </>
         )}
       </View>
     </Screen>
