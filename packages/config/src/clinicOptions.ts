@@ -45,7 +45,13 @@ export const ROLE_TYPE_OPTIONS = [
   { value: 'hygienist' as const, label: 'Dental hygienist' },
   { value: 'assistant' as const, label: 'Dental assistant' },
   { value: 'admin' as const, label: 'Office admin' },
-];
+  { value: 'office_manager' as const, label: 'Office manager' },
+  { value: 'treatment_coordinator' as const, label: 'Treatment coordinator' },
+  { value: 'dentist' as const, label: 'Dentist' },
+  { value: 'other' as const, label: 'Other' },
+] as const;
+
+export type RoleType = (typeof ROLE_TYPE_OPTIONS)[number]['value'];
 
 export const EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'permanent' as const, label: 'Permanent' },
@@ -59,6 +65,26 @@ export const URGENCY_OPTIONS = [
   { value: 'urgent' as const, label: 'Urgent' },
   { value: 'same_day' as const, label: 'Same day' },
 ];
+
+/** Common perks seen on the Nova Scotia Dental Association job bank. */
+export const OFFERING_PRESET_OPTIONS = [
+  { value: 'health_benefits', label: 'Health benefits' },
+  { value: 'dental_benefits', label: 'Dental benefits' },
+  { value: 'rrsp_matching', label: 'RRSP matching' },
+  { value: 'paid_sick_days', label: 'Paid sick days' },
+  { value: 'paid_holidays', label: 'Paid holidays (stat & non-stat)' },
+  { value: 'ce_allowance', label: 'CE allowance' },
+  { value: 'clothing_allowance', label: 'Clothing or scrubs allowance' },
+  { value: 'free_parking', label: 'Free on-site parking' },
+  { value: 'no_evenings_weekends', label: 'No evenings or weekends' },
+  { value: 'signing_bonus', label: 'Signing bonus' },
+] as const;
+
+export type OfferingPreset = (typeof OFFERING_PRESET_OPTIONS)[number]['value'];
+
+export function getOfferingPresetLabel(value: OfferingPreset): string {
+  return OFFERING_PRESET_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
 
 export type TeamSizeRange = '1-5' | '6-10' | '11-20' | '21-50' | '51+' | 'prefer_not_to_say';
 

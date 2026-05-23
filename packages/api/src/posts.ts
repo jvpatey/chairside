@@ -1,7 +1,8 @@
+import type { RoleType } from '@chairside/config';
 import { getSupabaseClient } from './client';
 
+export type { RoleType } from '@chairside/config';
 export type PostStatus = 'draft' | 'live' | 'filled' | 'closed';
-export type RoleType = 'hygienist' | 'assistant' | 'admin';
 export type EmploymentType = 'permanent' | 'part-time' | 'temp' | 'fill-in';
 export type ShiftUrgency = 'normal' | 'urgent' | 'same_day';
 
@@ -20,6 +21,7 @@ export type JobPost = {
   software_used: string[];
   start_date: string | null;
   benefits: string | null;
+  offerings: string[];
   status: PostStatus;
   created_at: string;
   updated_at: string;
@@ -57,6 +59,7 @@ export type CreateJobPostInput = {
   software_used?: string[];
   start_date?: string;
   benefits?: string;
+  offerings?: string[];
   status?: PostStatus;
 };
 
@@ -102,6 +105,26 @@ export async function createJobPost(
   const supabase = getSupabaseClient();
   const now = new Date().toISOString();
 
+  let specialty = input.specialty;
+  let softwareUsed = input.software_used;
+
+  if (specialty === undefined || softwareUsed === undefined) {
+    const { data: clinicProfile, error: profileError } = await supabase
+      .from('clinic_profiles')
+      .select('specialty, software_used')
+      .eq('id', clinicId)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    if (specialty === undefined) {
+      specialty = clinicProfile?.specialty ?? 'general';
+    }
+    if (softwareUsed === undefined) {
+      softwareUsed = clinicProfile?.software_used ?? [];
+    }
+  }
+
   const { data, error } = await supabase
     .from('job_posts')
     .insert({
@@ -112,10 +135,11 @@ export async function createJobPost(
       wage_range: input.wage_range ?? null,
       schedule: input.schedule ?? null,
       description: input.description ?? null,
-      specialty: input.specialty ?? 'general',
-      software_used: input.software_used ?? [],
+      specialty,
+      software_used: softwareUsed,
       start_date: input.start_date ?? null,
       benefits: input.benefits ?? null,
+      offerings: input.offerings ?? [],
       status: input.status ?? 'live',
       updated_at: now,
     })

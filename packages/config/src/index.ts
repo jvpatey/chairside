@@ -1,13 +1,17 @@
 export {
   EMPLOYMENT_TYPE_OPTIONS,
+  OFFERING_PRESET_OPTIONS,
   ROLE_TYPE_OPTIONS,
   SOFTWARE_OPTIONS,
   SPECIALTY_OPTIONS,
   URGENCY_OPTIONS,
   TEAM_SIZE_RANGE_OPTIONS,
+  getOfferingPresetLabel,
   getTeamSizeRangeLabel,
   resolveSoftwareSelection,
   type ClinicSoftware,
   type ClinicSpecialty,
+  type OfferingPreset,
+  type RoleType,
   type TeamSizeRange,
 } from './clinicOptions';

@@ -49,6 +49,7 @@ export type JobPostRow = {
   software_used: string[];
   start_date: string | null;
   benefits: string | null;
+  offerings: string[];
   status: string;
   created_at: string;
   updated_at: string;

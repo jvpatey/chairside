@@ -1,7 +1,7 @@
 import { getClinicDashboardCounts, getMissingClinicProfileFields, type ClinicDashboardCounts } from '@chairside/api';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import {
@@ -15,6 +15,7 @@ import {
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   CLINIC_APPLICATIONS,
   CLINIC_POST_JOB,
@@ -53,9 +54,7 @@ export default function ClinicDashboardScreen() {
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    void loadCounts();
-  }, [loadCounts]);
+  useRefreshOnFocus(loadCounts);
 
   const guardPosting = (target: Href) => {
     if (isProfileComplete) {
