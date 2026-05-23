@@ -17,5 +17,5 @@ export type JobPost = {
   employmentType: EmploymentType;
   location: string;
   wageRange?: string;
-  status: 'draft' | 'live' | 'filled' | 'closed';
+  status: 'live' | 'paused' | 'filled' | 'closed';
 };

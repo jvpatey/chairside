@@ -19,6 +19,7 @@ export function OnboardingButton({
 }: OnboardingButtonProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     base: {
+      alignSelf: 'stretch',
       borderRadius: 12,
       paddingVertical: spacing.md,
       alignItems: 'center' as const,

@@ -1,10 +1,12 @@
-import { listJobPosts, listShiftPosts, type JobPost, type ShiftPost } from '@chairside/api';
+import { listJobPosts, listShiftPosts, type JobPost, type JobPostStatus, type ShiftPost } from '@chairside/api';
 import { ROLE_TYPE_OPTIONS, SPECIALTY_OPTIONS } from '@chairside/config';
 import { router } from 'expo-router';
 import { CLINIC_POST_JOB, CLINIC_POST_SHIFT, getJobDetailRoute } from '@/lib/routing';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
+import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { BulletList } from '@/components/clinic/BulletList';
 import { Screen } from '@/components/ui/Screen';
@@ -13,19 +15,43 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useThemedStyles } from '@/theme';
 
+type JobFilter = 'active' | 'paused' | 'archived' | 'all';
+
+const JOB_FILTER_OPTIONS: { value: JobFilter; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'archived', label: 'Archived' },
+  { value: 'all', label: 'All' },
+];
+
+function filterJobs(jobs: JobPost[], filter: JobFilter): JobPost[] {
+  switch (filter) {
+    case 'active':
+      return jobs.filter((job) => job.status === 'live');
+    case 'paused':
+      return jobs.filter((job) => job.status === 'paused');
+    case 'archived':
+      return jobs.filter((job) => job.status === 'filled' || job.status === 'closed');
+    case 'all':
+      return jobs;
+  }
+}
+
 function PostingCard({
   title,
   subtitle,
   details,
   offerings,
-  status,
+  jobStatus,
+  statusLabel,
   onPress,
 }: {
   title: string;
   subtitle: string;
   details?: string;
   offerings?: string[];
-  status: string;
+  jobStatus?: JobPostStatus;
+  statusLabel?: string;
   onPress?: () => void;
 }) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -39,6 +65,16 @@ function PostingCard({
     },
     cardPressed: {
       opacity: 0.9,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    headerMain: {
+      flex: 1,
+      gap: spacing.xs,
     },
     title: {
       ...typography.body,
@@ -63,13 +99,20 @@ function PostingCard({
 
   const content = (
     <>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+      <View style={styles.header}>
+        <View style={styles.headerMain}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        </View>
+        {jobStatus ? <JobPostStatusBadge status={jobStatus} /> : null}
+      </View>
       {details ? <Text style={styles.subtitle}>{details}</Text> : null}
       <BulletList items={offerings ?? []} label="Perks & offerings" />
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{status}</Text>
-      </View>
+      {!jobStatus && statusLabel ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{statusLabel}</Text>
+        </View>
+      ) : null}
     </>
   );
 
@@ -100,7 +143,10 @@ export default function ClinicPostingsScreen() {
   const { isProfileComplete } = useClinicProfile();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
+  const [jobFilter, setJobFilter] = useState<JobFilter>('active');
   const [isLoading, setIsLoading] = useState(true);
+
+  const filteredJobs = useMemo(() => filterJobs(jobs, jobFilter), [jobs, jobFilter]);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     section: { gap: spacing.md, marginBottom: spacing.lg },
@@ -112,6 +158,9 @@ export default function ClinicPostingsScreen() {
     loading: typography.subtitle,
     actions: { flexDirection: 'row', gap: spacing.sm },
     action: { flex: 1 },
+    filters: {
+      marginBottom: spacing.sm,
+    },
   }));
 
   const load = useCallback(async () => {
@@ -172,10 +221,21 @@ export default function ClinicPostingsScreen() {
         <>
           <View style={styles.section}>
             <Text style={styles.heading}>Roles</Text>
+            {jobs.length > 0 ? (
+              <View style={styles.filters}>
+                <ChipSelector
+                  options={JOB_FILTER_OPTIONS}
+                  selected={jobFilter}
+                  onChange={(value) => setJobFilter(value as JobFilter)}
+                />
+              </View>
+            ) : null}
             {jobs.length === 0 ? (
               <Text style={styles.empty}>No job posts yet.</Text>
+            ) : filteredJobs.length === 0 ? (
+              <Text style={styles.empty}>No roles in this filter.</Text>
             ) : (
-              jobs.map((job) => {
+              filteredJobs.map((job) => {
                 const roleLabel =
                   ROLE_TYPE_OPTIONS.find((option) => option.value === job.role_type)?.label ??
                   job.role_type;
@@ -187,7 +247,7 @@ export default function ClinicPostingsScreen() {
                     subtitle={`${roleLabel} · ${job.employment_type}`}
                     details={formatJobDetails(job)}
                     offerings={job.offerings ?? []}
-                    status={job.status}
+                    jobStatus={job.status}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
                   />
                 );
@@ -204,7 +264,7 @@ export default function ClinicPostingsScreen() {
                   key={shift.id}
                   title={`${shift.role_type} · ${shift.shift_date}`}
                   subtitle={`${shift.start_time} – ${shift.end_time}`}
-                  status={shift.status}
+                  statusLabel={shift.status}
                 />
               ))
             )}

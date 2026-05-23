@@ -2,7 +2,10 @@ import type { RoleType } from '@chairside/config';
 import { getSupabaseClient } from './client';
 
 export type { RoleType } from '@chairside/config';
-export type PostStatus = 'draft' | 'live' | 'filled' | 'closed';
+export type JobPostStatus = 'live' | 'paused' | 'filled' | 'closed';
+export type ShiftPostStatus = 'draft' | 'live' | 'filled' | 'closed';
+/** @deprecated Use JobPostStatus or ShiftPostStatus */
+export type PostStatus = ShiftPostStatus;
 export type EmploymentType = 'permanent' | 'part-time' | 'temp' | 'fill-in';
 export type ShiftUrgency = 'normal' | 'urgent' | 'same_day';
 
@@ -22,7 +25,7 @@ export type JobPost = {
   start_date: string | null;
   benefits: string | null;
   offerings: string[];
-  status: PostStatus;
+  status: JobPostStatus;
   created_at: string;
   updated_at: string;
 };
@@ -37,7 +40,7 @@ export type ShiftPost = {
   compensation: string | null;
   urgency: ShiftUrgency;
   description: string | null;
-  status: PostStatus;
+  status: ShiftPostStatus;
   created_at: string;
   updated_at: string;
 };
@@ -60,7 +63,7 @@ export type CreateJobPostInput = {
   start_date?: string;
   benefits?: string;
   offerings?: string[];
-  status?: PostStatus;
+  status?: JobPostStatus;
 };
 
 export type CreateShiftPostInput = {
@@ -71,7 +74,7 @@ export type CreateShiftPostInput = {
   compensation?: string;
   urgency?: ShiftUrgency;
   description?: string;
-  status?: PostStatus;
+  status?: ShiftPostStatus;
 };
 
 export type UpdateJobPostInput = Partial<CreateJobPostInput>;
@@ -146,6 +149,50 @@ export async function updateJobPost(
 
   if (error) throw error;
   return data as JobPost;
+}
+
+export async function updateJobPostStatus(
+  clinicId: string,
+  jobId: string,
+  status: JobPostStatus,
+): Promise<JobPost> {
+  return updateJobPost(clinicId, jobId, { status });
+}
+
+export async function deleteJobPost(clinicId: string, jobId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from('job_posts')
+    .delete()
+    .eq('id', jobId)
+    .eq('clinic_id', clinicId);
+
+  if (error) throw error;
+}
+
+export async function getJobPostApplicationCount(
+  clinicId: string,
+  jobId: string,
+): Promise<number> {
+  const supabase = getSupabaseClient();
+
+  const { data: job, error: jobError } = await supabase
+    .from('job_posts')
+    .select('id')
+    .eq('id', jobId)
+    .eq('clinic_id', clinicId)
+    .maybeSingle();
+
+  if (jobError) throw jobError;
+  if (!job) return 0;
+
+  const { count, error } = await supabase
+    .from('applications')
+    .select('id', { count: 'exact', head: true })
+    .eq('job_post_id', jobId);
+
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function createJobPost(

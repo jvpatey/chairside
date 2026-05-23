@@ -2,7 +2,10 @@ import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
 import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
+
+import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { getTimeOfDayGreeting } from '@/lib/greeting';
@@ -323,11 +326,13 @@ function DashboardListCard({
   title,
   subtitle,
   meta,
+  statusBadge,
   onPress,
 }: {
   title: string;
   subtitle: string;
   meta?: string;
+  statusBadge?: ReactNode;
   onPress?: () => void;
 }) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -341,6 +346,16 @@ function DashboardListCard({
     },
     cardPressed: {
       opacity: 0.9,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    headerMain: {
+      flex: 1,
+      gap: spacing.xs,
     },
     title: {
       ...typography.body,
@@ -356,8 +371,13 @@ function DashboardListCard({
 
   const content = (
     <>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+      <View style={styles.header}>
+        <View style={styles.headerMain}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        </View>
+        {statusBadge}
+      </View>
       {meta ? <Text style={styles.meta}>{meta}</Text> : null}
     </>
   );
@@ -433,18 +453,18 @@ export function DashboardOverviewPanel({
     },
   }));
 
-  const liveJobs = jobs.filter((job) => job.status === 'live');
+  const roleJobs = jobs.filter((job) => job.status === 'live' || job.status === 'paused');
   const liveShifts = shifts.filter((shift) => shift.status === 'live');
 
   return (
     <View>
       <SectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
       {selected === 'roles' ? (
-        liveJobs.length === 0 ? (
-          <DashboardEmptyState message="No live role postings yet. Post a role to get started." />
+        roleJobs.length === 0 ? (
+          <DashboardEmptyState message="No active role postings yet. Post a role to get started." />
         ) : (
           <View style={styles.list}>
-            {liveJobs.map((job) => {
+            {roleJobs.map((job) => {
               const roleLabel =
                 ROLE_TYPE_OPTIONS.find((option) => option.value === job.role_type)?.label ??
                 job.role_type;
@@ -455,6 +475,7 @@ export function DashboardOverviewPanel({
                   title={job.title}
                   subtitle={`${roleLabel} · ${job.employment_type}`}
                   meta={job.wage_range ?? undefined}
+                  statusBadge={<JobPostStatusBadge status={job.status} />}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                 />
               );

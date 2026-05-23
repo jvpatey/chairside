@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
+import { JobPostManageMenu } from '@/components/clinic/JobPostManageMenu';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
@@ -24,7 +25,11 @@ export default function JobDetailScreen() {
       gap: spacing.lg,
     },
     footer: {
+      flexDirection: 'row',
       gap: spacing.sm,
+    },
+    footerButton: {
+      flex: 1,
     },
   }));
 
@@ -73,7 +78,17 @@ export default function JobDetailScreen() {
     <OnboardingShell
       footer={
         <View style={styles.footer}>
+          {user?.id ? (
+            <JobPostManageMenu
+              style={styles.footerButton}
+              clinicId={user.id}
+              job={job}
+              onUpdated={setJob}
+              onDeleted={() => router.back()}
+            />
+          ) : null}
           <OnboardingButton
+            style={styles.footerButton}
             label="Edit role"
             onPress={() => router.push(getEditJobRoute(job.id))}
           />

@@ -67,7 +67,7 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
     },
     footer: {
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.sm,
+      paddingTop: spacing.md,
       backgroundColor: colors.background,
     },
     footerBorder: {
@@ -149,9 +149,7 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
     };
   }, [performScroll]);
 
-  const footerPaddingBottom = footer
-    ? Math.max(insets.bottom, spacing.sm)
-    : insets.bottom + spacing.md;
+  const footerPaddingBottom = footer ? spacing.md : insets.bottom + spacing.md;
 
   const scrollView = (
     <ScrollView

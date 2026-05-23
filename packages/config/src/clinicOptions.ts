@@ -101,3 +101,28 @@ export function getTeamSizeRangeLabel(value: TeamSizeRange | null | undefined): 
   if (!value) return null;
   return TEAM_SIZE_RANGE_OPTIONS.find((option) => option.value === value)?.label ?? null;
 }
+
+export type JobPostStatus = 'live' | 'paused' | 'filled' | 'closed';
+
+export type JobPostStatusBadgeVariant = 'live' | 'paused' | 'filled' | 'archived' | 'neutral';
+
+export const JOB_POST_STATUS_OPTIONS: {
+  value: JobPostStatus;
+  label: string;
+  badgeVariant: JobPostStatusBadgeVariant;
+}[] = [
+  { value: 'live', label: 'Live', badgeVariant: 'live' },
+  { value: 'paused', label: 'Paused', badgeVariant: 'paused' },
+  { value: 'filled', label: 'Filled', badgeVariant: 'filled' },
+  { value: 'closed', label: 'Archived', badgeVariant: 'archived' },
+];
+
+export function getJobPostStatusLabel(status: JobPostStatus): string {
+  return JOB_POST_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status;
+}
+
+export function getJobPostStatusBadgeVariant(status: JobPostStatus): JobPostStatusBadgeVariant {
+  return (
+    JOB_POST_STATUS_OPTIONS.find((option) => option.value === status)?.badgeVariant ?? 'neutral'
+  );
+}

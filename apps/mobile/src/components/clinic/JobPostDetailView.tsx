@@ -14,14 +14,8 @@ import {
   DetailSectionDivider,
   RowDivider,
 } from '@/components/clinic/DetailCard';
+import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { useThemedStyles } from '@/theme';
-
-const STATUS_LABELS: Record<JobPost['status'], string> = {
-  draft: 'Draft',
-  live: 'Live',
-  filled: 'Filled',
-  closed: 'Closed',
-};
 
 type JobPostDetailViewProps = {
   job: JobPost;
@@ -77,30 +71,7 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
       position: 'absolute',
       top: spacing.lg,
       right: spacing.lg,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
       zIndex: 1,
-    },
-    statusBadgeLive: {
-      backgroundColor: `${colors.success}1A`,
-      borderWidth: 1,
-      borderColor: `${colors.success}40`,
-    },
-    statusBadgeLiveText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.success,
-    },
-    statusBadgeDefault: {
-      backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
-      borderColor: colors.separator,
-    },
-    statusBadgeDefaultText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.labelSecondary,
     },
     card: {
       backgroundColor: colors.surface,
@@ -113,20 +84,10 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
     },
   }));
 
-  const isLive = job.status === 'live';
-
   return (
     <View style={styles.wrap}>
       <View style={styles.hero}>
-        <View
-          style={[
-            styles.statusBadge,
-            isLive ? styles.statusBadgeLive : styles.statusBadgeDefault,
-          ]}>
-          <Text style={isLive ? styles.statusBadgeLiveText : styles.statusBadgeDefaultText}>
-            {STATUS_LABELS[job.status]}
-          </Text>
-        </View>
+        <JobPostStatusBadge status={job.status} style={styles.statusBadge} />
 
         <View style={styles.heroTop}>
           <Text style={styles.overline}>Open role</Text>
