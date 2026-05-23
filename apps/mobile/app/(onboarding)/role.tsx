@@ -10,6 +10,7 @@ import { RoleCard } from '@/components/onboarding/RoleCard';
 import { ROLE_OPTIONS } from '@/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { getHomeRouteForRole } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
 
@@ -69,7 +70,7 @@ export default function RoleScreen() {
         await setProfileRole(session.user.id, selectedRole);
         await refreshProfile();
         await completeOnboarding(selectedRole);
-        router.replace('/(tabs)');
+        router.replace(getHomeRouteForRole(selectedRole));
       } catch (error) {
         Alert.alert(
           'Could not save role',

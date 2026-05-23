@@ -1,0 +1,101 @@
+import { router } from 'expo-router';
+import { CLINIC_SETUP_PRACTICE } from '@/lib/routing';
+import { useEffect, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
+
+import {
+  AddressAutocomplete,
+  createEmptyAddressValue,
+  type AddressFormValue,
+} from '@/components/clinic/AddressAutocomplete';
+import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { useThemedStyles } from '@/theme';
+
+function profileToAddress(profile: NonNullable<ReturnType<typeof useClinicProfile>['clinicProfile']>): AddressFormValue {
+  return {
+    address_line1: profile.address_line1 ?? '',
+    address_line2: profile.address_line2 ?? '',
+    city: profile.city ?? '',
+    province: profile.province ?? 'NS',
+    postal_code: profile.postal_code ?? '',
+    latitude: profile.latitude,
+    longitude: profile.longitude,
+    formatted: '',
+  };
+}
+
+export default function ClinicLocationScreen() {
+  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { save } = useClinicSetupSave();
+  const [address, setAddress] = useState<AddressFormValue>(createEmptyAddressValue());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    form: { gap: spacing.md },
+    footer: { gap: spacing.md, marginTop: spacing.lg },
+    step: { marginBottom: spacing.sm },
+  }));
+
+  useEffect(() => {
+    if (clinicProfile) {
+      setAddress(profileToAddress(clinicProfile));
+    }
+  }, [clinicProfile]);
+
+  const handleContinue = async () => {
+    if (!address.address_line1.trim() || !address.city.trim() || !address.postal_code.trim()) {
+      Alert.alert('Missing information', 'Enter a complete address to continue.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await save({
+        address_line1: address.address_line1.trim(),
+        address_line2: address.address_line2.trim() || null,
+        city: address.city.trim(),
+        province: 'NS',
+        postal_code: address.postal_code.trim(),
+        latitude: address.latitude,
+        longitude: address.longitude,
+      });
+      router.push(CLINIC_SETUP_PRACTICE);
+    } catch (error) {
+      Alert.alert(
+        'Could not save',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isClinicProfileReady) return null;
+
+  return (
+    <OnboardingShell
+      footer={
+        <View style={styles.footer}>
+          <OnboardingButton
+            label={isSubmitting ? 'Saving…' : 'Continue'}
+            disabled={isSubmitting}
+            onPress={handleContinue}
+          />
+        </View>
+      }>
+      <AuthScreenHeader
+        title="Clinic location"
+        subtitle="Where is your practice located?"
+        onBack={() => router.back()}
+      />
+      <Text style={styles.step}>Step 2 of 5</Text>
+      <View style={styles.form}>
+        <AddressAutocomplete value={address} onChange={setAddress} />
+      </View>
+    </OnboardingShell>
+  );
+}

@@ -9,8 +9,9 @@ type AuthFieldProps = {
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  keyboardType?: 'default' | 'email-address';
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'url';
   editable?: boolean;
+  multiline?: boolean;
 };
 
 export function AuthField({
@@ -22,6 +23,7 @@ export function AuthField({
   autoCapitalize = 'none',
   keyboardType = 'default',
   editable = true,
+  multiline = false,
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -65,6 +67,7 @@ export function AuthField({
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
         editable={editable}
+        multiline={multiline}
         accessibilityLabel={label}
       />
     </View>

@@ -19,6 +19,7 @@ Edit `apps/mobile/.env` and set both values from Supabase → Project Settings �
 
 - `EXPO_PUBLIC_SUPABASE_URL` — your project URL (`https://<ref>.supabase.co`)
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the anon / publishable key
+- `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` — Mapbox public token for address autocomplete
 
 Run all database migrations in [`supabase/migrations/`](supabase/migrations/) **in order** in the Supabase SQL editor:
 
@@ -26,8 +27,11 @@ Run all database migrations in [`supabase/migrations/`](supabase/migrations/) **
 2. [`002_profiles_insert_policy.sql`](supabase/migrations/002_profiles_insert_policy.sql) — allows clients to insert/upsert their own profile under RLS
 3. [`003_profiles_update_policy_check.sql`](supabase/migrations/003_profiles_update_policy_check.sql) — tightens UPDATE policy with `WITH CHECK`
 4. [`004_handle_new_user_role_coercion.sql`](supabase/migrations/004_handle_new_user_role_coercion.sql) — invalid signup roles become `NULL` instead of blocking sign-up
+5. [`005_clinic_profiles.sql`](supabase/migrations/005_clinic_profiles.sql) — clinic profile table and RLS
+6. [`006_job_shift_posts.sql`](supabase/migrations/006_job_shift_posts.sql) — job and shift post tables
+7. [`007_applications.sql`](supabase/migrations/007_applications.sql) — applications table
 
-If you already ran `001` before the later files existed, run `002`–`004` only.
+If you already ran `001` before the later files existed, run `002`–`007` only.
 
 ```bash
 pnpm dev
@@ -68,6 +72,6 @@ This project is mobile-first. Expo Router supports web out of the box — run `p
 ## What's not included yet
 
 - Push notifications
-- Job posts, full profiles, and matching features
+- Worker profiles and matching tuning
 
 Add these incrementally as you build out the MVP.

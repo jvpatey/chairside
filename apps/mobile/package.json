@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "dependencies": {
     "@chairside/api": "workspace:*",
+    "@chairside/config": "workspace:*",
+    "@chairside/core": "workspace:*",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@supabase/supabase-js": "^2.49.8",
     "@expo/metro-runtime": "6.1.2",

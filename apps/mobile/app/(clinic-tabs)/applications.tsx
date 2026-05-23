@@ -1,0 +1,128 @@
+import { listClinicApplications, updateApplicationStatus, type ClinicApplication } from '@chairside/api';
+import { calculateMatchScore } from '@chairside/core';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
+
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { Screen } from '@/components/ui/Screen';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemedStyles } from '@/theme';
+
+function ApplicationCard({
+  application,
+  onShortlist,
+  onReject,
+}: {
+  application: ClinicApplication;
+  onShortlist: () => void;
+  onReject: () => void;
+}) {
+  const breakdown = calculateMatchScore({
+    postRoleType: application.role_type,
+  });
+  const score = application.match_score ?? breakdown.overall;
+
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.lg,
+      gap: spacing.sm,
+    },
+    title: {
+      ...typography.body,
+      fontWeight: '600',
+    },
+    meta: typography.subtitle,
+    score: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    action: { flex: 1 },
+  }));
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.title}>{application.post_title}</Text>
+      <Text style={styles.meta}>
+        {application.post_type === 'job' ? 'Role application' : 'Fill-in application'} ·{' '}
+        {application.status}
+      </Text>
+      <Text style={styles.score}>Match score: {score}%</Text>
+      {application.cover_message ? (
+        <Text style={styles.meta}>{application.cover_message}</Text>
+      ) : null}
+      {application.status === 'applied' ? (
+        <View style={styles.actions}>
+          <OnboardingButton style={styles.action} label="Shortlist" onPress={onShortlist} />
+          <OnboardingButton
+            style={styles.action}
+            label="Reject"
+            variant="secondary"
+            onPress={onReject}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+export default function ClinicApplicationsScreen() {
+  const { user } = useAuth();
+  const [applications, setApplications] = useState<ClinicApplication[]>([]);
+
+  const styles = useThemedStyles(({ spacing, typography }) => ({
+    list: { gap: spacing.md },
+    empty: typography.subtitle,
+  }));
+
+  const load = useCallback(async () => {
+    if (!user?.id) return;
+    const rows = await listClinicApplications(user.id);
+    setApplications(rows);
+  }, [user?.id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const updateStatus = async (applicationId: string, status: 'shortlisted' | 'rejected') => {
+    try {
+      await updateApplicationStatus(applicationId, status);
+      await load();
+    } catch (error) {
+      Alert.alert(
+        'Update failed',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  };
+
+  return (
+    <Screen title="Applications" subtitle="Candidates across your postings.">
+      {applications.length === 0 ? (
+        <Text style={styles.empty}>
+          No applications yet. They will appear here when workers apply to your postings.
+        </Text>
+      ) : (
+        <View style={styles.list}>
+          {applications.map((application) => (
+            <ApplicationCard
+              key={application.id}
+              application={application}
+              onShortlist={() => void updateStatus(application.id, 'shortlisted')}
+              onReject={() => void updateStatus(application.id, 'rejected')}
+            />
+          ))}
+        </View>
+      )}
+    </Screen>
+  );
+}
