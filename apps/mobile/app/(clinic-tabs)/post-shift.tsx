@@ -1,41 +1,94 @@
-import { createShiftPost, type RoleType, type ShiftUrgency } from '@chairside/api';
-import { ROLE_TYPE_OPTIONS, URGENCY_OPTIONS } from '@chairside/config';
+import { createShiftPost, type RoleType } from '@chairside/api';
+import { ROLE_TYPE_OPTIONS } from '@chairside/config';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { CLINIC_POSTINGS } from '@/lib/routing';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { CompensationInput } from '@/components/clinic/CompensationInput';
+import { ShiftDateInput } from '@/components/clinic/ShiftDateInput';
+import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
-import { useThemedStyles } from '@/theme';
+import { todayISO } from '@/lib/dates';
+import { isValidTimeRange, parseTime24h } from '@/lib/time';
+import { useTheme, useThemedStyles } from '@/theme';
 
 export default function PostShiftScreen() {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [roleType, setRoleType] = useState<RoleType>('hygienist');
-  const [shiftDate, setShiftDate] = useState('');
+  const [shiftDate, setShiftDate] = useState(todayISO());
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('17:00');
   const [compensation, setCompensation] = useState('');
-  const [urgency, setUrgency] = useState<ShiftUrgency>('normal');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const handleCompensationChange = useCallback((value: string) => {
+    setCompensation(value);
+  }, []);
+
+  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     form: { gap: spacing.lg },
     section: { gap: spacing.sm },
     label: {
       ...typography.body,
       fontWeight: '600',
     },
+    notice: {
+      backgroundColor: colors.primarySubtle,
+      borderRadius: 16,
+      padding: spacing.lg,
+      gap: spacing.sm,
+    },
+    noticeRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.md,
+    },
+    noticeIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    noticeTextBlock: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    noticeTitle: {
+      ...typography.body,
+      fontWeight: '600',
+      color: colors.labelPrimary,
+    },
+    noticeBody: {
+      ...typography.subtitle,
+      fontSize: 14,
+      lineHeight: 20,
+    },
   }));
 
   const handlePublish = async () => {
     if (!user?.id || !shiftDate.trim()) {
-      Alert.alert('Missing information', 'Enter a shift date to publish.');
+      Alert.alert('Missing information', 'Select a shift date to publish.');
+      return;
+    }
+
+    if (!parseTime24h(startTime) || !parseTime24h(endTime)) {
+      Alert.alert('Invalid times', 'Choose a valid start and end time.');
+      return;
+    }
+
+    if (!isValidTimeRange(startTime, endTime)) {
+      Alert.alert('Invalid times', 'End time must be after start time.');
       return;
     }
 
@@ -47,7 +100,6 @@ export default function PostShiftScreen() {
         start_time: startTime.trim(),
         end_time: endTime.trim(),
         compensation: compensation.trim() || undefined,
-        urgency,
         description: description.trim() || undefined,
         status: 'live',
       });
@@ -80,30 +132,19 @@ export default function PostShiftScreen() {
           />
         </View>
 
-        <AuthField
-          label="Shift date"
-          placeholder="2026-05-22"
-          value={shiftDate}
-          onChangeText={setShiftDate}
-          autoCapitalize="none"
-        />
-        <AuthField label="Start time" placeholder="08:00" value={startTime} onChangeText={setStartTime} />
-        <AuthField label="End time" placeholder="17:00" value={endTime} onChangeText={setEndTime} />
-        <AuthField
-          label="Compensation"
-          placeholder="$45/hr"
-          value={compensation}
-          onChangeText={setCompensation}
+        <ShiftDateInput value={shiftDate} onChange={setShiftDate} />
+
+        <TimeRangeInput
+          sectionLabel="Shift hours"
+          schedule={{ startTime, endTime }}
+          onChange={({ startTime: nextStart, endTime: nextEnd }) => {
+            setStartTime(nextStart);
+            setEndTime(nextEnd);
+          }}
+          showPreview
         />
 
-        <View style={styles.section}>
-          <Text style={styles.label}>Urgency</Text>
-          <ChipSelector
-            options={URGENCY_OPTIONS}
-            selected={urgency}
-            onChange={(value) => setUrgency(value as ShiftUrgency)}
-          />
-        </View>
+        <CompensationInput onChange={handleCompensationChange} />
 
         <AuthField
           label="Description"
@@ -113,6 +154,21 @@ export default function PostShiftScreen() {
           multiline
           autoCapitalize="sentences"
         />
+
+        <View style={styles.notice}>
+          <View style={styles.noticeRow}>
+            <View style={styles.noticeIconWrap}>
+              <Ionicons name="notifications" size={18} color={colors.primaryOnPrimary} />
+            </View>
+            <View style={styles.noticeTextBlock}>
+              <Text style={styles.noticeTitle}>Publishing notifies available workers</Text>
+              <Text style={styles.noticeBody}>
+                This fill-in will be sent to workers marked as available for short-notice shifts in
+                your area.
+              </Text>
+            </View>
+          </View>
+        </View>
 
         <OnboardingButton
           label={isSubmitting ? 'Publishing…' : 'Publish fill-in'}

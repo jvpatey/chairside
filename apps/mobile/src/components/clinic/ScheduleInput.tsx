@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { TimeRangeInput, type TimeRange } from '@/components/clinic/TimeRangeInput';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { useTheme, useThemedStyles } from '@/theme';
+import { formatTime12h } from '@/lib/time';
+import { useThemedStyles } from '@/theme';
 
 const SCHEDULE_DAY_OPTIONS = [
   { value: 'mon' as const, label: 'Mon' },
@@ -29,25 +31,9 @@ const DAY_LABELS: Record<ScheduleDay, string> = {
   sun: 'Sun',
 };
 
-type DaySchedule = {
-  startTime: string;
-  endTime: string;
-};
+type DaySchedule = TimeRange;
 
 type DaySchedules = Partial<Record<ScheduleDay, DaySchedule>>;
-
-function formatTime12h(time: string): string | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
-  if (!match) return null;
-
-  const hours24 = Number(match[1]);
-  const minutes = match[2];
-  if (hours24 < 0 || hours24 > 23) return null;
-
-  const period = hours24 >= 12 ? 'PM' : 'AM';
-  const hours12 = hours24 % 12 || 12;
-  return minutes === '00' ? `${hours12} ${period}` : `${hours12}:${minutes} ${period}`;
-}
 
 function formatDaySelection(days: ScheduleDay[]): string {
   const indices = days.map((day) => DAY_ORDER.indexOf(day)).sort((a, b) => a - b);
@@ -128,72 +114,6 @@ export function buildScheduleString(
 
 function sortDays(days: ScheduleDay[]): ScheduleDay[] {
   return [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
-}
-
-function TimeRangeRow({
-  label,
-  schedule,
-  onChange,
-}: {
-  label?: string;
-  schedule: DaySchedule;
-  onChange: (schedule: DaySchedule) => void;
-}) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    rowLabel: {
-      width: 36,
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.labelPrimary,
-    },
-    timeInput: {
-      flex: 1,
-      fontSize: typography.body.fontSize,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      borderRadius: 12,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 10,
-      color: colors.labelPrimary,
-      textAlign: 'center',
-    },
-    dash: {
-      fontSize: 14,
-      color: colors.labelSecondary,
-    },
-  }));
-
-  return (
-    <View style={styles.row}>
-      {label ? <Text style={styles.rowLabel}>{label}</Text> : null}
-      <TextInput
-        style={styles.timeInput}
-        placeholder="08:00"
-        placeholderTextColor={colors.labelTertiary}
-        value={schedule.startTime}
-        onChangeText={(startTime) => onChange({ ...schedule, startTime })}
-        autoCapitalize="none"
-        accessibilityLabel={label ? `${label} start time` : 'Start time'}
-      />
-      <Text style={styles.dash}>–</Text>
-      <TextInput
-        style={styles.timeInput}
-        placeholder="17:00"
-        placeholderTextColor={colors.labelTertiary}
-        value={schedule.endTime}
-        onChangeText={(endTime) => onChange({ ...schedule, endTime })}
-        autoCapitalize="none"
-        accessibilityLabel={label ? `${label} end time` : 'End time'}
-      />
-    </View>
-  );
 }
 
 const HOURS_MODE_OPTIONS = [
@@ -348,7 +268,7 @@ export function ScheduleInput({ onChange, initialValue }: ScheduleInputProps) {
               {days.length > 1 ? (
                 <Text style={styles.hint}>Same start and end time for every selected day.</Text>
               ) : null}
-              <TimeRangeRow
+              <TimeRangeInput
                 schedule={effectiveSharedSchedule}
                 onChange={handleEffectiveSharedScheduleChange}
               />
@@ -358,9 +278,9 @@ export function ScheduleInput({ onChange, initialValue }: ScheduleInputProps) {
               <Text style={styles.hint}>Set start and end times for each day.</Text>
               <View style={styles.dayRows}>
                 {DAY_ORDER.filter((day) => days.includes(day)).map((day) => (
-                  <TimeRangeRow
+                  <TimeRangeInput
                     key={day}
-                    label={DAY_LABELS[day]}
+                    rowLabel={DAY_LABELS[day]}
                     schedule={daySchedules[day] ?? { startTime: '', endTime: '' }}
                     onChange={(schedule) => handleDayScheduleChange(day, schedule)}
                   />
