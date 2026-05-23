@@ -79,6 +79,8 @@ export type CreateShiftPostInput = {
 
 export type UpdateJobPostInput = Partial<CreateJobPostInput>;
 
+export type UpdateShiftPostInput = Partial<CreateShiftPostInput>;
+
 export async function listJobPosts(clinicId: string): Promise<JobPost[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -273,6 +275,94 @@ export async function createShiftPost(
 
   if (error) throw error;
   return data as ShiftPost;
+}
+
+export async function getShiftPost(clinicId: string, shiftId: string): Promise<ShiftPost | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('shift_posts')
+    .select('*')
+    .eq('id', shiftId)
+    .eq('clinic_id', clinicId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as ShiftPost | null;
+}
+
+export async function updateShiftPost(
+  clinicId: string,
+  shiftId: string,
+  input: UpdateShiftPostInput,
+): Promise<ShiftPost> {
+  const supabase = getSupabaseClient();
+  const now = new Date().toISOString();
+
+  const patch: Record<string, unknown> = { updated_at: now };
+
+  if (input.role_type !== undefined) patch.role_type = input.role_type;
+  if (input.shift_date !== undefined) patch.shift_date = input.shift_date;
+  if (input.start_time !== undefined) patch.start_time = input.start_time;
+  if (input.end_time !== undefined) patch.end_time = input.end_time;
+  if (input.compensation !== undefined) patch.compensation = input.compensation || null;
+  if (input.urgency !== undefined) patch.urgency = input.urgency;
+  if (input.description !== undefined) patch.description = input.description || null;
+  if (input.status !== undefined) patch.status = input.status;
+
+  const { data, error } = await supabase
+    .from('shift_posts')
+    .update(patch)
+    .eq('id', shiftId)
+    .eq('clinic_id', clinicId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as ShiftPost;
+}
+
+export async function updateShiftPostStatus(
+  clinicId: string,
+  shiftId: string,
+  status: ShiftPostStatus,
+): Promise<ShiftPost> {
+  return updateShiftPost(clinicId, shiftId, { status });
+}
+
+export async function deleteShiftPost(clinicId: string, shiftId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from('shift_posts')
+    .delete()
+    .eq('id', shiftId)
+    .eq('clinic_id', clinicId);
+
+  if (error) throw error;
+}
+
+export async function getShiftPostApplicationCount(
+  clinicId: string,
+  shiftId: string,
+): Promise<number> {
+  const supabase = getSupabaseClient();
+
+  const { data: shift, error: shiftError } = await supabase
+    .from('shift_posts')
+    .select('id')
+    .eq('id', shiftId)
+    .eq('clinic_id', clinicId)
+    .maybeSingle();
+
+  if (shiftError) throw shiftError;
+  if (!shift) return 0;
+
+  const { count, error } = await supabase
+    .from('applications')
+    .select('id', { count: 'exact', head: true })
+    .eq('shift_post_id', shiftId);
+
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function getClinicDashboardCounts(clinicId: string): Promise<ClinicDashboardCounts> {

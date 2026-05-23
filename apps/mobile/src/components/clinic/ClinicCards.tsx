@@ -1,10 +1,10 @@
 import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
-import { getRoleTypeLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -320,6 +320,7 @@ type DashboardOverviewPanelProps = {
   shifts: ShiftPost[];
   applications: ClinicApplication[];
   onJobPress?: (jobId: string) => void;
+  onShiftPress?: (shiftId: string) => void;
 };
 
 function DashboardListCard({
@@ -446,6 +447,7 @@ export function DashboardOverviewPanel({
   shifts,
   applications,
   onJobPress,
+  onShiftPress,
 }: DashboardOverviewPanelProps) {
   const styles = useThemedStyles(({ spacing }) => ({
     list: {
@@ -480,18 +482,13 @@ export function DashboardOverviewPanel({
           <DashboardEmptyState message="No live fill-in shifts yet. Post a fill-in to get started." />
         ) : (
           <View style={styles.list}>
-            {liveShifts.map((shift) => {
-              const roleLabel = getRoleTypeLabel(shift.role_type);
-
-              return (
-                <DashboardListCard
-                  key={shift.id}
-                  title={`${roleLabel} · ${shift.shift_date}`}
-                  subtitle={`${shift.start_time} – ${shift.end_time}`}
-                  meta={shift.compensation ?? undefined}
-                />
-              );
-            })}
+            {liveShifts.map((shift) => (
+              <FillInPostingCard
+                key={shift.id}
+                shift={shift}
+                onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+              />
+            ))}
           </View>
         )
       ) : null}

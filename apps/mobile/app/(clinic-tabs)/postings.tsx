@@ -1,12 +1,18 @@
 import { listJobPosts, listShiftPosts, type JobPost, type ShiftPost } from '@chairside/api';
-import { formatDisplayLabel, getRoleTypeLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { CLINIC_POST_JOB, CLINIC_POST_SHIFT, getJobDetailRoute } from '@/lib/routing';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import {
+  CLINIC_POST_JOB,
+  getJobDetailRoute,
+  getPostShiftRoute,
+  getShiftDetailRoute,
+  type FillInReturnTarget,
+} from '@/lib/routing';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { PostingsTabBar, type PostingsTab } from '@/components/clinic/PostingsTabBar';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -36,11 +42,6 @@ function filterJobs(jobs: JobPost[], filter: JobFilter): JobPost[] {
     case 'all':
       return jobs;
   }
-}
-
-function formatShiftMeta(shift: ShiftPost): string {
-  const roleLabel = getRoleTypeLabel(shift.role_type);
-  return `${roleLabel} · ${shift.start_time} – ${shift.end_time}`;
 }
 
 function PostingListEmptyState({
@@ -96,70 +97,21 @@ function PostingListEmptyState({
   );
 }
 
-function FillInPostingCard({ shift }: { shift: ShiftPost }) {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-    },
-    headerMain: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-      fontSize: 16,
-    },
-    meta: typography.subtitle,
-    status: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-      backgroundColor: colors.fillSubtle,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-    },
-    compensation: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.headerMain}>
-          <Text style={styles.title}>{shift.shift_date}</Text>
-          <Text style={styles.meta}>{formatShiftMeta(shift)}</Text>
-        </View>
-        <Text style={styles.status}>{formatDisplayLabel(shift.status)}</Text>
-      </View>
-      {shift.compensation ? <Text style={styles.compensation}>{shift.compensation}</Text> : null}
-    </View>
-  );
-}
-
 export default function ClinicPostingsScreen() {
   const { user } = useAuth();
   const { isProfileComplete } = useClinicProfile();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [selectedTab, setSelectedTab] = useState<PostingsTab>('roles');
   const [jobFilter, setJobFilter] = useState<JobFilter>('active');
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (tab === 'fill-ins') {
+      setSelectedTab('fill-ins');
+    }
+  }, [tab]);
 
   const filteredJobs = useMemo(() => filterJobs(jobs, jobFilter), [jobs, jobFilter]);
 
@@ -204,8 +156,10 @@ export default function ClinicPostingsScreen() {
 
   useRefreshOnFocus(load);
 
-  const postTarget = selectedTab === 'roles' ? CLINIC_POST_JOB : CLINIC_POST_SHIFT;
+  const postTarget =
+    selectedTab === 'roles' ? CLINIC_POST_JOB : getPostShiftRoute('postings-fill-ins');
   const postLabel = selectedTab === 'roles' ? 'Post role' : 'Post fill-in';
+  const fillInReturnTo: FillInReturnTarget = 'postings-fill-ins';
 
   return (
     <Screen title="Postings">
@@ -268,7 +222,11 @@ export default function ClinicPostingsScreen() {
         ) : (
           <View style={styles.list}>
             {shifts.map((shift) => (
-              <FillInPostingCard key={shift.id} shift={shift} />
+              <FillInPostingCard
+                key={shift.id}
+                shift={shift}
+                onPress={() => router.push(getShiftDetailRoute(shift.id, fillInReturnTo))}
+              />
             ))}
           </View>
         )}

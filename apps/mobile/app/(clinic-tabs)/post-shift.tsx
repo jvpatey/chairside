@@ -1,9 +1,15 @@
-import { createShiftPost, type RoleType } from '@chairside/api';
+import {
+  createShiftPost,
+  getShiftPost,
+  updateShiftPost,
+  type RoleType,
+  type ShiftPost,
+} from '@chairside/api';
 import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { CLINIC_POSTINGS } from '@/lib/routing';
-import { useCallback, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
@@ -16,12 +22,27 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { todayISO } from '@/lib/dates';
-import { isValidTimeRange, parseTime24h } from '@/lib/time';
+import { isValidTimeRange, normalizeTime24h, parseTime24h } from '@/lib/time';
 import { useTheme, useThemedStyles } from '@/theme';
+
+function applyShiftToForm(shift: ShiftPost) {
+  return {
+    roleType: shift.role_type,
+    shiftDate: shift.shift_date,
+    startTime: normalizeTime24h(shift.start_time),
+    endTime: normalizeTime24h(shift.end_time),
+    compensation: shift.compensation ?? '',
+    description: shift.description ?? '',
+  };
+}
 
 export default function PostShiftScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: FillInReturnTarget }>();
+  const shiftId = typeof id === 'string' ? id : undefined;
+  const isEditing = Boolean(shiftId);
+
   const [roleType, setRoleType] = useState<RoleType>('hygienist');
   const [shiftDate, setShiftDate] = useState(todayISO());
   const [startTime, setStartTime] = useState('08:00');
@@ -29,6 +50,8 @@ export default function PostShiftScreen() {
   const [compensation, setCompensation] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEditing);
+  const [formKey, setFormKey] = useState(0);
 
   const handleCompensationChange = useCallback((value: string) => {
     setCompensation(value);
@@ -41,6 +64,7 @@ export default function PostShiftScreen() {
       ...typography.body,
       fontWeight: '600',
     },
+    loading: typography.subtitle,
     notice: {
       backgroundColor: colors.primarySubtle,
       borderRadius: 16,
@@ -76,9 +100,47 @@ export default function PostShiftScreen() {
     },
   }));
 
-  const handlePublish = async () => {
+  const loadShift = useCallback(async () => {
+    if (!shiftId || !user?.id) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const shift = await getShiftPost(user.id, shiftId);
+      if (!shift) {
+        Alert.alert('Fill-in not found', 'This shift may have been removed.');
+        router.back();
+        return;
+      }
+
+      const form = applyShiftToForm(shift);
+      setRoleType(form.roleType);
+      setShiftDate(form.shiftDate);
+      setStartTime(form.startTime);
+      setEndTime(form.endTime);
+      setCompensation(form.compensation);
+      setDescription(form.description);
+      setFormKey((current) => current + 1);
+    } catch (error) {
+      Alert.alert(
+        'Could not load fill-in',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+      router.back();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shiftId, user?.id]);
+
+  useEffect(() => {
+    void loadShift();
+  }, [loadShift]);
+
+  const handleSubmit = async () => {
     if (!user?.id || !shiftDate.trim()) {
-      Alert.alert('Missing information', 'Select a shift date to publish.');
+      Alert.alert('Missing information', 'Select a shift date to continue.');
       return;
     }
 
@@ -94,19 +156,28 @@ export default function PostShiftScreen() {
 
     setIsSubmitting(true);
     try {
-      await createShiftPost(user.id, {
+      const payload = {
         role_type: roleType,
         shift_date: shiftDate.trim(),
         start_time: startTime.trim(),
         end_time: endTime.trim(),
         compensation: compensation.trim() || undefined,
         description: description.trim() || undefined,
-        status: 'live',
-      });
-      router.replace(CLINIC_POSTINGS);
+      };
+
+      if (isEditing && shiftId) {
+        await updateShiftPost(user.id, shiftId, payload);
+        navigateAfterFillInSave(router, returnTo);
+      } else {
+        await createShiftPost(user.id, {
+          ...payload,
+          status: 'live',
+        });
+        navigateAfterFillInSave(router, returnTo);
+      }
     } catch (error) {
       Alert.alert(
-        'Could not publish',
+        isEditing ? 'Could not save changes' : 'Could not publish',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -114,12 +185,24 @@ export default function PostShiftScreen() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <OnboardingShell>
+        <Text style={styles.loading}>Loading fill-in…</Text>
+      </OnboardingShell>
+    );
+  }
+
   return (
     <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
-          title="Post a fill-in"
-          subtitle="Publish a short-notice or temp shift."
+          title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
+          subtitle={
+            isEditing
+              ? 'Update your fill-in shift details.'
+              : 'Publish a short-notice or temp shift.'
+          }
           onBack={() => router.back()}
         />
 
@@ -132,7 +215,7 @@ export default function PostShiftScreen() {
           />
         </View>
 
-        <ShiftDateInput value={shiftDate} onChange={setShiftDate} />
+        <ShiftDateInput key={`date-${formKey}`} value={shiftDate} onChange={setShiftDate} />
 
         <TimeRangeInput
           sectionLabel="Shift hours"
@@ -144,7 +227,11 @@ export default function PostShiftScreen() {
           showPreview
         />
 
-        <CompensationInput onChange={handleCompensationChange} />
+        <CompensationInput
+          key={`comp-${formKey}`}
+          initialValue={compensation}
+          onChange={handleCompensationChange}
+        />
 
         <AuthField
           label="Description"
@@ -155,25 +242,35 @@ export default function PostShiftScreen() {
           autoCapitalize="sentences"
         />
 
-        <View style={styles.notice}>
-          <View style={styles.noticeRow}>
-            <View style={styles.noticeIconWrap}>
-              <Ionicons name="notifications" size={18} color={colors.primaryOnPrimary} />
-            </View>
-            <View style={styles.noticeTextBlock}>
-              <Text style={styles.noticeTitle}>Publishing notifies available workers</Text>
-              <Text style={styles.noticeBody}>
-                This fill-in will be sent to workers marked as available for short-notice shifts in
-                your area.
-              </Text>
+        {!isEditing ? (
+          <View style={styles.notice}>
+            <View style={styles.noticeRow}>
+              <View style={styles.noticeIconWrap}>
+                <Ionicons name="notifications" size={18} color={colors.primaryOnPrimary} />
+              </View>
+              <View style={styles.noticeTextBlock}>
+                <Text style={styles.noticeTitle}>Publishing notifies available workers</Text>
+                <Text style={styles.noticeBody}>
+                  This fill-in will be sent to workers marked as available for short-notice shifts
+                  in your area.
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        ) : null}
 
         <OnboardingButton
-          label={isSubmitting ? 'Publishing…' : 'Publish fill-in'}
+          label={
+            isSubmitting
+              ? isEditing
+                ? 'Saving…'
+                : 'Publishing…'
+              : isEditing
+                ? 'Save changes'
+                : 'Publish fill-in'
+          }
           disabled={isSubmitting}
-          onPress={handlePublish}
+          onPress={handleSubmit}
         />
       </View>
     </OnboardingShell>

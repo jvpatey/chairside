@@ -73,6 +73,7 @@ export default function ClinicTabLayout() {
       <Tabs.Screen name="post-job" options={{ href: null }} />
       <Tabs.Screen name="post-shift" options={{ href: null }} />
       <Tabs.Screen name="job/[id]" options={{ href: null }} />
+      <Tabs.Screen name="shift/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

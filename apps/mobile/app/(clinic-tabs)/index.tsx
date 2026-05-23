@@ -10,8 +10,8 @@ import {
   type ShiftPost,
 } from '@chairside/api';
 import type { Href } from 'expo-router';
-import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import {
@@ -29,15 +29,17 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   CLINIC_POST_JOB,
-  CLINIC_POST_SHIFT,
   CLINIC_SETUP_BASICS,
   getJobDetailRoute,
+  getPostShiftRoute,
+  getShiftDetailRoute,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicDashboardScreen() {
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { overview } = useLocalSearchParams<{ overview?: string }>();
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
     openRoles: 0,
     fillInsPosted: 0,
@@ -83,6 +85,12 @@ export default function ClinicDashboardScreen() {
 
   useRefreshOnFocus(loadDashboard);
 
+  useEffect(() => {
+    if (overview === 'fill-ins') {
+      setSelectedOverview('fill-ins');
+    }
+  }, [overview]);
+
   const guardPosting = (target: Href) => {
     if (isProfileComplete) {
       router.push(target);
@@ -127,7 +135,7 @@ export default function ClinicDashboardScreen() {
               description="Temp or urgent shift"
               icon="calendar-outline"
               variant="secondary"
-              onPress={() => guardPosting(CLINIC_POST_SHIFT)}
+              onPress={() => guardPosting(getPostShiftRoute('dashboard-fill-ins'))}
             />
           </View>
         </View>
@@ -149,6 +157,9 @@ export default function ClinicDashboardScreen() {
           shifts={shifts}
           applications={applications}
           onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
+          onShiftPress={(shiftId) =>
+            router.push(getShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
+          }
         />
       </View>
     </Screen>

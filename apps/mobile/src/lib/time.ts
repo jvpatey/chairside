@@ -1,5 +1,5 @@
 export function formatTime12h(time: string): string | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(time.trim());
   if (!match) return null;
 
   const hours24 = Number(match[1]);
@@ -11,6 +11,12 @@ export function formatTime12h(time: string): string | null {
   return minutes === '00' ? `${hours12} ${period}` : `${hours12}:${minutes} ${period}`;
 }
 
+export function normalizeTime24h(value: string): string {
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value.trim());
+  if (!match) return value.trim();
+  return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
+}
+
 export function formatTime24h(date: Date): string {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -18,7 +24,7 @@ export function formatTime24h(date: Date): string {
 }
 
 export function parseTime24h(value: string): Date | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value.trim());
   if (!match) return null;
 
   const hours = Number(match[1]);
