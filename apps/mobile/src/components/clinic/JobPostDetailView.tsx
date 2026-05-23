@@ -1,9 +1,5 @@
 import type { JobPost } from '@chairside/api';
-import {
-  EMPLOYMENT_TYPE_OPTIONS,
-  ROLE_TYPE_OPTIONS,
-  SPECIALTY_OPTIONS,
-} from '@chairside/config';
+import { formatJobPostRoleMeta, formatOfferingLabel, getSpecialtyLabel } from '@chairside/config';
 import { Text, View } from 'react-native';
 
 import {
@@ -22,15 +18,10 @@ type JobPostDetailViewProps = {
 };
 
 export function JobPostDetailView({ job }: JobPostDetailViewProps) {
-  const roleLabel =
-    ROLE_TYPE_OPTIONS.find((option) => option.value === job.role_type)?.label ?? job.role_type;
-  const employmentLabel =
-    EMPLOYMENT_TYPE_OPTIONS.find((option) => option.value === job.employment_type)?.label ??
-    job.employment_type;
-  const specialtyLabel =
-    SPECIALTY_OPTIONS.find((option) => option.value === job.specialty)?.label ?? job.specialty;
+  const metaLine = formatJobPostRoleMeta(job);
   const softwareLabel = job.software_used.length > 0 ? job.software_used.join(' · ') : null;
   const description = job.description?.trim() || null;
+  const offeringLabels = job.offerings.map(formatOfferingLabel);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -94,9 +85,7 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
           <Text style={styles.title}>{job.title}</Text>
         </View>
 
-        <Text style={styles.meta}>
-          {roleLabel} · {employmentLabel}
-        </Text>
+        <Text style={styles.meta}>{metaLine}</Text>
       </View>
 
       <View style={styles.card}>
@@ -108,16 +97,16 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
 
         <DetailSectionDivider>
           <DetailSection title="Practice">
-            <DetailRow label="Specialty" value={specialtyLabel} />
+            <DetailRow label="Specialty" value={getSpecialtyLabel(job.specialty)} />
             <RowDivider />
             <DetailRow label="Software" value={softwareLabel} />
           </DetailSection>
         </DetailSectionDivider>
 
-        {job.offerings.length > 0 ? (
+        {offeringLabels.length > 0 ? (
           <DetailSectionDivider>
             <DetailSection title="Perks & offerings">
-              <DetailBulletList items={job.offerings} />
+              <DetailBulletList items={offeringLabels} />
             </DetailSection>
           </DetailSectionDivider>
         ) : null}

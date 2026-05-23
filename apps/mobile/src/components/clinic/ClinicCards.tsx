@@ -1,5 +1,5 @@
 import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
-import { ROLE_TYPE_OPTIONS } from '@chairside/config';
+import { formatJobPostCardMeta, formatOfferingLabel, getRoleTypeLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
@@ -464,22 +464,16 @@ export function DashboardOverviewPanel({
           <DashboardEmptyState message="No active role postings yet. Post a role to get started." />
         ) : (
           <View style={styles.list}>
-            {roleJobs.map((job) => {
-              const roleLabel =
-                ROLE_TYPE_OPTIONS.find((option) => option.value === job.role_type)?.label ??
-                job.role_type;
-
-              return (
+            {roleJobs.map((job) => (
                 <DashboardListCard
                   key={job.id}
                   title={job.title}
-                  subtitle={`${roleLabel} · ${job.employment_type}`}
+                  subtitle={formatJobPostCardMeta(job)}
                   meta={job.wage_range ?? undefined}
                   statusBadge={<JobPostStatusBadge status={job.status} />}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                 />
-              );
-            })}
+              ))}
           </View>
         )
       ) : null}
@@ -490,9 +484,7 @@ export function DashboardOverviewPanel({
         ) : (
           <View style={styles.list}>
             {liveShifts.map((shift) => {
-              const roleLabel =
-                ROLE_TYPE_OPTIONS.find((option) => option.value === shift.role_type)?.label ??
-                shift.role_type;
+              const roleLabel = getRoleTypeLabel(shift.role_type);
 
               return (
                 <DashboardListCard

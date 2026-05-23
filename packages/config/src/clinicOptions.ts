@@ -8,13 +8,13 @@ export type ClinicSpecialty =
   | 'other';
 
 export const SPECIALTY_OPTIONS: { value: ClinicSpecialty; label: string }[] = [
-  { value: 'general', label: 'General dentistry' },
+  { value: 'general', label: 'General Dentistry' },
   { value: 'ortho', label: 'Orthodontics' },
   { value: 'pediatric', label: 'Pediatric' },
   { value: 'periodontics', label: 'Periodontics' },
   { value: 'endodontics', label: 'Endodontics' },
-  { value: 'oral_surgery', label: 'Oral surgery' },
-  { value: 'other', label: 'Other specialty' },
+  { value: 'oral_surgery', label: 'Oral Surgery' },
+  { value: 'other', label: 'Other Specialty' },
 ];
 
 export const SOFTWARE_OPTIONS = [
@@ -42,11 +42,11 @@ export function resolveSoftwareSelection(current: string[], next: string[]): str
 }
 
 export const ROLE_TYPE_OPTIONS = [
-  { value: 'hygienist' as const, label: 'Dental hygienist' },
-  { value: 'assistant' as const, label: 'Dental assistant' },
-  { value: 'admin' as const, label: 'Office admin' },
-  { value: 'office_manager' as const, label: 'Office manager' },
-  { value: 'treatment_coordinator' as const, label: 'Treatment coordinator' },
+  { value: 'hygienist' as const, label: 'Dental Hygienist' },
+  { value: 'assistant' as const, label: 'Dental Assistant' },
+  { value: 'admin' as const, label: 'Office Admin' },
+  { value: 'office_manager' as const, label: 'Office Manager' },
+  { value: 'treatment_coordinator' as const, label: 'Treatment Coordinator' },
   { value: 'dentist' as const, label: 'Dentist' },
   { value: 'other' as const, label: 'Other' },
 ] as const;
@@ -54,30 +54,30 @@ export const ROLE_TYPE_OPTIONS = [
 export type RoleType = (typeof ROLE_TYPE_OPTIONS)[number]['value'];
 
 export const EMPLOYMENT_TYPE_OPTIONS = [
-  { value: 'permanent' as const, label: 'Permanent' },
-  { value: 'part-time' as const, label: 'Part-time' },
+  { value: 'permanent' as const, label: 'Full Time' },
+  { value: 'part-time' as const, label: 'Part Time' },
   { value: 'temp' as const, label: 'Temp' },
-  { value: 'fill-in' as const, label: 'Fill-in' },
+  { value: 'fill-in' as const, label: 'Fill-In' },
 ];
 
 export const URGENCY_OPTIONS = [
   { value: 'normal' as const, label: 'Normal' },
   { value: 'urgent' as const, label: 'Urgent' },
-  { value: 'same_day' as const, label: 'Same day' },
+  { value: 'same_day' as const, label: 'Same Day' },
 ];
 
 /** Common perks seen on the Nova Scotia Dental Association job bank. */
 export const OFFERING_PRESET_OPTIONS = [
-  { value: 'health_benefits', label: 'Health benefits' },
-  { value: 'dental_benefits', label: 'Dental benefits' },
-  { value: 'rrsp_matching', label: 'RRSP matching' },
-  { value: 'paid_sick_days', label: 'Paid sick days' },
-  { value: 'paid_holidays', label: 'Paid holidays (stat & non-stat)' },
-  { value: 'ce_allowance', label: 'CE allowance' },
-  { value: 'clothing_allowance', label: 'Clothing or scrubs allowance' },
-  { value: 'free_parking', label: 'Free on-site parking' },
-  { value: 'no_evenings_weekends', label: 'No evenings or weekends' },
-  { value: 'signing_bonus', label: 'Signing bonus' },
+  { value: 'health_benefits', label: 'Health Benefits' },
+  { value: 'dental_benefits', label: 'Dental Benefits' },
+  { value: 'rrsp_matching', label: 'RRSP Matching' },
+  { value: 'paid_sick_days', label: 'Paid Sick Days' },
+  { value: 'paid_holidays', label: 'Paid Holidays (Stat & Non-Stat)' },
+  { value: 'ce_allowance', label: 'CE Allowance' },
+  { value: 'clothing_allowance', label: 'Clothing or Scrubs Allowance' },
+  { value: 'free_parking', label: 'Free On-Site Parking' },
+  { value: 'no_evenings_weekends', label: 'No Evenings or Weekends' },
+  { value: 'signing_bonus', label: 'Signing Bonus' },
 ] as const;
 
 export type OfferingPreset = (typeof OFFERING_PRESET_OPTIONS)[number]['value'];
@@ -125,4 +125,64 @@ export function getJobPostStatusBadgeVariant(status: JobPostStatus): JobPostStat
   return (
     JOB_POST_STATUS_OPTIONS.find((option) => option.value === status)?.badgeVariant ?? 'neutral'
   );
+}
+
+/** Title-case fallback for raw stored values (e.g. `part-time` → `Part Time`). */
+export function formatDisplayLabel(value: string): string {
+  return value
+    .trim()
+    .replace(/[_-]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+export function getRoleTypeLabel(value: string): string {
+  return ROLE_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? formatDisplayLabel(value);
+}
+
+export function getEmploymentTypeLabel(value: string): string {
+  return (
+    EMPLOYMENT_TYPE_OPTIONS.find((option) => option.value === value)?.label ??
+    formatDisplayLabel(value)
+  );
+}
+
+export function getSpecialtyLabel(value: string): string {
+  return SPECIALTY_OPTIONS.find((option) => option.value === value)?.label ?? formatDisplayLabel(value);
+}
+
+export function getUrgencyLabel(value: string): string {
+  return URGENCY_OPTIONS.find((option) => option.value === value)?.label ?? formatDisplayLabel(value);
+}
+
+export function formatOfferingLabel(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  const preset = OFFERING_PRESET_OPTIONS.find(
+    (option) =>
+      option.value === value ||
+      option.label.toLowerCase() === normalized ||
+      formatDisplayLabel(option.label).toLowerCase() === normalized,
+  );
+  if (preset) return preset.label;
+  return formatDisplayLabel(value);
+}
+
+export function formatJobPostRoleMeta(job: {
+  role_type: string;
+  employment_type: string;
+}): string {
+  return `${getRoleTypeLabel(job.role_type)} · ${getEmploymentTypeLabel(job.employment_type)}`;
+}
+
+export function formatJobPostCardMeta(job: {
+  role_type: string;
+  employment_type: string;
+  specialty?: string | null;
+}): string {
+  const parts = [formatJobPostRoleMeta(job), job.specialty ? getSpecialtyLabel(job.specialty) : null].filter(
+    Boolean,
+  );
+  return parts.join(' · ');
 }

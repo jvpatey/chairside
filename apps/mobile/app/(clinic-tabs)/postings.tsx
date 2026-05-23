@@ -1,5 +1,6 @@
-import { listJobPosts, listShiftPosts, type JobPost, type JobPostStatus, type ShiftPost } from '@chairside/api';
-import { ROLE_TYPE_OPTIONS, SPECIALTY_OPTIONS } from '@chairside/config';
+import { listJobPosts, listShiftPosts, type JobPost, type ShiftPost } from '@chairside/api';
+import { formatDisplayLabel, formatJobPostCardMeta, formatOfferingLabel, getRoleTypeLabel } from '@chairside/config';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { CLINIC_POST_JOB, CLINIC_POST_SHIFT, getJobDetailRoute } from '@/lib/routing';
 import { useCallback, useMemo, useState } from 'react';
@@ -7,13 +8,13 @@ import { Alert, Pressable, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
+import { PostingsTabBar, type PostingsTab } from '@/components/clinic/PostingsTabBar';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { BulletList } from '@/components/clinic/BulletList';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type JobFilter = 'active' | 'paused' | 'archived' | 'all';
 
@@ -37,30 +38,79 @@ function filterJobs(jobs: JobPost[], filter: JobFilter): JobPost[] {
   }
 }
 
-function PostingCard({
+function formatJobMeta(job: JobPost): string {
+  return formatJobPostCardMeta(job);
+}
+
+function formatShiftMeta(shift: ShiftPost): string {
+  const roleLabel = getRoleTypeLabel(shift.role_type);
+  return `${roleLabel} · ${shift.start_time} – ${shift.end_time}`;
+}
+
+function PostingListEmptyState({
+  icon,
   title,
-  subtitle,
-  details,
-  offerings,
-  jobStatus,
-  statusLabel,
-  onPress,
+  body,
 }: {
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
-  subtitle: string;
-  details?: string;
-  offerings?: string[];
-  jobStatus?: JobPostStatus;
-  statusLabel?: string;
-  onPress?: () => void;
+  body: string;
 }) {
+  const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
+      padding: spacing.xl,
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    iconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.fillSubtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    title: {
+      ...typography.body,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    body: {
+      ...typography.subtitle,
+      fontSize: 14,
+      lineHeight: 20,
+      textAlign: 'center',
+    },
+  }));
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.iconWrap}>
+        <Ionicons name={icon} size={24} color={colors.labelSecondary} />
+      </View>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.body}>{body}</Text>
+    </View>
+  );
+}
+
+function RolePostingCard({ job, onPress }: { job: JobPost; onPress: () => void }) {
+  const previewOfferings = job.offerings.slice(0, 2);
+  const extraOfferings = job.offerings.length - previewOfferings.length;
+
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
       gap: spacing.sm,
     },
     cardPressed: {
@@ -79,63 +129,102 @@ function PostingCard({
     title: {
       ...typography.body,
       fontWeight: '600',
+      fontSize: 16,
     },
-    subtitle: typography.subtitle,
-    badge: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.secondarySubtle,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      marginTop: spacing.xs,
-    },
-    badgeText: {
-      fontSize: 12,
-      fontWeight: '600',
+    meta: {
+      fontSize: 14,
+      lineHeight: 20,
       color: colors.labelSecondary,
-      textTransform: 'capitalize',
+    },
+    wage: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    offerings: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
     },
   }));
-
-  const content = (
-    <>
-      <View style={styles.header}>
-        <View style={styles.headerMain}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
-        </View>
-        {jobStatus ? <JobPostStatusBadge status={jobStatus} /> : null}
-      </View>
-      {details ? <Text style={styles.subtitle}>{details}</Text> : null}
-      <BulletList items={offerings ?? []} label="Perks & offerings" />
-      {!jobStatus && statusLabel ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{statusLabel}</Text>
-        </View>
-      ) : null}
-    </>
-  );
-
-  if (!onPress) {
-    return <View style={styles.card}>{content}</View>;
-  }
 
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      {content}
+      <View style={styles.header}>
+        <View style={styles.headerMain}>
+          <Text style={styles.title}>{job.title}</Text>
+          <Text style={styles.meta}>{formatJobMeta(job)}</Text>
+        </View>
+        <JobPostStatusBadge status={job.status} />
+      </View>
+      {job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : null}
+      {previewOfferings.length > 0 ? (
+        <Text style={styles.offerings} numberOfLines={2}>
+          {previewOfferings.map((item) => `• ${formatOfferingLabel(item)}`).join('  ')}
+          {extraOfferings > 0 ? `  +${extraOfferings} more` : ''}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
 
-function formatJobDetails(job: JobPost): string | undefined {
-  const specialtyLabel =
-    SPECIALTY_OPTIONS.find((option) => option.value === job.specialty)?.label ?? null;
-  const softwareLabel = job.software_used.length ? job.software_used.join(' · ') : null;
-  const details = [specialtyLabel, softwareLabel].filter(Boolean).join(' · ');
-  return details || undefined;
+function FillInPostingCard({ shift }: { shift: ShiftPost }) {
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    headerMain: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    title: {
+      ...typography.body,
+      fontWeight: '600',
+      fontSize: 16,
+    },
+    meta: typography.subtitle,
+    status: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.labelSecondary,
+      backgroundColor: colors.fillSubtle,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+    },
+    compensation: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+  }));
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <View style={styles.headerMain}>
+          <Text style={styles.title}>{shift.shift_date}</Text>
+          <Text style={styles.meta}>{formatShiftMeta(shift)}</Text>
+        </View>
+        <Text style={styles.status}>{formatDisplayLabel(shift.status)}</Text>
+      </View>
+      {shift.compensation ? <Text style={styles.compensation}>{shift.compensation}</Text> : null}
+    </View>
+  );
 }
 
 export default function ClinicPostingsScreen() {
@@ -143,24 +232,21 @@ export default function ClinicPostingsScreen() {
   const { isProfileComplete } = useClinicProfile();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
+  const [selectedTab, setSelectedTab] = useState<PostingsTab>('roles');
   const [jobFilter, setJobFilter] = useState<JobFilter>('active');
   const [isLoading, setIsLoading] = useState(true);
 
   const filteredJobs = useMemo(() => filterJobs(jobs, jobFilter), [jobs, jobFilter]);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
-    section: { gap: spacing.md, marginBottom: spacing.lg },
-    heading: {
-      ...typography.body,
-      fontWeight: '600',
+    wrap: {
+      gap: spacing.lg,
+    },
+    list: {
+      gap: spacing.sm,
     },
     empty: typography.subtitle,
     loading: typography.subtitle,
-    actions: { flexDirection: 'row', gap: spacing.sm },
-    action: { flex: 1 },
-    filters: {
-      marginBottom: spacing.sm,
-    },
   }));
 
   const load = useCallback(async () => {
@@ -193,84 +279,75 @@ export default function ClinicPostingsScreen() {
 
   useRefreshOnFocus(load);
 
-  const hasPosts = jobs.length > 0 || shifts.length > 0;
+  const postTarget = selectedTab === 'roles' ? CLINIC_POST_JOB : CLINIC_POST_SHIFT;
+  const postLabel = selectedTab === 'roles' ? 'Post role' : 'Post fill-in';
 
   return (
-    <Screen title="Postings" subtitle="Your open roles and fill-in shifts.">
-      <View style={styles.actions}>
-        <OnboardingButton
-          style={styles.action}
-          label="Post role"
-          disabled={!isProfileComplete}
-          onPress={() => router.push(CLINIC_POST_JOB)}
+    <Screen title="Postings">
+      <View style={styles.wrap}>
+        <PostingsTabBar
+          selected={selectedTab}
+          roleCount={jobs.length}
+          fillInCount={shifts.length}
+          onChange={setSelectedTab}
         />
-        <OnboardingButton
-          style={styles.action}
-          label="Post fill-in"
-          variant="secondary"
-          disabled={!isProfileComplete}
-          onPress={() => router.push(CLINIC_POST_SHIFT)}
-        />
-      </View>
 
-      {!isLoading && !hasPosts ? (
-        <Text style={styles.empty}>No postings yet. Create your first role or fill-in shift.</Text>
-      ) : isLoading && !hasPosts ? (
-        <Text style={styles.loading}>Loading postings…</Text>
-      ) : (
-        <>
-          <View style={styles.section}>
-            <Text style={styles.heading}>Roles</Text>
+        <OnboardingButton
+          label={postLabel}
+          disabled={!isProfileComplete}
+          onPress={() => router.push(postTarget)}
+        />
+
+        {isLoading ? (
+          <Text style={styles.loading}>Loading postings…</Text>
+        ) : selectedTab === 'roles' ? (
+          <>
             {jobs.length > 0 ? (
-              <View style={styles.filters}>
-                <ChipSelector
-                  options={JOB_FILTER_OPTIONS}
-                  selected={jobFilter}
-                  onChange={(value) => setJobFilter(value as JobFilter)}
-                />
-              </View>
+              <ChipSelector
+                options={JOB_FILTER_OPTIONS}
+                selected={jobFilter}
+                onChange={(value) => setJobFilter(value as JobFilter)}
+              />
             ) : null}
-            {jobs.length === 0 ? (
-              <Text style={styles.empty}>No job posts yet.</Text>
-            ) : filteredJobs.length === 0 ? (
-              <Text style={styles.empty}>No roles in this filter.</Text>
-            ) : (
-              filteredJobs.map((job) => {
-                const roleLabel =
-                  ROLE_TYPE_OPTIONS.find((option) => option.value === job.role_type)?.label ??
-                  job.role_type;
 
-                return (
-                  <PostingCard
+            {jobs.length === 0 ? (
+              <PostingListEmptyState
+                icon="briefcase-outline"
+                title="No roles yet"
+                body="Post your first role to start receiving applications from candidates."
+              />
+            ) : filteredJobs.length === 0 ? (
+              <PostingListEmptyState
+                icon="filter-outline"
+                title="No roles in this filter"
+                body="Try a different filter or publish a new role."
+              />
+            ) : (
+              <View style={styles.list}>
+                {filteredJobs.map((job) => (
+                  <RolePostingCard
                     key={job.id}
-                    title={job.title}
-                    subtitle={`${roleLabel} · ${job.employment_type}`}
-                    details={formatJobDetails(job)}
-                    offerings={job.offerings ?? []}
-                    jobStatus={job.status}
+                    job={job}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
                   />
-                );
-              })
+                ))}
+              </View>
             )}
+          </>
+        ) : shifts.length === 0 ? (
+          <PostingListEmptyState
+            icon="calendar-outline"
+            title="No fill-ins yet"
+            body="Post a fill-in shift when you need temporary or urgent coverage."
+          />
+        ) : (
+          <View style={styles.list}>
+            {shifts.map((shift) => (
+              <FillInPostingCard key={shift.id} shift={shift} />
+            ))}
           </View>
-          <View style={styles.section}>
-            <Text style={styles.heading}>Fill-ins</Text>
-            {shifts.length === 0 ? (
-              <Text style={styles.empty}>No fill-in shifts yet.</Text>
-            ) : (
-              shifts.map((shift) => (
-                <PostingCard
-                  key={shift.id}
-                  title={`${shift.role_type} · ${shift.shift_date}`}
-                  subtitle={`${shift.start_time} – ${shift.end_time}`}
-                  statusLabel={shift.status}
-                />
-              ))
-            )}
-          </View>
-        </>
-      )}
+        )}
+      </View>
     </Screen>
   );
 }

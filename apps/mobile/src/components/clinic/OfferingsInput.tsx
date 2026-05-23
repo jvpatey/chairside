@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { OFFERING_PRESET_OPTIONS, type OfferingPreset } from '@chairside/config';
+import { OFFERING_PRESET_OPTIONS, formatDisplayLabel, type OfferingPreset } from '@chairside/config';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
@@ -119,7 +119,7 @@ export function OfferingsInput({ onChange, initialValue }: OfferingsInputProps) 
   }, [items, onChange]);
 
   const addCustomItem = () => {
-    const trimmed = draft.trim();
+    const trimmed = formatDisplayLabel(draft.trim());
     if (!trimmed || hasOffering(items, trimmed)) {
       setDraft('');
       return;
