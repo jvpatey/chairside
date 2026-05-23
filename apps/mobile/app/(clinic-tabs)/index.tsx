@@ -1,26 +1,35 @@
-import { getClinicDashboardCounts, getMissingClinicProfileFields, type ClinicDashboardCounts } from '@chairside/api';
+import {
+  getClinicDashboardCounts,
+  getMissingClinicProfileFields,
+  listClinicApplications,
+  listJobPosts,
+  listShiftPosts,
+  type ClinicApplication,
+  type ClinicDashboardCounts,
+  type JobPost,
+  type ShiftPost,
+} from '@chairside/api';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import {
-  ActivityEmptyState,
   DashboardHero,
+  DashboardOverviewPanel,
   QuickActionTile,
   SectionHeader,
   SetupBanner,
   StatGrid,
+  type OverviewStat,
 } from '@/components/clinic/ClinicCards';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  CLINIC_APPLICATIONS,
   CLINIC_POST_JOB,
   CLINIC_POST_SHIFT,
-  CLINIC_POSTINGS,
   CLINIC_SETUP_BASICS,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
@@ -33,6 +42,10 @@ export default function ClinicDashboardScreen() {
     fillInsPosted: 0,
     newApplications: 0,
   });
+  const [selectedOverview, setSelectedOverview] = useState<OverviewStat>('roles');
+  const [jobs, setJobs] = useState<JobPost[]>([]);
+  const [shifts, setShifts] = useState<ShiftPost[]>([]);
+  const [applications, setApplications] = useState<ClinicApplication[]>([]);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: {
@@ -44,17 +57,30 @@ export default function ClinicDashboardScreen() {
     },
   }));
 
-  const loadCounts = useCallback(async () => {
+  const loadDashboard = useCallback(async () => {
     if (!user?.id) return;
+
     try {
-      const nextCounts = await getClinicDashboardCounts(user.id);
+      const [nextCounts, jobPosts, shiftPosts, applicationRows] = await Promise.all([
+        getClinicDashboardCounts(user.id),
+        listJobPosts(user.id),
+        listShiftPosts(user.id),
+        listClinicApplications(user.id),
+      ]);
+
       setCounts(nextCounts);
+      setJobs(jobPosts);
+      setShifts(shiftPosts);
+      setApplications(applicationRows);
     } catch {
       setCounts({ openRoles: 0, fillInsPosted: 0, newApplications: 0 });
+      setJobs([]);
+      setShifts([]);
+      setApplications([]);
     }
   }, [user?.id]);
 
-  useRefreshOnFocus(loadCounts);
+  useRefreshOnFocus(loadDashboard);
 
   const guardPosting = (target: Href) => {
     if (isProfileComplete) {
@@ -111,16 +137,17 @@ export default function ClinicDashboardScreen() {
             openRoles={counts.openRoles}
             fillInsPosted={counts.fillInsPosted}
             newApplications={counts.newApplications}
-            onOpenRolesPress={() => router.push(CLINIC_POSTINGS)}
-            onFillInsPress={() => router.push(CLINIC_POSTINGS)}
-            onApplicationsPress={() => router.push(CLINIC_APPLICATIONS)}
+            selected={selectedOverview}
+            onSelect={setSelectedOverview}
           />
         </View>
 
-        <View>
-          <SectionHeader title="Recent activity" />
-          <ActivityEmptyState hasApplications={counts.newApplications > 0} />
-        </View>
+        <DashboardOverviewPanel
+          selected={selectedOverview}
+          jobs={jobs}
+          shifts={shifts}
+          applications={applications}
+        />
       </View>
     </Screen>
   );

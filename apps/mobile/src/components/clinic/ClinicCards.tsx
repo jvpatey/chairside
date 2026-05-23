@@ -1,3 +1,5 @@
+import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
+import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
@@ -214,30 +216,30 @@ export function QuickActionTile({
   );
 }
 
+export type OverviewStat = 'roles' | 'fill-ins' | 'applications';
+
 type StatGridProps = {
   openRoles: number;
   fillInsPosted: number;
   newApplications: number;
-  onOpenRolesPress: () => void;
-  onFillInsPress: () => void;
-  onApplicationsPress: () => void;
+  selected: OverviewStat;
+  onSelect: (stat: OverviewStat) => void;
 };
 
 export function StatGrid({
   openRoles,
   fillInsPosted,
   newApplications,
-  onOpenRolesPress,
-  onFillInsPress,
-  onApplicationsPress,
+  selected,
+  onSelect,
 }: StatGridProps) {
-  const stats = [
-    { label: 'Open roles', value: openRoles, onPress: onOpenRolesPress },
-    { label: 'Fill-ins', value: fillInsPosted, onPress: onFillInsPress },
+  const stats: { key: OverviewStat; label: string; value: number; highlight?: boolean }[] = [
+    { key: 'roles', label: 'Open roles', value: openRoles },
+    { key: 'fill-ins', label: 'Fill-ins', value: fillInsPosted },
     {
+      key: 'applications',
       label: 'Applications',
       value: newApplications,
-      onPress: onApplicationsPress,
       highlight: newApplications > 0,
     },
   ];
@@ -258,7 +260,7 @@ export function StatGrid({
       alignItems: 'center',
       gap: spacing.xs,
     },
-    cellHighlight: {
+    cellSelected: {
       borderColor: colors.primary,
       backgroundColor: colors.primarySubtle,
     },
@@ -267,7 +269,7 @@ export function StatGrid({
       fontSize: 24,
       lineHeight: 28,
     },
-    valueHighlight: {
+    valueSelected: {
       color: colors.primary,
     },
     label: {
@@ -280,30 +282,82 @@ export function StatGrid({
 
   return (
     <View style={styles.grid}>
-      {stats.map((stat) => (
-        <Pressable
-          key={stat.label}
-          accessibilityRole="button"
-          accessibilityLabel={`${stat.label}: ${stat.value}`}
-          onPress={stat.onPress}
-          style={({ pressed }) => [
-            styles.cell,
-            stat.highlight && styles.cellHighlight,
-            pressed && { opacity: 0.85 },
-          ]}>
-          <Text style={[styles.value, stat.highlight && styles.valueHighlight]}>{stat.value}</Text>
-          <Text style={styles.label}>{stat.label}</Text>
-        </Pressable>
-      ))}
+      {stats.map((stat) => {
+        const isSelected = selected === stat.key;
+        return (
+          <Pressable
+            key={stat.key}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
+            accessibilityLabel={`${stat.label}: ${stat.value}`}
+            onPress={() => onSelect(stat.key)}
+            style={({ pressed }) => [
+              styles.cell,
+              isSelected && styles.cellSelected,
+              pressed && { opacity: 0.85 },
+            ]}>
+            <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
+            <Text style={styles.label}>{stat.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
-type ActivityEmptyStateProps = {
-  hasApplications: boolean;
+const OVERVIEW_SECTION_TITLES: Record<OverviewStat, string> = {
+  roles: 'Open roles',
+  'fill-ins': 'Fill-ins',
+  applications: 'Applications',
 };
 
-export function ActivityEmptyState({ hasApplications }: ActivityEmptyStateProps) {
+type DashboardOverviewPanelProps = {
+  selected: OverviewStat;
+  jobs: JobPost[];
+  shifts: ShiftPost[];
+  applications: ClinicApplication[];
+};
+
+function DashboardListCard({
+  title,
+  subtitle,
+  meta,
+}: {
+  title: string;
+  subtitle: string;
+  meta?: string;
+}) {
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.xs,
+    },
+    title: {
+      ...typography.body,
+      fontWeight: '600',
+    },
+    subtitle: typography.subtitle,
+    meta: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+  }));
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.subtitle}>{subtitle}</Text>
+      {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+    </View>
+  );
+}
+
+function DashboardEmptyState({ message }: { message: string }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -324,11 +378,6 @@ export function ActivityEmptyState({ hasApplications }: ActivityEmptyStateProps)
       justifyContent: 'center',
       marginBottom: spacing.xs,
     },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-      textAlign: 'center',
-    },
     body: {
       ...typography.subtitle,
       fontSize: 14,
@@ -340,20 +389,97 @@ export function ActivityEmptyState({ hasApplications }: ActivityEmptyStateProps)
   return (
     <View style={styles.card}>
       <View style={styles.iconWrap}>
-        <Ionicons
-          name={hasApplications ? 'notifications' : 'calendar-outline'}
-          size={24}
-          color={colors.labelSecondary}
-        />
+        <Ionicons name="document-text-outline" size={24} color={colors.labelSecondary} />
       </View>
-      <Text style={styles.title}>
-        {hasApplications ? 'New applications waiting' : 'No recent activity'}
-      </Text>
-      <Text style={styles.body}>
-        {hasApplications
-          ? 'Head to Applications to review candidates for your postings.'
-          : 'Publish a role or fill-in shift to start receiving applications.'}
-      </Text>
+      <Text style={styles.body}>{message}</Text>
+    </View>
+  );
+}
+
+export function DashboardOverviewPanel({
+  selected,
+  jobs,
+  shifts,
+  applications,
+}: DashboardOverviewPanelProps) {
+  const styles = useThemedStyles(({ spacing }) => ({
+    list: {
+      gap: spacing.sm,
+    },
+  }));
+
+  const liveJobs = jobs.filter((job) => job.status === 'live');
+  const liveShifts = shifts.filter((shift) => shift.status === 'live');
+
+  return (
+    <View>
+      <SectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
+      {selected === 'roles' ? (
+        liveJobs.length === 0 ? (
+          <DashboardEmptyState message="No live role postings yet. Post a role to get started." />
+        ) : (
+          <View style={styles.list}>
+            {liveJobs.map((job) => {
+              const roleLabel =
+                ROLE_TYPE_OPTIONS.find((option) => option.value === job.role_type)?.label ??
+                job.role_type;
+
+              return (
+                <DashboardListCard
+                  key={job.id}
+                  title={job.title}
+                  subtitle={`${roleLabel} · ${job.employment_type}`}
+                  meta={job.wage_range ?? undefined}
+                />
+              );
+            })}
+          </View>
+        )
+      ) : null}
+
+      {selected === 'fill-ins' ? (
+        liveShifts.length === 0 ? (
+          <DashboardEmptyState message="No live fill-in shifts yet. Post a fill-in to get started." />
+        ) : (
+          <View style={styles.list}>
+            {liveShifts.map((shift) => {
+              const roleLabel =
+                ROLE_TYPE_OPTIONS.find((option) => option.value === shift.role_type)?.label ??
+                shift.role_type;
+
+              return (
+                <DashboardListCard
+                  key={shift.id}
+                  title={`${roleLabel} · ${shift.shift_date}`}
+                  subtitle={`${shift.start_time} – ${shift.end_time}`}
+                  meta={shift.compensation ?? undefined}
+                />
+              );
+            })}
+          </View>
+        )
+      ) : null}
+
+      {selected === 'applications' ? (
+        applications.length === 0 ? (
+          <DashboardEmptyState message="No applications yet. They will appear when workers apply to your postings." />
+        ) : (
+          <View style={styles.list}>
+            {applications.map((application) => (
+              <DashboardListCard
+                key={application.id}
+                title={application.post_title}
+                subtitle={`${application.post_type === 'job' ? 'Role' : 'Fill-in'} · ${application.status}`}
+                meta={
+                  application.match_score != null
+                    ? `Match score: ${application.match_score}%`
+                    : undefined
+                }
+              />
+            ))}
+          </View>
+        )
+      ) : null}
     </View>
   );
 }
