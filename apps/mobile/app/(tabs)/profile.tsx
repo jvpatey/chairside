@@ -1,17 +1,14 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOnboarding } from '@/contexts/OnboardingContext';
+import { useSignOut } from '@/hooks/useSignOut';
 import { useThemedStyles } from '@/theme';
 
 export default function ProfileScreen() {
-  const { profile, signOut } = useAuth();
-  const { resetOnboarding } = useOnboarding();
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const { profile } = useAuth();
+  const { isSigningOut, signOut } = useSignOut();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -33,24 +30,6 @@ export default function ProfileScreen() {
     },
   }));
 
-  const handleSignOut = async () => {
-    if (isSigningOut) return;
-
-    setIsSigningOut(true);
-    try {
-      await signOut();
-      await resetOnboarding();
-      router.replace('/(onboarding)/welcome');
-    } catch (error) {
-      Alert.alert(
-        'Sign out failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
-
   return (
     <Screen
       title="Profile"
@@ -69,7 +48,7 @@ export default function ProfileScreen() {
           label={isSigningOut ? 'Signing out…' : 'Sign out'}
           variant="secondary"
           disabled={isSigningOut}
-          onPress={handleSignOut}
+          onPress={signOut}
         />
       </View>
     </Screen>

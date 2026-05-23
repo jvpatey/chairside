@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { getHomeRouteForRole } from '@/lib/routing';
 import { useTheme } from '@/theme';
 
 export default function Index() {
@@ -32,5 +33,5 @@ export default function Index() {
     return <Redirect href="/(onboarding)/role?fromAuth=1" />;
   }
 
-  return <Redirect href="/(tabs)" />;
+  return <Redirect href={getHomeRouteForRole(profile.role)} />;
 }

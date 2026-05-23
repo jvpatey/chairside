@@ -1,3 +1,30 @@
-// Shared constants and schemas — add when backend is connected.
-
-export {};
+export {
+  EMPLOYMENT_TYPE_OPTIONS,
+  OFFERING_PRESET_OPTIONS,
+  ROLE_TYPE_OPTIONS,
+  SOFTWARE_OPTIONS,
+  SPECIALTY_OPTIONS,
+  URGENCY_OPTIONS,
+  TEAM_SIZE_RANGE_OPTIONS,
+  JOB_POST_STATUS_OPTIONS,
+  formatDisplayLabel,
+  formatJobPostCardMeta,
+  formatJobPostRoleMeta,
+  formatOfferingLabel,
+  getEmploymentTypeLabel,
+  getJobPostStatusBadgeVariant,
+  getJobPostStatusLabel,
+  getOfferingPresetLabel,
+  getRoleTypeLabel,
+  getSpecialtyLabel,
+  getTeamSizeRangeLabel,
+  getUrgencyLabel,
+  resolveSoftwareSelection,
+  type ClinicSoftware,
+  type ClinicSpecialty,
+  type JobPostStatus,
+  type JobPostStatusBadgeVariant,
+  type OfferingPreset,
+  type RoleType,
+  type TeamSizeRange,
+} from './clinicOptions';

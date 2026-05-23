@@ -4,7 +4,7 @@ import { useThemedStyles } from '@/theme';
 
 type OnboardingButtonProps = {
   label: string;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
   disabled?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
@@ -19,6 +19,7 @@ export function OnboardingButton({
 }: OnboardingButtonProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     base: {
+      alignSelf: 'stretch',
       borderRadius: 12,
       paddingVertical: spacing.md,
       alignItems: 'center' as const,
@@ -47,6 +48,14 @@ export function OnboardingButton({
       minHeight: 44,
       paddingVertical: spacing.sm,
     },
+    destructive: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.destructive,
+    },
+    destructivePressed: {
+      backgroundColor: `${colors.destructive}14`,
+    },
     labelPrimary: {
       ...typography.body,
       fontWeight: '600' as const,
@@ -65,6 +74,11 @@ export function OnboardingButton({
       fontWeight: '600' as const,
       color: colors.primary,
     },
+    labelDestructive: {
+      ...typography.body,
+      fontWeight: '600' as const,
+      color: colors.destructive,
+    },
   }));
 
   const isPrimary = variant === 'primary';
@@ -80,6 +94,8 @@ export function OnboardingButton({
           (disabled ? styles.primaryDisabled : [styles.primary, pressed && styles.primaryPressed]),
         variant === 'secondary' && [styles.secondary, pressed && styles.secondaryPressed],
         variant === 'ghost' && styles.ghost,
+        variant === 'destructive' &&
+          [styles.destructive, pressed && styles.destructivePressed],
         style,
       ]}
     >
@@ -87,9 +103,11 @@ export function OnboardingButton({
         style={
           variant === 'ghost'
             ? styles.labelGhost
-            : isPrimary
-              ? [styles.labelPrimary, disabled && styles.labelPrimaryDisabled]
-              : styles.labelSecondary
+            : variant === 'destructive'
+              ? styles.labelDestructive
+              : isPrimary
+                ? [styles.labelPrimary, disabled && styles.labelPrimaryDisabled]
+                : styles.labelSecondary
         }>
         {label}
       </Text>

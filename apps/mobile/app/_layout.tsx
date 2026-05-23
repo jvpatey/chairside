@@ -13,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ClinicProfileProvider } from '@/contexts/ClinicProfileContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -55,16 +56,20 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <OnboardingProvider>
-          <SplashScreenController fontsReady={fontsReady} />
-          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-          </Stack>
-        </OnboardingProvider>
+        <ClinicProfileProvider>
+          <OnboardingProvider>
+            <SplashScreenController fontsReady={fontsReady} />
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(clinic-tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(clinic-setup)" options={{ headerShown: false }} />
+              <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+            </Stack>
+          </OnboardingProvider>
+        </ClinicProfileProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

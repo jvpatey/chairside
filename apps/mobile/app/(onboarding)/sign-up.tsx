@@ -19,6 +19,7 @@ import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
+import { getHomeRouteForRole } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
 
@@ -78,7 +79,7 @@ export default function SignUpScreen() {
         await setProfileRole(profile.id, role);
         await refreshProfile();
         await completeOnboarding(role);
-        router.replace('/(tabs)');
+        router.replace(getHomeRouteForRole(role));
         return;
       }
 

@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 
+import { getHomeRouteForRole } from '@/lib/routing';
 import type { UserRole } from '@/types';
 
 export async function handleAuthSuccess(
@@ -14,5 +15,5 @@ export async function handleAuthSuccess(
   }
 
   await completeOnboarding(profile.role);
-  router.replace('/(tabs)');
+  router.replace(getHomeRouteForRole(profile.role));
 }

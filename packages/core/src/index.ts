@@ -1,3 +1,1 @@
-// Shared domain logic — add when business rules are implemented.
-
-export {};
+export { calculateMatchScore, type MatchBreakdown } from './matchScore';
