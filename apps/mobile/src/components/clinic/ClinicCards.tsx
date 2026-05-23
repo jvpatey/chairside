@@ -1,11 +1,11 @@
 import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
-import { formatJobPostCardMeta, formatOfferingLabel, getRoleTypeLabel } from '@chairside/config';
+import { getRoleTypeLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
+import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { getTimeOfDayGreeting } from '@/lib/greeting';
@@ -465,12 +465,9 @@ export function DashboardOverviewPanel({
         ) : (
           <View style={styles.list}>
             {roleJobs.map((job) => (
-                <DashboardListCard
+                <RolePostingCard
                   key={job.id}
-                  title={job.title}
-                  subtitle={formatJobPostCardMeta(job)}
-                  meta={job.wage_range ?? undefined}
-                  statusBadge={<JobPostStatusBadge status={job.status} />}
+                  job={job}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                 />
               ))}

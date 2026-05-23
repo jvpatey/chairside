@@ -1,5 +1,5 @@
 import { listJobPosts, listShiftPosts, type JobPost, type ShiftPost } from '@chairside/api';
-import { formatDisplayLabel, formatJobPostCardMeta, formatOfferingLabel, getRoleTypeLabel } from '@chairside/config';
+import { formatDisplayLabel, getRoleTypeLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { CLINIC_POST_JOB, CLINIC_POST_SHIFT, getJobDetailRoute } from '@/lib/routing';
@@ -7,8 +7,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
-import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { PostingsTabBar, type PostingsTab } from '@/components/clinic/PostingsTabBar';
+import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,10 +36,6 @@ function filterJobs(jobs: JobPost[], filter: JobFilter): JobPost[] {
     case 'all':
       return jobs;
   }
-}
-
-function formatJobMeta(job: JobPost): string {
-  return formatJobPostCardMeta(job);
 }
 
 function formatShiftMeta(shift: ShiftPost): string {
@@ -97,77 +93,6 @@ function PostingListEmptyState({
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
     </View>
-  );
-}
-
-function RolePostingCard({ job, onPress }: { job: JobPost; onPress: () => void }) {
-  const previewOfferings = job.offerings.slice(0, 2);
-  const extraOfferings = job.offerings.length - previewOfferings.length;
-
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-    cardPressed: {
-      opacity: 0.9,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-    },
-    headerMain: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-      fontSize: 16,
-    },
-    meta: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-    wage: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    offerings: {
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelSecondary,
-    },
-  }));
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      <View style={styles.header}>
-        <View style={styles.headerMain}>
-          <Text style={styles.title}>{job.title}</Text>
-          <Text style={styles.meta}>{formatJobMeta(job)}</Text>
-        </View>
-        <JobPostStatusBadge status={job.status} />
-      </View>
-      {job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : null}
-      {previewOfferings.length > 0 ? (
-        <Text style={styles.offerings} numberOfLines={2}>
-          {previewOfferings.map((item) => `• ${formatOfferingLabel(item)}`).join('  ')}
-          {extraOfferings > 0 ? `  +${extraOfferings} more` : ''}
-        </Text>
-      ) : null}
-    </Pressable>
   );
 }
 
