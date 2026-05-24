@@ -233,7 +233,12 @@ export async function createApplication(
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505') {
+      throw new Error('You have already applied to this posting.');
+    }
+    throw error;
+  }
   return data as Application;
 }
 

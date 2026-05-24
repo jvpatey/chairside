@@ -1,6 +1,9 @@
+import { View } from 'react-native';
+
 import { AccountProfileHero } from '@/components/account/AccountProfileHero';
 import { AccountSessionActions } from '@/components/account/AccountSessionActions';
 import { ProfileSection } from '@/components/worker/ProfileSection';
+import { useThemedStyles } from '@/theme';
 
 type AccountSettingsSectionProps = {
   email?: string | null;
@@ -21,13 +24,16 @@ export function AccountSettingsSection({
   onDeleteAccount,
   deleteDescription,
 }: AccountSettingsSectionProps) {
-  return (
-    <>
-      <AccountProfileHero email={email} accountTypeLabel={accountTypeLabel} />
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: { gap: spacing.md },
+  }));
 
-      <ProfileSection
-        title="Account settings"
-        subtitle="Sign out or permanently delete your account.">
+  return (
+    <ProfileSection
+      title="Account settings"
+      subtitle="Your login, sign out, and account deletion.">
+      <View style={styles.content}>
+        <AccountProfileHero email={email} accountTypeLabel={accountTypeLabel} />
         <AccountSessionActions
           isSigningOut={isSigningOut}
           isDeleting={isDeleting}
@@ -35,7 +41,7 @@ export function AccountSettingsSection({
           onDeleteAccount={onDeleteAccount}
           deleteDescription={deleteDescription}
         />
-      </ProfileSection>
-    </>
+      </View>
+    </ProfileSection>
   );
 }
