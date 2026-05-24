@@ -71,8 +71,9 @@ function buildSendBody(input: {
   includeSms?: boolean;
   smsMessage?: string;
 }): PingramSendBody {
+  const sendPush = (input.includePush ?? true) && Boolean(input.message);
   const forceChannels: PingramForceChannel[] = ['INAPP_WEB'];
-  if (input.includePush && input.message) {
+  if (sendPush) {
     forceChannels.push('PUSH');
   }
   if (input.includeSms && input.smsMessage && input.phone) {
@@ -87,7 +88,7 @@ function buildSendBody(input: {
     secondaryId: input.secondaryId,
   };
 
-  if (input.includePush && input.message) {
+  if (sendPush && input.message) {
     body.mobile_push = { title: input.title, message: input.message };
   }
 

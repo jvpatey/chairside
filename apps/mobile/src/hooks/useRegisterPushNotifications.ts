@@ -3,19 +3,20 @@ import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { getPingramClientId } from '@/lib/pingram';
+import { isNativePushAvailable } from '@/lib/pingramPush';
 
 /**
- * Requests push permission after onboarding is complete (worker or clinic).
- * Requires a development build with FCM/APNs configured in Pingram.
+ * Registers the device with Pingram for iOS/Android push after onboarding.
+ * Requires an EAS build (not Expo Go) and APNs credentials in the Pingram dashboard.
  */
 export function useRegisterPushNotifications() {
   const { user, profile } = useAuth();
   const { workerProfile, isProfileComplete: workerComplete } = useWorkerProfile();
   const { clinicProfile, isProfileComplete: clinicComplete } = useClinicProfile();
-  const requestedRef = useRef(false);
+  const requestedForUserRef = useRef<string | null>(null);
 
   const setupComplete =
     profile?.role === 'worker'
@@ -27,27 +28,46 @@ export function useRegisterPushNotifications() {
   useEffect(() => {
     const clientId = getPingramClientId();
     const userId = user?.id;
-    if (!clientId || !userId || !setupComplete || requestedRef.current) return;
-    if (Platform.OS === 'web') return;
 
-    requestedRef.current = true;
+    if (!clientId || !userId || !setupComplete) return;
+    if (!isNativePushAvailable()) return;
+    if (Platform.OS === 'web') return;
+    if (requestedForUserRef.current === userId) return;
+
+    let cancelled = false;
 
     void (async () => {
       try {
-        if (!NotificationAPI.isReady) {
-          await NotificationAPI.setup({
-            clientId,
-            userId,
-            region: 'ca',
-            autoRequestPermission: true,
-          });
-        } else {
-          await NotificationAPI.requestPermission();
+        await NotificationAPI.setup({
+          clientId,
+          userId,
+          region: 'ca',
+          autoRequestPermission: true,
+        });
+        if (!cancelled) {
+          requestedForUserRef.current = userId;
         }
       } catch (error) {
-        console.warn('Push permission registration failed', error);
-        requestedRef.current = false;
+        if (__DEV__) {
+          console.warn('Push permission registration failed', error);
+        }
       }
     })();
-  }, [user?.id, profile?.role, setupComplete, workerProfile?.setup_completed_at, clinicProfile?.setup_completed_at]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    user?.id,
+    profile?.role,
+    setupComplete,
+    workerProfile?.setup_completed_at,
+    clinicProfile?.setup_completed_at,
+  ]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      requestedForUserRef.current = null;
+    }
+  }, [user?.id]);
 }

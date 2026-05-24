@@ -14,7 +14,7 @@ Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app
    - `job_posted`
 3. Mobile env: set `EXPO_PUBLIC_PINGRAM_CLIENT_ID` to either the **environment client ID** (Environments page) or the **public key** (`pingram_pk_...`). The app resolves `pingram_pk_` JWTs to the environment ID automatically — the SDK must not use the raw public key as `clientId`.
 4. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
-5. Upload **FCM** (Android) and **APNs** (iOS) credentials for mobile push.
+5. Configure **APNs** (iOS) — often under a notification’s **Mobile Integration** tab (not Settings → Integrations). See [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) when you ship Android push.
 6. Register SMS sender / campaign with Pingram support if using fill-in SMS.
 
 ## Supabase
@@ -53,12 +53,18 @@ Use `application/json` body (default Supabase webhook payload).
 ## Mobile
 
 - In-app: works in Expo Go when `EXPO_PUBLIC_PINGRAM_CLIENT_ID` is set.
-- Push: requires EAS development build (`eas build --profile development`) and native FCM/APNs per Pingram docs.
+- Push: requires an **EAS build** on a **physical device** (not Expo Go). See **[PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md)** for APNs + Pingram + `eas build --profile production`.
 - SMS: worker opts in on profile; requires `phone` on `worker_profiles`.
+
+After changing `notify`, redeploy:
+
+```bash
+supabase functions deploy notify --use-api
+```
 
 ```bash
 cd apps/mobile
-eas build --profile development --platform ios
+eas build --profile production --platform ios
 ```
 
 ## Event summary
