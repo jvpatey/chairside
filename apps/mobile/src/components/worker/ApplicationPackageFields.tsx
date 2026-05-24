@@ -91,7 +91,7 @@ export function ApplicationPackageFields({
         <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={48} />
         <View style={styles.headerFields}>
           <ApplicationPreviewField label="Name" value={displayName} />
-          <ApplicationPreviewField label="Address" value={formatWorkerAddress(profile)} />
+          <ApplicationPreviewField label="Location" value={formatWorkerAddress(profile)} />
         </View>
       </View>
 

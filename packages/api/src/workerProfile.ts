@@ -197,14 +197,6 @@ export function getWorkerEducationSummary(profile: WorkerProfile | null): string
   return formatWorkerEducation(profile);
 }
 
-export function isApplicationPackageReady(profile: WorkerProfile | null): boolean {
-  return isWorkerProfileComplete(profile);
-}
-
-export function getApplicationPackageMissingItems(profile: WorkerProfile | null): string[] {
-  return getMissingWorkerProfileFields(profile);
-}
-
 export async function completeWorkerSetup(userId: string): Promise<WorkerProfile> {
   const profile = await getWorkerProfile(userId);
   if (!isWorkerProfileComplete(profile)) {
@@ -259,14 +251,17 @@ export async function upsertAvailabilityBlocks(
   return data ?? [];
 }
 
+const CLINIC_WORKER_PROFILE_COLUMNS =
+  'id, role_type, years_of_experience, education, education_graduation_year, education_degree_type, education_field, education_institution, software_used, practice_types, preferred_employment_types, city, province, travel_radius_km, travel_radius_range, bio, short_notice_available, fill_in_notification_mode, resume_storage_path, resume_file_name, resume_uploaded_at, photo_storage_path, photo_uploaded_at, default_cover_message, setup_completed_at, created_at, updated_at';
+
 export async function getWorkerProfileForClinic(workerId: string): Promise<WorkerProfile | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('worker_profiles')
-    .select('*')
+    .select(CLINIC_WORKER_PROFILE_COLUMNS)
     .eq('id', workerId)
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return data as WorkerProfile | null;
 }

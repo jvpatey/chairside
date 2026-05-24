@@ -1,4 +1,4 @@
-import { isApplicationPackageReady } from '@chairside/api';
+import { isWorkerProfileComplete } from '@chairside/api';
 import { router } from 'expo-router';
 import { WORKER_PROFILE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
@@ -31,16 +31,14 @@ export default function WorkerApplicationKitScreen() {
       paddingVertical: spacing.xs,
       backgroundColor: colors.fillSubtle,
     },
-    badgeReady: { backgroundColor: colors.primarySubtle },
     badgeText: { fontSize: 12, fontWeight: '600', color: colors.labelSecondary },
-    badgeTextReady: { color: colors.primary },
   }));
 
   useEffect(() => {
     setDefaultCoverMessage(workerProfile?.default_cover_message ?? '');
   }, [workerProfile?.default_cover_message]);
 
-  const ready = isApplicationPackageReady(workerProfile);
+  const backgroundComplete = isWorkerProfileComplete(workerProfile);
 
   const handleSave = async () => {
     setIsSubmitting(true);
@@ -77,11 +75,11 @@ export default function WorkerApplicationKitScreen() {
         onBack={() => router.back()}
       />
       <View style={styles.form}>
-        <View style={[styles.badge, ready && styles.badgeReady]}>
-          <Text style={[styles.badgeText, ready && styles.badgeTextReady]}>
-            {ready ? 'Ready to quick apply' : 'Complete your background to quick apply'}
-          </Text>
-        </View>
+        {!backgroundComplete ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Finish your background first</Text>
+          </View>
+        ) : null}
 
         <ProfilePhotoUpload onUpdated={() => void refreshWorkerProfile()} />
         <ResumeUpload onUploaded={() => void refreshWorkerProfile()} />

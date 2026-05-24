@@ -65,8 +65,6 @@ export {
   getWorkerProfile,
   getWorkerProfileForClinic,
   isWorkerProfileComplete,
-  isApplicationPackageReady,
-  getApplicationPackageMissingItems,
   getWorkerEducationSummary,
   listAvailabilityBlocks,
   upsertAvailabilityBlocks,
