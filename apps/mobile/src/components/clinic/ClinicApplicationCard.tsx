@@ -98,6 +98,18 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
     }
   };
 
+  const handleHire = async () => {
+    try {
+      await updateApplicationStatus(application.id, 'hired');
+      onUpdated?.();
+    } catch (error) {
+      Alert.alert(
+        'Update failed',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  };
+
   return (
     <View style={styles.card}>
       <View style={styles.applicantHeader}>
@@ -149,6 +161,11 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
       ) : null}
       {application.status === 'applied' || application.status === 'reviewed' ? (
         <View style={styles.actions}>
+          <OnboardingButton
+            style={styles.action}
+            label="Confirm hire"
+            onPress={() => void handleHire()}
+          />
           <OnboardingButton style={styles.action} label="Message" onPress={handleMessage} />
           <OnboardingButton
             style={styles.action}

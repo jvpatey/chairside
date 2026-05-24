@@ -19,6 +19,7 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
   const { save } = useWorkerSetupSave();
   const [shortNoticeAvailable, setShortNoticeAvailable] = useState(false);
   const [notificationMode, setNotificationMode] = useState<FillInNotificationMode>('off');
+  const [smsOptIn, setSmsOptIn] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -61,14 +62,22 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
     setNotificationMode(
       (workerProfile.fill_in_notification_mode as FillInNotificationMode) ?? 'off',
     );
+    setSmsOptIn(workerProfile.fill_in_sms_opt_in ?? false);
   }, [workerProfile]);
 
-  const persist = async (available: boolean, mode: FillInNotificationMode) => {
+  const hasPhone = Boolean(workerProfile?.phone?.trim());
+
+  const persist = async (
+    available: boolean,
+    mode: FillInNotificationMode,
+    sms: boolean = smsOptIn,
+  ) => {
     setIsSaving(true);
     try {
       await save({
         short_notice_available: available,
         fill_in_notification_mode: available ? mode : 'off',
+        fill_in_sms_opt_in: available && sms && hasPhone,
       });
       await refreshWorkerProfile();
     } catch (error) {
@@ -83,13 +92,28 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
 
   const handleToggle = async (value: boolean) => {
     setShortNoticeAvailable(value);
-    await persist(value, value ? notificationMode : 'off');
+    if (!value) setSmsOptIn(false);
+    await persist(value, value ? notificationMode : 'off', value ? smsOptIn : false);
   };
 
   const handleModeChange = async (mode: FillInNotificationMode) => {
     setNotificationMode(mode);
     if (shortNoticeAvailable) {
       await persist(true, mode);
+    }
+  };
+
+  const handleSmsToggle = async (value: boolean) => {
+    if (value && !hasPhone) {
+      Alert.alert(
+        'Phone required',
+        'Add your mobile number under notification settings on your profile first.',
+      );
+      return;
+    }
+    setSmsOptIn(value);
+    if (shortNoticeAvailable) {
+      await persist(true, notificationMode, value);
     }
   };
 
@@ -140,6 +164,24 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
               </Pressable>
             );
           })}
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <Text style={styles.toggleTitle}>Text me for fill-ins</Text>
+              <Text style={styles.toggleHint}>
+                {hasPhone
+                  ? 'Optional SMS when a matching fill-in is posted. Standard message rates may apply.'
+                  : 'Add a phone number on your profile to enable SMS alerts.'}
+              </Text>
+            </View>
+            <Switch
+              value={smsOptIn && hasPhone}
+              disabled={isSaving || !hasPhone}
+              onValueChange={handleSmsToggle}
+              trackColor={{ false: colors.fillSubtle, true: colors.primary }}
+              thumbColor={colors.surface}
+              ios_backgroundColor={colors.fillSubtle}
+            />
+          </View>
         </View>
       ) : null}
     </View>

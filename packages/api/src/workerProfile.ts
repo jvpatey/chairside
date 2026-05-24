@@ -162,6 +162,13 @@ export async function upsertWorkerProfile(
   if (partial.fill_in_notification_mode !== undefined) {
     payload.fill_in_notification_mode = partial.fill_in_notification_mode;
   }
+  if (partial.phone !== undefined) payload.phone = partial.phone;
+  if (partial.fill_in_sms_opt_in !== undefined) {
+    payload.fill_in_sms_opt_in = partial.fill_in_sms_opt_in;
+  }
+  if (partial.job_notification_opt_in !== undefined) {
+    payload.job_notification_opt_in = partial.job_notification_opt_in;
+  }
   if (partial.setup_completed_at !== undefined) {
     payload.setup_completed_at = partial.setup_completed_at;
   }

@@ -20,6 +20,7 @@ Edit `apps/mobile/.env` and set both values from Supabase → Project Settings �
 - `EXPO_PUBLIC_SUPABASE_URL` — your project URL (`https://<ref>.supabase.co`)
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the anon / publishable key
 - `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` — Mapbox public token for address autocomplete
+- `EXPO_PUBLIC_PINGRAM_CLIENT_ID` — Pingram client ID for in-app and push (see [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md))
 
 Run all database migrations in [`supabase/migrations/`](supabase/migrations/) **in order** in the Supabase SQL editor:
 
@@ -99,9 +100,18 @@ chairside/
 
 This project is mobile-first. Expo Router supports web out of the box — run `pnpm web` when you're ready to start on the web target. Web UI polish and a clinic dashboard are planned for post-MVP.
 
+## Notifications (Pingram)
+
+In-app alerts, mobile push, and optional fill-in SMS are integrated via Pingram. See [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) for dashboard setup, Edge Function deploy, and database webhooks.
+
+Add to `apps/mobile/.env`:
+
+- `EXPO_PUBLIC_PINGRAM_CLIENT_ID`
+
+Deploy the `notify` Edge Function and apply migration `033_worker_notification_prefs.sql`.
+
 ## What's not included yet
 
-- Push notifications
-- Worker profiles and matching tuning
+- Worker profiles and matching tuning beyond current notifications
 
 Add these incrementally as you build out the MVP.

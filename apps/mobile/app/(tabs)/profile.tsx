@@ -5,6 +5,7 @@ import { AccountSettingsSection } from '@/components/account/AccountSettingsSect
 import { ProfileSection } from '@/components/worker/ProfileSection';
 import { WorkerApplicationKitView } from '@/components/worker/WorkerApplicationKitView';
 import { WorkerProfessionalView } from '@/components/worker/WorkerProfessionalView';
+import { WorkerNotificationPreferences } from '@/components/worker/WorkerNotificationPreferences';
 import { WorkerProfileHero } from '@/components/worker/WorkerProfileHero';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,12 @@ export default function WorkerProfileScreen() {
           actionLabel="Edit"
           onActionPress={() => router.push(WORKER_SETUP_BASICS)}>
           <WorkerProfessionalView profile={workerProfile} />
+        </ProfileSection>
+
+        <ProfileSection
+          title="Alerts"
+          subtitle="Fill-in, job, and optional text notifications.">
+          <WorkerNotificationPreferences />
         </ProfileSection>
 
         <ProfileSection

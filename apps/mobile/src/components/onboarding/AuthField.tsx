@@ -22,6 +22,7 @@ type AuthFieldProps = {
   editable?: boolean;
   multiline?: boolean;
   onFocus?: (event: NativeSyntheticEvent<TextInputFocusEventData>) => void;
+  onBlur?: () => void;
 };
 
 export function AuthField({
@@ -35,6 +36,7 @@ export function AuthField({
   editable = true,
   multiline = false,
   onFocus,
+  onBlur,
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const wrapRef = useRef<View>(null);
@@ -91,6 +93,7 @@ export function AuthField({
         editable={editable}
         multiline={multiline}
         onFocus={handleFocus}
+        onBlur={onBlur}
         accessibilityLabel={label}
       />
     </View>
