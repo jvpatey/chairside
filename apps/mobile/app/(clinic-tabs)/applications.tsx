@@ -18,7 +18,8 @@ function ApplicationCard({
   onReject: () => void;
 }) {
   const breakdown = calculateMatchScore({
-    postRoleType: application.role_type,
+    postRoleType: application.post_role_type,
+    workerRoleType: application.role_type,
   });
   const score = application.match_score ?? breakdown.overall;
 
@@ -56,6 +57,18 @@ function ApplicationCard({
         {application.status}
       </Text>
       <Text style={styles.score}>Match score: {score}%</Text>
+      {application.years_of_experience != null || application.education ? (
+        <Text style={styles.meta}>
+          {application.years_of_experience != null
+            ? `${application.years_of_experience} yrs`
+            : ''}
+          {application.years_of_experience != null && application.education ? ' · ' : ''}
+          {application.education ?? ''}
+        </Text>
+      ) : null}
+      {application.role_type ? (
+        <Text style={styles.meta}>{application.role_type}</Text>
+      ) : null}
       {application.cover_message ? (
         <Text style={styles.meta}>{application.cover_message}</Text>
       ) : null}

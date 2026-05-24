@@ -78,6 +78,51 @@ export type ApplicationRow = {
   status: string;
   match_score: number | null;
   cover_message: string | null;
+  years_of_experience: number | null;
+  education: string | null;
+  role_type: string | null;
+  license_type: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkerProfileRow = {
+  id: string;
+  role_type: string | null;
+  license_type: string | null;
+  years_of_experience: number | null;
+  education: string | null;
+  education_graduation_year: number | null;
+  education_degree_type: string | null;
+  education_field: string | null;
+  education_institution: string | null;
+  software_used: string[];
+  practice_types: string[];
+  preferred_employment_types: string[];
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  province: string;
+  postal_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  travel_radius_km: number | null;
+  travel_radius_range: string | null;
+  bio: string | null;
+  short_notice_available: boolean;
+  fill_in_notification_mode: string;
+  expo_push_token: string | null;
+  setup_completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AvailabilityBlockRow = {
+  id: string;
+  worker_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
   created_at: string;
   updated_at: string;
 };
@@ -146,6 +191,55 @@ export type Database = {
         Row: ApplicationRow;
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      worker_profiles: {
+        Row: WorkerProfileRow;
+        Insert: {
+          id: string;
+          role_type?: string | null;
+          license_type?: string | null;
+          years_of_experience?: number | null;
+          education?: string | null;
+          education_graduation_year?: number | null;
+          education_degree_type?: string | null;
+          education_field?: string | null;
+          education_institution?: string | null;
+          software_used?: string[];
+          practice_types?: string[];
+          preferred_employment_types?: string[];
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          province?: string;
+          postal_code?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          travel_radius_km?: number | null;
+          travel_radius_range?: string | null;
+          bio?: string | null;
+          short_notice_available?: boolean;
+          fill_in_notification_mode?: string;
+          expo_push_token?: string | null;
+          setup_completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['worker_profiles']['Insert']>;
+        Relationships: [];
+      };
+      availability_blocks: {
+        Row: AvailabilityBlockRow;
+        Insert: {
+          worker_id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['availability_blocks']['Insert']>;
         Relationships: [];
       };
     };

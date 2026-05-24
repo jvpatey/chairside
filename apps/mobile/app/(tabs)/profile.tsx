@@ -1,54 +1,32 @@
-import { Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { View } from 'react-native';
 
+import { WorkerProfileView } from '@/components/worker/WorkerProfileView';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSignOut } from '@/hooks/useSignOut';
+import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { WORKER_SETUP_BASICS } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
-export default function ProfileScreen() {
+export default function WorkerProfileScreen() {
   const { profile } = useAuth();
-  const { isSigningOut, signOut } = useSignOut();
+  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.sm,
-    },
-    label: typography.subtitle,
-    value: {
-      ...typography.body,
-      fontWeight: '600',
-    },
-    hint: typography.subtitle,
-    actions: {
-      marginTop: spacing.lg,
-    },
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: { gap: spacing.lg },
   }));
 
+  if (!isWorkerProfileReady) return null;
+
   return (
-    <Screen
-      title="Profile"
-      subtitle="Your professional profile and availability.">
-      <View style={styles.card}>
-        <Text style={styles.label}>Account type</Text>
-        <Text style={styles.value}>
-          {profile?.role === 'clinic' ? 'Clinic' : profile?.role === 'worker' ? 'Worker' : '—'}
-        </Text>
-        <Text style={styles.hint}>
-          Full worker and clinic profile setup will be added in a follow-up.
-        </Text>
-      </View>
-      <View style={styles.actions}>
+    <Screen title="Profile" subtitle="Your professional profile and availability.">
+      <View style={styles.content}>
+        <WorkerProfileView profile={workerProfile} displayName={profile?.display_name} />
         <OnboardingButton
-          label={isSigningOut ? 'Signing out…' : 'Sign out'}
+          label={workerProfile ? 'Edit profile' : 'Set up profile'}
           variant="secondary"
-          disabled={isSigningOut}
-          onPress={signOut}
+          onPress={() => router.push(WORKER_SETUP_BASICS)}
         />
       </View>
     </Screen>

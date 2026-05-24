@@ -1,0 +1,135 @@
+import type { AvailabilityBlockInput } from '@chairside/api';
+import { DAY_OF_WEEK_OPTIONS } from '@chairside/config';
+import { Switch, Text, View } from 'react-native';
+
+import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
+import { normalizeTime24h } from '@/lib/time';
+import { useTheme, useThemedStyles } from '@/theme';
+
+export type DayAvailability = {
+  day_of_week: number;
+  enabled: boolean;
+  start_time: string;
+  end_time: string;
+};
+
+export function createDefaultDayAvailability(): DayAvailability[] {
+  return DAY_OF_WEEK_OPTIONS.map((day) => ({
+    day_of_week: day.value,
+    enabled: day.value >= 1 && day.value <= 5,
+    start_time: '09:00',
+    end_time: '17:00',
+  }));
+}
+
+export function blocksToDayAvailability(
+  blocks: { day_of_week: number; start_time: string; end_time: string }[],
+): DayAvailability[] {
+  const defaults = createDefaultDayAvailability();
+  if (blocks.length === 0) return defaults;
+
+  return defaults.map((day) => {
+    const block = blocks.find((item) => item.day_of_week === day.day_of_week);
+    if (!block) return { ...day, enabled: false };
+    return {
+      day_of_week: day.day_of_week,
+      enabled: true,
+      start_time: normalizeTime24h(block.start_time.slice(0, 5)),
+      end_time: normalizeTime24h(block.end_time.slice(0, 5)),
+    };
+  });
+}
+
+export function dayAvailabilityToBlocks(days: DayAvailability[]): AvailabilityBlockInput[] {
+  return days
+    .filter((day) => day.enabled)
+    .map((day) => ({
+      day_of_week: day.day_of_week,
+      start_time: normalizeTime24h(day.start_time),
+      end_time: normalizeTime24h(day.end_time),
+    }));
+}
+
+type AvailabilityScheduleInputProps = {
+  days: DayAvailability[];
+  onChange: (days: DayAvailability[]) => void;
+};
+
+export function AvailabilityScheduleInput({ days, onChange }: AvailabilityScheduleInputProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    wrap: { gap: spacing.md },
+    row: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    rowHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    headerText: { flex: 1, gap: 2 },
+    dayLabel: { ...typography.body, fontWeight: '600', color: colors.labelPrimary },
+    statusLabel: {
+      fontSize: 13,
+      color: colors.labelSecondary,
+    },
+    times: {
+      borderTopWidth: 1,
+      borderTopColor: colors.separator,
+      paddingTop: spacing.md,
+    },
+  }));
+
+  const updateDay = (dayOfWeek: number, patch: Partial<DayAvailability>) => {
+    onChange(days.map((day) => (day.day_of_week === dayOfWeek ? { ...day, ...patch } : day)));
+  };
+
+  return (
+    <View style={styles.wrap}>
+      {days.map((day) => {
+        const label = DAY_OF_WEEK_OPTIONS.find((item) => item.value === day.day_of_week)?.label;
+        return (
+          <View key={day.day_of_week} style={styles.row}>
+            <View style={styles.rowHeader}>
+              <View style={styles.headerText}>
+                <Text style={styles.dayLabel}>{label}</Text>
+                <Text style={styles.statusLabel}>
+                  {day.enabled ? 'Available' : 'Unavailable'}
+                </Text>
+              </View>
+              <Switch
+                value={day.enabled}
+                onValueChange={(enabled) => updateDay(day.day_of_week, { enabled })}
+                trackColor={{ false: colors.fillSubtle, true: colors.primary }}
+                thumbColor={colors.surface}
+                ios_backgroundColor={colors.fillSubtle}
+              />
+            </View>
+            {day.enabled ? (
+              <View style={styles.times}>
+                <TimeRangeInput
+                  schedule={{
+                    startTime: day.start_time,
+                    endTime: day.end_time,
+                  }}
+                  onChange={(schedule) =>
+                    updateDay(day.day_of_week, {
+                      start_time: schedule.startTime,
+                      end_time: schedule.endTime,
+                    })
+                  }
+                />
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}

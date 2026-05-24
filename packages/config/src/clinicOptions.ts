@@ -186,3 +186,120 @@ export function formatJobPostCardMeta(job: {
   );
   return parts.join(' · ');
 }
+
+/** Practice settings a worker may have experience in — mirrors clinic specialties. */
+export const PRACTICE_TYPE_OPTIONS = SPECIALTY_OPTIONS;
+
+export const FILL_IN_NOTIFICATION_MODE_OPTIONS = [
+  { value: 'off' as const, label: 'Off' },
+  { value: 'all' as const, label: 'All fill-ins in my province' },
+  { value: 'available_days_only' as const, label: 'Only on my available days' },
+] as const;
+
+export type FillInNotificationMode = (typeof FILL_IN_NOTIFICATION_MODE_OPTIONS)[number]['value'];
+
+export const TRAVEL_RADIUS_RANGE_OPTIONS = [
+  { value: 'under_10' as const, label: '10 km or under' },
+  { value: '10_25' as const, label: '10–25 km' },
+  { value: '25_50' as const, label: '25–50 km' },
+  { value: '50_75' as const, label: '50–75 km' },
+  { value: '75_100' as const, label: '75–100 km' },
+  { value: 'over_100' as const, label: '100 km and over' },
+] as const;
+
+export type TravelRadiusRange = (typeof TRAVEL_RADIUS_RANGE_OPTIONS)[number]['value'];
+
+/** @deprecated Use TRAVEL_RADIUS_RANGE_OPTIONS */
+export const TRAVEL_RADIUS_OPTIONS = TRAVEL_RADIUS_RANGE_OPTIONS;
+
+export const EDUCATION_DEGREE_TYPE_OPTIONS = [
+  { value: 'certificate' as const, label: 'Certificate' },
+  { value: 'diploma' as const, label: 'Diploma' },
+  { value: 'associate' as const, label: 'Associate degree' },
+  { value: 'bachelors' as const, label: "Bachelor's degree" },
+  { value: 'masters' as const, label: "Master's degree" },
+  { value: 'doctorate' as const, label: 'Doctorate' },
+  { value: 'other' as const, label: 'Other' },
+] as const;
+
+export type EducationDegreeType = (typeof EDUCATION_DEGREE_TYPE_OPTIONS)[number]['value'];
+
+export const DAY_OF_WEEK_OPTIONS = [
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+] as const;
+
+export function getFillInNotificationModeLabel(value: string): string {
+  return (
+    FILL_IN_NOTIFICATION_MODE_OPTIONS.find((option) => option.value === value)?.label ??
+    formatDisplayLabel(value)
+  );
+}
+
+export function getProvinceLabel(province: string): string {
+  const labels: Record<string, string> = {
+    NS: 'Nova Scotia',
+    NB: 'New Brunswick',
+    PE: 'Prince Edward Island',
+    NL: 'Newfoundland and Labrador',
+  };
+  return labels[province] ?? province;
+}
+
+export function getTravelRadiusRangeLabel(value: string | null | undefined): string {
+  if (!value) return '';
+  return (
+    TRAVEL_RADIUS_RANGE_OPTIONS.find((option) => option.value === value)?.label ??
+    formatDisplayLabel(value)
+  );
+}
+
+export function travelRadiusRangeToMaxKm(value: string | null | undefined): number | null {
+  switch (value) {
+    case 'under_10':
+      return 10;
+    case '10_25':
+      return 25;
+    case '25_50':
+      return 50;
+    case '50_75':
+      return 75;
+    case '75_100':
+      return 100;
+    case 'over_100':
+      return 200;
+    default:
+      return null;
+  }
+}
+
+export function getEducationDegreeTypeLabel(value: string | null | undefined): string {
+  if (!value) return '';
+  return (
+    EDUCATION_DEGREE_TYPE_OPTIONS.find((option) => option.value === value)?.label ??
+    formatDisplayLabel(value)
+  );
+}
+
+export function formatWorkerEducation(input: {
+  education?: string | null;
+  education_graduation_year?: number | null;
+  education_degree_type?: string | null;
+  education_field?: string | null;
+  education_institution?: string | null;
+}): string {
+  const parts = [
+    getEducationDegreeTypeLabel(input.education_degree_type),
+    input.education_field?.trim(),
+    input.education_institution?.trim(),
+    input.education_graduation_year != null ? String(input.education_graduation_year) : null,
+  ].filter(Boolean);
+
+  if (parts.length > 0) return parts.join(' · ');
+  return input.education?.trim() ?? '';
+}

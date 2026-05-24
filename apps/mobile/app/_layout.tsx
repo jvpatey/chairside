@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ClinicProfileProvider } from '@/contexts/ClinicProfileContext';
+import { WorkerProfileProvider } from '@/contexts/WorkerProfileContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -57,18 +58,21 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <ClinicProfileProvider>
-          <OnboardingProvider>
-            <SplashScreenController fontsReady={fontsReady} />
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            <Stack>
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="(clinic-tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="(clinic-setup)" options={{ headerShown: false }} />
-              <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-            </Stack>
-          </OnboardingProvider>
+          <WorkerProfileProvider>
+            <OnboardingProvider>
+              <SplashScreenController fontsReady={fontsReady} />
+              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+              <Stack>
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(clinic-tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(clinic-setup)" options={{ headerShown: false }} />
+                <Stack.Screen name="(worker-setup)" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+              </Stack>
+            </OnboardingProvider>
+          </WorkerProfileProvider>
         </ClinicProfileProvider>
       </AuthProvider>
     </SafeAreaProvider>
