@@ -87,6 +87,13 @@ export {
   uploadWorkerResumeFromBase64,
 } from './workerResume';
 export {
+  deleteWorkerPhoto,
+  getWorkerPhotoDownloadRequest,
+  getWorkerPhotoSignedUrl,
+  getWorkerPhotoStoragePath,
+  uploadWorkerPhotoFromBase64,
+} from './workerPhoto';
+export {
   createApplication,
   hasAppliedToJob,
   hasAppliedToShift,

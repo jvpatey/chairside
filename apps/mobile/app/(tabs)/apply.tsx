@@ -13,8 +13,10 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { WORKER_APPLICATIONS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS } from '@/lib/routing';
 import { computeListingMatchScore } from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
@@ -53,6 +55,12 @@ export default function ApplyScreen() {
       color: colors.primary,
     },
     applicantName: { ...typography.body, fontWeight: '700', fontSize: 16 },
+    applicantHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    applicantHeaderText: { flex: 1, gap: 2 },
     hint: { ...typography.subtitle, fontSize: 13 },
     match: { fontSize: 15, fontWeight: '600', color: colors.primary },
     editLink: { color: colors.primary, fontWeight: '600' },
@@ -128,6 +136,9 @@ export default function ApplyScreen() {
     void loadPost();
   }, [isProfileComplete, loadPost]);
 
+  const addressLine = workerProfile ? formatWorkerAddress(workerProfile) : '';
+  const photoUri = useWorkerPhotoUri(workerProfile?.photo_storage_path);
+
   const handleSubmit = async () => {
     if (!user?.id || !id) return;
 
@@ -156,8 +167,6 @@ export default function ApplyScreen() {
       </OnboardingShell>
     );
   }
-
-  const addressLine = workerProfile ? formatWorkerAddress(workerProfile) : '';
 
   return (
     <OnboardingShell
@@ -189,8 +198,19 @@ export default function ApplyScreen() {
         <View style={styles.card}>
           <Text style={styles.credentialsTitle}>Application credentials</Text>
           <Text style={styles.hint}>This is what the clinic will receive with your application.</Text>
-          <Text style={styles.applicantName}>{profile?.display_name?.trim() || 'Name not set'}</Text>
-          {addressLine ? <Text style={styles.cardMeta}>{addressLine}</Text> : null}
+          <View style={styles.applicantHeader}>
+            <WorkerProfileAvatar
+              displayName={profile?.display_name}
+              photoUri={photoUri}
+              size={48}
+            />
+            <View style={styles.applicantHeaderText}>
+              <Text style={styles.applicantName}>
+                {profile?.display_name?.trim() || 'Name not set'}
+              </Text>
+              {addressLine ? <Text style={styles.cardMeta}>{addressLine}</Text> : null}
+            </View>
+          </View>
           <Text style={styles.cardMeta}>
             {workerProfile?.role_type ? getRoleTypeLabel(workerProfile.role_type) : ''}
           </Text>

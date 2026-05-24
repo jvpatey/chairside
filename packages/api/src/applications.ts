@@ -22,6 +22,7 @@ export type Application = {
   resume_storage_path: string | null;
   worker_display_name: string | null;
   worker_address: string | null;
+  worker_photo_storage_path: string | null;
   software_used: string[];
   practice_types: string[];
   created_at: string;

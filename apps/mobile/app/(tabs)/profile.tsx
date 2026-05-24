@@ -38,6 +38,7 @@ export default function WorkerProfileScreen() {
           displayName={profile?.display_name}
           email={user?.email}
           profile={workerProfile}
+          editable
         />
 
         <ProfileSection
@@ -50,7 +51,7 @@ export default function WorkerProfileScreen() {
 
         <ProfileSection
           title="Application kit"
-          subtitle="Resume and default note sent with role applications."
+          subtitle="Photo, resume, and default note sent with applications."
           actionLabel="Edit"
           onActionPress={() => router.push(WORKER_SETUP_APPLICATION)}>
           <WorkerApplicationKitView profile={workerProfile} />

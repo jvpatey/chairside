@@ -85,6 +85,7 @@ export type ApplicationRow = {
   resume_storage_path: string | null;
   worker_display_name: string | null;
   worker_address: string | null;
+  worker_photo_storage_path: string | null;
   software_used: string[];
   practice_types: string[];
   created_at: string;
@@ -120,6 +121,8 @@ export type WorkerProfileRow = {
   resume_storage_path: string | null;
   resume_file_name: string | null;
   resume_uploaded_at: string | null;
+  photo_storage_path: string | null;
+  photo_uploaded_at: string | null;
   default_cover_message: string | null;
   setup_completed_at: string | null;
   created_at: string;

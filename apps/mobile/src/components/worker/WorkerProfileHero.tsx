@@ -1,24 +1,28 @@
 import type { WorkerProfile } from '@chairside/api';
 import { isWorkerProfileComplete } from '@chairside/api';
 import { getProvinceLabel, getRoleTypeLabel } from '@chairside/config';
-import { Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, Text, View } from 'react-native';
 
-import { useThemedStyles } from '@/theme';
+import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { useProfilePhoto } from '@/hooks/useProfilePhoto';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerProfileHeroProps = {
   displayName?: string | null;
   email?: string | null;
   profile: WorkerProfile | null;
+  editable?: boolean;
 };
 
-function getInitials(name?: string | null): string {
-  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return `${parts[0]![0] ?? ''}${parts[parts.length - 1]![0] ?? ''}`.toUpperCase();
-}
-
-export function WorkerProfileHero({ displayName, email, profile }: WorkerProfileHeroProps) {
+export function WorkerProfileHero({
+  displayName,
+  email,
+  profile,
+  editable = false,
+}: WorkerProfileHeroProps) {
+  const { colors } = useTheme();
+  const { photoUri, isUploading, pickPhoto } = useProfilePhoto();
   const name = displayName?.trim() || 'Your profile';
   const ready = isWorkerProfileComplete(profile);
   const roleLabel = profile?.role_type ? getRoleTypeLabel(profile.role_type) : null;
@@ -41,20 +45,22 @@ export function WorkerProfileHero({ displayName, email, profile }: WorkerProfile
       alignItems: 'center',
       gap: spacing.sm,
     },
-    avatar: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
+    avatarWrap: {
       marginBottom: spacing.xs,
+      position: 'relative' as const,
     },
-    initials: {
-      fontSize: 26,
-      fontWeight: '700',
-      color: colors.primaryOnPrimary,
-      letterSpacing: 0.5,
+    editBadge: {
+      position: 'absolute' as const,
+      right: -2,
+      bottom: -2,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.primary,
+      borderWidth: 2,
+      borderColor: colors.surface,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     name: {
       ...typography.title,
@@ -88,10 +94,32 @@ export function WorkerProfileHero({ displayName, email, profile }: WorkerProfile
     },
   }));
 
+  const avatar = (
+    <WorkerProfileAvatar
+      displayName={displayName}
+      photoUri={photoUri}
+      size={72}
+      isLoading={isUploading}
+    />
+  );
+
   return (
     <View style={styles.card}>
-      <View style={styles.avatar}>
-        <Text style={styles.initials}>{getInitials(displayName)}</Text>
+      <View style={styles.avatarWrap}>
+        {editable ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Change profile photo"
+            disabled={isUploading}
+            onPress={() => void pickPhoto()}>
+            {avatar}
+            <View style={styles.editBadge}>
+              <Ionicons name="camera" size={14} color={colors.primaryOnPrimary} />
+            </View>
+          </Pressable>
+        ) : (
+          avatar
+        )}
       </View>
       <Text style={styles.name} numberOfLines={2}>
         {name}

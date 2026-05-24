@@ -5,8 +5,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { openResumePreview } from '@/lib/openResumePreview';
 import { useThemedStyles } from '@/theme';
 
@@ -19,6 +21,7 @@ function ApplicationCard({
   onShortlist: () => void;
   onReject: () => void;
 }) {
+  const photoUri = useWorkerPhotoUri(application.worker_photo_storage_path);
   const breakdown = calculateMatchScore({
     postRoleType: application.post_role_type,
     workerRoleType: application.role_type,
@@ -43,6 +46,12 @@ function ApplicationCard({
       fontWeight: '700',
       fontSize: 17,
     },
+    applicantHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    applicantHeaderText: { flex: 1, gap: 2 },
     meta: typography.subtitle,
     score: {
       fontSize: 14,
@@ -74,18 +83,27 @@ function ApplicationCard({
 
   return (
     <View style={styles.card}>
-      {application.worker_display_name ? (
-        <Text style={styles.applicantName}>{application.worker_display_name}</Text>
-      ) : null}
+      <View style={styles.applicantHeader}>
+        <WorkerProfileAvatar
+          displayName={application.worker_display_name}
+          photoUri={photoUri}
+          size={44}
+        />
+        <View style={styles.applicantHeaderText}>
+          {application.worker_display_name ? (
+            <Text style={styles.applicantName}>{application.worker_display_name}</Text>
+          ) : null}
+          {application.worker_address ? (
+            <Text style={styles.meta}>{application.worker_address}</Text>
+          ) : null}
+        </View>
+      </View>
       <Text style={styles.title}>{application.post_title}</Text>
       <Text style={styles.meta}>
         {application.post_type === 'job' ? 'Role application' : 'Fill-in application'} ·{' '}
         {application.status}
       </Text>
       <Text style={styles.score}>Match score: {score}%</Text>
-      {application.worker_address ? (
-        <Text style={styles.meta}>{application.worker_address}</Text>
-      ) : null}
       {application.years_of_experience != null || application.education ? (
         <Text style={styles.meta}>
           {application.years_of_experience != null

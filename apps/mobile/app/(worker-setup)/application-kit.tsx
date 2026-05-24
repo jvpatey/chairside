@@ -9,6 +9,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { ResumeUpload } from '@/components/worker/ResumeUpload';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
@@ -71,8 +72,8 @@ export default function WorkerApplicationKitScreen() {
         </View>
       }>
       <AuthScreenHeader
-        title="Application kit · Resume & note"
-        subtitle="What clinics receive when you apply to a role. Resume is optional."
+        title="Application kit · Photo, resume & note"
+        subtitle="What clinics receive when you apply. Photo and resume are optional."
         onBack={() => router.back()}
       />
       <View style={styles.form}>
@@ -82,6 +83,7 @@ export default function WorkerApplicationKitScreen() {
           </Text>
         </View>
 
+        <ProfilePhotoUpload onUpdated={() => void refreshWorkerProfile()} />
         <ResumeUpload onUploaded={() => void refreshWorkerProfile()} />
 
         <AuthField

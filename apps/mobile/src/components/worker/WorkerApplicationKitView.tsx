@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
+import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { ResumeUpload } from '@/components/worker/ResumeUpload';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -42,6 +43,7 @@ export function WorkerApplicationKitView({
 
   return (
     <View style={styles.wrap}>
+      <ProfilePhotoUpload />
       <ResumeUpload />
 
       {displayPreview ? (

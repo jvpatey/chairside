@@ -175,6 +175,12 @@ export async function upsertWorkerProfile(
   if (partial.default_cover_message !== undefined) {
     payload.default_cover_message = partial.default_cover_message;
   }
+  if (partial.photo_storage_path !== undefined) {
+    payload.photo_storage_path = partial.photo_storage_path;
+  }
+  if (partial.photo_uploaded_at !== undefined) {
+    payload.photo_uploaded_at = partial.photo_uploaded_at;
+  }
 
   const { data, error } = await supabase
     .from('worker_profiles')
