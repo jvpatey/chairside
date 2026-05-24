@@ -61,9 +61,14 @@ export function WorkerSetupBanner({ onPress }: WorkerSetupBannerProps) {
 type WorkerDashboardHeroProps = {
   displayName?: string | null;
   province?: string;
+  showProvinceBadge?: boolean;
 };
 
-export function WorkerDashboardHero({ displayName, province = 'NS' }: WorkerDashboardHeroProps) {
+export function WorkerDashboardHero({
+  displayName,
+  province = 'NS',
+  showProvinceBadge = false,
+}: WorkerDashboardHeroProps) {
   const name = displayName?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -96,9 +101,11 @@ export function WorkerDashboardHero({ displayName, province = 'NS' }: WorkerDash
       <Text style={[styles.name, !name && styles.nameHidden]} numberOfLines={1}>
         {name || 'Your profile'}
       </Text>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{getProvinceLabel(province)}</Text>
-      </View>
+      {showProvinceBadge ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{getProvinceLabel(province)}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

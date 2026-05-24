@@ -1,5 +1,6 @@
 import {
   getWorkerDashboardCounts,
+  isWorkerProfileComplete,
   listLiveJobPosts,
   listLiveShiftPosts,
   listWorkerApplications,
@@ -87,7 +88,11 @@ export default function WorkerDashboardScreen() {
   return (
     <Screen showHeader={false}>
       <View style={styles.content}>
-        <WorkerDashboardHero displayName={profile?.display_name} province={province} />
+        <WorkerDashboardHero
+          displayName={profile?.display_name}
+          province={province}
+          showProvinceBadge={isWorkerProfileComplete(workerProfile)}
+        />
 
         <WorkerReadinessChecklist workerProfile={workerProfile} />
 
