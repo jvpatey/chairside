@@ -16,6 +16,14 @@ Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app
 4. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
 5. Configure **APNs** (iOS) — often under a notification’s **Mobile Integration** tab (not Settings → Integrations). See [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) when you ship Android push.
 6. Register SMS sender / campaign with Pingram support if using fill-in SMS.
+7. Verify SMS channel: `export PINGRAM_API_KEY='pingram_sk_...' && ./scripts/verify-pingram-sms.sh`
+
+After deploy, smoke-test fill-in dispatch:
+
+```bash
+export NOTIFY_WEBHOOK_SECRET='...'  # from Supabase Edge Function secrets
+./scripts/test-fill-in-notify.sh [shift_id] [clinic_id] [role_type] [shift_date]
+```
 
 ## Supabase
 
@@ -54,7 +62,7 @@ Use `application/json` body (default Supabase webhook payload).
 
 - In-app: works in Expo Go when `EXPO_PUBLIC_PINGRAM_CLIENT_ID` is set.
 - Push: requires an **EAS build** on a **physical device** (not Expo Go). See **[PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md)** for APNs + Pingram + `eas build --profile production`.
-- SMS: worker opts in on profile; requires `phone` on `worker_profiles`.
+- SMS: worker opts in on the **Fill-ins** tab (or Profile → Alerts); enter mobile number inline when enabling "Text me for fill-ins".
 
 After changing `notify`, redeploy:
 
