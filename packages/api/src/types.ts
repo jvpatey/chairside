@@ -29,6 +29,8 @@ export type ClinicProfileRow = {
   team_size_range: TeamSizeRange | null;
   website: string | null;
   description: string | null;
+  logo_storage_path: string | null;
+  logo_uploaded_at: string | null;
   setup_completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -180,6 +182,8 @@ export type Database = {
           team_size_range?: TeamSizeRange | null;
           website?: string | null;
           description?: string | null;
+          logo_storage_path?: string | null;
+          logo_uploaded_at?: string | null;
           setup_completed_at?: string | null;
           created_at?: string;
           updated_at?: string;

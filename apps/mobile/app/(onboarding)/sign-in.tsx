@@ -1,5 +1,6 @@
 import {
   getAuthErrorMessage,
+  getSupabaseClient,
   resetPasswordForEmail,
   signInWithApple,
   signInWithEmail,
@@ -69,7 +70,12 @@ export default function SignInScreen() {
     setIsSubmitting(true);
     try {
       await action();
-      await handleAuthSuccess(refreshProfile, completeOnboarding);
+      const {
+        data: { session },
+      } = await getSupabaseClient().auth.getSession();
+      if (!session?.user) return;
+
+      await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
     } catch (error) {
       const message = getAuthErrorMessage(error);
       if (message !== 'Sign in was cancelled.') {
@@ -90,8 +96,10 @@ export default function SignInScreen() {
 
     setIsSubmitting(true);
     try {
-      await signInWithEmail(email, password);
-      await handleAuthSuccess(refreshProfile, completeOnboarding);
+      const { user } = await signInWithEmail(email, password);
+      if (!user) return;
+
+      await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
     } catch (error) {
       Alert.alert('Sign in failed', getAuthErrorMessage(error));
     } finally {

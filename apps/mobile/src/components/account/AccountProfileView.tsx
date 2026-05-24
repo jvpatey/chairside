@@ -1,56 +1,41 @@
 import { View } from 'react-native';
 
-import { AccountSessionActions } from '@/components/account/AccountSessionActions';
-import { DetailRow, RowDivider } from '@/components/clinic/DetailCard';
+import { AccountSettingsSection } from '@/components/account/AccountSettingsSection';
 import { useThemedStyles } from '@/theme';
 
 type AccountProfileViewProps = {
-  clinicName: string | null;
+  email?: string | null;
   accountTypeLabel: string;
   isSigningOut: boolean;
   isDeleting: boolean;
   onSignOut: () => void;
   onDeleteAccount: () => void;
+  deleteDescription: string;
 };
 
 export function AccountProfileView({
-  clinicName,
+  email,
   accountTypeLabel,
   isSigningOut,
   isDeleting,
   onSignOut,
   onDeleteAccount,
+  deleteDescription,
 }: AccountProfileViewProps) {
-  const displayClinicName = clinicName?.trim() || 'Your clinic';
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    wrap: {
-      gap: spacing.lg,
-    },
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-    },
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: { gap: spacing.xl },
   }));
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.card}>
-        <DetailRow label="Clinic name" value={displayClinicName} layout="stacked" />
-        <RowDivider />
-        <DetailRow label="Account type" value={accountTypeLabel} layout="stacked" />
-      </View>
-
-      <AccountSessionActions
+    <View style={styles.content}>
+      <AccountSettingsSection
+        email={email}
+        accountTypeLabel={accountTypeLabel}
         isSigningOut={isSigningOut}
         isDeleting={isDeleting}
         onSignOut={onSignOut}
         onDeleteAccount={onDeleteAccount}
-        deleteDescription="Permanently remove your account, clinic profile, all postings, and associated applications. This action cannot be undone."
+        deleteDescription={deleteDescription}
       />
     </View>
   );

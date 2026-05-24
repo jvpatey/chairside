@@ -108,6 +108,8 @@ export async function upsertClinicProfile(
   }
   if (partial.website !== undefined) payload.website = partial.website;
   if (partial.description !== undefined) payload.description = partial.description;
+  if (partial.logo_storage_path !== undefined) payload.logo_storage_path = partial.logo_storage_path;
+  if (partial.logo_uploaded_at !== undefined) payload.logo_uploaded_at = partial.logo_uploaded_at;
   if (partial.setup_completed_at !== undefined) {
     payload.setup_completed_at = partial.setup_completed_at;
   }

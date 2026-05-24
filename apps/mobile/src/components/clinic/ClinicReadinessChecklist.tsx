@@ -1,17 +1,17 @@
-import type { WorkerProfile } from '@chairside/api';
-import { isWorkerProfileComplete } from '@chairside/api';
+import type { ClinicProfile } from '@chairside/api';
+import { isClinicProfileComplete } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
-import { WORKER_SETUP_BASICS } from '@/lib/routing';
+import { CLINIC_SETUP_BASICS } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
-type WorkerReadinessChecklistProps = {
-  workerProfile: WorkerProfile | null;
+type ClinicReadinessChecklistProps = {
+  clinicProfile: ClinicProfile | null;
 };
 
-export function WorkerReadinessChecklist({ workerProfile }: WorkerReadinessChecklistProps) {
+export function ClinicReadinessChecklist({ clinicProfile }: ClinicReadinessChecklistProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -43,21 +43,21 @@ export function WorkerReadinessChecklist({ workerProfile }: WorkerReadinessCheck
     itemBody: { ...typography.subtitle, fontSize: 13, lineHeight: 18 },
   }));
 
-  if (isWorkerProfileComplete(workerProfile)) return null;
+  if (isClinicProfileComplete(clinicProfile)) return null;
 
   return (
     <View style={styles.card}>
       <View>
         <Text style={styles.title}>Get started</Text>
-        <Text style={styles.subtitle}>Add your background to apply and receive fill-ins.</Text>
+        <Text style={styles.subtitle}>Complete your profile to post roles and fill-in shifts.</Text>
       </View>
-      <Pressable style={styles.item} onPress={() => router.push(WORKER_SETUP_BASICS)}>
+      <Pressable style={styles.item} onPress={() => router.push(CLINIC_SETUP_BASICS)}>
         <View style={styles.iconWrap}>
           <Ionicons name="ellipse-outline" size={16} color={colors.labelSecondary} />
         </View>
         <View style={styles.textBlock}>
-          <Text style={styles.itemTitle}>Add your background</Text>
-          <Text style={styles.itemBody}>Role, experience, and location.</Text>
+          <Text style={styles.itemTitle}>Complete your clinic profile</Text>
+          <Text style={styles.itemBody}>Practice details, location, and contact.</Text>
         </View>
       </Pressable>
     </View>

@@ -19,6 +19,13 @@ export {
   type ClinicProfile,
   type ClinicProfileUpdate,
 } from './clinicProfile';
+export {
+  deleteClinicLogo,
+  getClinicLogoDownloadRequest,
+  getClinicLogoSignedUrl,
+  getClinicLogoStoragePath,
+  uploadClinicLogoFromBase64,
+} from './clinicLogo';
 export { parseMapboxFeature, searchAddresses, type AddressSuggestion, type ParsedAddress } from './mapbox';
 export {
   createJobPost,
@@ -106,5 +113,5 @@ export {
   type CreateApplicationInput,
   type WorkerApplication,
 } from './applications';
-export { getProfile, setProfileRole, updateProfileDisplayName } from './profile';
+export { getProfile, resolveAuthProfile, setProfileRole, updateProfileDisplayName } from './profile';
 export type { Database, Profile, UserRole } from './types';

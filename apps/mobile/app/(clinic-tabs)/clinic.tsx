@@ -1,46 +1,46 @@
 import { router } from 'expo-router';
-import { CLINIC_SETUP_BASICS } from '@/lib/routing';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
-import { ClinicProfileView } from '@/components/clinic/ClinicProfileView';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ClinicAboutView } from '@/components/clinic/ClinicAboutView';
+import { ClinicPracticeView } from '@/components/clinic/ClinicPracticeView';
+import { ClinicProfileHero } from '@/components/clinic/ClinicProfileHero';
+import { ProfileSection } from '@/components/worker/ProfileSection';
 import { Screen } from '@/components/ui/Screen';
+import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { CLINIC_SETUP_ABOUT, CLINIC_SETUP_BASICS } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicProfileScreen() {
-  const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { user } = useAuth();
+  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    hint: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 12,
-      padding: spacing.md,
-      marginBottom: spacing.sm,
-    },
-    actions: {
-      gap: spacing.sm,
-      marginTop: spacing.md,
-    },
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: { gap: spacing.xl },
   }));
 
+  if (!isClinicProfileReady) return null;
+
   return (
-    <Screen title="Clinic" showHeader={false}>
-      {!isProfileComplete ? (
-        <Text style={styles.hint}>Finish setup to unlock posting roles and fill-in shifts.</Text>
-      ) : null}
+    <Screen title="Clinic">
+      <View style={styles.content}>
+        <ClinicProfileHero email={user?.email} profile={clinicProfile} editable />
 
-      <ClinicProfileView profile={clinicProfile} isProfileComplete={isProfileComplete} />
+        <ProfileSection
+          title="Practice details"
+          subtitle="Location, contact, and practice info."
+          actionLabel="Edit"
+          onActionPress={() => router.push(CLINIC_SETUP_BASICS)}>
+          <ClinicPracticeView profile={clinicProfile} />
+        </ProfileSection>
 
-      <View style={styles.actions}>
-        <OnboardingButton
-          label={isProfileComplete ? 'Edit clinic' : 'Complete setup'}
-          onPress={() => router.push(CLINIC_SETUP_BASICS)}
-        />
+        <ProfileSection
+          title="About"
+          subtitle="Description and website shown to candidates."
+          actionLabel="Edit"
+          onActionPress={() => router.push(CLINIC_SETUP_ABOUT)}>
+          <ClinicAboutView profile={clinicProfile} />
+        </ProfileSection>
       </View>
     </Screen>
   );

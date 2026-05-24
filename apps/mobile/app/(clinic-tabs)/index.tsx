@@ -19,10 +19,10 @@ import {
   DashboardOverviewPanel,
   QuickActionTile,
   SectionHeader,
-  SetupBanner,
   StatGrid,
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
+import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -111,15 +111,18 @@ export default function ClinicDashboardScreen() {
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
+  const province = clinicProfile?.province ?? 'NS';
 
   return (
     <Screen showHeader={false}>
       <View style={styles.content}>
-        <DashboardHero clinicName={clinicName} />
+        <DashboardHero
+          clinicName={clinicName}
+          province={province}
+          showLocationBadge={isProfileComplete}
+        />
 
-        {!isProfileComplete ? (
-          <SetupBanner onPress={() => router.push(CLINIC_SETUP_BASICS)} />
-        ) : null}
+        <ClinicReadinessChecklist clinicProfile={clinicProfile} />
 
         <View>
           <SectionHeader title="Quick actions" />

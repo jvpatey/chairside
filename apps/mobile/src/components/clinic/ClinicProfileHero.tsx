@@ -1,37 +1,38 @@
-import type { WorkerProfile } from '@chairside/api';
-import { isWorkerProfileComplete } from '@chairside/api';
-import { getProvinceLabel, getRoleTypeLabel } from '@chairside/config';
+import type { ClinicProfile } from '@chairside/api';
+import { isClinicProfileComplete } from '@chairside/api';
+import { getProvinceLabel, SPECIALTY_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
-import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
-import { useProfilePhoto } from '@/hooks/useProfilePhoto';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useTheme, useThemedStyles } from '@/theme';
 
-type WorkerProfileHeroProps = {
-  displayName?: string | null;
-  profile: WorkerProfile | null;
+type ClinicProfileHeroProps = {
+  email?: string | null;
+  profile: ClinicProfile | null;
   editable?: boolean;
 };
 
-export function WorkerProfileHero({
-  displayName,
+export function ClinicProfileHero({
+  email,
   profile,
   editable = false,
-}: WorkerProfileHeroProps) {
+}: ClinicProfileHeroProps) {
   const { colors } = useTheme();
-  const { photoUri, isUploading, pickPhoto } = useProfilePhoto();
-  const name = displayName?.trim() || 'Your profile';
-  const ready = isWorkerProfileComplete(profile);
-  const roleLabel = profile?.role_type ? getRoleTypeLabel(profile.role_type) : null;
+  const { logoUri, isUploading, pickLogo } = useClinicLogo();
+  const name = profile?.clinic_name?.trim() || 'Your practice';
+  const ready = isClinicProfileComplete(profile);
+  const specialtyLabel =
+    SPECIALTY_OPTIONS.find((item) => item.value === profile?.specialty)?.label ?? null;
   const location = [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
     .filter(Boolean)
     .join(', ');
 
   const metaLine =
-    roleLabel && location
-      ? `${roleLabel} · ${location}`
-      : roleLabel ?? location ?? 'Add your background to get started';
+    specialtyLabel && location
+      ? `${specialtyLabel} · ${location}`
+      : specialtyLabel ?? location ?? 'Complete your clinic profile to get started';
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -66,6 +67,11 @@ export function WorkerProfileHero({
       lineHeight: 30,
       textAlign: 'center',
     },
+    email: {
+      ...typography.subtitle,
+      fontSize: 14,
+      textAlign: 'center',
+    },
     meta: {
       ...typography.subtitle,
       fontSize: 14,
@@ -88,9 +94,9 @@ export function WorkerProfileHero({
   }));
 
   const avatar = (
-    <WorkerProfileAvatar
-      displayName={displayName}
-      photoUri={photoUri}
+    <ClinicLogoAvatar
+      clinicName={profile?.clinic_name}
+      logoUri={logoUri}
       size={72}
       isLoading={isUploading}
     />
@@ -102,9 +108,9 @@ export function WorkerProfileHero({
         {editable ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Change profile photo"
+            accessibilityLabel="Change clinic logo"
             disabled={isUploading}
-            onPress={() => void pickPhoto()}>
+            onPress={() => void pickLogo()}>
             {avatar}
             <View style={styles.editBadge}>
               <Ionicons name="camera" size={14} color={colors.primaryOnPrimary} />
@@ -117,10 +123,11 @@ export function WorkerProfileHero({
       <Text style={styles.name} numberOfLines={2}>
         {name}
       </Text>
+      {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
       <Text style={styles.meta}>{metaLine}</Text>
       {ready ? (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>Ready to apply</Text>
+          <Text style={styles.badgeText}>Ready to post</Text>
         </View>
       ) : null}
     </View>

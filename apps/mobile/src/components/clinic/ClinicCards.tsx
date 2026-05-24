@@ -1,4 +1,5 @@
 import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
+import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
@@ -11,73 +12,19 @@ import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useTheme, useThemedStyles } from '@/theme';
 
-type SetupBannerProps = {
-  onPress: () => void;
-};
-
-export function SetupBanner({ onPress }: SetupBannerProps) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 16,
-      padding: spacing.lg,
-      gap: spacing.md,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-    },
-    iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    textBlock: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-      color: colors.labelPrimary,
-    },
-    body: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-    },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="business" size={20} color={colors.primaryOnPrimary} />
-        </View>
-        <View style={styles.textBlock}>
-          <Text style={styles.title}>Complete your clinic profile</Text>
-          <Text style={styles.body}>
-            Add practice details to unlock posting roles and fill-in shifts.
-          </Text>
-        </View>
-      </View>
-      <OnboardingButton label="Continue setup" onPress={onPress} />
-    </View>
-  );
-}
-
 type DashboardHeroProps = {
   clinicName?: string | null;
+  province?: string;
+  showLocationBadge?: boolean;
 };
 
 const CLINIC_NAME_PLACEHOLDER = 'Your practice';
 
-export function DashboardHero({ clinicName }: DashboardHeroProps) {
+export function DashboardHero({
+  clinicName,
+  province = 'NS',
+  showLocationBadge = false,
+}: DashboardHeroProps) {
   const displayName = clinicName?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -102,6 +49,14 @@ export function DashboardHero({ clinicName }: DashboardHeroProps) {
     nameHidden: {
       opacity: 0,
     },
+    badge: {
+      alignSelf: 'center',
+      backgroundColor: colors.secondarySubtle,
+      borderRadius: 6,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    badgeText: { fontSize: 12, fontWeight: '600', color: colors.secondary },
   }));
 
   return (
@@ -117,6 +72,11 @@ export function DashboardHero({ clinicName }: DashboardHeroProps) {
       >
         {displayName || CLINIC_NAME_PLACEHOLDER}
       </Text>
+      {showLocationBadge ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{getProvinceLabel(province)}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
