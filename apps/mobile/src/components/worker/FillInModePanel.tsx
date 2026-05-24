@@ -3,10 +3,12 @@ import {
   normalizePhoneForStorage,
   type FillInNotificationMode,
 } from '@chairside/config';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
@@ -31,38 +33,73 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
   const [isSaving, setIsSaving] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    wrap: { gap: spacing.md },
-    header: { gap: spacing.xs },
-    title: { ...typography.body, fontWeight: '700', fontSize: 17 },
-    subtitle: typography.subtitle,
-    toggleRow: {
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      overflow: 'hidden',
+    },
+    statusBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.primarySubtle,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.primary,
+    },
+    statusText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    row: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
       padding: spacing.md,
       gap: spacing.md,
     },
-    toggleText: { flex: 1, gap: 2 },
-    toggleTitle: { ...typography.body, fontWeight: '600', color: colors.labelPrimary },
-    toggleHint: { fontSize: 13, color: colors.labelSecondary },
-    modeOption: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
+    rowText: { flex: 1, gap: 2 },
+    rowTitle: { ...typography.body, fontWeight: '600', color: colors.labelPrimary },
+    rowHint: { fontSize: 13, lineHeight: 18, color: colors.labelSecondary },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+    },
+    insetDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+      marginLeft: spacing.md,
+    },
+    expanded: {
       padding: spacing.md,
-      backgroundColor: colors.surface,
+      gap: spacing.md,
     },
-    modeOptionSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primarySubtle,
+    groupLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.labelSecondary,
     },
-    modeLabel: { ...typography.body, fontWeight: '600' },
-    modeHint: { ...typography.subtitle, fontSize: 13, marginTop: spacing.xs },
-    smsBlock: { gap: spacing.sm },
+    modeRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    modeText: { flex: 1, gap: 2 },
+    modeLabel: { ...typography.body, fontWeight: '600', fontSize: 15 },
+    modeHint: { fontSize: 13, lineHeight: 18, color: colors.labelSecondary },
+    phoneBlock: { gap: spacing.md },
   }));
 
   useEffect(() => {
@@ -81,8 +118,13 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
     return workerProfile?.phone?.trim() || null;
   };
 
-  const hasPhone = Boolean(resolveStoredPhone());
+  const savedPhone = workerProfile?.phone?.trim() || null;
+  const hasPhone = Boolean(savedPhone);
   const showPhoneField = smsOptIn || !hasPhone;
+  const showExpandedSettings = showNotificationOptions && shortNoticeAvailable;
+  const pendingPhone = normalizePhoneForStorage(phone);
+  const phoneNeedsSave = Boolean(phone.trim()) && pendingPhone !== savedPhone;
+  const phoneIsSaved = Boolean(savedPhone) && pendingPhone === savedPhone;
 
   const persist = async (
     available: boolean,
@@ -148,7 +190,7 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
     }
   };
 
-  const handlePhoneBlur = async () => {
+  const handleSavePhone = async () => {
     if (!phone.trim()) return;
 
     const storedPhone = normalizePhoneForStorage(phone);
@@ -177,21 +219,21 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
   };
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Fill-in availability</Text>
-        <Text style={styles.subtitle}>
-          Turn this on when you are open to short-notice temp shifts in your area.
-        </Text>
-      </View>
+    <View style={styles.card}>
+      {shortNoticeAvailable ? (
+        <View style={styles.statusBanner}>
+          <View style={styles.statusDot} />
+          <Text style={styles.statusText}>You are open to fill-in shifts</Text>
+        </View>
+      ) : null}
 
-      <View style={styles.toggleRow}>
-        <View style={styles.toggleText}>
-          <Text style={styles.toggleTitle}>Available for fill-ins</Text>
-          <Text style={styles.toggleHint}>
+      <View style={styles.row}>
+        <View style={styles.rowText}>
+          <Text style={styles.rowTitle}>Available for fill-ins</Text>
+          <Text style={styles.rowHint}>
             {shortNoticeAvailable
               ? 'Clinics can reach you for urgent shifts.'
-              : 'You are not receiving fill-in alerts. Browse shifts below when ready.'}
+              : 'Turn on when you are open to short-notice temp work.'}
           </Text>
         </View>
         <Switch
@@ -204,57 +246,83 @@ export function FillInModePanel({ showNotificationOptions = true }: FillInModePa
         />
       </View>
 
-      {showNotificationOptions && shortNoticeAvailable ? (
-        <View style={{ gap: 8 }}>
-          {NOTIFICATION_MODE_OPTIONS.map((option) => {
-            const selected = notificationMode === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                disabled={isSaving}
-                style={[styles.modeOption, selected && styles.modeOptionSelected]}
-                onPress={() => handleModeChange(option.value)}>
-                <Text style={styles.modeLabel}>{option.label}</Text>
-                {option.value === 'available_days_only' ? (
-                  <Text style={styles.modeHint}>
-                    Only notify when the shift overlaps your weekly schedule.
-                  </Text>
-                ) : null}
-              </Pressable>
-            );
-          })}
-          <View style={styles.smsBlock}>
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleText}>
-                <Text style={styles.toggleTitle}>Text me for fill-ins</Text>
-                <Text style={styles.toggleHint}>
-                  {hasPhone
-                    ? 'Optional SMS when a matching fill-in is posted. Standard message rates may apply.'
-                    : 'Enter your mobile number below to enable SMS alerts.'}
-                </Text>
-              </View>
-              <Switch
-                value={smsOptIn}
-                disabled={isSaving}
-                onValueChange={handleSmsToggle}
-                trackColor={{ false: colors.fillSubtle, true: colors.primary }}
-                thumbColor={colors.surface}
-                ios_backgroundColor={colors.fillSubtle}
-              />
+      {showExpandedSettings ? (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.expanded}>
+            <Text style={styles.groupLabel}>Alert me for</Text>
+            {NOTIFICATION_MODE_OPTIONS.map((option, index) => {
+              const selected = notificationMode === option.value;
+              return (
+                <View key={option.value}>
+                  <Pressable
+                    disabled={isSaving}
+                    style={styles.modeRow}
+                    onPress={() => handleModeChange(option.value)}>
+                    <Ionicons
+                      name={selected ? 'radio-button-on' : 'radio-button-off'}
+                      size={22}
+                      color={selected ? colors.primary : colors.labelTertiary}
+                    />
+                    <View style={styles.modeText}>
+                      <Text style={styles.modeLabel}>{option.label}</Text>
+                      {option.value === 'available_days_only' ? (
+                        <Text style={styles.modeHint}>
+                          Only when the shift overlaps your weekly schedule.
+                        </Text>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                  {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
+                    <View style={styles.insetDivider} />
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.rowTitle}>Text me for fill-ins</Text>
+              <Text style={styles.rowHint}>
+                {hasPhone
+                  ? 'Optional SMS when a matching fill-in is posted.'
+                  : 'Add your mobile number below to enable SMS alerts.'}
+              </Text>
             </View>
-            {showPhoneField ? (
+            <Switch
+              value={smsOptIn}
+              disabled={isSaving}
+              onValueChange={handleSmsToggle}
+              trackColor={{ false: colors.fillSubtle, true: colors.primary }}
+              thumbColor={colors.surface}
+              ios_backgroundColor={colors.fillSubtle}
+            />
+          </View>
+
+          {showPhoneField ? (
+            <View style={[styles.expanded, styles.phoneBlock]}>
               <AuthField
                 label="Mobile phone"
                 value={phone}
                 onChangeText={(text) => setPhone(formatPhoneNumber(text))}
-                onBlur={() => void handlePhoneBlur()}
                 keyboardType="phone-pad"
                 placeholder={PHONE_NUMBER_PLACEHOLDER}
                 editable={!isSaving}
+                validated={phoneIsSaved}
               />
-            ) : null}
-          </View>
-        </View>
+              {phoneNeedsSave ? (
+                <OnboardingButton
+                  label="Save number"
+                  disabled={isSaving || !pendingPhone}
+                  onPress={() => void handleSavePhone()}
+                />
+              ) : null}
+            </View>
+          ) : null}
+        </>
       ) : null}
     </View>
   );

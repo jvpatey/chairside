@@ -13,7 +13,7 @@ export function AvailabilityScheduleSummary({ blocks }: AvailabilityScheduleSumm
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
