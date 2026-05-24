@@ -8,6 +8,7 @@ import { Pressable, Text, View } from 'react-native';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -36,6 +37,12 @@ export function DashboardHero({
       padding: spacing.lg,
       gap: spacing.sm,
     },
+    bell: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.md,
+      zIndex: 1,
+    },
     wordmarkWrap: {
       alignItems: 'center',
     },
@@ -61,6 +68,9 @@ export function DashboardHero({
 
   return (
     <View style={styles.card}>
+      <View style={styles.bell}>
+        <NotificationBell placement="hero" />
+      </View>
       <View style={styles.wordmarkWrap}>
         <ChairsideWordmark variant="small" />
       </View>

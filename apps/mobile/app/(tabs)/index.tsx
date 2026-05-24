@@ -97,7 +97,7 @@ export default function WorkerDashboardScreen() {
   );
 
   return (
-    <Screen showHeader={false}>
+    <Screen showHeader={false} showNotifications={false}>
       <View style={styles.content}>
         <WorkerDashboardHero
           displayName={profile?.display_name}

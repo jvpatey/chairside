@@ -56,7 +56,7 @@ export function Screen({
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
       ]}>
       <View style={[styles.header, !showHeader && styles.headerHidden]}>
-        {showHeader && (title || showNotifications) ? (
+        {showHeader ? (
           <View style={styles.headerRow}>
             <View style={styles.headerText}>
               {title ? <Text style={styles.title}>{title}</Text> : null}

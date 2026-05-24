@@ -122,7 +122,7 @@ export default function ClinicDashboardScreen() {
   const province = clinicProfile?.province ?? 'NS';
 
   return (
-    <Screen showHeader={false}>
+    <Screen showHeader={false} showNotifications={false}>
       <View style={styles.content}>
         <DashboardHero
           clinicName={clinicName}

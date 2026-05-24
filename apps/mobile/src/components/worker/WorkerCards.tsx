@@ -7,6 +7,7 @@ import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -81,6 +82,12 @@ export function WorkerDashboardHero({
       padding: spacing.lg,
       gap: spacing.sm,
     },
+    bell: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.md,
+      zIndex: 1,
+    },
     wordmarkWrap: { alignItems: 'center' },
     name: { ...typography.title, fontSize: 26, lineHeight: 32, textAlign: 'center' },
     nameHidden: { opacity: 0 },
@@ -96,6 +103,9 @@ export function WorkerDashboardHero({
 
   return (
     <View style={styles.card}>
+      <View style={styles.bell}>
+        <NotificationBell placement="hero" />
+      </View>
       <View style={styles.wordmarkWrap}>
         <ChairsideWordmark variant="small" />
       </View>
