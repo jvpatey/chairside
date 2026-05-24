@@ -1,4 +1,5 @@
 import type { RoleType } from '@chairside/config';
+import { isMatchableSoftware } from '@chairside/core';
 import { getSupabaseClient } from './client';
 
 export type { RoleType } from '@chairside/config';
@@ -220,7 +221,7 @@ export async function createJobPost(
       specialty = clinicProfile?.specialty ?? 'general';
     }
     if (softwareUsed === undefined) {
-      softwareUsed = clinicProfile?.software_used ?? [];
+      softwareUsed = (clinicProfile?.software_used ?? []).filter(isMatchableSoftware);
     }
   }
 
@@ -418,6 +419,7 @@ export type ClinicSummary = {
   city: string | null;
   province: string;
   specialty: string;
+  software_used: string[];
   latitude: number | null;
   longitude: number | null;
 };
@@ -440,7 +442,7 @@ async function listClinicSummariesInProvince(province: string): Promise<Map<stri
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, latitude, longitude')
+    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude')
     .eq('province', province);
 
   if (error) throw error;
@@ -454,6 +456,7 @@ async function listClinicSummariesInProvince(province: string): Promise<Map<stri
         city: row.city,
         province: row.province,
         specialty: row.specialty,
+        software_used: row.software_used ?? [],
         latitude: row.latitude,
         longitude: row.longitude,
       },
@@ -522,7 +525,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
 
   const { data: clinic, error: clinicError } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, latitude, longitude')
+    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude')
     .eq('id', data.clinic_id)
     .maybeSingle();
 
@@ -537,6 +540,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
       city: clinic.city,
       province: clinic.province,
       specialty: clinic.specialty,
+      software_used: clinic.software_used ?? [],
       latitude: clinic.latitude,
       longitude: clinic.longitude,
     },
@@ -557,7 +561,7 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
 
   const { data: clinic, error: clinicError } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, latitude, longitude')
+    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude')
     .eq('id', data.clinic_id)
     .maybeSingle();
 
@@ -572,6 +576,7 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
       city: clinic.city,
       province: clinic.province,
       specialty: clinic.specialty,
+      software_used: clinic.software_used ?? [],
       latitude: clinic.latitude,
       longitude: clinic.longitude,
     },

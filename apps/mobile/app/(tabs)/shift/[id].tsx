@@ -110,7 +110,7 @@ export default function WorkerShiftDetailScreen() {
           <Text style={styles.clinicName}>{shift.clinic.clinic_name}</Text>
           {location ? <Text style={styles.clinicMeta}>{location}</Text> : null}
         </View>
-        <ShiftPostDetailView shift={shift} />
+        <ShiftPostDetailView shift={shift} softwareUsed={shift.clinic.software_used} />
       </View>
     </OnboardingShell>
   );

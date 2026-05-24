@@ -1,3 +1,5 @@
+import { scoreSoftwareMatch } from './softwareMatch';
+
 export type MatchLevel = 'strong' | 'partial' | 'missing';
 
 export type MatchBreakdown = {
@@ -24,17 +26,7 @@ export function calculateMatchScore(input: {
         ? 'partial'
         : 'missing';
 
-  const postSoftware = input.postSoftware ?? [];
-  const workerSoftware = input.workerSoftware ?? [];
-  const softwareOverlap = postSoftware.filter((item) => workerSoftware.includes(item)).length;
-  const software: MatchLevel =
-    postSoftware.length === 0
-      ? 'partial'
-      : softwareOverlap === postSoftware.length
-        ? 'strong'
-        : softwareOverlap > 0
-          ? 'partial'
-          : 'missing';
+  const software = scoreSoftwareMatch(input.postSoftware, input.workerSoftware);
 
   const location: MatchLevel =
     input.distanceKm == null || input.workerTravelRadiusKm == null
