@@ -101,6 +101,10 @@ create policy "Workers update own resume"
   using (
     bucket_id = 'worker-resumes'
     and auth.uid()::text = (storage.foldername(name))[1]
+  )
+  with check (
+    bucket_id = 'worker-resumes'
+    and auth.uid()::text = (storage.foldername(name))[1]
   );
 
 create policy "Workers read own resume"

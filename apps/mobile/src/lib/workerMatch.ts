@@ -18,13 +18,13 @@ function haversineKm(
   return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function computeListingMatchScore(
+export function computeListingMatchBreakdown(
   workerProfile: WorkerProfile | null,
   post: LiveJobPost | LiveShiftPost,
-): number | null {
+): ReturnType<typeof calculateMatchScore> | null {
   if (!workerProfile) return null;
 
-  const breakdown = calculateMatchScore({
+  return calculateMatchScore({
     postRoleType: post.role_type,
     postSoftware: 'software_used' in post ? post.software_used : [],
     workerRoleType: workerProfile.role_type,
@@ -39,6 +39,11 @@ export function computeListingMatchScore(
       post.clinic.longitude,
     ),
   });
+}
 
-  return breakdown.overall;
+export function computeListingMatchScore(
+  workerProfile: WorkerProfile | null,
+  post: LiveJobPost | LiveShiftPost,
+): number | null {
+  return computeListingMatchBreakdown(workerProfile, post)?.overall ?? null;
 }

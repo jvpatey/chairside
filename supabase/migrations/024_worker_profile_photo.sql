@@ -54,6 +54,10 @@ create policy "Workers update own photo"
   using (
     bucket_id = 'worker-photos'
     and auth.uid()::text = (storage.foldername(name))[1]
+  )
+  with check (
+    bucket_id = 'worker-photos'
+    and auth.uid()::text = (storage.foldername(name))[1]
   );
 
 create policy "Workers read own photo"

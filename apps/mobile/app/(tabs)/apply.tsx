@@ -3,8 +3,7 @@ import {
   getLiveJobPost,
   getLiveShiftPost,
 } from '@chairside/api';
-import { travelRadiusRangeToMaxKm } from '@chairside/config';
-import { calculateMatchScore } from '@chairside/core';
+import type { MatchBreakdown } from '@chairside/core';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
@@ -18,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { WORKER_APPLICATIONS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS } from '@/lib/routing';
-import { computeListingMatchScore } from '@/lib/workerMatch';
+import { computeListingMatchBreakdown } from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
 
 export default function ApplyScreen() {
@@ -31,7 +30,7 @@ export default function ApplyScreen() {
   const [postTitle, setPostTitle] = useState('');
   const [clinicName, setClinicName] = useState('');
   const [matchScore, setMatchScore] = useState<number | null>(null);
-  const [breakdown, setBreakdown] = useState<ReturnType<typeof calculateMatchScore> | null>(null);
+  const [breakdown, setBreakdown] = useState<MatchBreakdown | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -59,11 +58,6 @@ export default function ApplyScreen() {
     editLink: { color: colors.primary, fontWeight: '600' },
   }));
 
-  const workerTravelRadiusKm =
-    travelRadiusRangeToMaxKm(workerProfile?.travel_radius_range) ??
-    workerProfile?.travel_radius_km ??
-    null;
-
   const loadPost = useCallback(async () => {
     if (!id) {
       setIsLoading(false);
@@ -75,34 +69,19 @@ export default function ApplyScreen() {
       if (type === 'job') {
         const job = await getLiveJobPost(id);
         if (!job) throw new Error('Role not found');
+        const listingBreakdown = computeListingMatchBreakdown(workerProfile, job);
         setPostTitle(job.title);
         setClinicName(job.clinic.clinic_name);
-        setMatchScore(computeListingMatchScore(workerProfile, job));
-        setBreakdown(
-          calculateMatchScore({
-            postRoleType: job.role_type,
-            postSoftware: job.software_used,
-            workerRoleType: workerProfile?.role_type,
-            workerSoftware: workerProfile?.software_used,
-            workerTravelRadiusKm,
-            distanceKm: null,
-          }),
-        );
+        setMatchScore(listingBreakdown?.overall ?? null);
+        setBreakdown(listingBreakdown);
       } else {
         const shift = await getLiveShiftPost(id);
         if (!shift) throw new Error('Shift not found');
+        const listingBreakdown = computeListingMatchBreakdown(workerProfile, shift);
         setPostTitle(`Fill-in · ${shift.shift_date}`);
         setClinicName(shift.clinic.clinic_name);
-        setMatchScore(computeListingMatchScore(workerProfile, shift));
-        setBreakdown(
-          calculateMatchScore({
-            postRoleType: shift.role_type,
-            workerRoleType: workerProfile?.role_type,
-            workerSoftware: workerProfile?.software_used,
-            workerTravelRadiusKm,
-            distanceKm: null,
-          }),
-        );
+        setMatchScore(listingBreakdown?.overall ?? null);
+        setBreakdown(listingBreakdown);
       }
     } catch (error) {
       Alert.alert(
@@ -113,7 +92,7 @@ export default function ApplyScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, type, workerProfile, workerTravelRadiusKm]);
+  }, [id, type, workerProfile]);
 
   useEffect(() => {
     setCoverMessage(workerProfile?.default_cover_message ?? '');
