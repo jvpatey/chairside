@@ -83,7 +83,9 @@ export default function SignUpScreen() {
         return;
       }
 
-      await handleAuthSuccess(refreshProfile, completeOnboarding);
+      if (!session?.user) return;
+
+      await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
     } catch (error) {
       const message = getAuthErrorMessage(error);
       if (message !== 'Sign in was cancelled.') {
@@ -131,7 +133,7 @@ export default function SignUpScreen() {
       }
 
       if (user) {
-        await handleAuthSuccess(refreshProfile, completeOnboarding);
+        await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
       }
     } catch (error) {
       Alert.alert('Create account failed', getAuthErrorMessage(error));

@@ -1,4 +1,5 @@
-import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
+import type { JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
+import { getProvinceLabel, formatJobApplicationSummaryMeta } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
@@ -7,77 +8,24 @@ import { Pressable, Text, View } from 'react-native';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useTheme, useThemedStyles } from '@/theme';
 
-type SetupBannerProps = {
-  onPress: () => void;
-};
-
-export function SetupBanner({ onPress }: SetupBannerProps) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 16,
-      padding: spacing.lg,
-      gap: spacing.md,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-    },
-    iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    textBlock: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-      color: colors.labelPrimary,
-    },
-    body: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-    },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="business" size={20} color={colors.primaryOnPrimary} />
-        </View>
-        <View style={styles.textBlock}>
-          <Text style={styles.title}>Complete your clinic profile</Text>
-          <Text style={styles.body}>
-            Add practice details to unlock posting roles and fill-in shifts.
-          </Text>
-        </View>
-      </View>
-      <OnboardingButton label="Continue setup" onPress={onPress} />
-    </View>
-  );
-}
-
 type DashboardHeroProps = {
   clinicName?: string | null;
+  province?: string;
+  showLocationBadge?: boolean;
 };
 
 const CLINIC_NAME_PLACEHOLDER = 'Your practice';
 
-export function DashboardHero({ clinicName }: DashboardHeroProps) {
+export function DashboardHero({
+  clinicName,
+  province = 'NS',
+  showLocationBadge = false,
+}: DashboardHeroProps) {
   const displayName = clinicName?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -88,6 +36,12 @@ export function DashboardHero({ clinicName }: DashboardHeroProps) {
       borderColor: colors.separator,
       padding: spacing.lg,
       gap: spacing.sm,
+    },
+    bell: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.md,
+      zIndex: 1,
     },
     wordmarkWrap: {
       alignItems: 'center',
@@ -102,10 +56,21 @@ export function DashboardHero({ clinicName }: DashboardHeroProps) {
     nameHidden: {
       opacity: 0,
     },
+    badge: {
+      alignSelf: 'center',
+      backgroundColor: colors.secondarySubtle,
+      borderRadius: 6,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    badgeText: { fontSize: 12, fontWeight: '600', color: colors.secondary },
   }));
 
   return (
     <View style={styles.card}>
+      <View style={styles.bell}>
+        <NotificationBell placement="hero" />
+      </View>
       <View style={styles.wordmarkWrap}>
         <ChairsideWordmark variant="small" />
       </View>
@@ -117,6 +82,11 @@ export function DashboardHero({ clinicName }: DashboardHeroProps) {
       >
         {displayName || CLINIC_NAME_PLACEHOLDER}
       </Text>
+      {showLocationBadge ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{getProvinceLabel(province)}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -226,6 +196,7 @@ export type OverviewStat = 'roles' | 'fill-ins' | 'applications';
 type StatGridProps = {
   openRoles: number;
   fillInsPosted: number;
+  totalApplications: number;
   newApplications: number;
   selected: OverviewStat;
   onSelect: (stat: OverviewStat) => void;
@@ -234,6 +205,7 @@ type StatGridProps = {
 export function StatGrid({
   openRoles,
   fillInsPosted,
+  totalApplications,
   newApplications,
   selected,
   onSelect,
@@ -244,7 +216,7 @@ export function StatGrid({
     {
       key: 'applications',
       label: 'Applications',
-      value: newApplications,
+      value: totalApplications,
       highlight: newApplications > 0,
     },
   ];
@@ -320,9 +292,11 @@ type DashboardOverviewPanelProps = {
   selected: OverviewStat;
   jobs: JobPost[];
   shifts: ShiftPost[];
-  applications: ClinicApplication[];
+  jobApplicationSummaries: JobApplicationSummary[];
+  applicantCounts?: Record<string, number>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
+  onJobApplicationsPress?: (jobId: string) => void;
 };
 
 function DashboardListCard({
@@ -447,9 +421,11 @@ export function DashboardOverviewPanel({
   selected,
   jobs,
   shifts,
-  applications,
+  jobApplicationSummaries,
+  applicantCounts,
   onJobPress,
   onShiftPress,
+  onJobApplicationsPress,
 }: DashboardOverviewPanelProps) {
   const styles = useThemedStyles(({ spacing }) => ({
     list: {
@@ -472,6 +448,7 @@ export function DashboardOverviewPanel({
                 <RolePostingCard
                   key={job.id}
                   job={job}
+                  applicantCount={applicantCounts?.[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                 />
               ))}
@@ -496,18 +473,23 @@ export function DashboardOverviewPanel({
       ) : null}
 
       {selected === 'applications' ? (
-        applications.length === 0 ? (
+        jobApplicationSummaries.length === 0 ? (
           <DashboardEmptyState message="No applications yet. They will appear when workers apply to your postings." />
         ) : (
           <View style={styles.list}>
-            {applications.map((application) => (
+            {jobApplicationSummaries.map((summary) => (
               <DashboardListCard
-                key={application.id}
-                title={application.post_title}
-                subtitle={`${application.post_type === 'job' ? 'Role' : 'Fill-in'} · ${application.status}`}
-                meta={
-                  application.match_score != null
-                    ? `Match score: ${application.match_score}%`
+                key={summary.job_post_id}
+                title={summary.post_title}
+                subtitle={
+                  summary.applicant_count === 1
+                    ? '1 applicant'
+                    : `${summary.applicant_count} applicants`
+                }
+                meta={formatJobApplicationSummaryMeta(summary)}
+                onPress={
+                  onJobApplicationsPress
+                    ? () => onJobApplicationsPress(summary.job_post_id)
                     : undefined
                 }
               />

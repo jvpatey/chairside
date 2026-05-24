@@ -1,5 +1,6 @@
 import {
   getWorkerDashboardCounts,
+  isWorkerProfileComplete,
   listLiveJobPosts,
   listLiveShiftPosts,
   listWorkerApplications,
@@ -9,7 +10,7 @@ import {
   type WorkerDashboardCounts,
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import {
@@ -28,6 +29,7 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   WORKER_BROWSE,
   WORKER_FILLINS,
+  getWorkerApplicationRoute,
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
 } from '@/lib/routing';
@@ -84,10 +86,24 @@ export default function WorkerDashboardScreen() {
     }
   }, [overview]);
 
+  const appliedJobIds = useMemo(
+    () =>
+      new Set(
+        applications
+          .filter((application) => application.post_type === 'job' && application.job_post_id)
+          .map((application) => application.job_post_id as string),
+      ),
+    [applications],
+  );
+
   return (
-    <Screen showHeader={false}>
+    <Screen showHeader={false} showNotifications={false}>
       <View style={styles.content}>
-        <WorkerDashboardHero displayName={profile?.display_name} province={province} />
+        <WorkerDashboardHero
+          displayName={profile?.display_name}
+          province={province}
+          showProvinceBadge={isWorkerProfileComplete(workerProfile)}
+        />
 
         <WorkerReadinessChecklist workerProfile={workerProfile} />
 
@@ -126,8 +142,12 @@ export default function WorkerDashboardScreen() {
           jobs={jobs}
           shifts={shifts}
           applications={applications}
+          appliedJobIds={appliedJobIds}
           onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
           onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
+          onApplicationPress={(applicationId) =>
+            router.push(getWorkerApplicationRoute(applicationId))
+          }
         />
       </View>
     </Screen>

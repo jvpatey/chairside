@@ -96,7 +96,7 @@ export default function WorkerShiftDetailScreen() {
     <OnboardingShell
       footer={
         <OnboardingButton
-          label={hasApplied ? 'Applied' : 'Apply for this shift'}
+          label={hasApplied ? 'Requested' : 'Request to cover'}
           disabled={hasApplied}
           onPress={() =>
             guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
@@ -110,7 +110,7 @@ export default function WorkerShiftDetailScreen() {
           <Text style={styles.clinicName}>{shift.clinic.clinic_name}</Text>
           {location ? <Text style={styles.clinicMeta}>{location}</Text> : null}
         </View>
-        <ShiftPostDetailView shift={shift} />
+        <ShiftPostDetailView shift={shift} softwareUsed={shift.clinic.software_used} />
       </View>
     </OnboardingShell>
   );

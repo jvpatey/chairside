@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import {
   Platform,
   Text,
@@ -7,6 +7,7 @@ import {
   type NativeSyntheticEvent,
   type TextInputFocusEventData,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useFormScroll } from '@/components/onboarding/OnboardingShell';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -22,6 +23,9 @@ type AuthFieldProps = {
   editable?: boolean;
   multiline?: boolean;
   onFocus?: (event: NativeSyntheticEvent<TextInputFocusEventData>) => void;
+  onBlur?: () => void;
+  validated?: boolean;
+  trailingAccessory?: ReactNode;
 };
 
 export function AuthField({
@@ -35,6 +39,9 @@ export function AuthField({
   editable = true,
   multiline = false,
   onFocus,
+  onBlur,
+  validated = false,
+  trailingAccessory,
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const wrapRef = useRef<View>(null);
@@ -48,13 +55,22 @@ export function AuthField({
       fontWeight: '600',
       color: colors.labelSecondary,
     },
-    input: {
-      fontSize: typography.body.fontSize,
-      fontWeight: '400',
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.separator,
       borderRadius: 12,
+      minHeight: multiline ? 120 : 50,
+    },
+    inputRowValidated: {
+      borderColor: colors.success,
+    },
+    input: {
+      flex: 1,
+      fontSize: typography.body.fontSize,
+      fontWeight: '400',
       paddingHorizontal: spacing.md,
       paddingVertical: Platform.OS === 'ios' ? 14 : 10,
       color: colors.labelPrimary,
@@ -67,7 +83,15 @@ export function AuthField({
     },
     inputDisabled: {
       color: colors.labelTertiary,
+    },
+    inputRowDisabled: {
       backgroundColor: colors.fillSubtle,
+    },
+    accessory: {
+      paddingRight: spacing.md,
+    },
+    validatedIcon: {
+      paddingRight: spacing.md,
     },
   }));
 
@@ -76,23 +100,45 @@ export function AuthField({
     scrollWrapIntoView(wrapRef.current);
   };
 
+  const trailing =
+    trailingAccessory ??
+    (validated ? (
+      <Ionicons
+        name="checkmark-circle"
+        size={22}
+        color={colors.success}
+        accessibilityLabel="Saved"
+      />
+    ) : null);
+
   return (
     <View ref={wrapRef} style={styles.wrap} collapsable={false}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, !editable && styles.inputDisabled]}
-        placeholder={placeholder}
-        placeholderTextColor={colors.labelTertiary}
-        value={value}
-        onChangeText={onChangeText}
-        secureTextEntry={secureTextEntry}
-        autoCapitalize={autoCapitalize}
-        keyboardType={keyboardType}
-        editable={editable}
-        multiline={multiline}
-        onFocus={handleFocus}
-        accessibilityLabel={label}
-      />
+      <View
+        style={[
+          styles.inputRow,
+          validated && styles.inputRowValidated,
+          !editable && styles.inputRowDisabled,
+        ]}>
+        <TextInput
+          style={[styles.input, !editable && styles.inputDisabled]}
+          placeholder={placeholder}
+          placeholderTextColor={colors.labelTertiary}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={secureTextEntry}
+          autoCapitalize={autoCapitalize}
+          keyboardType={keyboardType}
+          editable={editable}
+          multiline={multiline}
+          onFocus={handleFocus}
+          onBlur={onBlur}
+          accessibilityLabel={label}
+        />
+        {trailing ? (
+          <View style={validated ? styles.validatedIcon : styles.accessory}>{trailing}</View>
+        ) : null}
+      </View>
     </View>
   );
 }

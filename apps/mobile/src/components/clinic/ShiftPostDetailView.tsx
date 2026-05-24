@@ -1,4 +1,5 @@
 import type { ShiftPost } from '@chairside/api';
+import { isMatchableSoftware } from '@chairside/core';
 import { Text, View } from 'react-native';
 
 import {
@@ -15,12 +16,16 @@ import { useThemedStyles } from '@/theme';
 
 type ShiftPostDetailViewProps = {
   shift: ShiftPost;
+  softwareUsed?: string[] | null;
 };
 
-export function ShiftPostDetailView({ shift }: ShiftPostDetailViewProps) {
+export function ShiftPostDetailView({ shift, softwareUsed }: ShiftPostDetailViewProps) {
   const dateLabel = formatShiftPostDateLabel(shift.shift_date);
   const hoursLabel = formatTimeRangePreview(shift.start_time, shift.end_time);
   const description = shift.description?.trim() || null;
+  const matchableSoftware = (softwareUsed ?? []).filter(isMatchableSoftware);
+  const softwareLabel =
+    matchableSoftware.length > 0 ? matchableSoftware.join(' · ') : null;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -94,6 +99,12 @@ export function ShiftPostDetailView({ shift }: ShiftPostDetailViewProps) {
           <DetailRow label="Hours" value={hoursLabel} />
           <RowDivider />
           <DetailRow label="Compensation" value={shift.compensation} />
+          {softwareLabel ? (
+            <>
+              <RowDivider />
+              <DetailRow label="Software" value={softwareLabel} />
+            </>
+          ) : null}
         </DetailSection>
 
         {description ? (

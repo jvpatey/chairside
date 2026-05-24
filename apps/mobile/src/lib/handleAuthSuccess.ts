@@ -1,3 +1,4 @@
+import { resolveAuthProfile } from '@chairside/api';
 import { router } from 'expo-router';
 
 import { getHomeRouteForRole } from '@/lib/routing';
@@ -6,8 +7,10 @@ import type { UserRole } from '@/types';
 export async function handleAuthSuccess(
   refreshProfile: () => Promise<{ role: UserRole | null } | null>,
   completeOnboarding: (role: UserRole) => Promise<void>,
+  userId: string,
 ) {
-  const profile = await refreshProfile();
+  const profile = await resolveAuthProfile(userId);
+  await refreshProfile();
 
   if (!profile?.role) {
     router.replace('/(onboarding)/role?fromAuth=1');

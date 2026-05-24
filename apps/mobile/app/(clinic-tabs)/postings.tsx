@@ -1,4 +1,4 @@
-import { listJobPosts, listShiftPosts, type JobPost, type ShiftPost } from '@chairside/api';
+import { listJobPosts, listShiftPosts, getJobPostApplicationCountsMap, type JobPost, type ShiftPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -89,6 +89,7 @@ export default function ClinicPostingsScreen() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
+  const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [selectedTab, setSelectedTab] = useState<PostingsTab>('roles');
   const [jobStatusFilter, setJobStatusFilter] = useState<JobStatusFilter>('active');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
@@ -133,15 +134,18 @@ export default function ClinicPostingsScreen() {
 
     setIsLoading(true);
     try {
-      const [jobPosts, shiftPosts] = await Promise.all([
+      const [jobPosts, shiftPosts, counts] = await Promise.all([
         listJobPosts(user.id),
         listShiftPosts(user.id),
+        getJobPostApplicationCountsMap(user.id),
       ]);
       setJobs(jobPosts);
       setShifts(shiftPosts);
+      setApplicantCounts(counts);
     } catch (error) {
       setJobs([]);
       setShifts([]);
+      setApplicantCounts({});
       Alert.alert(
         'Could not load postings',
         error instanceof Error ? error.message : 'Please try again.',
@@ -205,6 +209,7 @@ export default function ClinicPostingsScreen() {
                   <RolePostingCard
                     key={job.id}
                     job={job}
+                    applicantCount={applicantCounts[job.id] ?? 0}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
                   />
                 ))}

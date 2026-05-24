@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
-import { AccountSessionActions } from '@/components/account/AccountSessionActions';
+import { AccountSettingsSection } from '@/components/account/AccountSettingsSection';
 import { ProfileSection } from '@/components/worker/ProfileSection';
 import { WorkerApplicationKitView } from '@/components/worker/WorkerApplicationKitView';
 import { WorkerProfessionalView } from '@/components/worker/WorkerProfessionalView';
+import { WorkerNotificationPreferences } from '@/components/worker/WorkerNotificationPreferences';
 import { WorkerProfileHero } from '@/components/worker/WorkerProfileHero';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,13 +21,8 @@ export default function WorkerProfileScreen() {
   const { isSigningOut, signOut } = useSignOut();
   const { isDeleting, confirmDeleteAccount } = useDeleteAccount();
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
-    accountSection: {
-      borderTopWidth: 1,
-      borderTopColor: colors.separator,
-      paddingTop: spacing.xl,
-    },
   }));
 
   if (!isWorkerProfileReady) return null;
@@ -36,7 +32,6 @@ export default function WorkerProfileScreen() {
       <View style={styles.content}>
         <WorkerProfileHero
           displayName={profile?.display_name}
-          email={user?.email}
           profile={workerProfile}
           editable
         />
@@ -50,6 +45,12 @@ export default function WorkerProfileScreen() {
         </ProfileSection>
 
         <ProfileSection
+          title="Alerts"
+          subtitle="Fill-in, job, and optional text notifications.">
+          <WorkerNotificationPreferences />
+        </ProfileSection>
+
+        <ProfileSection
           title="Application kit"
           subtitle="Photo, resume, and default note sent with applications."
           actionLabel="Edit"
@@ -57,19 +58,15 @@ export default function WorkerProfileScreen() {
           <WorkerApplicationKitView profile={workerProfile} />
         </ProfileSection>
 
-        <View style={styles.accountSection}>
-          <ProfileSection
-            title="Account settings"
-            subtitle="Sign out or permanently delete your account.">
-            <AccountSessionActions
-              isSigningOut={isSigningOut}
-              isDeleting={isDeleting}
-              onSignOut={signOut}
-              onDeleteAccount={confirmDeleteAccount}
-              deleteDescription="Permanently remove your account, worker profile, applications, and uploaded resume. This action cannot be undone."
-            />
-          </ProfileSection>
-        </View>
+        <AccountSettingsSection
+          email={user?.email}
+          accountTypeLabel="Find work"
+          isSigningOut={isSigningOut}
+          isDeleting={isDeleting}
+          onSignOut={signOut}
+          onDeleteAccount={confirmDeleteAccount}
+          deleteDescription="Permanently remove your account, worker profile, applications, and uploaded resume. This action cannot be undone."
+        />
       </View>
     </Screen>
   );

@@ -5,7 +5,9 @@ import { Pressable, Text, View } from 'react-native';
 
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
+import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -61,9 +63,14 @@ export function WorkerSetupBanner({ onPress }: WorkerSetupBannerProps) {
 type WorkerDashboardHeroProps = {
   displayName?: string | null;
   province?: string;
+  showProvinceBadge?: boolean;
 };
 
-export function WorkerDashboardHero({ displayName, province = 'NS' }: WorkerDashboardHeroProps) {
+export function WorkerDashboardHero({
+  displayName,
+  province = 'NS',
+  showProvinceBadge = false,
+}: WorkerDashboardHeroProps) {
   const name = displayName?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -74,6 +81,12 @@ export function WorkerDashboardHero({ displayName, province = 'NS' }: WorkerDash
       borderColor: colors.separator,
       padding: spacing.lg,
       gap: spacing.sm,
+    },
+    bell: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.md,
+      zIndex: 1,
     },
     wordmarkWrap: { alignItems: 'center' },
     name: { ...typography.title, fontSize: 26, lineHeight: 32, textAlign: 'center' },
@@ -90,15 +103,20 @@ export function WorkerDashboardHero({ displayName, province = 'NS' }: WorkerDash
 
   return (
     <View style={styles.card}>
+      <View style={styles.bell}>
+        <NotificationBell placement="hero" />
+      </View>
       <View style={styles.wordmarkWrap}>
         <ChairsideWordmark variant="small" />
       </View>
       <Text style={[styles.name, !name && styles.nameHidden]} numberOfLines={1}>
         {name || 'Your profile'}
       </Text>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{getProvinceLabel(province)}</Text>
-      </View>
+      {showProvinceBadge ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{getProvinceLabel(province)}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -205,8 +223,10 @@ type WorkerOverviewPanelProps = {
   jobs: LiveJobPost[];
   shifts: LiveShiftPost[];
   applications: WorkerApplication[];
+  appliedJobIds?: Set<string>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
+  onApplicationPress?: (applicationId: string) => void;
 };
 
 export function WorkerOverviewPanel({
@@ -214,8 +234,10 @@ export function WorkerOverviewPanel({
   jobs,
   shifts,
   applications,
+  appliedJobIds,
   onJobPress,
   onShiftPress,
+  onApplicationPress,
 }: WorkerOverviewPanelProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     list: { gap: spacing.sm },
@@ -228,16 +250,6 @@ export function WorkerOverviewPanel({
       alignItems: 'center',
     },
     emptyText: { ...typography.subtitle, fontSize: 14, textAlign: 'center' },
-    appCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.xs,
-    },
-    appTitle: { ...typography.body, fontWeight: '600' },
-    appMeta: typography.subtitle,
   }));
 
   return (
@@ -254,6 +266,7 @@ export function WorkerOverviewPanel({
               <RoleListingCard
                 key={job.id}
                 job={job}
+                hasApplied={appliedJobIds?.has(job.id)}
                 onPress={onJobPress ? () => onJobPress(job.id) : undefined}
               />
             ))}
@@ -287,12 +300,13 @@ export function WorkerOverviewPanel({
         ) : (
           <View style={styles.list}>
             {applications.slice(0, 5).map((application) => (
-              <View key={application.id} style={styles.appCard}>
-                <Text style={styles.appTitle}>{application.post_title}</Text>
-                <Text style={styles.appMeta}>
-                  {application.clinic_name} · {application.status}
-                </Text>
-              </View>
+              <WorkerApplicationListCard
+                key={application.id}
+                application={application}
+                onPress={
+                  onApplicationPress ? () => onApplicationPress(application.id) : undefined
+                }
+              />
             ))}
           </View>
         )

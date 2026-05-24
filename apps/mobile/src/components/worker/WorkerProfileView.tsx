@@ -104,6 +104,21 @@ export function WorkerProfileView({ profile, displayName }: WorkerProfileViewPro
             : 'Off'
         }
       />
+      <ProfileRow
+        label="Fill-in SMS"
+        value={
+          profile.fill_in_sms_opt_in && profile.phone
+            ? 'On'
+            : profile.fill_in_sms_opt_in
+              ? 'On (phone missing)'
+              : 'Off'
+        }
+      />
+      <ProfileRow label="Phone" value={profile.phone ? profile.phone : ''} />
+      <ProfileRow
+        label="Job alerts"
+        value={profile.job_notification_opt_in ? 'On' : 'Off'}
+      />
     </View>
   );
 }

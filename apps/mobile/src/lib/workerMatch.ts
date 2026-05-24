@@ -18,6 +18,13 @@ function haversineKm(
   return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function resolveListingSoftware(post: LiveJobPost | LiveShiftPost): string[] {
+  if ('shift_date' in post) {
+    return post.clinic.software_used ?? [];
+  }
+  return post.software_used ?? [];
+}
+
 export function computeListingMatchBreakdown(
   workerProfile: WorkerProfile | null,
   post: LiveJobPost | LiveShiftPost,
@@ -26,12 +33,11 @@ export function computeListingMatchBreakdown(
 
   return calculateMatchScore({
     postRoleType: post.role_type,
-    postSoftware: 'software_used' in post ? post.software_used : [],
+    postSoftware: resolveListingSoftware(post),
     workerRoleType: workerProfile.role_type,
     workerSoftware: workerProfile.software_used,
     workerTravelRadiusKm:
-      travelRadiusRangeToMaxKm(workerProfile.travel_radius_range) ??
-      workerProfile.travel_radius_km,
+      travelRadiusRangeToMaxKm(workerProfile.travel_radius_range) ?? workerProfile.travel_radius_km,
     distanceKm: haversineKm(
       workerProfile.latitude,
       workerProfile.longitude,

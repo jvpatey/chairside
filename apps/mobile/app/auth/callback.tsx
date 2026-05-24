@@ -1,4 +1,4 @@
-import { createSessionFromUrl } from '@chairside/api';
+import { createSessionFromUrl, getSupabaseClient } from '@chairside/api';
 import * as Linking from 'expo-linking';
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -49,7 +49,14 @@ export default function AuthCallbackScreen() {
         await createSessionFromUrl(url);
         if (cancelled) return;
 
-        await handleAuthSuccess(refreshProfile, completeOnboarding);
+        const {
+          data: { session },
+        } = await getSupabaseClient().auth.getSession();
+        if (!session?.user) {
+          throw new Error('No authenticated user found.');
+        }
+
+        await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
       } catch {
         if (!cancelled) setFailed(true);
       }

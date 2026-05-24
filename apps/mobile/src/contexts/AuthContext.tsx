@@ -35,7 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profileRequestRef = useRef(0);
 
   const refreshProfile = useCallback(async () => {
-    const userId = user?.id;
+    const supabase = getSupabaseClient();
+    const {
+      data: { session: activeSession },
+    } = await supabase.auth.getSession();
+    const userId = user?.id ?? activeSession?.user?.id;
     if (!userId) {
       setProfile(null);
       return null;

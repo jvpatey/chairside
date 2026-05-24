@@ -10,14 +10,12 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerProfileHeroProps = {
   displayName?: string | null;
-  email?: string | null;
   profile: WorkerProfile | null;
   editable?: boolean;
 };
 
 export function WorkerProfileHero({
   displayName,
-  email,
   profile,
   editable = false,
 }: WorkerProfileHeroProps) {
@@ -68,11 +66,6 @@ export function WorkerProfileHero({
       lineHeight: 30,
       textAlign: 'center',
     },
-    email: {
-      ...typography.subtitle,
-      fontSize: 14,
-      textAlign: 'center',
-    },
     meta: {
       ...typography.subtitle,
       fontSize: 14,
@@ -85,12 +78,12 @@ export function WorkerProfileHero({
       borderRadius: 999,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs + 2,
-      backgroundColor: ready ? colors.primarySubtle : colors.fillSubtle,
+      backgroundColor: colors.primarySubtle,
     },
     badgeText: {
       fontSize: 13,
       fontWeight: '600',
-      color: ready ? colors.primary : colors.labelSecondary,
+      color: colors.primary,
     },
   }));
 
@@ -124,13 +117,12 @@ export function WorkerProfileHero({
       <Text style={styles.name} numberOfLines={2}>
         {name}
       </Text>
-      {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
       <Text style={styles.meta}>{metaLine}</Text>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>
-          {ready ? 'Ready to quick apply' : 'Background incomplete'}
-        </Text>
-      </View>
+      {ready ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>Ready to apply</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

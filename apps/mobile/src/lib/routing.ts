@@ -94,8 +94,22 @@ export function getWorkerShiftDetailRoute(shiftId: string): Href {
   return { pathname: '/(tabs)/shift/[id]', params: { id: shiftId } } as unknown as Href;
 }
 
+export function getWorkerApplicationRoute(applicationId: string): Href {
+  return {
+    pathname: '/(tabs)/application/[id]',
+    params: { id: applicationId },
+  } as unknown as Href;
+}
+
 export function getApplyRoute(postType: ApplyPostType, postId: string): Href {
   return { pathname: '/(tabs)/apply', params: { postType, postId } } as unknown as Href;
+}
+
+export function getClinicRoleApplicationsRoute(jobId: string): Href {
+  return {
+    pathname: '/(clinic-tabs)/role-applicants/[jobId]',
+    params: { jobId },
+  } as Href;
 }
 
 export function getEditShiftRoute(

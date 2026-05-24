@@ -6,6 +6,7 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@chairside/config": "workspace:*",
+    "@chairside/core": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.49.8",
     "expo-apple-authentication": "~8.0.8",

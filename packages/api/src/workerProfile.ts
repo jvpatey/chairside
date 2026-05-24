@@ -162,6 +162,13 @@ export async function upsertWorkerProfile(
   if (partial.fill_in_notification_mode !== undefined) {
     payload.fill_in_notification_mode = partial.fill_in_notification_mode;
   }
+  if (partial.phone !== undefined) payload.phone = partial.phone;
+  if (partial.fill_in_sms_opt_in !== undefined) {
+    payload.fill_in_sms_opt_in = partial.fill_in_sms_opt_in;
+  }
+  if (partial.job_notification_opt_in !== undefined) {
+    payload.job_notification_opt_in = partial.job_notification_opt_in;
+  }
   if (partial.setup_completed_at !== undefined) {
     payload.setup_completed_at = partial.setup_completed_at;
   }
@@ -195,14 +202,6 @@ export async function upsertWorkerProfile(
 export function getWorkerEducationSummary(profile: WorkerProfile | null): string {
   if (!profile) return '';
   return formatWorkerEducation(profile);
-}
-
-export function isApplicationPackageReady(profile: WorkerProfile | null): boolean {
-  return isWorkerProfileComplete(profile);
-}
-
-export function getApplicationPackageMissingItems(profile: WorkerProfile | null): string[] {
-  return getMissingWorkerProfileFields(profile);
 }
 
 export async function completeWorkerSetup(userId: string): Promise<WorkerProfile> {
@@ -259,14 +258,51 @@ export async function upsertAvailabilityBlocks(
   return data ?? [];
 }
 
-export async function getWorkerProfileForClinic(workerId: string): Promise<WorkerProfile | null> {
+const CLINIC_WORKER_PROFILE_COLUMNS =
+  'id, role_type, years_of_experience, education, education_graduation_year, education_degree_type, education_field, education_institution, software_used, practice_types, preferred_employment_types, city, province, travel_radius_km, travel_radius_range, bio, short_notice_available, fill_in_notification_mode, resume_storage_path, resume_file_name, resume_uploaded_at, photo_storage_path, photo_uploaded_at, default_cover_message, setup_completed_at, created_at, updated_at';
+
+/** Worker profile fields exposed to clinics (excludes address, phone, and notification prefs). */
+export type ClinicWorkerProfile = Pick<
+  WorkerProfile,
+  | 'id'
+  | 'role_type'
+  | 'years_of_experience'
+  | 'education'
+  | 'education_graduation_year'
+  | 'education_degree_type'
+  | 'education_field'
+  | 'education_institution'
+  | 'software_used'
+  | 'practice_types'
+  | 'preferred_employment_types'
+  | 'city'
+  | 'province'
+  | 'travel_radius_km'
+  | 'travel_radius_range'
+  | 'bio'
+  | 'short_notice_available'
+  | 'fill_in_notification_mode'
+  | 'resume_storage_path'
+  | 'resume_file_name'
+  | 'resume_uploaded_at'
+  | 'photo_storage_path'
+  | 'photo_uploaded_at'
+  | 'default_cover_message'
+  | 'setup_completed_at'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+export async function getWorkerProfileForClinic(
+  workerId: string,
+): Promise<ClinicWorkerProfile | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('worker_profiles')
-    .select('*')
+    .select(CLINIC_WORKER_PROFILE_COLUMNS)
     .eq('id', workerId)
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return data as ClinicWorkerProfile | null;
 }

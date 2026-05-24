@@ -1,5 +1,6 @@
 import type { JobPost } from '@chairside/api';
 import { formatJobPostRoleMeta, formatOfferingLabel, getSpecialtyLabel } from '@chairside/config';
+import { isMatchableSoftware } from '@chairside/core';
 import { Text, View } from 'react-native';
 
 import {
@@ -19,7 +20,8 @@ type JobPostDetailViewProps = {
 
 export function JobPostDetailView({ job }: JobPostDetailViewProps) {
   const metaLine = formatJobPostRoleMeta(job);
-  const softwareLabel = job.software_used.length > 0 ? job.software_used.join(' · ') : null;
+  const matchableSoftware = job.software_used.filter(isMatchableSoftware);
+  const softwareLabel = matchableSoftware.length > 0 ? matchableSoftware.join(' · ') : null;
   const description = job.description?.trim() || null;
   const offeringLabels = job.offerings.map(formatOfferingLabel);
 

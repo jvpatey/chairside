@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useThemedStyles } from '@/theme';
 
 type ScreenProps = {
@@ -9,9 +10,16 @@ type ScreenProps = {
   subtitle?: string;
   children?: ReactNode;
   showHeader?: boolean;
+  showNotifications?: boolean;
 };
 
-export function Screen({ title, subtitle, children, showHeader = true }: ScreenProps) {
+export function Screen({
+  title,
+  subtitle,
+  children,
+  showHeader = true,
+  showNotifications = true,
+}: ScreenProps) {
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -26,6 +34,13 @@ export function Screen({ title, subtitle, children, showHeader = true }: ScreenP
       gap: spacing.sm,
       marginBottom: spacing.lg,
     },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    headerText: { flex: 1, gap: spacing.sm },
     headerHidden: {
       marginBottom: 0,
     },
@@ -41,8 +56,15 @@ export function Screen({ title, subtitle, children, showHeader = true }: ScreenP
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
       ]}>
       <View style={[styles.header, !showHeader && styles.headerHidden]}>
-        {showHeader && title ? <Text style={styles.title}>{title}</Text> : null}
-        {showHeader && subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {showHeader ? (
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              {title ? <Text style={styles.title}>{title}</Text> : null}
+              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            </View>
+            {showNotifications ? <NotificationBell /> : null}
+          </View>
+        ) : null}
       </View>
       {children}
     </ScrollView>

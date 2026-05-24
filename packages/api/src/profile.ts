@@ -13,6 +13,39 @@ export async function getProfile(userId: string) {
   return data;
 }
 
+/** Resolve role after sign-in, including recovery when setup exists but role was not saved. */
+export async function resolveAuthProfile(userId: string) {
+  const profile = await getProfile(userId);
+  if (profile?.role) return profile;
+
+  const supabase = getSupabaseClient();
+  const { data: workerProfile, error: workerError } = await supabase
+    .from('worker_profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (workerError) throw workerError;
+
+  if (workerProfile) {
+    return setProfileRole(userId, 'worker');
+  }
+
+  const { data: clinicProfile, error: clinicError } = await supabase
+    .from('clinic_profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (clinicError) throw clinicError;
+
+  if (clinicProfile) {
+    return setProfileRole(userId, 'clinic');
+  }
+
+  return profile;
+}
+
 export async function setProfileRole(userId: string, role: UserRole) {
   const supabase = getSupabaseClient();
   const now = new Date().toISOString();

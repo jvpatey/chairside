@@ -29,6 +29,8 @@ export type ClinicProfileRow = {
   team_size_range: TeamSizeRange | null;
   website: string | null;
   description: string | null;
+  logo_storage_path: string | null;
+  logo_uploaded_at: string | null;
   setup_completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -117,6 +119,9 @@ export type WorkerProfileRow = {
   bio: string | null;
   short_notice_available: boolean;
   fill_in_notification_mode: string;
+  phone: string | null;
+  fill_in_sms_opt_in: boolean;
+  job_notification_opt_in: boolean;
   expo_push_token: string | null;
   resume_storage_path: string | null;
   resume_file_name: string | null;
@@ -180,6 +185,8 @@ export type Database = {
           team_size_range?: TeamSizeRange | null;
           website?: string | null;
           description?: string | null;
+          logo_storage_path?: string | null;
+          logo_uploaded_at?: string | null;
           setup_completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -232,6 +239,9 @@ export type Database = {
           bio?: string | null;
           short_notice_available?: boolean;
           fill_in_notification_mode?: string;
+          phone?: string | null;
+          fill_in_sms_opt_in?: boolean;
+          job_notification_opt_in?: boolean;
           expo_push_token?: string | null;
           resume_storage_path?: string | null;
           resume_file_name?: string | null;

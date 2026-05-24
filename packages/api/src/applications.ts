@@ -3,9 +3,17 @@ import { getSupabaseClient } from './client';
 export type ApplicationStatus =
   | 'applied'
   | 'reviewed'
-  | 'shortlisted'
+  | 'in_progress'
+  | 'selected'
   | 'rejected'
   | 'hired';
+
+/** Non-terminal statuses where the worker may still withdraw. */
+export const ACTIVE_APPLICATION_STATUSES: ApplicationStatus[] = [
+  'applied',
+  'reviewed',
+  'in_progress',
+];
 
 export type Application = {
   id: string;
@@ -46,6 +54,13 @@ export type CreateApplicationInput = {
   jobPostId?: string;
   shiftPostId?: string;
   coverMessage?: string;
+};
+
+export type JobApplicationSummary = {
+  job_post_id: string;
+  post_title: string;
+  applicant_count: number;
+  pending_count: number;
 };
 
 export async function listClinicApplications(clinicId: string): Promise<ClinicApplication[]> {
@@ -196,6 +211,95 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   return applications;
 }
 
+async function enrichWorkerApplication(application: Application): Promise<WorkerApplication | null> {
+  const supabase = getSupabaseClient();
+
+  if (application.job_post_id) {
+    const { data: job, error: jobError } = await supabase
+      .from('job_posts')
+      .select('id, title, clinic_id')
+      .eq('id', application.job_post_id)
+      .maybeSingle();
+
+    if (jobError) throw jobError;
+    if (!job) return null;
+
+    const { data: clinic, error: clinicError } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name, city')
+      .eq('id', job.clinic_id)
+      .maybeSingle();
+
+    if (clinicError) throw clinicError;
+
+    return {
+      ...application,
+      post_title: job.title,
+      post_type: 'job',
+      clinic_name: clinic?.clinic_name ?? 'Clinic',
+      clinic_city: clinic?.city ?? null,
+    };
+  }
+
+  if (application.shift_post_id) {
+    const { data: shift, error: shiftError } = await supabase
+      .from('shift_posts')
+      .select('id, shift_date, clinic_id')
+      .eq('id', application.shift_post_id)
+      .maybeSingle();
+
+    if (shiftError) throw shiftError;
+    if (!shift) return null;
+
+    const { data: clinic, error: clinicError } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name, city')
+      .eq('id', shift.clinic_id)
+      .maybeSingle();
+
+    if (clinicError) throw clinicError;
+
+    return {
+      ...application,
+      post_title: `Fill-in · ${shift.shift_date}`,
+      post_type: 'shift',
+      clinic_name: clinic?.clinic_name ?? 'Clinic',
+      clinic_city: clinic?.city ?? null,
+    };
+  }
+
+  return null;
+}
+
+export async function getWorkerApplication(
+  workerId: string,
+  applicationId: string,
+): Promise<WorkerApplication | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*')
+    .eq('id', applicationId)
+    .eq('worker_id', workerId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return enrichWorkerApplication(data as Application);
+}
+
+export async function deleteApplication(workerId: string, applicationId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from('applications')
+    .delete()
+    .eq('id', applicationId)
+    .eq('worker_id', workerId);
+
+  if (error) throw error;
+}
+
 export async function listWorkerJobApplications(workerId: string): Promise<WorkerApplication[]> {
   const applications = await listWorkerApplications(workerId);
   return applications.filter((application) => application.post_type === 'job');
@@ -204,6 +308,91 @@ export async function listWorkerJobApplications(workerId: string): Promise<Worke
 export async function listWorkerShiftApplications(workerId: string): Promise<WorkerApplication[]> {
   const applications = await listWorkerApplications(workerId);
   return applications.filter((application) => application.post_type === 'shift');
+}
+
+export async function listWorkerAppliedJobPostIds(workerId: string): Promise<string[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .select('job_post_id')
+    .eq('worker_id', workerId)
+    .not('job_post_id', 'is', null);
+
+  if (error) throw error;
+  return (data ?? []).map((row) => row.job_post_id).filter(Boolean) as string[];
+}
+
+export async function getJobPostApplicationCountsMap(
+  clinicId: string,
+): Promise<Record<string, number>> {
+  const supabase = getSupabaseClient();
+  const { data: jobs, error: jobsError } = await supabase
+    .from('job_posts')
+    .select('id')
+    .eq('clinic_id', clinicId);
+
+  if (jobsError) throw jobsError;
+
+  const jobIds = (jobs ?? []).map((job) => job.id);
+  if (jobIds.length === 0) return {};
+
+  const { data: applications, error: applicationsError } = await supabase
+    .from('applications')
+    .select('job_post_id')
+    .in('job_post_id', jobIds);
+
+  if (applicationsError) throw applicationsError;
+
+  const counts: Record<string, number> = {};
+  for (const row of applications ?? []) {
+    if (row.job_post_id) {
+      counts[row.job_post_id] = (counts[row.job_post_id] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+export async function listJobApplicationSummaries(
+  clinicId: string,
+): Promise<JobApplicationSummary[]> {
+  const applications = await listClinicApplications(clinicId);
+  const summaries = new Map<string, JobApplicationSummary>();
+
+  for (const application of applications) {
+    if (application.post_type !== 'job' || !application.job_post_id) continue;
+
+    const existing = summaries.get(application.job_post_id);
+    if (existing) {
+      existing.applicant_count += 1;
+      if (application.status === 'applied') {
+        existing.pending_count += 1;
+      }
+    } else {
+      summaries.set(application.job_post_id, {
+        job_post_id: application.job_post_id,
+        post_title: application.post_title,
+        applicant_count: 1,
+        pending_count: application.status === 'applied' ? 1 : 0,
+      });
+    }
+  }
+
+  return [...summaries.values()].sort((a, b) => {
+    if (b.pending_count !== a.pending_count) {
+      return b.pending_count - a.pending_count;
+    }
+    return b.applicant_count - a.applicant_count;
+  });
+}
+
+export async function listClinicApplicationsForJob(
+  clinicId: string,
+  jobPostId: string,
+): Promise<ClinicApplication[]> {
+  const applications = await listClinicApplications(clinicId);
+  return applications.filter(
+    (application) => application.post_type === 'job' && application.job_post_id === jobPostId,
+  );
 }
 
 export async function createApplication(
@@ -233,7 +422,12 @@ export async function createApplication(
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505') {
+      throw new Error('You have already submitted for this posting.');
+    }
+    throw error;
+  }
   return data as Application;
 }
 

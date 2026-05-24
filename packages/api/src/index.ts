@@ -19,6 +19,13 @@ export {
   type ClinicProfile,
   type ClinicProfileUpdate,
 } from './clinicProfile';
+export {
+  deleteClinicLogo,
+  getClinicLogoDownloadRequest,
+  getClinicLogoSignedUrl,
+  getClinicLogoStoragePath,
+  uploadClinicLogoFromBase64,
+} from './clinicLogo';
 export { parseMapboxFeature, searchAddresses, type AddressSuggestion, type ParsedAddress } from './mapbox';
 export {
   createJobPost,
@@ -65,14 +72,13 @@ export {
   getWorkerProfile,
   getWorkerProfileForClinic,
   isWorkerProfileComplete,
-  isApplicationPackageReady,
-  getApplicationPackageMissingItems,
   getWorkerEducationSummary,
   listAvailabilityBlocks,
   upsertAvailabilityBlocks,
   upsertWorkerProfile,
   type AvailabilityBlock,
   type AvailabilityBlockInput,
+  type ClinicWorkerProfile,
   type FillInNotificationMode,
   type WorkerProfile,
   type WorkerProfileUpdate,
@@ -95,18 +101,26 @@ export {
 } from './workerPhoto';
 export {
   createApplication,
+  deleteApplication,
+  getJobPostApplicationCountsMap,
+  getWorkerApplication,
   hasAppliedToJob,
   hasAppliedToShift,
   listClinicApplications,
+  listClinicApplicationsForJob,
+  listJobApplicationSummaries,
+  listWorkerAppliedJobPostIds,
   listWorkerApplications,
   listWorkerJobApplications,
   listWorkerShiftApplications,
   updateApplicationStatus,
+  ACTIVE_APPLICATION_STATUSES,
   type Application,
   type ApplicationStatus,
   type ClinicApplication,
   type CreateApplicationInput,
+  type JobApplicationSummary,
   type WorkerApplication,
 } from './applications';
-export { getProfile, setProfileRole, updateProfileDisplayName } from './profile';
+export { getProfile, resolveAuthProfile, setProfileRole, updateProfileDisplayName } from './profile';
 export type { Database, Profile, UserRole } from './types';
