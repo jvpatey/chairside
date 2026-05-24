@@ -1,12 +1,13 @@
-import { getWorkerResumeSignedUrl, listClinicApplications, updateApplicationStatus, type ClinicApplication } from '@chairside/api';
+import { listClinicApplications, updateApplicationStatus, type ClinicApplication } from '@chairside/api';
 import { calculateMatchScore } from '@chairside/core';
 import { getSpecialtyLabel } from '@chairside/config';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
+import { openResumePreview } from '@/lib/openResumePreview';
 import { useThemedStyles } from '@/theme';
 
 function ApplicationCard({
@@ -54,12 +55,10 @@ function ApplicationCard({
   const handleViewResume = async () => {
     if (!application.resume_storage_path) return;
     try {
-      const url = await getWorkerResumeSignedUrl(application.resume_storage_path);
-      if (!url) {
-        Alert.alert('Resume unavailable', 'Could not open this resume.');
-        return;
-      }
-      await Linking.openURL(url);
+      await openResumePreview(
+        application.resume_storage_path,
+        `${application.post_title}-resume.pdf`,
+      );
     } catch (error) {
       Alert.alert(
         'Could not open resume',

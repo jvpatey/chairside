@@ -92,7 +92,7 @@ export default function RoleScreen() {
         title="How will you use Chairside?"
         subtitle={
           isPostAuth
-            ? 'One last step — choose worker or clinic.'
+            ? 'Choose worker or clinic — then set up your profile.'
             : 'Choose the path that fits you.'
         }
         backLabel={isPostAuth ? (isSigningOut ? 'Signing out…' : 'Sign out') : 'Back'}

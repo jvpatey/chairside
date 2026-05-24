@@ -26,38 +26,6 @@ type ChecklistItem = {
 
 export function WorkerReadinessChecklist({ workerProfile }: WorkerReadinessChecklistProps) {
   const { colors } = useTheme();
-  const backgroundComplete = isWorkerProfileComplete(workerProfile);
-  const hasResume = Boolean(workerProfile?.resume_storage_path?.trim());
-  const fillInOn = workerProfile?.short_notice_available ?? false;
-
-  const items: ChecklistItem[] = [
-    {
-      id: 'background',
-      title: 'Add your background',
-      body: 'Role, experience, and location — required for everything.',
-      done: backgroundComplete,
-      onPress: () => router.push(WORKER_SETUP_BASICS),
-    },
-    {
-      id: 'kit',
-      title: 'Add a resume',
-      body: 'Optional — attach a PDF to role applications.',
-      done: hasResume,
-      optional: true,
-      onPress: () => router.push(WORKER_SETUP_APPLICATION),
-    },
-    {
-      id: 'fillins',
-      title: 'Turn on fill-in availability',
-      body: 'Optional — only if you want temp shift work.',
-      done: fillInOn,
-      optional: true,
-      onPress: () => router.push(WORKER_FILLINS),
-    },
-  ];
-
-  if (backgroundComplete) return null;
-
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -89,6 +57,38 @@ export function WorkerReadinessChecklist({ workerProfile }: WorkerReadinessCheck
     itemBody: { ...typography.subtitle, fontSize: 13, lineHeight: 18 },
     optional: { fontSize: 12, color: colors.labelTertiary },
   }));
+
+  const backgroundComplete = isWorkerProfileComplete(workerProfile);
+  const hasResume = Boolean(workerProfile?.resume_storage_path?.trim());
+  const fillInOn = workerProfile?.short_notice_available ?? false;
+
+  const items: ChecklistItem[] = [
+    {
+      id: 'background',
+      title: 'Add your background',
+      body: 'Role, experience, and location — required for everything.',
+      done: backgroundComplete,
+      onPress: () => router.push(WORKER_SETUP_BASICS),
+    },
+    {
+      id: 'kit',
+      title: 'Add a resume',
+      body: 'Optional — attach a PDF to role applications.',
+      done: hasResume,
+      optional: true,
+      onPress: () => router.push(WORKER_SETUP_APPLICATION),
+    },
+    {
+      id: 'fillins',
+      title: 'Turn on fill-in availability',
+      body: 'Optional — only if you want temp shift work.',
+      done: fillInOn,
+      optional: true,
+      onPress: () => router.push(WORKER_FILLINS),
+    },
+  ];
+
+  if (backgroundComplete) return null;
 
   return (
     <View style={styles.card}>

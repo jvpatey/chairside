@@ -1,7 +1,7 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
+import { AccountSessionActions } from '@/components/account/AccountSessionActions';
 import { DetailRow, RowDivider } from '@/components/clinic/DetailCard';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useThemedStyles } from '@/theme';
 
 type AccountProfileViewProps = {
@@ -23,7 +23,7 @@ export function AccountProfileView({
 }: AccountProfileViewProps) {
   const displayClinicName = clinicName?.trim() || 'Your clinic';
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
       gap: spacing.lg,
     },
@@ -35,27 +35,6 @@ export function AccountProfileView({
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
     },
-    actions: {
-      gap: spacing.sm,
-    },
-    dangerCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: `${colors.destructive}40`,
-      padding: spacing.lg,
-      gap: spacing.md,
-    },
-    dangerTitle: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.destructive,
-    },
-    dangerBody: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-    },
   }));
 
   return (
@@ -66,28 +45,13 @@ export function AccountProfileView({
         <DetailRow label="Account type" value={accountTypeLabel} layout="stacked" />
       </View>
 
-      <View style={styles.actions}>
-        <OnboardingButton
-          label={isSigningOut ? 'Signing out…' : 'Sign out'}
-          variant="secondary"
-          disabled={isSigningOut || isDeleting}
-          onPress={onSignOut}
-        />
-      </View>
-
-      <View style={styles.dangerCard}>
-        <Text style={styles.dangerTitle}>Delete account</Text>
-        <Text style={styles.dangerBody}>
-          Permanently remove your account, clinic profile, all postings, and associated
-          applications. This action cannot be undone.
-        </Text>
-        <OnboardingButton
-          label={isDeleting ? 'Deleting account…' : 'Delete account'}
-          variant="destructive"
-          disabled={isSigningOut || isDeleting}
-          onPress={onDeleteAccount}
-        />
-      </View>
+      <AccountSessionActions
+        isSigningOut={isSigningOut}
+        isDeleting={isDeleting}
+        onSignOut={onSignOut}
+        onDeleteAccount={onDeleteAccount}
+        deleteDescription="Permanently remove your account, clinic profile, all postings, and associated applications. This action cannot be undone."
+      />
     </View>
   );
 }

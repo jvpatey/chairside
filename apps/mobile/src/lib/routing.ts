@@ -23,7 +23,7 @@ export const WORKER_SETUP_LOCATION: Href = '/(worker-setup)/location' as Href;
 export const WORKER_SETUP_AVAILABILITY: Href = '/(worker-setup)/availability' as Href;
 export const WORKER_SETUP_AVAILABILITY_SCHEDULE: Href =
   '/(worker-setup)/availability-schedule' as Href;
-export const WORKER_SETUP_APPLICATION: Href = '/(worker-setup)/application' as Href;
+export const WORKER_SETUP_APPLICATION: Href = '/(worker-setup)/application-kit' as Href;
 export const WORKER_SETUP_REVIEW: Href = '/(worker-setup)/review' as Href;
 export const CLINIC_POST_JOB: Href = '/(clinic-tabs)/post-job' as Href;
 export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;

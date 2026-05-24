@@ -1,11 +1,13 @@
-import { deleteWorkerResume, uploadWorkerResume } from '@chairside/api';
+import { deleteWorkerResume, uploadWorkerResumeFromBase64 } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { openResumePreview } from '@/lib/openResumePreview';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ResumeUploadProps = {
@@ -17,6 +19,7 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { colors } = useTheme();
   const [isUploading, setIsUploading] = useState(false);
+  const [isViewing, setIsViewing] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -66,7 +69,10 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
 
       const asset = result.assets[0];
       setIsUploading(true);
-      await uploadWorkerResume(user.id, asset.uri, asset.name ?? 'resume.pdf');
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      await uploadWorkerResumeFromBase64(user.id, base64, asset.name ?? 'resume.pdf');
       await refreshWorkerProfile();
       onUploaded?.();
     } catch (error) {
@@ -76,6 +82,26 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
       );
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleView = async () => {
+    const storagePath = workerProfile?.resume_storage_path;
+    if (!storagePath) return;
+
+    setIsViewing(true);
+    try {
+      await openResumePreview(
+        storagePath,
+        workerProfile?.resume_file_name ?? 'resume.pdf',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Could not open resume',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsViewing(false);
     }
   };
 
@@ -106,6 +132,8 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
     ]);
   };
 
+  const isBusy = isUploading || isViewing;
+
   const hasResume = Boolean(workerProfile?.resume_storage_path);
 
   return (
@@ -121,23 +149,28 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
             </Text>
             <Text style={styles.meta}>Optional PDF attached to role applications</Text>
           </View>
-          {isUploading ? <ActivityIndicator color={colors.primary} /> : null}
+          {isBusy ? <ActivityIndicator color={colors.primary} /> : null}
         </View>
       ) : (
         <Text style={styles.empty}>No resume uploaded. You can add an optional PDF anytime.</Text>
       )}
 
       <View style={styles.actions}>
+        {hasResume ? (
+          <Pressable style={styles.action} disabled={isBusy} onPress={() => void handleView()}>
+            <Text style={styles.actionText}>{isViewing ? 'Opening…' : 'View'}</Text>
+          </Pressable>
+        ) : null}
         <Pressable
           style={[styles.action, !hasResume && styles.actionPrimary]}
-          disabled={isUploading}
+          disabled={isBusy}
           onPress={handlePick}>
           <Text style={[styles.actionText, !hasResume && styles.actionTextPrimary]}>
             {hasResume ? 'Replace' : 'Upload PDF'}
           </Text>
         </Pressable>
         {hasResume ? (
-          <Pressable style={styles.action} disabled={isUploading} onPress={handleRemove}>
+          <Pressable style={styles.action} disabled={isBusy} onPress={handleRemove}>
             <Text style={styles.actionText}>Remove</Text>
           </Pressable>
         ) : null}

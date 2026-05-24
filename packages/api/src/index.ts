@@ -79,9 +79,12 @@ export {
 } from './workerProfile';
 export {
   deleteWorkerResume,
+  downloadWorkerResume,
+  getWorkerResumeDownloadRequest,
   getWorkerResumeSignedUrl,
   getWorkerResumeStoragePath,
   uploadWorkerResume,
+  uploadWorkerResumeFromBase64,
 } from './workerResume';
 export {
   createApplication,

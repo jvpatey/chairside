@@ -18,6 +18,8 @@ function getSupabaseConfig() {
   return { url, anonKey };
 }
 
+export { getSupabaseConfig };
+
 export function createSupabaseClient(): SupabaseClient<Database> {
   if (supabaseClient) return supabaseClient;
 
