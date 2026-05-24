@@ -30,6 +30,8 @@ type PingramSendBody = {
 const PINGRAM_TYPES = {
   applicationReceived: 'application_received',
   applicationReviewed: 'application_reviewed',
+  applicationInProgress: 'application_in_progress',
+  applicationSelected: 'application_selected',
   applicationRejected: 'application_rejected',
   applicationHired: 'application_hired',
   fillInPosted: 'fill_in_posted',
@@ -134,21 +136,38 @@ async function sendWorkerStatusNotification(
 ) {
   const workerId = application.worker_id as string;
   const applicationId = application.id as string;
+  const isShift = Boolean(application.shift_post_id);
   const typeMap: Record<string, { pingramType: string; title: string; message: string }> = {
     reviewed: {
       pingramType: PINGRAM_TYPES.applicationReviewed,
-      title: 'Application viewed',
-      message: 'A clinic has reviewed your application.',
+      title: isShift ? 'Cover request viewed' : 'Application viewed',
+      message: isShift
+        ? 'A clinic has viewed your cover request.'
+        : 'A clinic has viewed your application.',
+    },
+    in_progress: {
+      pingramType: PINGRAM_TYPES.applicationInProgress,
+      title: isShift ? 'Cover request update' : 'Application update',
+      message: isShift
+        ? 'A clinic is reviewing your cover request.'
+        : 'A clinic is considering your application.',
+    },
+    selected: {
+      pingramType: PINGRAM_TYPES.applicationSelected,
+      title: 'You have been selected',
+      message: 'A clinic has selected you for this role.',
     },
     rejected: {
       pingramType: PINGRAM_TYPES.applicationRejected,
-      title: 'Application update',
-      message: 'A clinic has declined your application.',
+      title: isShift ? 'Cover request update' : 'Application update',
+      message: isShift
+        ? 'A clinic has declined your cover request.'
+        : 'A clinic has declined your application.',
     },
     hired: {
       pingramType: PINGRAM_TYPES.applicationHired,
-      title: 'You are confirmed',
-      message: 'A clinic has accepted you for this role or fill-in.',
+      title: 'Shift confirmed',
+      message: 'A clinic has confirmed you for this fill-in shift.',
     },
   };
   const template = typeMap[status];
@@ -213,11 +232,16 @@ async function handleApplicationInsert(
   if (!clinicId) return;
 
   const workerName = (record.worker_display_name as string | null)?.trim() || 'A worker';
+  const isShiftRequest = Boolean(shiftPostId);
   const idempotencyKey = `${PINGRAM_TYPES.applicationReceived}:${applicationId}`;
   if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
-  const title = `New applicant · ${postTitle}`;
-  const message = `${workerName} applied to your ${postType}.`;
+  const title = isShiftRequest
+    ? `New cover request · ${postTitle}`
+    : `New applicant · ${postTitle}`;
+  const message = isShiftRequest
+    ? `${workerName} requested to cover your ${postType}.`
+    : `${workerName} applied to your ${postType}.`;
   const deepLink = 'chairside:///(clinic-tabs)/applications';
 
   await pingramSend(
@@ -244,7 +268,7 @@ async function handleApplicationUpdate(
   const oldStatus = oldRecord?.status as string | undefined;
   const newStatus = record.status as string;
   if (!newStatus || oldStatus === newStatus) return;
-  if (!['reviewed', 'rejected', 'hired'].includes(newStatus)) return;
+  if (!['reviewed', 'in_progress', 'selected', 'rejected', 'hired'].includes(newStatus)) return;
   await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, newStatus);
 }
 

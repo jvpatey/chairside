@@ -1,5 +1,11 @@
 import { updateApplicationStatus, type ClinicApplication } from '@chairside/api';
-import { formatApplicationEducation, formatApplicationStatus, formatApplicationResumeStatus, getSpecialtyLabel } from '@chairside/config';
+import {
+  formatApplicationEducation,
+  formatClinicApplicationStatus,
+  formatApplicationResumeStatus,
+  getRoleTypeLabel,
+  getSpecialtyLabel,
+} from '@chairside/config';
 import { calculateMatchScore } from '@chairside/core';
 import { Alert, Text, View } from 'react-native';
 
@@ -42,6 +48,42 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
       gap: spacing.md,
     },
     applicantHeaderText: { flex: 1, gap: 2 },
+    applicantTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    statusBadge: {
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: spacing.xs + 1,
+    },
+    statusBadgeNew: {
+      backgroundColor: colors.primarySubtle,
+    },
+    statusBadgeViewed: {
+      backgroundColor: colors.secondarySubtle,
+    },
+    statusBadgeInProgress: {
+      backgroundColor: `${colors.info}18`,
+    },
+    statusBadgeSelected: {
+      backgroundColor: colors.primarySubtle,
+    },
+    statusBadgeDeclined: {
+      backgroundColor: `${colors.destructive}18`,
+    },
+    statusBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.2,
+    },
+    statusBadgeTextNew: { color: colors.primary },
+    statusBadgeTextViewed: { color: colors.secondary },
+    statusBadgeTextInProgress: { color: colors.info },
+    statusBadgeTextSelected: { color: colors.primary },
+    statusBadgeTextDeclined: { color: colors.destructive },
     meta: typography.subtitle,
     score: {
       fontSize: 14,
@@ -49,11 +91,27 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
       color: colors.primary,
     },
     actions: {
+      gap: spacing.sm,
+      marginTop: spacing.xs,
+    },
+    actionsRow: {
       flexDirection: 'row',
       gap: spacing.sm,
     },
     action: { flex: 1 },
   }));
+
+  const updateStatus = async (status: Parameters<typeof updateApplicationStatus>[1]) => {
+    try {
+      await updateApplicationStatus(application.id, status);
+      onUpdated?.();
+    } catch (error) {
+      Alert.alert(
+        'Update failed',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  };
 
   const handleViewResume = async () => {
     if (!application.resume_storage_path) return;
@@ -70,45 +128,19 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
     }
   };
 
-  const handleMarkAsViewed = async () => {
-    try {
-      await updateApplicationStatus(application.id, 'reviewed');
-      onUpdated?.();
-    } catch (error) {
-      Alert.alert(
-        'Update failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
-
-  const handleMessage = () => {
-    Alert.alert('Coming soon', 'Messaging applicants will be available in a future update.');
-  };
-
-  const handleReject = async () => {
-    try {
-      await updateApplicationStatus(application.id, 'rejected');
-      onUpdated?.();
-    } catch (error) {
-      Alert.alert(
-        'Update failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
-
-  const handleHire = async () => {
-    try {
-      await updateApplicationStatus(application.id, 'hired');
-      onUpdated?.();
-    } catch (error) {
-      Alert.alert(
-        'Update failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
+  const statusLabel = formatClinicApplicationStatus(application.status);
+  const statusVariant =
+    application.status === 'applied'
+      ? 'new'
+      : application.status === 'reviewed'
+        ? 'viewed'
+        : application.status === 'in_progress'
+          ? 'inProgress'
+          : application.status === 'selected'
+            ? 'selected'
+            : application.status === 'rejected'
+              ? 'declined'
+              : 'viewed';
 
   return (
     <View style={styles.card}>
@@ -119,15 +151,49 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
           size={44}
         />
         <View style={styles.applicantHeaderText}>
-          {application.worker_display_name ? (
-            <Text style={styles.applicantName}>{application.worker_display_name}</Text>
-          ) : null}
+          <View style={styles.applicantTitleRow}>
+            {application.worker_display_name ? (
+              <Text style={[styles.applicantName, { flex: 1 }]}>
+                {application.worker_display_name}
+              </Text>
+            ) : (
+              <View style={{ flex: 1 }} />
+            )}
+            <View
+              style={[
+                styles.statusBadge,
+                statusVariant === 'new'
+                  ? styles.statusBadgeNew
+                  : statusVariant === 'viewed'
+                    ? styles.statusBadgeViewed
+                    : statusVariant === 'inProgress'
+                      ? styles.statusBadgeInProgress
+                      : statusVariant === 'selected'
+                        ? styles.statusBadgeSelected
+                        : styles.statusBadgeDeclined,
+              ]}>
+              <Text
+                style={[
+                  styles.statusBadgeText,
+                  statusVariant === 'new'
+                    ? styles.statusBadgeTextNew
+                    : statusVariant === 'viewed'
+                      ? styles.statusBadgeTextViewed
+                      : statusVariant === 'inProgress'
+                        ? styles.statusBadgeTextInProgress
+                        : statusVariant === 'selected'
+                          ? styles.statusBadgeTextSelected
+                          : styles.statusBadgeTextDeclined,
+                ]}>
+                {statusLabel}
+              </Text>
+            </View>
+          </View>
           {application.worker_address ? (
             <Text style={styles.meta}>{application.worker_address}</Text>
           ) : null}
         </View>
       </View>
-      <Text style={styles.meta}>Status · {formatApplicationStatus(application.status)}</Text>
       <Text style={styles.score}>Match score: {score}%</Text>
       {application.years_of_experience != null || application.education ? (
         <Text style={styles.meta}>
@@ -138,7 +204,9 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
           {formatApplicationEducation(application.education)}
         </Text>
       ) : null}
-      {application.role_type ? <Text style={styles.meta}>{application.role_type}</Text> : null}
+      {application.role_type ? (
+        <Text style={styles.meta}>{getRoleTypeLabel(application.role_type)}</Text>
+      ) : null}
       {(application.software_used ?? []).length > 0 ? (
         <Text style={styles.meta}>Software: {(application.software_used ?? []).join(', ')}</Text>
       ) : null}
@@ -156,25 +224,43 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
       {application.resume_storage_path ? (
         <OnboardingButton label="View resume" variant="secondary" onPress={() => void handleViewResume()} />
       ) : null}
-      {application.status === 'applied' ? (
-        <OnboardingButton label="Mark as viewed" onPress={() => void handleMarkAsViewed()} />
-      ) : null}
-      {application.status === 'applied' || application.status === 'reviewed' ? (
+      {(application.status === 'applied' ||
+        application.status === 'reviewed' ||
+        application.status === 'in_progress') && (
         <View style={styles.actions}>
-          <OnboardingButton
-            style={styles.action}
-            label="Confirm hire"
-            onPress={() => void handleHire()}
-          />
-          <OnboardingButton style={styles.action} label="Message" onPress={handleMessage} />
-          <OnboardingButton
-            style={styles.action}
-            label="Reject"
-            variant="secondary"
-            onPress={() => void handleReject()}
-          />
+          {application.status === 'applied' ? (
+            <>
+              <OnboardingButton label="Mark as viewed" onPress={() => void updateStatus('reviewed')} />
+              <OnboardingButton
+                label="Decline"
+                variant="secondary"
+                onPress={() => void updateStatus('rejected')}
+              />
+            </>
+          ) : null}
+          {application.status === 'reviewed' ? (
+            <OnboardingButton
+              label="Mark in progress"
+              onPress={() => void updateStatus('in_progress')}
+            />
+          ) : null}
+          {application.status === 'in_progress' ? (
+            <View style={styles.actionsRow}>
+              <OnboardingButton
+                style={styles.action}
+                label="Mark as selected"
+                onPress={() => void updateStatus('selected')}
+              />
+              <OnboardingButton
+                style={styles.action}
+                label="Decline"
+                variant="secondary"
+                onPress={() => void updateStatus('rejected')}
+              />
+            </View>
+          ) : null}
         </View>
-      ) : null}
+      )}
     </View>
   );
 }

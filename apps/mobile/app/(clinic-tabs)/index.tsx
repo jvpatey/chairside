@@ -45,6 +45,7 @@ export default function ClinicDashboardScreen() {
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
     openRoles: 0,
     fillInsPosted: 0,
+    totalApplications: 0,
     newApplications: 0,
   });
   const [selectedOverview, setSelectedOverview] = useState<OverviewStat>('roles');
@@ -83,7 +84,7 @@ export default function ClinicDashboardScreen() {
       setJobApplicationSummaries(summaries);
       setApplicantCounts(counts);
     } catch {
-      setCounts({ openRoles: 0, fillInsPosted: 0, newApplications: 0 });
+      setCounts({ openRoles: 0, fillInsPosted: 0, totalApplications: 0, newApplications: 0 });
       setJobs([]);
       setShifts([]);
       setJobApplicationSummaries([]);
@@ -156,6 +157,7 @@ export default function ClinicDashboardScreen() {
           <StatGrid
             openRoles={counts.openRoles}
             fillInsPosted={counts.fillInsPosted}
+            totalApplications={counts.totalApplications}
             newApplications={counts.newApplications}
             selected={selectedOverview}
             onSelect={setSelectedOverview}

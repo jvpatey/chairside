@@ -49,6 +49,9 @@ export type ShiftPost = {
 export type ClinicDashboardCounts = {
   openRoles: number;
   fillInsPosted: number;
+  /** All applications across this clinic's postings. */
+  totalApplications: number;
+  /** Unviewed applications (status applied). */
   newApplications: number;
 };
 
@@ -398,17 +401,22 @@ export async function getClinicDashboardCounts(clinicId: string): Promise<Clinic
     ).data?.map((row) => row.id) ?? [],
   );
 
-  const newApplications =
+  const clinicApplications =
     applicationsResult.data?.filter((application) => {
-      if (application.status !== 'applied') return false;
       if (application.job_post_id && jobIds.has(application.job_post_id)) return true;
       if (application.shift_post_id && shiftIds.has(application.shift_post_id)) return true;
       return false;
-    }).length ?? 0;
+    }) ?? [];
+
+  const totalApplications = clinicApplications.length;
+  const newApplications = clinicApplications.filter(
+    (application) => application.status === 'applied',
+  ).length;
 
   return {
     openRoles: jobsResult.count ?? 0,
     fillInsPosted: shiftsResult.count ?? 0,
+    totalApplications,
     newApplications,
   };
 }
@@ -599,8 +607,8 @@ export async function getWorkerDashboardCounts(
   if (applicationsResult.error) throw applicationsResult.error;
 
   const pendingApplications =
-    applicationsResult.data?.filter(
-      (row) => row.status === 'applied' || row.status === 'reviewed',
+    applicationsResult.data?.filter((row) =>
+      ['applied', 'reviewed', 'in_progress'].includes(row.status),
     ).length ?? 0;
 
   return {

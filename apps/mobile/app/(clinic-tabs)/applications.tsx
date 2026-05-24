@@ -1,4 +1,5 @@
 import { listJobApplicationSummaries, type JobApplicationSummary } from '@chairside/api';
+import { formatJobApplicationSummaryMeta } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -37,6 +38,7 @@ function RoleApplicationSummaryCard({
 
   const applicantLabel =
     summary.applicant_count === 1 ? '1 applicant' : `${summary.applicant_count} applicants`;
+  const reviewMeta = formatJobApplicationSummaryMeta(summary);
 
   return (
     <Pressable
@@ -45,13 +47,7 @@ function RoleApplicationSummaryCard({
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
       <Text style={styles.title}>{summary.post_title}</Text>
       <Text style={styles.stat}>{applicantLabel}</Text>
-      {summary.pending_count > 0 ? (
-        <Text style={styles.meta}>
-          {summary.pending_count === 1
-            ? '1 new application'
-            : `${summary.pending_count} new applications`}
-        </Text>
-      ) : null}
+      {reviewMeta ? <Text style={styles.meta}>{reviewMeta}</Text> : null}
     </Pressable>
   );
 }

@@ -36,7 +36,9 @@ export function WorkerApplicationListCard({
         {application.clinic_name}
         {application.clinic_city ? ` · ${application.clinic_city}` : ''}
       </Text>
-      <Text style={styles.status}>{formatApplicationStatus(application.status)}</Text>
+      <Text style={styles.status}>
+        {formatApplicationStatus(application.status, application.post_type)}
+      </Text>
       <Text style={styles.meta}>
         Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
       </Text>

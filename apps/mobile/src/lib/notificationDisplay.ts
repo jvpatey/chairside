@@ -24,6 +24,16 @@ const TYPE_META: Record<string, NotificationDisplayMeta> = {
     accent: 'info',
     subtitle: 'Application update',
   },
+  application_in_progress: {
+    icon: 'time-outline',
+    accent: 'info',
+    subtitle: 'Application update',
+  },
+  application_selected: {
+    icon: 'checkmark-circle-outline',
+    accent: 'success',
+    subtitle: 'You have been selected',
+  },
   application_rejected: {
     icon: 'close-circle-outline',
     accent: 'destructive',
@@ -32,7 +42,7 @@ const TYPE_META: Record<string, NotificationDisplayMeta> = {
   application_hired: {
     icon: 'checkmark-circle-outline',
     accent: 'success',
-    subtitle: 'You are confirmed',
+    subtitle: 'Shift confirmed',
   },
   fill_in_posted: {
     icon: 'calendar-outline',

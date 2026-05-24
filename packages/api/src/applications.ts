@@ -1,6 +1,19 @@
 import { getSupabaseClient } from './client';
 
-export type ApplicationStatus = 'applied' | 'reviewed' | 'rejected' | 'hired';
+export type ApplicationStatus =
+  | 'applied'
+  | 'reviewed'
+  | 'in_progress'
+  | 'selected'
+  | 'rejected'
+  | 'hired';
+
+/** Non-terminal statuses where the worker may still withdraw. */
+export const ACTIVE_APPLICATION_STATUSES: ApplicationStatus[] = [
+  'applied',
+  'reviewed',
+  'in_progress',
+];
 
 export type Application = {
   id: string;
@@ -411,7 +424,7 @@ export async function createApplication(
 
   if (error) {
     if (error.code === '23505') {
-      throw new Error('You have already applied to this posting.');
+      throw new Error('You have already submitted for this posting.');
     }
     throw error;
   }

@@ -96,7 +96,7 @@ export default function WorkerShiftDetailScreen() {
     <OnboardingShell
       footer={
         <OnboardingButton
-          label={hasApplied ? 'Applied' : 'Apply for this shift'}
+          label={hasApplied ? 'Requested' : 'Request to cover'}
           disabled={hasApplied}
           onPress={() =>
             guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))

@@ -16,7 +16,7 @@ import { ApplicationPackageFields } from '@/components/worker/ApplicationPackage
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
-import { WORKER_APPLICATIONS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS } from '@/lib/routing';
+import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS } from '@/lib/routing';
 import { computeListingMatchBreakdown } from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
 
@@ -120,10 +120,10 @@ export default function ApplyScreen() {
         shiftPostId: type === 'shift' ? id : undefined,
         coverMessage: coverMessage.trim() || undefined,
       });
-      router.replace(WORKER_APPLICATIONS);
+      router.replace(type === 'shift' ? WORKER_FILLINS : WORKER_APPLICATIONS);
     } catch (error) {
       Alert.alert(
-        'Application failed',
+        type === 'shift' ? 'Request failed' : 'Application failed',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -134,7 +134,11 @@ export default function ApplyScreen() {
   if (isLoading) {
     return (
       <OnboardingShell>
-        <AuthScreenHeader title="Apply" subtitle="Loading…" onBack={() => router.back()} />
+        <AuthScreenHeader
+          title={type === 'shift' ? 'Request to cover' : 'Apply'}
+          subtitle="Loading…"
+          onBack={() => router.back()}
+        />
       </OnboardingShell>
     );
   }
@@ -143,14 +147,24 @@ export default function ApplyScreen() {
     <OnboardingShell
       footer={
         <OnboardingButton
-          label={isSubmitting ? 'Submitting…' : 'Submit application'}
+          label={
+            isSubmitting
+              ? 'Submitting…'
+              : type === 'shift'
+                ? 'Submit request'
+                : 'Submit application'
+          }
           disabled={isSubmitting}
           onPress={handleSubmit}
         />
       }>
       <AuthScreenHeader
-        title={type === 'job' ? 'Apply for role' : 'Apply for shift'}
-        subtitle="Review what the clinic will receive."
+        title={type === 'job' ? 'Apply for role' : 'Request to cover'}
+        subtitle={
+          type === 'shift'
+            ? 'Review what the clinic will receive with your cover request.'
+            : 'Review what the clinic will receive.'
+        }
         onBack={() => router.back()}
       />
       <View style={styles.content}>
@@ -167,8 +181,14 @@ export default function ApplyScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.credentialsTitle}>Application credentials</Text>
-          <Text style={styles.hint}>This is what the clinic will receive with your application.</Text>
+          <Text style={styles.credentialsTitle}>
+            {type === 'shift' ? 'Cover request details' : 'Application credentials'}
+          </Text>
+          <Text style={styles.hint}>
+            {type === 'shift'
+              ? 'This is what the clinic will receive with your cover request.'
+              : 'This is what the clinic will receive with your application.'}
+          </Text>
           {workerProfile ? (
             <ApplicationPackageFields
               profile={workerProfile}

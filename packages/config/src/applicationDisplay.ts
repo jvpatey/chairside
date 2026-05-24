@@ -1,16 +1,65 @@
 import { formatStoredEducation } from './clinicOptions';
 
-const APPLICATION_STATUS_LABELS: Record<string, string> = {
+export type ApplicationPostType = 'job' | 'shift';
+
+const JOB_STATUS_LABELS: Record<string, string> = {
   applied: 'Applied',
   reviewed: 'Viewed',
-  rejected: 'Rejected',
-  hired: 'Hired',
-  shortlisted: 'Applied',
+  in_progress: 'In progress',
+  selected: 'Selected',
+  rejected: 'Declined',
+  hired: 'Selected',
+  shortlisted: 'In progress',
 };
 
-export function formatApplicationStatus(status: string | null | undefined): string {
+const SHIFT_STATUS_LABELS: Record<string, string> = {
+  applied: 'Requested',
+  reviewed: 'Viewed',
+  in_progress: 'In progress',
+  selected: 'Confirmed',
+  rejected: 'Declined',
+  hired: 'Confirmed',
+  shortlisted: 'In progress',
+};
+
+export function formatApplicationStatus(
+  status: string | null | undefined,
+  postType?: ApplicationPostType,
+): string {
   if (!status) return 'Unknown';
-  return APPLICATION_STATUS_LABELS[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
+  const labels = postType === 'shift' ? SHIFT_STATUS_LABELS : JOB_STATUS_LABELS;
+  return labels[status] ?? status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+}
+
+/** Clinic-facing labels — unreviewed applications show as "New". */
+export function formatClinicApplicationStatus(status: string | null | undefined): string {
+  if (!status) return 'Unknown';
+  if (status === 'applied') return 'New';
+  if (status === 'reviewed') return 'Viewed';
+  return formatApplicationStatus(status, 'job');
+}
+
+export function formatJobApplicationSummaryMeta(summary: {
+  applicant_count: number;
+  pending_count: number;
+}): string | undefined {
+  if (summary.applicant_count === 0) return undefined;
+
+  const viewedCount = summary.applicant_count - summary.pending_count;
+  const parts: string[] = [];
+
+  if (summary.pending_count > 0) {
+    parts.push(summary.pending_count === 1 ? '1 new' : `${summary.pending_count} new`);
+  }
+  if (viewedCount > 0) {
+    parts.push(viewedCount === 1 ? '1 viewed' : `${viewedCount} viewed`);
+  }
+
+  return parts.join(' · ');
+}
+
+export function isActiveApplicationStatus(status: string | null | undefined): boolean {
+  return status === 'applied' || status === 'reviewed' || status === 'in_progress';
 }
 
 export function formatApplicationResumeStatus(

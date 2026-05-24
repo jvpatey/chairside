@@ -108,7 +108,7 @@ export default function FillInsScreen() {
   }, [shifts, roleTypeFilter]);
 
   const activeApplications = applications.filter((item) =>
-    ['applied', 'reviewed'].includes(item.status),
+    ['applied', 'reviewed', 'in_progress'].includes(item.status),
   );
   const confirmedApplications = applications.filter((item) => item.status === 'hired');
 
@@ -137,7 +137,7 @@ export default function FillInsScreen() {
 
         <ProfileSection
           title="Open shifts"
-          subtitle="Browse temp shifts you can apply to today.">
+          subtitle="Browse temp shifts you can request to cover today.">
           <View style={styles.group}>
             <ChipSelector
               options={roleFilterOptions}
@@ -169,12 +169,12 @@ export default function FillInsScreen() {
 
         <ProfileSection
           title="Your fill-in shifts"
-          subtitle="Shifts you have applied to or agreed to cover.">
+          subtitle="Shifts you've requested to cover or been confirmed for.">
           {activeApplications.length === 0 && confirmedApplications.length === 0 ? (
             <FillInsEmptyState
               icon="document-text-outline"
               title="No fill-in shifts yet"
-              body="Apply to an open shift above and track it here."
+              body="Request to cover an open shift above and track it here."
             />
           ) : (
             <View style={styles.list}>

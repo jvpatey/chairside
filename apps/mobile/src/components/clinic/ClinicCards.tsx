@@ -1,5 +1,5 @@
 import type { JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
-import { getProvinceLabel } from '@chairside/config';
+import { getProvinceLabel, formatJobApplicationSummaryMeta } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
@@ -196,6 +196,7 @@ export type OverviewStat = 'roles' | 'fill-ins' | 'applications';
 type StatGridProps = {
   openRoles: number;
   fillInsPosted: number;
+  totalApplications: number;
   newApplications: number;
   selected: OverviewStat;
   onSelect: (stat: OverviewStat) => void;
@@ -204,6 +205,7 @@ type StatGridProps = {
 export function StatGrid({
   openRoles,
   fillInsPosted,
+  totalApplications,
   newApplications,
   selected,
   onSelect,
@@ -214,7 +216,7 @@ export function StatGrid({
     {
       key: 'applications',
       label: 'Applications',
-      value: newApplications,
+      value: totalApplications,
       highlight: newApplications > 0,
     },
   ];
@@ -484,13 +486,7 @@ export function DashboardOverviewPanel({
                     ? '1 applicant'
                     : `${summary.applicant_count} applicants`
                 }
-                meta={
-                  summary.pending_count > 0
-                    ? summary.pending_count === 1
-                      ? '1 new application'
-                      : `${summary.pending_count} new applications`
-                    : undefined
-                }
+                meta={formatJobApplicationSummaryMeta(summary)}
                 onPress={
                   onJobApplicationsPress
                     ? () => onJobApplicationsPress(summary.job_post_id)

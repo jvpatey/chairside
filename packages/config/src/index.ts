@@ -45,6 +45,14 @@ export {
   type RoleType,
   type TeamSizeRange,
 } from './clinicOptions';
-export { formatApplicationEducation, formatApplicationResumeStatus, formatApplicationStatus } from './applicationDisplay';
+export {
+  formatApplicationEducation,
+  formatApplicationResumeStatus,
+  formatApplicationStatus,
+  formatClinicApplicationStatus,
+  formatJobApplicationSummaryMeta,
+  isActiveApplicationStatus,
+  type ApplicationPostType,
+} from './applicationDisplay';
 export { PINGRAM_NOTIFICATION_TYPES, type PingramNotificationType } from './notifications';
 export { normalizePhoneForStorage, normalizePhoneToE164 } from './phone';

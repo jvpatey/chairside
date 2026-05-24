@@ -4,8 +4,10 @@ import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
   formatApplicationStatus,
+  isActiveApplicationStatus,
   getRoleTypeLabel,
   getSpecialtyLabel,
+  type ApplicationPostType,
 } from '@chairside/config';
 import { Alert, Text, View } from 'react-native';
 
@@ -36,8 +38,14 @@ function formatAppliedDate(value: string): string {
   });
 }
 
-function ApplicationStatusBadge({ status }: { status: ApplicationStatus | string }) {
-  const label = formatApplicationStatus(status);
+function ApplicationStatusBadge({
+  status,
+  postType,
+}: {
+  status: ApplicationStatus | string;
+  postType: ApplicationPostType;
+}) {
+  const label = formatApplicationStatus(status, postType);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     badge: {
@@ -52,10 +60,13 @@ function ApplicationStatusBadge({ status }: { status: ApplicationStatus | string
     badgeViewed: {
       backgroundColor: colors.secondarySubtle,
     },
+    badgeInProgress: {
+      backgroundColor: `${colors.info}18`,
+    },
     badgeRejected: {
       backgroundColor: `${colors.destructive}18`,
     },
-    badgeHired: {
+    badgeSelected: {
       backgroundColor: colors.primarySubtle,
     },
     text: {
@@ -64,32 +75,43 @@ function ApplicationStatusBadge({ status }: { status: ApplicationStatus | string
     },
     textApplied: { color: colors.primary },
     textViewed: { color: colors.secondary },
+    textInProgress: { color: colors.info },
     textRejected: { color: colors.destructive },
-    textHired: { color: colors.primary },
+    textSelected: { color: colors.primary },
   }));
 
   const variant =
     status === 'reviewed'
       ? 'viewed'
-      : status === 'rejected'
-        ? 'rejected'
-        : status === 'hired'
-          ? 'hired'
-          : 'applied';
+      : status === 'in_progress'
+        ? 'inProgress'
+        : status === 'rejected'
+          ? 'rejected'
+          : status === 'selected' || status === 'hired'
+            ? 'selected'
+            : 'applied';
 
   const badgeStyle =
     variant === 'viewed'
       ? styles.badgeViewed
-      : variant === 'rejected'
-        ? styles.badgeRejected
-        : styles.badgeApplied;
+      : variant === 'inProgress'
+        ? styles.badgeInProgress
+        : variant === 'rejected'
+          ? styles.badgeRejected
+          : variant === 'selected'
+            ? styles.badgeSelected
+            : styles.badgeApplied;
 
   const textStyle =
     variant === 'viewed'
       ? styles.textViewed
-      : variant === 'rejected'
-        ? styles.textRejected
-        : styles.textApplied;
+      : variant === 'inProgress'
+        ? styles.textInProgress
+        : variant === 'rejected'
+          ? styles.textRejected
+          : variant === 'selected'
+            ? styles.textSelected
+            : styles.textApplied;
 
   return (
     <View style={[styles.badge, badgeStyle]}>
@@ -103,8 +125,8 @@ export function WorkerApplicationDetailCard({
   onViewPosting,
   onCancelled,
 }: WorkerApplicationDetailCardProps) {
-  const canCancel =
-    application.status === 'applied' || application.status === 'reviewed';
+  const canCancel = isActiveApplicationStatus(application.status);
+  const isShift = application.post_type === 'shift';
   const clinicLocation = application.clinic_city ?? null;
   const softwareLabel =
     (application.software_used ?? []).length > 0
@@ -228,12 +250,14 @@ export function WorkerApplicationDetailCard({
 
   const handleCancel = () => {
     Alert.alert(
-      'Cancel application?',
-      'This removes your application from the clinic. You can apply again later if the posting is still open.',
+      isShift ? 'Withdraw cover request?' : 'Cancel application?',
+      isShift
+        ? 'This removes your request from the clinic. You can request to cover again if the shift is still open.'
+        : 'This removes your application from the clinic. You can apply again later if the posting is still open.',
       [
-        { text: 'Keep application', style: 'cancel' },
+        { text: isShift ? 'Keep request' : 'Keep application', style: 'cancel' },
         {
-          text: 'Cancel application',
+          text: isShift ? 'Withdraw request' : 'Cancel application',
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -242,7 +266,7 @@ export function WorkerApplicationDetailCard({
                 onCancelled?.();
               } catch (error) {
                 Alert.alert(
-                  'Could not cancel application',
+                  isShift ? 'Could not withdraw request' : 'Could not cancel application',
                   error instanceof Error ? error.message : 'Please try again.',
                 );
               }
@@ -291,7 +315,7 @@ export function WorkerApplicationDetailCard({
   if (canCancel) {
     secondarySlots.push({
       key: 'cancel',
-      label: 'Cancel application',
+      label: isShift ? 'Withdraw request' : 'Cancel application',
       variant: 'destructive',
       onPress: handleCancel,
     });
@@ -308,13 +332,13 @@ export function WorkerApplicationDetailCard({
     <View style={styles.card}>
       <View style={styles.hero}>
         <Text style={styles.overline}>
-          {application.post_type === 'job' ? 'Role application' : 'Fill-in application'}
+          {isShift ? 'Cover request' : 'Role application'}
         </Text>
         <Text style={styles.clinicName}>{application.clinic_name}</Text>
         <Text style={styles.title}>{application.post_title}</Text>
         {clinicLocation ? <Text style={styles.location}>{clinicLocation}</Text> : null}
         <View style={styles.statsRow}>
-          <ApplicationStatusBadge status={application.status} />
+          <ApplicationStatusBadge status={application.status} postType={application.post_type} />
           {application.match_score != null ? (
             <View style={styles.matchBadge}>
               <Text style={styles.matchText}>{application.match_score}% match</Text>
@@ -322,7 +346,7 @@ export function WorkerApplicationDetailCard({
           ) : null}
         </View>
         <Text style={styles.appliedDate}>
-          Applied {formatAppliedDate(application.created_at)}
+          {isShift ? 'Requested' : 'Applied'} {formatAppliedDate(application.created_at)}
         </Text>
       </View>
 
