@@ -37,8 +37,9 @@ type OnboardingShellProps = {
   contentStyle?: StyleProp<ViewStyle>;
 };
 
-const FOOTER_SCROLL_CLEARANCE = 88;
-const SCROLL_INTO_VIEW_DELAYS_MS = [50, 200, 400];
+const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;
+const SCROLL_INTO_VIEW_DELAYS_MS = [50, 150, 300, 500];
+const SCROLL_INTO_VIEW_MARGIN = 32;
 
 export function OnboardingShell({ children, footer, contentStyle }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
@@ -47,9 +48,11 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
   const keyboardHeightRef = useRef(0);
+  const footerHeightRef = useRef(0);
   const pendingScrollRef = useRef<View | null>(null);
   const scrollTimeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [footerHeight, setFooterHeight] = useState(0);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {
@@ -73,9 +76,13 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
     },
   }));
 
+  const footerScrollClearance = footer
+    ? footerHeight || FOOTER_SCROLL_CLEARANCE_FALLBACK
+    : 0;
+
   const performScroll = useCallback(
-    (wrapRef: View | null, keyboardBlock: number) => {
-      if (!wrapRef || !contentRef.current || keyboardBlock <= 0) return;
+    (wrapRef: View | null) => {
+      if (!wrapRef || !contentRef.current) return;
 
       const viewportHeight = viewportHeightRef.current;
       if (viewportHeight <= 0) return;
@@ -83,10 +90,16 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       wrapRef.measureLayout(
         contentRef.current,
         (_x, y, _width, height) => {
-          const margin = 24;
-          const footerBlock = footer ? FOOTER_SCROLL_CLEARANCE : 0;
-          const visibleHeight = viewportHeight - keyboardBlock - footerBlock - margin;
-          const targetScrollY = y + height - visibleHeight;
+          const footerBlock = footer
+            ? footerHeightRef.current || FOOTER_SCROLL_CLEARANCE_FALLBACK
+            : 0;
+          // Sticky footer screens use KeyboardAvoidingView, which already shrinks
+          // the scroll viewport. Other screens need an explicit keyboard allowance.
+          const keyboardBlock = footer ? 0 : keyboardHeightRef.current;
+          const visibleHeight =
+            viewportHeight - keyboardBlock - footerBlock - SCROLL_INTO_VIEW_MARGIN;
+          const fieldBottom = y + height;
+          const targetScrollY = fieldBottom - visibleHeight;
 
           if (targetScrollY > scrollYRef.current + 4) {
             scrollRef.current?.scrollTo({
@@ -125,7 +138,7 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       if (!wrapRef) return;
 
       pendingScrollRef.current = wrapRef;
-      scheduleDelayedRuns(() => performScroll(wrapRef, keyboardHeightRef.current));
+      scheduleDelayedRuns(() => performScroll(wrapRef));
     },
     [performScroll, scheduleDelayedRuns],
   );
@@ -141,7 +154,7 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
 
       if (pendingScrollRef.current) {
         const pending = pendingScrollRef.current;
-        scheduleDelayedRuns(() => performScroll(pending, height));
+        scheduleDelayedRuns(() => performScroll(pending));
       }
     });
 
@@ -158,6 +171,11 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       clearScrollTimeouts();
     };
   }, [performScroll, scheduleDelayedRuns, clearScrollTimeouts]);
+
+  useEffect(() => {
+    if (footerHeight <= 0 || !pendingScrollRef.current) return;
+    scheduleDelayedRuns(() => performScroll(pendingScrollRef.current));
+  }, [footerHeight, performScroll, scheduleDelayedRuns]);
 
   const footerPaddingBottom = footer ? spacing.md : insets.bottom + spacing.md;
 
@@ -179,8 +197,10 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
           paddingBottom:
             spacing.lg +
             insets.bottom +
-            (footer ? FOOTER_SCROLL_CLEARANCE : 0) +
-            keyboardHeight,
+            footerScrollClearance +
+            // iOS without a footer uses automaticallyAdjustKeyboardInsets; with a
+            // footer, KeyboardAvoidingView handles the inset — avoid double padding.
+            (Platform.OS === 'android' && !footer ? keyboardHeight : 0),
         },
       ]}
       keyboardShouldPersistTaps="handled"
@@ -198,7 +218,13 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {scrollView}
-      <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
+      <View
+        style={[styles.footer, { paddingBottom: footerPaddingBottom }]}
+        onLayout={(event) => {
+          const height = event.nativeEvent.layout.height;
+          footerHeightRef.current = height;
+          setFooterHeight(height);
+        }}>
         {footer}
       </View>
     </KeyboardAvoidingView>

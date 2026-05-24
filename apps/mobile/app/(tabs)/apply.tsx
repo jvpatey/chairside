@@ -203,7 +203,7 @@ export default function ApplyScreen() {
 
         <AuthField
           label="Cover message (optional)"
-          placeholder="Add a short note for the clinic"
+          placeholder="Optional message"
           value={coverMessage}
           onChangeText={setCoverMessage}
           multiline

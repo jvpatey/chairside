@@ -90,7 +90,7 @@ export default function WorkerBasicsScreen() {
       <View style={styles.form}>
         <AuthField
           label="Full name"
-          placeholder="Jane Smith"
+          placeholder="Your full name"
           value={displayName}
           onChangeText={setDisplayName}
           autoCapitalize="words"

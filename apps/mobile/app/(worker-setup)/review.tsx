@@ -46,6 +46,7 @@ export default function WorkerReviewScreen() {
   const { user } = useAuth();
   const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEditing = Boolean(workerProfile?.setup_completed_at);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -70,12 +71,14 @@ export default function WorkerReviewScreen() {
 
     setIsSubmitting(true);
     try {
-      await completeWorkerSetup(user.id);
+      if (!isEditing) {
+        await completeWorkerSetup(user.id);
+      }
       await refreshWorkerProfile();
       router.replace(WORKER_HOME);
     } catch (error) {
       Alert.alert(
-        'Could not finish setup',
+        isEditing ? 'Could not save changes' : 'Could not finish setup',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -94,18 +97,30 @@ export default function WorkerReviewScreen() {
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Finishing…' : 'Finish setup'}
+            label={
+              isSubmitting
+                ? isEditing
+                  ? 'Saving…'
+                  : 'Finishing…'
+                : isEditing
+                  ? 'Save changes'
+                  : 'Finish setup'
+            }
             disabled={isSubmitting}
             onPress={handleFinish}
           />
         </View>
       }>
       <AuthScreenHeader
-        title="Review profile"
-        subtitle="Confirm your details before browsing roles."
+        title={isEditing ? 'Review changes' : 'Review profile'}
+        subtitle={
+          isEditing
+            ? 'Confirm your updated profile details.'
+            : 'Confirm your details before browsing roles.'
+        }
         onBack={() => router.back()}
       />
-      <Text style={styles.step}>Step 6 of 6</Text>
+      {!isEditing ? <Text style={styles.step}>Step 6 of 6</Text> : null}
       <View style={styles.card}>
         <ReviewRow
           label="Role"

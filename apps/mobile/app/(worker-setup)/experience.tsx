@@ -123,7 +123,7 @@ export default function WorkerExperienceScreen() {
       <View style={styles.form}>
         <AuthField
           label="Years of experience"
-          placeholder="5"
+          placeholder="Years"
           value={yearsOfExperience}
           onChangeText={setYearsOfExperience}
           keyboardType="number-pad"
@@ -135,7 +135,7 @@ export default function WorkerExperienceScreen() {
           <View style={styles.educationBlock}>
             <AuthField
               label="Graduation year"
-              placeholder={String(CURRENT_YEAR)}
+              placeholder="Year"
               value={graduationYear}
               onChangeText={setGraduationYear}
               keyboardType="number-pad"
@@ -150,14 +150,14 @@ export default function WorkerExperienceScreen() {
             </View>
             <AuthField
               label="Field of study"
-              placeholder="Dental Hygiene"
+              placeholder="Field of study"
               value={fieldOfStudy}
               onChangeText={setFieldOfStudy}
               autoCapitalize="words"
             />
             <AuthField
               label="University or college"
-              placeholder="Dalhousie University"
+              placeholder="Institution name"
               value={institution}
               onChangeText={setInstitution}
               autoCapitalize="words"

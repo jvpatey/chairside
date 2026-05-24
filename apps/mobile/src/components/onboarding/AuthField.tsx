@@ -73,9 +73,7 @@ export function AuthField({
 
   const handleFocus = (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
     onFocus?.(event);
-    if (multiline) {
-      scrollWrapIntoView(wrapRef.current);
-    }
+    scrollWrapIntoView(wrapRef.current);
   };
 
   return (

@@ -118,7 +118,7 @@ export default function WorkerLocationScreen() {
         <AddressAutocomplete value={address} onChange={setAddress} />
         <AuthField
           label="Short bio (optional)"
-          placeholder="Tell clinics a bit about yourself"
+          placeholder="Optional short bio"
           value={bio}
           onChangeText={setBio}
           autoCapitalize="sentences"
