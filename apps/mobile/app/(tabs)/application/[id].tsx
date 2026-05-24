@@ -1,0 +1,92 @@
+import { getWorkerApplication, type WorkerApplication } from '@chairside/api';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
+
+import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
+import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { getWorkerJobDetailRoute, getWorkerShiftDetailRoute } from '@/lib/routing';
+import { useThemedStyles } from '@/theme';
+
+export default function WorkerApplicationDetailScreen() {
+  const { user } = useAuth();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const applicationId = typeof id === 'string' ? id : '';
+  const [application, setApplication] = useState<WorkerApplication | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: { gap: spacing.lg },
+  }));
+
+  const load = useCallback(async () => {
+    if (!user?.id || !applicationId) {
+      setApplication(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const row = await getWorkerApplication(user.id, applicationId);
+      if (!row) {
+        Alert.alert('Application not found', 'This application may have been removed.');
+        router.back();
+        return;
+      }
+      setApplication(row);
+    } catch (error) {
+      Alert.alert(
+        'Could not load application',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+      router.back();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applicationId, user?.id]);
+
+  useRefreshOnFocus(load);
+
+  const handleViewPosting = () => {
+    if (!application) return;
+    if (application.post_type === 'job' && application.job_post_id) {
+      router.push(getWorkerJobDetailRoute(application.job_post_id));
+      return;
+    }
+    if (application.post_type === 'shift' && application.shift_post_id) {
+      router.push(getWorkerShiftDetailRoute(application.shift_post_id));
+    }
+  };
+
+  const subtitle = application
+    ? application.clinic_name
+    : isLoading
+      ? 'Loading…'
+      : 'Application details';
+
+  return (
+    <OnboardingShell>
+      <AuthScreenHeader
+        title="Application"
+        subtitle={subtitle}
+        onBack={() => router.back()}
+      />
+      <View style={styles.content}>
+        {application ? (
+          <WorkerApplicationDetailCard
+            application={application}
+            onViewPosting={handleViewPosting}
+            onCancelled={() => {
+              Alert.alert('Application cancelled', 'Your application was removed.');
+              router.back();
+            }}
+          />
+        ) : null}
+      </View>
+    </OnboardingShell>
+  );
+}

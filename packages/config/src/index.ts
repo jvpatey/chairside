@@ -31,6 +31,7 @@ export {
   getTravelRadiusRangeLabel,
   travelRadiusRangeToMaxKm,
   getEducationDegreeTypeLabel,
+  formatStoredEducation,
   formatWorkerEducation,
   formatWorkerAddress,
   type EducationDegreeType,
@@ -44,4 +45,4 @@ export {
   type RoleType,
   type TeamSizeRange,
 } from './clinicOptions';
-export { formatApplicationStatus } from './applicationDisplay';
+export { formatApplicationEducation, formatApplicationResumeStatus, formatApplicationStatus } from './applicationDisplay';

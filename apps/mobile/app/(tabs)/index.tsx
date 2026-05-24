@@ -29,6 +29,7 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   WORKER_BROWSE,
   WORKER_FILLINS,
+  getWorkerApplicationRoute,
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
 } from '@/lib/routing';
@@ -144,6 +145,9 @@ export default function WorkerDashboardScreen() {
           appliedJobIds={appliedJobIds}
           onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
           onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
+          onApplicationPress={(applicationId) =>
+            router.push(getWorkerApplicationRoute(applicationId))
+          }
         />
       </View>
     </Screen>

@@ -4,7 +4,6 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
-import { formatApplicationStatus } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -14,40 +13,24 @@ import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
 import { computeListingMatchScore } from '@/lib/workerMatch';
-import { getWorkerShiftDetailRoute, WORKER_SETUP_AVAILABILITY_SCHEDULE } from '@/lib/routing';
+import { getWorkerApplicationRoute, getWorkerShiftDetailRoute, WORKER_SETUP_AVAILABILITY_SCHEDULE } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
-function ShiftApplicationCard({ application }: { application: WorkerApplication }) {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.xs,
-    },
-    title: { ...typography.body, fontWeight: '600' },
-    meta: typography.subtitle,
-    status: { fontSize: 14, fontWeight: '600', color: colors.primary },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{application.post_title}</Text>
-      <Text style={styles.meta}>
-        {application.clinic_name}
-        {application.clinic_city ? ` · ${application.clinic_city}` : ''}
-      </Text>
-      <Text style={styles.status}>{formatApplicationStatus(application.status)}</Text>
-    </View>
-  );
+function ShiftApplicationCard({
+  application,
+  onPress,
+}: {
+  application: WorkerApplication;
+  onPress?: () => void;
+}) {
+  return <WorkerApplicationListCard application={application} onPress={onPress} />;
 }
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
@@ -194,7 +177,11 @@ export default function FillInsScreen() {
                 <>
                   <Text style={styles.subsection}>Confirmed</Text>
                   {confirmedApplications.map((application) => (
-                    <ShiftApplicationCard key={application.id} application={application} />
+                    <ShiftApplicationCard
+                      key={application.id}
+                      application={application}
+                      onPress={() => router.push(getWorkerApplicationRoute(application.id))}
+                    />
                   ))}
                 </>
               ) : null}
@@ -202,7 +189,11 @@ export default function FillInsScreen() {
                 <>
                   <Text style={styles.subsection}>Active</Text>
                   {activeApplications.map((application) => (
-                    <ShiftApplicationCard key={application.id} application={application} />
+                    <ShiftApplicationCard
+                      key={application.id}
+                      application={application}
+                      onPress={() => router.push(getWorkerApplicationRoute(application.id))}
+                    />
                   ))}
                 </>
               ) : null}

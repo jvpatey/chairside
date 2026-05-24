@@ -1,5 +1,5 @@
 import { updateApplicationStatus, type ClinicApplication } from '@chairside/api';
-import { formatApplicationStatus, getSpecialtyLabel } from '@chairside/config';
+import { formatApplicationEducation, formatApplicationStatus, formatApplicationResumeStatus, getSpecialtyLabel } from '@chairside/config';
 import { calculateMatchScore } from '@chairside/core';
 import { Alert, Text, View } from 'react-native';
 
@@ -123,7 +123,7 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
             ? `${application.years_of_experience} yrs`
             : ''}
           {application.years_of_experience != null && application.education ? ' · ' : ''}
-          {application.education ?? ''}
+          {formatApplicationEducation(application.education)}
         </Text>
       ) : null}
       {application.role_type ? <Text style={styles.meta}>{application.role_type}</Text> : null}
@@ -138,6 +138,9 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
       {application.cover_message ? (
         <Text style={styles.meta}>{application.cover_message}</Text>
       ) : null}
+      <Text style={styles.meta}>
+        Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
+      </Text>
       {application.resume_storage_path ? (
         <OnboardingButton label="View resume" variant="secondary" onPress={() => void handleViewResume()} />
       ) : null}

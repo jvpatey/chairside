@@ -286,6 +286,25 @@ export function getEducationDegreeTypeLabel(value: string | null | undefined): s
   );
 }
 
+/** Format education text where the degree type may be stored as a raw value (e.g. `diploma`). */
+export function formatStoredEducation(value: string | null | undefined): string {
+  if (!value?.trim()) return '';
+
+  const parts = value
+    .split(' · ')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return '';
+
+  const degreeType = parts[0].toLowerCase();
+  parts[0] =
+    getEducationDegreeTypeLabel(degreeType) ||
+    getEducationDegreeTypeLabel(parts[0]) ||
+    formatDisplayLabel(parts[0]);
+
+  return parts.join(' · ');
+}
+
 export function formatWorkerEducation(input: {
   education?: string | null;
   education_graduation_year?: number | null;
@@ -301,7 +320,7 @@ export function formatWorkerEducation(input: {
   ].filter(Boolean);
 
   if (parts.length > 0) return parts.join(' · ');
-  return input.education?.trim() ?? '';
+  return formatStoredEducation(input.education);
 }
 
 export function formatWorkerAddress(input: {

@@ -1,11 +1,11 @@
 import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
-import { formatApplicationStatus } from '@chairside/config';
 import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
+import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -216,6 +216,7 @@ type WorkerOverviewPanelProps = {
   appliedJobIds?: Set<string>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
+  onApplicationPress?: (applicationId: string) => void;
 };
 
 export function WorkerOverviewPanel({
@@ -226,6 +227,7 @@ export function WorkerOverviewPanel({
   appliedJobIds,
   onJobPress,
   onShiftPress,
+  onApplicationPress,
 }: WorkerOverviewPanelProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     list: { gap: spacing.sm },
@@ -238,16 +240,6 @@ export function WorkerOverviewPanel({
       alignItems: 'center',
     },
     emptyText: { ...typography.subtitle, fontSize: 14, textAlign: 'center' },
-    appCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.xs,
-    },
-    appTitle: { ...typography.body, fontWeight: '600' },
-    appMeta: typography.subtitle,
   }));
 
   return (
@@ -298,12 +290,13 @@ export function WorkerOverviewPanel({
         ) : (
           <View style={styles.list}>
             {applications.slice(0, 5).map((application) => (
-              <View key={application.id} style={styles.appCard}>
-                <Text style={styles.appTitle}>{application.post_title}</Text>
-                <Text style={styles.appMeta}>
-                  {application.clinic_name} · {formatApplicationStatus(application.status)}
-                </Text>
-              </View>
+              <WorkerApplicationListCard
+                key={application.id}
+                application={application}
+                onPress={
+                  onApplicationPress ? () => onApplicationPress(application.id) : undefined
+                }
+              />
             ))}
           </View>
         )

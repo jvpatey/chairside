@@ -100,7 +100,9 @@ export {
 } from './workerPhoto';
 export {
   createApplication,
+  deleteApplication,
   getJobPostApplicationCountsMap,
+  getWorkerApplication,
   hasAppliedToJob,
   hasAppliedToShift,
   listClinicApplications,

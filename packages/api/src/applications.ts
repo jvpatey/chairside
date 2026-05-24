@@ -198,6 +198,95 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   return applications;
 }
 
+async function enrichWorkerApplication(application: Application): Promise<WorkerApplication | null> {
+  const supabase = getSupabaseClient();
+
+  if (application.job_post_id) {
+    const { data: job, error: jobError } = await supabase
+      .from('job_posts')
+      .select('id, title, clinic_id')
+      .eq('id', application.job_post_id)
+      .maybeSingle();
+
+    if (jobError) throw jobError;
+    if (!job) return null;
+
+    const { data: clinic, error: clinicError } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name, city')
+      .eq('id', job.clinic_id)
+      .maybeSingle();
+
+    if (clinicError) throw clinicError;
+
+    return {
+      ...application,
+      post_title: job.title,
+      post_type: 'job',
+      clinic_name: clinic?.clinic_name ?? 'Clinic',
+      clinic_city: clinic?.city ?? null,
+    };
+  }
+
+  if (application.shift_post_id) {
+    const { data: shift, error: shiftError } = await supabase
+      .from('shift_posts')
+      .select('id, shift_date, clinic_id')
+      .eq('id', application.shift_post_id)
+      .maybeSingle();
+
+    if (shiftError) throw shiftError;
+    if (!shift) return null;
+
+    const { data: clinic, error: clinicError } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name, city')
+      .eq('id', shift.clinic_id)
+      .maybeSingle();
+
+    if (clinicError) throw clinicError;
+
+    return {
+      ...application,
+      post_title: `Fill-in · ${shift.shift_date}`,
+      post_type: 'shift',
+      clinic_name: clinic?.clinic_name ?? 'Clinic',
+      clinic_city: clinic?.city ?? null,
+    };
+  }
+
+  return null;
+}
+
+export async function getWorkerApplication(
+  workerId: string,
+  applicationId: string,
+): Promise<WorkerApplication | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*')
+    .eq('id', applicationId)
+    .eq('worker_id', workerId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return enrichWorkerApplication(data as Application);
+}
+
+export async function deleteApplication(workerId: string, applicationId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from('applications')
+    .delete()
+    .eq('id', applicationId)
+    .eq('worker_id', workerId);
+
+  if (error) throw error;
+}
+
 export async function listWorkerJobApplications(workerId: string): Promise<WorkerApplication[]> {
   const applications = await listWorkerApplications(workerId);
   return applications.filter((application) => application.post_type === 'job');
