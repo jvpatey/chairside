@@ -55,6 +55,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="fillins"
+        options={{
+          title: 'Fill-ins',
+          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

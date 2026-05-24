@@ -7,6 +7,8 @@ export default function WorkerSetupLayout() {
       <Stack.Screen name="experience" />
       <Stack.Screen name="skills" />
       <Stack.Screen name="location" />
+      <Stack.Screen name="application" />
+      <Stack.Screen name="availability-schedule" />
       <Stack.Screen name="availability" />
       <Stack.Screen name="review" />
     </Stack>

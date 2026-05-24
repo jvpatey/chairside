@@ -17,18 +17,17 @@ import {
   WorkerDashboardHero,
   WorkerOverviewPanel,
   WorkerSectionHeader,
-  WorkerSetupBanner,
   WorkerStatGrid,
   type WorkerOverviewStat,
 } from '@/components/worker/WorkerCards';
+import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   WORKER_BROWSE,
-  WORKER_SETUP_AVAILABILITY,
-  WORKER_SETUP_BASICS,
+  WORKER_FILLINS,
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
 } from '@/lib/routing';
@@ -36,7 +35,7 @@ import { useThemedStyles } from '@/theme';
 
 export default function WorkerDashboardScreen() {
   const { user, profile } = useAuth();
-  const { workerProfile, isProfileComplete } = useWorkerProfile();
+  const { workerProfile } = useWorkerProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const province = workerProfile?.province ?? 'NS';
   const [counts, setCounts] = useState<WorkerDashboardCounts>({
@@ -90,25 +89,23 @@ export default function WorkerDashboardScreen() {
       <View style={styles.content}>
         <WorkerDashboardHero displayName={profile?.display_name} province={province} />
 
-        {!isProfileComplete ? (
-          <WorkerSetupBanner onPress={() => router.push(WORKER_SETUP_BASICS)} />
-        ) : null}
+        <WorkerReadinessChecklist workerProfile={workerProfile} />
 
         <View>
           <WorkerSectionHeader title="Quick actions" />
           <View style={styles.row}>
             <QuickActionTile
-              label="Browse roles"
+              label="Find jobs"
               description="Open roles in your province"
               icon="search-outline"
               onPress={() => router.push(WORKER_BROWSE)}
             />
             <QuickActionTile
-              label="Availability"
-              description="Schedule & fill-in alerts"
+              label="Find fill-ins"
+              description="Temp shifts in your province"
               icon="calendar-outline"
               variant="secondary"
-              onPress={() => router.push(WORKER_SETUP_AVAILABILITY)}
+              onPress={() => router.push(WORKER_FILLINS)}
             />
           </View>
         </View>

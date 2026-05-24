@@ -3,7 +3,7 @@ import {
   getLiveJobPost,
   getLiveShiftPost,
 } from '@chairside/api';
-import { getRoleTypeLabel, formatWorkerEducation, travelRadiusRangeToMaxKm } from '@chairside/config';
+import { getRoleTypeLabel, formatWorkerEducation, getSpecialtyLabel, travelRadiusRangeToMaxKm } from '@chairside/config';
 import { calculateMatchScore } from '@chairside/core';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -15,7 +15,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { WORKER_APPLICATIONS, WORKER_SETUP_BASICS } from '@/lib/routing';
+import { WORKER_APPLICATIONS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS } from '@/lib/routing';
 import { computeListingMatchScore } from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
 
@@ -114,6 +114,10 @@ export default function ApplyScreen() {
   }, [id, type, workerProfile, workerTravelRadiusKm]);
 
   useEffect(() => {
+    setCoverMessage(workerProfile?.default_cover_message ?? '');
+  }, [workerProfile?.default_cover_message]);
+
+  useEffect(() => {
     if (!isProfileComplete) {
       Alert.alert('Complete your profile', 'Finish setup before applying.', [
         { text: 'OK', onPress: () => router.replace(WORKER_SETUP_BASICS) },
@@ -195,9 +199,17 @@ export default function ApplyScreen() {
           <Text style={styles.cardMeta}>
             {workerProfile ? formatWorkerEducation(workerProfile) : ''}
           </Text>
+          {workerProfile?.software_used && workerProfile.software_used.length > 0 ? (
+            <Text style={styles.cardMeta}>Software: {workerProfile.software_used.join(', ')}</Text>
+          ) : null}
+          {workerProfile?.practice_types && workerProfile.practice_types.length > 0 ? (
+            <Text style={styles.cardMeta}>
+              Specialties: {workerProfile.practice_types.map(getSpecialtyLabel).join(', ')}
+            </Text>
+          ) : null}
           {cityLine ? <Text style={styles.cardMeta}>{cityLine}</Text> : null}
-          <Pressable onPress={() => router.push(WORKER_SETUP_BASICS)}>
-            <Text style={styles.editLink}>Edit profile</Text>
+          <Pressable onPress={() => router.push(WORKER_SETUP_APPLICATION)}>
+            <Text style={styles.editLink}>Edit application kit</Text>
           </Pressable>
         </View>
 

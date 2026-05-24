@@ -89,11 +89,10 @@ export default function WorkerSkillsScreen() {
         </View>
       }>
       <AuthScreenHeader
-        title="Skills & preferences"
+        title="Professional background · Skills & preferences"
         subtitle="Help clinics understand your fit."
         onBack={() => router.back()}
       />
-      <Text style={styles.step}>Step 3 of 6</Text>
       <View style={styles.form}>
         <View style={styles.section}>
           <Text style={styles.label}>Software familiarity</Text>

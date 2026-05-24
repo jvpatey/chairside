@@ -1,7 +1,8 @@
-import { listClinicApplications, updateApplicationStatus, type ClinicApplication } from '@chairside/api';
+import { getWorkerResumeSignedUrl, listClinicApplications, updateApplicationStatus, type ClinicApplication } from '@chairside/api';
 import { calculateMatchScore } from '@chairside/core';
+import { getSpecialtyLabel } from '@chairside/config';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { Screen } from '@/components/ui/Screen';
@@ -47,7 +48,25 @@ function ApplicationCard({
       gap: spacing.sm,
     },
     action: { flex: 1 },
+    resumeLink: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   }));
+
+  const handleViewResume = async () => {
+    if (!application.resume_storage_path) return;
+    try {
+      const url = await getWorkerResumeSignedUrl(application.resume_storage_path);
+      if (!url) {
+        Alert.alert('Resume unavailable', 'Could not open this resume.');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert(
+        'Could not open resume',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  };
 
   return (
     <View style={styles.card}>
@@ -69,8 +88,21 @@ function ApplicationCard({
       {application.role_type ? (
         <Text style={styles.meta}>{application.role_type}</Text>
       ) : null}
+      {(application.software_used ?? []).length > 0 ? (
+        <Text style={styles.meta}>Software: {(application.software_used ?? []).join(', ')}</Text>
+      ) : null}
+      {(application.practice_types ?? []).length > 0 ? (
+        <Text style={styles.meta}>
+          Specialties: {(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
+        </Text>
+      ) : null}
       {application.cover_message ? (
         <Text style={styles.meta}>{application.cover_message}</Text>
+      ) : null}
+      {application.resume_storage_path ? (
+        <Pressable onPress={() => void handleViewResume()}>
+          <Text style={styles.resumeLink}>View resume</Text>
+        </Pressable>
       ) : null}
       {application.status === 'applied' ? (
         <View style={styles.actions}>

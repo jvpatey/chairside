@@ -82,6 +82,9 @@ export type ApplicationRow = {
   education: string | null;
   role_type: string | null;
   license_type: string | null;
+  resume_storage_path: string | null;
+  software_used: string[];
+  practice_types: string[];
   created_at: string;
   updated_at: string;
 };
@@ -112,6 +115,10 @@ export type WorkerProfileRow = {
   short_notice_available: boolean;
   fill_in_notification_mode: string;
   expo_push_token: string | null;
+  resume_storage_path: string | null;
+  resume_file_name: string | null;
+  resume_uploaded_at: string | null;
+  default_cover_message: string | null;
   setup_completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -221,6 +228,10 @@ export type Database = {
           short_notice_available?: boolean;
           fill_in_notification_mode?: string;
           expo_push_token?: string | null;
+          resume_storage_path?: string | null;
+          resume_file_name?: string | null;
+          resume_uploaded_at?: string | null;
+          default_cover_message?: string | null;
           setup_completed_at?: string | null;
           created_at?: string;
           updated_at?: string;

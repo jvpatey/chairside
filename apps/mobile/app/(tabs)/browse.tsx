@@ -1,22 +1,17 @@
-import { listLiveJobPosts, listLiveShiftPosts, type LiveJobPost, type LiveShiftPost } from '@chairside/api';
+import { listLiveJobPosts, type LiveJobPost } from '@chairside/api';
 import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { router } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { PostingsTabBar, type PostingsTab } from '@/components/clinic/PostingsTabBar';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
-import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { Screen } from '@/components/ui/Screen';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { computeListingMatchScore } from '@/lib/workerMatch';
-import {
-  getWorkerJobDetailRoute,
-  getWorkerShiftDetailRoute,
-} from '@/lib/routing';
+import { getWorkerJobDetailRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type RoleTypeFilter = 'all' | string;
@@ -59,30 +54,18 @@ function BrowseEmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.g
 
 export default function BrowseScreen() {
   const { workerProfile } = useWorkerProfile();
-  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const province = workerProfile?.province ?? 'NS';
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
-  const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
-  const [selectedTab, setSelectedTab] = useState<PostingsTab>('roles');
   const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (tab === 'fill-ins') setSelectedTab('fill-ins');
-  }, [tab]);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [jobRows, shiftRows] = await Promise.all([
-        listLiveJobPosts(province),
-        listLiveShiftPosts(province),
-      ]);
+      const jobRows = await listLiveJobPosts(province);
       setJobs(jobRows);
-      setShifts(shiftRows);
     } catch {
       setJobs([]);
-      setShifts([]);
     } finally {
       setIsLoading(false);
     }
@@ -95,11 +78,6 @@ export default function BrowseScreen() {
     return jobs.filter((job) => job.role_type === roleTypeFilter);
   }, [jobs, roleTypeFilter]);
 
-  const filteredShifts = useMemo(() => {
-    if (roleTypeFilter === 'all') return shifts;
-    return shifts.filter((shift) => shift.role_type === roleTypeFilter);
-  }, [shifts, roleTypeFilter]);
-
   const roleFilterOptions = [{ value: 'all', label: 'All roles' }, ...ROLE_TYPE_OPTIONS];
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -109,14 +87,8 @@ export default function BrowseScreen() {
   }));
 
   return (
-    <Screen title="Browse" subtitle={`Live roles and fill-ins in ${province}.`}>
+    <Screen title="Browse" subtitle="Open roles at clinics in your province.">
       <View style={styles.wrap}>
-        <PostingsTabBar
-          selected={selectedTab}
-          roleCount={filteredJobs.length}
-          fillInCount={filteredShifts.length}
-          onChange={setSelectedTab}
-        />
         <View style={styles.filters}>
           <ChipSelector
             options={roleFilterOptions}
@@ -125,47 +97,24 @@ export default function BrowseScreen() {
           />
         </View>
 
-        {selectedTab === 'roles' ? (
-          filteredJobs.length === 0 && !isLoading ? (
-            <BrowseEmptyState
-              icon="briefcase-outline"
-              title="No open roles"
-              body="Check back soon for new opportunities in your province."
-            />
-          ) : (
-            <View style={styles.list}>
-              {filteredJobs.map((job) => (
-                <RoleListingCard
-                  key={job.id}
-                  job={job}
-                  matchScore={computeListingMatchScore(workerProfile, job)}
-                  onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
-                />
-              ))}
-            </View>
-          )
-        ) : null}
-
-        {selectedTab === 'fill-ins' ? (
-          filteredShifts.length === 0 && !isLoading ? (
-            <BrowseEmptyState
-              icon="calendar-outline"
-              title="No fill-in shifts"
-              body="Urgent shifts will appear here when clinics post them."
-            />
-          ) : (
-            <View style={styles.list}>
-              {filteredShifts.map((shift) => (
-                <FillInListingCard
-                  key={shift.id}
-                  shift={shift}
-                  matchScore={computeListingMatchScore(workerProfile, shift)}
-                  onPress={() => router.push(getWorkerShiftDetailRoute(shift.id))}
-                />
-              ))}
-            </View>
-          )
-        ) : null}
+        {filteredJobs.length === 0 && !isLoading ? (
+          <BrowseEmptyState
+            icon="briefcase-outline"
+            title="No open roles"
+            body="Check back soon for new opportunities in your province."
+          />
+        ) : (
+          <View style={styles.list}>
+            {filteredJobs.map((job) => (
+              <RoleListingCard
+                key={job.id}
+                job={job}
+                matchScore={computeListingMatchScore(workerProfile, job)}
+                onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
+              />
+            ))}
+          </View>
+        )}
       </View>
     </Screen>
   );

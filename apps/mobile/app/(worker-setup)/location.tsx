@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { WORKER_SETUP_AVAILABILITY } from '@/lib/routing';
+import { WORKER_SETUP_APPLICATION } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -84,7 +84,7 @@ export default function WorkerLocationScreen() {
         longitude: address.longitude,
         bio: bio.trim() || null,
       });
-      router.push(WORKER_SETUP_AVAILABILITY);
+      router.push(WORKER_SETUP_APPLICATION);
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -109,11 +109,10 @@ export default function WorkerLocationScreen() {
         </View>
       }>
       <AuthScreenHeader
-        title="Location & bio"
+        title="Professional background · Location & bio"
         subtitle="Your province determines which roles you can browse."
         onBack={() => router.back()}
       />
-      <Text style={styles.step}>Step 4 of 6</Text>
       <View style={styles.form}>
         <AddressAutocomplete value={address} onChange={setAddress} />
         <AuthField

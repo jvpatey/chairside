@@ -1,13 +1,12 @@
 import { completeWorkerSetup, getMissingWorkerProfileFields } from '@chairside/api';
 import {
   formatWorkerEducation,
-  getFillInNotificationModeLabel,
   getProvinceLabel,
   getRoleTypeLabel,
   getTravelRadiusRangeLabel,
 } from '@chairside/config';
-import { router } from 'expo-router';
-import { WORKER_HOME } from '@/lib/routing';
+import { Redirect, router } from 'expo-router';
+import { WORKER_HOME, WORKER_PROFILE } from '@/lib/routing';
 import { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -57,8 +56,11 @@ export default function WorkerReviewScreen() {
       padding: spacing.lg,
     },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
   }));
+
+  if (isEditing) {
+    return <Redirect href={WORKER_PROFILE} />;
+  }
 
   const handleFinish = async () => {
     if (!user?.id) return;
@@ -71,14 +73,12 @@ export default function WorkerReviewScreen() {
 
     setIsSubmitting(true);
     try {
-      if (!isEditing) {
-        await completeWorkerSetup(user.id);
-      }
+      await completeWorkerSetup(user.id);
       await refreshWorkerProfile();
       router.replace(WORKER_HOME);
     } catch (error) {
       Alert.alert(
-        isEditing ? 'Could not save changes' : 'Could not finish setup',
+        'Could not finish setup',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -97,30 +97,17 @@ export default function WorkerReviewScreen() {
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={
-              isSubmitting
-                ? isEditing
-                  ? 'Saving…'
-                  : 'Finishing…'
-                : isEditing
-                  ? 'Save changes'
-                  : 'Finish setup'
-            }
+            label={isSubmitting ? 'Finishing…' : 'Finish setup'}
             disabled={isSubmitting}
             onPress={handleFinish}
           />
         </View>
       }>
       <AuthScreenHeader
-        title={isEditing ? 'Review changes' : 'Review profile'}
-        subtitle={
-          isEditing
-            ? 'Confirm your updated profile details.'
-            : 'Confirm your details before browsing roles.'
-        }
+        title="Review profile"
+        subtitle="Confirm your professional background before browsing roles."
         onBack={() => router.back()}
       />
-      {!isEditing ? <Text style={styles.step}>Step 6 of 6</Text> : null}
       <View style={styles.card}>
         <ReviewRow
           label="Role"
@@ -142,14 +129,6 @@ export default function WorkerReviewScreen() {
         <ReviewRow
           label="Travel distance"
           value={getTravelRadiusRangeLabel(workerProfile?.travel_radius_range)}
-        />
-        <ReviewRow
-          label="Fill-in alerts"
-          value={
-            workerProfile?.short_notice_available
-              ? getFillInNotificationModeLabel(workerProfile.fill_in_notification_mode)
-              : 'Off'
-          }
         />
       </View>
     </OnboardingShell>

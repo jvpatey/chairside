@@ -1,4 +1,4 @@
-import { listWorkerApplications, type WorkerApplication } from '@chairside/api';
+import { listWorkerJobApplications, type WorkerApplication } from '@chairside/api';
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -29,9 +29,6 @@ function WorkerApplicationCard({ application }: { application: WorkerApplication
         {application.clinic_name}
         {application.clinic_city ? ` · ${application.clinic_city}` : ''}
       </Text>
-      <Text style={styles.meta}>
-        {application.post_type === 'job' ? 'Role application' : 'Fill-in application'}
-      </Text>
       <Text style={styles.status}>{application.status}</Text>
       {application.match_score != null ? (
         <Text style={styles.meta}>Match score: {application.match_score}%</Text>
@@ -56,7 +53,7 @@ export default function WorkerApplicationsScreen() {
     }
 
     try {
-      const rows = await listWorkerApplications(user.id);
+      const rows = await listWorkerJobApplications(user.id);
       setApplications(rows);
     } catch (error) {
       setApplications([]);
@@ -70,11 +67,9 @@ export default function WorkerApplicationsScreen() {
   useRefreshOnFocus(load);
 
   return (
-    <Screen title="Applications" subtitle="Track your role and fill-in applications.">
+    <Screen title="Applications" subtitle="Roles you've applied to — track status here.">
       {applications.length === 0 ? (
-        <Text style={styles.empty}>
-          No applications yet. Browse roles and fill-ins to get started.
-        </Text>
+        <Text style={styles.empty}>No role applications yet. Browse open roles to get started.</Text>
       ) : (
         <View style={styles.list}>
           {applications.map((application) => (

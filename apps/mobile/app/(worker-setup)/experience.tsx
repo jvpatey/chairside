@@ -115,11 +115,10 @@ export default function WorkerExperienceScreen() {
         </View>
       }>
       <AuthScreenHeader
-        title="Experience & education"
+        title="Professional background · Experience & education"
         subtitle="Clinics will receive this with every application."
         onBack={() => router.back()}
       />
-      <Text style={styles.step}>Step 2 of 6</Text>
       <View style={styles.form}>
         <AuthField
           label="Years of experience"

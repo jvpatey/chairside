@@ -82,11 +82,10 @@ export default function WorkerBasicsScreen() {
         </View>
       }>
       <AuthScreenHeader
-        title="Your basics"
+        title="Professional background · Basics"
         subtitle="Tell clinics who you are and what role you are qualified for."
         onBack={() => router.replace(WORKER_HOME)}
       />
-      <Text style={styles.step}>Step 1 of 6</Text>
       <View style={styles.form}>
         <AuthField
           label="Full name"

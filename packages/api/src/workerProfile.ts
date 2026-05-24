@@ -165,6 +165,16 @@ export async function upsertWorkerProfile(
   if (partial.setup_completed_at !== undefined) {
     payload.setup_completed_at = partial.setup_completed_at;
   }
+  if (partial.resume_storage_path !== undefined) {
+    payload.resume_storage_path = partial.resume_storage_path;
+  }
+  if (partial.resume_file_name !== undefined) payload.resume_file_name = partial.resume_file_name;
+  if (partial.resume_uploaded_at !== undefined) {
+    payload.resume_uploaded_at = partial.resume_uploaded_at;
+  }
+  if (partial.default_cover_message !== undefined) {
+    payload.default_cover_message = partial.default_cover_message;
+  }
 
   const { data, error } = await supabase
     .from('worker_profiles')
@@ -179,6 +189,14 @@ export async function upsertWorkerProfile(
 export function getWorkerEducationSummary(profile: WorkerProfile | null): string {
   if (!profile) return '';
   return formatWorkerEducation(profile);
+}
+
+export function isApplicationPackageReady(profile: WorkerProfile | null): boolean {
+  return isWorkerProfileComplete(profile);
+}
+
+export function getApplicationPackageMissingItems(profile: WorkerProfile | null): string[] {
+  return getMissingWorkerProfileFields(profile);
 }
 
 export async function completeWorkerSetup(userId: string): Promise<WorkerProfile> {

@@ -65,6 +65,9 @@ export {
   getWorkerProfile,
   getWorkerProfileForClinic,
   isWorkerProfileComplete,
+  isApplicationPackageReady,
+  getApplicationPackageMissingItems,
+  getWorkerEducationSummary,
   listAvailabilityBlocks,
   upsertAvailabilityBlocks,
   upsertWorkerProfile,
@@ -75,11 +78,19 @@ export {
   type WorkerProfileUpdate,
 } from './workerProfile';
 export {
+  deleteWorkerResume,
+  getWorkerResumeSignedUrl,
+  getWorkerResumeStoragePath,
+  uploadWorkerResume,
+} from './workerResume';
+export {
   createApplication,
   hasAppliedToJob,
   hasAppliedToShift,
   listClinicApplications,
   listWorkerApplications,
+  listWorkerJobApplications,
+  listWorkerShiftApplications,
   updateApplicationStatus,
   type Application,
   type ApplicationStatus,

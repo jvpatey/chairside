@@ -1,10 +1,13 @@
-import { getMissingWorkerProfileFields } from '@chairside/api';
+import {
+  getMissingWorkerProfileFields,
+  isWorkerProfileComplete,
+} from '@chairside/api';
+import type { WorkerProfile } from '@chairside/api';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { WORKER_SETUP_BASICS } from '@/lib/routing';
-import type { WorkerProfile } from '@chairside/api';
 
 export function guardApply(
   workerProfile: WorkerProfile | null,
@@ -27,4 +30,23 @@ export function guardApply(
       { text: 'Continue setup', onPress: () => router.push(WORKER_SETUP_BASICS) },
     ],
   );
+}
+
+export function guardQuickApply(workerProfile: WorkerProfile | null, _kitRoute: Href) {
+  if (isWorkerProfileComplete(workerProfile)) {
+    return true;
+  }
+
+  const missing = getMissingWorkerProfileFields(workerProfile);
+  Alert.alert(
+    'Complete your background',
+    missing.length > 0
+      ? `Add the following before applying: ${missing.join(', ')}`
+      : 'Finish your professional background to apply.',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Add background', onPress: () => router.push(WORKER_SETUP_BASICS) },
+    ],
+  );
+  return false;
 }

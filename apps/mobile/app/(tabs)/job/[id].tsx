@@ -1,4 +1,9 @@
-import { getLiveJobPost, hasAppliedToJob, type LiveJobPost } from '@chairside/api';
+import {
+  createApplication,
+  getLiveJobPost,
+  hasAppliedToJob,
+  type LiveJobPost,
+} from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -10,18 +15,25 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getApplyRoute } from '@/lib/routing';
-import { guardApply } from '@/lib/workerGuard';
+import {
+  WORKER_APPLICATIONS,
+  WORKER_SETUP_APPLICATION,
+  getApplyRoute,
+} from '@/lib/routing';
+import { guardQuickApply } from '@/lib/workerGuard';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerJobDetailScreen() {
   const { user } = useAuth();
-  const { workerProfile, isProfileComplete } = useWorkerProfile();
+  const { workerProfile, isProfileComplete, refreshWorkerProfile } = useWorkerProfile();
   const { id } = useLocalSearchParams<{ id: string }>();
   const jobId = typeof id === 'string' ? id : '';
   const [job, setJob] = useState<LiveJobPost | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canQuickApply = isProfileComplete;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: { gap: spacing.lg },
@@ -42,6 +54,7 @@ export default function WorkerJobDetailScreen() {
     },
     clinicName: { ...typography.body, fontWeight: '600' },
     clinicMeta: typography.subtitle,
+    footer: { gap: spacing.sm },
   }));
 
   const loadJob = useCallback(async () => {
@@ -78,6 +91,36 @@ export default function WorkerJobDetailScreen() {
 
   useRefreshOnFocus(loadJob);
 
+  const handleQuickApply = async () => {
+    if (!user?.id || !job) return;
+
+    if (!canQuickApply) {
+      guardQuickApply(workerProfile, WORKER_SETUP_APPLICATION);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createApplication(user.id, {
+        jobPostId: job.id,
+        coverMessage: workerProfile?.default_cover_message ?? undefined,
+      });
+      await refreshWorkerProfile();
+      setHasApplied(true);
+      Alert.alert('Application sent', 'Your application kit was submitted to the clinic.', [
+        { text: 'View applications', onPress: () => router.replace(WORKER_APPLICATIONS) },
+        { text: 'OK', style: 'cancel' },
+      ]);
+    } catch (error) {
+      Alert.alert(
+        'Application failed',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoading || !job) {
     return (
       <OnboardingShell>
@@ -95,13 +138,23 @@ export default function WorkerJobDetailScreen() {
   return (
     <OnboardingShell
       footer={
-        <OnboardingButton
-          label={hasApplied ? 'Applied' : 'Apply for this role'}
-          disabled={hasApplied}
-          onPress={() =>
-            guardApply(workerProfile, isProfileComplete, getApplyRoute('job', job.id))
-          }
-        />
+        <View style={styles.footer}>
+          <OnboardingButton
+            label={
+              hasApplied ? 'Applied' : isSubmitting ? 'Applying…' : 'Quick apply'
+            }
+            disabled={hasApplied || isSubmitting}
+            onPress={handleQuickApply}
+          />
+          {!hasApplied ? (
+            <OnboardingButton
+              label="Apply with note"
+              variant="secondary"
+              disabled={isSubmitting}
+              onPress={() => router.push(getApplyRoute('job', job.id))}
+            />
+          ) : null}
+        </View>
       }>
       <AuthScreenHeader title="Role details" subtitle={job.title} onBack={() => router.back()} />
       <View style={styles.content}>

@@ -19,6 +19,9 @@ export type Application = {
   education: string | null;
   role_type: string | null;
   license_type: string | null;
+  resume_storage_path: string | null;
+  software_used: string[];
+  practice_types: string[];
   created_at: string;
   updated_at: string;
 };
@@ -188,6 +191,16 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   }
 
   return applications;
+}
+
+export async function listWorkerJobApplications(workerId: string): Promise<WorkerApplication[]> {
+  const applications = await listWorkerApplications(workerId);
+  return applications.filter((application) => application.post_type === 'job');
+}
+
+export async function listWorkerShiftApplications(workerId: string): Promise<WorkerApplication[]> {
+  const applications = await listWorkerApplications(workerId);
+  return applications.filter((application) => application.post_type === 'shift');
 }
 
 export async function createApplication(

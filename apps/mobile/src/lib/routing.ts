@@ -21,6 +21,9 @@ export const WORKER_SETUP_EXPERIENCE: Href = '/(worker-setup)/experience' as Hre
 export const WORKER_SETUP_SKILLS: Href = '/(worker-setup)/skills' as Href;
 export const WORKER_SETUP_LOCATION: Href = '/(worker-setup)/location' as Href;
 export const WORKER_SETUP_AVAILABILITY: Href = '/(worker-setup)/availability' as Href;
+export const WORKER_SETUP_AVAILABILITY_SCHEDULE: Href =
+  '/(worker-setup)/availability-schedule' as Href;
+export const WORKER_SETUP_APPLICATION: Href = '/(worker-setup)/application' as Href;
 export const WORKER_SETUP_REVIEW: Href = '/(worker-setup)/review' as Href;
 export const CLINIC_POST_JOB: Href = '/(clinic-tabs)/post-job' as Href;
 export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;
@@ -30,6 +33,7 @@ export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const WORKER_BROWSE: Href = '/(tabs)/browse' as Href;
 export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
+export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_PROFILE: Href = '/(tabs)/profile' as Href;
 
 export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
@@ -41,7 +45,7 @@ export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
 
 export function getWorkerBrowseRoute(tab?: WorkerBrowseTabParam): Href {
   if (tab === 'fill-ins') {
-    return { pathname: '/(tabs)/browse', params: { tab: 'fill-ins' } } as Href;
+    return WORKER_FILLINS;
   }
   return WORKER_BROWSE;
 }
