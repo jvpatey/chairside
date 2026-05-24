@@ -19,21 +19,25 @@ export async function resolveAuthProfile(userId: string) {
   if (profile?.role) return profile;
 
   const supabase = getSupabaseClient();
-  const { data: workerProfile } = await supabase
+  const { data: workerProfile, error: workerError } = await supabase
     .from('worker_profiles')
     .select('id')
     .eq('id', userId)
     .maybeSingle();
 
+  if (workerError) throw workerError;
+
   if (workerProfile) {
     return setProfileRole(userId, 'worker');
   }
 
-  const { data: clinicProfile } = await supabase
+  const { data: clinicProfile, error: clinicError } = await supabase
     .from('clinic_profiles')
     .select('id')
     .eq('id', userId)
     .maybeSingle();
+
+  if (clinicError) throw clinicError;
 
   if (clinicProfile) {
     return setProfileRole(userId, 'clinic');

@@ -261,7 +261,41 @@ export async function upsertAvailabilityBlocks(
 const CLINIC_WORKER_PROFILE_COLUMNS =
   'id, role_type, years_of_experience, education, education_graduation_year, education_degree_type, education_field, education_institution, software_used, practice_types, preferred_employment_types, city, province, travel_radius_km, travel_radius_range, bio, short_notice_available, fill_in_notification_mode, resume_storage_path, resume_file_name, resume_uploaded_at, photo_storage_path, photo_uploaded_at, default_cover_message, setup_completed_at, created_at, updated_at';
 
-export async function getWorkerProfileForClinic(workerId: string): Promise<WorkerProfile | null> {
+/** Worker profile fields exposed to clinics (excludes address, phone, and notification prefs). */
+export type ClinicWorkerProfile = Pick<
+  WorkerProfile,
+  | 'id'
+  | 'role_type'
+  | 'years_of_experience'
+  | 'education'
+  | 'education_graduation_year'
+  | 'education_degree_type'
+  | 'education_field'
+  | 'education_institution'
+  | 'software_used'
+  | 'practice_types'
+  | 'preferred_employment_types'
+  | 'city'
+  | 'province'
+  | 'travel_radius_km'
+  | 'travel_radius_range'
+  | 'bio'
+  | 'short_notice_available'
+  | 'fill_in_notification_mode'
+  | 'resume_storage_path'
+  | 'resume_file_name'
+  | 'resume_uploaded_at'
+  | 'photo_storage_path'
+  | 'photo_uploaded_at'
+  | 'default_cover_message'
+  | 'setup_completed_at'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+export async function getWorkerProfileForClinic(
+  workerId: string,
+): Promise<ClinicWorkerProfile | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('worker_profiles')
@@ -270,5 +304,5 @@ export async function getWorkerProfileForClinic(workerId: string): Promise<Worke
     .maybeSingle();
 
   if (error) throw error;
-  return data as WorkerProfile | null;
+  return data as ClinicWorkerProfile | null;
 }

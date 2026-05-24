@@ -78,6 +78,7 @@ export {
   upsertWorkerProfile,
   type AvailabilityBlock,
   type AvailabilityBlockInput,
+  type ClinicWorkerProfile,
   type FillInNotificationMode,
   type WorkerProfile,
   type WorkerProfileUpdate,

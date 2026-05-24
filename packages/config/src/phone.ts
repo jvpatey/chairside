@@ -11,6 +11,7 @@ export function normalizePhoneToE164(input: string | null | undefined): string |
 /** Store digits only (10-digit NANP) from formatted display input. */
 export function normalizePhoneForStorage(input: string | null | undefined): string | null {
   if (!input?.trim()) return null;
-  const digits = input.replace(/\D/g, '').slice(0, 10);
+  let digits = input.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
   return digits.length === 10 ? digits : null;
 }
