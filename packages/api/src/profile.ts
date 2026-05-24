@@ -30,3 +30,17 @@ export async function setProfileRole(userId: string, role: UserRole) {
   if (error) throw error;
   return data;
 }
+
+export async function updateProfileDisplayName(userId: string, displayName: string) {
+  const supabase = getSupabaseClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ display_name: displayName.trim(), updated_at: now })
+    .eq('id', userId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}

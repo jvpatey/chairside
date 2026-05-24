@@ -1,11 +1,15 @@
 import { listClinicApplications, updateApplicationStatus, type ClinicApplication } from '@chairside/api';
 import { calculateMatchScore } from '@chairside/core';
+import { getSpecialtyLabel } from '@chairside/config';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
+import { openResumePreview } from '@/lib/openResumePreview';
 import { useThemedStyles } from '@/theme';
 
 function ApplicationCard({
@@ -17,8 +21,10 @@ function ApplicationCard({
   onShortlist: () => void;
   onReject: () => void;
 }) {
+  const photoUri = useWorkerPhotoUri(application.worker_photo_storage_path);
   const breakdown = calculateMatchScore({
-    postRoleType: application.role_type,
+    postRoleType: application.post_role_type,
+    workerRoleType: application.role_type,
   });
   const score = application.match_score ?? breakdown.overall;
 
@@ -35,6 +41,17 @@ function ApplicationCard({
       ...typography.body,
       fontWeight: '600',
     },
+    applicantName: {
+      ...typography.body,
+      fontWeight: '700',
+      fontSize: 17,
+    },
+    applicantHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    applicantHeaderText: { flex: 1, gap: 2 },
     meta: typography.subtitle,
     score: {
       fontSize: 14,
@@ -46,18 +63,74 @@ function ApplicationCard({
       gap: spacing.sm,
     },
     action: { flex: 1 },
+    resumeLink: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   }));
+
+  const handleViewResume = async () => {
+    if (!application.resume_storage_path) return;
+    try {
+      await openResumePreview(
+        application.resume_storage_path,
+        `${application.post_title}-resume.pdf`,
+      );
+    } catch (error) {
+      Alert.alert(
+        'Could not open resume',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  };
 
   return (
     <View style={styles.card}>
+      <View style={styles.applicantHeader}>
+        <WorkerProfileAvatar
+          displayName={application.worker_display_name}
+          photoUri={photoUri}
+          size={44}
+        />
+        <View style={styles.applicantHeaderText}>
+          {application.worker_display_name ? (
+            <Text style={styles.applicantName}>{application.worker_display_name}</Text>
+          ) : null}
+          {application.worker_address ? (
+            <Text style={styles.meta}>{application.worker_address}</Text>
+          ) : null}
+        </View>
+      </View>
       <Text style={styles.title}>{application.post_title}</Text>
       <Text style={styles.meta}>
         {application.post_type === 'job' ? 'Role application' : 'Fill-in application'} ·{' '}
         {application.status}
       </Text>
       <Text style={styles.score}>Match score: {score}%</Text>
+      {application.years_of_experience != null || application.education ? (
+        <Text style={styles.meta}>
+          {application.years_of_experience != null
+            ? `${application.years_of_experience} yrs`
+            : ''}
+          {application.years_of_experience != null && application.education ? ' · ' : ''}
+          {application.education ?? ''}
+        </Text>
+      ) : null}
+      {application.role_type ? (
+        <Text style={styles.meta}>{application.role_type}</Text>
+      ) : null}
+      {(application.software_used ?? []).length > 0 ? (
+        <Text style={styles.meta}>Software: {(application.software_used ?? []).join(', ')}</Text>
+      ) : null}
+      {(application.practice_types ?? []).length > 0 ? (
+        <Text style={styles.meta}>
+          Specialties: {(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
+        </Text>
+      ) : null}
       {application.cover_message ? (
         <Text style={styles.meta}>{application.cover_message}</Text>
+      ) : null}
+      {application.resume_storage_path ? (
+        <Pressable onPress={() => void handleViewResume()}>
+          <Text style={styles.resumeLink}>View resume</Text>
+        </Pressable>
       ) : null}
       {application.status === 'applied' ? (
         <View style={styles.actions}>

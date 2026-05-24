@@ -41,6 +41,22 @@ export const ROLE_TYPE_FILTER_OPTIONS: { value: RoleTypeFilter; label: string }[
   })),
 ];
 
+const COMPACT_ROLE_TYPE_LABELS: Partial<Record<RoleType, string>> = {
+  hygienist: 'Hygienist',
+  assistant: 'Assistant',
+  admin: 'Admin',
+  office_manager: 'Manager',
+  treatment_coordinator: 'Coordinator',
+};
+
+export const COMPACT_ROLE_TYPE_FILTER_OPTIONS: { value: RoleTypeFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  ...ROLE_TYPE_OPTIONS.map((option) => ({
+    value: option.value as RoleTypeFilter,
+    label: COMPACT_ROLE_TYPE_LABELS[option.value] ?? option.label,
+  })),
+];
+
 function matchesRoleTypeFilter<T extends { role_type: RoleType }>(
   item: T,
   roleTypeFilter: RoleTypeFilter,

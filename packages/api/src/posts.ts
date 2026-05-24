@@ -411,3 +411,196 @@ export async function getClinicDashboardCounts(clinicId: string): Promise<Clinic
     newApplications,
   };
 }
+
+export type ClinicSummary = {
+  clinic_id: string;
+  clinic_name: string;
+  city: string | null;
+  province: string;
+  specialty: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+export type LiveJobPost = JobPost & {
+  clinic: ClinicSummary;
+};
+
+export type LiveShiftPost = ShiftPost & {
+  clinic: ClinicSummary;
+};
+
+export type WorkerDashboardCounts = {
+  openRolesInProvince: number;
+  openFillInsInProvince: number;
+  pendingApplications: number;
+};
+
+async function listClinicSummariesInProvince(province: string): Promise<Map<string, ClinicSummary>> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('clinic_profiles')
+    .select('id, clinic_name, city, province, specialty, latitude, longitude')
+    .eq('province', province);
+
+  if (error) throw error;
+
+  return new Map(
+    (data ?? []).map((row) => [
+      row.id,
+      {
+        clinic_id: row.id,
+        clinic_name: row.clinic_name,
+        city: row.city,
+        province: row.province,
+        specialty: row.specialty,
+        latitude: row.latitude,
+        longitude: row.longitude,
+      },
+    ]),
+  );
+}
+
+function attachClinic<T extends { clinic_id: string }>(
+  posts: T[],
+  clinicMap: Map<string, ClinicSummary>,
+): Array<T & { clinic: ClinicSummary }> {
+  return posts
+    .map((post) => {
+      const clinic = clinicMap.get(post.clinic_id);
+      if (!clinic) return null;
+      return { ...post, clinic };
+    })
+    .filter((post): post is T & { clinic: ClinicSummary } => post != null);
+}
+
+export async function listLiveJobPosts(province: string): Promise<LiveJobPost[]> {
+  const supabase = getSupabaseClient();
+  const clinicMap = await listClinicSummariesInProvince(province);
+  const clinicIds = [...clinicMap.keys()];
+  if (clinicIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('job_posts')
+    .select('*')
+    .eq('status', 'live')
+    .in('clinic_id', clinicIds)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return attachClinic((data ?? []) as JobPost[], clinicMap);
+}
+
+export async function listLiveShiftPosts(province: string): Promise<LiveShiftPost[]> {
+  const supabase = getSupabaseClient();
+  const clinicMap = await listClinicSummariesInProvince(province);
+  const clinicIds = [...clinicMap.keys()];
+  if (clinicIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('shift_posts')
+    .select('*')
+    .eq('status', 'live')
+    .in('clinic_id', clinicIds)
+    .order('shift_date', { ascending: true });
+
+  if (error) throw error;
+  return attachClinic((data ?? []) as ShiftPost[], clinicMap);
+}
+
+export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('job_posts')
+    .select('*')
+    .eq('id', jobId)
+    .eq('status', 'live')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const { data: clinic, error: clinicError } = await supabase
+    .from('clinic_profiles')
+    .select('id, clinic_name, city, province, specialty, latitude, longitude')
+    .eq('id', data.clinic_id)
+    .maybeSingle();
+
+  if (clinicError) throw clinicError;
+  if (!clinic) return null;
+
+  return {
+    ...(data as JobPost),
+    clinic: {
+      clinic_id: clinic.id,
+      clinic_name: clinic.clinic_name,
+      city: clinic.city,
+      province: clinic.province,
+      specialty: clinic.specialty,
+      latitude: clinic.latitude,
+      longitude: clinic.longitude,
+    },
+  };
+}
+
+export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('shift_posts')
+    .select('*')
+    .eq('id', shiftId)
+    .eq('status', 'live')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const { data: clinic, error: clinicError } = await supabase
+    .from('clinic_profiles')
+    .select('id, clinic_name, city, province, specialty, latitude, longitude')
+    .eq('id', data.clinic_id)
+    .maybeSingle();
+
+  if (clinicError) throw clinicError;
+  if (!clinic) return null;
+
+  return {
+    ...(data as ShiftPost),
+    clinic: {
+      clinic_id: clinic.id,
+      clinic_name: clinic.clinic_name,
+      city: clinic.city,
+      province: clinic.province,
+      specialty: clinic.specialty,
+      latitude: clinic.latitude,
+      longitude: clinic.longitude,
+    },
+  };
+}
+
+export async function getWorkerDashboardCounts(
+  workerId: string,
+  province: string,
+): Promise<WorkerDashboardCounts> {
+  const [jobs, shifts, applicationsResult] = await Promise.all([
+    listLiveJobPosts(province),
+    listLiveShiftPosts(province),
+    getSupabaseClient()
+      .from('applications')
+      .select('id, status')
+      .eq('worker_id', workerId),
+  ]);
+
+  if (applicationsResult.error) throw applicationsResult.error;
+
+  const pendingApplications =
+    applicationsResult.data?.filter(
+      (row) => row.status === 'applied' || row.status === 'shortlisted' || row.status === 'reviewed',
+    ).length ?? 0;
+
+  return {
+    openRolesInProvince: jobs.length,
+    openFillInsInProvince: shifts.length,
+    pendingApplications,
+  };
+}

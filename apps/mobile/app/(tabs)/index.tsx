@@ -1,51 +1,134 @@
-import { Text, View } from 'react-native';
+import {
+  getWorkerDashboardCounts,
+  listLiveJobPosts,
+  listLiveShiftPosts,
+  listWorkerApplications,
+  type LiveJobPost,
+  type LiveShiftPost,
+  type WorkerApplication,
+  type WorkerDashboardCounts,
+} from '@chairside/api';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 
+import {
+  QuickActionTile,
+  WorkerDashboardHero,
+  WorkerOverviewPanel,
+  WorkerSectionHeader,
+  WorkerStatGrid,
+  type WorkerOverviewStat,
+} from '@/components/worker/WorkerCards';
+import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
 import { Screen } from '@/components/ui/Screen';
-import { APP_NAME } from '@/constants';
+import { useAuth } from '@/contexts/AuthContext';
+import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import {
+  WORKER_BROWSE,
+  WORKER_FILLINS,
+  getWorkerJobDetailRoute,
+  getWorkerShiftDetailRoute,
+} from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
-export default function HomeScreen() {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.sm,
-    },
-    badge: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.secondarySubtle,
-      borderRadius: 6,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    badgeText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.secondary,
-    },
-    cardTitle: {
-      ...typography.body,
-      fontWeight: '600',
-    },
-    cardBody: typography.subtitle,
+export default function WorkerDashboardScreen() {
+  const { user, profile } = useAuth();
+  const { workerProfile } = useWorkerProfile();
+  const { overview } = useLocalSearchParams<{ overview?: string }>();
+  const province = workerProfile?.province ?? 'NS';
+  const [counts, setCounts] = useState<WorkerDashboardCounts>({
+    openRolesInProvince: 0,
+    openFillInsInProvince: 0,
+    pendingApplications: 0,
+  });
+  const [selectedOverview, setSelectedOverview] = useState<WorkerOverviewStat>('roles');
+  const [jobs, setJobs] = useState<LiveJobPost[]>([]);
+  const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
+  const [applications, setApplications] = useState<WorkerApplication[]>([]);
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: { gap: spacing.xl },
+    row: { flexDirection: 'row', gap: spacing.sm },
   }));
 
+  const loadDashboard = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const [nextCounts, jobPosts, shiftPosts, applicationRows] = await Promise.all([
+        getWorkerDashboardCounts(user.id, province),
+        listLiveJobPosts(province),
+        listLiveShiftPosts(province),
+        listWorkerApplications(user.id),
+      ]);
+
+      setCounts(nextCounts);
+      setJobs(jobPosts);
+      setShifts(shiftPosts);
+      setApplications(applicationRows);
+    } catch {
+      setCounts({ openRolesInProvince: 0, openFillInsInProvince: 0, pendingApplications: 0 });
+      setJobs([]);
+      setShifts([]);
+      setApplications([]);
+    }
+  }, [user?.id, province]);
+
+  useRefreshOnFocus(loadDashboard);
+
+  useEffect(() => {
+    if (overview === 'roles' || overview === 'fill-ins' || overview === 'applications') {
+      setSelectedOverview(overview);
+    }
+  }, [overview]);
+
   return (
-    <Screen
-      title="Home"
-      subtitle="Your dental staffing hub for Nova Scotia.">
-      <View style={styles.card}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Nova Scotia</Text>
+    <Screen showHeader={false}>
+      <View style={styles.content}>
+        <WorkerDashboardHero displayName={profile?.display_name} province={province} />
+
+        <WorkerReadinessChecklist workerProfile={workerProfile} />
+
+        <View>
+          <WorkerSectionHeader title="Quick actions" />
+          <View style={styles.row}>
+            <QuickActionTile
+              label="Find jobs"
+              description="Open roles in your province"
+              icon="search-outline"
+              onPress={() => router.push(WORKER_BROWSE)}
+            />
+            <QuickActionTile
+              label="Find fill-ins"
+              description="Temp shifts in your province"
+              icon="calendar-outline"
+              variant="secondary"
+              onPress={() => router.push(WORKER_FILLINS)}
+            />
+          </View>
         </View>
-        <Text style={styles.cardTitle}>Welcome to {APP_NAME}</Text>
-        <Text style={styles.cardBody}>
-          Browse jobs and temp shifts, manage your profile, and stay on top of new
-          opportunities.
-        </Text>
+
+        <View>
+          <WorkerSectionHeader title="Overview" />
+          <WorkerStatGrid
+            openRoles={counts.openRolesInProvince}
+            openFillIns={counts.openFillInsInProvince}
+            pendingApplications={counts.pendingApplications}
+            selected={selectedOverview}
+            onSelect={setSelectedOverview}
+          />
+        </View>
+
+        <WorkerOverviewPanel
+          selected={selectedOverview}
+          jobs={jobs}
+          shifts={shifts}
+          applications={applications}
+          onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
+          onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
+        />
       </View>
     </Screen>
   );

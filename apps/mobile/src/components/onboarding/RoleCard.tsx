@@ -23,7 +23,7 @@ export function RoleCard({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: spacing.md,
       backgroundColor: colors.surface,
       borderRadius: 12,
@@ -56,7 +56,10 @@ export function RoleCard({
       fontWeight: '600',
       color: colors.labelPrimary,
     },
-    description: typography.subtitle,
+    description: {
+      ...typography.subtitle,
+      minHeight: typography.subtitle.lineHeight * 2,
+    },
   }));
 
   const handlePress = () => {

@@ -171,7 +171,7 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
         <>
           <AuthField
             label="Search address"
-            placeholder="Start typing your clinic address"
+            placeholder="Search for your address"
             value={query}
             onChangeText={handleQueryChange}
             autoCapitalize="words"
@@ -199,7 +199,7 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
         <>
           <AuthField
             label="Street address"
-            placeholder="123 Main Street"
+            placeholder="Street address"
             value={value.address_line1}
             onChangeText={(address_line1) =>
               onChange({ ...value, address_line1, formatted: '', latitude: null, longitude: null })
@@ -208,14 +208,14 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
           />
           <AuthField
             label="City"
-            placeholder="Halifax"
+            placeholder="City"
             value={value.city}
             onChangeText={(city) => onChange({ ...value, city, formatted: '', latitude: null, longitude: null })}
             autoCapitalize="words"
           />
           <AuthField
             label="Postal code"
-            placeholder="B3H 1A1"
+            placeholder="Postal code"
             value={value.postal_code}
             onChangeText={(postal_code) =>
               onChange({ ...value, postal_code, formatted: '', latitude: null, longitude: null })
@@ -230,7 +230,7 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
 
       <AuthField
         label="Suite or unit (optional)"
-        placeholder="Suite 200"
+        placeholder="Unit or suite (optional)"
         value={value.address_line2}
         onChangeText={(address_line2) => onChange({ ...value, address_line2 })}
         autoCapitalize="words"
