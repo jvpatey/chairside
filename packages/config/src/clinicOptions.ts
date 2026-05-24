@@ -303,3 +303,21 @@ export function formatWorkerEducation(input: {
   if (parts.length > 0) return parts.join(' · ');
   return input.education?.trim() ?? '';
 }
+
+export function formatWorkerAddress(input: {
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postal_code?: string | null;
+}): string {
+  const parts = [
+    input.address_line1?.trim(),
+    input.address_line2?.trim(),
+    input.city?.trim(),
+    input.province ? getProvinceLabel(input.province) : null,
+    input.postal_code?.trim(),
+  ].filter(Boolean);
+
+  return parts.join(', ');
+}

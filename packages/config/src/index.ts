@@ -32,6 +32,7 @@ export {
   travelRadiusRangeToMaxKm,
   getEducationDegreeTypeLabel,
   formatWorkerEducation,
+  formatWorkerAddress,
   type EducationDegreeType,
   type TravelRadiusRange,
   type ClinicSoftware,

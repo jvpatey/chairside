@@ -20,6 +20,8 @@ export type Application = {
   role_type: string | null;
   license_type: string | null;
   resume_storage_path: string | null;
+  worker_display_name: string | null;
+  worker_address: string | null;
   software_used: string[];
   practice_types: string[];
   created_at: string;

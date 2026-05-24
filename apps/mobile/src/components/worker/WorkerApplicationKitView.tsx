@@ -1,11 +1,11 @@
 import type { WorkerProfile } from '@chairside/api';
-import { isApplicationPackageReady } from '@chairside/api';
-import { Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
-import { ProfileSection } from '@/components/worker/ProfileSection';
 import { ResumeUpload } from '@/components/worker/ResumeUpload';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerApplicationKitViewProps = {
   profile: WorkerProfile | null;
@@ -16,36 +16,51 @@ export function WorkerApplicationKitView({
   profile,
   displayPreview = true,
 }: WorkerApplicationKitViewProps) {
-  const ready = isApplicationPackageReady(profile);
+  const { colors } = useTheme();
+  const [previewOpen, setPreviewOpen] = useState(false);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    badge: {
-      alignSelf: 'flex-start',
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      backgroundColor: ready ? colors.primarySubtle : colors.fillSubtle,
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    wrap: { gap: spacing.md },
+    previewToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 4,
     },
-    badgeText: {
-      fontSize: 12,
+    previewToggleText: {
+      ...typography.body,
+      fontSize: 15,
       fontWeight: '600',
-      color: ready ? colors.primary : colors.labelSecondary,
+      color: colors.labelPrimary,
     },
   }));
 
   return (
-    <ProfileSection
-      title="Application kit"
-      subtitle="What clinics receive when you apply to a role. Resume is optional.">
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>
-          {ready ? 'Ready to quick apply' : 'Complete your background to quick apply'}
-        </Text>
-      </View>
-
+    <View style={styles.wrap}>
       <ResumeUpload />
 
-      {displayPreview ? <ApplicationKitPreview profile={profile} /> : null}
-    </ProfileSection>
+      {displayPreview ? (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: previewOpen }}
+            style={styles.previewToggle}
+            onPress={() => setPreviewOpen((open) => !open)}>
+            <Text style={styles.previewToggleText}>Preview what clinics see</Text>
+            <Ionicons
+              name={previewOpen ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={colors.labelSecondary}
+            />
+          </Pressable>
+          {previewOpen ? <ApplicationKitPreview profile={profile} /> : null}
+        </>
+      ) : null}
+    </View>
   );
 }

@@ -3,7 +3,7 @@ import {
   getLiveJobPost,
   getLiveShiftPost,
 } from '@chairside/api';
-import { getRoleTypeLabel, formatWorkerEducation, getSpecialtyLabel, travelRadiusRangeToMaxKm } from '@chairside/config';
+import { getRoleTypeLabel, formatWorkerEducation, formatWorkerAddress, getSpecialtyLabel, travelRadiusRangeToMaxKm } from '@chairside/config';
 import { calculateMatchScore } from '@chairside/core';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -20,7 +20,7 @@ import { computeListingMatchScore } from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
 
 export default function ApplyScreen() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { postType, postId } = useLocalSearchParams<{ postType?: string; postId?: string }>();
   const type = postType === 'shift' ? 'shift' : 'job';
@@ -52,6 +52,7 @@ export default function ApplyScreen() {
       textTransform: 'uppercase',
       color: colors.primary,
     },
+    applicantName: { ...typography.body, fontWeight: '700', fontSize: 16 },
     hint: { ...typography.subtitle, fontSize: 13 },
     match: { fontSize: 15, fontWeight: '600', color: colors.primary },
     editLink: { color: colors.primary, fontWeight: '600' },
@@ -156,7 +157,7 @@ export default function ApplyScreen() {
     );
   }
 
-  const cityLine = [workerProfile?.city, workerProfile?.province].filter(Boolean).join(', ');
+  const addressLine = workerProfile ? formatWorkerAddress(workerProfile) : '';
 
   return (
     <OnboardingShell
@@ -188,6 +189,8 @@ export default function ApplyScreen() {
         <View style={styles.card}>
           <Text style={styles.credentialsTitle}>Application credentials</Text>
           <Text style={styles.hint}>This is what the clinic will receive with your application.</Text>
+          <Text style={styles.applicantName}>{profile?.display_name?.trim() || 'Name not set'}</Text>
+          {addressLine ? <Text style={styles.cardMeta}>{addressLine}</Text> : null}
           <Text style={styles.cardMeta}>
             {workerProfile?.role_type ? getRoleTypeLabel(workerProfile.role_type) : ''}
           </Text>
@@ -207,7 +210,6 @@ export default function ApplyScreen() {
               Specialties: {workerProfile.practice_types.map(getSpecialtyLabel).join(', ')}
             </Text>
           ) : null}
-          {cityLine ? <Text style={styles.cardMeta}>{cityLine}</Text> : null}
           <Pressable onPress={() => router.push(WORKER_SETUP_APPLICATION)}>
             <Text style={styles.editLink}>Edit application kit</Text>
           </Pressable>

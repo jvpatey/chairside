@@ -38,6 +38,11 @@ function ApplicationCard({
       ...typography.body,
       fontWeight: '600',
     },
+    applicantName: {
+      ...typography.body,
+      fontWeight: '700',
+      fontSize: 17,
+    },
     meta: typography.subtitle,
     score: {
       fontSize: 14,
@@ -69,12 +74,18 @@ function ApplicationCard({
 
   return (
     <View style={styles.card}>
+      {application.worker_display_name ? (
+        <Text style={styles.applicantName}>{application.worker_display_name}</Text>
+      ) : null}
       <Text style={styles.title}>{application.post_title}</Text>
       <Text style={styles.meta}>
         {application.post_type === 'job' ? 'Role application' : 'Fill-in application'} ·{' '}
         {application.status}
       </Text>
       <Text style={styles.score}>Match score: {score}%</Text>
+      {application.worker_address ? (
+        <Text style={styles.meta}>{application.worker_address}</Text>
+      ) : null}
       {application.years_of_experience != null || application.education ? (
         <Text style={styles.meta}>
           {application.years_of_experience != null

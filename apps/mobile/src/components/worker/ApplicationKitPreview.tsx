@@ -1,18 +1,29 @@
 import type { WorkerProfile } from '@chairside/api';
-import { formatWorkerEducation, getRoleTypeLabel, getSpecialtyLabel } from '@chairside/config';
+import {
+  formatWorkerAddress,
+  formatWorkerEducation,
+  getRoleTypeLabel,
+  getSpecialtyLabel,
+} from '@chairside/config';
 import { Text, View } from 'react-native';
 
+import { useAuth } from '@/contexts/AuthContext';
 import { useThemedStyles } from '@/theme';
 
 type ApplicationKitPreviewProps = {
   profile: WorkerProfile | null;
+  displayName?: string | null;
   showDefaultNote?: boolean;
 };
 
 export function ApplicationKitPreview({
   profile,
+  displayName: displayNameProp,
   showDefaultNote = true,
 }: ApplicationKitPreviewProps) {
+  const { profile: authProfile } = useAuth();
+  const displayName = displayNameProp ?? authProfile?.display_name;
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     preview: {
       backgroundColor: colors.surface,
@@ -28,6 +39,11 @@ export function ApplicationKitPreview({
       letterSpacing: 0.4,
       textTransform: 'uppercase',
       color: colors.primary,
+    },
+    previewName: {
+      ...typography.body,
+      fontWeight: '700',
+      fontSize: 16,
     },
     previewLine: typography.subtitle,
     empty: { ...typography.subtitle, fontStyle: 'italic' },
@@ -48,10 +64,13 @@ export function ApplicationKitPreview({
     profile.practice_types.length > 0
       ? profile.practice_types.map(getSpecialtyLabel).join(', ')
       : null;
+  const address = formatWorkerAddress(profile);
 
   return (
     <View style={styles.preview}>
       <Text style={styles.previewLabel}>Clinics will see</Text>
+      <Text style={styles.previewName}>{displayName?.trim() || 'Name not set'}</Text>
+      <Text style={styles.previewLine}>{address || 'Address not set'}</Text>
       <Text style={styles.previewLine}>
         {profile.role_type ? getRoleTypeLabel(profile.role_type) : 'Role not set'}
       </Text>

@@ -2,11 +2,10 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { AccountSessionActions } from '@/components/account/AccountSessionActions';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { WorkerAccountSection } from '@/components/worker/WorkerAccountSection';
+import { ProfileSection } from '@/components/worker/ProfileSection';
 import { WorkerApplicationKitView } from '@/components/worker/WorkerApplicationKitView';
 import { WorkerProfessionalView } from '@/components/worker/WorkerProfessionalView';
-import { ProfileSection } from '@/components/worker/ProfileSection';
+import { WorkerProfileHero } from '@/components/worker/WorkerProfileHero';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -23,39 +22,39 @@ export default function WorkerProfileScreen() {
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     content: { gap: spacing.xl },
-    actions: { gap: spacing.sm },
     accountSection: {
       borderTopWidth: 1,
       borderTopColor: colors.separator,
       paddingTop: spacing.xl,
-      gap: spacing.md,
     },
   }));
 
   if (!isWorkerProfileReady) return null;
 
   return (
-    <Screen title="Profile" subtitle="Your account, professional background, and application kit.">
+    <Screen title="Profile">
       <View style={styles.content}>
-        <WorkerAccountSection displayName={profile?.display_name} email={user?.email} />
+        <WorkerProfileHero
+          displayName={profile?.display_name}
+          email={user?.email}
+          profile={workerProfile}
+        />
 
-        <WorkerProfessionalView profile={workerProfile} />
-        <View style={styles.actions}>
-          <OnboardingButton
-            label={workerProfile ? 'Edit background' : 'Add background'}
-            variant="secondary"
-            onPress={() => router.push(WORKER_SETUP_BASICS)}
-          />
-        </View>
+        <ProfileSection
+          title="Professional background"
+          subtitle="Role, experience, location, and skills."
+          actionLabel="Edit"
+          onActionPress={() => router.push(WORKER_SETUP_BASICS)}>
+          <WorkerProfessionalView profile={workerProfile} />
+        </ProfileSection>
 
-        <WorkerApplicationKitView profile={workerProfile} />
-        <View style={styles.actions}>
-          <OnboardingButton
-            label="Edit application kit"
-            variant="secondary"
-            onPress={() => router.push(WORKER_SETUP_APPLICATION)}
-          />
-        </View>
+        <ProfileSection
+          title="Application kit"
+          subtitle="Resume and default note sent with role applications."
+          actionLabel="Edit"
+          onActionPress={() => router.push(WORKER_SETUP_APPLICATION)}>
+          <WorkerApplicationKitView profile={workerProfile} />
+        </ProfileSection>
 
         <View style={styles.accountSection}>
           <ProfileSection
