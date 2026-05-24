@@ -100,9 +100,13 @@ export {
 } from './workerPhoto';
 export {
   createApplication,
+  getJobPostApplicationCountsMap,
   hasAppliedToJob,
   hasAppliedToShift,
   listClinicApplications,
+  listClinicApplicationsForJob,
+  listJobApplicationSummaries,
+  listWorkerAppliedJobPostIds,
   listWorkerApplications,
   listWorkerJobApplications,
   listWorkerShiftApplications,
@@ -111,6 +115,7 @@ export {
   type ApplicationStatus,
   type ClinicApplication,
   type CreateApplicationInput,
+  type JobApplicationSummary,
   type WorkerApplication,
 } from './applications';
 export { getProfile, resolveAuthProfile, setProfileRole, updateProfileDisplayName } from './profile';

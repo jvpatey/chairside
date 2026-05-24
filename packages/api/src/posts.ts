@@ -600,7 +600,7 @@ export async function getWorkerDashboardCounts(
 
   const pendingApplications =
     applicationsResult.data?.filter(
-      (row) => row.status === 'applied' || row.status === 'shortlisted' || row.status === 'reviewed',
+      (row) => row.status === 'applied' || row.status === 'reviewed',
     ).length ?? 0;
 
   return {

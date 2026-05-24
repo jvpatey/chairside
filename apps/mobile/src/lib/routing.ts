@@ -98,6 +98,13 @@ export function getApplyRoute(postType: ApplyPostType, postId: string): Href {
   return { pathname: '/(tabs)/apply', params: { postType, postId } } as unknown as Href;
 }
 
+export function getClinicRoleApplicationsRoute(jobId: string): Href {
+  return {
+    pathname: '/(clinic-tabs)/role-applicants/[jobId]',
+    params: { jobId },
+  } as Href;
+}
+
 export function getEditShiftRoute(
   shiftId: string,
   returnTo: FillInReturnTarget = 'postings-fill-ins',

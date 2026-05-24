@@ -10,7 +10,7 @@ import {
   type WorkerDashboardCounts,
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import {
@@ -85,6 +85,16 @@ export default function WorkerDashboardScreen() {
     }
   }, [overview]);
 
+  const appliedJobIds = useMemo(
+    () =>
+      new Set(
+        applications
+          .filter((application) => application.post_type === 'job' && application.job_post_id)
+          .map((application) => application.job_post_id as string),
+      ),
+    [applications],
+  );
+
   return (
     <Screen showHeader={false}>
       <View style={styles.content}>
@@ -131,6 +141,7 @@ export default function WorkerDashboardScreen() {
           jobs={jobs}
           shifts={shifts}
           applications={applications}
+          appliedJobIds={appliedJobIds}
           onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
           onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
         />

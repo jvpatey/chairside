@@ -1,4 +1,4 @@
-import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
+import type { JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
 import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -280,9 +280,11 @@ type DashboardOverviewPanelProps = {
   selected: OverviewStat;
   jobs: JobPost[];
   shifts: ShiftPost[];
-  applications: ClinicApplication[];
+  jobApplicationSummaries: JobApplicationSummary[];
+  applicantCounts?: Record<string, number>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
+  onJobApplicationsPress?: (jobId: string) => void;
 };
 
 function DashboardListCard({
@@ -407,9 +409,11 @@ export function DashboardOverviewPanel({
   selected,
   jobs,
   shifts,
-  applications,
+  jobApplicationSummaries,
+  applicantCounts,
   onJobPress,
   onShiftPress,
+  onJobApplicationsPress,
 }: DashboardOverviewPanelProps) {
   const styles = useThemedStyles(({ spacing }) => ({
     list: {
@@ -432,6 +436,7 @@ export function DashboardOverviewPanel({
                 <RolePostingCard
                   key={job.id}
                   job={job}
+                  applicantCount={applicantCounts?.[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                 />
               ))}
@@ -456,18 +461,29 @@ export function DashboardOverviewPanel({
       ) : null}
 
       {selected === 'applications' ? (
-        applications.length === 0 ? (
+        jobApplicationSummaries.length === 0 ? (
           <DashboardEmptyState message="No applications yet. They will appear when workers apply to your postings." />
         ) : (
           <View style={styles.list}>
-            {applications.map((application) => (
+            {jobApplicationSummaries.map((summary) => (
               <DashboardListCard
-                key={application.id}
-                title={application.post_title}
-                subtitle={`${application.post_type === 'job' ? 'Role' : 'Fill-in'} · ${application.status}`}
+                key={summary.job_post_id}
+                title={summary.post_title}
+                subtitle={
+                  summary.applicant_count === 1
+                    ? '1 applicant'
+                    : `${summary.applicant_count} applicants`
+                }
                 meta={
-                  application.match_score != null
-                    ? `Match score: ${application.match_score}%`
+                  summary.pending_count > 0
+                    ? summary.pending_count === 1
+                      ? '1 new application'
+                      : `${summary.pending_count} new applications`
+                    : undefined
+                }
+                onPress={
+                  onJobApplicationsPress
+                    ? () => onJobApplicationsPress(summary.job_post_id)
                     : undefined
                 }
               />

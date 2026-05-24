@@ -1,11 +1,6 @@
 import { getSupabaseClient } from './client';
 
-export type ApplicationStatus =
-  | 'applied'
-  | 'reviewed'
-  | 'shortlisted'
-  | 'rejected'
-  | 'hired';
+export type ApplicationStatus = 'applied' | 'reviewed' | 'rejected' | 'hired';
 
 export type Application = {
   id: string;
@@ -46,6 +41,13 @@ export type CreateApplicationInput = {
   jobPostId?: string;
   shiftPostId?: string;
   coverMessage?: string;
+};
+
+export type JobApplicationSummary = {
+  job_post_id: string;
+  post_title: string;
+  applicant_count: number;
+  pending_count: number;
 };
 
 export async function listClinicApplications(clinicId: string): Promise<ClinicApplication[]> {
@@ -204,6 +206,91 @@ export async function listWorkerJobApplications(workerId: string): Promise<Worke
 export async function listWorkerShiftApplications(workerId: string): Promise<WorkerApplication[]> {
   const applications = await listWorkerApplications(workerId);
   return applications.filter((application) => application.post_type === 'shift');
+}
+
+export async function listWorkerAppliedJobPostIds(workerId: string): Promise<string[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .select('job_post_id')
+    .eq('worker_id', workerId)
+    .not('job_post_id', 'is', null);
+
+  if (error) throw error;
+  return (data ?? []).map((row) => row.job_post_id).filter(Boolean) as string[];
+}
+
+export async function getJobPostApplicationCountsMap(
+  clinicId: string,
+): Promise<Record<string, number>> {
+  const supabase = getSupabaseClient();
+  const { data: jobs, error: jobsError } = await supabase
+    .from('job_posts')
+    .select('id')
+    .eq('clinic_id', clinicId);
+
+  if (jobsError) throw jobsError;
+
+  const jobIds = (jobs ?? []).map((job) => job.id);
+  if (jobIds.length === 0) return {};
+
+  const { data: applications, error: applicationsError } = await supabase
+    .from('applications')
+    .select('job_post_id')
+    .in('job_post_id', jobIds);
+
+  if (applicationsError) throw applicationsError;
+
+  const counts: Record<string, number> = {};
+  for (const row of applications ?? []) {
+    if (row.job_post_id) {
+      counts[row.job_post_id] = (counts[row.job_post_id] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+export async function listJobApplicationSummaries(
+  clinicId: string,
+): Promise<JobApplicationSummary[]> {
+  const applications = await listClinicApplications(clinicId);
+  const summaries = new Map<string, JobApplicationSummary>();
+
+  for (const application of applications) {
+    if (application.post_type !== 'job' || !application.job_post_id) continue;
+
+    const existing = summaries.get(application.job_post_id);
+    if (existing) {
+      existing.applicant_count += 1;
+      if (application.status === 'applied') {
+        existing.pending_count += 1;
+      }
+    } else {
+      summaries.set(application.job_post_id, {
+        job_post_id: application.job_post_id,
+        post_title: application.post_title,
+        applicant_count: 1,
+        pending_count: application.status === 'applied' ? 1 : 0,
+      });
+    }
+  }
+
+  return [...summaries.values()].sort((a, b) => {
+    if (b.pending_count !== a.pending_count) {
+      return b.pending_count - a.pending_count;
+    }
+    return b.applicant_count - a.applicant_count;
+  });
+}
+
+export async function listClinicApplicationsForJob(
+  clinicId: string,
+  jobPostId: string,
+): Promise<ClinicApplication[]> {
+  const applications = await listClinicApplications(clinicId);
+  return applications.filter(
+    (application) => application.post_type === 'job' && application.job_post_id === jobPostId,
+  );
 }
 
 export async function createApplication(

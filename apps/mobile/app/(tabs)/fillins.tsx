@@ -4,6 +4,7 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
+import { formatApplicationStatus } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -44,7 +45,7 @@ function ShiftApplicationCard({ application }: { application: WorkerApplication 
         {application.clinic_name}
         {application.clinic_city ? ` · ${application.clinic_city}` : ''}
       </Text>
-      <Text style={styles.status}>{application.status}</Text>
+      <Text style={styles.status}>{formatApplicationStatus(application.status)}</Text>
     </View>
   );
 }
@@ -100,7 +101,7 @@ export default function FillInsScreen() {
   }, [shifts, roleTypeFilter]);
 
   const activeApplications = applications.filter((item) =>
-    ['applied', 'reviewed', 'shortlisted'].includes(item.status),
+    ['applied', 'reviewed'].includes(item.status),
   );
   const confirmedApplications = applications.filter((item) => item.status === 'hired');
 

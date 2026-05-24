@@ -1,155 +1,64 @@
-import { listClinicApplications, updateApplicationStatus, type ClinicApplication } from '@chairside/api';
-import { calculateMatchScore } from '@chairside/core';
-import { getSpecialtyLabel } from '@chairside/config';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { listJobApplicationSummaries, type JobApplicationSummary } from '@chairside/api';
+import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
-import { openResumePreview } from '@/lib/openResumePreview';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { getClinicRoleApplicationsRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
-function ApplicationCard({
-  application,
-  onShortlist,
-  onReject,
+function RoleApplicationSummaryCard({
+  summary,
+  onPress,
 }: {
-  application: ClinicApplication;
-  onShortlist: () => void;
-  onReject: () => void;
+  summary: JobApplicationSummary;
+  onPress: () => void;
 }) {
-  const photoUri = useWorkerPhotoUri(application.worker_photo_storage_path);
-  const breakdown = calculateMatchScore({
-    postRoleType: application.post_role_type,
-    workerRoleType: application.role_type,
-  });
-  const score = application.match_score ?? breakdown.overall;
-
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.lg,
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-    },
-    applicantName: {
-      ...typography.body,
-      fontWeight: '700',
-      fontSize: 17,
-    },
-    applicantHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-    },
-    applicantHeaderText: { flex: 1, gap: 2 },
+    cardPressed: { opacity: 0.92 },
+    title: { ...typography.body, fontWeight: '600', fontSize: 16 },
     meta: typography.subtitle,
-    score: {
+    stat: {
       fontSize: 14,
       fontWeight: '600',
       color: colors.primary,
     },
-    actions: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-    action: { flex: 1 },
-    resumeLink: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   }));
 
-  const handleViewResume = async () => {
-    if (!application.resume_storage_path) return;
-    try {
-      await openResumePreview(
-        application.resume_storage_path,
-        `${application.post_title}-resume.pdf`,
-      );
-    } catch (error) {
-      Alert.alert(
-        'Could not open resume',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
+  const applicantLabel =
+    summary.applicant_count === 1 ? '1 applicant' : `${summary.applicant_count} applicants`;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.applicantHeader}>
-        <WorkerProfileAvatar
-          displayName={application.worker_display_name}
-          photoUri={photoUri}
-          size={44}
-        />
-        <View style={styles.applicantHeaderText}>
-          {application.worker_display_name ? (
-            <Text style={styles.applicantName}>{application.worker_display_name}</Text>
-          ) : null}
-          {application.worker_address ? (
-            <Text style={styles.meta}>{application.worker_address}</Text>
-          ) : null}
-        </View>
-      </View>
-      <Text style={styles.title}>{application.post_title}</Text>
-      <Text style={styles.meta}>
-        {application.post_type === 'job' ? 'Role application' : 'Fill-in application'} ·{' '}
-        {application.status}
-      </Text>
-      <Text style={styles.score}>Match score: {score}%</Text>
-      {application.years_of_experience != null || application.education ? (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      <Text style={styles.title}>{summary.post_title}</Text>
+      <Text style={styles.stat}>{applicantLabel}</Text>
+      {summary.pending_count > 0 ? (
         <Text style={styles.meta}>
-          {application.years_of_experience != null
-            ? `${application.years_of_experience} yrs`
-            : ''}
-          {application.years_of_experience != null && application.education ? ' · ' : ''}
-          {application.education ?? ''}
+          {summary.pending_count === 1
+            ? '1 new application'
+            : `${summary.pending_count} new applications`}
         </Text>
       ) : null}
-      {application.role_type ? (
-        <Text style={styles.meta}>{application.role_type}</Text>
-      ) : null}
-      {(application.software_used ?? []).length > 0 ? (
-        <Text style={styles.meta}>Software: {(application.software_used ?? []).join(', ')}</Text>
-      ) : null}
-      {(application.practice_types ?? []).length > 0 ? (
-        <Text style={styles.meta}>
-          Specialties: {(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
-        </Text>
-      ) : null}
-      {application.cover_message ? (
-        <Text style={styles.meta}>{application.cover_message}</Text>
-      ) : null}
-      {application.resume_storage_path ? (
-        <Pressable onPress={() => void handleViewResume()}>
-          <Text style={styles.resumeLink}>View resume</Text>
-        </Pressable>
-      ) : null}
-      {application.status === 'applied' ? (
-        <View style={styles.actions}>
-          <OnboardingButton style={styles.action} label="Shortlist" onPress={onShortlist} />
-          <OnboardingButton
-            style={styles.action}
-            label="Reject"
-            variant="secondary"
-            onPress={onReject}
-          />
-        </View>
-      ) : null}
-    </View>
+    </Pressable>
   );
 }
 
 export default function ClinicApplicationsScreen() {
   const { user } = useAuth();
-  const [applications, setApplications] = useState<ClinicApplication[]>([]);
+  const [summaries, setSummaries] = useState<JobApplicationSummary[]>([]);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     list: { gap: spacing.md },
@@ -158,52 +67,33 @@ export default function ClinicApplicationsScreen() {
 
   const load = useCallback(async () => {
     if (!user?.id) {
-      setApplications([]);
+      setSummaries([]);
       return;
     }
 
     try {
-      const rows = await listClinicApplications(user.id);
-      setApplications(rows);
-    } catch (error) {
-      setApplications([]);
-      Alert.alert(
-        'Could not load applications',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      const rows = await listJobApplicationSummaries(user.id);
+      setSummaries(rows);
+    } catch {
+      setSummaries([]);
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const updateStatus = async (applicationId: string, status: 'shortlisted' | 'rejected') => {
-    try {
-      await updateApplicationStatus(applicationId, status);
-      await load();
-    } catch (error) {
-      Alert.alert(
-        'Update failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
+  useRefreshOnFocus(load);
 
   return (
-    <Screen title="Applications" subtitle="Candidates across your postings.">
-      {applications.length === 0 ? (
+    <Screen title="Applications" subtitle="Open a role to review its applicants.">
+      {summaries.length === 0 ? (
         <Text style={styles.empty}>
-          No applications yet. They will appear here when workers apply to your postings.
+          No applications yet. They will appear here when workers apply to your roles.
         </Text>
       ) : (
         <View style={styles.list}>
-          {applications.map((application) => (
-            <ApplicationCard
-              key={application.id}
-              application={application}
-              onShortlist={() => void updateStatus(application.id, 'shortlisted')}
-              onReject={() => void updateStatus(application.id, 'rejected')}
+          {summaries.map((summary) => (
+            <RoleApplicationSummaryCard
+              key={summary.job_post_id}
+              summary={summary}
+              onPress={() => router.push(getClinicRoleApplicationsRoute(summary.job_post_id))}
             />
           ))}
         </View>

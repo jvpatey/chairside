@@ -1,4 +1,5 @@
 import { listWorkerJobApplications, type WorkerApplication } from '@chairside/api';
+import { formatApplicationStatus } from '@chairside/config';
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -29,7 +30,7 @@ function WorkerApplicationCard({ application }: { application: WorkerApplication
         {application.clinic_name}
         {application.clinic_city ? ` · ${application.clinic_city}` : ''}
       </Text>
-      <Text style={styles.status}>{application.status}</Text>
+      <Text style={styles.status}>{formatApplicationStatus(application.status)}</Text>
       {application.match_score != null ? (
         <Text style={styles.meta}>Match score: {application.match_score}%</Text>
       ) : null}

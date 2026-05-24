@@ -1,11 +1,12 @@
 import {
   getClinicDashboardCounts,
+  getJobPostApplicationCountsMap,
   getMissingClinicProfileFields,
-  listClinicApplications,
+  listJobApplicationSummaries,
   listJobPosts,
   listShiftPosts,
-  type ClinicApplication,
   type ClinicDashboardCounts,
+  type JobApplicationSummary,
   type JobPost,
   type ShiftPost,
 } from '@chairside/api';
@@ -31,6 +32,7 @@ import {
   CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
   getJobDetailRoute,
+  getClinicRoleApplicationsRoute,
   getPostShiftRoute,
   getShiftDetailRoute,
 } from '@/lib/routing';
@@ -48,7 +50,10 @@ export default function ClinicDashboardScreen() {
   const [selectedOverview, setSelectedOverview] = useState<OverviewStat>('roles');
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
-  const [applications, setApplications] = useState<ClinicApplication[]>([]);
+  const [jobApplicationSummaries, setJobApplicationSummaries] = useState<JobApplicationSummary[]>(
+    [],
+  );
+  const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: {
@@ -64,22 +69,25 @@ export default function ClinicDashboardScreen() {
     if (!user?.id) return;
 
     try {
-      const [nextCounts, jobPosts, shiftPosts, applicationRows] = await Promise.all([
+      const [nextCounts, jobPosts, shiftPosts, summaries, counts] = await Promise.all([
         getClinicDashboardCounts(user.id),
         listJobPosts(user.id),
         listShiftPosts(user.id),
-        listClinicApplications(user.id),
+        listJobApplicationSummaries(user.id),
+        getJobPostApplicationCountsMap(user.id),
       ]);
 
       setCounts(nextCounts);
       setJobs(jobPosts);
       setShifts(shiftPosts);
-      setApplications(applicationRows);
+      setJobApplicationSummaries(summaries);
+      setApplicantCounts(counts);
     } catch {
       setCounts({ openRoles: 0, fillInsPosted: 0, newApplications: 0 });
       setJobs([]);
       setShifts([]);
-      setApplications([]);
+      setJobApplicationSummaries([]);
+      setApplicantCounts({});
     }
   }, [user?.id]);
 
@@ -158,10 +166,14 @@ export default function ClinicDashboardScreen() {
           selected={selectedOverview}
           jobs={jobs}
           shifts={shifts}
-          applications={applications}
+          jobApplicationSummaries={jobApplicationSummaries}
+          applicantCounts={applicantCounts}
           onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
           onShiftPress={(shiftId) =>
             router.push(getShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
+          }
+          onJobApplicationsPress={(jobId) =>
+            router.push(getClinicRoleApplicationsRoute(jobId))
           }
         />
       </View>

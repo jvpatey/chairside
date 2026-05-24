@@ -1,4 +1,4 @@
-import { listLiveJobPosts, type LiveJobPost } from '@chairside/api';
+import { listLiveJobPosts, listWorkerAppliedJobPostIds, type LiveJobPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -7,6 +7,7 @@ import { Text, View } from 'react-native';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { Screen } from '@/components/ui/Screen';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
@@ -51,23 +52,30 @@ function BrowseEmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.g
 }
 
 export default function BrowseScreen() {
+  const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const jobRows = await listLiveJobPosts(province);
+      const [jobRows, appliedIds] = await Promise.all([
+        listLiveJobPosts(province),
+        user?.id ? listWorkerAppliedJobPostIds(user.id) : Promise.resolve([]),
+      ]);
       setJobs(jobRows);
+      setAppliedJobIds(new Set(appliedIds));
     } catch {
       setJobs([]);
+      setAppliedJobIds(new Set());
     } finally {
       setIsLoading(false);
     }
-  }, [province]);
+  }, [province, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -106,6 +114,7 @@ export default function BrowseScreen() {
               <RoleListingCard
                 key={job.id}
                 job={job}
+                hasApplied={appliedJobIds.has(job.id)}
                 matchScore={computeListingMatchScore(workerProfile, job)}
                 onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
               />

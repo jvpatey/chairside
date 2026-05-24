@@ -8,10 +8,11 @@ import { useThemedStyles } from '@/theme';
 
 type RolePostingCardProps = {
   job: JobPost;
+  applicantCount?: number;
   onPress?: () => void;
 };
 
-export function RolePostingCard({ job, onPress }: RolePostingCardProps) {
+export function RolePostingCard({ job, applicantCount, onPress }: RolePostingCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -52,6 +53,17 @@ export function RolePostingCard({ job, onPress }: RolePostingCardProps) {
       color: colors.primary,
       letterSpacing: -0.1,
     },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    applicants: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.labelSecondary,
+    },
   }));
 
   const content = (
@@ -65,7 +77,16 @@ export function RolePostingCard({ job, onPress }: RolePostingCardProps) {
         </View>
         <JobPostStatusBadge status={job.status} />
       </View>
-      {job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : null}
+      {job.wage_range || applicantCount != null ? (
+        <View style={styles.footer}>
+          {job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : <View />}
+          {applicantCount != null ? (
+            <Text style={styles.applicants}>
+              {applicantCount === 1 ? '1 applicant' : `${applicantCount} applicants`}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
     </>
   );
 

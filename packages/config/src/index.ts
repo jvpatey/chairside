@@ -44,3 +44,4 @@ export {
   type RoleType,
   type TeamSizeRange,
 } from './clinicOptions';
+export { formatApplicationStatus } from './applicationDisplay';

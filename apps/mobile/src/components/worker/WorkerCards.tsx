@@ -1,4 +1,5 @@
 import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
+import { formatApplicationStatus } from '@chairside/config';
 import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
@@ -212,6 +213,7 @@ type WorkerOverviewPanelProps = {
   jobs: LiveJobPost[];
   shifts: LiveShiftPost[];
   applications: WorkerApplication[];
+  appliedJobIds?: Set<string>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
 };
@@ -221,6 +223,7 @@ export function WorkerOverviewPanel({
   jobs,
   shifts,
   applications,
+  appliedJobIds,
   onJobPress,
   onShiftPress,
 }: WorkerOverviewPanelProps) {
@@ -261,6 +264,7 @@ export function WorkerOverviewPanel({
               <RoleListingCard
                 key={job.id}
                 job={job}
+                hasApplied={appliedJobIds?.has(job.id)}
                 onPress={onJobPress ? () => onJobPress(job.id) : undefined}
               />
             ))}
@@ -297,7 +301,7 @@ export function WorkerOverviewPanel({
               <View key={application.id} style={styles.appCard}>
                 <Text style={styles.appTitle}>{application.post_title}</Text>
                 <Text style={styles.appMeta}>
-                  {application.clinic_name} · {application.status}
+                  {application.clinic_name} · {formatApplicationStatus(application.status)}
                 </Text>
               </View>
             ))}
