@@ -4,7 +4,6 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
-import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -18,11 +17,10 @@ import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
 import { computeListingMatchScore } from '@/lib/workerMatch';
 import { getWorkerShiftDetailRoute, WORKER_SETUP_AVAILABILITY_SCHEDULE } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
-
-type RoleTypeFilter = 'all' | string;
 
 function ShiftApplicationCard({ application }: { application: WorkerApplication }) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -106,7 +104,7 @@ export default function FillInsScreen() {
   );
   const confirmedApplications = applications.filter((item) => item.status === 'hired');
 
-  const roleFilterOptions = [{ value: 'all', label: 'All roles' }, ...ROLE_TYPE_OPTIONS];
+  const roleFilterOptions = COMPACT_ROLE_TYPE_FILTER_OPTIONS;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     content: { gap: spacing.xl, paddingBottom: spacing.xl },
@@ -163,6 +161,8 @@ export default function FillInsScreen() {
             options={roleFilterOptions}
             selected={roleTypeFilter}
             onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
+            horizontal
+            compact
           />
           {filteredShifts.length === 0 && !isLoading ? (
             <Text style={styles.empty}>No fill-in shifts posted in your province right now.</Text>

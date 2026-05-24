@@ -23,11 +23,11 @@ export function ChipSelector<T extends string>({
     wrap: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.sm,
+      gap: compact ? spacing.xs : spacing.sm,
     },
     horizontalContent: {
       flexDirection: 'row',
-      gap: spacing.sm,
+      gap: compact ? spacing.xs : spacing.sm,
       paddingRight: spacing.xs,
     },
     chip: {
@@ -35,8 +35,8 @@ export function ChipSelector<T extends string>({
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
-      paddingHorizontal: compact ? spacing.sm + 2 : spacing.md,
-      paddingVertical: compact ? 6 : spacing.sm,
+      paddingHorizontal: compact ? spacing.sm : spacing.md,
+      paddingVertical: compact ? 4 : spacing.sm,
     },
     chipSelected: {
       borderColor: colors.primary,

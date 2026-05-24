@@ -1,5 +1,4 @@
 import { listLiveJobPosts, type LiveJobPost } from '@chairside/api';
-import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -10,11 +9,10 @@ import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { Screen } from '@/components/ui/Screen';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
 import { computeListingMatchScore } from '@/lib/workerMatch';
 import { getWorkerJobDetailRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
-
-type RoleTypeFilter = 'all' | string;
 
 function BrowseEmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }) {
   const { colors } = useTheme();
@@ -78,24 +76,23 @@ export default function BrowseScreen() {
     return jobs.filter((job) => job.role_type === roleTypeFilter);
   }, [jobs, roleTypeFilter]);
 
-  const roleFilterOptions = [{ value: 'all', label: 'All roles' }, ...ROLE_TYPE_OPTIONS];
+  const roleFilterOptions = COMPACT_ROLE_TYPE_FILTER_OPTIONS;
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
     list: { gap: spacing.md },
-    filters: { gap: spacing.sm },
   }));
 
   return (
     <Screen title="Browse" subtitle="Open roles at clinics in your province.">
       <View style={styles.wrap}>
-        <View style={styles.filters}>
-          <ChipSelector
-            options={roleFilterOptions}
-            selected={roleTypeFilter}
-            onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
-          />
-        </View>
+        <ChipSelector
+          options={roleFilterOptions}
+          selected={roleTypeFilter}
+          onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
+          horizontal
+          compact
+        />
 
         {filteredJobs.length === 0 && !isLoading ? (
           <BrowseEmptyState

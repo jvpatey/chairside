@@ -16,7 +16,7 @@ export type DayAvailability = {
 export function createDefaultDayAvailability(): DayAvailability[] {
   return DAY_OF_WEEK_OPTIONS.map((day) => ({
     day_of_week: day.value,
-    enabled: day.value >= 1 && day.value <= 5,
+    enabled: false,
     start_time: '09:00',
     end_time: '17:00',
   }));
