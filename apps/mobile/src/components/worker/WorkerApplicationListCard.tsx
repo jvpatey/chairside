@@ -1,9 +1,11 @@
 import type { WorkerApplication } from '@chairside/api';
-import { formatApplicationStatus, formatApplicationResumeStatus } from '@chairside/config';
+import { formatApplicationResumeStatus } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
+import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
@@ -35,7 +37,6 @@ export function WorkerApplicationListCard({
     cardPressed: { opacity: 0.92 },
     title: { ...typography.body, fontWeight: '600' },
     meta: typography.subtitle,
-    status: { fontSize: 14, fontWeight: '600', color: colors.primary },
   }));
 
   const content = (
@@ -45,19 +46,22 @@ export function WorkerApplicationListCard({
         {application.clinic_name}
         {application.clinic_city ? ` · ${application.clinic_city}` : ''}
       </Text>
-      <Text style={styles.status}>
-        {formatApplicationStatus(application.status, application.post_type)}
-      </Text>
+      <BadgeRow>
+        <WorkerApplicationStatusBadge
+          status={application.status}
+          postType={application.post_type}
+        />
+        {jobMatch && matchContext ? (
+          <MatchTierBadge
+            breakdown={jobMatch}
+            context={matchContext}
+            subtitle={application.post_title}
+          />
+        ) : null}
+      </BadgeRow>
       <Text style={styles.meta}>
         Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
       </Text>
-      {jobMatch && matchContext ? (
-        <MatchTierBadge
-          breakdown={jobMatch}
-          context={matchContext}
-          subtitle={application.post_title}
-        />
-      ) : null}
     </>
   );
 

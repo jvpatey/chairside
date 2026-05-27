@@ -5,6 +5,8 @@ import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
+import { AppliedPillBadge } from '@/components/matching/ApplicationStatusBadge';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
@@ -54,22 +56,6 @@ export function RoleListingCard({
     meta: { fontSize: 14, lineHeight: 20, color: colors.labelSecondary },
     footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     wage: { fontSize: 15, fontWeight: '600', color: colors.primary },
-    badges: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-      flexWrap: 'wrap',
-      justifyContent: 'flex-end',
-    },
-    applied: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.primary,
-      backgroundColor: colors.primarySubtle,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: 6,
-    },
   }));
 
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
@@ -90,8 +76,8 @@ export function RoleListingCard({
       </View>
       <View style={styles.footer}>
         {job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : <View />}
-        <View style={styles.badges}>
-          {hasApplied ? <Text style={styles.applied}>Applied</Text> : null}
+        <BadgeRow>
+          {hasApplied ? <AppliedPillBadge /> : null}
           {jobMatch && matchContext ? (
             <MatchTierBadge
               breakdown={jobMatch}
@@ -100,7 +86,7 @@ export function RoleListingCard({
               showProfileHint
             />
           ) : null}
-        </View>
+        </BadgeRow>
       </View>
     </>
   );

@@ -1,13 +1,10 @@
 import { deleteApplication, type WorkerApplication } from '@chairside/api';
-import type { ApplicationStatus } from '@chairside/api';
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
-  formatApplicationStatus,
   isActiveApplicationStatus,
   getRoleTypeLabel,
   getSpecialtyLabel,
-  type ApplicationPostType,
 } from '@chairside/config';
 import { Alert, Text, View } from 'react-native';
 
@@ -19,7 +16,9 @@ import {
   RowDivider,
 } from '@/components/clinic/DetailCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
@@ -41,88 +40,6 @@ function formatAppliedDate(value: string): string {
     day: 'numeric',
     year: 'numeric',
   });
-}
-
-function ApplicationStatusBadge({
-  status,
-  postType,
-}: {
-  status: ApplicationStatus | string;
-  postType: ApplicationPostType;
-}) {
-  const label = formatApplicationStatus(status, postType);
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    badge: {
-      alignSelf: 'flex-start',
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: spacing.xs + 1,
-    },
-    badgeApplied: {
-      backgroundColor: colors.primarySubtle,
-    },
-    badgeViewed: {
-      backgroundColor: colors.secondarySubtle,
-    },
-    badgeInProgress: {
-      backgroundColor: `${colors.info}18`,
-    },
-    badgeRejected: {
-      backgroundColor: `${colors.destructive}18`,
-    },
-    badgeSelected: {
-      backgroundColor: colors.primarySubtle,
-    },
-    text: {
-      fontSize: 13,
-      fontWeight: '600',
-    },
-    textApplied: { color: colors.primary },
-    textViewed: { color: colors.secondary },
-    textInProgress: { color: colors.info },
-    textRejected: { color: colors.destructive },
-    textSelected: { color: colors.primary },
-  }));
-
-  const variant =
-    status === 'reviewed'
-      ? 'viewed'
-      : status === 'in_progress'
-        ? 'inProgress'
-        : status === 'rejected'
-          ? 'rejected'
-          : status === 'selected' || status === 'hired'
-            ? 'selected'
-            : 'applied';
-
-  const badgeStyle =
-    variant === 'viewed'
-      ? styles.badgeViewed
-      : variant === 'inProgress'
-        ? styles.badgeInProgress
-        : variant === 'rejected'
-          ? styles.badgeRejected
-          : variant === 'selected'
-            ? styles.badgeSelected
-            : styles.badgeApplied;
-
-  const textStyle =
-    variant === 'viewed'
-      ? styles.textViewed
-      : variant === 'inProgress'
-        ? styles.textInProgress
-        : variant === 'rejected'
-          ? styles.textRejected
-          : variant === 'selected'
-            ? styles.textSelected
-            : styles.textApplied;
-
-  return (
-    <View style={[styles.badge, badgeStyle]}>
-      <Text style={[styles.text, textStyle]}>{label}</Text>
-    </View>
-  );
 }
 
 export function WorkerApplicationDetailCard({
@@ -181,11 +98,7 @@ export function WorkerApplicationDetailCard({
       letterSpacing: -0.3,
     },
     location: typography.subtitle,
-    statsRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: spacing.sm,
+    badgeRow: {
       marginTop: spacing.xs,
     },
     appliedDate: {
@@ -333,15 +246,20 @@ export function WorkerApplicationDetailCard({
         <Text style={styles.clinicName}>{application.clinic_name}</Text>
         <Text style={styles.title}>{application.post_title}</Text>
         {clinicLocation ? <Text style={styles.location}>{clinicLocation}</Text> : null}
-        <View style={styles.statsRow}>
-          <ApplicationStatusBadge status={application.status} postType={application.post_type} />
-          {jobMatch && matchContext ? (
-            <MatchTierBadge
-              breakdown={jobMatch}
-              context={matchContext}
-              subtitle={application.post_title}
+        <View style={styles.badgeRow}>
+          <BadgeRow>
+            <WorkerApplicationStatusBadge
+              status={application.status}
+              postType={application.post_type}
             />
-          ) : null}
+            {jobMatch && matchContext ? (
+              <MatchTierBadge
+                breakdown={jobMatch}
+                context={matchContext}
+                subtitle={application.post_title}
+              />
+            ) : null}
+          </BadgeRow>
         </View>
         <Text style={styles.appliedDate}>
           {isShift ? 'Requested' : 'Applied'} {formatAppliedDate(application.created_at)}
