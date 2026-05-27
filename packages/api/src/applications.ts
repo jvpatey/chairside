@@ -124,8 +124,6 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
 
   if (error) throw error;
 
-  if (error) throw error;
-
   const applicationIds = (data ?? []).map((row) => row.id);
   const screeningMap = await getApplicationScreeningMap(applicationIds);
 
@@ -569,20 +567,16 @@ export async function acceptApplicationInterview(
   applicationId: string,
 ): Promise<Application> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('applications')
-    .update({
-      status: 'interview_scheduled',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', applicationId)
-    .eq('worker_id', workerId)
-    .eq('status', 'interview_offered')
-    .select('*')
-    .single();
+  const { data, error } = await supabase.rpc('accept_application_interview', {
+    application_id: applicationId,
+  });
 
   if (error) throw error;
-  return data as Application;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Interview offer not found or already responded');
+  }
+  return row;
 }
 
 export async function declineApplicationInterview(
@@ -590,24 +584,16 @@ export async function declineApplicationInterview(
   applicationId: string,
 ): Promise<Application> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('applications')
-    .update({
-      status: 'in_progress',
-      interview_at: null,
-      interview_duration_minutes: null,
-      interview_details: null,
-      interview_offer_closed_by: 'worker',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', applicationId)
-    .eq('worker_id', workerId)
-    .eq('status', 'interview_offered')
-    .select('*')
-    .single();
+  const { data, error } = await supabase.rpc('decline_application_interview', {
+    application_id: applicationId,
+  });
 
   if (error) throw error;
-  return data as Application;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Interview offer not found or already responded');
+  }
+  return row;
 }
 
 export async function cancelApplicationInterviewOffer(

@@ -25,7 +25,7 @@ export const SCREENING_CATEGORY_LABELS: Record<ScreeningQuestionCategory, string
 };
 
 export const RATING_SCALE_OPTIONS = [
-  { value: 0, label: 'Not at all' },
+  { value: 1, label: 'Not at all' },
   { value: 2, label: 'Disagree' },
   { value: 3, label: 'Neither' },
   { value: 4, label: 'Somewhat agree' },

@@ -145,7 +145,7 @@ export function ClinicApplicationCard({
       await updateApplicationStatus(application.id, status);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (status === 'in_progress') {
-        onShortlisted?.() ?? onUpdated?.();
+        (onShortlisted ?? onUpdated)?.();
       } else {
         onUpdated?.();
       }
@@ -171,7 +171,7 @@ export function ClinicApplicationCard({
               try {
                 await cancelApplicationInterviewOffer(application.id);
                 void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onShortlisted?.() ?? onUpdated?.();
+                (onShortlisted ?? onUpdated)?.();
               } catch (error) {
                 Alert.alert(
                   'Update failed',
