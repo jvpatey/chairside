@@ -19,6 +19,11 @@ import {
   RowDivider,
 } from '@/components/clinic/DetailCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
+import {
+  getApplicationMatchDisplayContext,
+  parseApplicationJobMatch,
+} from '@/lib/matchDisplay';
 import { openResumePreview } from '@/lib/openResumePreview';
 import { useThemedStyles } from '@/theme';
 
@@ -127,6 +132,8 @@ export function WorkerApplicationDetailCard({
 }: WorkerApplicationDetailCardProps) {
   const canCancel = isActiveApplicationStatus(application.status);
   const isShift = application.post_type === 'shift';
+  const jobMatch = !isShift ? parseApplicationJobMatch(application) : null;
+  const matchContext = !isShift ? getApplicationMatchDisplayContext(application) : null;
   const clinicLocation = application.clinic_city ?? null;
   const softwareLabel =
     (application.software_used ?? []).length > 0
@@ -180,17 +187,6 @@ export function WorkerApplicationDetailCard({
       alignItems: 'center',
       gap: spacing.sm,
       marginTop: spacing.xs,
-    },
-    matchBadge: {
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: spacing.xs + 1,
-      backgroundColor: colors.fillSubtle,
-    },
-    matchText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelPrimary,
     },
     appliedDate: {
       ...typography.subtitle,
@@ -339,10 +335,12 @@ export function WorkerApplicationDetailCard({
         {clinicLocation ? <Text style={styles.location}>{clinicLocation}</Text> : null}
         <View style={styles.statsRow}>
           <ApplicationStatusBadge status={application.status} postType={application.post_type} />
-          {application.match_score != null ? (
-            <View style={styles.matchBadge}>
-              <Text style={styles.matchText}>{application.match_score}% match</Text>
-            </View>
+          {jobMatch && matchContext ? (
+            <MatchTierBadge
+              breakdown={jobMatch}
+              context={matchContext}
+              subtitle={application.post_title}
+            />
           ) : null}
         </View>
         <Text style={styles.appliedDate}>

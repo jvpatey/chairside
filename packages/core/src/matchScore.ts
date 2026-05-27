@@ -1,58 +1,265 @@
-import { scoreSoftwareMatch } from './softwareMatch';
+import { scoreEmploymentMatch } from './employmentMatch';
+import { matchableSoftwareTokens, scoreSoftwareMatch } from './softwareMatch';
 
 export type MatchLevel = 'strong' | 'partial' | 'missing';
+export type MatchTier = 'strong' | 'good' | 'partial' | 'none';
+export type MatchCriterion = 'roleFit' | 'software' | 'location' | 'employmentType';
 
-export type MatchBreakdown = {
-  overall: number;
+export type JobMatchBreakdown = {
+  tier: MatchTier;
   roleFit: MatchLevel;
-  experience: MatchLevel;
-  availability: MatchLevel;
-  location: MatchLevel;
   software: MatchLevel;
+  location: MatchLevel;
+  employmentType: MatchLevel;
+  postHasMatchableSoftware: boolean;
 };
 
-export function calculateMatchScore(input: {
+export type JobMatchContext = {
   postRoleType: string;
-  postSoftware?: string[];
   workerRoleType?: string | null;
+  postEmploymentType: string;
+  workerPreferredEmploymentTypes?: string[] | null;
+  postSoftware?: string[] | null;
   workerSoftware?: string[] | null;
-  workerTravelRadiusKm?: number | null;
   distanceKm?: number | null;
-}): MatchBreakdown {
-  const roleFit: MatchLevel =
-    input.workerRoleType && input.workerRoleType === input.postRoleType
-      ? 'strong'
-      : input.workerRoleType
-        ? 'partial'
-        : 'missing';
+  workerTravelRadiusKm?: number | null;
+};
 
+export type StoredJobMatchBreakdown = {
+  roleFit: MatchLevel;
+  software: MatchLevel;
+  location: MatchLevel;
+  employmentType: MatchLevel;
+  postHasMatchableSoftware: boolean;
+  context?: Partial<JobMatchContext>;
+};
+
+export type MatchCriterionDetail = {
+  id: MatchCriterion;
+  title: string;
+  level: MatchLevel;
+  explanation: string;
+};
+
+const TIER_LABELS: Record<MatchTier, string> = {
+  strong: 'Strong match',
+  good: 'Good match',
+  partial: 'Partial match',
+  none: 'Not a match',
+};
+
+const CRITERION_TITLES: Record<MatchCriterion, string> = {
+  roleFit: 'Role',
+  software: 'Software',
+  location: 'Location',
+  employmentType: 'Employment type',
+};
+
+export function getMatchTierLabel(tier: MatchTier): string {
+  return TIER_LABELS[tier];
+}
+
+export function getMatchTierRank(tier: MatchTier): number {
+  switch (tier) {
+    case 'strong':
+      return 0;
+    case 'good':
+      return 1;
+    case 'partial':
+      return 2;
+    default:
+      return 3;
+  }
+}
+
+function scoreRoleMatch(
+  postRoleType: string,
+  workerRoleType?: string | null,
+): MatchLevel {
+  if (!workerRoleType) return 'missing';
+  if (workerRoleType === postRoleType) return 'strong';
+  return 'missing';
+}
+
+function scoreLocationMatch(
+  distanceKm?: number | null,
+  workerTravelRadiusKm?: number | null,
+): MatchLevel {
+  if (distanceKm == null || workerTravelRadiusKm == null) return 'partial';
+  if (distanceKm <= workerTravelRadiusKm) return 'strong';
+  return 'missing';
+}
+
+export function deriveMatchTier(
+  breakdown: Omit<JobMatchBreakdown, 'tier'>,
+): MatchTier {
+  if (breakdown.roleFit === 'missing' || breakdown.location === 'missing') {
+    return 'none';
+  }
+
+  const secondaryMissing = [breakdown.software, breakdown.employmentType].filter(
+    (level) => level === 'missing',
+  ).length;
+
+  const softwareOkForStrong =
+    breakdown.software === 'strong' ||
+    (breakdown.software === 'partial' && !breakdown.postHasMatchableSoftware);
+
+  if (
+    breakdown.roleFit === 'strong' &&
+    breakdown.location === 'strong' &&
+    breakdown.employmentType === 'strong' &&
+    softwareOkForStrong
+  ) {
+    return 'strong';
+  }
+
+  if (
+    breakdown.roleFit === 'strong' &&
+    (breakdown.location === 'strong' || breakdown.location === 'partial') &&
+    secondaryMissing <= 1
+  ) {
+    return 'good';
+  }
+
+  return 'partial';
+}
+
+export function calculateJobMatch(input: JobMatchContext): JobMatchBreakdown {
+  const postHasMatchableSoftware =
+    matchableSoftwareTokens(input.postSoftware).length > 0;
+
+  const roleFit = scoreRoleMatch(input.postRoleType, input.workerRoleType);
   const software = scoreSoftwareMatch(input.postSoftware, input.workerSoftware);
-
-  const location: MatchLevel =
-    input.distanceKm == null || input.workerTravelRadiusKm == null
-      ? 'partial'
-      : input.distanceKm <= input.workerTravelRadiusKm
-        ? 'strong'
-        : 'missing';
-
-  const experience: MatchLevel = 'partial';
-  const availability: MatchLevel = 'partial';
-  const scoreMap: Record<MatchLevel, number> = { strong: 100, partial: 60, missing: 20 };
-  const overall = Math.round(
-    (scoreMap[roleFit] +
-      scoreMap[experience] +
-      scoreMap[availability] +
-      scoreMap[location] +
-      scoreMap[software]) /
-      5,
+  const location = scoreLocationMatch(input.distanceKm, input.workerTravelRadiusKm);
+  const employmentType = scoreEmploymentMatch(
+    input.postEmploymentType,
+    input.workerPreferredEmploymentTypes,
   );
 
-  return {
-    overall,
+  const breakdown = {
     roleFit,
-    experience,
-    availability,
-    location,
     software,
+    location,
+    employmentType,
+    postHasMatchableSoftware,
   };
+
+  return {
+    tier: deriveMatchTier(breakdown),
+    ...breakdown,
+  };
+}
+
+export function jobMatchBreakdownFromStored(
+  tier: MatchTier | null | undefined,
+  stored: StoredJobMatchBreakdown | null | undefined,
+): JobMatchBreakdown | null {
+  if (!tier || !stored?.roleFit) return null;
+
+  return {
+    tier,
+    roleFit: stored.roleFit,
+    software: stored.software,
+    location: stored.location,
+    employmentType: stored.employmentType,
+    postHasMatchableSoftware: stored.postHasMatchableSoftware ?? false,
+  };
+}
+
+function formatList(values: string[]): string {
+  if (values.length === 0) return 'Not specified';
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(', ')}, and ${values.at(-1)}`;
+}
+
+function formatDistance(km: number): string {
+  if (km < 1) return 'Less than 1 km away';
+  if (km < 10) return `${km.toFixed(1)} km away`;
+  return `${Math.round(km)} km away`;
+}
+
+export function getMatchCriterionDetails(
+  breakdown: JobMatchBreakdown,
+  context: Partial<JobMatchContext> & {
+    postRoleLabel?: string;
+    workerRoleLabel?: string;
+    postEmploymentLabel?: string;
+    workerEmploymentLabels?: string[];
+  },
+): MatchCriterionDetail[] {
+  const postRole = context.postRoleLabel ?? context.postRoleType ?? 'This role';
+  const workerRole = context.workerRoleLabel ?? context.workerRoleType ?? 'your profile';
+  const postEmployment =
+    context.postEmploymentLabel ?? context.postEmploymentType ?? 'This role';
+  const workerEmployment =
+    context.workerEmploymentLabels ??
+    (context.workerPreferredEmploymentTypes ?? []).map((value) => value);
+
+  const postSoftware = matchableSoftwareTokens(context.postSoftware);
+  const workerSoftware = matchableSoftwareTokens(context.workerSoftware);
+
+  const roleExplanation =
+    breakdown.roleFit === 'strong'
+      ? `${postRole} matches ${workerRole}.`
+      : breakdown.roleFit === 'missing'
+        ? `${postRole} does not match ${workerRole}.`
+        : `${postRole} may not align with ${workerRole}.`;
+
+  const softwareExplanation =
+    breakdown.software === 'strong'
+      ? `You know all required software (${formatList(postSoftware)}).`
+      : breakdown.software === 'partial'
+        ? postSoftware.length === 0
+          ? 'This role did not list specific software requirements.'
+          : `You know some required software (${formatList(postSoftware)}).`
+        : postSoftware.length === 0
+          ? 'Software requirements were not listed for this role.'
+          : `You do not match the required software (${formatList(postSoftware)}).`;
+
+  const locationExplanation =
+    breakdown.location === 'strong'
+      ? context.distanceKm != null
+        ? `${formatDistance(context.distanceKm)} — within your travel range.`
+        : 'Within your travel range.'
+      : breakdown.location === 'missing'
+        ? context.distanceKm != null
+          ? `${formatDistance(context.distanceKm)} — outside your travel range.`
+          : 'Outside your travel range.'
+        : 'Location could not be fully verified.';
+
+  const employmentExplanation =
+    breakdown.employmentType === 'strong'
+      ? `${postEmployment} matches your preferred employment types.`
+      : breakdown.employmentType === 'missing'
+        ? `${postEmployment} is not in your preferred employment types (${formatList(workerEmployment)}).`
+        : 'You have not set preferred employment types on your profile.';
+
+  return [
+    {
+      id: 'roleFit',
+      title: CRITERION_TITLES.roleFit,
+      level: breakdown.roleFit,
+      explanation: roleExplanation,
+    },
+    {
+      id: 'software',
+      title: CRITERION_TITLES.software,
+      level: breakdown.software,
+      explanation: softwareExplanation,
+    },
+    {
+      id: 'location',
+      title: CRITERION_TITLES.location,
+      level: breakdown.location,
+      explanation: locationExplanation,
+    },
+    {
+      id: 'employmentType',
+      title: CRITERION_TITLES.employmentType,
+      level: breakdown.employmentType,
+      explanation: employmentExplanation,
+    },
+  ];
 }

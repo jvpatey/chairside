@@ -21,7 +21,10 @@ export type Application = {
   shift_post_id: string | null;
   worker_id: string;
   status: ApplicationStatus;
+  /** @deprecated Use match_tier for open roles. */
   match_score: number | null;
+  match_tier: 'strong' | 'good' | 'partial' | 'none' | null;
+  match_breakdown: import('@chairside/core').StoredJobMatchBreakdown | null;
   cover_message: string | null;
   years_of_experience: number | null;
   education: string | null;
@@ -33,6 +36,7 @@ export type Application = {
   worker_photo_storage_path: string | null;
   software_used: string[];
   practice_types: string[];
+  preferred_employment_types: string[];
   created_at: string;
   updated_at: string;
 };

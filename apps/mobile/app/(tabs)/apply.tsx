@@ -3,7 +3,7 @@ import {
   getLiveJobPost,
   getLiveShiftPost,
 } from '@chairside/api';
-import type { MatchBreakdown } from '@chairside/core';
+import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
@@ -12,12 +12,16 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationPackageFields } from '@/components/worker/ApplicationPackageFields';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS } from '@/lib/routing';
-import { computeListingMatchBreakdown } from '@/lib/workerMatch';
+import {
+  buildLiveJobMatchDisplayContext,
+  computeJobMatchBreakdown,
+} from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
 
 export default function ApplyScreen() {
@@ -29,8 +33,8 @@ export default function ApplyScreen() {
   const [coverMessage, setCoverMessage] = useState('');
   const [postTitle, setPostTitle] = useState('');
   const [clinicName, setClinicName] = useState('');
-  const [matchScore, setMatchScore] = useState<number | null>(null);
-  const [breakdown, setBreakdown] = useState<MatchBreakdown | null>(null);
+  const [jobMatch, setJobMatch] = useState<JobMatchBreakdown | null>(null);
+  const [matchContext, setMatchContext] = useState<Partial<JobMatchContext> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,7 +58,6 @@ export default function ApplyScreen() {
       color: colors.primary,
     },
     hint: { ...typography.subtitle, fontSize: 13 },
-    match: { fontSize: 15, fontWeight: '600', color: colors.primary },
     editLink: { color: colors.primary, fontWeight: '600' },
   }));
 
@@ -69,19 +72,22 @@ export default function ApplyScreen() {
       if (type === 'job') {
         const job = await getLiveJobPost(id);
         if (!job) throw new Error('Role not found');
-        const listingBreakdown = computeListingMatchBreakdown(workerProfile, job);
         setPostTitle(job.title);
         setClinicName(job.clinic.clinic_name);
-        setMatchScore(listingBreakdown?.overall ?? null);
-        setBreakdown(listingBreakdown);
+        if (workerProfile) {
+          setJobMatch(computeJobMatchBreakdown(workerProfile, job));
+          setMatchContext(buildLiveJobMatchDisplayContext(workerProfile, job));
+        } else {
+          setJobMatch(null);
+          setMatchContext(null);
+        }
       } else {
         const shift = await getLiveShiftPost(id);
         if (!shift) throw new Error('Shift not found');
-        const listingBreakdown = computeListingMatchBreakdown(workerProfile, shift);
         setPostTitle(`Fill-in · ${shift.shift_date}`);
         setClinicName(shift.clinic.clinic_name);
-        setMatchScore(listingBreakdown?.overall ?? null);
-        setBreakdown(listingBreakdown);
+        setJobMatch(null);
+        setMatchContext(null);
       }
     } catch (error) {
       Alert.alert(
@@ -171,12 +177,13 @@ export default function ApplyScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{postTitle}</Text>
           <Text style={styles.cardMeta}>{clinicName}</Text>
-          {matchScore != null ? <Text style={styles.match}>{matchScore}% match</Text> : null}
-          {breakdown ? (
-            <Text style={styles.cardMeta}>
-              Role: {breakdown.roleFit} · Software: {breakdown.software} · Location:{' '}
-              {breakdown.location}
-            </Text>
+          {type === 'job' && jobMatch && matchContext ? (
+            <MatchTierBadge
+              breakdown={jobMatch}
+              context={matchContext}
+              subtitle={postTitle}
+              showProfileHint
+            />
           ) : null}
         </View>
 

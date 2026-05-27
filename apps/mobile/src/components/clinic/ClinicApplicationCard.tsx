@@ -6,12 +6,16 @@ import {
   getRoleTypeLabel,
   getSpecialtyLabel,
 } from '@chairside/config';
-import { calculateMatchScore } from '@chairside/core';
 import { Alert, Text, View } from 'react-native';
 
+import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
+import {
+  getApplicationMatchDisplayContext,
+  parseApplicationJobMatch,
+} from '@/lib/matchDisplay';
 import { openResumePreview } from '@/lib/openResumePreview';
 import { useThemedStyles } from '@/theme';
 
@@ -22,11 +26,9 @@ type ClinicApplicationCardProps = {
 
 export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicationCardProps) {
   const photoUri = useWorkerPhotoUri(application.worker_photo_storage_path);
-  const breakdown = calculateMatchScore({
-    postRoleType: application.post_role_type,
-    workerRoleType: application.role_type,
-  });
-  const score = application.match_score ?? breakdown.overall;
+  const isJob = application.post_type === 'job';
+  const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
+  const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -85,11 +87,6 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
     statusBadgeTextSelected: { color: colors.primary },
     statusBadgeTextDeclined: { color: colors.destructive },
     meta: typography.subtitle,
-    score: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.primary,
-    },
     actions: {
       gap: spacing.sm,
       marginTop: spacing.xs,
@@ -194,7 +191,13 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
           ) : null}
         </View>
       </View>
-      <Text style={styles.score}>Match score: {score}%</Text>
+      {jobMatch && matchContext ? (
+        <MatchTierBadge
+          breakdown={jobMatch}
+          context={matchContext}
+          subtitle={application.post_title}
+        />
+      ) : null}
       {application.years_of_experience != null || application.education ? (
         <Text style={styles.meta}>
           {application.years_of_experience != null

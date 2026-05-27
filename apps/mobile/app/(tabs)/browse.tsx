@@ -11,7 +11,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
-import { computeListingMatchScore } from '@/lib/workerMatch';
+import {
+  buildLiveJobMatchDisplayContext,
+  computeJobMatchBreakdown,
+} from '@/lib/workerMatch';
 import { getWorkerJobDetailRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -115,7 +118,10 @@ export default function BrowseScreen() {
                 key={job.id}
                 job={job}
                 hasApplied={appliedJobIds.has(job.id)}
-                matchScore={computeListingMatchScore(workerProfile, job)}
+                jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
+                matchContext={
+                  workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
+                }
                 onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
               />
             ))}

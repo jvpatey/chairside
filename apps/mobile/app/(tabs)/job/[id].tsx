@@ -9,6 +9,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
+import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
@@ -21,6 +22,10 @@ import {
   getApplyRoute,
 } from '@/lib/routing';
 import { guardQuickApply } from '@/lib/workerGuard';
+import {
+  buildLiveJobMatchDisplayContext,
+  computeJobMatchBreakdown,
+} from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerJobDetailScreen() {
@@ -134,6 +139,10 @@ export default function WorkerJobDetailScreen() {
   }
 
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+  const jobMatch = workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
+  const matchContext = workerProfile
+    ? buildLiveJobMatchDisplayContext(workerProfile, job)
+    : null;
 
   return (
     <OnboardingShell
@@ -162,6 +171,14 @@ export default function WorkerJobDetailScreen() {
           <Text style={styles.clinicLabel}>Clinic</Text>
           <Text style={styles.clinicName}>{job.clinic.clinic_name}</Text>
           {location ? <Text style={styles.clinicMeta}>{location}</Text> : null}
+          {jobMatch && matchContext ? (
+            <MatchTierBadge
+              breakdown={jobMatch}
+              context={matchContext}
+              subtitle={job.title}
+              showProfileHint
+            />
+          ) : null}
         </View>
         <JobPostDetailView job={job} />
       </View>

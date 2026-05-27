@@ -3,6 +3,11 @@ import { formatApplicationStatus, formatApplicationResumeStatus } from '@chairsi
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
+import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
+import {
+  getApplicationMatchDisplayContext,
+  parseApplicationJobMatch,
+} from '@/lib/matchDisplay';
 import { useThemedStyles } from '@/theme';
 
 type WorkerApplicationListCardProps = {
@@ -14,6 +19,10 @@ export function WorkerApplicationListCard({
   application,
   onPress,
 }: WorkerApplicationListCardProps) {
+  const isJob = application.post_type === 'job';
+  const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
+  const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -42,8 +51,12 @@ export function WorkerApplicationListCard({
       <Text style={styles.meta}>
         Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
       </Text>
-      {application.match_score != null ? (
-        <Text style={styles.meta}>Match score: {application.match_score}%</Text>
+      {jobMatch && matchContext ? (
+        <MatchTierBadge
+          breakdown={jobMatch}
+          context={matchContext}
+          subtitle={application.post_title}
+        />
       ) : null}
     </>
   );

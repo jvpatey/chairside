@@ -78,7 +78,10 @@ export type ApplicationRow = {
   shift_post_id: string | null;
   worker_id: string;
   status: string;
+  /** @deprecated Use match_tier for open roles. */
   match_score: number | null;
+  match_tier: string | null;
+  match_breakdown: Record<string, unknown> | null;
   cover_message: string | null;
   years_of_experience: number | null;
   education: string | null;
@@ -90,6 +93,7 @@ export type ApplicationRow = {
   worker_photo_storage_path: string | null;
   software_used: string[];
   practice_types: string[];
+  preferred_employment_types: string[];
   created_at: string;
   updated_at: string;
 };
