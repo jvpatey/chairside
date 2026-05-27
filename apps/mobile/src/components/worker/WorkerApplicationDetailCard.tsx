@@ -19,11 +19,12 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { BadgeRow } from '@/components/ui/BadgeRow';
+import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
-import { openResumePreview } from '@/lib/openResumePreview';
+import { buildResumeFileName } from '@/lib/openResumePreview';
 import { useThemedStyles } from '@/theme';
 
 type WorkerApplicationDetailCardProps = {
@@ -138,20 +139,10 @@ export function WorkerApplicationDetailCard({
     },
   }));
 
-  const handleViewResume = async () => {
-    if (!application.resume_storage_path) return;
-    try {
-      await openResumePreview(
-        application.resume_storage_path,
-        `${application.post_title}-resume.pdf`,
-      );
-    } catch (error) {
-      Alert.alert(
-        'Could not open resume',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
+  const resumeFileName = buildResumeFileName({
+    workerDisplayName: application.worker_display_name,
+    postTitle: application.post_title,
+  });
 
   const handleMessage = () => {
     Alert.alert('Coming soon', 'Messaging clinics will be available in a future update.');
@@ -211,15 +202,6 @@ export function WorkerApplicationDetailCard({
     variant: 'secondary' | 'destructive';
     onPress: () => void;
   }[] = [];
-
-  if (application.resume_storage_path) {
-    secondarySlots.push({
-      key: 'resume',
-      label: 'View resume',
-      variant: 'secondary',
-      onPress: () => void handleViewResume(),
-    });
-  }
 
   if (canCancel) {
     secondarySlots.push({
@@ -292,6 +274,12 @@ export function WorkerApplicationDetailCard({
               label="Resume"
               value={formatApplicationResumeStatus(application.resume_storage_path)}
             />
+            {application.resume_storage_path ? (
+              <ResumeViewButton
+                storagePath={application.resume_storage_path}
+                fileName={resumeFileName}
+              />
+            ) : null}
             {application.cover_message ? (
               <DetailSectionDivider>
                 <DetailSection title="Cover message">

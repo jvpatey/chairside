@@ -29,7 +29,8 @@ export default function ClinicTabLayout() {
         sceneStyle: {
           backgroundColor: colors.backgroundGrouped,
         },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="postings"
         options={{

@@ -9,6 +9,7 @@ export {
   type JobMatchContext,
   type MatchCriterion,
   type MatchCriterionDetail,
+  type MatchDetailAudience,
   type MatchLevel,
   type MatchTier,
   type StoredJobMatchBreakdown,

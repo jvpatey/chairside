@@ -1,4 +1,4 @@
-import type { MatchTier } from '@chairside/core';
+import type { MatchDetailAudience, MatchTier } from '@chairside/core';
 import type { Colors } from '@/theme/colors';
 
 type MatchTierPalette = {
@@ -45,7 +45,23 @@ export function getMatchTierSummaryHint(
   tier: MatchTier,
   strongCount: number,
   totalCount: number,
+  audience: MatchDetailAudience = 'worker',
 ): string {
+  if (audience === 'clinic') {
+    switch (tier) {
+      case 'strong':
+        return strongCount === totalCount
+          ? 'This applicant aligns well with your role on all criteria below.'
+          : `This applicant aligns on ${strongCount} of ${totalCount} criteria — review details below.`;
+      case 'good':
+        return `Solid fit on ${strongCount} of ${totalCount} criteria — review any gaps below.`;
+      case 'partial':
+        return `Mixed fit on ${strongCount} of ${totalCount} criteria — review the gaps below.`;
+      default:
+        return 'This applicant does not meet key requirements for this role.';
+    }
+  }
+
   switch (tier) {
     case 'strong':
       return strongCount === totalCount

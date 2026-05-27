@@ -72,10 +72,7 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
 
   const [jobsResult, shiftsResult] = await Promise.all([
     supabase.from('job_posts').select('id, title, role_type').eq('clinic_id', clinicId),
-    supabase
-      .from('shift_posts')
-      .select('id, role_type, shift_date')
-      .eq('clinic_id', clinicId),
+    supabase.from('shift_posts').select('id, role_type, shift_date').eq('clinic_id', clinicId),
   ]);
 
   if (jobsResult.error) throw jobsResult.error;
@@ -174,10 +171,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
 
   const { data: clinics, error: clinicsError } =
     clinicIds.length > 0
-      ? await supabase
-          .from('clinic_profiles')
-          .select('id, clinic_name, city')
-          .in('id', clinicIds)
+      ? await supabase.from('clinic_profiles').select('id, clinic_name, city').in('id', clinicIds)
       : { data: [], error: null };
 
   if (clinicsError) throw clinicsError;
@@ -215,7 +209,9 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   return applications;
 }
 
-async function enrichWorkerApplication(application: Application): Promise<WorkerApplication | null> {
+async function enrichWorkerApplication(
+  application: Application,
+): Promise<WorkerApplication | null> {
   const supabase = getSupabaseClient();
 
   if (application.job_post_id) {

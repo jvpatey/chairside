@@ -7,7 +7,7 @@ import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { openResumePreview } from '@/lib/openResumePreview';
+import { buildResumeFileName, openResumePreview } from '@/lib/openResumePreview';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ResumeUploadProps = {
@@ -91,10 +91,7 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
 
     setIsViewing(true);
     try {
-      await openResumePreview(
-        storagePath,
-        workerProfile?.resume_file_name ?? 'resume.pdf',
-      );
+      await openResumePreview(storagePath, resumeFileName);
     } catch (error) {
       Alert.alert(
         'Could not open resume',
@@ -132,9 +129,11 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
     ]);
   };
 
-  const isBusy = isUploading || isViewing;
-
   const hasResume = Boolean(workerProfile?.resume_storage_path);
+  const resumeFileName = buildResumeFileName({
+    resumeFileName: workerProfile?.resume_file_name,
+  });
+  const isBusy = isUploading || isViewing;
 
   return (
     <View style={styles.card}>

@@ -1,4 +1,9 @@
-import type { JobMatchBreakdown, JobMatchContext, MatchLevel } from '@chairside/core';
+import type {
+  JobMatchBreakdown,
+  JobMatchContext,
+  MatchDetailAudience,
+  MatchLevel,
+} from '@chairside/core';
 import { getMatchCriterionDetails, getMatchTierLabel } from '@chairside/core';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -21,6 +26,7 @@ type MatchDetailModalProps = {
   };
   subtitle?: string;
   showProfileHint?: boolean;
+  audience?: MatchDetailAudience;
 };
 
 function MatchLevelIcon({ level }: { level: MatchLevel }) {
@@ -42,10 +48,11 @@ export function MatchDetailModal({
   context,
   subtitle,
   showProfileHint = false,
+  audience = 'worker',
 }: MatchDetailModalProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const criteria = getMatchCriterionDetails(breakdown, context);
+  const criteria = getMatchCriterionDetails(breakdown, context, audience);
   const canImprove = criteria.some((item) => {
     if (item.level === 'strong') return false;
     if (
@@ -59,7 +66,13 @@ export function MatchDetailModal({
   });
   const strongCount = criteria.filter((item) => item.level === 'strong').length;
   const palette = getMatchTierPalette(breakdown.tier, colors);
-  const summaryHint = getMatchTierSummaryHint(breakdown.tier, strongCount, criteria.length);
+  const summaryHint = getMatchTierSummaryHint(
+    breakdown.tier,
+    strongCount,
+    criteria.length,
+    audience,
+  );
+  const modalTitle = audience === 'clinic' ? 'Applicant match' : 'Match details';
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     backdrop: {
@@ -159,7 +172,7 @@ export function MatchDetailModal({
 
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={styles.title}>Match details</Text>
+              <Text style={styles.title}>{modalTitle}</Text>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
             <Pressable

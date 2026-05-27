@@ -11,13 +11,14 @@ import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { BadgeRow } from '@/components/ui/BadgeRow';
+import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
-import { openResumePreview } from '@/lib/openResumePreview';
+import { buildResumeFileName } from '@/lib/openResumePreview';
 import { useThemedStyles } from '@/theme';
 
 type ClinicApplicationCardProps = {
@@ -81,20 +82,10 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
     }
   };
 
-  const handleViewResume = async () => {
-    if (!application.resume_storage_path) return;
-    try {
-      await openResumePreview(
-        application.resume_storage_path,
-        `${application.post_title}-resume.pdf`,
-      );
-    } catch (error) {
-      Alert.alert(
-        'Could not open resume',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
+  const resumeFileName = buildResumeFileName({
+    workerDisplayName: application.worker_display_name,
+    postTitle: application.post_title,
+  });
 
   return (
     <View style={styles.card}>
@@ -126,6 +117,7 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
             breakdown={jobMatch}
             context={matchContext}
             subtitle={application.post_title}
+            audience="clinic"
           />
         </BadgeRow>
       ) : null}
@@ -156,7 +148,10 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
         Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
       </Text>
       {application.resume_storage_path ? (
-        <OnboardingButton label="View resume" variant="secondary" onPress={() => void handleViewResume()} />
+        <ResumeViewButton
+          storagePath={application.resume_storage_path}
+          fileName={resumeFileName}
+        />
       ) : null}
       {(application.status === 'applied' ||
         application.status === 'reviewed' ||
