@@ -1,18 +1,29 @@
 import type { LiveJobPost } from '@chairside/api';
+import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
 import { formatJobPostCardMeta } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
+import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
+import { AppliedPillBadge } from '@/components/matching/ApplicationStatusBadge';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
   job: LiveJobPost;
-  matchScore?: number | null;
+  jobMatch?: JobMatchBreakdown | null;
+  matchContext?: Partial<JobMatchContext>;
   hasApplied?: boolean;
   onPress?: () => void;
 };
 
-export function RoleListingCard({ job, matchScore, hasApplied, onPress }: RoleListingCardProps) {
+export function RoleListingCard({
+  job,
+  jobMatch,
+  matchContext,
+  hasApplied,
+  onPress,
+}: RoleListingCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -45,29 +56,6 @@ export function RoleListingCard({ job, matchScore, hasApplied, onPress }: RoleLi
     meta: { fontSize: 14, lineHeight: 20, color: colors.labelSecondary },
     footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     wage: { fontSize: 15, fontWeight: '600', color: colors.primary },
-    match: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.secondary,
-      backgroundColor: colors.secondarySubtle,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: 6,
-    },
-    badges: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    applied: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.primary,
-      backgroundColor: colors.primarySubtle,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: 6,
-    },
   }));
 
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
@@ -88,10 +76,17 @@ export function RoleListingCard({ job, matchScore, hasApplied, onPress }: RoleLi
       </View>
       <View style={styles.footer}>
         {job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : <View />}
-        <View style={styles.badges}>
-          {hasApplied ? <Text style={styles.applied}>Applied</Text> : null}
-          {matchScore != null ? <Text style={styles.match}>{matchScore}% match</Text> : null}
-        </View>
+        <BadgeRow>
+          {hasApplied ? <AppliedPillBadge /> : null}
+          {jobMatch && matchContext ? (
+            <MatchTierBadge
+              breakdown={jobMatch}
+              context={matchContext}
+              subtitle={job.title}
+              showProfileHint
+            />
+          ) : null}
+        </BadgeRow>
       </View>
     </>
   );

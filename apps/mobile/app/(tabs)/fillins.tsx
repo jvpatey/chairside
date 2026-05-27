@@ -21,7 +21,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
-import { computeListingMatchScore } from '@/lib/workerMatch';
 import {
   getWorkerApplicationRoute,
   getWorkerShiftDetailRoute,
@@ -158,7 +157,6 @@ export default function FillInsScreen() {
                   <FillInListingCard
                     key={shift.id}
                     shift={shift}
-                    matchScore={computeListingMatchScore(workerProfile, shift)}
                     onPress={() => router.push(getWorkerShiftDetailRoute(shift.id))}
                   />
                 ))}

@@ -8,11 +8,10 @@ import { useThemedStyles } from '@/theme';
 
 type FillInListingCardProps = {
   shift: LiveShiftPost;
-  matchScore?: number | null;
   onPress?: () => void;
 };
 
-export function FillInListingCard({ shift, matchScore, onPress }: FillInListingCardProps) {
+export function FillInListingCard({ shift, onPress }: FillInListingCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -39,15 +38,6 @@ export function FillInListingCard({ shift, matchScore, onPress }: FillInListingC
     meta: { fontSize: 14, lineHeight: 20, color: colors.labelSecondary },
     footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     compensation: { fontSize: 15, fontWeight: '600', color: colors.primary },
-    match: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.secondary,
-      backgroundColor: colors.secondarySubtle,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: 6,
-    },
   }));
 
   const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
@@ -69,7 +59,6 @@ export function FillInListingCard({ shift, matchScore, onPress }: FillInListingC
         ) : (
           <View />
         )}
-        {matchScore != null ? <Text style={styles.match}>{matchScore}% match</Text> : null}
       </View>
     </>
   );

@@ -1,17 +1,22 @@
 import { updateApplicationStatus, type ClinicApplication } from '@chairside/api';
 import {
   formatApplicationEducation,
-  formatClinicApplicationStatus,
   formatApplicationResumeStatus,
   getRoleTypeLabel,
   getSpecialtyLabel,
 } from '@chairside/config';
-import { calculateMatchScore } from '@chairside/core';
 import { Alert, Text, View } from 'react-native';
 
+import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
+import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
+import {
+  getApplicationMatchDisplayContext,
+  parseApplicationJobMatch,
+} from '@/lib/matchDisplay';
 import { openResumePreview } from '@/lib/openResumePreview';
 import { useThemedStyles } from '@/theme';
 
@@ -22,11 +27,9 @@ type ClinicApplicationCardProps = {
 
 export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicationCardProps) {
   const photoUri = useWorkerPhotoUri(application.worker_photo_storage_path);
-  const breakdown = calculateMatchScore({
-    postRoleType: application.post_role_type,
-    workerRoleType: application.role_type,
-  });
-  const score = application.match_score ?? breakdown.overall;
+  const isJob = application.post_type === 'job';
+  const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
+  const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -54,42 +57,7 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
       justifyContent: 'space-between',
       gap: spacing.sm,
     },
-    statusBadge: {
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: spacing.xs + 1,
-    },
-    statusBadgeNew: {
-      backgroundColor: colors.primarySubtle,
-    },
-    statusBadgeViewed: {
-      backgroundColor: colors.secondarySubtle,
-    },
-    statusBadgeInProgress: {
-      backgroundColor: `${colors.info}18`,
-    },
-    statusBadgeSelected: {
-      backgroundColor: colors.primarySubtle,
-    },
-    statusBadgeDeclined: {
-      backgroundColor: `${colors.destructive}18`,
-    },
-    statusBadgeText: {
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.2,
-    },
-    statusBadgeTextNew: { color: colors.primary },
-    statusBadgeTextViewed: { color: colors.secondary },
-    statusBadgeTextInProgress: { color: colors.info },
-    statusBadgeTextSelected: { color: colors.primary },
-    statusBadgeTextDeclined: { color: colors.destructive },
     meta: typography.subtitle,
-    score: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.primary,
-    },
     actions: {
       gap: spacing.sm,
       marginTop: spacing.xs,
@@ -128,20 +96,6 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
     }
   };
 
-  const statusLabel = formatClinicApplicationStatus(application.status);
-  const statusVariant =
-    application.status === 'applied'
-      ? 'new'
-      : application.status === 'reviewed'
-        ? 'viewed'
-        : application.status === 'in_progress'
-          ? 'inProgress'
-          : application.status === 'selected'
-            ? 'selected'
-            : application.status === 'rejected'
-              ? 'declined'
-              : 'viewed';
-
   return (
     <View style={styles.card}>
       <View style={styles.applicantHeader}>
@@ -159,42 +113,22 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
             ) : (
               <View style={{ flex: 1 }} />
             )}
-            <View
-              style={[
-                styles.statusBadge,
-                statusVariant === 'new'
-                  ? styles.statusBadgeNew
-                  : statusVariant === 'viewed'
-                    ? styles.statusBadgeViewed
-                    : statusVariant === 'inProgress'
-                      ? styles.statusBadgeInProgress
-                      : statusVariant === 'selected'
-                        ? styles.statusBadgeSelected
-                        : styles.statusBadgeDeclined,
-              ]}>
-              <Text
-                style={[
-                  styles.statusBadgeText,
-                  statusVariant === 'new'
-                    ? styles.statusBadgeTextNew
-                    : statusVariant === 'viewed'
-                      ? styles.statusBadgeTextViewed
-                      : statusVariant === 'inProgress'
-                        ? styles.statusBadgeTextInProgress
-                        : statusVariant === 'selected'
-                          ? styles.statusBadgeTextSelected
-                          : styles.statusBadgeTextDeclined,
-                ]}>
-                {statusLabel}
-              </Text>
-            </View>
+            <ClinicApplicationStatusBadge status={application.status} />
           </View>
           {application.worker_address ? (
             <Text style={styles.meta}>{application.worker_address}</Text>
           ) : null}
         </View>
       </View>
-      <Text style={styles.score}>Match score: {score}%</Text>
+      {jobMatch && matchContext ? (
+        <BadgeRow>
+          <MatchTierBadge
+            breakdown={jobMatch}
+            context={matchContext}
+            subtitle={application.post_title}
+          />
+        </BadgeRow>
+      ) : null}
       {application.years_of_experience != null || application.education ? (
         <Text style={styles.meta}>
           {application.years_of_experience != null
