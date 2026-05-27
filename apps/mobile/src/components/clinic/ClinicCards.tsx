@@ -11,6 +11,7 @@ import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { isMainListJob } from '@/lib/postingFilters';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
@@ -294,6 +295,9 @@ type DashboardOverviewPanelProps = {
   shifts: ShiftPost[];
   jobApplicationSummaries: JobApplicationSummary[];
   applicantCounts?: Record<string, number>;
+  clinicId?: string;
+  onJobUpdated?: (job: JobPost) => void;
+  onJobDeleted?: (jobId: string) => void;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
   onJobApplicationsPress?: (jobId: string) => void;
@@ -423,6 +427,9 @@ export function DashboardOverviewPanel({
   shifts,
   jobApplicationSummaries,
   applicantCounts,
+  clinicId,
+  onJobUpdated,
+  onJobDeleted,
   onJobPress,
   onShiftPress,
   onJobApplicationsPress,
@@ -433,7 +440,7 @@ export function DashboardOverviewPanel({
     },
   }));
 
-  const roleJobs = jobs.filter((job) => job.status === 'live' || job.status === 'paused');
+  const roleJobs = jobs.filter(isMainListJob);
   const liveShifts = shifts.filter((shift) => shift.status === 'live');
 
   return (
@@ -450,6 +457,15 @@ export function DashboardOverviewPanel({
                   job={job}
                   applicantCount={applicantCounts?.[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
+                  manage={
+                    clinicId && onJobUpdated && onJobDeleted
+                      ? {
+                          clinicId,
+                          onUpdated: onJobUpdated,
+                          onDeleted: () => onJobDeleted(job.id),
+                        }
+                      : undefined
+                  }
                 />
               ))}
           </View>

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 
+import { JobPostManageMenuHost } from '@/components/clinic/JobPostManageMenuHost';
 import {
   DashboardTabBarButton,
   DashboardTabIcon,
@@ -12,6 +13,7 @@ export default function ClinicTabLayout() {
   const { colors } = useTheme();
 
   return (
+    <>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
@@ -76,6 +78,9 @@ export default function ClinicTabLayout() {
       <Tabs.Screen name="job/[id]" options={{ href: null }} />
       <Tabs.Screen name="shift/[id]" options={{ href: null }} />
       <Tabs.Screen name="role-applicants/[jobId]" options={{ href: null }} />
+      <Tabs.Screen name="role-history" options={{ href: null }} />
     </Tabs>
+    <JobPostManageMenuHost />
+    </>
   );
 }

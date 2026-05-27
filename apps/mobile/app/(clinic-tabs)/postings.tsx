@@ -5,11 +5,12 @@ import {
   CLINIC_POST_JOB,
   getJobDetailRoute,
   getPostShiftRoute,
+  getRoleHistoryRoute,
   getShiftDetailRoute,
   type FillInReturnTarget,
 } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { RolePostingFilters, ShiftPostingFilters } from '@/components/clinic/PostingFilters';
@@ -21,7 +22,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  filterJobPosts,
+  countHistoryJobs,
+  countMainListJobs,
+  filterJobPostsForMainList,
   filterShiftPosts,
   type JobStatusFilter,
   type RoleTypeFilter,
@@ -84,6 +87,7 @@ function PostingListEmptyState({
 }
 
 export default function ClinicPostingsScreen() {
+  const { colors } = useTheme();
   const { user } = useAuth();
   const { isProfileComplete } = useClinicProfile();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
@@ -91,7 +95,7 @@ export default function ClinicPostingsScreen() {
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [selectedTab, setSelectedTab] = useState<PostingsTab>('roles');
-  const [jobStatusFilter, setJobStatusFilter] = useState<JobStatusFilter>('active');
+  const [jobStatusFilter, setJobStatusFilter] = useState<JobStatusFilter>('all');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
@@ -104,17 +108,23 @@ export default function ClinicPostingsScreen() {
     }
   }, [tab]);
 
+  const mainListJobs = useMemo(() => filterJobPostsForMainList(jobs, 'all', 'all'), [jobs]);
+
   const filteredJobs = useMemo(
-    () => filterJobPosts(jobs, jobStatusFilter, jobRoleTypeFilter),
+    () => filterJobPostsForMainList(jobs, jobStatusFilter, jobRoleTypeFilter),
     [jobs, jobStatusFilter, jobRoleTypeFilter],
   );
+
+  const historyCounts = useMemo(() => countHistoryJobs(jobs), [jobs]);
+  const mainListCount = useMemo(() => countMainListJobs(jobs), [jobs]);
+  const hasRoleHistory = historyCounts.archived > 0 || historyCounts.filled > 0;
 
   const filteredShifts = useMemo(
     () => filterShiftPosts(shifts, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter),
     [shifts, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter],
   );
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.lg,
     },
@@ -122,6 +132,30 @@ export default function ClinicPostingsScreen() {
       gap: spacing.sm,
     },
     loading: typography.subtitle,
+    historyLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      gap: spacing.sm,
+    },
+    historyLinkPressed: {
+      opacity: 0.92,
+    },
+    historyTitle: {
+      ...typography.body,
+      fontWeight: '600',
+      fontSize: 15,
+    },
+    historyMeta: {
+      ...typography.subtitle,
+      fontSize: 13,
+    },
   }));
 
   const load = useCallback(async () => {
@@ -157,6 +191,19 @@ export default function ClinicPostingsScreen() {
 
   useRefreshOnFocus(load);
 
+  const handleJobUpdated = useCallback((updated: JobPost) => {
+    setJobs((prev) => prev.map((job) => (job.id === updated.id ? updated : job)));
+  }, []);
+
+  const handleJobDeleted = useCallback((jobId: string) => {
+    setJobs((prev) => prev.filter((job) => job.id !== jobId));
+    setApplicantCounts((prev) => {
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
+  }, []);
+
   const postTarget =
     selectedTab === 'roles' ? CLINIC_POST_JOB : getPostShiftRoute('postings-fill-ins');
   const postLabel = selectedTab === 'roles' ? 'Post role' : 'Post fill-in';
@@ -167,7 +214,7 @@ export default function ClinicPostingsScreen() {
       <View style={styles.wrap}>
         <PostingsTabBar
           selected={selectedTab}
-          roleCount={jobs.length}
+          roleCount={mainListCount}
           fillInCount={shifts.length}
           onChange={setSelectedTab}
         />
@@ -182,7 +229,7 @@ export default function ClinicPostingsScreen() {
           <Text style={styles.loading}>Loading postings…</Text>
         ) : selectedTab === 'roles' ? (
           <>
-            {jobs.length > 0 ? (
+            {mainListJobs.length > 0 ? (
               <RolePostingFilters
                 statusFilter={jobStatusFilter}
                 roleTypeFilter={jobRoleTypeFilter}
@@ -196,6 +243,12 @@ export default function ClinicPostingsScreen() {
                 icon="briefcase-outline"
                 title="No roles yet"
                 body="Post your first role to start receiving applications from candidates."
+              />
+            ) : mainListJobs.length === 0 ? (
+              <PostingListEmptyState
+                icon="briefcase-outline"
+                title="No active roles"
+                body="Paused and live roles appear here. View role history for archived and filled postings."
               />
             ) : filteredJobs.length === 0 ? (
               <PostingListEmptyState
@@ -211,10 +264,40 @@ export default function ClinicPostingsScreen() {
                     job={job}
                     applicantCount={applicantCounts[job.id] ?? 0}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
+                    manage={
+                      user?.id
+                        ? {
+                            clinicId: user.id,
+                            onUpdated: handleJobUpdated,
+                            onDeleted: () => handleJobDeleted(job.id),
+                          }
+                        : undefined
+                    }
                   />
                 ))}
               </View>
             )}
+
+            {hasRoleHistory ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Role history"
+                onPress={() => router.push(getRoleHistoryRoute())}
+                style={({ pressed }) => [styles.historyLink, pressed && styles.historyLinkPressed]}
+              >
+                <View>
+                  <Text style={styles.historyTitle}>Role history</Text>
+                  <Text style={styles.historyMeta}>
+                    {historyCounts.archived === 1
+                      ? '1 archived'
+                      : `${historyCounts.archived} archived`}
+                    {' · '}
+                    {historyCounts.filled === 1 ? '1 filled' : `${historyCounts.filled} filled`}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.labelTertiary} />
+              </Pressable>
+            ) : null}
           </>
         ) : (
           <>

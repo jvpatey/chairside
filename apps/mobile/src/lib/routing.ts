@@ -72,6 +72,10 @@ export function getJobDetailRoute(jobId: string): Href {
   return { pathname: '/(clinic-tabs)/job/[id]', params: { id: jobId } } as Href;
 }
 
+export function getRoleHistoryRoute(): Href {
+  return '/(clinic-tabs)/role-history' as Href;
+}
+
 export function getWorkerJobDetailRoute(jobId: string): Href {
   return { pathname: '/(tabs)/job/[id]', params: { id: jobId } } as unknown as Href;
 }
