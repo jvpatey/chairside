@@ -52,9 +52,9 @@ const SECTION_CONFIG: {
   },
   {
     id: 'interview_set',
-    title: 'Interview set',
+    title: 'Interview',
     defaultExpanded: true,
-    statuses: ['interview_scheduled'],
+    statuses: ['interview_offered', 'interview_scheduled'],
   },
   {
     id: 'decided',
@@ -79,7 +79,7 @@ export function groupApplicationsByPipeline(
 
 const FILTER_STATUS_MAP: Record<Exclude<ApplicantListFilter, 'all'>, string[]> = {
   shortlisted: ['in_progress'],
-  interview: ['interview_scheduled'],
+  interview: ['interview_offered', 'interview_scheduled'],
 };
 
 export function getApplicantFilterCounts(

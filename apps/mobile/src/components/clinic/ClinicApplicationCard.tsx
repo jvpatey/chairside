@@ -1,4 +1,8 @@
-import { updateApplicationStatus, type ClinicApplication } from '@chairside/api';
+import {
+  cancelApplicationInterviewOffer,
+  updateApplicationStatus,
+  type ClinicApplication,
+} from '@chairside/api';
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
@@ -33,6 +37,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 type ClinicApplicationCardProps = {
   application: ClinicApplication;
   onUpdated?: () => void;
+  onShortlisted?: () => void;
   onScheduleInterview?: (application: ClinicApplication) => void;
 };
 
@@ -45,6 +50,7 @@ function truncatePreview(text: string, maxLength = 88): string {
 export function ClinicApplicationCard({
   application,
   onUpdated,
+  onShortlisted,
   onScheduleInterview,
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
@@ -126,21 +132,57 @@ export function ClinicApplicationCard({
     actionsRow: {
       flexDirection: 'row',
       gap: spacing.sm,
+      alignSelf: 'stretch',
     },
-    action: { flex: 1 },
+    action: {
+      flex: 1,
+      minWidth: 0,
+    },
   }));
 
   const updateStatus = async (status: Parameters<typeof updateApplicationStatus>[1]) => {
     try {
       await updateApplicationStatus(application.id, status);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onUpdated?.();
+      if (status === 'in_progress') {
+        onShortlisted?.() ?? onUpdated?.();
+      } else {
+        onUpdated?.();
+      }
     } catch (error) {
       Alert.alert(
         'Update failed',
         error instanceof Error ? error.message : 'Please try again.',
       );
     }
+  };
+
+  const cancelInterviewInvite = () => {
+    Alert.alert(
+      'Cancel interview invite?',
+      'This withdraws the invitation and moves the applicant back to your shortlist.',
+      [
+        { text: 'Keep invite', style: 'cancel' },
+        {
+          text: 'Cancel invite',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await cancelApplicationInterviewOffer(application.id);
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                onShortlisted?.() ?? onUpdated?.();
+              } catch (error) {
+                Alert.alert(
+                  'Update failed',
+                  error instanceof Error ? error.message : 'Please try again.',
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   const toggleExpanded = () => {
@@ -153,10 +195,16 @@ export function ClinicApplicationCard({
     postTitle: application.post_title,
   });
 
+  const hasInterviewDetails =
+    (application.status === 'interview_offered' ||
+      application.status === 'interview_scheduled') &&
+    interviewSummary;
+
   const hasActions =
     application.status === 'applied' ||
     application.status === 'reviewed' ||
     application.status === 'in_progress' ||
+    application.status === 'interview_offered' ||
     application.status === 'interview_scheduled';
 
   return (
@@ -195,10 +243,21 @@ export function ClinicApplicationCard({
         </BadgeRow>
       ) : null}
 
-      {application.status === 'interview_scheduled' && interviewSummary ? (
+      {hasInterviewDetails ? (
         <View style={styles.interviewRow}>
-          <Ionicons name="calendar-outline" size={16} color={colors.info} />
-          <Text style={styles.interviewText}>{interviewSummary}</Text>
+          <Ionicons
+            name="calendar-outline"
+            size={16}
+            color={application.status === 'interview_offered' ? colors.warning : colors.info}
+          />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.interviewText}>{interviewSummary}</Text>
+            {application.status === 'interview_offered' ? (
+              <Text style={[styles.interviewText, { fontSize: 13 }]}>
+                Awaiting candidate response
+              </Text>
+            ) : null}
+          </View>
         </View>
       ) : null}
 
@@ -281,38 +340,61 @@ export function ClinicApplicationCard({
                       onPress={() => void updateStatus('in_progress')}
                     />
                   </View>
-                  <OnboardingButton
-                    label="Not moving forward"
-                    variant="destructive"
-                    onPress={() => void updateStatus('rejected')}
-                  />
+                  <View style={styles.actionsRow}>
+                    <OnboardingButton
+                      style={styles.action}
+                      label="Not moving forward"
+                      variant="destructive"
+                      onPress={() => void updateStatus('rejected')}
+                    />
+                  </View>
                 </>
               ) : null}
               {application.status === 'reviewed' ? (
-                <>
+                <View style={styles.actionsRow}>
                   <OnboardingButton
+                    style={styles.action}
                     label="Add to shortlist"
                     onPress={() => void updateStatus('in_progress')}
                   />
                   <OnboardingButton
+                    style={styles.action}
                     label="Not moving forward"
                     variant="destructive"
                     onPress={() => void updateStatus('rejected')}
                   />
-                </>
+                </View>
               ) : null}
               {application.status === 'in_progress' ? (
-                <>
+                <View style={styles.actionsRow}>
                   <OnboardingButton
+                    style={styles.action}
                     label="Schedule interview"
                     onPress={() => onScheduleInterview?.(application)}
                   />
                   <OnboardingButton
+                    style={styles.action}
                     label="Not moving forward"
                     variant="destructive"
                     onPress={() => void updateStatus('rejected')}
                   />
-                </>
+                </View>
+              ) : null}
+              {application.status === 'interview_offered' ? (
+                <View style={styles.actionsRow}>
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Cancel invite"
+                    variant="secondary"
+                    onPress={cancelInterviewInvite}
+                  />
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Not moving forward"
+                    variant="destructive"
+                    onPress={() => void updateStatus('rejected')}
+                  />
+                </View>
               ) : null}
               {application.status === 'interview_scheduled' ? (
                 <View style={styles.actionsRow}>

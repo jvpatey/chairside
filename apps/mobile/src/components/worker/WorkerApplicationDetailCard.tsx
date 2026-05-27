@@ -1,4 +1,9 @@
-import { deleteApplication, type WorkerApplication } from '@chairside/api';
+import {
+  acceptApplicationInterview,
+  declineApplicationInterview,
+  deleteApplication,
+  type WorkerApplication,
+} from '@chairside/api';
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
@@ -8,7 +13,8 @@ import {
   getSpecialtyLabel,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Platform, Share, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Alert, Text, View } from 'react-native';
 
 import {
   DetailProse,
@@ -27,7 +33,10 @@ import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
-import { buildGoogleCalendarUrl, buildInterviewInviteTitle } from '@/lib/calendarInvite';
+import {
+  buildInterviewInviteInputFromApplication,
+  openInterviewCalendarInvite,
+} from '@/lib/calendarInvite';
 import { buildResumeFileName } from '@/lib/openResumePreview';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -35,6 +44,7 @@ type WorkerApplicationDetailCardProps = {
   application: WorkerApplication;
   onViewPosting?: () => void;
   onCancelled?: () => void;
+  onUpdated?: () => void;
 };
 
 function formatAppliedDate(value: string): string {
@@ -51,6 +61,7 @@ export function WorkerApplicationDetailCard({
   application,
   onViewPosting,
   onCancelled,
+  onUpdated,
 }: WorkerApplicationDetailCardProps) {
   const { colors } = useTheme();
   const canCancel = isActiveApplicationStatus(application.status);
@@ -138,9 +149,11 @@ export function WorkerApplicationDetailCard({
     actionsRow: {
       flexDirection: 'row',
       gap: spacing.sm,
+      alignSelf: 'stretch',
     },
     actionCell: {
       flex: 1,
+      minWidth: 0,
     },
     interviewCard: {
       backgroundColor: colors.secondarySubtle,
@@ -179,32 +192,81 @@ export function WorkerApplicationDetailCard({
   );
 
   const handleAddInterviewToCalendar = () => {
-    if (!application.interview_at) return;
-
-    const interviewAt = new Date(application.interview_at);
-    if (Number.isNaN(interviewAt.getTime())) return;
-
-    const title = buildInterviewInviteTitle({
+    const inviteInput = buildInterviewInviteInputFromApplication({
       clinicName: application.clinic_name,
       roleTitle: application.post_title,
-    });
-    const calendarUrl = buildGoogleCalendarUrl({
-      title,
-      clinicName: application.clinic_name,
-      roleTitle: application.post_title,
-      interviewAt,
-      durationMinutes: application.interview_duration_minutes ?? 45,
+      interviewAt: application.interview_at ?? '',
+      durationMinutes: application.interview_duration_minutes,
       details: application.interview_details,
     });
 
-    void Share.share({
-      message:
-        Platform.OS === 'ios'
-          ? `${title}\n${interviewSummary ?? ''}\n${calendarUrl}`
-          : `${title}\n${interviewSummary ?? ''}\n${calendarUrl}`,
-      url: Platform.OS === 'ios' ? calendarUrl : undefined,
-      title,
-    });
+    if (!inviteInput) return;
+
+    void (async () => {
+      try {
+        await openInterviewCalendarInvite(inviteInput);
+      } catch (error) {
+        Alert.alert(
+          'Could not open calendar',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      }
+    })();
+  };
+
+  const handleAcceptInterview = () => {
+    Alert.alert(
+      'Accept interview?',
+      'Confirm that you can attend at the proposed date and time.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Accept interview',
+          onPress: () => {
+            void (async () => {
+              try {
+                await acceptApplicationInterview(application.worker_id, application.id);
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                onUpdated?.();
+              } catch (error) {
+                Alert.alert(
+                  'Could not accept interview',
+                  error instanceof Error ? error.message : 'Please try again.',
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDeclineInterview = () => {
+    Alert.alert(
+      'Decline interview?',
+      'The clinic will be notified. You will remain shortlisted for this role.',
+      [
+        { text: 'Keep invitation', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await declineApplicationInterview(application.worker_id, application.id);
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                onUpdated?.();
+              } catch (error) {
+                Alert.alert(
+                  'Could not decline interview',
+                  error instanceof Error ? error.message : 'Please try again.',
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   const handleCancel = () => {
@@ -308,11 +370,30 @@ export function WorkerApplicationDetailCard({
       </View>
 
       <View style={styles.body}>
+        {application.status === 'interview_offered' && interviewSummary ? (
+          <View style={styles.interviewCard}>
+            <View style={styles.interviewHeader}>
+              <Ionicons name="calendar-outline" size={18} color={colors.warning} />
+              <Text style={styles.interviewTitle}>Interview invitation</Text>
+            </View>
+            <Text style={styles.interviewMeta}>{interviewSummary}</Text>
+            {application.interview_details ? (
+              <Text style={styles.interviewMeta}>{application.interview_details}</Text>
+            ) : null}
+            <OnboardingButton label="Accept interview" onPress={handleAcceptInterview} />
+            <OnboardingButton
+              label="Decline"
+              variant="destructive"
+              onPress={handleDeclineInterview}
+            />
+          </View>
+        ) : null}
+
         {application.status === 'interview_scheduled' && interviewSummary ? (
           <View style={styles.interviewCard}>
             <View style={styles.interviewHeader}>
               <Ionicons name="calendar-outline" size={18} color={colors.secondary} />
-              <Text style={styles.interviewTitle}>Interview scheduled</Text>
+              <Text style={styles.interviewTitle}>Interview confirmed</Text>
             </View>
             <Text style={styles.interviewMeta}>{interviewSummary}</Text>
             {application.interview_details ? (
@@ -377,30 +458,44 @@ export function WorkerApplicationDetailCard({
           <View style={styles.actionsSection}>
             <Text style={styles.actionsLabel}>Actions</Text>
             <View style={styles.actionsGrid}>
-              {actionRows.map((row, rowIndex) =>
-                row.primary || row.secondary ? (
+              {actionRows.map((row, rowIndex) => {
+                const slots = [
+                  row.primary
+                    ? {
+                        key: row.primary.key,
+                        label: row.primary.label,
+                        onPress: row.primary.onPress,
+                        disabled: row.primary.disabled,
+                        variant: 'primary' as const,
+                      }
+                    : null,
+                  row.secondary
+                    ? {
+                        key: row.secondary.key,
+                        label: row.secondary.label,
+                        onPress: row.secondary.onPress,
+                        variant: row.secondary.variant,
+                      }
+                    : null,
+                ].filter((slot): slot is NonNullable<typeof slot> => slot != null);
+
+                if (slots.length === 0) return null;
+
+                return (
                   <View key={`action-row-${rowIndex}`} style={styles.actionsRow}>
-                    <View style={styles.actionCell}>
-                      {row.primary ? (
+                    {slots.map((slot) => (
+                      <View key={slot.key} style={styles.actionCell}>
                         <OnboardingButton
-                          label={row.primary.label}
-                          onPress={row.primary.onPress}
-                          disabled={row.primary.disabled}
+                          label={slot.label}
+                          variant={slot.variant}
+                          onPress={slot.onPress}
+                          disabled={'disabled' in slot ? slot.disabled : undefined}
                         />
-                      ) : null}
-                    </View>
-                    <View style={styles.actionCell}>
-                      {row.secondary ? (
-                        <OnboardingButton
-                          label={row.secondary.label}
-                          variant={row.secondary.variant}
-                          onPress={row.secondary.onPress}
-                        />
-                      ) : null}
-                    </View>
+                      </View>
+                    ))}
                   </View>
-                ) : null,
-              )}
+                );
+              })}
             </View>
           </View>
         ) : null}

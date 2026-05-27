@@ -12,6 +12,7 @@ export type ApplicationStatusVariant =
   | 'applied'
   | 'viewed'
   | 'inProgress'
+  | 'interviewOffered'
   | 'interviewScheduled'
   | 'selected'
   | 'rejected';
@@ -21,6 +22,7 @@ export function getWorkerApplicationStatusVariant(
 ): ApplicationStatusVariant {
   if (status === 'reviewed') return 'viewed';
   if (status === 'in_progress') return 'inProgress';
+  if (status === 'interview_offered') return 'interviewOffered';
   if (status === 'interview_scheduled') return 'interviewScheduled';
   if (status === 'rejected') return 'rejected';
   if (status === 'selected' || status === 'hired') return 'selected';
@@ -33,6 +35,7 @@ export function getClinicApplicationStatusVariant(
   if (status === 'applied') return 'applied';
   if (status === 'reviewed') return 'viewed';
   if (status === 'in_progress') return 'inProgress';
+  if (status === 'interview_offered') return 'interviewOffered';
   if (status === 'interview_scheduled') return 'interviewScheduled';
   if (status === 'selected' || status === 'hired') return 'selected';
   if (status === 'rejected') return 'rejected';
@@ -47,6 +50,8 @@ function useStatusVariantPalette(variant: ApplicationStatusVariant) {
       return { color: colors.secondary, backgroundColor: colors.secondarySubtle };
     case 'inProgress':
       return { color: colors.info, backgroundColor: `${colors.info}18` };
+    case 'interviewOffered':
+      return { color: colors.warning, backgroundColor: `${colors.warning}18` };
     case 'interviewScheduled':
       return { color: colors.secondary, backgroundColor: colors.secondarySubtle };
     case 'rejected':

@@ -24,6 +24,7 @@ import {
   type ApplicantListFilter,
   type ApplicantPipelineSectionId,
 } from '@/lib/applicationPipeline';
+import { navigateAfterRoleApplicants } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 function formatClinicAddress(profile: {
@@ -45,14 +46,22 @@ function formatClinicAddress(profile: {
 
 const FILTER_EMPTY_MESSAGES: Record<Exclude<ApplicantListFilter, 'all'>, string> = {
   shortlisted: 'No shortlisted applicants yet. Add candidates from the All tab.',
-  interview: 'No interviews scheduled yet. Schedule one from a shortlisted applicant.',
+  interview: 'No interview invitations yet. Send one from a shortlisted applicant.',
 };
 
 export default function ClinicRoleApplicationsScreen() {
   const { user } = useAuth();
   const { clinicProfile } = useClinicProfile();
-  const { jobId } = useLocalSearchParams<{ jobId?: string }>();
+  const { jobId, returnTo } = useLocalSearchParams<{
+    jobId?: string;
+    returnTo?: string;
+  }>();
   const resolvedJobId = typeof jobId === 'string' ? jobId : '';
+  const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
+
+  const goBack = useCallback(() => {
+    navigateAfterRoleApplicants(router, resolvedReturnTo);
+  }, [resolvedReturnTo]);
   const [postTitle, setPostTitle] = useState('');
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,11 +99,11 @@ export default function ClinicRoleApplicationsScreen() {
         'Could not load applicants',
         error instanceof Error ? error.message : 'Please try again.',
       );
-      router.back();
+      goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [resolvedJobId, user?.id]);
+  }, [goBack, resolvedJobId, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -128,12 +137,23 @@ export default function ClinicRoleApplicationsScreen() {
     }));
   };
 
+  const handleShortlisted = useCallback(() => {
+    setListFilter('shortlisted');
+    void load();
+  }, [load]);
+
+  const handleInterviewOffered = useCallback(() => {
+    setListFilter('interview');
+    void load();
+  }, [load]);
+
   const renderApplicationCards = (rows: ClinicApplication[]) =>
     rows.map((application) => (
       <ClinicApplicationCard
         key={application.id}
         application={application}
         onUpdated={() => void load()}
+        onShortlisted={handleShortlisted}
         onScheduleInterview={setScheduleTarget}
       />
     ));
@@ -143,7 +163,7 @@ export default function ClinicRoleApplicationsScreen() {
       <AuthScreenHeader
         title={postTitle || 'Role applicants'}
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={goBack}
       />
       <View style={styles.content}>
         {applications.length === 0 && !isLoading ? (
@@ -193,7 +213,7 @@ export default function ClinicRoleApplicationsScreen() {
           application={scheduleTarget}
           clinicName={clinicName}
           defaultLocation={defaultLocation}
-          onScheduled={() => void load()}
+          onOffered={handleInterviewOffered}
           onClose={() => setScheduleTarget(null)}
         />
       ) : null}

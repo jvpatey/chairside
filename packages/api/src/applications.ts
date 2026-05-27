@@ -11,6 +11,7 @@ export type ApplicationStatus =
   | 'applied'
   | 'reviewed'
   | 'in_progress'
+  | 'interview_offered'
   | 'interview_scheduled'
   | 'selected'
   | 'rejected'
@@ -21,6 +22,7 @@ export const ACTIVE_APPLICATION_STATUSES: ApplicationStatus[] = [
   'applied',
   'reviewed',
   'in_progress',
+  'interview_offered',
   'interview_scheduled',
 ];
 
@@ -55,6 +57,7 @@ export type Application = {
   interview_at: string | null;
   interview_duration_minutes: number | null;
   interview_details: string | null;
+  interview_offer_closed_by: 'clinic' | 'worker' | null;
   created_at: string;
   updated_at: string;
 };
@@ -412,7 +415,10 @@ export async function listJobApplicationSummaries(
       if (application.status === 'in_progress') {
         existing.shortlisted_count += 1;
       }
-      if (application.status === 'interview_scheduled') {
+      if (
+        application.status === 'interview_offered' ||
+        application.status === 'interview_scheduled'
+      ) {
         existing.interview_count += 1;
       }
     } else {
@@ -422,7 +428,11 @@ export async function listJobApplicationSummaries(
         applicant_count: 1,
         pending_count: application.status === 'applied' ? 1 : 0,
         shortlisted_count: application.status === 'in_progress' ? 1 : 0,
-        interview_count: application.status === 'interview_scheduled' ? 1 : 0,
+        interview_count:
+          application.status === 'interview_offered' ||
+          application.status === 'interview_scheduled'
+            ? 1
+            : 0,
       });
     }
   }
@@ -528,7 +538,7 @@ export async function updateApplicationStatus(
   return data as Application;
 }
 
-export async function scheduleApplicationInterview(
+export async function offerApplicationInterview(
   applicationId: string,
   input: ScheduleApplicationInterviewInput,
 ): Promise<Application> {
@@ -536,13 +546,86 @@ export async function scheduleApplicationInterview(
   const { data, error } = await supabase
     .from('applications')
     .update({
-      status: 'interview_scheduled',
+      status: 'interview_offered',
       interview_at: input.interviewAt,
       interview_duration_minutes: input.durationMinutes,
       interview_details: input.details?.trim() || null,
+      interview_offer_closed_by: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', applicationId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+/** @deprecated Use offerApplicationInterview */
+export const scheduleApplicationInterview = offerApplicationInterview;
+
+export async function acceptApplicationInterview(
+  workerId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      status: 'interview_scheduled',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('worker_id', workerId)
+    .eq('status', 'interview_offered')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+export async function declineApplicationInterview(
+  workerId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      status: 'in_progress',
+      interview_at: null,
+      interview_duration_minutes: null,
+      interview_details: null,
+      interview_offer_closed_by: 'worker',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('worker_id', workerId)
+    .eq('status', 'interview_offered')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+export async function cancelApplicationInterviewOffer(
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      status: 'in_progress',
+      interview_at: null,
+      interview_duration_minutes: null,
+      interview_details: null,
+      interview_offer_closed_by: 'clinic',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('status', 'interview_offered')
     .select('*')
     .single();
 

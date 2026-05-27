@@ -6,7 +6,8 @@ const JOB_STATUS_LABELS: Record<string, string> = {
   applied: 'Applied',
   reviewed: 'Viewed',
   in_progress: 'Shortlisted',
-  interview_scheduled: 'Interview scheduled',
+  interview_offered: 'Interview invitation',
+  interview_scheduled: 'Interview confirmed',
   selected: 'Hired',
   rejected: 'Declined',
   hired: 'Hired',
@@ -17,6 +18,7 @@ const SHIFT_STATUS_LABELS: Record<string, string> = {
   applied: 'Requested',
   reviewed: 'Viewed',
   in_progress: 'In progress',
+  interview_offered: 'Interview invitation',
   interview_scheduled: 'Interview scheduled',
   selected: 'Confirmed',
   rejected: 'Declined',
@@ -28,6 +30,7 @@ const CLINIC_STATUS_LABELS: Record<string, string> = {
   applied: 'New',
   reviewed: 'Viewed',
   in_progress: 'Shortlisted',
+  interview_offered: 'Awaiting response',
   interview_scheduled: 'Interview set',
   selected: 'Hired',
   rejected: 'Not moving forward',
@@ -97,7 +100,9 @@ export function formatRoleApplicantPipelineSubtitle(applications: {
     (application) => application.status === 'in_progress',
   ).length;
   const interviewCount = applications.filter(
-    (application) => application.status === 'interview_scheduled',
+    (application) =>
+      application.status === 'interview_offered' ||
+      application.status === 'interview_scheduled',
   ).length;
 
   const parts: string[] = [];
@@ -124,6 +129,7 @@ export function isActiveApplicationStatus(status: string | null | undefined): bo
     status === 'applied' ||
     status === 'reviewed' ||
     status === 'in_progress' ||
+    status === 'interview_offered' ||
     status === 'interview_scheduled'
   );
 }

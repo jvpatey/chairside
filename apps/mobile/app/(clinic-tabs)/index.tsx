@@ -196,7 +196,7 @@ export default function ClinicDashboardScreen() {
             router.push(getShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
           }
           onJobApplicationsPress={(jobId) =>
-            router.push(getClinicRoleApplicationsRoute(jobId))
+            router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
           }
         />
       </View>

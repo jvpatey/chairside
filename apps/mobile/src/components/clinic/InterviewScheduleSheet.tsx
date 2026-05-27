@@ -1,4 +1,4 @@
-import { scheduleApplicationInterview, type ClinicApplication } from '@chairside/api';
+import { offerApplicationInterview, type ClinicApplication } from '@chairside/api';
 import { formatInterviewDateTime } from '@chairside/config';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
@@ -8,7 +8,7 @@ import {
   Modal,
   Platform,
   Pressable,
-  Share,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,9 +19,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import {
-  buildGoogleCalendarUrl,
   buildInterviewInviteTitle,
-  buildInterviewShareMessage,
+  addInterviewToCalendar,
   type InterviewInviteInput,
 } from '@/lib/calendarInvite';
 import { addDays, startOfDay } from '@/lib/dates';
@@ -31,6 +30,8 @@ const DURATION_OPTIONS = [
   { value: '30', label: '30 min' },
   { value: '45', label: '45 min' },
   { value: '60', label: '60 min' },
+  { value: '75', label: '75 min' },
+  { value: '90', label: '90 min' },
 ] as const;
 
 type InterviewScheduleSheetProps = {
@@ -38,7 +39,7 @@ type InterviewScheduleSheetProps = {
   application: ClinicApplication;
   clinicName: string;
   defaultLocation?: string | null;
-  onScheduled: () => void;
+  onOffered: () => void;
   onClose: () => void;
 };
 
@@ -53,7 +54,7 @@ export function InterviewScheduleSheet({
   application,
   clinicName,
   defaultLocation,
-  onScheduled,
+  onOffered,
   onClose,
 }: InterviewScheduleSheetProps) {
   const { colors } = useTheme();
@@ -114,8 +115,22 @@ export function InterviewScheduleSheet({
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
       paddingBottom: Math.max(insets.bottom, spacing.lg),
-      gap: spacing.md,
       maxHeight: '92%',
+    },
+    scroll: {
+      flexGrow: 0,
+      flexShrink: 1,
+    },
+    scrollContent: {
+      gap: spacing.md,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    footer: {
+      gap: spacing.sm,
+      paddingTop: spacing.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.separator,
     },
     handle: {
       alignSelf: 'center',
@@ -216,6 +231,15 @@ export function InterviewScheduleSheet({
       textAlign: 'center',
       color: colors.labelPrimary,
     },
+    calendarLink: {
+      alignSelf: 'center',
+      paddingVertical: spacing.xs,
+    },
+    calendarLinkText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primary,
+    },
   }));
 
   const handleDateChange = (event: DateTimePickerEvent, date?: Date) => {
@@ -254,7 +278,7 @@ export function InterviewScheduleSheet({
     });
   };
 
-  const markInterviewSet = useCallback(async () => {
+  const sendInterviewOffer = useCallback(async () => {
     if (interviewAt.getTime() <= Date.now()) {
       Alert.alert('Choose a future time', 'Interview must be scheduled in the future.');
       return;
@@ -262,17 +286,17 @@ export function InterviewScheduleSheet({
 
     setIsSaving(true);
     try {
-      await scheduleApplicationInterview(application.id, {
+      await offerApplicationInterview(application.id, {
         interviewAt: interviewAt.toISOString(),
         durationMinutes: Number(durationMinutes),
         details: [location.trim(), details.trim()].filter(Boolean).join('\n\n') || null,
       });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onScheduled();
+      onOffered();
       onClose();
     } catch (error) {
       Alert.alert(
-        'Could not save interview',
+        'Could not send invite',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -285,25 +309,21 @@ export function InterviewScheduleSheet({
     interviewAt,
     location,
     onClose,
-    onScheduled,
+    onOffered,
   ]);
 
-  const handleShareAndMark = useCallback(async () => {
-    const message = buildInterviewShareMessage(inviteInput);
-    const calendarUrl = buildGoogleCalendarUrl(inviteInput);
-
-    try {
-      await Share.share({
-        message: Platform.OS === 'ios' ? message : `${message}\n${calendarUrl}`,
-        url: Platform.OS === 'ios' ? calendarUrl : undefined,
-        title: inviteInput.title,
-      });
-    } catch {
+  const handleAddToCalendar = useCallback(async () => {
+    if (interviewAt.getTime() <= Date.now()) {
+      Alert.alert('Choose a future time', 'Interview must be scheduled in the future.');
       return;
     }
 
-    await markInterviewSet();
-  }, [inviteInput, markInterviewSet]);
+    try {
+      await addInterviewToCalendar(inviteInput);
+    } catch {
+      // User dismissed share sheet.
+    }
+  }, [interviewAt, inviteInput]);
 
   const dateLabel = interviewAt.toLocaleDateString(undefined, {
     weekday: 'short',
@@ -332,134 +352,147 @@ export function InterviewScheduleSheet({
             <Text style={styles.subtitle}>
               {application.worker_display_name ?? 'Applicant'} · {application.post_title}
             </Text>
+            <Text style={[styles.subtitle, { fontSize: 13 }]}>
+              The candidate must accept before the interview is marked as set.
+            </Text>
           </View>
 
-          <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Date</Text>
-            <Pressable
-              style={[styles.pickerButton, showDatePicker && styles.pickerButtonActive]}
-              onPress={() => {
-                setShowTimePicker(false);
-                setShowDatePicker((current) => !current);
-              }}
-              accessibilityRole="button"
-            >
-              <Text style={styles.pickerButtonText}>{dateLabel}</Text>
-              <Text style={styles.pickerButtonHint}>Tap to change date</Text>
-            </Pressable>
-            {showDatePicker ? (
-              <>
-                <DateTimePicker
-                  value={interviewAt}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                  minimumDate={startOfDay(new Date())}
-                  onChange={handleDateChange}
-                />
-                {Platform.OS === 'ios' ? (
-                  <Pressable onPress={() => setShowDatePicker(false)}>
-                    <Text style={styles.doneText}>Done</Text>
-                  </Pressable>
-                ) : null}
-              </>
-            ) : null}
-          </View>
-
-          <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Time</Text>
-            <Pressable
-              style={[styles.pickerButton, showTimePicker && styles.pickerButtonActive]}
-              onPress={() => {
-                setShowDatePicker(false);
-                setShowTimePicker((current) => !current);
-              }}
-              accessibilityRole="button"
-            >
-              <Text style={styles.pickerButtonText}>{timeLabel}</Text>
-              <Text style={styles.pickerButtonHint}>Tap to change time</Text>
-            </Pressable>
-            {showTimePicker ? (
-              <>
-                <DateTimePicker
-                  value={interviewAt}
-                  mode="time"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handleTimeChange}
-                />
-                {Platform.OS === 'ios' ? (
-                  <Pressable onPress={() => setShowTimePicker(false)}>
-                    <Text style={styles.doneText}>Done</Text>
-                  </Pressable>
-                ) : null}
-              </>
-            ) : null}
-          </View>
-
-          <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Duration</Text>
-            <ChipSelector
-              options={[...DURATION_OPTIONS]}
-              selected={durationMinutes}
-              onChange={(value) => {
-                if (Array.isArray(value)) return;
-                setDurationMinutes(value);
-              }}
-            />
-          </View>
-
-          <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Location</Text>
-            <TextInput
-              value={location}
-              onChangeText={setLocation}
-              placeholder="Clinic address or meeting link"
-              placeholderTextColor={colors.labelTertiary}
-              style={styles.detailsInput}
-              multiline
-            />
-          </View>
-
-          <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Details for candidate</Text>
-            <TextInput
-              value={details}
-              onChangeText={setDetails}
-              placeholder="What to bring, parking, contact person…"
-              placeholderTextColor={colors.labelTertiary}
-              style={styles.detailsInput}
-              multiline
-            />
-          </View>
-
-          {previewLabel ? (
-            <View style={styles.preview}>
-              <Text style={styles.previewLabel}>Preview</Text>
-              <Text style={styles.previewText}>{previewLabel}</Text>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+            bounces={false}>
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>Date</Text>
+              <Pressable
+                style={[styles.pickerButton, showDatePicker && styles.pickerButtonActive]}
+                onPress={() => {
+                  setShowTimePicker(false);
+                  setShowDatePicker((current) => !current);
+                }}
+                accessibilityRole="button">
+                <Text style={styles.pickerButtonText}>{dateLabel}</Text>
+                <Text style={styles.pickerButtonHint}>Tap to change date</Text>
+              </Pressable>
+              {showDatePicker ? (
+                <>
+                  <DateTimePicker
+                    value={interviewAt}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    minimumDate={startOfDay(new Date())}
+                    onChange={handleDateChange}
+                  />
+                  {Platform.OS === 'ios' ? (
+                    <Pressable onPress={() => setShowDatePicker(false)}>
+                      <Text style={styles.doneText}>Done</Text>
+                    </Pressable>
+                  ) : null}
+                </>
+              ) : null}
             </View>
-          ) : null}
 
-          <View style={styles.actions}>
-            <OnboardingButton
-              label="Share invite & mark interview set"
-              onPress={() => void handleShareAndMark()}
-              disabled={isSaving}
-            />
-            <OnboardingButton
-              label="Mark interview set"
-              variant="secondary"
-              onPress={() => void markInterviewSet()}
-              disabled={isSaving}
-            />
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>Time</Text>
+              <Pressable
+                style={[styles.pickerButton, showTimePicker && styles.pickerButtonActive]}
+                onPress={() => {
+                  setShowDatePicker(false);
+                  setShowTimePicker((current) => !current);
+                }}
+                accessibilityRole="button">
+                <Text style={styles.pickerButtonText}>{timeLabel}</Text>
+                <Text style={styles.pickerButtonHint}>Tap to change time</Text>
+              </Pressable>
+              {showTimePicker ? (
+                <>
+                  <DateTimePicker
+                    value={interviewAt}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleTimeChange}
+                  />
+                  {Platform.OS === 'ios' ? (
+                    <Pressable onPress={() => setShowTimePicker(false)}>
+                      <Text style={styles.doneText}>Done</Text>
+                    </Pressable>
+                  ) : null}
+                </>
+              ) : null}
+            </View>
+
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>Duration</Text>
+              <ChipSelector
+                horizontal
+                options={[...DURATION_OPTIONS]}
+                selected={durationMinutes}
+                onChange={(value) => {
+                  if (Array.isArray(value)) return;
+                  setDurationMinutes(value);
+                }}
+              />
+            </View>
+
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>Location</Text>
+              <TextInput
+                value={location}
+                onChangeText={setLocation}
+                placeholder="Clinic address or meeting link"
+                placeholderTextColor={colors.labelTertiary}
+                style={styles.detailsInput}
+                multiline
+              />
+            </View>
+
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>Details for candidate</Text>
+              <TextInput
+                value={details}
+                onChangeText={setDetails}
+                placeholder="What to bring, parking, contact person…"
+                placeholderTextColor={colors.labelTertiary}
+                style={styles.detailsInput}
+                multiline
+              />
+            </View>
+
+            {previewLabel ? (
+              <View style={styles.preview}>
+                <Text style={styles.previewLabel}>Preview</Text>
+                <Text style={styles.previewText}>{previewLabel}</Text>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <View style={styles.actions}>
+              <OnboardingButton
+                label="Send invite"
+                onPress={() => void sendInterviewOffer()}
+                disabled={isSaving}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add to my calendar"
+                onPress={() => void handleAddToCalendar()}
+                disabled={isSaving}
+                style={styles.calendarLink}>
+                <Text style={styles.calendarLinkText}>Add to my calendar</Text>
+              </Pressable>
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              onPress={onClose}
+              style={styles.cancel}>
+              <Text style={styles.cancelLabel}>Cancel</Text>
+            </Pressable>
           </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Cancel"
-            onPress={onClose}
-            style={styles.cancel}
-          >
-            <Text style={styles.cancelLabel}>Cancel</Text>
-          </Pressable>
         </View>
       </View>
     </Modal>

@@ -146,7 +146,7 @@ export default function WorkerDashboardScreen() {
           onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
           onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
           onApplicationPress={(applicationId) =>
-            router.push(getWorkerApplicationRoute(applicationId))
+            router.push(getWorkerApplicationRoute(applicationId, 'dashboard-applications'))
           }
         />
       </View>
