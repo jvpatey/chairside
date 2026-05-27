@@ -46,7 +46,17 @@ export function MatchDetailModal({
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const criteria = getMatchCriterionDetails(breakdown, context);
-  const canImprove = criteria.some((item) => item.level !== 'strong');
+  const canImprove = criteria.some((item) => {
+    if (item.level === 'strong') return false;
+    if (
+      item.id === 'software' &&
+      item.level === 'partial' &&
+      !breakdown.postHasMatchableSoftware
+    ) {
+      return false;
+    }
+    return true;
+  });
   const strongCount = criteria.filter((item) => item.level === 'strong').length;
   const palette = getMatchTierPalette(breakdown.tier, colors);
   const summaryHint = getMatchTierSummaryHint(breakdown.tier, strongCount, criteria.length);

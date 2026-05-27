@@ -185,12 +185,15 @@ begin
   end if;
 
   if new.job_post_id is not null then
+    new.match_tier := null;
+    new.match_breakdown := null;
+    new.match_score := null;
+
     v_job_match := public.compute_job_match(new.worker_id, new.job_post_id);
     if v_job_match is not null then
       new.match_tier := v_job_match->>'tier';
       new.match_breakdown := v_job_match->'breakdown';
     end if;
-    new.match_score := null;
   else
     new.match_tier := null;
     new.match_breakdown := null;

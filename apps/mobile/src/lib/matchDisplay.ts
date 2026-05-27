@@ -24,13 +24,13 @@ export function parseStoredMatchContext(
       typeof context.postEmploymentType === 'string' ? context.postEmploymentType : undefined,
     workerPreferredEmploymentTypes: Array.isArray(context.workerPreferredEmploymentTypes)
       ? context.workerPreferredEmploymentTypes.filter((value) => typeof value === 'string')
-      : [],
+      : undefined,
     postSoftware: Array.isArray(context.postSoftware)
       ? context.postSoftware.filter((value) => typeof value === 'string')
-      : [],
+      : undefined,
     workerSoftware: Array.isArray(context.workerSoftware)
       ? context.workerSoftware.filter((value) => typeof value === 'string')
-      : [],
+      : undefined,
     distanceKm: typeof context.distanceKm === 'number' ? context.distanceKm : null,
     workerTravelRadiusKm:
       typeof context.workerTravelRadiusKm === 'number'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { scoreEmploymentMatch } from './employmentMatch';
-import { calculateJobMatch, deriveMatchTier } from './matchScore';
+import { calculateJobMatch, deriveMatchTier, getMatchCriterionDetails } from './matchScore';
 
 describe('scoreEmploymentMatch', () => {
   it('returns partial when worker has no preferences', () => {
@@ -110,5 +110,33 @@ describe('calculateJobMatch', () => {
 
     expect(result.tier).toBe('none');
     expect(result.roleFit).toBe('missing');
+  });
+});
+
+describe('getMatchCriterionDetails', () => {
+  it('describes partial software using overlap, not all required software', () => {
+    const breakdown = calculateJobMatch({
+      postRoleType: 'hygienist',
+      workerRoleType: 'hygienist',
+      postEmploymentType: 'permanent',
+      workerPreferredEmploymentTypes: ['permanent'],
+      postSoftware: ['Dentrix', 'Open Dental'],
+      workerSoftware: ['Dentrix'],
+      distanceKm: 8,
+      workerTravelRadiusKm: 25,
+    });
+
+    const details = getMatchCriterionDetails(breakdown, {
+      postSoftware: ['Dentrix', 'Open Dental'],
+      workerSoftware: ['Dentrix'],
+    });
+    const software = details.find((item) => item.id === 'software');
+
+    expect(software?.level).toBe('partial');
+    expect(software?.explanation).toContain('dentrix');
+    expect(software?.explanation).toContain('open dental');
+    expect(software?.explanation).not.toBe(
+      'You know some required software (dentrix and open dental).',
+    );
   });
 });

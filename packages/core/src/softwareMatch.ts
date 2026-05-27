@@ -17,6 +17,15 @@ export function matchableSoftwareTokens(software: string[] | null | undefined): 
 
 export type SoftwareMatchLevel = 'strong' | 'partial' | 'missing';
 
+export function softwareOverlapTokens(
+  postSoftware: string[] | null | undefined,
+  workerSoftware: string[] | null | undefined,
+): string[] {
+  const post = matchableSoftwareTokens(postSoftware);
+  const worker = new Set(matchableSoftwareTokens(workerSoftware));
+  return post.filter((item) => worker.has(item));
+}
+
 export function scoreSoftwareMatch(
   postSoftware: string[] | null | undefined,
   workerSoftware: string[] | null | undefined,

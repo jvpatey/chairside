@@ -1,5 +1,9 @@
 import { scoreEmploymentMatch } from './employmentMatch';
-import { matchableSoftwareTokens, scoreSoftwareMatch } from './softwareMatch';
+import {
+  matchableSoftwareTokens,
+  scoreSoftwareMatch,
+  softwareOverlapTokens,
+} from './softwareMatch';
 
 export type MatchLevel = 'strong' | 'partial' | 'missing';
 export type MatchTier = 'strong' | 'good' | 'partial' | 'none';
@@ -198,7 +202,8 @@ export function getMatchCriterionDetails(
     (context.workerPreferredEmploymentTypes ?? []).map((value) => value);
 
   const postSoftware = matchableSoftwareTokens(context.postSoftware);
-  const workerSoftware = matchableSoftwareTokens(context.workerSoftware);
+  const softwareOverlap = softwareOverlapTokens(context.postSoftware, context.workerSoftware);
+  const softwareMissing = postSoftware.filter((item) => !softwareOverlap.includes(item));
 
   const roleExplanation =
     breakdown.roleFit === 'strong'
@@ -213,7 +218,9 @@ export function getMatchCriterionDetails(
       : breakdown.software === 'partial'
         ? postSoftware.length === 0
           ? 'This role did not list specific software requirements.'
-          : `You know some required software (${formatList(postSoftware)}).`
+          : softwareMissing.length > 0
+            ? `You know ${formatList(softwareOverlap)}, but this role also requires ${formatList(softwareMissing)}.`
+            : `You know some required software (${formatList(softwareOverlap)}).`
         : postSoftware.length === 0
           ? 'Software requirements were not listed for this role.'
           : `You do not match the required software (${formatList(postSoftware)}).`;

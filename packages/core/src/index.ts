@@ -19,5 +19,6 @@ export {
   matchableSoftwareTokens,
   normalizeSoftwareToken,
   scoreSoftwareMatch,
+  softwareOverlapTokens,
   type SoftwareMatchLevel,
 } from './softwareMatch';

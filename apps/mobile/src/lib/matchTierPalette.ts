@@ -48,7 +48,9 @@ export function getMatchTierSummaryHint(
 ): string {
   switch (tier) {
     case 'strong':
-      return `All ${totalCount} criteria align with this role`;
+      return strongCount === totalCount
+        ? `All ${totalCount} criteria align with this role`
+        : `${strongCount} of ${totalCount} criteria fully align`;
     case 'good':
       return `${strongCount} of ${totalCount} criteria fully align`;
     case 'partial':
