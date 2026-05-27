@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
 import {
+  defaultEndTimeDate,
+  defaultStartTimeDate,
   formatTime12h,
   formatTime24h,
   formatTimeRangePreview,
@@ -30,6 +32,13 @@ function displayTime(time: string): string {
   return formatTime12h(time) ?? time;
 }
 
+function pickerDateForField(field: 'start' | 'end', schedule: TimeRange): Date {
+  const existing = field === 'start' ? schedule.startTime : schedule.endTime;
+  return (
+    parseTime24h(existing) ?? (field === 'start' ? defaultStartTimeDate() : defaultEndTimeDate())
+  );
+}
+
 export function TimeRangeInput({
   sectionLabel,
   rowLabel,
@@ -38,6 +47,7 @@ export function TimeRangeInput({
   showPreview = false,
 }: TimeRangeInputProps) {
   const [activeField, setActiveField] = useState<ActiveField>(null);
+  const [pickerDate, setPickerDate] = useState(() => defaultStartTimeDate());
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -119,33 +129,47 @@ export function TimeRangeInput({
 
   const preview = formatTimeRangePreview(schedule.startTime, schedule.endTime);
 
-  const handleFieldPress = (field: 'start' | 'end') => {
-    setActiveField((current) => (current === field ? null : field));
-  };
-
-  const handlePickerChange = (event: DateTimePickerEvent, date?: Date) => {
-    if (Platform.OS === 'android') {
-      setActiveField(null);
-      if (event.type === 'dismissed' || !date) return;
-    } else if (event.type === 'dismissed') {
-      setActiveField(null);
-      return;
-    }
-
-    if (!date || !activeField) return;
-
+  const commitTime = (field: 'start' | 'end', date: Date) => {
     const nextTime = formatTime24h(date);
-    if (activeField === 'start') {
+    if (field === 'start') {
       onChange({ ...schedule, startTime: nextTime });
       return;
     }
     onChange({ ...schedule, endTime: nextTime });
   };
 
-  const pickerValue =
-    activeField === 'end'
-      ? (parseTime24h(schedule.endTime) ?? new Date())
-      : (parseTime24h(schedule.startTime) ?? new Date());
+  const handleFieldPress = (field: 'start' | 'end') => {
+    if (activeField === field) {
+      setActiveField(null);
+      return;
+    }
+
+    setPickerDate(pickerDateForField(field, schedule));
+    setActiveField(field);
+  };
+
+  const handlePickerChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') {
+      setActiveField(null);
+      if (event.type === 'dismissed' || !date || !activeField) return;
+      commitTime(activeField, date);
+      return;
+    }
+
+    if (event.type === 'dismissed') {
+      setActiveField(null);
+      return;
+    }
+
+    if (!date) return;
+    setPickerDate(date);
+  };
+
+  const handleDone = () => {
+    if (!activeField) return;
+    commitTime(activeField, pickerDate);
+    setActiveField(null);
+  };
 
   return (
     <View style={styles.wrap}>
@@ -184,7 +208,7 @@ export function TimeRangeInput({
       {activeField ? (
         <View style={styles.pickerWrap}>
           <DateTimePicker
-            value={pickerValue}
+            value={pickerDate}
             mode="time"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             is24Hour
@@ -193,7 +217,7 @@ export function TimeRangeInput({
           {Platform.OS === 'ios' ? (
             <Pressable
               style={styles.doneButton}
-              onPress={() => setActiveField(null)}
+              onPress={handleDone}
               accessibilityRole="button"
               accessibilityLabel="Done selecting time"
             >
