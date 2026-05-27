@@ -51,6 +51,8 @@ export {
   formatApplicationStatus,
   formatClinicApplicationStatus,
   formatJobApplicationSummaryMeta,
+  formatInterviewDateTime,
+  formatRoleApplicantPipelineSubtitle,
   isActiveApplicationStatus,
   type ApplicationPostType,
 } from './applicationDisplay';

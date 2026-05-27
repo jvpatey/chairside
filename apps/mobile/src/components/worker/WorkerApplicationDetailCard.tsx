@@ -2,11 +2,13 @@ import { deleteApplication, type WorkerApplication } from '@chairside/api';
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
+  formatInterviewDateTime,
   isActiveApplicationStatus,
   getRoleTypeLabel,
   getSpecialtyLabel,
 } from '@chairside/config';
-import { Alert, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Alert, Platform, Share, Text, View } from 'react-native';
 
 import {
   DetailProse,
@@ -25,8 +27,9 @@ import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
+import { buildGoogleCalendarUrl, buildInterviewInviteTitle } from '@/lib/calendarInvite';
 import { buildResumeFileName } from '@/lib/openResumePreview';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerApplicationDetailCardProps = {
   application: WorkerApplication;
@@ -49,6 +52,7 @@ export function WorkerApplicationDetailCard({
   onViewPosting,
   onCancelled,
 }: WorkerApplicationDetailCardProps) {
+  const { colors } = useTheme();
   const canCancel = isActiveApplicationStatus(application.status);
   const isShift = application.post_type === 'shift';
   const jobMatch = !isShift ? parseApplicationJobMatch(application) : null;
@@ -138,6 +142,26 @@ export function WorkerApplicationDetailCard({
     actionCell: {
       flex: 1,
     },
+    interviewCard: {
+      backgroundColor: colors.secondarySubtle,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    interviewHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    interviewTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.labelPrimary,
+      flex: 1,
+    },
+    interviewMeta: typography.subtitle,
   }));
 
   const resumeFileName = buildResumeFileName({
@@ -147,6 +171,40 @@ export function WorkerApplicationDetailCard({
 
   const handleMessage = () => {
     Alert.alert('Coming soon', 'Messaging clinics will be available in a future update.');
+  };
+
+  const interviewSummary = formatInterviewDateTime(
+    application.interview_at,
+    application.interview_duration_minutes,
+  );
+
+  const handleAddInterviewToCalendar = () => {
+    if (!application.interview_at) return;
+
+    const interviewAt = new Date(application.interview_at);
+    if (Number.isNaN(interviewAt.getTime())) return;
+
+    const title = buildInterviewInviteTitle({
+      clinicName: application.clinic_name,
+      roleTitle: application.post_title,
+    });
+    const calendarUrl = buildGoogleCalendarUrl({
+      title,
+      clinicName: application.clinic_name,
+      roleTitle: application.post_title,
+      interviewAt,
+      durationMinutes: application.interview_duration_minutes ?? 45,
+      details: application.interview_details,
+    });
+
+    void Share.share({
+      message:
+        Platform.OS === 'ios'
+          ? `${title}\n${interviewSummary ?? ''}\n${calendarUrl}`
+          : `${title}\n${interviewSummary ?? ''}\n${calendarUrl}`,
+      url: Platform.OS === 'ios' ? calendarUrl : undefined,
+      title,
+    });
   };
 
   const handleCancel = () => {
@@ -250,6 +308,20 @@ export function WorkerApplicationDetailCard({
       </View>
 
       <View style={styles.body}>
+        {application.status === 'interview_scheduled' && interviewSummary ? (
+          <View style={styles.interviewCard}>
+            <View style={styles.interviewHeader}>
+              <Ionicons name="calendar-outline" size={18} color={colors.secondary} />
+              <Text style={styles.interviewTitle}>Interview scheduled</Text>
+            </View>
+            <Text style={styles.interviewMeta}>{interviewSummary}</Text>
+            {application.interview_details ? (
+              <Text style={styles.interviewMeta}>{application.interview_details}</Text>
+            ) : null}
+            <OnboardingButton label="Add to calendar" onPress={handleAddInterviewToCalendar} />
+          </View>
+        ) : null}
+
         <View style={styles.kitCard}>
           <DetailSection title="What you submitted">
             <DetailRow label="Name" value={application.worker_display_name} />

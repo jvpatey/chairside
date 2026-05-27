@@ -11,6 +11,7 @@ export type ApplicationStatus =
   | 'applied'
   | 'reviewed'
   | 'in_progress'
+  | 'interview_scheduled'
   | 'selected'
   | 'rejected'
   | 'hired';
@@ -20,7 +21,14 @@ export const ACTIVE_APPLICATION_STATUSES: ApplicationStatus[] = [
   'applied',
   'reviewed',
   'in_progress',
+  'interview_scheduled',
 ];
+
+export type ScheduleApplicationInterviewInput = {
+  interviewAt: string;
+  durationMinutes: number;
+  details?: string | null;
+};
 
 export type Application = {
   id: string;
@@ -44,6 +52,9 @@ export type Application = {
   software_used: string[];
   practice_types: string[];
   preferred_employment_types: string[];
+  interview_at: string | null;
+  interview_duration_minutes: number | null;
+  interview_details: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -75,6 +86,8 @@ export type JobApplicationSummary = {
   post_title: string;
   applicant_count: number;
   pending_count: number;
+  shortlisted_count: number;
+  interview_count: number;
 };
 
 export async function listClinicApplications(clinicId: string): Promise<ClinicApplication[]> {
@@ -396,12 +409,20 @@ export async function listJobApplicationSummaries(
       if (application.status === 'applied') {
         existing.pending_count += 1;
       }
+      if (application.status === 'in_progress') {
+        existing.shortlisted_count += 1;
+      }
+      if (application.status === 'interview_scheduled') {
+        existing.interview_count += 1;
+      }
     } else {
       summaries.set(application.job_post_id, {
         job_post_id: application.job_post_id,
         post_title: application.post_title,
         applicant_count: 1,
         pending_count: application.status === 'applied' ? 1 : 0,
+        shortlisted_count: application.status === 'in_progress' ? 1 : 0,
+        interview_count: application.status === 'interview_scheduled' ? 1 : 0,
       });
     }
   }
@@ -499,6 +520,28 @@ export async function updateApplicationStatus(
   const { data, error } = await supabase
     .from('applications')
     .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', applicationId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+export async function scheduleApplicationInterview(
+  applicationId: string,
+  input: ScheduleApplicationInterviewInput,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      status: 'interview_scheduled',
+      interview_at: input.interviewAt,
+      interview_duration_minutes: input.durationMinutes,
+      interview_details: input.details?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', applicationId)
     .select('*')
     .single();

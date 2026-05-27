@@ -31,6 +31,7 @@ const PINGRAM_TYPES = {
   applicationReceived: 'application_received',
   applicationReviewed: 'application_reviewed',
   applicationInProgress: 'application_in_progress',
+  applicationInterviewScheduled: 'application_interview_scheduled',
   applicationSelected: 'application_selected',
   applicationRejected: 'application_rejected',
   applicationHired: 'application_hired',
@@ -150,12 +151,21 @@ async function sendWorkerStatusNotification(
       title: isShift ? 'Cover request update' : 'Application update',
       message: isShift
         ? 'A clinic is reviewing your cover request.'
-        : 'A clinic is considering your application.',
+        : 'A clinic has shortlisted you for this role.',
+    },
+    interview_scheduled: {
+      pingramType: PINGRAM_TYPES.applicationInterviewScheduled,
+      title: 'Interview scheduled',
+      message: isShift
+        ? 'A clinic has scheduled an interview for your cover request.'
+        : 'A clinic has scheduled an interview for this role.',
     },
     selected: {
       pingramType: PINGRAM_TYPES.applicationSelected,
-      title: 'You have been selected',
-      message: 'A clinic has selected you for this role.',
+      title: 'You have been hired',
+      message: isShift
+        ? 'A clinic has selected you for this role.'
+        : 'A clinic has hired you for this role.',
     },
     rejected: {
       pingramType: PINGRAM_TYPES.applicationRejected,
@@ -268,7 +278,7 @@ async function handleApplicationUpdate(
   const oldStatus = oldRecord?.status as string | undefined;
   const newStatus = record.status as string;
   if (!newStatus || oldStatus === newStatus) return;
-  if (!['reviewed', 'in_progress', 'selected', 'rejected', 'hired'].includes(newStatus)) return;
+  if (!['reviewed', 'in_progress', 'interview_scheduled', 'selected', 'rejected', 'hired'].includes(newStatus)) return;
   await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, newStatus);
 }
 

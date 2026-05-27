@@ -120,6 +120,7 @@ export {
   listWorkerApplications,
   listWorkerJobApplications,
   listWorkerShiftApplications,
+  scheduleApplicationInterview,
   updateApplicationStatus,
   ACTIVE_APPLICATION_STATUSES,
   type Application,
@@ -127,6 +128,7 @@ export {
   type ClinicApplication,
   type CreateApplicationInput,
   type JobApplicationSummary,
+  type ScheduleApplicationInterviewInput,
   type WorkerApplication,
 } from './applications';
 export {

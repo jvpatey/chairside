@@ -3,6 +3,7 @@ export const PINGRAM_NOTIFICATION_TYPES = {
   applicationReceived: 'application_received',
   applicationReviewed: 'application_reviewed',
   applicationInProgress: 'application_in_progress',
+  applicationInterviewScheduled: 'application_interview_scheduled',
   applicationSelected: 'application_selected',
   applicationRejected: 'application_rejected',
   applicationHired: 'application_hired',
