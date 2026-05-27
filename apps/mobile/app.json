@@ -10,7 +10,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.chairside.app",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "entitlements": {
+        "aps-environment": "development"
+      },
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -54,6 +63,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1a876449-091d-4fbd-b8c9-cdb3084a7ce4"
+      }
     }
   }
 }
