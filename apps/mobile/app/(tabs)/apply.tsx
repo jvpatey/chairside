@@ -17,7 +17,7 @@ import { ApplicationPackageFields } from '@/components/worker/ApplicationPackage
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
-import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS } from '@/lib/routing';
+import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS, getApplyScreeningRoute } from '@/lib/routing';
 import {
   buildLiveJobMatchDisplayContext,
   computeJobMatchBreakdown,
@@ -37,6 +37,7 @@ export default function ApplyScreen() {
   const [matchContext, setMatchContext] = useState<Partial<JobMatchContext> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [screeningEnabled, setScreeningEnabled] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: { gap: spacing.lg },
@@ -59,6 +60,22 @@ export default function ApplyScreen() {
     },
     hint: { ...typography.subtitle, fontSize: 13 },
     editLink: { color: colors.primary, fontWeight: '600' },
+    screeningNote: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.xs,
+    },
+    screeningEyebrow: {
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.primary,
+    },
+    screeningText: typography.subtitle,
   }));
 
   const loadPost = useCallback(async () => {
@@ -74,6 +91,7 @@ export default function ApplyScreen() {
         if (!job) throw new Error('Role not found');
         setPostTitle(job.title);
         setClinicName(job.clinic.clinic_name);
+        setScreeningEnabled(job.screening_enabled && job.screening_questions.length > 0);
         if (workerProfile) {
           setJobMatch(computeJobMatchBreakdown(workerProfile, job));
           setMatchContext(buildLiveJobMatchDisplayContext(workerProfile, job));
@@ -115,6 +133,14 @@ export default function ApplyScreen() {
   }, [isProfileComplete, loadPost]);
 
   const photoUri = useWorkerPhotoUri(workerProfile?.photo_storage_path);
+
+  const handleContinue = () => {
+    if (type === 'job' && screeningEnabled) {
+      router.push(getApplyScreeningRoute(id, coverMessage));
+      return;
+    }
+    void handleSubmit();
+  };
 
   const handleSubmit = async () => {
     if (!user?.id || !id) return;
@@ -158,10 +184,12 @@ export default function ApplyScreen() {
               ? 'Submitting…'
               : type === 'shift'
                 ? 'Submit request'
-                : 'Submit application'
+                : screeningEnabled
+                  ? 'Continue to screening'
+                  : 'Submit application'
           }
           disabled={isSubmitting}
-          onPress={handleSubmit}
+          onPress={handleContinue}
         />
       }>
       <AuthScreenHeader
@@ -216,6 +244,16 @@ export default function ApplyScreen() {
           onChangeText={setCoverMessage}
           multiline
         />
+
+        {type === 'job' && screeningEnabled ? (
+          <View style={styles.screeningNote}>
+            <Text style={styles.screeningEyebrow}>Culture fit screening</Text>
+            <Text style={styles.screeningText}>
+              This clinic included a short questionnaire as part of your application. You can skip
+              it if you prefer.
+            </Text>
+          </View>
+        ) : null}
       </View>
     </OnboardingShell>
   );

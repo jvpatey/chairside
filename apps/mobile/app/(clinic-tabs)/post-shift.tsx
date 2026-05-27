@@ -45,8 +45,8 @@ export default function PostShiftScreen() {
 
   const [roleType, setRoleType] = useState<RoleType>('hygienist');
   const [shiftDate, setShiftDate] = useState(todayISO());
-  const [startTime, setStartTime] = useState('08:00');
-  const [endTime, setEndTime] = useState('17:00');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [compensation, setCompensation] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

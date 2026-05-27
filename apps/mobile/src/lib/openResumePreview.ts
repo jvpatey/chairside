@@ -3,17 +3,29 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Linking, Platform } from 'react-native';
 
-function sanitizeFileName(fileName: string) {
+export function sanitizeResumeFileName(fileName: string) {
   return fileName.replace(/[^\w.-]+/g, '_') || 'resume.pdf';
 }
 
-async function saveResumePreviewFile(storagePath: string, fileName: string): Promise<string> {
+export function buildResumeFileName(options: {
+  workerDisplayName?: string | null;
+  postTitle?: string | null;
+  resumeFileName?: string | null;
+}): string {
+  if (options.resumeFileName?.trim()) {
+    return sanitizeResumeFileName(options.resumeFileName);
+  }
+  const base = options.workerDisplayName?.trim() || options.postTitle?.trim() || 'resume';
+  return `${sanitizeResumeFileName(base)}-resume.pdf`;
+}
+
+async function downloadResumeToCache(storagePath: string, fileName: string): Promise<string> {
   const cacheDirectory = FileSystem.cacheDirectory;
   if (!cacheDirectory) {
     throw new Error('Device cache is unavailable');
   }
 
-  const localUri = `${cacheDirectory}${sanitizeFileName(fileName)}-${Date.now()}.pdf`;
+  const localUri = `${cacheDirectory}${sanitizeResumeFileName(fileName)}-${Date.now()}.pdf`;
   const { url, headers } = await getWorkerResumeDownloadRequest(storagePath);
   const download = await FileSystem.downloadAsync(url, localUri, { headers });
 
@@ -33,7 +45,7 @@ async function saveResumePreviewFile(storagePath: string, fileName: string): Pro
 }
 
 export async function openResumePreview(storagePath: string, fileName = 'resume.pdf') {
-  const localUri = await saveResumePreviewFile(storagePath, fileName);
+  const localUri = await downloadResumeToCache(storagePath, fileName);
 
   if (Platform.OS === 'ios') {
     try {

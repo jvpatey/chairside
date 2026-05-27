@@ -93,7 +93,8 @@ export default function JobDetailScreen() {
             onPress={() => router.push(getEditJobRoute(job.id))}
           />
         </View>
-      }>
+      }
+    >
       <View style={styles.content}>
         <AuthScreenHeader onBack={() => router.back()} />
         <JobPostDetailView job={job} />

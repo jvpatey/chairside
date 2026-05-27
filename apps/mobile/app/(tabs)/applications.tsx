@@ -51,7 +51,9 @@ export default function WorkerApplicationsScreen() {
             <WorkerApplicationListCard
               key={application.id}
               application={application}
-              onPress={() => router.push(getWorkerApplicationRoute(application.id))}
+              onPress={() =>
+                router.push(getWorkerApplicationRoute(application.id, 'applications-tab'))
+              }
             />
           ))}
         </View>

@@ -1,9 +1,18 @@
 import { getSupabaseClient } from './client';
+import {
+  getApplicationScreening,
+  getApplicationScreeningMap,
+  insertApplicationScreening,
+  type ApplicationScreening,
+  type ScreeningSubmissionInput,
+} from './screening';
 
 export type ApplicationStatus =
   | 'applied'
   | 'reviewed'
   | 'in_progress'
+  | 'interview_offered'
+  | 'interview_scheduled'
   | 'selected'
   | 'rejected'
   | 'hired';
@@ -13,7 +22,15 @@ export const ACTIVE_APPLICATION_STATUSES: ApplicationStatus[] = [
   'applied',
   'reviewed',
   'in_progress',
+  'interview_offered',
+  'interview_scheduled',
 ];
+
+export type ScheduleApplicationInterviewInput = {
+  interviewAt: string;
+  durationMinutes: number;
+  details?: string | null;
+};
 
 export type Application = {
   id: string;
@@ -37,6 +54,10 @@ export type Application = {
   software_used: string[];
   practice_types: string[];
   preferred_employment_types: string[];
+  interview_at: string | null;
+  interview_duration_minutes: number | null;
+  interview_details: string | null;
+  interview_offer_closed_by: 'clinic' | 'worker' | null;
   created_at: string;
   updated_at: string;
 };
@@ -45,6 +66,7 @@ export type ClinicApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
   post_role_type: string;
+  screening: ApplicationScreening | null;
 };
 
 export type WorkerApplication = Application & {
@@ -52,12 +74,14 @@ export type WorkerApplication = Application & {
   post_type: 'job' | 'shift';
   clinic_name: string;
   clinic_city: string | null;
+  screening: ApplicationScreening | null;
 };
 
 export type CreateApplicationInput = {
   jobPostId?: string;
   shiftPostId?: string;
   coverMessage?: string;
+  screening?: ScreeningSubmissionInput;
 };
 
 export type JobApplicationSummary = {
@@ -65,6 +89,8 @@ export type JobApplicationSummary = {
   post_title: string;
   applicant_count: number;
   pending_count: number;
+  shortlisted_count: number;
+  interview_count: number;
 };
 
 export async function listClinicApplications(clinicId: string): Promise<ClinicApplication[]> {
@@ -72,10 +98,7 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
 
   const [jobsResult, shiftsResult] = await Promise.all([
     supabase.from('job_posts').select('id, title, role_type').eq('clinic_id', clinicId),
-    supabase
-      .from('shift_posts')
-      .select('id, role_type, shift_date')
-      .eq('clinic_id', clinicId),
+    supabase.from('shift_posts').select('id, role_type, shift_date').eq('clinic_id', clinicId),
   ]);
 
   if (jobsResult.error) throw jobsResult.error;
@@ -101,10 +124,14 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
 
   if (error) throw error;
 
+  const applicationIds = (data ?? []).map((row) => row.id);
+  const screeningMap = await getApplicationScreeningMap(applicationIds);
+
   const applications: ClinicApplication[] = [];
 
   for (const row of data ?? []) {
     const application = row as Application;
+    const screening = screeningMap.get(row.id) ?? null;
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
@@ -113,6 +140,7 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
         post_title: job.title,
         post_type: 'job',
         post_role_type: job.role_type,
+        screening,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
@@ -121,6 +149,7 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
         post_title: shift.title,
         post_type: 'shift',
         post_role_type: shift.role_type,
+        screening,
       });
     }
   }
@@ -174,20 +203,20 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
 
   const { data: clinics, error: clinicsError } =
     clinicIds.length > 0
-      ? await supabase
-          .from('clinic_profiles')
-          .select('id, clinic_name, city')
-          .in('id', clinicIds)
+      ? await supabase.from('clinic_profiles').select('id, clinic_name, city').in('id', clinicIds)
       : { data: [], error: null };
 
   if (clinicsError) throw clinicsError;
 
   const clinicMap = new Map((clinics ?? []).map((clinic) => [clinic.id, clinic]));
+  const applicationIds = data.map((row) => row.id);
+  const screeningMap = await getApplicationScreeningMap(applicationIds);
 
   const applications: WorkerApplication[] = [];
 
   for (const row of data) {
     const application = row as Application;
+    const screening = screeningMap.get(row.id) ?? null;
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
@@ -198,6 +227,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
         post_type: 'job',
         clinic_name: clinic?.clinic_name ?? 'Clinic',
         clinic_city: clinic?.city ?? null,
+        screening,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
@@ -208,6 +238,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
         post_type: 'shift',
         clinic_name: clinic?.clinic_name ?? 'Clinic',
         clinic_city: clinic?.city ?? null,
+        screening: null,
       });
     }
   }
@@ -215,8 +246,14 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   return applications;
 }
 
-async function enrichWorkerApplication(application: Application): Promise<WorkerApplication | null> {
+async function enrichWorkerApplication(
+  application: Application,
+): Promise<WorkerApplication | null> {
   const supabase = getSupabaseClient();
+  const screening =
+    application.job_post_id != null
+      ? await getApplicationScreening(application.id)
+      : null;
 
   if (application.job_post_id) {
     const { data: job, error: jobError } = await supabase
@@ -242,6 +279,7 @@ async function enrichWorkerApplication(application: Application): Promise<Worker
       post_type: 'job',
       clinic_name: clinic?.clinic_name ?? 'Clinic',
       clinic_city: clinic?.city ?? null,
+      screening,
     };
   }
 
@@ -269,6 +307,7 @@ async function enrichWorkerApplication(application: Application): Promise<Worker
       post_type: 'shift',
       clinic_name: clinic?.clinic_name ?? 'Clinic',
       clinic_city: clinic?.city ?? null,
+      screening: null,
     };
   }
 
@@ -371,12 +410,27 @@ export async function listJobApplicationSummaries(
       if (application.status === 'applied') {
         existing.pending_count += 1;
       }
+      if (application.status === 'in_progress') {
+        existing.shortlisted_count += 1;
+      }
+      if (
+        application.status === 'interview_offered' ||
+        application.status === 'interview_scheduled'
+      ) {
+        existing.interview_count += 1;
+      }
     } else {
       summaries.set(application.job_post_id, {
         job_post_id: application.job_post_id,
         post_title: application.post_title,
         applicant_count: 1,
         pending_count: application.status === 'applied' ? 1 : 0,
+        shortlisted_count: application.status === 'in_progress' ? 1 : 0,
+        interview_count:
+          application.status === 'interview_offered' ||
+          application.status === 'interview_scheduled'
+            ? 1
+            : 0,
       });
     }
   }
@@ -432,7 +486,14 @@ export async function createApplication(
     }
     throw error;
   }
-  return data as Application;
+
+  const application = data as Application;
+
+  if (input.screening && input.jobPostId) {
+    await insertApplicationScreening(application.id, input.screening);
+  }
+
+  return application;
 }
 
 export async function hasAppliedToJob(workerId: string, jobPostId: string): Promise<boolean> {
@@ -468,6 +529,89 @@ export async function updateApplicationStatus(
     .from('applications')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', applicationId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+export async function offerApplicationInterview(
+  applicationId: string,
+  input: ScheduleApplicationInterviewInput,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      status: 'interview_offered',
+      interview_at: input.interviewAt,
+      interview_duration_minutes: input.durationMinutes,
+      interview_details: input.details?.trim() || null,
+      interview_offer_closed_by: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+/** @deprecated Use offerApplicationInterview */
+export const scheduleApplicationInterview = offerApplicationInterview;
+
+export async function acceptApplicationInterview(
+  workerId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('accept_application_interview', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Interview offer not found or already responded');
+  }
+  return row;
+}
+
+export async function declineApplicationInterview(
+  workerId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('decline_application_interview', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Interview offer not found or already responded');
+  }
+  return row;
+}
+
+export async function cancelApplicationInterviewOffer(
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      status: 'in_progress',
+      interview_at: null,
+      interview_duration_minutes: null,
+      interview_details: null,
+      interview_offer_closed_by: 'clinic',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('status', 'interview_offered')
     .select('*')
     .single();
 

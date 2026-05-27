@@ -1,35 +1,68 @@
-import { updateApplicationStatus, type ClinicApplication } from '@chairside/api';
+import {
+  cancelApplicationInterviewOffer,
+  updateApplicationStatus,
+  type ClinicApplication,
+} from '@chairside/api';
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
+  formatInterviewDateTime,
   getRoleTypeLabel,
   getSpecialtyLabel,
 } from '@chairside/config';
-import { Alert, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
+import { Alert, LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { BadgeRow } from '@/components/ui/BadgeRow';
+import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
-import { openResumePreview } from '@/lib/openResumePreview';
-import { useThemedStyles } from '@/theme';
+import { buildResumeFileName } from '@/lib/openResumePreview';
+import { useTheme, useThemedStyles } from '@/theme';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type ClinicApplicationCardProps = {
   application: ClinicApplication;
   onUpdated?: () => void;
+  onShortlisted?: () => void;
+  onScheduleInterview?: (application: ClinicApplication) => void;
 };
 
-export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicationCardProps) {
+function truncatePreview(text: string, maxLength = 88): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1).trim()}…`;
+}
+
+export function ClinicApplicationCard({
+  application,
+  onUpdated,
+  onShortlisted,
+  onScheduleInterview,
+}: ClinicApplicationCardProps) {
+  const { colors } = useTheme();
+  const [expanded, setExpanded] = useState(false);
   const photoUri = useWorkerPhotoUri(application.worker_photo_storage_path);
   const isJob = application.post_type === 'job';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
+  const interviewSummary = formatInterviewDateTime(
+    application.interview_at,
+    application.interview_duration_minutes,
+  );
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -58,6 +91,40 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
       gap: spacing.sm,
     },
     meta: typography.subtitle,
+    preview: {
+      ...typography.subtitle,
+      fontStyle: 'italic',
+    },
+    interviewRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 10,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    interviewText: {
+      ...typography.subtitle,
+      flex: 1,
+      fontSize: 14,
+    },
+    toggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    toggleText: {
+      ...typography.body,
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    details: {
+      gap: spacing.sm,
+    },
     actions: {
       gap: spacing.sm,
       marginTop: spacing.xs,
@@ -65,14 +132,23 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
     actionsRow: {
       flexDirection: 'row',
       gap: spacing.sm,
+      alignSelf: 'stretch',
     },
-    action: { flex: 1 },
+    action: {
+      flex: 1,
+      minWidth: 0,
+    },
   }));
 
   const updateStatus = async (status: Parameters<typeof updateApplicationStatus>[1]) => {
     try {
       await updateApplicationStatus(application.id, status);
-      onUpdated?.();
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (status === 'in_progress') {
+        (onShortlisted ?? onUpdated)?.();
+      } else {
+        onUpdated?.();
+      }
     } catch (error) {
       Alert.alert(
         'Update failed',
@@ -81,20 +157,55 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
     }
   };
 
-  const handleViewResume = async () => {
-    if (!application.resume_storage_path) return;
-    try {
-      await openResumePreview(
-        application.resume_storage_path,
-        `${application.post_title}-resume.pdf`,
-      );
-    } catch (error) {
-      Alert.alert(
-        'Could not open resume',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
+  const cancelInterviewInvite = () => {
+    Alert.alert(
+      'Cancel interview invite?',
+      'This withdraws the invitation and moves the applicant back to your shortlist.',
+      [
+        { text: 'Keep invite', style: 'cancel' },
+        {
+          text: 'Cancel invite',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await cancelApplicationInterviewOffer(application.id);
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                (onShortlisted ?? onUpdated)?.();
+              } catch (error) {
+                Alert.alert(
+                  'Update failed',
+                  error instanceof Error ? error.message : 'Please try again.',
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
+
+  const toggleExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((current) => !current);
+  };
+
+  const resumeFileName = buildResumeFileName({
+    workerDisplayName: application.worker_display_name,
+    postTitle: application.post_title,
+  });
+
+  const hasInterviewDetails =
+    (application.status === 'interview_offered' ||
+      application.status === 'interview_scheduled') &&
+    interviewSummary;
+
+  const hasActions =
+    application.status === 'applied' ||
+    application.status === 'reviewed' ||
+    application.status === 'in_progress' ||
+    application.status === 'interview_offered' ||
+    application.status === 'interview_scheduled';
 
   return (
     <View style={styles.card}>
@@ -120,81 +231,190 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
           ) : null}
         </View>
       </View>
+
       {jobMatch && matchContext ? (
         <BadgeRow>
           <MatchTierBadge
             breakdown={jobMatch}
             context={matchContext}
             subtitle={application.post_title}
+            audience="clinic"
           />
         </BadgeRow>
       ) : null}
-      {application.years_of_experience != null || application.education ? (
-        <Text style={styles.meta}>
-          {application.years_of_experience != null
-            ? `${application.years_of_experience} yrs`
-            : ''}
-          {application.years_of_experience != null && application.education ? ' · ' : ''}
-          {formatApplicationEducation(application.education)}
+
+      {hasInterviewDetails ? (
+        <View style={styles.interviewRow}>
+          <Ionicons
+            name="calendar-outline"
+            size={16}
+            color={application.status === 'interview_offered' ? colors.warning : colors.info}
+          />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.interviewText}>{interviewSummary}</Text>
+            {application.status === 'interview_offered' ? (
+              <Text style={[styles.interviewText, { fontSize: 13 }]}>
+                Awaiting candidate response
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+
+      {!expanded && application.cover_message ? (
+        <Text style={styles.preview} numberOfLines={2}>
+          {truncatePreview(application.cover_message)}
         </Text>
       ) : null}
-      {application.role_type ? (
-        <Text style={styles.meta}>{getRoleTypeLabel(application.role_type)}</Text>
-      ) : null}
-      {(application.software_used ?? []).length > 0 ? (
-        <Text style={styles.meta}>Software: {(application.software_used ?? []).join(', ')}</Text>
-      ) : null}
-      {(application.practice_types ?? []).length > 0 ? (
-        <Text style={styles.meta}>
-          Specialties: {(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
-        </Text>
-      ) : null}
-      {application.cover_message ? (
-        <Text style={styles.meta}>{application.cover_message}</Text>
-      ) : null}
-      <Text style={styles.meta}>
-        Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
-      </Text>
-      {application.resume_storage_path ? (
-        <OnboardingButton label="View resume" variant="secondary" onPress={() => void handleViewResume()} />
-      ) : null}
-      {(application.status === 'applied' ||
-        application.status === 'reviewed' ||
-        application.status === 'in_progress') && (
-        <View style={styles.actions}>
-          {application.status === 'applied' ? (
-            <>
-              <OnboardingButton label="Mark as viewed" onPress={() => void updateStatus('reviewed')} />
-              <OnboardingButton
-                label="Decline"
-                variant="secondary"
-                onPress={() => void updateStatus('rejected')}
-              />
-            </>
+
+      <Pressable
+        style={styles.toggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        onPress={toggleExpanded}>
+        <Text style={styles.toggleText}>{expanded ? 'Hide details' : 'View details'}</Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.labelTertiary}
+        />
+      </Pressable>
+
+      {expanded ? (
+        <View style={styles.details}>
+          {application.years_of_experience != null || application.education ? (
+            <Text style={styles.meta}>
+              {application.years_of_experience != null
+                ? `${application.years_of_experience} yrs`
+                : ''}
+              {application.years_of_experience != null && application.education ? ' · ' : ''}
+              {formatApplicationEducation(application.education)}
+            </Text>
           ) : null}
-          {application.status === 'reviewed' ? (
-            <OnboardingButton
-              label="Mark in progress"
-              onPress={() => void updateStatus('in_progress')}
+          {application.role_type ? (
+            <Text style={styles.meta}>{getRoleTypeLabel(application.role_type)}</Text>
+          ) : null}
+          {(application.software_used ?? []).length > 0 ? (
+            <Text style={styles.meta}>
+              Software: {(application.software_used ?? []).join(', ')}
+            </Text>
+          ) : null}
+          {(application.practice_types ?? []).length > 0 ? (
+            <Text style={styles.meta}>
+              Specialties: {(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
+            </Text>
+          ) : null}
+          {application.cover_message ? (
+            <Text style={styles.meta}>{application.cover_message}</Text>
+          ) : null}
+          {application.post_type === 'job' && application.screening ? (
+            <ApplicationScreeningSection screening={application.screening} />
+          ) : null}
+          {application.interview_details ? (
+            <Text style={styles.meta}>Interview details · {application.interview_details}</Text>
+          ) : null}
+          <Text style={styles.meta}>
+            Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
+          </Text>
+          {application.resume_storage_path ? (
+            <ResumeViewButton
+              storagePath={application.resume_storage_path}
+              fileName={resumeFileName}
             />
           ) : null}
-          {application.status === 'in_progress' ? (
-            <View style={styles.actionsRow}>
-              <OnboardingButton
-                style={styles.action}
-                label="Mark as selected"
-                onPress={() => void updateStatus('selected')}
-              />
-              <OnboardingButton
-                style={styles.action}
-                label="Decline"
-                variant="secondary"
-                onPress={() => void updateStatus('rejected')}
-              />
+
+          {hasActions ? (
+            <View style={styles.actions}>
+              {application.status === 'applied' ? (
+                <>
+                  <View style={styles.actionsRow}>
+                    <OnboardingButton
+                      style={styles.action}
+                      label="Mark viewed"
+                      onPress={() => void updateStatus('reviewed')}
+                    />
+                    <OnboardingButton
+                      style={styles.action}
+                      label="Add to shortlist"
+                      variant="secondary"
+                      onPress={() => void updateStatus('in_progress')}
+                    />
+                  </View>
+                  <View style={styles.actionsRow}>
+                    <OnboardingButton
+                      style={styles.action}
+                      label="Not moving forward"
+                      variant="destructive"
+                      onPress={() => void updateStatus('rejected')}
+                    />
+                  </View>
+                </>
+              ) : null}
+              {application.status === 'reviewed' ? (
+                <View style={styles.actionsRow}>
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Add to shortlist"
+                    onPress={() => void updateStatus('in_progress')}
+                  />
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Not moving forward"
+                    variant="destructive"
+                    onPress={() => void updateStatus('rejected')}
+                  />
+                </View>
+              ) : null}
+              {application.status === 'in_progress' ? (
+                <View style={styles.actionsRow}>
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Schedule interview"
+                    onPress={() => onScheduleInterview?.(application)}
+                  />
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Not moving forward"
+                    variant="destructive"
+                    onPress={() => void updateStatus('rejected')}
+                  />
+                </View>
+              ) : null}
+              {application.status === 'interview_offered' ? (
+                <View style={styles.actionsRow}>
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Cancel invite"
+                    variant="secondary"
+                    onPress={cancelInterviewInvite}
+                  />
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Not moving forward"
+                    variant="destructive"
+                    onPress={() => void updateStatus('rejected')}
+                  />
+                </View>
+              ) : null}
+              {application.status === 'interview_scheduled' ? (
+                <View style={styles.actionsRow}>
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Mark hired"
+                    onPress={() => void updateStatus('selected')}
+                  />
+                  <OnboardingButton
+                    style={styles.action}
+                    label="Not moving forward"
+                    variant="destructive"
+                    onPress={() => void updateStatus('rejected')}
+                  />
+                </View>
+              ) : null}
             </View>
           ) : null}
         </View>
-      )}
+      ) : null}
     </View>
   );
 }

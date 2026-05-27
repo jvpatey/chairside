@@ -18,8 +18,7 @@ export function parseStoredMatchContext(
   const context = raw as StoredMatchContext;
   return {
     postRoleType: typeof context.postRoleType === 'string' ? context.postRoleType : undefined,
-    workerRoleType:
-      typeof context.workerRoleType === 'string' ? context.workerRoleType : null,
+    workerRoleType: typeof context.workerRoleType === 'string' ? context.workerRoleType : null,
     postEmploymentType:
       typeof context.postEmploymentType === 'string' ? context.postEmploymentType : undefined,
     workerPreferredEmploymentTypes: Array.isArray(context.workerPreferredEmploymentTypes)
@@ -33,9 +32,7 @@ export function parseStoredMatchContext(
       : undefined,
     distanceKm: typeof context.distanceKm === 'number' ? context.distanceKm : null,
     workerTravelRadiusKm:
-      typeof context.workerTravelRadiusKm === 'number'
-        ? context.workerTravelRadiusKm
-        : null,
+      typeof context.workerTravelRadiusKm === 'number' ? context.workerTravelRadiusKm : null,
   };
 }
 
@@ -50,9 +47,7 @@ export function buildMatchDisplayContext(
   return {
     ...context,
     postRoleLabel: context.postRoleType ? getRoleTypeLabel(context.postRoleType) : undefined,
-    workerRoleLabel: context.workerRoleType
-      ? getRoleTypeLabel(context.workerRoleType)
-      : undefined,
+    workerRoleLabel: context.workerRoleType ? getRoleTypeLabel(context.workerRoleType) : undefined,
     postEmploymentLabel: context.postEmploymentType
       ? getEmploymentTypeLabel(context.postEmploymentType)
       : undefined,
@@ -84,7 +79,6 @@ export function getApplicationMatchDisplayContext(
     workerRoleType: storedContext.workerRoleType ?? application.role_type,
     workerSoftware: storedContext.workerSoftware ?? application.software_used,
     workerPreferredEmploymentTypes:
-      storedContext.workerPreferredEmploymentTypes ??
-      application.preferred_employment_types,
+      storedContext.workerPreferredEmploymentTypes ?? application.preferred_employment_types,
   });
 }

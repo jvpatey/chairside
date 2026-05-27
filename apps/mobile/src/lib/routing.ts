@@ -3,6 +3,11 @@ import type { Href } from 'expo-router';
 import type { UserRole } from '@/types';
 
 export type FillInReturnTarget = 'postings-fill-ins' | 'dashboard-fill-ins';
+export type ApplicantReturnTarget = 'applications-tab' | 'dashboard-applications';
+export type WorkerApplicationReturnTarget =
+  | 'applications-tab'
+  | 'dashboard-applications'
+  | 'fill-ins-tab';
 export type PostingsTabParam = 'roles' | 'fill-ins';
 export type DashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
 export type WorkerBrowseTabParam = 'roles' | 'fill-ins';
@@ -72,6 +77,10 @@ export function getJobDetailRoute(jobId: string): Href {
   return { pathname: '/(clinic-tabs)/job/[id]', params: { id: jobId } } as Href;
 }
 
+export function getRoleHistoryRoute(): Href {
+  return '/(clinic-tabs)/role-history' as Href;
+}
+
 export function getWorkerJobDetailRoute(jobId: string): Href {
   return { pathname: '/(tabs)/job/[id]', params: { id: jobId } } as unknown as Href;
 }
@@ -94,22 +103,61 @@ export function getWorkerShiftDetailRoute(shiftId: string): Href {
   return { pathname: '/(tabs)/shift/[id]', params: { id: shiftId } } as unknown as Href;
 }
 
-export function getWorkerApplicationRoute(applicationId: string): Href {
+export function getWorkerApplicationRoute(
+  applicationId: string,
+  returnTo: WorkerApplicationReturnTarget = 'applications-tab',
+): Href {
   return {
     pathname: '/(tabs)/application/[id]',
-    params: { id: applicationId },
+    params: { id: applicationId, returnTo },
   } as unknown as Href;
+}
+
+export function navigateAfterWorkerApplication(
+  router: { replace: (href: Href) => void; back: () => void },
+  returnTo?: string,
+) {
+  if (returnTo === 'dashboard-applications') {
+    router.replace(getWorkerHomeRoute('applications'));
+    return;
+  }
+  if (returnTo === 'fill-ins-tab') {
+    router.replace(WORKER_FILLINS);
+    return;
+  }
+  router.replace(WORKER_APPLICATIONS);
 }
 
 export function getApplyRoute(postType: ApplyPostType, postId: string): Href {
   return { pathname: '/(tabs)/apply', params: { postType, postId } } as unknown as Href;
 }
 
-export function getClinicRoleApplicationsRoute(jobId: string): Href {
+export function getApplyScreeningRoute(postId: string, coverMessage?: string): Href {
+  return {
+    pathname: '/(tabs)/apply-screening',
+    params: { postId, coverMessage: coverMessage ?? '' },
+  } as unknown as Href;
+}
+
+export function getClinicRoleApplicationsRoute(
+  jobId: string,
+  returnTo: ApplicantReturnTarget = 'applications-tab',
+): Href {
   return {
     pathname: '/(clinic-tabs)/role-applicants/[jobId]',
-    params: { jobId },
+    params: { jobId, returnTo },
   } as Href;
+}
+
+export function navigateAfterRoleApplicants(
+  router: { replace: (href: Href) => void; back: () => void },
+  returnTo?: string,
+) {
+  if (returnTo === 'dashboard-applications') {
+    router.replace(getClinicHomeRoute('applications'));
+    return;
+  }
+  router.replace(CLINIC_APPLICATIONS);
 }
 
 export function getEditShiftRoute(

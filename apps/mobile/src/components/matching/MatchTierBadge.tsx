@@ -1,4 +1,4 @@
-import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
+import type { JobMatchBreakdown, JobMatchContext, MatchDetailAudience } from '@chairside/core';
 import { getMatchTierLabel } from '@chairside/core';
 import { useState } from 'react';
 
@@ -13,6 +13,7 @@ type MatchTierBadgeProps = {
   context: Partial<JobMatchContext>;
   subtitle?: string;
   showProfileHint?: boolean;
+  audience?: MatchDetailAudience;
 };
 
 export function MatchTierBadge({
@@ -20,6 +21,7 @@ export function MatchTierBadge({
   context,
   subtitle,
   showProfileHint = false,
+  audience = 'worker',
 }: MatchTierBadgeProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const { colors } = useTheme();
@@ -43,6 +45,7 @@ export function MatchTierBadge({
         context={displayContext}
         subtitle={subtitle}
         showProfileHint={showProfileHint}
+        audience={audience}
       />
     </>
   );

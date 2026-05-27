@@ -136,7 +136,7 @@ export function WageRangeInput({ onChange, initialValue }: WageRangeInputProps) 
           <Text style={styles.fieldLabel}>Min</Text>
           <TextInput
             style={[styles.input, isInvalid && styles.inputError]}
-            placeholder="38"
+            placeholder="Low"
             placeholderTextColor={colors.labelTertiary}
             value={min}
             onChangeText={(value) => setMin(sanitizeWageInput(value))}
@@ -150,7 +150,7 @@ export function WageRangeInput({ onChange, initialValue }: WageRangeInputProps) 
           <Text style={styles.fieldLabel}>Max</Text>
           <TextInput
             style={[styles.input, isInvalid && styles.inputError]}
-            placeholder="45"
+            placeholder="High"
             placeholderTextColor={colors.labelTertiary}
             value={max}
             onChangeText={(value) => setMax(sanitizeWageInput(value))}

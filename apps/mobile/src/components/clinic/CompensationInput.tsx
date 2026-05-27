@@ -87,7 +87,7 @@ export function CompensationInput({ onChange, initialValue }: CompensationInputP
         <Text style={styles.prefix}>$</Text>
         <TextInput
           style={styles.input}
-          placeholder="45"
+          placeholder="Rate"
           placeholderTextColor={colors.labelTertiary}
           value={rate}
           onChangeText={(value) => setRate(sanitizeHourlyRate(value))}

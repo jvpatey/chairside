@@ -1,3 +1,14 @@
+export const DEFAULT_START_TIME = '08:00';
+export const DEFAULT_END_TIME = '17:00';
+
+export function defaultStartTimeDate(): Date {
+  return parseTime24h(DEFAULT_START_TIME) ?? new Date();
+}
+
+export function defaultEndTimeDate(): Date {
+  return parseTime24h(DEFAULT_END_TIME) ?? new Date();
+}
+
 export function formatTime12h(time: string): string | null {
   const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(time.trim());
   if (!match) return null;

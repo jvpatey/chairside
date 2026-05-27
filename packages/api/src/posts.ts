@@ -1,6 +1,12 @@
 import type { RoleType } from '@chairside/config';
 import { isMatchableSoftware } from '@chairside/core';
 import { getSupabaseClient } from './client';
+import {
+  getJobPostScreeningQuestions,
+  replaceJobPostScreeningQuestions,
+  type ScreeningQuestion,
+  type ScreeningQuestionInput,
+} from './screening';
 
 export type { RoleType } from '@chairside/config';
 export type JobPostStatus = 'live' | 'paused' | 'filled' | 'closed';
@@ -26,9 +32,14 @@ export type JobPost = {
   start_date: string | null;
   benefits: string | null;
   offerings: string[];
+  screening_enabled: boolean;
   status: JobPostStatus;
   created_at: string;
   updated_at: string;
+};
+
+export type JobPostWithScreening = JobPost & {
+  screening_questions: ScreeningQuestion[];
 };
 
 export type ShiftPost = {
@@ -67,6 +78,8 @@ export type CreateJobPostInput = {
   start_date?: string;
   benefits?: string;
   offerings?: string[];
+  screening_enabled?: boolean;
+  screeningQuestions?: ScreeningQuestionInput[];
   status?: JobPostStatus;
 };
 
@@ -122,6 +135,20 @@ export async function getJobPost(clinicId: string, jobId: string): Promise<JobPo
   return data as JobPost | null;
 }
 
+export async function getJobPostWithScreening(
+  clinicId: string,
+  jobId: string,
+): Promise<JobPostWithScreening | null> {
+  const job = await getJobPost(clinicId, jobId);
+  if (!job) return null;
+
+  const screeningQuestions = job.screening_enabled
+    ? await getJobPostScreeningQuestions(jobId)
+    : [];
+
+  return { ...job, screening_questions: screeningQuestions };
+}
+
 export async function updateJobPost(
   clinicId: string,
   jobId: string,
@@ -143,6 +170,7 @@ export async function updateJobPost(
   if (input.start_date !== undefined) patch.start_date = input.start_date || null;
   if (input.benefits !== undefined) patch.benefits = input.benefits || null;
   if (input.offerings !== undefined) patch.offerings = input.offerings;
+  if (input.screening_enabled !== undefined) patch.screening_enabled = input.screening_enabled;
   if (input.status !== undefined) patch.status = input.status;
 
   const { data, error } = await supabase
@@ -154,6 +182,17 @@ export async function updateJobPost(
     .single();
 
   if (error) throw error;
+
+  if (input.screeningQuestions !== undefined || input.screening_enabled !== undefined) {
+    const enabled = input.screening_enabled ?? (data as JobPost).screening_enabled;
+    await replaceJobPostScreeningQuestions(
+      clinicId,
+      jobId,
+      enabled,
+      input.screeningQuestions ?? [],
+    );
+  }
+
   return data as JobPost;
 }
 
@@ -243,6 +282,7 @@ export async function createJobPost(
       start_date: input.start_date ?? null,
       benefits: input.benefits ?? null,
       offerings: input.offerings ?? [],
+      screening_enabled: input.screening_enabled ?? false,
       status: input.status ?? 'live',
       updated_at: now,
     })
@@ -250,7 +290,18 @@ export async function createJobPost(
     .single();
 
   if (error) throw error;
-  return data as JobPost;
+
+  const job = data as JobPost;
+  if (input.screening_enabled && input.screeningQuestions?.length) {
+    await replaceJobPostScreeningQuestions(
+      clinicId,
+      job.id,
+      true,
+      input.screeningQuestions,
+    );
+  }
+
+  return job;
 }
 
 export async function createShiftPost(
@@ -434,6 +485,7 @@ export type ClinicSummary = {
 
 export type LiveJobPost = JobPost & {
   clinic: ClinicSummary;
+  screening_questions: ScreeningQuestion[];
 };
 
 export type LiveShiftPost = ShiftPost & {
@@ -499,7 +551,8 @@ export async function listLiveJobPosts(province: string): Promise<LiveJobPost[]>
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return attachClinic((data ?? []) as JobPost[], clinicMap);
+  const posts = attachClinic((data ?? []) as JobPost[], clinicMap);
+  return posts.map((post) => ({ ...post, screening_questions: [] }));
 }
 
 export async function listLiveShiftPosts(province: string): Promise<LiveShiftPost[]> {
@@ -540,6 +593,10 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
   if (clinicError) throw clinicError;
   if (!clinic) return null;
 
+  const screeningQuestions = (data as JobPost).screening_enabled
+    ? await getJobPostScreeningQuestions(jobId)
+    : [];
+
   return {
     ...(data as JobPost),
     clinic: {
@@ -552,6 +609,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
       latitude: clinic.latitude,
       longitude: clinic.longitude,
     },
+    screening_questions: screeningQuestions,
   };
 }
 

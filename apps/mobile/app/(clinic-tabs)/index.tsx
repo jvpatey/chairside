@@ -94,6 +94,24 @@ export default function ClinicDashboardScreen() {
 
   useRefreshOnFocus(loadDashboard);
 
+  const handleJobUpdated = useCallback(
+    (updated: JobPost) => {
+      setJobs((prev) => prev.map((job) => (job.id === updated.id ? updated : job)));
+      void loadDashboard();
+    },
+    [loadDashboard],
+  );
+
+  const handleJobDeleted = useCallback((jobId: string) => {
+    setJobs((prev) => prev.filter((job) => job.id !== jobId));
+    setApplicantCounts((prev) => {
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
+    void loadDashboard();
+  }, [loadDashboard]);
+
   useEffect(() => {
     if (overview === 'roles' || overview === 'fill-ins' || overview === 'applications') {
       setSelectedOverview(overview);
@@ -170,12 +188,15 @@ export default function ClinicDashboardScreen() {
           shifts={shifts}
           jobApplicationSummaries={jobApplicationSummaries}
           applicantCounts={applicantCounts}
+          clinicId={user?.id}
+          onJobUpdated={handleJobUpdated}
+          onJobDeleted={handleJobDeleted}
           onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
           onShiftPress={(shiftId) =>
             router.push(getShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
           }
           onJobApplicationsPress={(jobId) =>
-            router.push(getClinicRoleApplicationsRoute(jobId))
+            router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
           }
         />
       </View>

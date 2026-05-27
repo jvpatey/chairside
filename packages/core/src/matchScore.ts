@@ -45,6 +45,8 @@ export type MatchCriterionDetail = {
   explanation: string;
 };
 
+export type MatchDetailAudience = 'worker' | 'clinic';
+
 const TIER_LABELS: Record<MatchTier, string> = {
   strong: 'Strong match',
   good: 'Good match',
@@ -192,14 +194,20 @@ export function getMatchCriterionDetails(
     postEmploymentLabel?: string;
     workerEmploymentLabels?: string[];
   },
+  audience: MatchDetailAudience = 'worker',
 ): MatchCriterionDetail[] {
   const postRole = context.postRoleLabel ?? context.postRoleType ?? 'This role';
-  const workerRole = context.workerRoleLabel ?? context.workerRoleType ?? 'your profile';
+  const workerRole =
+    context.workerRoleLabel ??
+    context.workerRoleType ??
+    (audience === 'clinic' ? "the applicant's stated role" : 'your profile');
   const postEmployment =
     context.postEmploymentLabel ?? context.postEmploymentType ?? 'This role';
   const workerEmployment =
     context.workerEmploymentLabels ??
     (context.workerPreferredEmploymentTypes ?? []).map((value) => value);
+  const applicantRolePhrase =
+    audience === 'clinic' ? `the applicant's role (${workerRole})` : workerRole;
 
   const postSoftware = matchableSoftwareTokens(context.postSoftware);
   const softwareOverlap = softwareOverlapTokens(context.postSoftware, context.workerSoftware);
@@ -207,41 +215,75 @@ export function getMatchCriterionDetails(
 
   const roleExplanation =
     breakdown.roleFit === 'strong'
-      ? `${postRole} matches ${workerRole}.`
+      ? audience === 'clinic'
+        ? `${postRole} matches ${applicantRolePhrase}.`
+        : `${postRole} matches ${workerRole}.`
       : breakdown.roleFit === 'missing'
-        ? `${postRole} does not match ${workerRole}.`
-        : `${postRole} may not align with ${workerRole}.`;
+        ? audience === 'clinic'
+          ? `${postRole} does not match ${applicantRolePhrase}.`
+          : `${postRole} does not match ${workerRole}.`
+        : audience === 'clinic'
+          ? `${postRole} may not align with ${applicantRolePhrase}.`
+          : `${postRole} may not align with ${workerRole}.`;
 
   const softwareExplanation =
-    breakdown.software === 'strong'
-      ? `You know all required software (${formatList(postSoftware)}).`
-      : breakdown.software === 'partial'
-        ? postSoftware.length === 0
-          ? 'This role did not list specific software requirements.'
-          : softwareMissing.length > 0
-            ? `You know ${formatList(softwareOverlap)}, but this role also requires ${formatList(softwareMissing)}.`
-            : `You know some required software (${formatList(softwareOverlap)}).`
-        : postSoftware.length === 0
-          ? 'Software requirements were not listed for this role.'
-          : `You do not match the required software (${formatList(postSoftware)}).`;
+    audience === 'clinic'
+      ? breakdown.software === 'strong'
+        ? `Applicant knows all required software (${formatList(postSoftware)}).`
+        : breakdown.software === 'partial'
+          ? postSoftware.length === 0
+            ? 'This role did not list specific software requirements.'
+            : softwareMissing.length > 0
+              ? `Applicant knows ${formatList(softwareOverlap)}, but this role also requires ${formatList(softwareMissing)}.`
+              : `Applicant knows some required software (${formatList(softwareOverlap)}).`
+          : postSoftware.length === 0
+            ? 'Software requirements were not listed for this role.'
+            : `Applicant does not list the required software (${formatList(postSoftware)}).`
+      : breakdown.software === 'strong'
+        ? `You know all required software (${formatList(postSoftware)}).`
+        : breakdown.software === 'partial'
+          ? postSoftware.length === 0
+            ? 'This role did not list specific software requirements.'
+            : softwareMissing.length > 0
+              ? `You know ${formatList(softwareOverlap)}, but this role also requires ${formatList(softwareMissing)}.`
+              : `You know some required software (${formatList(softwareOverlap)}).`
+          : postSoftware.length === 0
+            ? 'Software requirements were not listed for this role.'
+            : `You do not match the required software (${formatList(postSoftware)}).`;
 
   const locationExplanation =
-    breakdown.location === 'strong'
-      ? context.distanceKm != null
-        ? `${formatDistance(context.distanceKm)} — within your travel range.`
-        : 'Within your travel range.'
-      : breakdown.location === 'missing'
+    audience === 'clinic'
+      ? breakdown.location === 'strong'
         ? context.distanceKm != null
-          ? `${formatDistance(context.distanceKm)} — outside your travel range.`
-          : 'Outside your travel range.'
-        : 'Location could not be fully verified.';
+          ? `Applicant is ${formatDistance(context.distanceKm)} — within their stated travel range.`
+          : 'Applicant is within their stated travel range.'
+        : breakdown.location === 'missing'
+          ? context.distanceKm != null
+            ? `Applicant is ${formatDistance(context.distanceKm)} — outside their stated travel range.`
+            : 'Applicant is outside their stated travel range.'
+          : 'Applicant location could not be fully verified.'
+      : breakdown.location === 'strong'
+        ? context.distanceKm != null
+          ? `${formatDistance(context.distanceKm)} — within your travel range.`
+          : 'Within your travel range.'
+        : breakdown.location === 'missing'
+          ? context.distanceKm != null
+            ? `${formatDistance(context.distanceKm)} — outside your travel range.`
+            : 'Outside your travel range.'
+          : 'Location could not be fully verified.';
 
   const employmentExplanation =
-    breakdown.employmentType === 'strong'
-      ? `${postEmployment} matches your preferred employment types.`
-      : breakdown.employmentType === 'missing'
-        ? `${postEmployment} is not in your preferred employment types (${formatList(workerEmployment)}).`
-        : 'You have not set preferred employment types on your profile.';
+    audience === 'clinic'
+      ? breakdown.employmentType === 'strong'
+        ? `This role offers ${postEmployment}, which matches what the applicant is seeking.`
+        : breakdown.employmentType === 'missing'
+          ? `This role is ${postEmployment}; applicant prefers ${formatList(workerEmployment)}.`
+          : 'Applicant has not listed preferred employment types.'
+      : breakdown.employmentType === 'strong'
+        ? `${postEmployment} matches your preferred employment types.`
+        : breakdown.employmentType === 'missing'
+          ? `${postEmployment} is not in your preferred employment types (${formatList(workerEmployment)}).`
+          : 'You have not set preferred employment types on your profile.';
 
   return [
     {

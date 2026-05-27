@@ -59,6 +59,12 @@
         {
           "photosPermission": "Allow Chairside to access your photos for your profile picture."
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Chairside to add interview events to your calendar."
+        }
       ]
     ],
     "experiments": {

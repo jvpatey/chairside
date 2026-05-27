@@ -4,7 +4,7 @@ import { ROLE_TYPE_OPTIONS, formatDisplayLabel } from '@chairside/config';
 
 import { parseISODate, startOfDay, todayISO } from '@/lib/dates';
 
-export type JobStatusFilter = 'active' | 'paused' | 'archived' | 'all';
+export type JobStatusFilter = 'live' | 'paused' | 'all';
 
 export type ShiftStatusFilter = 'open' | 'filled' | 'closed' | 'all';
 
@@ -13,11 +13,82 @@ export type ShiftDateFilter = 'all' | 'today' | 'upcoming' | 'past';
 export type RoleTypeFilter = 'all' | RoleType;
 
 export const JOB_STATUS_FILTER_OPTIONS: { value: JobStatusFilter; label: string }[] = [
-  { value: 'active', label: 'Active' },
-  { value: 'paused', label: 'Paused' },
-  { value: 'archived', label: 'Archived' },
   { value: 'all', label: 'All' },
+  { value: 'live', label: 'Live' },
+  { value: 'paused', label: 'Paused' },
 ];
+
+export function isMainListJob(job: JobPost): boolean {
+  return job.status === 'live' || job.status === 'paused';
+}
+
+export function isArchivedJob(job: JobPost): boolean {
+  return job.status === 'closed';
+}
+
+export function isFilledJob(job: JobPost): boolean {
+  return job.status === 'filled';
+}
+
+function compareMainListJobs(a: JobPost, b: JobPost): number {
+  if (a.status === 'live' && b.status !== 'live') return -1;
+  if (a.status !== 'live' && b.status === 'live') return 1;
+  return b.created_at.localeCompare(a.created_at);
+}
+
+export function filterJobPostsForMainList(
+  jobs: JobPost[],
+  statusFilter: JobStatusFilter,
+  roleTypeFilter: RoleTypeFilter,
+): JobPost[] {
+  const mainJobs = jobs.filter(isMainListJob);
+
+  const byStatus = (() => {
+    switch (statusFilter) {
+      case 'live':
+        return mainJobs.filter((job) => job.status === 'live');
+      case 'paused':
+        return mainJobs.filter((job) => job.status === 'paused');
+      case 'all':
+        return mainJobs;
+    }
+  })();
+
+  return byStatus
+    .filter((job) => matchesRoleTypeFilter(job, roleTypeFilter))
+    .sort(compareMainListJobs);
+}
+
+export function filterArchivedJobPosts(
+  jobs: JobPost[],
+  roleTypeFilter: RoleTypeFilter,
+): JobPost[] {
+  return jobs
+    .filter(isArchivedJob)
+    .filter((job) => matchesRoleTypeFilter(job, roleTypeFilter))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export function filterFilledJobPosts(
+  jobs: JobPost[],
+  roleTypeFilter: RoleTypeFilter,
+): JobPost[] {
+  return jobs
+    .filter(isFilledJob)
+    .filter((job) => matchesRoleTypeFilter(job, roleTypeFilter))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export function countMainListJobs(jobs: JobPost[]): number {
+  return jobs.filter(isMainListJob).length;
+}
+
+export function countHistoryJobs(jobs: JobPost[]): { archived: number; filled: number } {
+  return {
+    archived: jobs.filter(isArchivedJob).length,
+    filled: jobs.filter(isFilledJob).length,
+  };
+}
 
 export const SHIFT_STATUS_FILTER_OPTIONS: { value: ShiftStatusFilter; label: string }[] = [
   { value: 'open', label: 'Open' },
@@ -97,27 +168,6 @@ function matchesShiftDate(shift: ShiftPost, dateFilter: ShiftDateFilter): boolea
     case 'all':
       return true;
   }
-}
-
-export function filterJobPosts(
-  jobs: JobPost[],
-  statusFilter: JobStatusFilter,
-  roleTypeFilter: RoleTypeFilter,
-): JobPost[] {
-  const byStatus = (() => {
-    switch (statusFilter) {
-      case 'active':
-        return jobs.filter((job) => job.status === 'live');
-      case 'paused':
-        return jobs.filter((job) => job.status === 'paused');
-      case 'archived':
-        return jobs.filter((job) => job.status === 'filled' || job.status === 'closed');
-      case 'all':
-        return jobs;
-    }
-  })();
-
-  return byStatus.filter((job) => matchesRoleTypeFilter(job, roleTypeFilter));
 }
 
 export function filterShiftPosts(

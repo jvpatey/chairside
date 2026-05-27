@@ -94,6 +94,10 @@ export type ApplicationRow = {
   software_used: string[];
   practice_types: string[];
   preferred_employment_types: string[];
+  interview_at: string | null;
+  interview_duration_minutes: number | null;
+  interview_details: string | null;
+  interview_offer_closed_by: string | null;
   created_at: string;
   updated_at: string;
 };

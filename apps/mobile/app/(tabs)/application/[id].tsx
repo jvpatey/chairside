@@ -8,19 +8,28 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getWorkerJobDetailRoute, getWorkerShiftDetailRoute } from '@/lib/routing';
+import {
+  getWorkerJobDetailRoute,
+  getWorkerShiftDetailRoute,
+  navigateAfterWorkerApplication,
+} from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerApplicationDetailScreen() {
   const { user } = useAuth();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: string }>();
   const applicationId = typeof id === 'string' ? id : '';
+  const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
   const [application, setApplication] = useState<WorkerApplication | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
   }));
+
+  const goBack = useCallback(() => {
+    navigateAfterWorkerApplication(router, resolvedReturnTo);
+  }, [resolvedReturnTo]);
 
   const load = useCallback(async () => {
     if (!user?.id || !applicationId) {
@@ -34,7 +43,7 @@ export default function WorkerApplicationDetailScreen() {
       const row = await getWorkerApplication(user.id, applicationId);
       if (!row) {
         Alert.alert('Application not found', 'This application may have been removed.');
-        router.back();
+        goBack();
         return;
       }
       setApplication(row);
@@ -43,11 +52,11 @@ export default function WorkerApplicationDetailScreen() {
         'Could not load application',
         error instanceof Error ? error.message : 'Please try again.',
       );
-      router.back();
+      goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [applicationId, user?.id]);
+  }, [applicationId, goBack, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -70,19 +79,16 @@ export default function WorkerApplicationDetailScreen() {
 
   return (
     <OnboardingShell>
-      <AuthScreenHeader
-        title="Application"
-        subtitle={subtitle}
-        onBack={() => router.back()}
-      />
+      <AuthScreenHeader title="Application" subtitle={subtitle} onBack={goBack} />
       <View style={styles.content}>
         {application ? (
           <WorkerApplicationDetailCard
             application={application}
             onViewPosting={handleViewPosting}
+            onUpdated={() => void load()}
             onCancelled={() => {
               Alert.alert('Application cancelled', 'Your application was removed.');
-              router.back();
+              goBack();
             }}
           />
         ) : null}

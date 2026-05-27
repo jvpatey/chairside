@@ -183,7 +183,9 @@ export default function FillInsScreen() {
                     <WorkerApplicationListCard
                       key={application.id}
                       application={application}
-                      onPress={() => router.push(getWorkerApplicationRoute(application.id))}
+                      onPress={() =>
+                        router.push(getWorkerApplicationRoute(application.id, 'fill-ins-tab'))
+                      }
                     />
                   ))}
                 </View>
@@ -195,7 +197,9 @@ export default function FillInsScreen() {
                     <WorkerApplicationListCard
                       key={application.id}
                       application={application}
-                      onPress={() => router.push(getWorkerApplicationRoute(application.id))}
+                      onPress={() =>
+                        router.push(getWorkerApplicationRoute(application.id, 'fill-ins-tab'))
+                      }
                     />
                   ))}
                 </View>

@@ -31,6 +31,11 @@ const PINGRAM_TYPES = {
   applicationReceived: 'application_received',
   applicationReviewed: 'application_reviewed',
   applicationInProgress: 'application_in_progress',
+  applicationInterviewOffered: 'application_interview_offered',
+  applicationInterviewScheduled: 'application_interview_scheduled',
+  applicationInterviewAccepted: 'application_interview_accepted',
+  applicationInterviewDeclined: 'application_interview_declined',
+  applicationInterviewCancelled: 'application_interview_cancelled',
   applicationSelected: 'application_selected',
   applicationRejected: 'application_rejected',
   applicationHired: 'application_hired',
@@ -150,12 +155,29 @@ async function sendWorkerStatusNotification(
       title: isShift ? 'Cover request update' : 'Application update',
       message: isShift
         ? 'A clinic is reviewing your cover request.'
-        : 'A clinic is considering your application.',
+        : 'A clinic has shortlisted you for this role.',
+    },
+    interview_offered: {
+      pingramType: PINGRAM_TYPES.applicationInterviewOffered,
+      title: 'Interview invitation',
+      message: 'A clinic invited you to interview for this role.',
+    },
+    interview_cancelled: {
+      pingramType: PINGRAM_TYPES.applicationInterviewCancelled,
+      title: 'Interview invitation cancelled',
+      message: 'The clinic withdrew your interview invitation for this role.',
+    },
+    interview_scheduled: {
+      pingramType: PINGRAM_TYPES.applicationInterviewScheduled,
+      title: 'Interview confirmed',
+      message: 'Your interview is confirmed.',
     },
     selected: {
       pingramType: PINGRAM_TYPES.applicationSelected,
-      title: 'You have been selected',
-      message: 'A clinic has selected you for this role.',
+      title: 'You have been hired',
+      message: isShift
+        ? 'A clinic has selected you for this role.'
+        : 'A clinic has hired you for this role.',
     },
     rejected: {
       pingramType: PINGRAM_TYPES.applicationRejected,
@@ -183,6 +205,67 @@ async function sendWorkerStatusNotification(
     buildSendBody({
       type: template.pingramType,
       userId: workerId,
+      title: template.title,
+      message: template.message,
+      deepLink,
+      secondaryId: idempotencyKey,
+    }),
+  );
+}
+
+async function getApplicationClinicId(
+  supabase: ReturnType<typeof createClient>,
+  application: Record<string, unknown>,
+): Promise<string | null> {
+  const jobPostId = application.job_post_id as string | null;
+  const shiftPostId = application.shift_post_id as string | null;
+
+  if (jobPostId) {
+    const { data: job } = await supabase
+      .from('job_posts')
+      .select('clinic_id')
+      .eq('id', jobPostId)
+      .maybeSingle();
+    return job?.clinic_id ?? null;
+  }
+
+  if (shiftPostId) {
+    const { data: shift } = await supabase
+      .from('shift_posts')
+      .select('clinic_id')
+      .eq('id', shiftPostId)
+      .maybeSingle();
+    return shift?.clinic_id ?? null;
+  }
+
+  return null;
+}
+
+async function sendClinicApplicationNotification(
+  supabase: ReturnType<typeof createClient>,
+  pingramKey: string,
+  pingramBase: string,
+  application: Record<string, unknown>,
+  template: { pingramType: string; title: string; message: string },
+) {
+  const clinicId = await getApplicationClinicId(supabase, application);
+  if (!clinicId) return;
+
+  const applicationId = application.id as string;
+  const idempotencyKey = `${template.pingramType}:${applicationId}`;
+  if (!(await claimIdempotency(supabase, idempotencyKey))) return;
+
+  const jobPostId = application.job_post_id as string | null;
+  const deepLink = jobPostId
+    ? `chairside:///(clinic-tabs)/role-applicants/${jobPostId}`
+    : 'chairside:///(clinic-tabs)/applications';
+
+  await pingramSend(
+    pingramKey,
+    pingramBase,
+    buildSendBody({
+      type: template.pingramType,
+      userId: clinicId,
       title: template.title,
       message: template.message,
       deepLink,
@@ -268,7 +351,43 @@ async function handleApplicationUpdate(
   const oldStatus = oldRecord?.status as string | undefined;
   const newStatus = record.status as string;
   if (!newStatus || oldStatus === newStatus) return;
-  if (!['reviewed', 'in_progress', 'selected', 'rejected', 'hired'].includes(newStatus)) return;
+
+  if (oldStatus === 'interview_offered' && newStatus === 'interview_scheduled') {
+    await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+      pingramType: PINGRAM_TYPES.applicationInterviewAccepted,
+      title: 'Interview accepted',
+      message: 'An applicant confirmed your interview invitation.',
+    });
+    return;
+  }
+
+  if (oldStatus === 'interview_offered' && newStatus === 'in_progress') {
+    const closedBy = record.interview_offer_closed_by as string | null;
+    if (closedBy === 'clinic') {
+      await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, 'interview_cancelled');
+    } else {
+      await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+        pingramType: PINGRAM_TYPES.applicationInterviewDeclined,
+        title: 'Interview declined',
+        message: 'An applicant declined your interview invitation.',
+      });
+    }
+    return;
+  }
+
+  if (newStatus === 'interview_offered') {
+    await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, newStatus);
+    return;
+  }
+
+  if (
+    !['reviewed', 'in_progress', 'interview_scheduled', 'selected', 'rejected', 'hired'].includes(
+      newStatus,
+    )
+  ) {
+    return;
+  }
+
   await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, newStatus);
 }
 

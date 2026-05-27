@@ -89,7 +89,9 @@ export default function ClinicApplicationsScreen() {
             <RoleApplicationSummaryCard
               key={summary.job_post_id}
               summary={summary}
-              onPress={() => router.push(getClinicRoleApplicationsRoute(summary.job_post_id))}
+              onPress={() =>
+                router.push(getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'))
+              }
             />
           ))}
         </View>
