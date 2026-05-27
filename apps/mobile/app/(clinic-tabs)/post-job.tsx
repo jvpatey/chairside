@@ -1,9 +1,10 @@
 import {
   createJobPost,
-  getJobPost,
+  getJobPostWithScreening,
+  screeningQuestionInputFromSelection,
   updateJobPost,
   type EmploymentType,
-  type JobPost,
+  type JobPostWithScreening,
   type RoleType,
 } from '@chairside/api';
 import {
@@ -18,6 +19,10 @@ import { Alert, Text, View } from 'react-native';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OfferingsInput } from '@/components/clinic/OfferingsInput';
 import { ScheduleInput } from '@/components/clinic/ScheduleInput';
+import {
+  ScreeningToggleSection,
+  type CustomScreeningQuestion,
+} from '@/components/clinic/ScreeningToggleSection';
 import { WageRangeInput } from '@/components/clinic/WageRangeInput';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
@@ -26,7 +31,19 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemedStyles } from '@/theme';
 
-function applyJobToForm(job: JobPost) {
+function applyJobToForm(job: JobPostWithScreening) {
+  const catalogSlugs = job.screening_questions
+    .filter((question) => question.catalogSlug)
+    .map((question) => question.catalogSlug!);
+
+  const customQuestions: CustomScreeningQuestion[] = job.screening_questions
+    .filter((question) => question.customPrompt)
+    .map((question) => ({
+      id: question.id,
+      prompt: question.customPrompt!,
+      type: question.type,
+    }));
+
   return {
     roleType: job.role_type,
     employmentType: job.employment_type,
@@ -35,6 +52,9 @@ function applyJobToForm(job: JobPost) {
     schedule: job.schedule ?? '',
     offerings: job.offerings ?? [],
     description: job.description ?? '',
+    screeningEnabled: job.screening_enabled,
+    selectedCatalogSlugs: catalogSlugs,
+    customQuestions,
   };
 }
 
@@ -51,6 +71,9 @@ export default function PostJobScreen() {
   const [schedule, setSchedule] = useState('');
   const [offerings, setOfferings] = useState<string[]>([]);
   const [description, setDescription] = useState('');
+  const [screeningEnabled, setScreeningEnabled] = useState(false);
+  const [selectedCatalogSlugs, setSelectedCatalogSlugs] = useState<string[]>([]);
+  const [customQuestions, setCustomQuestions] = useState<CustomScreeningQuestion[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [formKey, setFormKey] = useState(0);
@@ -73,7 +96,7 @@ export default function PostJobScreen() {
 
     setIsLoading(true);
     try {
-      const job = await getJobPost(user.id, jobId);
+      const job = await getJobPostWithScreening(user.id, jobId);
       if (!job) {
         Alert.alert('Role not found', 'This posting may have been removed.');
         router.back();
@@ -88,6 +111,9 @@ export default function PostJobScreen() {
       setSchedule(form.schedule);
       setOfferings(form.offerings);
       setDescription(form.description);
+      setScreeningEnabled(form.screeningEnabled);
+      setSelectedCatalogSlugs(form.selectedCatalogSlugs);
+      setCustomQuestions(form.customQuestions);
       setFormKey((current) => current + 1);
     } catch (error) {
       Alert.alert(
@@ -110,8 +136,17 @@ export default function PostJobScreen() {
       return;
     }
 
+    if (screeningEnabled && selectedCatalogSlugs.length === 0 && customQuestions.length === 0) {
+      Alert.alert('Screening questions', 'Select at least one question or turn off screening.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      const screeningQuestions = screeningEnabled
+        ? screeningQuestionInputFromSelection(selectedCatalogSlugs, customQuestions)
+        : [];
+
       const payload = {
         role_type: roleType,
         employment_type: employmentType,
@@ -120,6 +155,8 @@ export default function PostJobScreen() {
         schedule: schedule.trim() || undefined,
         offerings,
         description: description.trim() || undefined,
+        screening_enabled: screeningEnabled,
+        screeningQuestions,
       };
 
       if (isEditing && jobId) {
@@ -194,6 +231,15 @@ export default function PostJobScreen() {
           onChangeText={setDescription}
           multiline
           autoCapitalize="sentences"
+        />
+
+        <ScreeningToggleSection
+          enabled={screeningEnabled}
+          selectedCatalogSlugs={selectedCatalogSlugs}
+          customQuestions={customQuestions}
+          onEnabledChange={setScreeningEnabled}
+          onSelectedCatalogSlugsChange={setSelectedCatalogSlugs}
+          onCustomQuestionsChange={setCustomQuestions}
         />
 
         <OnboardingButton

@@ -11,6 +11,7 @@ import {
   DetailSectionDivider,
   RowDivider,
 } from '@/components/clinic/DetailCard';
+import { CultureFitScreeningBadge } from '@/components/clinic/CultureFitScreeningBadge';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { useThemedStyles } from '@/theme';
 
@@ -60,6 +61,11 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
       lineHeight: 21,
       color: colors.labelSecondary,
     },
+    badgeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
     statusBadge: {
       position: 'absolute',
       top: spacing.lg,
@@ -88,6 +94,12 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
         </View>
 
         <Text style={styles.meta}>{metaLine}</Text>
+
+        {Boolean(job.screening_enabled) ? (
+          <View style={styles.badgeRow}>
+            <CultureFitScreeningBadge />
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.card}>

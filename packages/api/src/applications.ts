@@ -1,4 +1,11 @@
 import { getSupabaseClient } from './client';
+import {
+  getApplicationScreening,
+  getApplicationScreeningMap,
+  insertApplicationScreening,
+  type ApplicationScreening,
+  type ScreeningSubmissionInput,
+} from './screening';
 
 export type ApplicationStatus =
   | 'applied'
@@ -45,6 +52,7 @@ export type ClinicApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
   post_role_type: string;
+  screening: ApplicationScreening | null;
 };
 
 export type WorkerApplication = Application & {
@@ -52,12 +60,14 @@ export type WorkerApplication = Application & {
   post_type: 'job' | 'shift';
   clinic_name: string;
   clinic_city: string | null;
+  screening: ApplicationScreening | null;
 };
 
 export type CreateApplicationInput = {
   jobPostId?: string;
   shiftPostId?: string;
   coverMessage?: string;
+  screening?: ScreeningSubmissionInput;
 };
 
 export type JobApplicationSummary = {
@@ -98,10 +108,16 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
 
   if (error) throw error;
 
+  if (error) throw error;
+
+  const applicationIds = (data ?? []).map((row) => row.id);
+  const screeningMap = await getApplicationScreeningMap(applicationIds);
+
   const applications: ClinicApplication[] = [];
 
   for (const row of data ?? []) {
     const application = row as Application;
+    const screening = screeningMap.get(row.id) ?? null;
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
@@ -110,6 +126,7 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
         post_title: job.title,
         post_type: 'job',
         post_role_type: job.role_type,
+        screening,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
@@ -118,6 +135,7 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
         post_title: shift.title,
         post_type: 'shift',
         post_role_type: shift.role_type,
+        screening,
       });
     }
   }
@@ -177,11 +195,14 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   if (clinicsError) throw clinicsError;
 
   const clinicMap = new Map((clinics ?? []).map((clinic) => [clinic.id, clinic]));
+  const applicationIds = data.map((row) => row.id);
+  const screeningMap = await getApplicationScreeningMap(applicationIds);
 
   const applications: WorkerApplication[] = [];
 
   for (const row of data) {
     const application = row as Application;
+    const screening = screeningMap.get(row.id) ?? null;
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
@@ -192,6 +213,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
         post_type: 'job',
         clinic_name: clinic?.clinic_name ?? 'Clinic',
         clinic_city: clinic?.city ?? null,
+        screening,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
@@ -202,6 +224,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
         post_type: 'shift',
         clinic_name: clinic?.clinic_name ?? 'Clinic',
         clinic_city: clinic?.city ?? null,
+        screening: null,
       });
     }
   }
@@ -213,6 +236,10 @@ async function enrichWorkerApplication(
   application: Application,
 ): Promise<WorkerApplication | null> {
   const supabase = getSupabaseClient();
+  const screening =
+    application.job_post_id != null
+      ? await getApplicationScreening(application.id)
+      : null;
 
   if (application.job_post_id) {
     const { data: job, error: jobError } = await supabase
@@ -238,6 +265,7 @@ async function enrichWorkerApplication(
       post_type: 'job',
       clinic_name: clinic?.clinic_name ?? 'Clinic',
       clinic_city: clinic?.city ?? null,
+      screening,
     };
   }
 
@@ -265,6 +293,7 @@ async function enrichWorkerApplication(
       post_type: 'shift',
       clinic_name: clinic?.clinic_name ?? 'Clinic',
       clinic_city: clinic?.city ?? null,
+      screening: null,
     };
   }
 
@@ -428,7 +457,14 @@ export async function createApplication(
     }
     throw error;
   }
-  return data as Application;
+
+  const application = data as Application;
+
+  if (input.screening && input.jobPostId) {
+    await insertApplicationScreening(application.id, input.screening);
+  }
+
+  return application;
 }
 
 export async function hasAppliedToJob(workerId: string, jobPostId: string): Promise<boolean> {

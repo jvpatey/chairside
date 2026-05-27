@@ -48,7 +48,20 @@ export default function WorkerJobDetailScreen() {
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
+    },
+    clinicCardRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    clinicCardMain: {
+      flex: 1,
       gap: spacing.xs,
+      minWidth: 0,
+    },
+    matchBadgeWrap: {
+      flexShrink: 0,
+      paddingTop: 2,
     },
     clinicLabel: {
       fontSize: 12,
@@ -96,6 +109,25 @@ export default function WorkerJobDetailScreen() {
 
   useRefreshOnFocus(loadJob);
 
+  const handlePrimaryApply = () => {
+    if (!user?.id || !job) return;
+
+    const hasScreening =
+      job.screening_enabled && (job.screening_questions?.length ?? 0) > 0;
+
+    if (!canQuickApply) {
+      guardQuickApply(workerProfile, WORKER_SETUP_APPLICATION);
+      return;
+    }
+
+    if (hasScreening) {
+      router.push(getApplyRoute('job', job.id));
+      return;
+    }
+
+    void handleQuickApply();
+  };
+
   const handleQuickApply = async () => {
     if (!user?.id || !job) return;
 
@@ -138,6 +170,8 @@ export default function WorkerJobDetailScreen() {
     );
   }
 
+  const hasScreening =
+    Boolean(job.screening_enabled) && (job.screening_questions?.length ?? 0) > 0;
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
   const jobMatch = workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
   const matchContext = workerProfile
@@ -150,12 +184,18 @@ export default function WorkerJobDetailScreen() {
         <View style={styles.footer}>
           <OnboardingButton
             label={
-              hasApplied ? 'Applied' : isSubmitting ? 'Applying…' : 'Quick apply'
+              hasApplied
+                ? 'Applied'
+                : isSubmitting
+                  ? 'Applying…'
+                  : hasScreening
+                    ? 'Apply now'
+                    : 'Quick apply'
             }
             disabled={hasApplied || isSubmitting}
-            onPress={handleQuickApply}
+            onPress={handlePrimaryApply}
           />
-          {!hasApplied ? (
+          {!hasApplied && !hasScreening ? (
             <OnboardingButton
               label="Apply with note"
               variant="secondary"
@@ -168,17 +208,23 @@ export default function WorkerJobDetailScreen() {
       <AuthScreenHeader title="Role details" subtitle={job.title} onBack={() => router.back()} />
       <View style={styles.content}>
         <View style={styles.clinicCard}>
-          <Text style={styles.clinicLabel}>Clinic</Text>
-          <Text style={styles.clinicName}>{job.clinic.clinic_name}</Text>
-          {location ? <Text style={styles.clinicMeta}>{location}</Text> : null}
-          {jobMatch && matchContext ? (
-            <MatchTierBadge
-              breakdown={jobMatch}
-              context={matchContext}
-              subtitle={job.title}
-              showProfileHint
-            />
-          ) : null}
+          <View style={styles.clinicCardRow}>
+            <View style={styles.clinicCardMain}>
+              <Text style={styles.clinicLabel}>Clinic</Text>
+              <Text style={styles.clinicName}>{job.clinic.clinic_name}</Text>
+              {location ? <Text style={styles.clinicMeta}>{location}</Text> : null}
+            </View>
+            {jobMatch && matchContext ? (
+              <View style={styles.matchBadgeWrap}>
+                <MatchTierBadge
+                  breakdown={jobMatch}
+                  context={matchContext}
+                  subtitle={job.title}
+                  showProfileHint
+                />
+              </View>
+            ) : null}
+          </View>
         </View>
         <JobPostDetailView job={job} />
       </View>

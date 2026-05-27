@@ -15,6 +15,7 @@ import {
   DetailSectionDivider,
   RowDivider,
 } from '@/components/clinic/DetailCard';
+import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
@@ -284,6 +285,16 @@ export function WorkerApplicationDetailCard({
               <DetailSectionDivider>
                 <DetailSection title="Cover message">
                   <DetailProse text={application.cover_message} />
+                </DetailSection>
+              </DetailSectionDivider>
+            ) : null}
+            {application.post_type === 'job' && application.screening ? (
+              <DetailSectionDivider>
+                <DetailSection title="Culture fit screening">
+                  <ApplicationScreeningSection
+                    screening={application.screening}
+                    audience="worker"
+                  />
                 </DetailSection>
               </DetailSectionDivider>
             ) : null}

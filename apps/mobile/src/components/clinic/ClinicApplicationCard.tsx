@@ -9,6 +9,7 @@ import { Alert, Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
@@ -143,6 +144,9 @@ export function ClinicApplicationCard({ application, onUpdated }: ClinicApplicat
       ) : null}
       {application.cover_message ? (
         <Text style={styles.meta}>{application.cover_message}</Text>
+      ) : null}
+      {application.post_type === 'job' && application.screening ? (
+        <ApplicationScreeningSection screening={application.screening} />
       ) : null}
       <Text style={styles.meta}>
         Resume · {formatApplicationResumeStatus(application.resume_storage_path)}

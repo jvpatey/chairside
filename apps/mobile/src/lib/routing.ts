@@ -109,6 +109,13 @@ export function getApplyRoute(postType: ApplyPostType, postId: string): Href {
   return { pathname: '/(tabs)/apply', params: { postType, postId } } as unknown as Href;
 }
 
+export function getApplyScreeningRoute(postId: string, coverMessage?: string): Href {
+  return {
+    pathname: '/(tabs)/apply-screening',
+    params: { postId, coverMessage: coverMessage ?? '' },
+  } as unknown as Href;
+}
+
 export function getClinicRoleApplicationsRoute(jobId: string): Href {
   return {
     pathname: '/(clinic-tabs)/role-applicants/[jobId]',
