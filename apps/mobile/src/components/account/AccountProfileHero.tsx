@@ -4,11 +4,16 @@ import { Text, View } from 'react-native';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type AccountProfileHeroProps = {
+  displayName?: string | null;
   email?: string | null;
   accountTypeLabel: string;
 };
 
-export function AccountProfileHero({ email, accountTypeLabel }: AccountProfileHeroProps) {
+export function AccountProfileHero({
+  displayName,
+  email,
+  accountTypeLabel,
+}: AccountProfileHeroProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -29,15 +34,21 @@ export function AccountProfileHero({ email, accountTypeLabel }: AccountProfileHe
       justifyContent: 'center',
       marginBottom: spacing.xs,
     },
-    email: {
+    name: {
       ...typography.title,
-      fontSize: 18,
-      lineHeight: 24,
+      fontSize: 22,
+      lineHeight: 28,
+      textAlign: 'center',
+    },
+    email: {
+      ...typography.subtitle,
+      fontSize: 15,
+      lineHeight: 20,
       textAlign: 'center',
     },
     emailPlaceholder: {
       ...typography.subtitle,
-      fontSize: 16,
+      fontSize: 15,
       textAlign: 'center',
       fontStyle: 'italic',
     },
@@ -55,6 +66,7 @@ export function AccountProfileHero({ email, accountTypeLabel }: AccountProfileHe
     },
   }));
 
+  const trimmedName = displayName?.trim();
   const trimmedEmail = email?.trim();
 
   return (
@@ -62,6 +74,11 @@ export function AccountProfileHero({ email, accountTypeLabel }: AccountProfileHe
       <View style={styles.iconWrap}>
         <Ionicons name="person" size={32} color={colors.primary} />
       </View>
+      {trimmedName ? (
+        <Text style={styles.name} numberOfLines={2}>
+          {trimmedName}
+        </Text>
+      ) : null}
       {trimmedEmail ? (
         <Text style={styles.email} numberOfLines={2}>
           {trimmedEmail}

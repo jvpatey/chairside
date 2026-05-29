@@ -1,0 +1,72 @@
+import { router } from 'expo-router';
+import { View } from 'react-native';
+
+import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
+import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
+import { Screen } from '@/components/ui/Screen';
+import { WorkerProfileHero } from '@/components/worker/WorkerProfileHero';
+import { useAuth } from '@/contexts/AuthContext';
+import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import {
+  getAccountSubtitle,
+  getApplicationKitSubtitle,
+  getNotificationsSubtitle,
+  getProfessionalBackgroundSubtitle,
+} from '@/lib/profileHubSubtitles';
+import {
+  WORKER_PROFILE_ACCOUNT,
+  WORKER_PROFILE_APPLICATION_KIT,
+  WORKER_PROFILE_NOTIFICATIONS,
+  WORKER_PROFILE_PROFESSIONAL,
+} from '@/lib/routing';
+import { useThemedStyles } from '@/theme';
+
+export default function WorkerProfileScreen() {
+  const { profile, user } = useAuth();
+  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: { gap: spacing.xl },
+  }));
+
+  if (!isWorkerProfileReady) return null;
+
+  return (
+    <Screen title="Profile">
+      <View style={styles.content}>
+        <WorkerProfileHero
+          displayName={profile?.display_name}
+          profile={workerProfile}
+          editable
+        />
+
+        <ProfileSettingsGroup>
+          <ProfileSettingsRow
+            icon="briefcase-outline"
+            title="Professional background"
+            subtitle={getProfessionalBackgroundSubtitle(workerProfile)}
+            onPress={() => router.push(WORKER_PROFILE_PROFESSIONAL)}
+          />
+          <ProfileSettingsRow
+            icon="folder-outline"
+            title="Application kit"
+            subtitle={getApplicationKitSubtitle(workerProfile)}
+            onPress={() => router.push(WORKER_PROFILE_APPLICATION_KIT)}
+          />
+          <ProfileSettingsRow
+            icon="notifications-outline"
+            title="Notifications"
+            subtitle={getNotificationsSubtitle(workerProfile)}
+            onPress={() => router.push(WORKER_PROFILE_NOTIFICATIONS)}
+          />
+          <ProfileSettingsRow
+            icon="person-circle-outline"
+            title="Account"
+            subtitle={getAccountSubtitle(user?.email)}
+            onPress={() => router.push(WORKER_PROFILE_ACCOUNT)}
+          />
+        </ProfileSettingsGroup>
+      </View>
+    </Screen>
+  );
+}

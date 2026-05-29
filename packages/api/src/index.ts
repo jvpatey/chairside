@@ -3,6 +3,7 @@ export {
   createSessionFromUrl,
   getAuthErrorMessage,
   resetPasswordForEmail,
+  updatePassword,
   signInWithApple,
   signInWithEmail,
   signInWithGoogle,

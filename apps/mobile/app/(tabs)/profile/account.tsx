@@ -1,0 +1,52 @@
+import { router } from 'expo-router';
+import { View } from 'react-native';
+
+import { AccountChangePasswordSection } from '@/components/account/AccountChangePasswordSection';
+import { AccountDisplayNameField } from '@/components/account/AccountDisplayNameField';
+import { AccountProfileHero } from '@/components/account/AccountProfileHero';
+import { AccountSessionActions } from '@/components/account/AccountSessionActions';
+import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDeleteAccount } from '@/hooks/useDeleteAccount';
+import { useSignOut } from '@/hooks/useSignOut';
+import { useThemedStyles } from '@/theme';
+
+export default function WorkerProfileAccountScreen() {
+  const { user, profile, refreshProfile } = useAuth();
+  const { isSigningOut, signOut } = useSignOut();
+  const { isDeleting, confirmDeleteAccount } = useDeleteAccount();
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: { gap: spacing.md },
+  }));
+
+  if (!user?.id) return null;
+
+  return (
+    <ProfileDetailScreen
+      title="Account"
+      subtitle="Your name, password, login, sign out, and account deletion."
+      onBack={() => router.back()}>
+      <View style={styles.content}>
+        <AccountProfileHero
+          displayName={profile?.display_name}
+          email={user.email}
+          accountTypeLabel="Find work"
+        />
+        <AccountDisplayNameField
+          userId={user.id}
+          savedDisplayName={profile?.display_name}
+          onSaved={refreshProfile}
+        />
+        <AccountChangePasswordSection user={user} />
+        <AccountSessionActions
+          isSigningOut={isSigningOut}
+          isDeleting={isDeleting}
+          onSignOut={signOut}
+          onDeleteAccount={confirmDeleteAccount}
+          deleteDescription="Permanently remove your account, worker profile, applications, and uploaded resume. This action cannot be undone."
+        />
+      </View>
+    </ProfileDetailScreen>
+  );
+}
