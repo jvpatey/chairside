@@ -189,11 +189,11 @@ export default function FillInsScreen() {
   }));
 
   return (
-    <Screen title="Fill-ins" subtitle="Short-notice shifts, your schedule, and applications.">
+    <Screen title="Fill-ins" subtitle="Temporary shifts, your availability, and applications.">
       <View style={styles.content}>
         <ScreenSection
           sectionLabel="Open shifts"
-          description="Browse temp shifts you can request to cover today.">
+          description="Open temp shifts in your province — request to cover the ones that fit your schedule.">
           <View style={styles.sectionBody}>
             <View style={styles.chipBlock}>
               <ChipSelector
@@ -209,7 +209,7 @@ export default function FillInsScreen() {
                 embedded
                 icon="calendar-outline"
                 title="No open fill-ins"
-                body="Check back soon — new short-notice shifts are posted throughout the week."
+                body="Check back soon — new fill-in shifts are posted throughout the week."
               />
             ) : (
               <View style={styles.list}>
@@ -271,7 +271,7 @@ export default function FillInsScreen() {
 
         <ScreenSection
           sectionLabel="Your availability"
-          description="Let clinics know when you can cover urgent shifts."
+          description="Let clinics know when you're available to cover fill-in shifts."
           collapsible
           subtitle="Manage fill-in alerts, SMS, and your weekly schedule."
           collapsedSummary={availabilityCollapsedSummary}

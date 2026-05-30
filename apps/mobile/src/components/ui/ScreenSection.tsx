@@ -5,12 +5,21 @@ import { Pressable, Text, View, type StyleProp, type ViewProps, type ViewStyle }
 import { RowDivider } from '@/components/clinic/DetailCard';
 import { useTheme, useThemedStyles } from '@/theme';
 
+export type CollapsedSummaryContent =
+  | string
+  | {
+      primary: string;
+      primaryLabel?: string;
+      secondary?: string;
+      secondaryLabel?: string;
+    };
+
 type ScreenSectionProps = ViewProps & {
   sectionLabel: string;
   description?: string;
   collapsible?: boolean;
   subtitle?: string;
-  collapsedSummary?: string;
+  collapsedSummary?: CollapsedSummaryContent;
   defaultExpanded?: boolean;
   actionLabel?: string;
   onActionPress?: () => void;
@@ -76,31 +85,56 @@ export function ScreenSection({
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.md,
     },
+    headerCollapsed: {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: 0,
+      paddingBottom: 0,
+    },
     headerMain: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
     },
-    headerActions: {
+    headerMainCollapsed: {
+      alignItems: 'flex-start',
+      paddingBottom: spacing.md,
+    },
+    headerText: { flex: 1, gap: spacing.sm },
+    headerSubtitle: { ...typography.subtitle, fontSize: 14, lineHeight: 20 },
+    collapsedDetailRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
     },
-    headerAction: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-      paddingVertical: spacing.xs,
-      paddingLeft: spacing.sm,
+    collapsedDetailLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+      color: colors.labelTertiary,
+      minWidth: 72,
     },
-    headerText: { flex: 1, gap: spacing.xs },
-    headerSubtitle: { ...typography.subtitle, fontSize: 14, lineHeight: 20 },
+    collapsedDetailValue: {
+      ...typography.subtitle,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+      flex: 1,
+    },
     collapsedSummary: {
       ...typography.subtitle,
       fontSize: 14,
       lineHeight: 20,
       fontWeight: '500',
+    },
+    collapsedActionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      paddingVertical: spacing.sm + 2,
+      minHeight: 44,
     },
     toggleHit: {
       minWidth: 28,
@@ -142,6 +176,23 @@ export function ScreenSection({
   const showCollapsibleHeader = collapsible;
   const bodyPadding = collapsible ? styles.body : styles.bodyFlush;
 
+  const collapsedContent =
+    typeof collapsedSummary === 'string'
+      ? { primary: collapsedSummary, secondary: undefined }
+      : collapsedSummary;
+
+  const collapsedPrimary =
+    collapsedContent?.primary ?? description ?? sectionLabel;
+  const collapsedPrimaryLabel =
+    collapsedContent && typeof collapsedContent !== 'string'
+      ? collapsedContent.primaryLabel
+      : undefined;
+  const collapsedSecondary = collapsedContent?.secondary;
+  const collapsedSecondaryLabel =
+    collapsedContent && typeof collapsedContent !== 'string'
+      ? collapsedContent.secondaryLabel
+      : undefined;
+
   return (
     <View style={[styles.wrap, style]} {...rest}>
       <View style={styles.meta}>
@@ -152,42 +203,59 @@ export function ScreenSection({
       <View style={styles.surface}>
         {showCollapsibleHeader ? (
           <>
-            <View style={styles.header}>
+            <View style={[styles.header, !expanded && styles.headerCollapsed]}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ expanded }}
-                style={styles.headerMain}
+                style={[styles.headerMain, !expanded && styles.headerMainCollapsed]}
                 onPress={toggle}>
                 <View style={styles.headerText}>
-                  <Text style={expanded ? styles.headerSubtitle : styles.collapsedSummary}>
-                    {expanded
-                      ? (subtitle ?? description ?? sectionLabel)
-                      : (collapsedSummary ?? description ?? sectionLabel)}
-                  </Text>
+                  {expanded ? (
+                    <Text style={styles.headerSubtitle}>
+                      {subtitle ?? description ?? sectionLabel}
+                    </Text>
+                  ) : collapsedSecondary ? (
+                    <>
+                      {collapsedPrimaryLabel ? (
+                        <View style={styles.collapsedDetailRow}>
+                          <Text style={styles.collapsedDetailLabel}>{collapsedPrimaryLabel}</Text>
+                          <Text style={styles.collapsedDetailValue}>{collapsedPrimary}</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.collapsedSummary}>{collapsedPrimary}</Text>
+                      )}
+                      <View style={styles.collapsedDetailRow}>
+                        {collapsedSecondaryLabel ? (
+                          <Text style={styles.collapsedDetailLabel}>
+                            {collapsedSecondaryLabel}
+                          </Text>
+                        ) : null}
+                        <Text style={styles.collapsedDetailValue}>{collapsedSecondary}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <Text style={styles.collapsedSummary}>{collapsedPrimary}</Text>
+                  )}
                 </View>
-              </Pressable>
-              <View style={styles.headerActions}>
-                {!expanded && collapsedActionLabel && onCollapsedActionPress ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    style={styles.headerAction}
-                    onPress={onCollapsedActionPress}>
-                    <Text style={styles.actionLabel}>{collapsedActionLabel}</Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                  </Pressable>
-                ) : null}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={expanded ? 'Collapse section' : 'Expand section'}
-                  style={styles.toggleHit}
-                  onPress={toggle}>
+                <View style={styles.toggleHit}>
                   <Ionicons
                     name={expanded ? 'chevron-up' : 'chevron-down'}
                     size={18}
                     color={colors.labelTertiary}
                   />
-                </Pressable>
-              </View>
+                </View>
+              </Pressable>
+              {!expanded && collapsedActionLabel && onCollapsedActionPress ? (
+                <>
+                  <RowDivider />
+                  <Pressable
+                    accessibilityRole="button"
+                    style={styles.collapsedActionRow}
+                    onPress={onCollapsedActionPress}>
+                    <Text style={styles.actionLabel}>{collapsedActionLabel}</Text>
+                  </Pressable>
+                </>
+              ) : null}
             </View>
             {expanded && actionLabel && onActionPress ? (
               <>

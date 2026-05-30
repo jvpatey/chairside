@@ -20,25 +20,41 @@ function formatScheduleDaysCompact(blocks: AvailabilityBlock[]): string {
   return `${labels.length} days`;
 }
 
+export type FillInAvailabilityCollapsedSummary = {
+  primaryLabel: string;
+  primary: string;
+  secondaryLabel: string;
+  secondary: string;
+};
+
 export function getFillInAvailabilityCollapsedSummary(
   profile: WorkerProfile | null,
   blocks: AvailabilityBlock[],
-): string {
+): FillInAvailabilityCollapsedSummary {
   const available = profile?.short_notice_available ?? false;
-  const availabilityPart = available ? 'Fill-ins: On' : 'Fill-ins: Off';
   const schedulePart = formatScheduleDaysCompact(blocks);
 
   if (!available) {
-    return `${availabilityPart} · ${schedulePart}`;
+    return {
+      primaryLabel: 'Status',
+      primary: 'Not available',
+      secondaryLabel: 'Schedule',
+      secondary: schedulePart,
+    };
   }
 
   const mode = profile?.fill_in_notification_mode ?? 'off';
-  const alertShort =
+  const alertPart =
     mode === 'all'
       ? 'All fill-ins'
       : mode === 'available_days_only'
-        ? 'Available days only'
+        ? 'Matching days only'
         : 'Alerts off';
 
-  return `${availabilityPart} · ${schedulePart} · ${alertShort}`;
+  return {
+    primaryLabel: 'Status',
+    primary: `Available · ${alertPart}`,
+    secondaryLabel: 'Schedule',
+    secondary: schedulePart,
+  };
 }
