@@ -1,119 +1,164 @@
 # Chairside
 
-A mobile-first dental staffing app for Nova Scotia clinics and dental professionals, built to fill permanent roles and last-minute shifts faster with structured profiles, availability matching, and explainable fit scoring.
+A mobile-first dental staffing app for Nova Scotia clinics and dental professionals. Clinics post permanent roles and fill-in shifts; workers browse, apply with an application kit, and get explainable match scoring. Includes in-app messaging, interviews, and Pingram notifications.
 
 ## Prerequisites
 
 - Node.js 20+
 - [pnpm](https://pnpm.io/)
-- [Xcode](https://developer.apple.com/xcode/) (for iOS simulator / dev builds)
+- [Xcode](https://developer.apple.com/xcode/) (iOS simulator or local dev builds)
+- [Supabase CLI](https://supabase.com/docs/guides/cli) (Edge Functions deploy)
+- [EAS CLI](https://docs.expo.dev/build/setup/) (TestFlight / App Store builds)
 
 ## Getting started
 
 ```bash
 pnpm install
-cp .env.example apps/mobile/.env
 ```
 
-Edit `apps/mobile/.env` and set both values from Supabase → Project Settings → API:
+Create `apps/mobile/.env` with values from Supabase → Project Settings → API and your third-party dashboards:
 
-- `EXPO_PUBLIC_SUPABASE_URL` — your project URL (`https://<ref>.supabase.co`)
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the anon / publishable key
-- `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` — Mapbox public token for address autocomplete
-- `EXPO_PUBLIC_PINGRAM_CLIENT_ID` — Pingram client ID for in-app and push (see [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md))
+| Variable | Purpose |
+| -------- | ------- |
+| `EXPO_PUBLIC_SUPABASE_URL` | Project URL (`https://<ref>.supabase.co`) |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anon / publishable key |
+| `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox token for address autocomplete |
+| `EXPO_PUBLIC_PINGRAM_CLIENT_ID` | Pingram environment ID or `pingram_pk_...` public key (see [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)) |
 
-Run all database migrations in [`supabase/migrations/`](supabase/migrations/) **in order** in the Supabase SQL editor:
+Optional overrides:
 
-1. [`001_profiles.sql`](supabase/migrations/001_profiles.sql) — profiles table, RLS, signup trigger
-2. [`002_profiles_insert_policy.sql`](supabase/migrations/002_profiles_insert_policy.sql) — allows clients to insert/upsert their own profile under RLS
-3. [`003_profiles_update_policy_check.sql`](supabase/migrations/003_profiles_update_policy_check.sql) — tightens UPDATE policy with `WITH CHECK`
-4. [`004_handle_new_user_role_coercion.sql`](supabase/migrations/004_handle_new_user_role_coercion.sql) — invalid signup roles become `NULL` instead of blocking sign-up
-5. [`005_clinic_profiles.sql`](supabase/migrations/005_clinic_profiles.sql) — clinic profile table and RLS
-6. [`006_job_shift_posts.sql`](supabase/migrations/006_job_shift_posts.sql) — job and shift post tables
-7. [`007_applications.sql`](supabase/migrations/007_applications.sql) — applications table
-8. [`008_team_size_range.sql`](supabase/migrations/008_team_size_range.sql) — team size as range buckets
-9. [`009_role_type_dentist_other.sql`](supabase/migrations/009_role_type_dentist_other.sql) — dentist and other role types
-10. [`010_job_post_offerings.sql`](supabase/migrations/010_job_post_offerings.sql) — perks/offerings on job posts
-11. [`011_job_post_paused_status.sql`](supabase/migrations/011_job_post_paused_status.sql) — paused status and delete policy for job posts
+- `EXPO_PUBLIC_PINGRAM_API_HOST` — defaults to `api.ca.pingram.io`
+- `EXPO_PUBLIC_PINGRAM_WS_HOST` — defaults to `ws.ca.pingram.io`
+- `EXPO_PUBLIC_PINGRAM_ENVIRONMENT_ID` — explicit environment ID if not using `PINGRAM_CLIENT_ID`
 
-If you already ran `001` before the later files existed, run only the migrations you have not applied yet.
-
-### Account deletion (Edge Function)
-
-Clinic users can delete their account from the **Profile** tab. Deletion requires a Supabase Edge Function because clients cannot remove auth users directly.
-
-**IDE setup:** Edge Functions run on Deno. Install the [Deno extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno) in Cursor/VS Code (the repo includes `.vscode/settings.json` so only `supabase/functions` uses Deno — the rest of the monorepo stays on TypeScript).
-
-Deploy from the project root (requires [Supabase CLI](https://supabase.com/docs/guides/cli)):
-
-```bash
-supabase functions deploy delete-account
-```
-
-If bundling fails locally (Docker not running), use server-side bundling:
-
-```bash
-supabase functions deploy delete-account --use-api
-```
-
-The function uses these secrets (set automatically when linked to your project, or configure in Supabase → Edge Functions → delete-account → Secrets):
-
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-Deleting a user removes the auth account and cascades to `profiles`, `clinic_profiles`, `job_posts`, `shift_posts`, and related `applications` per the database schema. This action is permanent.
+Start the dev server:
 
 ```bash
 pnpm dev
 ```
 
-Press `i` in the Expo dev tools to open the iOS simulator.
+Press `i` in the Expo dev tools for the iOS simulator, or scan the QR code with Expo Go.
 
-### Auth notes
+### Database migrations
 
-- **Email / Google:** work in Expo Go once Supabase env vars and redirect URLs (`chairside://**`) are configured.
-- **Sign in with Apple:** requires a dev build — `npx expo run:ios` (not Expo Go).
-- Supabase → Authentication → URL Configuration:
-  - **Redirect URLs:** add `chairside://**` (and `exp://**` for Expo Go dev).
-  - **Site URL:** set to `chairside://auth/callback` (not `localhost`) so confirmation and password-reset links open the app on device.
+Apply every file in [`supabase/migrations/`](supabase/migrations/) **in numeric order** (`001` through `048` and any newer files). Use the Supabase SQL editor, or your usual migration workflow against the linked project.
+
+If the database already has early migrations, run only the files you have not applied yet.
+
+Major areas covered by migrations include: profiles and RLS, clinic/worker profiles, job and shift posts, applications and screening, match tiers, application kit snapshots, storage (resumes/photos/logos), notifications prefs, interviews, messaging, and fill-in confirmation RPCs.
+
+## Auth
+
+Chairside uses Supabase Auth with deep links back to the app (`chairside://auth/callback`).
+
+**Supabase → Authentication → URL Configuration**
+
+- **Site URL:** `chairside://auth/callback` (not `localhost` — required for TestFlight)
+- **Redirect URLs:** `chairside://**` and `exp://**` (Expo Go local dev)
+
+**Flows**
+
+| Method | Expo Go | Dev / TestFlight build |
+| ------ | ------- | ---------------------- |
+| Email sign-up | Yes (with redirect URLs above) | Yes |
+| Email sign-in | Yes | Yes |
+| Forgot password | Yes — link opens app → set new password screen | Yes |
+| Google | Yes | Yes |
+| Sign in with Apple | No | Yes |
+
+Email sign-up sends a confirmation link. Password reset sends a recovery link. Both must use the Site URL / redirect config above so links open the app instead of Safari hitting `localhost`.
+
+After a reset link, the user lands on **Choose a new password** before entering the app.
+
+## Native builds (TestFlight / production)
+
+Several features require an EAS build — they do not work in Expo Go:
+
+- **Sign in with Apple**
+- **Push notifications** (via `expo-notifications` + Pingram)
+- **In-app PDF resume preview** (`react-native-pdf`; Expo Go falls back to share sheet)
+
+From `apps/mobile`:
+
+```bash
+eas build --profile production --platform ios
+```
+
+Local `.env` is not uploaded to EAS. Set the same `EXPO_PUBLIC_*` variables for the **production** (and **preview**) environment:
+
+```bash
+cd apps/mobile
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value '...'
+# repeat for SUPABASE_ANON_KEY, PINGRAM_CLIENT_ID, MAPBOX_ACCESS_TOKEN, etc.
+```
+
+Push setup: [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md)
+
+Build profiles are defined in [`apps/mobile/eas.json`](apps/mobile/eas.json) (`development`, `preview`, `production`).
+
+## Edge Functions
+
+Deploy from the project root. Use `--use-api` if local Docker bundling is unavailable.
+
+**Account deletion** — required for Profile → delete account:
+
+```bash
+supabase functions deploy delete-account --use-api
+```
+
+Secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (auto-set when linked).
+
+**Notifications** — dispatches Pingram in-app, push, and optional SMS:
+
+```bash
+supabase secrets set PINGRAM_API_KEY=pingram_sk_...
+supabase secrets set NOTIFY_WEBHOOK_SECRET=$(openssl rand -hex 32)
+supabase functions deploy notify --use-api
+```
+
+Full webhook and dashboard setup: [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)
+
+**Deno in the IDE:** install the [Deno extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno). The repo’s `.vscode/settings.json` scopes Deno to `supabase/functions` only.
 
 ## Scripts
 
-| Command        | Description                    |
-| -------------- | ------------------------------ |
-| `pnpm dev`     | Start Expo dev server          |
-| `pnpm ios`     | Start Expo and open iOS        |
-| `pnpm android` | Start Expo and open Android    |
-| `pnpm web`     | Start Expo web (future target) |
-| `pnpm lint`    | Run ESLint                     |
+| Command | Description |
+| ------- | ----------- |
+| `pnpm dev` | Start Expo dev server |
+| `pnpm ios` | Expo + iOS simulator |
+| `pnpm android` | Expo + Android |
+| `pnpm web` | Expo web (experimental) |
+| `pnpm lint` | ESLint (`apps/mobile`) |
 
 ## Project structure
 
 ```
 chairside/
-├── apps/mobile/        # Expo app (iOS/Android now, web later)
-├── packages/api/       # Supabase client and auth helpers
-├── supabase/           # SQL migrations and Edge Functions
-└── packages/           # config, core, ui (stubs)
+├── apps/mobile/           # Expo app (Expo SDK 54, Expo Router)
+├── packages/
+│   ├── api/               # Supabase client, auth, applications, messaging
+│   ├── core/              # Match scoring and shared domain logic
+│   ├── config/            # Role types, screening catalog, notification types
+│   └── ui/                # Shared UI stubs
+├── supabase/
+│   ├── migrations/        # Postgres schema and RLS
+│   └── functions/         # delete-account, notify
+├── docs/                  # Notifications, iOS push, operational runbooks
+└── scripts/               # Pingram verification and notify smoke tests
 ```
 
-## Web (later)
+## Documentation
 
-This project is mobile-first. Expo Router supports web out of the box — run `pnpm web` when you're ready to start on the web target. Web UI polish and a clinic dashboard are planned for post-MVP.
+| Doc | Contents |
+| --- | -------- |
+| [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Pingram types, webhooks, `notify` deploy |
+| [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md) | APNs, EAS env, TestFlight push debugging |
 
-## Notifications (Pingram)
+## Expo Go vs dev build (quick reference)
 
-In-app alerts, mobile push, and optional fill-in SMS are integrated via Pingram. See [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) for dashboard setup, Edge Function deploy, and database webhooks.
-
-Add to `apps/mobile/.env`:
-
-- `EXPO_PUBLIC_PINGRAM_CLIENT_ID`
-
-Deploy the `notify` Edge Function and apply migration `033_worker_notification_prefs.sql`.
-
-## What's not included yet
-
-- Worker profiles and matching tuning beyond current notifications
-
-Add these incrementally as you build out the MVP.
+| Feature | Expo Go | EAS build |
+| ------- | ------- | --------- |
+| In-app notifications (Pingram) | Yes | Yes |
+| Push banners | No | Yes |
+| View resume in-app | Share only | PDF viewer |
+| Sign in with Apple | No | Yes |
