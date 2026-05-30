@@ -36,6 +36,7 @@ export function ResumePreviewProvider({ children }: { children: ReactNode }) {
   const [fileName, setFileName] = useState('resume.pdf');
   const requestRef = useRef<PreviewRequest | null>(null);
   const cachedUriRef = useRef<string | null>(null);
+  const loadRequestIdRef = useRef(0);
 
   const clearCachedFile = useCallback(async (uri: string | null) => {
     if (!uri) return;
@@ -51,6 +52,7 @@ export function ResumePreviewProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const closeResumePreview = useCallback(() => {
+    loadRequestIdRef.current += 1;
     setVisible(false);
     setIsLoading(false);
     setError(null);
@@ -62,6 +64,7 @@ export function ResumePreviewProvider({ children }: { children: ReactNode }) {
   }, [clearCachedFile]);
 
   const loadPreview = useCallback(async (request: PreviewRequest) => {
+    const requestId = ++loadRequestIdRef.current;
     requestRef.current = request;
     setVisible(true);
     setIsLoading(true);
@@ -76,14 +79,23 @@ export function ResumePreviewProvider({ children }: { children: ReactNode }) {
 
     try {
       const uri = await downloadResumeToCache(request.storagePath, request.fileName);
+      if (requestId !== loadRequestIdRef.current) {
+        void clearCachedFile(uri);
+        return;
+      }
+
       cachedUriRef.current = uri;
       setLocalUri(uri);
     } catch (loadError) {
+      if (requestId !== loadRequestIdRef.current) return;
+
       const message =
         loadError instanceof Error ? loadError.message : 'Could not open resume.';
       setError(message);
     } finally {
-      setIsLoading(false);
+      if (requestId === loadRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [clearCachedFile]);
 

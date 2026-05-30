@@ -78,9 +78,10 @@ Several features require an EAS build — they do not work in Expo Go:
 - **Push notifications** (via `expo-notifications` + Pingram)
 - **In-app PDF resume preview** (`react-native-pdf`; Expo Go falls back to share sheet)
 
-From `apps/mobile`:
+From `apps/mobile` (or `pnpm build:ios` from the repo root):
 
 ```bash
+cd apps/mobile
 eas build --profile production --platform ios
 ```
 
@@ -95,6 +96,8 @@ eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value 
 Push setup: [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md)
 
 Build profiles are defined in [`apps/mobile/eas.json`](apps/mobile/eas.json) (`development`, `preview`, `production`).
+
+**Important:** Run EAS from `apps/mobile`, not the monorepo root. A stray root `app.json` will make EAS introspect the wrong config and try to disable Push Notifications / Sign in with Apple on your bundle ID.
 
 ## Edge Functions
 

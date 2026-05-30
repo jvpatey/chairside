@@ -8,7 +8,9 @@
     "ios": "pnpm --filter mobile ios",
     "android": "pnpm --filter mobile android",
     "web": "pnpm --filter mobile web",
-    "lint": "pnpm --filter mobile lint"
+    "lint": "pnpm --filter mobile lint",
+    "build:ios": "pnpm --filter mobile exec eas build --platform ios --profile production",
+    "build:ios:preview": "pnpm --filter mobile exec eas build --platform ios --profile preview"
   },
   "devDependencies": {
     "prettier": "^3.5.3"

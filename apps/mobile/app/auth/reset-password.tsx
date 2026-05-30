@@ -1,7 +1,8 @@
-import { getAuthErrorMessage, updatePassword } from '@chairside/api';
+import { getAuthErrorMessage, getSupabaseClient, updatePassword } from '@chairside/api';
+import type { User } from '@supabase/supabase-js';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
@@ -10,16 +11,19 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 const MIN_PASSWORD_LENGTH = 6;
 
 export default function ResetPasswordScreen() {
+  const { colors } = useTheme();
   const { session, refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [recoveryUser, setRecoveryUser] = useState<User | null>(null);
 
   const styles = useThemedStyles(({ spacing, colors, typography }) => ({
     form: {
@@ -46,10 +50,37 @@ export default function ResetPasswordScreen() {
   }));
 
   useEffect(() => {
-    if (!session?.user) {
-      router.replace('/(onboarding)/sign-in');
+    let cancelled = false;
+
+    async function hydrateRecoverySession() {
+      const {
+        data: { session: activeSession },
+      } = await getSupabaseClient().auth.getSession();
+      if (cancelled) return;
+
+      setRecoveryUser(activeSession?.user ?? null);
+      setSessionChecked(true);
+    }
+
+    void hydrateRecoverySession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (session?.user) {
+      setRecoveryUser(session.user);
     }
   }, [session?.user]);
+
+  const user = session?.user ?? recoveryUser;
+
+  useEffect(() => {
+    if (!sessionChecked || user) return;
+    router.replace('/(onboarding)/sign-in');
+  }, [sessionChecked, user]);
 
   const passwordsMatch = password === confirmPassword;
   const meetsMinLength = password.length >= MIN_PASSWORD_LENGTH;
@@ -57,7 +88,7 @@ export default function ResetPasswordScreen() {
   const canSubmit = meetsMinLength && passwordsMatch && confirmHasInput;
 
   const handleSubmit = async () => {
-    if (isSubmitting || !session?.user) return;
+    if (isSubmitting || !user) return;
 
     if (password.length < MIN_PASSWORD_LENGTH) {
       Alert.alert(
@@ -75,7 +106,7 @@ export default function ResetPasswordScreen() {
     setIsSubmitting(true);
     try {
       await updatePassword(password);
-      await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
+      await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
     } catch (error) {
       Alert.alert('Could not update password', getAuthErrorMessage(error));
     } finally {
@@ -83,8 +114,18 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  if (!session?.user) {
-    return null;
+  if (!sessionChecked || !user) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.background,
+        }}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
   }
 
   return (
