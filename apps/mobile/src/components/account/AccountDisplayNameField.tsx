@@ -9,7 +9,7 @@ import { useThemedStyles } from '@/theme';
 type AccountDisplayNameFieldProps = {
   userId: string;
   savedDisplayName?: string | null;
-  onSaved: () => Promise<void>;
+  onSaved: () => Promise<unknown>;
 };
 
 export function AccountDisplayNameField({

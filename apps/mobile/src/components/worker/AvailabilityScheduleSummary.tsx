@@ -38,6 +38,9 @@ export function AvailabilityScheduleSummary({
       gap: spacing.md,
       paddingVertical: spacing.md,
     },
+    groupedEmpty: {
+      paddingVertical: spacing.md,
+    },
     day: { ...typography.body, fontWeight: '600' },
     time: typography.subtitle,
     empty: typography.subtitle,
