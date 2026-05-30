@@ -13,7 +13,7 @@ import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getApplyRoute } from '@/lib/routing';
+import { getApplyRoute, navigateAfterWorkerShift } from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { guardApply } from '@/lib/workerGuard';
 import { useThemedStyles } from '@/theme';
@@ -21,8 +21,13 @@ import { useThemedStyles } from '@/theme';
 export default function WorkerShiftDetailScreen() {
   const { user } = useAuth();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const shiftId = typeof id === 'string' ? id : '';
+  const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
+
+  const goBack = useCallback(() => {
+    navigateAfterWorkerShift(router, resolvedReturnTo);
+  }, [resolvedReturnTo]);
   const [shift, setShift] = useState<LiveShiftPost | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +66,7 @@ export default function WorkerShiftDetailScreen() {
       const nextShift = await getLiveShiftPost(shiftId);
       if (!nextShift) {
         Alert.alert('Shift not found', 'This fill-in may no longer be available.');
-        router.back();
+        goBack();
         return;
       }
       setShift(nextShift);
@@ -75,11 +80,11 @@ export default function WorkerShiftDetailScreen() {
         'Could not load fill-in',
         error instanceof Error ? error.message : 'Please try again.',
       );
-      router.back();
+      goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [shiftId, user?.id]);
+  }, [goBack, shiftId, user?.id]);
 
   useRefreshOnFocus(loadShift);
 
@@ -89,7 +94,7 @@ export default function WorkerShiftDetailScreen() {
         <AuthScreenHeader
           title="Fill-in details"
           subtitle={isLoading ? 'Loading…' : 'Fill-in not found.'}
-          onBack={() => router.back()}
+          onBack={goBack}
         />
       </OnboardingShell>
     );
@@ -111,7 +116,7 @@ export default function WorkerShiftDetailScreen() {
       <AuthScreenHeader
         title="Fill-in details"
         subtitle={shift.clinic.clinic_name}
-        onBack={() => router.back()}
+        onBack={goBack}
       />
       <View style={styles.content}>
         <View style={styles.clinicCard}>

@@ -13,6 +13,7 @@ export const PINGRAM_NOTIFICATION_TYPES = {
   applicationHired: 'application_hired',
   fillInPosted: 'fill_in_posted',
   jobPosted: 'job_posted',
+  messageReceived: 'message_received',
 } as const;
 
 export type PingramNotificationType =

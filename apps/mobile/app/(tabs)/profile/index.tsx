@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
+import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
+import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
-import { Screen } from '@/components/ui/Screen';
 import { WorkerProfileHero } from '@/components/worker/WorkerProfileHero';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -14,6 +15,7 @@ import {
   getProfessionalBackgroundSubtitle,
 } from '@/lib/profileHubSubtitles';
 import {
+  WORKER_HOME,
   WORKER_PROFILE_ACCOUNT,
   WORKER_PROFILE_APPLICATION_KIT,
   WORKER_PROFILE_NOTIFICATIONS,
@@ -32,7 +34,10 @@ export default function WorkerProfileScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <Screen title="Profile">
+    <ProfileDetailScreen
+      title="Profile"
+      onBack={() => router.replace(WORKER_HOME)}
+      headerRight={<SignOutHeaderButton />}>
       <View style={styles.content}>
         <WorkerProfileHero
           displayName={profile?.display_name}
@@ -67,6 +72,6 @@ export default function WorkerProfileScreen() {
           />
         </ProfileSettingsGroup>
       </View>
-    </Screen>
+    </ProfileDetailScreen>
   );
 }

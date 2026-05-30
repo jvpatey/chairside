@@ -15,28 +15,33 @@ export type ApplicationStatusVariant =
   | 'interviewOffered'
   | 'interviewScheduled'
   | 'selected'
+  | 'confirmed'
   | 'rejected';
 
 export function getWorkerApplicationStatusVariant(
   status: ApplicationStatus | string,
+  postType?: ApplicationPostType,
 ): ApplicationStatusVariant {
   if (status === 'reviewed') return 'viewed';
   if (status === 'in_progress') return 'inProgress';
   if (status === 'interview_offered') return 'interviewOffered';
   if (status === 'interview_scheduled') return 'interviewScheduled';
   if (status === 'rejected') return 'rejected';
+  if (status === 'hired' && postType === 'shift') return 'confirmed';
   if (status === 'selected' || status === 'hired') return 'selected';
   return 'applied';
 }
 
 export function getClinicApplicationStatusVariant(
   status: ApplicationStatus | string,
+  postType?: ApplicationPostType,
 ): ApplicationStatusVariant {
   if (status === 'applied') return 'applied';
   if (status === 'reviewed') return 'viewed';
   if (status === 'in_progress') return 'inProgress';
   if (status === 'interview_offered') return 'interviewOffered';
   if (status === 'interview_scheduled') return 'interviewScheduled';
+  if (status === 'hired' && postType === 'shift') return 'confirmed';
   if (status === 'selected' || status === 'hired') return 'selected';
   if (status === 'rejected') return 'rejected';
   return 'viewed';
@@ -56,6 +61,8 @@ function useStatusVariantPalette(variant: ApplicationStatusVariant) {
       return { color: colors.secondary, backgroundColor: colors.secondarySubtle };
     case 'rejected':
       return { color: colors.destructive, backgroundColor: `${colors.destructive}18` };
+    case 'confirmed':
+      return { color: colors.success, backgroundColor: `${colors.success}18` };
     case 'selected':
     case 'applied':
     default:
@@ -91,20 +98,24 @@ export function WorkerApplicationStatusBadge({
   return (
     <ApplicationStatusBadge
       label={formatApplicationStatus(status, postType)}
-      variant={getWorkerApplicationStatusVariant(status)}
+      variant={getWorkerApplicationStatusVariant(status, postType)}
     />
   );
 }
 
 type ClinicApplicationStatusBadgeProps = {
   status: ApplicationStatus | string;
+  postType?: ApplicationPostType;
 };
 
-export function ClinicApplicationStatusBadge({ status }: ClinicApplicationStatusBadgeProps) {
+export function ClinicApplicationStatusBadge({
+  status,
+  postType,
+}: ClinicApplicationStatusBadgeProps) {
   return (
     <ApplicationStatusBadge
       label={formatClinicApplicationStatus(status)}
-      variant={getClinicApplicationStatusVariant(status)}
+      variant={getClinicApplicationStatusVariant(status, postType)}
     />
   );
 }

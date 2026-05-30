@@ -1,0 +1,2 @@
+-- No-op: identical change already applied in 045_workers_read_applied_shift_posts.sql.
+-- Kept so local migration filenames match databases that ran 046 before deduplication.

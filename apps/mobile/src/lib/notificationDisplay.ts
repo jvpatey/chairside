@@ -54,6 +54,11 @@ const TYPE_META: Record<string, NotificationDisplayMeta> = {
     accent: 'secondary',
     subtitle: 'New role',
   },
+  message_received: {
+    icon: 'chatbubble-outline',
+    accent: 'primary',
+    subtitle: 'New message',
+  },
 };
 
 const DEFAULT_META: NotificationDisplayMeta = {

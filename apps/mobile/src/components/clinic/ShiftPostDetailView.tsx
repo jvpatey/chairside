@@ -17,9 +17,14 @@ import { useThemedStyles } from '@/theme';
 type ShiftPostDetailViewProps = {
   shift: ShiftPost;
   softwareUsed?: string[] | null;
+  showStatusBadge?: boolean;
 };
 
-export function ShiftPostDetailView({ shift, softwareUsed }: ShiftPostDetailViewProps) {
+export function ShiftPostDetailView({
+  shift,
+  softwareUsed,
+  showStatusBadge = true,
+}: ShiftPostDetailViewProps) {
   const dateLabel = formatShiftPostDateLabel(shift.shift_date);
   const hoursLabel = formatTimeRangePreview(shift.start_time, shift.end_time);
   const description = shift.description?.trim() || null;
@@ -82,7 +87,9 @@ export function ShiftPostDetailView({ shift, softwareUsed }: ShiftPostDetailView
   return (
     <View style={styles.wrap}>
       <View style={styles.hero}>
-        <ShiftPostStatusBadge status={shift.status} style={styles.statusBadge} />
+        {showStatusBadge ? (
+          <ShiftPostStatusBadge status={shift.status} style={styles.statusBadge} />
+        ) : null}
 
         <View style={styles.heroTop}>
           <Text style={styles.overline}>Fill-in shift</Text>

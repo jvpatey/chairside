@@ -8,10 +8,15 @@ import { useThemedStyles } from '@/theme';
 
 type FillInPostingCardProps = {
   shift: ShiftPost;
+  pendingRequestCount?: number;
   onPress?: () => void;
 };
 
-export function FillInPostingCard({ shift, onPress }: FillInPostingCardProps) {
+export function FillInPostingCard({
+  shift,
+  pendingRequestCount = 0,
+  onPress,
+}: FillInPostingCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -52,6 +57,23 @@ export function FillInPostingCard({ shift, onPress }: FillInPostingCardProps) {
       color: colors.primary,
       letterSpacing: -0.1,
     },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    requestsPill: {
+      backgroundColor: colors.primarySubtle,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+    },
+    requestsText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
   }));
 
   const content = (
@@ -65,7 +87,24 @@ export function FillInPostingCard({ shift, onPress }: FillInPostingCardProps) {
         </View>
         <ShiftPostStatusBadge status={shift.status} />
       </View>
-      {shift.compensation ? <Text style={styles.compensation}>{shift.compensation}</Text> : null}
+      {shift.compensation || pendingRequestCount > 0 ? (
+        <View style={styles.footer}>
+          {shift.compensation ? (
+            <Text style={styles.compensation}>{shift.compensation}</Text>
+          ) : (
+            <View />
+          )}
+          {pendingRequestCount > 0 ? (
+            <View style={styles.requestsPill}>
+              <Text style={styles.requestsText}>
+                {pendingRequestCount === 1
+                  ? '1 request'
+                  : `${pendingRequestCount} requests`}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </>
   );
 

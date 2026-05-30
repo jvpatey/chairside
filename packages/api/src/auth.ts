@@ -63,7 +63,8 @@ export async function signUpWithEmail(email: string, password: string, role: Use
 
 export async function signOut() {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.auth.signOut();
+  // Clear local session immediately; avoids races with in-flight token refresh.
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
   if (error) throw error;
 }
 

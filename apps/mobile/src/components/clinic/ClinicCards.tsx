@@ -8,7 +8,9 @@ import { Pressable, Text, View } from 'react-native';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { CLINIC_PROFILE } from '@/lib/routing';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { isMainListJob } from '@/lib/postingFilters';
@@ -37,6 +39,12 @@ export function DashboardHero({
       borderColor: colors.separator,
       padding: spacing.lg,
       gap: spacing.sm,
+    },
+    profile: {
+      position: 'absolute',
+      top: spacing.md,
+      left: spacing.md,
+      zIndex: 1,
     },
     bell: {
       position: 'absolute',
@@ -69,6 +77,9 @@ export function DashboardHero({
 
   return (
     <View style={styles.card}>
+      <View style={styles.profile}>
+        <ProfileHeaderButton href={CLINIC_PROFILE} placement="hero" />
+      </View>
       <View style={styles.bell}>
         <NotificationBell placement="hero" />
       </View>

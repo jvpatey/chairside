@@ -11,13 +11,14 @@ import {
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { Alert, Text, View } from 'react-native';
 
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import {
   DetailProse,
   RowDivider,
 } from '@/components/clinic/DetailCard';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationSubmittedFields } from '@/components/worker/ApplicationSubmittedFields';
@@ -30,13 +31,19 @@ import {
   buildInterviewInviteInputFromApplication,
   openInterviewCalendarInvite,
 } from '@/lib/calendarInvite';
+import {
+  getWorkerApplicationMessagesRoute,
+  type WorkerApplicationReturnTarget,
+} from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerApplicationDetailCardProps = {
   application: WorkerApplication;
+  returnTo?: WorkerApplicationReturnTarget;
   onViewPosting?: () => void;
   onCancelled?: () => void;
   onUpdated?: () => void;
+  hasUnreadMessages?: boolean;
 };
 
 function formatAppliedLabel(application: WorkerApplication): string | null {
@@ -47,9 +54,11 @@ function formatAppliedLabel(application: WorkerApplication): string | null {
 
 export function WorkerApplicationDetailCard({
   application,
+  returnTo = 'applications-tab',
   onViewPosting,
   onCancelled,
   onUpdated,
+  hasUnreadMessages = false,
 }: WorkerApplicationDetailCardProps) {
   const { colors } = useTheme();
   const canCancel = isActiveApplicationStatus(application.status);
@@ -148,7 +157,7 @@ export function WorkerApplicationDetailCard({
   }));
 
   const handleMessage = () => {
-    Alert.alert('Coming soon', 'Messaging clinics will be available in a future update.');
+    router.push(getWorkerApplicationMessagesRoute(application.id, returnTo));
   };
 
   const interviewSummary = formatInterviewDateTime(
@@ -271,7 +280,7 @@ export function WorkerApplicationDetailCard({
   }[] = [
     {
       key: 'message',
-      label: 'Message clinic',
+      label: hasUnreadMessages ? 'Message · New' : 'Message',
       onPress: handleMessage,
     },
     {
@@ -292,18 +301,41 @@ export function WorkerApplicationDetailCard({
   if (canCancel) {
     secondarySlots.push({
       key: 'cancel',
-      label: isShift ? 'Withdraw request' : 'Cancel application',
+      label: isShift ? 'Withdraw' : 'Cancel',
       variant: 'destructive',
       onPress: handleCancel,
     });
   }
 
-  const actionRows = [0, 1].map((index) => ({
-    primary: primarySlots[index] ?? null,
-    secondary: secondarySlots[index] ?? null,
-  }));
+  type ActionSlot = {
+    key: string;
+    label: string;
+    onPress: () => void;
+    disabled?: boolean;
+    variant: 'primary' | 'secondary' | 'destructive';
+  };
 
-  const hasActions = actionRows.some((row) => row.primary || row.secondary);
+  const actionRows: ActionSlot[][] = [];
+  const [messageSlot, ...otherPrimarySlots] = primarySlots;
+
+  if (messageSlot) {
+    actionRows.push([{ ...messageSlot, variant: 'primary' }]);
+  }
+
+  const pairedRow: ActionSlot[] = [
+    ...otherPrimarySlots.map((slot) => ({ ...slot, variant: 'primary' as const })),
+    ...secondarySlots.map((slot) => ({ ...slot, disabled: undefined })),
+  ];
+
+  if (pairedRow.length === 1) {
+    actionRows.push(pairedRow);
+  } else if (pairedRow.length > 1) {
+    for (const slot of pairedRow) {
+      actionRows.push([slot]);
+    }
+  }
+
+  const hasActions = actionRows.length > 0;
 
   return (
     <View style={styles.card}>
@@ -396,44 +428,20 @@ export function WorkerApplicationDetailCard({
             <View style={styles.actionsSection}>
             <Text style={styles.actionsLabel}>Actions</Text>
             <View style={styles.actionsGrid}>
-              {actionRows.map((row, rowIndex) => {
-                const slots = [
-                  row.primary
-                    ? {
-                        key: row.primary.key,
-                        label: row.primary.label,
-                        onPress: row.primary.onPress,
-                        disabled: row.primary.disabled,
-                        variant: 'primary' as const,
-                      }
-                    : null,
-                  row.secondary
-                    ? {
-                        key: row.secondary.key,
-                        label: row.secondary.label,
-                        onPress: row.secondary.onPress,
-                        variant: row.secondary.variant,
-                      }
-                    : null,
-                ].filter((slot): slot is NonNullable<typeof slot> => slot != null);
-
-                if (slots.length === 0) return null;
-
-                return (
-                  <View key={`action-row-${rowIndex}`} style={styles.actionsRow}>
-                    {slots.map((slot) => (
-                      <View key={slot.key} style={styles.actionCell}>
-                        <OnboardingButton
-                          label={slot.label}
-                          variant={slot.variant}
-                          onPress={slot.onPress}
-                          disabled={'disabled' in slot ? slot.disabled : undefined}
-                        />
-                      </View>
-                    ))}
-                  </View>
-                );
-              })}
+              {actionRows.map((slots, rowIndex) => (
+                <View key={`action-row-${rowIndex}`} style={styles.actionsRow}>
+                  {slots.map((slot) => (
+                    <View key={slot.key} style={styles.actionCell}>
+                      <OnboardingButton
+                        label={slot.label}
+                        variant={slot.variant}
+                        onPress={slot.onPress}
+                        disabled={slot.disabled}
+                      />
+                    </View>
+                  ))}
+                </View>
+              ))}
             </View>
           </View>
           </>

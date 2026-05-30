@@ -41,6 +41,7 @@ const PINGRAM_TYPES = {
   applicationHired: 'application_hired',
   fillInPosted: 'fill_in_posted',
   jobPosted: 'job_posted',
+  messageReceived: 'message_received',
 } as const;
 
 const DEFAULT_PINGRAM_API_URL = 'https://api.ca.pingram.io';
@@ -126,10 +127,82 @@ async function claimIdempotency(
   supabase: ReturnType<typeof createClient>,
   key: string,
 ): Promise<boolean> {
-  const { error } = await supabase.from('notification_dispatch_log').insert({ idempotency_key: key });
+  const { error } = await supabase
+    .from('notification_dispatch_log')
+    .insert({ idempotency_key: key });
   if (error?.code === '23505') return false;
   if (error) throw error;
   return true;
+}
+
+function truncatePreview(text: string, maxLength = 120): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1).trim()}…`;
+}
+
+async function handleMessageInsert(
+  supabase: ReturnType<typeof createClient>,
+  pingramKey: string,
+  pingramBase: string,
+  record: Record<string, unknown>,
+) {
+  const messageId = record.id as string;
+  const conversationId = record.conversation_id as string;
+  const senderId = record.sender_id as string;
+  const body = (record.body as string | undefined)?.trim() ?? '';
+
+  const { data: conversation, error: conversationError } = await supabase
+    .from('conversations')
+    .select('id, application_id, worker_id, clinic_id')
+    .eq('id', conversationId)
+    .maybeSingle();
+
+  if (conversationError) throw conversationError;
+  if (!conversation) return;
+
+  const recipientId =
+    senderId === conversation.worker_id ? conversation.clinic_id : conversation.worker_id;
+  const recipientIsClinic = recipientId === conversation.clinic_id;
+
+  const idempotencyKey = `${PINGRAM_TYPES.messageReceived}:${messageId}`;
+  if (!(await claimIdempotency(supabase, idempotencyKey))) return;
+
+  let senderLabel = 'Someone';
+  if (senderId === conversation.worker_id) {
+    const { data: application } = await supabase
+      .from('applications')
+      .select('worker_display_name')
+      .eq('id', conversation.application_id)
+      .maybeSingle();
+    senderLabel = application?.worker_display_name?.trim() || 'An applicant';
+  } else {
+    const { data: clinic } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name')
+      .eq('id', conversation.clinic_id)
+      .maybeSingle();
+    senderLabel = clinic?.clinic_name?.trim() || 'A clinic';
+  }
+
+  const title = `Message from ${senderLabel}`;
+  const message = truncatePreview(body, 100);
+  const deepLink = recipientIsClinic
+    ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
+    : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
+
+  await pingramSend(
+    pingramKey,
+    pingramBase,
+    buildSendBody({
+      type: PINGRAM_TYPES.messageReceived,
+      userId: recipientId,
+      title,
+      message,
+      deepLink,
+      secondaryId: idempotencyKey,
+    }),
+  );
 }
 
 async function sendWorkerStatusNotification(
@@ -195,7 +268,27 @@ async function sendWorkerStatusNotification(
   const template = typeMap[status];
   if (!template) return;
 
-  const idempotencyKey = `${template.pingramType}:${applicationId}:${status}`;
+  let notification = template;
+
+  if (status === 'rejected' && isShift) {
+    const shiftPostId = application.shift_post_id as string | null;
+    if (shiftPostId) {
+      const { data: shift } = await supabase
+        .from('shift_posts')
+        .select('status')
+        .eq('id', shiftPostId)
+        .maybeSingle();
+      if (shift?.status === 'filled') {
+        notification = {
+          pingramType: PINGRAM_TYPES.applicationRejected,
+          title: 'Cover request update',
+          message: 'This fill-in has been covered by another applicant.',
+        };
+      }
+    }
+  }
+
+  const idempotencyKey = `${notification.pingramType}:${applicationId}:${status}`;
   if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   const deepLink = `chairside:///(tabs)/application/${applicationId}`;
@@ -203,10 +296,10 @@ async function sendWorkerStatusNotification(
     pingramKey,
     pingramBase,
     buildSendBody({
-      type: template.pingramType,
+      type: notification.pingramType,
       userId: workerId,
-      title: template.title,
-      message: template.message,
+      title: notification.title,
+      message: notification.message,
       deepLink,
       secondaryId: idempotencyKey,
     }),
@@ -364,7 +457,13 @@ async function handleApplicationUpdate(
   if (oldStatus === 'interview_offered' && newStatus === 'in_progress') {
     const closedBy = record.interview_offer_closed_by as string | null;
     if (closedBy === 'clinic') {
-      await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, 'interview_cancelled');
+      await sendWorkerStatusNotification(
+        supabase,
+        pingramKey,
+        pingramBase,
+        record,
+        'interview_cancelled',
+      );
     } else {
       await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
         pingramType: PINGRAM_TYPES.applicationInterviewDeclined,
@@ -409,9 +508,7 @@ async function listFillInRecipients(
   if (error) throw error;
   if (!workers?.length) return [];
 
-  const roleMatched = workers.filter(
-    (w) => w.role_type && w.role_type === shift.role_type,
-  );
+  const roleMatched = workers.filter((w) => w.role_type && w.role_type === shift.role_type);
 
   const availableDaysOnly = roleMatched.filter(
     (w) => w.fill_in_notification_mode === 'available_days_only',
@@ -605,6 +702,8 @@ Deno.serve(async (req) => {
       await handleShiftPostLive(supabase, pingramKey, pingramBase, payload.record);
     } else if (payload.table === 'job_posts' && becameLive(payload.record, payload.old_record)) {
       await handleJobPostLive(supabase, pingramKey, pingramBase, payload.record);
+    } else if (payload.table === 'messages' && payload.type === 'INSERT') {
+      await handleMessageInsert(supabase, pingramKey, pingramBase, payload.record);
     }
 
     return jsonResponse({ ok: true });

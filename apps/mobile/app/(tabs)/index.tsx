@@ -1,9 +1,12 @@
 import {
   getWorkerDashboardCounts,
   isWorkerProfileComplete,
+  listConversationsForWorker,
   listLiveJobPosts,
   listLiveShiftPosts,
-  listWorkerApplications,
+  listWorkerJobApplications,
+  listWorkerShiftApplications,
+  type Conversation,
   type LiveJobPost,
   type LiveShiftPost,
   type WorkerApplication,
@@ -13,6 +16,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
+import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import {
   QuickActionTile,
   WorkerDashboardHero,
@@ -24,19 +28,23 @@ import {
 import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   WORKER_BROWSE,
   WORKER_FILLINS,
+  getWorkerApplicationMessagesRoute,
   getWorkerApplicationRoute,
   getWorkerJobDetailRoute,
+  getWorkerMessagesRoute,
   getWorkerShiftDetailRoute,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerDashboardScreen() {
   const { user, profile } = useAuth();
+  const { refreshUnread } = useMessageUnread();
   const { workerProfile } = useWorkerProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const province = workerProfile?.province ?? 'NS';
@@ -48,7 +56,9 @@ export default function WorkerDashboardScreen() {
   const [selectedOverview, setSelectedOverview] = useState<WorkerOverviewStat>('roles');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
-  const [applications, setApplications] = useState<WorkerApplication[]>([]);
+  const [jobApplications, setJobApplications] = useState<WorkerApplication[]>([]);
+  const [shiftApplications, setShiftApplications] = useState<WorkerApplication[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
@@ -59,24 +69,32 @@ export default function WorkerDashboardScreen() {
     if (!user?.id) return;
 
     try {
-      const [nextCounts, jobPosts, shiftPosts, applicationRows] = await Promise.all([
+      const [nextCounts, jobPosts, shiftPosts, jobApplicationRows, shiftApplicationRows, conversationRows] =
+        await Promise.all([
         getWorkerDashboardCounts(user.id, province),
         listLiveJobPosts(province),
         listLiveShiftPosts(province),
-        listWorkerApplications(user.id),
+        listWorkerJobApplications(user.id),
+        listWorkerShiftApplications(user.id),
+        listConversationsForWorker(user.id),
       ]);
 
       setCounts(nextCounts);
       setJobs(jobPosts);
       setShifts(shiftPosts);
-      setApplications(applicationRows);
+      setJobApplications(jobApplicationRows);
+      setShiftApplications(shiftApplicationRows);
+      setConversations(conversationRows);
+      await refreshUnread();
     } catch {
       setCounts({ openRolesInProvince: 0, openFillInsInProvince: 0, pendingApplications: 0 });
       setJobs([]);
       setShifts([]);
-      setApplications([]);
+      setJobApplications([]);
+      setShiftApplications([]);
+      setConversations([]);
     }
-  }, [user?.id, province]);
+  }, [province, refreshUnread, user?.id]);
 
   useRefreshOnFocus(loadDashboard);
 
@@ -89,12 +107,22 @@ export default function WorkerDashboardScreen() {
   const appliedJobIds = useMemo(
     () =>
       new Set(
-        applications
-          .filter((application) => application.post_type === 'job' && application.job_post_id)
+        jobApplications
+          .filter((application) => application.job_post_id)
           .map((application) => application.job_post_id as string),
       ),
-    [applications],
+    [jobApplications],
   );
+
+  const unreadMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const conversation of conversations) {
+      if (conversation.unread) {
+        map[conversation.application_id] = true;
+      }
+    }
+    return map;
+  }, [conversations]);
 
   return (
     <Screen showHeader={false} showNotifications={false}>
@@ -106,6 +134,21 @@ export default function WorkerDashboardScreen() {
         />
 
         <WorkerReadinessChecklist workerProfile={workerProfile} />
+
+        <DashboardUnreadMessagesCard
+          conversations={conversations}
+          avatarKind="clinic"
+          onConversationPress={(conversation) =>
+            router.push(
+              getWorkerApplicationMessagesRoute(conversation.application_id, 'dashboard-applications', {
+                conversationId: conversation.id,
+                title: conversation.counterpart_name,
+                subtitle: conversation.post_title,
+              }),
+            )
+          }
+          onViewAllPress={() => router.push(getWorkerMessagesRoute())}
+        />
 
         <View>
           <WorkerSectionHeader title="Quick actions" />
@@ -141,12 +184,17 @@ export default function WorkerDashboardScreen() {
           selected={selectedOverview}
           jobs={jobs}
           shifts={shifts}
-          applications={applications}
+          jobApplications={jobApplications}
+          shiftApplications={shiftApplications}
           appliedJobIds={appliedJobIds}
+          unreadMap={unreadMap}
           onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
-          onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
-          onApplicationPress={(applicationId) =>
+          onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))}
+          onJobApplicationPress={(applicationId) =>
             router.push(getWorkerApplicationRoute(applicationId, 'dashboard-applications'))
+          }
+          onShiftApplicationPress={(applicationId) =>
+            router.push(getWorkerApplicationRoute(applicationId, 'dashboard-fill-ins'))
           }
         />
       </View>

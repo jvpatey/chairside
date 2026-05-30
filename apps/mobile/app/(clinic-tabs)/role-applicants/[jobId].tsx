@@ -1,5 +1,6 @@
 import {
   getJobPost,
+  getUnreadConversationMap,
   listClinicApplicationsForJob,
   type ClinicApplication,
 } from '@chairside/api';
@@ -12,10 +13,12 @@ import { ApplicantFilterBar } from '@/components/clinic/ApplicantFilterBar';
 import { ApplicantPipelineSectionBlock } from '@/components/clinic/ApplicantPipelineSection';
 import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
+import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   filterApplicationsByView,
@@ -64,12 +67,19 @@ export default function ClinicRoleApplicationsScreen() {
   }, [resolvedReturnTo]);
   const [postTitle, setPostTitle] = useState('');
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
+  const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [listFilter, setListFilter] = useState<ApplicantListFilter>('all');
   const [scheduleTarget, setScheduleTarget] = useState<ClinicApplication | null>(null);
   const [sectionExpanded, setSectionExpanded] = useState<
     Partial<Record<ApplicantPipelineSectionId, boolean>>
   >({});
+  const {
+    celebrationVisible,
+    celebrationPayload,
+    showCelebration,
+    closeCelebration,
+  } = useHiringCelebration();
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     content: { gap: spacing.lg },
@@ -87,12 +97,14 @@ export default function ClinicRoleApplicationsScreen() {
 
     setIsLoading(true);
     try {
-      const [job, rows] = await Promise.all([
+      const [job, rows, unread] = await Promise.all([
         getJobPost(user.id, resolvedJobId),
         listClinicApplicationsForJob(user.id, resolvedJobId),
+        getUnreadConversationMap(user.id, 'clinic'),
       ]);
       setPostTitle(job?.title ?? 'Role applicants');
       setApplications(rows);
+      setUnreadMap(unread);
     } catch (error) {
       setApplications([]);
       Alert.alert(
@@ -152,14 +164,26 @@ export default function ClinicRoleApplicationsScreen() {
       <ClinicApplicationCard
         key={application.id}
         application={application}
+        returnTo={resolvedReturnTo ?? 'applications-tab'}
+        hasUnreadMessages={Boolean(unreadMap[application.id])}
         onUpdated={() => void load()}
         onShortlisted={handleShortlisted}
         onScheduleInterview={setScheduleTarget}
+        onHired={(hiredApplication) =>
+          showCelebration({
+            applicationId: hiredApplication.id,
+            postType: 'job',
+            audience: 'clinic',
+            counterpartName: hiredApplication.worker_display_name?.trim() || 'Applicant',
+            postTitle: hiredApplication.post_title,
+          })
+        }
       />
     ));
 
   return (
-    <OnboardingShell>
+    <>
+      <OnboardingShell>
       <AuthScreenHeader
         title={postTitle || 'Role applicants'}
         subtitle={subtitle}
@@ -206,6 +230,7 @@ export default function ClinicRoleApplicationsScreen() {
           </>
         )}
       </View>
+      </OnboardingShell>
 
       {scheduleTarget ? (
         <InterviewScheduleSheet
@@ -217,6 +242,14 @@ export default function ClinicRoleApplicationsScreen() {
           onClose={() => setScheduleTarget(null)}
         />
       ) : null}
-    </OnboardingShell>
+      <HiringCelebrationModal
+        visible={celebrationVisible}
+        payload={celebrationPayload}
+        onClose={() => {
+          void closeCelebration();
+          void load();
+        }}
+      />
+    </>
   );
 }

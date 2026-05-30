@@ -1,6 +1,6 @@
 import {
-  getProfile,
   getSupabaseClient,
+  resolveAuthProfile,
   signOut as apiSignOut,
   type Profile,
 } from '@chairside/api';
@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const profileRequestRef = useRef(0);
+  const signingOutRef = useRef(false);
 
   const refreshProfile = useCallback(async () => {
     const supabase = getSupabaseClient();
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const requestId = ++profileRequestRef.current;
 
     try {
-      const nextProfile = await getProfile(userId);
+      const nextProfile = await resolveAuthProfile(userId);
       if (requestId !== profileRequestRef.current) return null;
       setProfile(nextProfile);
       return nextProfile;
@@ -63,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function loadProfile(userId: string, requestId: number) {
       try {
-        const nextProfile = await getProfile(userId);
+        const nextProfile = await resolveAuthProfile(userId);
         if (cancelled || requestId !== profileRequestRef.current) return;
         setProfile(nextProfile);
       } catch {
@@ -73,25 +74,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    async function applySessionFromStorage(revisionAtStart: number) {
+      const supabase = getSupabaseClient();
+      const {
+        data: { session: currentSession },
+        error,
+      } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (cancelled || revisionAtStart !== profileRequestRef.current) return;
+
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+
+      if (!currentSession?.user) {
+        profileRequestRef.current += 1;
+        setProfile(null);
+        return;
+      }
+
+      const requestId = ++profileRequestRef.current;
+      await loadProfile(currentSession.user.id, requestId);
+    }
+
     async function bootstrapAuth() {
+      const revisionAtStart = profileRequestRef.current;
+
       try {
-        const supabase = getSupabaseClient();
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        if (cancelled) return;
-
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-
-        if (data.session?.user) {
-          const requestId = ++profileRequestRef.current;
-          await loadProfile(data.session.user.id, requestId);
-        } else {
-          profileRequestRef.current += 1;
-          setProfile(null);
-        }
+        await applySessionFromStorage(revisionAtStart);
       } catch {
-        if (!cancelled) {
+        if (!cancelled && revisionAtStart === profileRequestRef.current) {
           profileRequestRef.current += 1;
           setSession(null);
           setUser(null);
@@ -108,18 +119,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const supabase = getSupabaseClient();
-      const result = supabase.auth.onAuthStateChange((_event, nextSession) => {
-        setSession(nextSession);
-        setUser(nextSession?.user ?? null);
+      const result = supabase.auth.onAuthStateChange((event) => {
+        if (signingOutRef.current && event !== 'SIGNED_OUT') {
+          return;
+        }
 
-        if (!nextSession?.user) {
+        if (event === 'SIGNED_OUT') {
           profileRequestRef.current += 1;
+          setSession(null);
+          setUser(null);
           setProfile(null);
           return;
         }
 
-        const requestId = ++profileRequestRef.current;
-        void loadProfile(nextSession.user.id, requestId);
+        const revisionAtEvent = profileRequestRef.current;
+        void applySessionFromStorage(revisionAtEvent);
       });
       subscription = result.data.subscription;
     } catch {
@@ -135,10 +149,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     profileRequestRef.current += 1;
-    await apiSignOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
+    signingOutRef.current = true;
+
+    try {
+      await apiSignOut();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    } finally {
+      signingOutRef.current = false;
+    }
   }, []);
 
   const value = useMemo(

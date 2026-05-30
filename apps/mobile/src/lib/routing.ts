@@ -2,17 +2,36 @@ import type { Href } from 'expo-router';
 
 import type { UserRole } from '@/types';
 
-export type FillInReturnTarget = 'postings-fill-ins' | 'dashboard-fill-ins';
+export type FillInReturnTarget = 'postings-fill-ins' | 'dashboard-fill-ins' | 'fill-ins-tab';
 export type ApplicantReturnTarget = 'applications-tab' | 'dashboard-applications';
 export type WorkerApplicationReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
-  | 'fill-ins-tab';
+  | 'dashboard-fill-ins'
+  | 'fill-ins-tab'
+  | 'messages-tab';
+
+export type WorkerShiftReturnTarget =
+  | 'fill-ins-tab'
+  | 'open-fill-ins'
+  | 'dashboard-fill-ins'
+  | 'browse-tab';
+export type ClinicApplicationReturnTarget =
+  | ApplicantReturnTarget
+  | 'messages-tab'
+  | 'fill-ins-tab'
+  | FillInReturnTarget;
 export type PostingsTabParam = 'roles' | 'fill-ins';
 export type DashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
 export type WorkerBrowseTabParam = 'roles' | 'fill-ins';
 export type WorkerDashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
 export type ApplyPostType = 'job' | 'shift';
+
+export type MessageThreadPreview = {
+  conversationId: string;
+  title: string;
+  subtitle: string;
+};
 
 export const CLINIC_HOME: Href = '/(clinic-tabs)' as Href;
 export const WORKER_HOME: Href = '/(tabs)' as Href;
@@ -33,6 +52,7 @@ export const WORKER_SETUP_REVIEW: Href = '/(worker-setup)/review' as Href;
 export const CLINIC_POST_JOB: Href = '/(clinic-tabs)/post-job' as Href;
 export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;
 export const CLINIC_POSTINGS: Href = '/(clinic-tabs)/postings' as Href;
+export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
@@ -48,9 +68,13 @@ export const WORKER_PROFILE_ACCOUNT: Href = '/(tabs)/profile/account' as Href;
 
 export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
   if (tab === 'fill-ins') {
-    return { pathname: '/(clinic-tabs)/postings', params: { tab: 'fill-ins' } } as Href;
+    return CLINIC_FILL_INS;
   }
   return CLINIC_POSTINGS;
+}
+
+export function getClinicFillInsRoute(): Href {
+  return CLINIC_FILL_INS;
 }
 
 export function getWorkerBrowseRoute(tab?: WorkerBrowseTabParam): Href {
@@ -74,7 +98,7 @@ export function getWorkerHomeRoute(overview?: WorkerDashboardOverviewParam): Hre
   return WORKER_HOME;
 }
 
-export function getPostShiftRoute(returnTo: FillInReturnTarget = 'postings-fill-ins'): Href {
+export function getPostShiftRoute(returnTo: FillInReturnTarget = 'fill-ins-tab'): Href {
   return { pathname: '/(clinic-tabs)/post-shift', params: { returnTo } } as Href;
 }
 
@@ -96,7 +120,7 @@ export function getEditJobRoute(jobId: string): Href {
 
 export function getShiftDetailRoute(
   shiftId: string,
-  returnTo: FillInReturnTarget = 'postings-fill-ins',
+  returnTo: FillInReturnTarget = 'fill-ins-tab',
 ): Href {
   return {
     pathname: '/(clinic-tabs)/shift/[id]',
@@ -104,8 +128,41 @@ export function getShiftDetailRoute(
   } as Href;
 }
 
-export function getWorkerShiftDetailRoute(shiftId: string): Href {
-  return { pathname: '/(tabs)/shift/[id]', params: { id: shiftId } } as unknown as Href;
+export function getWorkerShiftDetailRoute(
+  shiftId: string,
+  returnTo?: WorkerShiftReturnTarget,
+): Href {
+  return {
+    pathname: '/(tabs)/shift/[id]',
+    params: returnTo ? { id: shiftId, returnTo } : { id: shiftId },
+  } as unknown as Href;
+}
+
+export function navigateAfterWorkerShift(
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
+  returnTo?: string,
+) {
+  if (returnTo === 'fill-ins-tab') {
+    router.replace(WORKER_FILLINS);
+    return;
+  }
+  if (returnTo === 'open-fill-ins') {
+    router.replace(WORKER_OPEN_FILLINS);
+    return;
+  }
+  if (returnTo === 'dashboard-fill-ins') {
+    router.replace(getWorkerHomeRoute('fill-ins'));
+    return;
+  }
+  if (returnTo === 'browse-tab') {
+    router.replace(WORKER_BROWSE);
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(WORKER_FILLINS);
 }
 
 export function getWorkerApplicationRoute(
@@ -118,6 +175,70 @@ export function getWorkerApplicationRoute(
   } as unknown as Href;
 }
 
+export function getWorkerApplicationMessagesRoute(
+  applicationId: string,
+  returnTo: WorkerApplicationReturnTarget = 'applications-tab',
+  preview?: MessageThreadPreview,
+): Href {
+  return {
+    pathname: '/(tabs)/application/[id]/messages',
+    params: {
+      id: applicationId,
+      returnTo,
+      ...(preview
+        ? {
+            conversationId: preview.conversationId,
+            title: preview.title,
+            subtitle: preview.subtitle,
+          }
+        : {}),
+    },
+  } as unknown as Href;
+}
+
+export function getClinicApplicationMessagesRoute(
+  applicationId: string,
+  returnTo?: ClinicApplicationReturnTarget,
+  preview?: MessageThreadPreview,
+): Href {
+  return {
+    pathname: '/(clinic-tabs)/application/[id]/messages',
+    params: {
+      id: applicationId,
+      returnTo: returnTo ?? '',
+      ...(preview
+        ? {
+            conversationId: preview.conversationId,
+            title: preview.title,
+            subtitle: preview.subtitle,
+          }
+        : {}),
+    },
+  } as unknown as Href;
+}
+
+export function getWorkerMessagesRoute(): Href {
+  return '/(tabs)/messages' as Href;
+}
+
+export function getClinicMessagesRoute(): Href {
+  return '/(clinic-tabs)/messages' as Href;
+}
+
+export function getClinicShiftApplicantsRoute(
+  shiftId: string,
+  returnTo: FillInReturnTarget = 'fill-ins-tab',
+): Href {
+  return {
+    pathname: '/(clinic-tabs)/shift-applicants/[shiftId]',
+    params: { shiftId, returnTo },
+  } as Href;
+}
+
+export function navigateAfterMessageThread(router: { replace: (href: Href) => void }, role: 'worker' | 'clinic') {
+  router.replace(role === 'clinic' ? getClinicMessagesRoute() : getWorkerMessagesRoute());
+}
+
 export function navigateAfterWorkerApplication(
   router: { replace: (href: Href) => void; back: () => void },
   returnTo?: string,
@@ -126,8 +247,16 @@ export function navigateAfterWorkerApplication(
     router.replace(getWorkerHomeRoute('applications'));
     return;
   }
+  if (returnTo === 'dashboard-fill-ins') {
+    router.replace(getWorkerHomeRoute('fill-ins'));
+    return;
+  }
   if (returnTo === 'fill-ins-tab') {
     router.replace(WORKER_FILLINS);
+    return;
+  }
+  if (returnTo === 'messages-tab') {
+    router.replace(getWorkerMessagesRoute());
     return;
   }
   router.replace(WORKER_APPLICATIONS);
@@ -167,7 +296,7 @@ export function navigateAfterRoleApplicants(
 
 export function getEditShiftRoute(
   shiftId: string,
-  returnTo: FillInReturnTarget = 'postings-fill-ins',
+  returnTo: FillInReturnTarget = 'fill-ins-tab',
 ): Href {
   return {
     pathname: '/(clinic-tabs)/post-shift',
@@ -183,7 +312,11 @@ export function navigateAfterFillInSave(
     router.replace(getClinicHomeRoute('fill-ins'));
     return;
   }
-  router.replace(getClinicPostingsRoute('fill-ins'));
+  if (returnTo === 'postings-fill-ins') {
+    router.replace(CLINIC_FILL_INS);
+    return;
+  }
+  router.replace(CLINIC_FILL_INS);
 }
 
 export function getHomeRouteForRole(role: UserRole): Href {

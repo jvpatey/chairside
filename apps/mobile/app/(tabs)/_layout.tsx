@@ -6,10 +6,12 @@ import {
   DashboardTabBarButton,
   DashboardTabIcon,
 } from '@/components/navigation/DashboardTabBarButton';
+import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useTheme } from '@/theme';
 
-export default function TabLayout() {
+function WorkerTabNavigator() {
   const { colors } = useTheme();
+  const { unreadCount } = useMessageUnread();
 
   return (
     <Tabs
@@ -33,8 +35,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="browse"
         options={{
-          title: 'Browse',
-          tabBarIcon: ({ color }) => <Ionicons name="search" size={22} color={color} />,
+          title: 'Roles',
+          tabBarIcon: ({ color }) => <Ionicons name="briefcase-outline" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -62,18 +64,28 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="messages"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={22} color={color} />,
+          title: 'Messages',
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarIcon: ({ color }) => <Ionicons name="chatbubbles-outline" size={22} color={color} />,
         }}
       />
+      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="application" options={{ href: null }} />
       <Tabs.Screen name="job/[id]" options={{ href: null }} />
       <Tabs.Screen name="shift/[id]" options={{ href: null }} />
-      <Tabs.Screen name="application/[id]" options={{ href: null }} />
       <Tabs.Screen name="apply" options={{ href: null }} />
       <Tabs.Screen name="apply-screening" options={{ href: null }} />
       <Tabs.Screen name="open-fill-ins" options={{ href: null }} />
     </Tabs>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <MessageUnreadProvider role="worker">
+      <WorkerTabNavigator />
+    </MessageUnreadProvider>
   );
 }

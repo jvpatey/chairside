@@ -54,7 +54,8 @@ export function Screen({
       contentContainerStyle={[
         styles.content,
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
-      ]}>
+      ]}
+    >
       <View style={[styles.header, !showHeader && styles.headerHidden]}>
         {showHeader ? (
           <View style={styles.headerRow}>

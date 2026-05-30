@@ -72,11 +72,33 @@ export type ClinicApplication = Application & {
 export type WorkerApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
+  post_role_type?: string | null;
+  shift_date?: string | null;
+  shift_start_time?: string | null;
+  shift_end_time?: string | null;
   clinic_name: string;
   clinic_city: string | null;
+  clinic_province?: string | null;
+  clinic_address?: string | null;
+  clinic_location?: string | null;
   clinic_logo_storage_path: string | null;
   screening: ApplicationScreening | null;
 };
+
+function formatWorkerClinicLocation(clinic: {
+  address_line1?: string | null;
+  city?: string | null;
+  province?: string | null;
+} | null | undefined): string | null {
+  if (!clinic) return null;
+
+  const parts = [
+    clinic.address_line1?.trim(),
+    [clinic.city?.trim(), clinic.province?.trim()].filter(Boolean).join(', '),
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
 
 export type CreateApplicationInput = {
   jobPostId?: string;
@@ -93,6 +115,24 @@ export type JobApplicationSummary = {
   shortlisted_count: number;
   interview_count: number;
 };
+
+export const FILL_IN_PENDING_STATUSES: ApplicationStatus[] = [
+  'applied',
+  'reviewed',
+  'in_progress',
+  'interview_offered',
+  'interview_scheduled',
+];
+
+export type FillInCoverRequest = ClinicApplication & {
+  shift_date: string;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
+};
+
+function isFillInPendingStatus(status: ApplicationStatus): boolean {
+  return FILL_IN_PENDING_STATUSES.includes(status);
+}
 
 export async function listClinicApplications(clinicId: string): Promise<ClinicApplication[]> {
   const supabase = getSupabaseClient();
@@ -178,7 +218,10 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
       ? supabase.from('job_posts').select('id, title, clinic_id').in('id', jobIds)
       : Promise.resolve({ data: [], error: null }),
     shiftIds.length > 0
-      ? supabase.from('shift_posts').select('id, shift_date, clinic_id').in('id', shiftIds)
+      ? supabase
+          .from('shift_posts')
+          .select('id, role_type, shift_date, start_time, end_time, clinic_id')
+          .in('id', shiftIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -191,7 +234,14 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   const shiftMap = new Map(
     (shiftsResult.data ?? []).map((shift) => [
       shift.id,
-      { title: `Fill-in · ${shift.shift_date}`, clinic_id: shift.clinic_id },
+      {
+        title: `Fill-in · ${shift.shift_date}`,
+        clinic_id: shift.clinic_id,
+        role_type: shift.role_type,
+        shift_date: shift.shift_date,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+      },
     ]),
   );
 
@@ -204,7 +254,10 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
 
   const { data: clinics, error: clinicsError } =
     clinicIds.length > 0
-      ? await supabase.from('clinic_profiles').select('id, clinic_name, city, logo_storage_path').in('id', clinicIds)
+      ? await supabase
+          .from('clinic_profiles')
+          .select('id, clinic_name, city, province, address_line1, logo_storage_path')
+          .in('id', clinicIds)
       : { data: [], error: null };
 
   if (clinicsError) throw clinicsError;
@@ -238,8 +291,15 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
         ...application,
         post_title: shift.title,
         post_type: 'shift',
+        post_role_type: shift.role_type,
+        shift_date: shift.shift_date,
+        shift_start_time: shift.start_time,
+        shift_end_time: shift.end_time,
         clinic_name: clinic?.clinic_name ?? 'Clinic',
         clinic_city: clinic?.city ?? null,
+        clinic_province: clinic?.province ?? null,
+        clinic_address: clinic?.address_line1 ?? null,
+        clinic_location: formatWorkerClinicLocation(clinic),
         clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
         screening: null,
       });
@@ -270,7 +330,7 @@ async function enrichWorkerApplication(
 
     const { data: clinic, error: clinicError } = await supabase
       .from('clinic_profiles')
-      .select('clinic_name, city, logo_storage_path')
+      .select('clinic_name, city, province, address_line1, logo_storage_path')
       .eq('id', job.clinic_id)
       .maybeSingle();
 
@@ -290,7 +350,7 @@ async function enrichWorkerApplication(
   if (application.shift_post_id) {
     const { data: shift, error: shiftError } = await supabase
       .from('shift_posts')
-      .select('id, shift_date, clinic_id')
+      .select('id, role_type, shift_date, start_time, end_time, clinic_id')
       .eq('id', application.shift_post_id)
       .maybeSingle();
 
@@ -299,7 +359,7 @@ async function enrichWorkerApplication(
 
     const { data: clinic, error: clinicError } = await supabase
       .from('clinic_profiles')
-      .select('clinic_name, city, logo_storage_path')
+      .select('clinic_name, city, province, address_line1, logo_storage_path')
       .eq('id', shift.clinic_id)
       .maybeSingle();
 
@@ -309,8 +369,15 @@ async function enrichWorkerApplication(
       ...application,
       post_title: `Fill-in · ${shift.shift_date}`,
       post_type: 'shift',
+      post_role_type: shift.role_type,
+      shift_date: shift.shift_date,
+      shift_start_time: shift.start_time,
+      shift_end_time: shift.end_time,
       clinic_name: clinic?.clinic_name ?? 'Clinic',
       clinic_city: clinic?.city ?? null,
+      clinic_province: clinic?.province ?? null,
+      clinic_address: clinic?.address_line1 ?? null,
+      clinic_location: formatWorkerClinicLocation(clinic),
       clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
       screening: null,
     };
@@ -455,6 +522,16 @@ export async function listClinicApplicationsForJob(
   const applications = await listClinicApplications(clinicId);
   return applications.filter(
     (application) => application.post_type === 'job' && application.job_post_id === jobPostId,
+  );
+}
+
+export async function listClinicApplicationsForShift(
+  clinicId: string,
+  shiftPostId: string,
+): Promise<ClinicApplication[]> {
+  const applications = await listClinicApplications(clinicId);
+  return applications.filter(
+    (application) => application.post_type === 'shift' && application.shift_post_id === shiftPostId,
   );
 }
 
@@ -622,4 +699,111 @@ export async function cancelApplicationInterviewOffer(
 
   if (error) throw error;
   return data as Application;
+}
+
+export async function confirmFillInApplicant(
+  clinicId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('confirm_fill_in_applicant', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row?.shift_post_id) {
+    throw new Error('Fill-in application not found');
+  }
+
+  const { data: shift, error: shiftError } = await supabase
+    .from('shift_posts')
+    .select('clinic_id')
+    .eq('id', row.shift_post_id)
+    .maybeSingle();
+
+  if (shiftError) throw shiftError;
+  if (shift?.clinic_id !== clinicId) {
+    throw new Error('Fill-in application not found');
+  }
+
+  return row;
+}
+
+export async function listFillInCoverRequests(clinicId: string): Promise<FillInCoverRequest[]> {
+  const supabase = getSupabaseClient();
+
+  const { data: shifts, error: shiftsError } = await supabase
+    .from('shift_posts')
+    .select('id, role_type, shift_date, start_time, end_time, status')
+    .eq('clinic_id', clinicId)
+    .eq('status', 'live');
+
+  if (shiftsError) throw shiftsError;
+  if (!shifts?.length) return [];
+
+  const shiftMap = new Map(
+    shifts.map((shift) => [
+      shift.id,
+      {
+        title: `Fill-in · ${shift.shift_date}`,
+        role_type: shift.role_type,
+        shift_date: shift.shift_date,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+      },
+    ]),
+  );
+
+  const shiftIds = shifts.map((shift) => shift.id);
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*')
+    .in('shift_post_id', shiftIds)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  const requests: FillInCoverRequest[] = [];
+
+  for (const row of data ?? []) {
+    const application = row as Application;
+    if (!application.shift_post_id || !shiftMap.has(application.shift_post_id)) continue;
+    if (!isFillInPendingStatus(application.status)) continue;
+
+    const shift = shiftMap.get(application.shift_post_id)!;
+    requests.push({
+      ...application,
+      post_title: shift.title,
+      post_type: 'shift',
+      post_role_type: shift.role_type,
+      screening: null,
+      shift_date: shift.shift_date,
+      shift_start_time: shift.start_time,
+      shift_end_time: shift.end_time,
+    });
+  }
+
+  return requests.sort((a, b) => {
+    const dateCompare = a.shift_date.localeCompare(b.shift_date);
+    if (dateCompare !== 0) return dateCompare;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
+export async function getFillInPendingCount(clinicId: string): Promise<number> {
+  const requests = await listFillInCoverRequests(clinicId);
+  return requests.length;
+}
+
+export async function getShiftPostPendingApplicationCountsMap(
+  clinicId: string,
+): Promise<Record<string, number>> {
+  const requests = await listFillInCoverRequests(clinicId);
+  const counts: Record<string, number> = {};
+  for (const request of requests) {
+    if (!request.shift_post_id) continue;
+    counts[request.shift_post_id] = (counts[request.shift_post_id] ?? 0) + 1;
+  }
+  return counts;
 }
