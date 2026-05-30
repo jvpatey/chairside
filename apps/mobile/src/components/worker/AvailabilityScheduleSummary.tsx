@@ -3,13 +3,18 @@ import { DAY_OF_WEEK_OPTIONS } from '@chairside/config';
 import { formatTime12h } from '@/lib/time';
 import { Text, View } from 'react-native';
 
+import { RowDivider } from '@/components/clinic/DetailCard';
 import { useThemedStyles } from '@/theme';
 
 type AvailabilityScheduleSummaryProps = {
   blocks: AvailabilityBlock[];
+  variant?: 'card' | 'grouped';
 };
 
-export function AvailabilityScheduleSummary({ blocks }: AvailabilityScheduleSummaryProps) {
+export function AvailabilityScheduleSummary({
+  blocks,
+  variant = 'card',
+}: AvailabilityScheduleSummaryProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -19,19 +24,33 @@ export function AvailabilityScheduleSummary({ blocks }: AvailabilityScheduleSumm
       padding: spacing.md,
       gap: spacing.sm,
     },
+    grouped: {
+      gap: 0,
+    },
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       gap: spacing.md,
+    },
+    groupedRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+    },
+    groupedEmpty: {
+      paddingVertical: spacing.md,
     },
     day: { ...typography.body, fontWeight: '600' },
     time: typography.subtitle,
     empty: typography.subtitle,
   }));
 
+  const wrapStyle = variant === 'grouped' ? styles.grouped : styles.card;
+
   if (blocks.length === 0) {
     return (
-      <View style={styles.card}>
+      <View style={[wrapStyle, variant === 'grouped' && styles.groupedEmpty]}>
         <Text style={styles.empty}>No weekly schedule set yet.</Text>
       </View>
     );
@@ -43,14 +62,17 @@ export function AvailabilityScheduleSummary({ blocks }: AvailabilityScheduleSumm
   }).filter((item) => item.block);
 
   return (
-    <View style={styles.card}>
-      {enabledDays.map(({ label, block }) => (
-        <View key={label} style={styles.row}>
-          <Text style={styles.day}>{label}</Text>
-          <Text style={styles.time}>
-            {formatTime12h(block!.start_time.slice(0, 5)) ?? block!.start_time} –{' '}
-            {formatTime12h(block!.end_time.slice(0, 5)) ?? block!.end_time}
-          </Text>
+    <View style={wrapStyle}>
+      {enabledDays.map(({ label, block }, index) => (
+        <View key={label}>
+          {variant === 'grouped' && index > 0 ? <RowDivider /> : null}
+          <View style={variant === 'grouped' ? styles.groupedRow : styles.row}>
+            <Text style={styles.day}>{label}</Text>
+            <Text style={styles.time}>
+              {formatTime12h(block!.start_time.slice(0, 5)) ?? block!.start_time} –{' '}
+              {formatTime12h(block!.end_time.slice(0, 5)) ?? block!.end_time}
+            </Text>
+          </View>
         </View>
       ))}
     </View>

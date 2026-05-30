@@ -39,7 +39,12 @@ export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const WORKER_BROWSE: Href = '/(tabs)/browse' as Href;
 export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
+export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;
 export const WORKER_PROFILE: Href = '/(tabs)/profile' as Href;
+export const WORKER_PROFILE_PROFESSIONAL: Href = '/(tabs)/profile/professional' as Href;
+export const WORKER_PROFILE_APPLICATION_KIT: Href = '/(tabs)/profile/application-kit' as Href;
+export const WORKER_PROFILE_NOTIFICATIONS: Href = '/(tabs)/profile/notifications' as Href;
+export const WORKER_PROFILE_ACCOUNT: Href = '/(tabs)/profile/account' as Href;
 
 export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
   if (tab === 'fill-ins') {

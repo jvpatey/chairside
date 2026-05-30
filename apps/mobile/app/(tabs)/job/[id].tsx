@@ -13,6 +13,7 @@ import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -40,38 +41,15 @@ export default function WorkerJobDetailScreen() {
 
   const canQuickApply = isProfileComplete;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     content: { gap: spacing.lg },
     clinicCard: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
     },
-    clinicCardRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.sm,
-    },
-    clinicCardMain: {
-      flex: 1,
-      gap: spacing.xs,
-      minWidth: 0,
-    },
-    matchBadgeWrap: {
-      flexShrink: 0,
-      paddingTop: 2,
-    },
-    clinicLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: colors.primary,
-    },
-    clinicName: { ...typography.body, fontWeight: '600' },
-    clinicMeta: typography.subtitle,
     footer: { gap: spacing.sm },
   }));
 
@@ -205,26 +183,25 @@ export default function WorkerJobDetailScreen() {
           ) : null}
         </View>
       }>
-      <AuthScreenHeader title="Role details" subtitle={job.title} onBack={() => router.back()} />
+      <AuthScreenHeader title="Role details" subtitle={job.clinic.clinic_name} onBack={() => router.back()} />
       <View style={styles.content}>
         <View style={styles.clinicCard}>
-          <View style={styles.clinicCardRow}>
-            <View style={styles.clinicCardMain}>
-              <Text style={styles.clinicLabel}>Clinic</Text>
-              <Text style={styles.clinicName}>{job.clinic.clinic_name}</Text>
-              {location ? <Text style={styles.clinicMeta}>{location}</Text> : null}
-            </View>
-            {jobMatch && matchContext ? (
-              <View style={styles.matchBadgeWrap}>
+          <ClinicPostHeader
+            clinicName={job.clinic.clinic_name}
+            logoStoragePath={job.clinic.logo_storage_path}
+            title={job.title}
+            location={location || null}
+            accessory={
+              jobMatch && matchContext ? (
                 <MatchTierBadge
                   breakdown={jobMatch}
                   context={matchContext}
                   subtitle={job.title}
                   showProfileHint
                 />
-              </View>
-            ) : null}
-          </View>
+              ) : null
+            }
+          />
         </View>
         <JobPostDetailView job={job} />
       </View>

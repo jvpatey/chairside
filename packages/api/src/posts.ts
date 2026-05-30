@@ -481,6 +481,7 @@ export type ClinicSummary = {
   software_used: string[];
   latitude: number | null;
   longitude: number | null;
+  logo_storage_path: string | null;
 };
 
 export type LiveJobPost = JobPost & {
@@ -502,7 +503,7 @@ async function listClinicSummariesInProvince(province: string): Promise<Map<stri
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude')
+    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path')
     .eq('province', province);
 
   if (error) throw error;
@@ -519,6 +520,7 @@ async function listClinicSummariesInProvince(province: string): Promise<Map<stri
         software_used: row.software_used ?? [],
         latitude: row.latitude,
         longitude: row.longitude,
+        logo_storage_path: row.logo_storage_path ?? null,
       },
     ]),
   );
@@ -586,7 +588,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
 
   const { data: clinic, error: clinicError } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude')
+    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path')
     .eq('id', data.clinic_id)
     .maybeSingle();
 
@@ -608,6 +610,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
       software_used: clinic.software_used ?? [],
       latitude: clinic.latitude,
       longitude: clinic.longitude,
+      logo_storage_path: clinic.logo_storage_path ?? null,
     },
     screening_questions: screeningQuestions,
   };
@@ -627,7 +630,7 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
 
   const { data: clinic, error: clinicError } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude')
+    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path')
     .eq('id', data.clinic_id)
     .maybeSingle();
 
@@ -645,6 +648,7 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
       software_used: clinic.software_used ?? [],
       latitude: clinic.latitude,
       longitude: clinic.longitude,
+      logo_storage_path: clinic.logo_storage_path ?? null,
     },
   };
 }

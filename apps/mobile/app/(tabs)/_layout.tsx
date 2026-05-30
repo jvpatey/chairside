@@ -73,6 +73,7 @@ export default function TabLayout() {
       <Tabs.Screen name="application/[id]" options={{ href: null }} />
       <Tabs.Screen name="apply" options={{ href: null }} />
       <Tabs.Screen name="apply-screening" options={{ href: null }} />
+      <Tabs.Screen name="open-fill-ins" options={{ href: null }} />
     </Tabs>
   );
 }

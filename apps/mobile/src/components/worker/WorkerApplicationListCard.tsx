@@ -1,11 +1,11 @@
 import type { WorkerApplication } from '@chairside/api';
-import { formatApplicationResumeStatus } from '@chairside/config';
+import { formatApplicationDate } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
-import { BadgeRow } from '@/components/ui/BadgeRow';
+import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
@@ -22,47 +22,46 @@ export function WorkerApplicationListCard({
   onPress,
 }: WorkerApplicationListCardProps) {
   const isJob = application.post_type === 'job';
+  const isShift = application.post_type === 'shift';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
+  const appliedLabel = formatApplicationDate(application.created_at);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.sm,
+      padding: spacing.md,
     },
     cardPressed: { opacity: 0.92 },
-    title: { ...typography.body, fontWeight: '600' },
-    meta: typography.subtitle,
   }));
 
   const content = (
-    <>
-      <Text style={styles.title}>{application.post_title}</Text>
-      <Text style={styles.meta}>
-        {application.clinic_name}
-        {application.clinic_city ? ` · ${application.clinic_city}` : ''}
-      </Text>
-      <BadgeRow>
-        <WorkerApplicationStatusBadge
-          status={application.status}
-          postType={application.post_type}
-        />
-        {jobMatch && matchContext ? (
+    <ClinicPostHeader
+      clinicName={application.clinic_name}
+      logoStoragePath={application.clinic_logo_storage_path}
+      title={application.post_title}
+      location={application.clinic_city}
+      detail={appliedLabel ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}` : null}
+      avatarSize={44}
+      accessory={
+        jobMatch && matchContext ? (
           <MatchTierBadge
             breakdown={jobMatch}
             context={matchContext}
             subtitle={application.post_title}
           />
-        ) : null}
-      </BadgeRow>
-      <Text style={styles.meta}>
-        Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
-      </Text>
-    </>
+        ) : null
+      }
+      textFooter={
+        <WorkerApplicationStatusBadge
+          status={application.status}
+          postType={application.post_type}
+        />
+      }
+    />
   );
 
   if (!onPress) {

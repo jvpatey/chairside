@@ -12,6 +12,7 @@ export default function ClinicAccountProfileScreen() {
   return (
     <Screen title="Profile">
       <AccountProfileView
+        user={user}
         email={user?.email}
         accountTypeLabel="Clinic"
         isSigningOut={isSigningOut}

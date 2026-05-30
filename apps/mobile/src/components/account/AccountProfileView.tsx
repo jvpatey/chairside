@@ -1,9 +1,11 @@
+import type { User } from '@supabase/supabase-js';
 import { View } from 'react-native';
 
 import { AccountSettingsSection } from '@/components/account/AccountSettingsSection';
 import { useThemedStyles } from '@/theme';
 
 type AccountProfileViewProps = {
+  user?: User | null;
   email?: string | null;
   accountTypeLabel: string;
   isSigningOut: boolean;
@@ -14,6 +16,7 @@ type AccountProfileViewProps = {
 };
 
 export function AccountProfileView({
+  user,
   email,
   accountTypeLabel,
   isSigningOut,
@@ -29,6 +32,7 @@ export function AccountProfileView({
   return (
     <View style={styles.content}>
       <AccountSettingsSection
+        user={user}
         email={email}
         accountTypeLabel={accountTypeLabel}
         isSigningOut={isSigningOut}

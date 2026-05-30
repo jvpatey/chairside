@@ -7,35 +7,47 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
-import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { RowDivider } from '@/components/clinic/DetailCard';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
-import { ProfileSection } from '@/components/worker/ProfileSection';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { WorkerSectionHeader } from '@/components/worker/WorkerCards';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenSection } from '@/components/ui/ScreenSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
+import {
+  getFillInAvailabilityCollapsedSummary,
+  isFillInAvailabilityConfigured,
+} from '@/lib/fillInAvailabilitySummary';
 import {
   getWorkerApplicationRoute,
   getWorkerShiftDetailRoute,
+  WORKER_OPEN_FILLINS,
   WORKER_SETUP_AVAILABILITY_SCHEDULE,
 } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
+
+function navigateToEditSchedule() {
+  router.push(WORKER_SETUP_AVAILABILITY_SCHEDULE);
+}
+
+const OPEN_SHIFTS_PREVIEW_LIMIT = 3;
 
 function FillInsEmptyState({
   icon,
   title,
   body,
+  embedded = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   body: string;
+  embedded?: boolean;
 }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -45,6 +57,11 @@ function FillInsEmptyState({
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.xl,
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    embedded: {
+      paddingVertical: spacing.lg,
       alignItems: 'center',
       gap: spacing.sm,
     },
@@ -62,7 +79,7 @@ function FillInsEmptyState({
   }));
 
   return (
-    <View style={styles.card}>
+    <View style={embedded ? styles.embedded : styles.card}>
       <View style={styles.iconWrap}>
         <Ionicons name={icon} size={24} color={colors.labelSecondary} />
       </View>
@@ -73,12 +90,12 @@ function FillInsEmptyState({
 }
 
 export default function FillInsScreen() {
+  const { colors } = useTheme();
   const { user } = useAuth();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
-  const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -101,81 +118,143 @@ export default function FillInsScreen() {
 
   useRefreshOnFocus(load);
 
-  const filteredShifts = useMemo(() => {
-    if (roleTypeFilter === 'all') return shifts;
-    return shifts.filter((shift) => shift.role_type === roleTypeFilter);
-  }, [shifts, roleTypeFilter]);
+  const previewShifts = useMemo(
+    () => shifts.slice(0, OPEN_SHIFTS_PREVIEW_LIMIT),
+    [shifts],
+  );
+  const hasMoreShifts = shifts.length > OPEN_SHIFTS_PREVIEW_LIMIT;
 
   const activeApplications = applications.filter((item) =>
     ['applied', 'reviewed', 'in_progress'].includes(item.status),
   );
   const confirmedApplications = applications.filter((item) => item.status === 'hired');
 
-  const roleFilterOptions = COMPACT_ROLE_TYPE_FILTER_OPTIONS;
+  const availabilityConfigured = isFillInAvailabilityConfigured(workerProfile, availabilityBlocks);
+  const availabilityCollapsedSummary = getFillInAvailabilityCollapsedSummary(
+    workerProfile,
+    availabilityBlocks,
+  );
+  const fillInsAvailable = workerProfile?.short_notice_available ?? false;
 
-  const styles = useThemedStyles(({ spacing }) => ({
-    content: { gap: spacing.xl },
-    group: { gap: spacing.md },
+  const styles = useThemedStyles(({ spacing, colors, typography }) => ({
+    content: { gap: spacing.lg },
+    sectionBody: { gap: spacing.md },
     list: { gap: spacing.md },
+    viewAllRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+    },
+    viewAllLabel: {
+      ...typography.body,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primary,
+    },
     applicationGroup: { gap: spacing.sm },
+    scheduleSection: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.md,
+      gap: spacing.sm,
+    },
+    scheduleSectionMuted: {
+      opacity: 0.55,
+    },
+    scheduleHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    scheduleLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.labelSecondary,
+      flex: 1,
+    },
+    scheduleEdit: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    scheduleEditLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    scheduleHint: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelTertiary,
+    },
+    availabilityCardBody: {
+      gap: 0,
+      padding: 0,
+      paddingBottom: spacing.md,
+    },
   }));
 
   return (
-    <Screen title="Fill-ins" subtitle="Short-notice shifts, your schedule, and applications.">
+    <Screen title="Fill-ins" subtitle="Temporary shifts, your availability, and applications.">
       <View style={styles.content}>
-        <ProfileSection
-          title="Your availability"
-          subtitle="Let clinics know when you can cover urgent shifts."
-          actionLabel="Edit schedule"
-          onActionPress={() => router.push(WORKER_SETUP_AVAILABILITY_SCHEDULE)}>
-          <View style={styles.group}>
-            <FillInModePanel />
-            <AvailabilityScheduleSummary blocks={availabilityBlocks} />
-          </View>
-        </ProfileSection>
-
-        <ProfileSection
-          title="Open shifts"
-          subtitle="Browse temp shifts you can request to cover today.">
-          <View style={styles.group}>
-            <ChipSelector
-              options={roleFilterOptions}
-              selected={roleTypeFilter}
-              onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
-              horizontal
-              compact
-            />
-            {filteredShifts.length === 0 && !isLoading ? (
+        <ScreenSection
+          sectionLabel="Open shifts"
+          description="Open temp shifts in your province — request to cover the ones that fit your schedule.">
+          <View style={styles.sectionBody}>
+            {shifts.length === 0 && !isLoading ? (
               <FillInsEmptyState
+                embedded
                 icon="calendar-outline"
                 title="No open fill-ins"
-                body="Check back soon — new short-notice shifts are posted throughout the week."
+                body="Check back soon — new fill-in shifts are posted throughout the week."
               />
             ) : (
-              <View style={styles.list}>
-                {filteredShifts.map((shift) => (
-                  <FillInListingCard
-                    key={shift.id}
-                    shift={shift}
-                    onPress={() => router.push(getWorkerShiftDetailRoute(shift.id))}
-                  />
-                ))}
-              </View>
+              <>
+                <View style={styles.list}>
+                  {previewShifts.map((shift) => (
+                    <FillInListingCard
+                      key={shift.id}
+                      shift={shift}
+                      onPress={() => router.push(getWorkerShiftDetailRoute(shift.id))}
+                    />
+                  ))}
+                </View>
+                {shifts.length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    style={styles.viewAllRow}
+                    onPress={() => router.push(WORKER_OPEN_FILLINS)}>
+                    <Text style={styles.viewAllLabel}>
+                      {hasMoreShifts
+                        ? `View all ${shifts.length} open fill-ins`
+                        : 'Browse open fill-ins'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                  </Pressable>
+                ) : null}
+              </>
             )}
           </View>
-        </ProfileSection>
+        </ScreenSection>
 
-        <ProfileSection
-          title="Your fill-in shifts"
-          subtitle="Shifts you've requested to cover or been confirmed for.">
+        <ScreenSection
+          sectionLabel="Your fill-in shifts"
+          description="Shifts you've requested to cover or been confirmed for.">
           {activeApplications.length === 0 && confirmedApplications.length === 0 ? (
             <FillInsEmptyState
+              embedded
               icon="document-text-outline"
               title="No fill-in shifts yet"
               body="Request to cover an open shift above and track it here."
             />
           ) : (
-            <View style={styles.list}>
+            <View style={styles.sectionBody}>
               {confirmedApplications.length > 0 ? (
                 <View style={styles.applicationGroup}>
                   <WorkerSectionHeader title="Confirmed" />
@@ -206,7 +285,41 @@ export default function FillInsScreen() {
               ) : null}
             </View>
           )}
-        </ProfileSection>
+        </ScreenSection>
+
+        <ScreenSection
+          sectionLabel="Your availability"
+          description="Let clinics know when you're available to cover fill-in shifts."
+          collapsible
+          subtitle="Manage fill-in alerts, SMS, and your weekly schedule."
+          collapsedSummary={availabilityCollapsedSummary}
+          defaultExpanded={!availabilityConfigured}
+          collapsedActionLabel="Edit schedule"
+          onCollapsedActionPress={navigateToEditSchedule}
+          contentStyle={styles.availabilityCardBody}>
+          <FillInModePanel variant="grouped" />
+          <RowDivider />
+          <View
+            style={[styles.scheduleSection, !fillInsAvailable && styles.scheduleSectionMuted]}>
+            <View style={styles.scheduleHeader}>
+              <Text style={styles.scheduleLabel}>Weekly schedule</Text>
+              <Pressable
+                accessibilityRole="button"
+                hitSlop={8}
+                style={styles.scheduleEdit}
+                onPress={navigateToEditSchedule}>
+                <Text style={styles.scheduleEditLabel}>Edit schedule</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+              </Pressable>
+            </View>
+            {!fillInsAvailable ? (
+              <Text style={styles.scheduleHint}>
+                Turn on fill-ins above to use your schedule for day-matched alerts.
+              </Text>
+            ) : null}
+            <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
+          </View>
+        </ScreenSection>
       </View>
     </Screen>
   );

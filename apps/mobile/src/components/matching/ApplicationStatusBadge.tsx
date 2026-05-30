@@ -115,3 +115,10 @@ export function AppliedPillBadge() {
     <PillBadge label="Applied" color={colors.primary} backgroundColor={colors.primarySubtle} />
   );
 }
+
+export function RequestedPillBadge() {
+  const { colors } = useTheme();
+  return (
+    <PillBadge label="Requested" color={colors.primary} backgroundColor={colors.primarySubtle} />
+  );
+}

@@ -1,6 +1,7 @@
-import { useRef, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   Platform,
+  Pressable,
   Text,
   TextInput,
   View,
@@ -25,6 +26,8 @@ type AuthFieldProps = {
   onFocus?: (event: NativeSyntheticEvent<TextInputFocusEventData>) => void;
   onBlur?: () => void;
   validated?: boolean;
+  invalid?: boolean;
+  enablePasswordVisibilityToggle?: boolean;
   trailingAccessory?: ReactNode;
 };
 
@@ -41,9 +44,12 @@ export function AuthField({
   onFocus,
   onBlur,
   validated = false,
+  invalid = false,
+  enablePasswordVisibilityToggle = false,
   trailingAccessory,
 }: AuthFieldProps) {
   const { colors } = useTheme();
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const wrapRef = useRef<View>(null);
   const { scrollWrapIntoView } = useFormScroll();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -67,6 +73,9 @@ export function AuthField({
     inputRowValidated: {
       borderColor: colors.success,
     },
+    inputRowInvalid: {
+      borderColor: colors.destructive,
+    },
     input: {
       flex: 1,
       fontSize: typography.body.fontSize,
@@ -88,28 +97,69 @@ export function AuthField({
       backgroundColor: colors.fillSubtle,
     },
     accessory: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
       paddingRight: spacing.md,
     },
-    validatedIcon: {
-      paddingRight: spacing.md,
+    visibilityButton: {
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   }));
+
+  const isSecure = Boolean(secureTextEntry) && !passwordVisible;
 
   const handleFocus = (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
     onFocus?.(event);
     scrollWrapIntoView(wrapRef.current);
   };
 
+  const visibilityToggle =
+    enablePasswordVisibilityToggle && secureTextEntry ? (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+        hitSlop={8}
+        style={styles.visibilityButton}
+        onPress={() => setPasswordVisible((visible) => !visible)}>
+        <Ionicons
+          name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+          size={22}
+          color={colors.labelSecondary}
+        />
+      </Pressable>
+    ) : null;
+
+  const statusIcon = invalid ? (
+    <Ionicons
+      name="close-circle"
+      size={22}
+      color={colors.destructive}
+      accessibilityLabel="Invalid"
+    />
+  ) : validated ? (
+    <Ionicons
+      name="checkmark-circle"
+      size={22}
+      color={colors.success}
+      accessibilityLabel="Valid"
+    />
+  ) : null;
+
+  const hasStatus = invalid || validated;
   const trailing =
     trailingAccessory ??
-    (validated ? (
-      <Ionicons
-        name="checkmark-circle"
-        size={22}
-        color={colors.success}
-        accessibilityLabel="Saved"
-      />
+    (visibilityToggle || hasStatus ? (
+      <View style={styles.accessory}>
+        {visibilityToggle}
+        {statusIcon}
+      </View>
     ) : null);
+
+  const showTrailing = Boolean(trailing);
 
   return (
     <View ref={wrapRef} style={styles.wrap} collapsable={false}>
@@ -118,6 +168,7 @@ export function AuthField({
         style={[
           styles.inputRow,
           validated && styles.inputRowValidated,
+          invalid && styles.inputRowInvalid,
           !editable && styles.inputRowDisabled,
         ]}>
         <TextInput
@@ -126,7 +177,7 @@ export function AuthField({
           placeholderTextColor={colors.labelTertiary}
           value={value}
           onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry}
+          secureTextEntry={isSecure}
           autoCapitalize={autoCapitalize}
           keyboardType={keyboardType}
           editable={editable}
@@ -135,9 +186,7 @@ export function AuthField({
           onBlur={onBlur}
           accessibilityLabel={label}
         />
-        {trailing ? (
-          <View style={validated ? styles.validatedIcon : styles.accessory}>{trailing}</View>
-        ) : null}
+        {showTrailing ? trailing : null}
       </View>
     </View>
   );
