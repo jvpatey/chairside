@@ -175,9 +175,13 @@ export default function ClinicDashboardScreen() {
         <DashboardUnreadMessagesCard
           conversations={conversations}
           avatarKind="worker"
-          onConversationPress={(applicationId) =>
+          onConversationPress={(conversation) =>
             router.push(
-              getClinicApplicationMessagesRoute(applicationId, 'messages-tab'),
+              getClinicApplicationMessagesRoute(conversation.application_id, 'messages-tab', {
+                conversationId: conversation.id,
+                title: conversation.counterpart_name,
+                subtitle: conversation.post_title,
+              }),
             )
           }
           onViewAllPress={() => router.push(getClinicMessagesRoute())}

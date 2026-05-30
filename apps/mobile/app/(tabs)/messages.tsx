@@ -55,7 +55,11 @@ export default function WorkerMessagesScreen() {
               avatarKind="clinic"
               onPress={() =>
                 router.push(
-                  getWorkerApplicationMessagesRoute(conversation.application_id, 'messages-tab'),
+                  getWorkerApplicationMessagesRoute(conversation.application_id, 'messages-tab', {
+                    conversationId: conversation.id,
+                    title: conversation.counterpart_name,
+                    subtitle: conversation.post_title,
+                  }),
                 )
               }
             />

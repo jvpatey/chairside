@@ -4,17 +4,26 @@ import {
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert } from 'react-native';
 
 import { ApplicationMessageThread } from '@/components/messaging/ApplicationMessageThread';
+import { MessageThreadLoadingShell } from '@/components/messaging/MessageThreadLoadingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { navigateAfterMessageThread } from '@/lib/routing';
 
 export default function WorkerApplicationMessagesScreen() {
   const { user } = useAuth();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, conversationId, title, subtitle } = useLocalSearchParams<{
+    id?: string;
+    conversationId?: string;
+    title?: string;
+    subtitle?: string;
+  }>();
   const applicationId = typeof id === 'string' ? id : '';
+  const routeConversationId = typeof conversationId === 'string' ? conversationId : undefined;
+  const routeTitle = typeof title === 'string' ? title : undefined;
+  const routeSubtitle = typeof subtitle === 'string' ? subtitle : undefined;
   const [conversation, setConversation] = useState<Conversation | null>(null);
 
   const goBack = useCallback(() => {
@@ -22,8 +31,7 @@ export default function WorkerApplicationMessagesScreen() {
   }, []);
 
   const load = useCallback(async () => {
-    if (!user?.id || !applicationId) {
-      setConversation(null);
+    if (!user?.id || !applicationId || routeConversationId) {
       return;
     }
 
@@ -42,12 +50,30 @@ export default function WorkerApplicationMessagesScreen() {
       );
       goBack();
     }
-  }, [applicationId, goBack, user?.id]);
+  }, [applicationId, goBack, routeConversationId, user?.id]);
 
   useRefreshOnFocus(load);
 
-  if (!user?.id || !conversation) {
-    return <View style={{ flex: 1 }} />;
+  if (!user?.id) {
+    return <MessageThreadLoadingShell onBack={goBack} />;
+  }
+
+  if (routeConversationId) {
+    return (
+      <ApplicationMessageThread
+        userId={user.id}
+        role="worker"
+        conversationId={routeConversationId}
+        title={routeTitle ?? 'Messages'}
+        subtitle={routeSubtitle ?? ''}
+        onBack={goBack}
+        onConversationChange={setConversation}
+      />
+    );
+  }
+
+  if (!conversation) {
+    return <MessageThreadLoadingShell onBack={goBack} />;
   }
 
   return (

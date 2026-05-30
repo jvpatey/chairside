@@ -133,9 +133,13 @@ export default function WorkerDashboardScreen() {
         <DashboardUnreadMessagesCard
           conversations={conversations}
           avatarKind="clinic"
-          onConversationPress={(applicationId) =>
+          onConversationPress={(conversation) =>
             router.push(
-              getWorkerApplicationMessagesRoute(applicationId, 'dashboard-applications'),
+              getWorkerApplicationMessagesRoute(conversation.application_id, 'dashboard-applications', {
+                conversationId: conversation.id,
+                title: conversation.counterpart_name,
+                subtitle: conversation.post_title,
+              }),
             )
           }
           onViewAllPress={() => router.push(getWorkerMessagesRoute())}

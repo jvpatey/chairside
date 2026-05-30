@@ -55,7 +55,11 @@ export default function ClinicMessagesScreen() {
               avatarKind="worker"
               onPress={() =>
                 router.push(
-                  getClinicApplicationMessagesRoute(conversation.application_id, 'messages-tab'),
+                  getClinicApplicationMessagesRoute(conversation.application_id, 'messages-tab', {
+                    conversationId: conversation.id,
+                    title: conversation.counterpart_name,
+                    subtitle: conversation.post_title,
+                  }),
                 )
               }
             />

@@ -20,6 +20,12 @@ export type WorkerBrowseTabParam = 'roles' | 'fill-ins';
 export type WorkerDashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
 export type ApplyPostType = 'job' | 'shift';
 
+export type MessageThreadPreview = {
+  conversationId: string;
+  title: string;
+  subtitle: string;
+};
+
 export const CLINIC_HOME: Href = '/(clinic-tabs)' as Href;
 export const WORKER_HOME: Href = '/(tabs)' as Href;
 export const CLINIC_SETUP_BASICS: Href = '/(clinic-setup)/basics' as Href;
@@ -132,20 +138,42 @@ export function getWorkerApplicationRoute(
 export function getWorkerApplicationMessagesRoute(
   applicationId: string,
   returnTo: WorkerApplicationReturnTarget = 'applications-tab',
+  preview?: MessageThreadPreview,
 ): Href {
   return {
     pathname: '/(tabs)/application/[id]/messages',
-    params: { id: applicationId, returnTo },
+    params: {
+      id: applicationId,
+      returnTo,
+      ...(preview
+        ? {
+            conversationId: preview.conversationId,
+            title: preview.title,
+            subtitle: preview.subtitle,
+          }
+        : {}),
+    },
   } as unknown as Href;
 }
 
 export function getClinicApplicationMessagesRoute(
   applicationId: string,
   returnTo?: ClinicApplicationReturnTarget,
+  preview?: MessageThreadPreview,
 ): Href {
   return {
     pathname: '/(clinic-tabs)/application/[id]/messages',
-    params: { id: applicationId, returnTo: returnTo ?? '' },
+    params: {
+      id: applicationId,
+      returnTo: returnTo ?? '',
+      ...(preview
+        ? {
+            conversationId: preview.conversationId,
+            title: preview.title,
+            subtitle: preview.subtitle,
+          }
+        : {}),
+    },
   } as unknown as Href;
 }
 

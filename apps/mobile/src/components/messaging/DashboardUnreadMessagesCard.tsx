@@ -13,7 +13,7 @@ const PREVIEW_LIMIT = 2;
 type DashboardUnreadMessagesCardProps = {
   conversations: Conversation[];
   avatarKind: 'clinic' | 'worker';
-  onConversationPress: (applicationId: string) => void;
+  onConversationPress: (conversation: Conversation) => void;
   onViewAllPress: () => void;
 };
 
@@ -151,7 +151,7 @@ export function DashboardUnreadMessagesCard({
             accessibilityRole="button"
             onPress={() => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onConversationPress(conversation.application_id);
+              onConversationPress(conversation);
             }}
             style={({ pressed }) => [styles.previewRow, pressed && styles.previewRowPressed]}>
             <PreviewAvatar conversation={conversation} avatarKind={avatarKind} />
