@@ -1,22 +1,34 @@
-import NotificationAPI from '@notificationapi/react-native';
-import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { useCallback, useEffect, useRef } from 'react';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { getPingramClientId } from '@/lib/pingram';
+import { registerPingramPushNotifications } from '@/lib/pingramPushRegistration';
 import { isNativePushAvailable } from '@/lib/pingramPush';
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
 /**
- * Registers the device with Pingram for iOS/Android push after onboarding.
- * Requires an EAS build (not Expo Go) and APNs credentials in the Pingram dashboard.
+ * Registers the device push token with Pingram after onboarding.
+ * Uses expo-notifications for APNs/FCM tokens (the NotificationAPI native module
+ * expects an AppDelegate hook that Expo does not provide).
  */
 export function useRegisterPushNotifications() {
   const { user, profile } = useAuth();
   const { workerProfile, isProfileComplete: workerComplete } = useWorkerProfile();
   const { clinicProfile, isProfileComplete: clinicComplete } = useClinicProfile();
-  const requestedForUserRef = useRef<string | null>(null);
+  const registeredForUserRef = useRef<string | null>(null);
+  const registerInFlightRef = useRef(false);
 
   const setupComplete =
     profile?.role === 'worker'
@@ -25,49 +37,55 @@ export function useRegisterPushNotifications() {
         ? Boolean(clinicProfile?.setup_completed_at && clinicComplete)
         : false;
 
-  useEffect(() => {
+  const registerPush = useCallback(async () => {
     const clientId = getPingramClientId();
     const userId = user?.id;
 
-    if (!clientId || !userId || !setupComplete) return;
+    if (!clientId) {
+      console.warn(
+        'Push registration skipped: EXPO_PUBLIC_PINGRAM_CLIENT_ID is not set in this build.',
+      );
+      return;
+    }
+
+    if (!userId || !setupComplete) return;
     if (!isNativePushAvailable()) return;
     if (Platform.OS === 'web') return;
-    if (requestedForUserRef.current === userId) return;
+    if (registeredForUserRef.current === userId) return;
+    if (registerInFlightRef.current) return;
 
-    let cancelled = false;
+    registerInFlightRef.current = true;
 
-    void (async () => {
-      try {
-        await NotificationAPI.setup({
-          clientId,
-          userId,
-          region: 'ca',
-          autoRequestPermission: true,
-        });
-        if (!cancelled) {
-          requestedForUserRef.current = userId;
-        }
-      } catch (error) {
-        if (__DEV__) {
-          console.warn('Push permission registration failed', error);
-        }
+    try {
+      const registered = await registerPingramPushNotifications(userId);
+      if (registered) {
+        registeredForUserRef.current = userId;
       }
-    })();
+    } catch (error) {
+      console.warn('Push registration failed', error);
+    } finally {
+      registerInFlightRef.current = false;
+    }
+  }, [setupComplete, user?.id]);
 
-    return () => {
-      cancelled = true;
+  useEffect(() => {
+    void registerPush();
+  }, [registerPush]);
+
+  useEffect(() => {
+    const handleAppState = (state: AppStateStatus) => {
+      if (state === 'active') {
+        void registerPush();
+      }
     };
-  }, [
-    user?.id,
-    profile?.role,
-    setupComplete,
-    workerProfile?.setup_completed_at,
-    clinicProfile?.setup_completed_at,
-  ]);
+
+    const subscription = AppState.addEventListener('change', handleAppState);
+    return () => subscription.remove();
+  }, [registerPush]);
 
   useEffect(() => {
     if (!user?.id) {
-      requestedForUserRef.current = null;
+      registeredForUserRef.current = null;
     }
   }, [user?.id]);
 }

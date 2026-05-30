@@ -40,6 +40,11 @@ export function getPingramApiHost(): string {
   return process.env.EXPO_PUBLIC_PINGRAM_API_HOST?.trim() || 'api.ca.pingram.io';
 }
 
+export function getPingramApiBaseUrl(): string {
+  const host = getPingramApiHost();
+  return host.startsWith('https://') ? host : `https://${host}`;
+}
+
 export function getPingramWsHost(): string {
   return process.env.EXPO_PUBLIC_PINGRAM_WS_HOST?.trim() || 'ws.ca.pingram.io';
 }

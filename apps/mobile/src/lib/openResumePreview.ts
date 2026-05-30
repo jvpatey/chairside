@@ -1,7 +1,5 @@
 import { getWorkerResumeDownloadRequest } from '@chairside/api';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import { Linking, Platform } from 'react-native';
 
 export function sanitizeResumeFileName(fileName: string) {
   return fileName.replace(/[^\w.-]+/g, '_') || 'resume.pdf';
@@ -19,7 +17,7 @@ export function buildResumeFileName(options: {
   return `${sanitizeResumeFileName(base)}-resume.pdf`;
 }
 
-async function downloadResumeToCache(storagePath: string, fileName: string): Promise<string> {
+export async function downloadResumeToCache(storagePath: string, fileName: string): Promise<string> {
   const cacheDirectory = FileSystem.cacheDirectory;
   if (!cacheDirectory) {
     throw new Error('Device cache is unavailable');
@@ -44,26 +42,18 @@ async function downloadResumeToCache(storagePath: string, fileName: string): Pro
   return localUri;
 }
 
+type ResumePreviewOpener = (storagePath: string, fileName: string) => Promise<void>;
+
+let resumePreviewOpener: ResumePreviewOpener | null = null;
+
+export function registerResumePreviewOpener(opener: ResumePreviewOpener | null) {
+  resumePreviewOpener = opener;
+}
+
 export async function openResumePreview(storagePath: string, fileName = 'resume.pdf') {
-  const localUri = await downloadResumeToCache(storagePath, fileName);
-
-  if (Platform.OS === 'ios') {
-    try {
-      await Linking.openURL(localUri);
-      return;
-    } catch {
-      // Fall back to share sheet below.
-    }
+  if (!resumePreviewOpener) {
+    throw new Error('Resume preview is not available');
   }
 
-  const canShare = await Sharing.isAvailableAsync();
-  if (!canShare) {
-    throw new Error('Could not open resume on this device');
-  }
-
-  await Sharing.shareAsync(localUri, {
-    mimeType: 'application/pdf',
-    UTI: 'com.adobe.pdf',
-    dialogTitle: fileName,
-  });
+  await resumePreviewOpener(storagePath, fileName);
 }

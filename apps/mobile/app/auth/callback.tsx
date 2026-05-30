@@ -1,6 +1,6 @@
-import { createSessionFromUrl, getSupabaseClient } from '@chairside/api';
+import { createSessionFromUrl } from '@chairside/api';
 import * as Linking from 'expo-linking';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -46,14 +46,16 @@ export default function AuthCallbackScreen() {
           throw new Error('No authentication callback URL found.');
         }
 
-        await createSessionFromUrl(url);
+        const { session, isPasswordRecovery } = await createSessionFromUrl(url);
         if (cancelled) return;
 
-        const {
-          data: { session },
-        } = await getSupabaseClient().auth.getSession();
         if (!session?.user) {
           throw new Error('No authenticated user found.');
+        }
+
+        if (isPasswordRecovery) {
+          router.replace('/auth/reset-password');
+          return;
         }
 
         await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);

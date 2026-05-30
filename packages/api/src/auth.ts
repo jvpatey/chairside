@@ -4,7 +4,7 @@ import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
 import { getSupabaseClient } from './client';
-import { parseAuthRedirectUrl } from './parseAuthRedirectUrl';
+import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
 import type { UserRole } from './types';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -16,6 +16,7 @@ function getOAuthRedirectUrl() {
 export async function createSessionFromUrl(url: string) {
   const supabase = getSupabaseClient();
   const { params, errorCode } = parseAuthRedirectUrl(url);
+  const isPasswordRecovery = isPasswordRecoveryRedirect(params);
 
   if (errorCode) {
     throw new Error(errorCode);
@@ -24,7 +25,7 @@ export async function createSessionFromUrl(url: string) {
   const { access_token, refresh_token } = params;
 
   if (!access_token) {
-    return null;
+    return { session: null, isPasswordRecovery: false };
   }
 
   const { data, error } = await supabase.auth.setSession({
@@ -33,7 +34,7 @@ export async function createSessionFromUrl(url: string) {
   });
 
   if (error) throw error;
-  return data.session;
+  return { session: data.session, isPasswordRecovery };
 }
 
 export async function signInWithEmail(email: string, password: string) {
@@ -49,11 +50,13 @@ export async function signInWithEmail(email: string, password: string) {
 
 export async function signUpWithEmail(email: string, password: string, role: UserRole) {
   const supabase = getSupabaseClient();
+  const emailRedirectTo = getOAuthRedirectUrl();
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
     options: {
       data: { role },
+      emailRedirectTo,
     },
   });
 
@@ -126,7 +129,7 @@ export async function signInWithGoogle() {
     throw new Error('Google sign-in failed.');
   }
 
-  const session = await createSessionFromUrl(result.url);
+  const { session } = await createSessionFromUrl(result.url);
   if (!session) {
     throw new Error('No session returned from Google sign-in.');
   }

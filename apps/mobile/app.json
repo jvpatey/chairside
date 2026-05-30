@@ -51,6 +51,7 @@
         }
       ],
       "expo-font",
+      "expo-notifications",
       "expo-apple-authentication",
       "expo-web-browser",
       "@react-native-community/datetimepicker",
@@ -65,7 +66,9 @@
         {
           "calendarPermission": "Allow Chairside to add interview events to your calendar."
         }
-      ]
+      ],
+      "@config-plugins/react-native-blob-util",
+      "@config-plugins/react-native-pdf"
     ],
     "experiments": {
       "typedRoutes": true

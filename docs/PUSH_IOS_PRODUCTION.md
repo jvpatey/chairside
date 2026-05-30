@@ -1,6 +1,6 @@
 # iOS push notifications (production)
 
-Chairside uses [Pingram](https://www.pingram.io/) for delivery. The app registers devices with `@notificationapi/react-native`; the `notify` edge function sends `INAPP_WEB` + `PUSH`.
+Chairside uses [Pingram](https://www.pingram.io/) for delivery. The app registers device tokens with Pingram via `expo-notifications`; the `notify` edge function sends `INAPP_WEB` + `PUSH`.
 
 ## 1. Pingram APNs credentials (Canada)
 
@@ -86,11 +86,25 @@ eas init
 # Configure iOS push for production — answer Yes to push notifications / APNs key
 eas credentials --platform ios
 
-# Production build (install via TestFlight or internal distribution)
+# TestFlight / App Store build (preview or production profile)
+eas build --profile preview --platform ios
+# or
 eas build --profile production --platform ios
 ```
 
-`app.config.ts` sets `aps-environment` to `production` for the production profile and `development` for dev/preview builds.
+`app.config.ts` sets `aps-environment` to `production` for **preview** and **production** EAS profiles (TestFlight and App Store). Only the **development** dev-client profile uses sandbox APNs. If you already use `--profile production`, the entitlement was likely correct — check the items below instead.
+
+### EAS environment variables
+
+Local `.env` files are not uploaded to EAS. For TestFlight builds, set Pingram (and Supabase) vars on EAS so they are baked into the binary:
+
+```bash
+cd apps/mobile
+eas env:create --environment preview --name EXPO_PUBLIC_PINGRAM_CLIENT_ID --value 'your_environment_id_or_pingram_pk_...'
+eas env:create --environment production --name EXPO_PUBLIC_PINGRAM_CLIENT_ID --value 'your_environment_id_or_pingram_pk_...'
+```
+
+Repeat for `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and any other `EXPO_PUBLIC_*` keys the app needs. Then rebuild and reinstall from TestFlight.
 
 ## 4. Redeploy notify (server sends PUSH)
 
@@ -116,3 +130,5 @@ Push does **not** work on the iOS Simulator or Expo Go.
 | Token missing in Pingram | `EXPO_PUBLIC_PINGRAM_CLIENT_ID` resolves to environment ID; same `userId` as Supabase auth |
 | In-app works, no banner | APNs form in Pingram; `notify` deployed; user allowed notifications |
 | Wrong environment | App uses `region: 'ca'`; `PINGRAM_API_URL` is `https://api.ca.pingram.io` |
+| TestFlight, no push | Rebuild with **preview** or **production** profile after the `aps-environment` fix; old preview builds used sandbox APNs |
+| Missing Pingram client ID in build | `EXPO_PUBLIC_PINGRAM_CLIENT_ID` set via `eas env:create` for preview/production, not only local `.env` |

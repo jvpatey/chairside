@@ -1,3 +1,7 @@
+export function isPasswordRecoveryRedirect(params: Record<string, string>): boolean {
+  return params.type === 'recovery';
+}
+
 export function parseAuthRedirectUrl(input: string): {
   errorCode: string | null;
   params: Record<string, string>;

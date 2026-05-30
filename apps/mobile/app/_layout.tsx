@@ -16,6 +16,7 @@ import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ClinicProfileProvider } from '@/contexts/ClinicProfileContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { ResumePreviewProvider } from '@/contexts/ResumePreviewContext';
 import { WorkerProfileProvider } from '@/contexts/WorkerProfileContext';
 
 export {
@@ -62,20 +63,23 @@ export default function RootLayout() {
         <ClinicProfileProvider>
           <WorkerProfileProvider>
             <NotificationProvider>
-              <OnboardingProvider>
-                <SplashScreenController fontsReady={fontsReady} />
-                <PushRegistration />
-                <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-                <Stack>
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-                <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="(clinic-tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="(clinic-setup)" options={{ headerShown: false }} />
-                <Stack.Screen name="(worker-setup)" options={{ headerShown: false }} />
-                <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-                </Stack>
-              </OnboardingProvider>
+              <ResumePreviewProvider>
+                <OnboardingProvider>
+                  <SplashScreenController fontsReady={fontsReady} />
+                  <PushRegistration />
+                  <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                  <Stack>
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(clinic-tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(clinic-setup)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(worker-setup)" options={{ headerShown: false }} />
+                  <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+                  <Stack.Screen name="auth/reset-password" options={{ headerShown: false }} />
+                  </Stack>
+                </OnboardingProvider>
+              </ResumePreviewProvider>
             </NotificationProvider>
           </WorkerProfileProvider>
         </ClinicProfileProvider>

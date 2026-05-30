@@ -11,7 +11,7 @@ type ResumeViewButtonProps = {
   disabled?: boolean;
 };
 
-/** Opens the resume in the system preview (Quick Look on iOS) without the save/share sheet. */
+/** Opens the resume in an in-app PDF viewer. */
 export function ResumeViewButton({
   storagePath,
   fileName,

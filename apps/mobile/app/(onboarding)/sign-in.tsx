@@ -166,6 +166,7 @@ export default function SignInScreen() {
           label="Password"
           placeholder="Your password"
           secureTextEntry
+          enablePasswordVisibilityToggle
           value={password}
           onChangeText={setPassword}
           editable={!isSubmitting}
