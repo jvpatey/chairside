@@ -72,7 +72,7 @@ export default function WorkerApplicationDetailScreen() {
   };
 
   const subtitle = application
-    ? application.clinic_name
+    ? application.post_title
     : isLoading
       ? 'Loading…'
       : 'Application details';

@@ -140,6 +140,24 @@ export function formatApplicationResumeStatus(
   return resumeStoragePath?.trim() ? 'Included' : 'Not included';
 }
 
+export function formatApplicationDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function formatApplicationScreeningStatus(
+  status: 'completed' | 'skipped' | null | undefined,
+): string | null {
+  if (!status) return null;
+  return status === 'completed' ? 'Completed' : 'Incomplete';
+}
+
 /** Format education text stored on application snapshots. */
 export function formatApplicationEducation(value: string | null | undefined): string {
   return formatStoredEducation(value);

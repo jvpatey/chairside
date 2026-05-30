@@ -5,12 +5,9 @@ import {
   type WorkerApplication,
 } from '@chairside/api';
 import {
-  formatApplicationEducation,
-  formatApplicationResumeStatus,
+  formatApplicationDate,
   formatInterviewDateTime,
   isActiveApplicationStatus,
-  getRoleTypeLabel,
-  getSpecialtyLabel,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -18,17 +15,13 @@ import { Alert, Text, View } from 'react-native';
 
 import {
   DetailProse,
-  DetailRow,
-  DetailSection,
-  DetailSectionDivider,
   RowDivider,
 } from '@/components/clinic/DetailCard';
-import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
-import { BadgeRow } from '@/components/ui/BadgeRow';
-import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
+import { ApplicationSubmittedFields } from '@/components/worker/ApplicationSubmittedFields';
+import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
@@ -37,7 +30,6 @@ import {
   buildInterviewInviteInputFromApplication,
   openInterviewCalendarInvite,
 } from '@/lib/calendarInvite';
-import { buildResumeFileName } from '@/lib/openResumePreview';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerApplicationDetailCardProps = {
@@ -47,14 +39,10 @@ type WorkerApplicationDetailCardProps = {
   onUpdated?: () => void;
 };
 
-function formatAppliedDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+function formatAppliedLabel(application: WorkerApplication): string | null {
+  const date = formatApplicationDate(application.created_at);
+  if (!date) return null;
+  return `${application.post_type === 'shift' ? 'Requested' : 'Applied'} ${date}`;
 }
 
 export function WorkerApplicationDetailCard({
@@ -69,18 +57,6 @@ export function WorkerApplicationDetailCard({
   const jobMatch = !isShift ? parseApplicationJobMatch(application) : null;
   const matchContext = !isShift ? getApplicationMatchDisplayContext(application) : null;
   const clinicLocation = application.clinic_city ?? null;
-  const softwareLabel =
-    (application.software_used ?? []).length > 0
-      ? application.software_used.join(', ')
-      : null;
-  const specialtiesLabel =
-    (application.practice_types ?? []).length > 0
-      ? application.practice_types.map(getSpecialtyLabel).join(', ')
-      : null;
-  const experienceLabel =
-    application.years_of_experience != null
-      ? `${application.years_of_experience} years`
-      : null;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -92,48 +68,42 @@ export function WorkerApplicationDetailCard({
     },
     hero: {
       padding: spacing.lg,
+    },
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: spacing.sm,
     },
-    overline: {
+    metaLabel: {
       fontSize: 12,
-      fontWeight: '600',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
-      color: colors.primary,
-    },
-    clinicName: {
-      fontSize: 13,
       fontWeight: '600',
       letterSpacing: 0.3,
       textTransform: 'uppercase',
       color: colors.labelSecondary,
     },
-    title: {
-      ...typography.title,
-      fontSize: 22,
-      lineHeight: 28,
-      letterSpacing: -0.3,
-    },
-    location: typography.subtitle,
-    badgeRow: {
-      marginTop: spacing.xs,
-    },
     appliedDate: {
-      ...typography.subtitle,
-      fontSize: 14,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelTertiary,
     },
     body: {
       paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
       paddingBottom: spacing.lg,
       gap: spacing.lg,
     },
-    kitCard: {
-      backgroundColor: colors.backgroundGrouped,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+    submittedSection: {
+      gap: spacing.md,
+    },
+    sectionEyebrow: {
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.labelSecondary,
+    },
+    subsection: {
+      gap: spacing.sm,
     },
     actionsSection: {
       gap: spacing.sm,
@@ -176,11 +146,6 @@ export function WorkerApplicationDetailCard({
     },
     interviewMeta: typography.subtitle,
   }));
-
-  const resumeFileName = buildResumeFileName({
-    workerDisplayName: application.worker_display_name,
-    postTitle: application.post_title,
-  });
 
   const handleMessage = () => {
     Alert.alert('Coming soon', 'Messaging clinics will be available in a future update.');
@@ -343,31 +308,38 @@ export function WorkerApplicationDetailCard({
   return (
     <View style={styles.card}>
       <View style={styles.hero}>
-        <Text style={styles.overline}>
-          {isShift ? 'Cover request' : 'Role application'}
-        </Text>
-        <Text style={styles.clinicName}>{application.clinic_name}</Text>
-        <Text style={styles.title}>{application.post_title}</Text>
-        {clinicLocation ? <Text style={styles.location}>{clinicLocation}</Text> : null}
-        <View style={styles.badgeRow}>
-          <BadgeRow>
-            <WorkerApplicationStatusBadge
-              status={application.status}
-              postType={application.post_type}
-            />
-            {jobMatch && matchContext ? (
+        <ClinicPostHeader
+          clinicName={application.clinic_name}
+          logoStoragePath={application.clinic_logo_storage_path}
+          title={application.post_title}
+          location={clinicLocation}
+          accessory={
+            jobMatch && matchContext ? (
               <MatchTierBadge
                 breakdown={jobMatch}
                 context={matchContext}
                 subtitle={application.post_title}
               />
-            ) : null}
-          </BadgeRow>
-        </View>
-        <Text style={styles.appliedDate}>
-          {isShift ? 'Requested' : 'Applied'} {formatAppliedDate(application.created_at)}
-        </Text>
+            ) : null
+          }
+          footer={
+            <>
+              <View style={styles.statusRow}>
+                <Text style={styles.metaLabel}>Status</Text>
+                <WorkerApplicationStatusBadge
+                  status={application.status}
+                  postType={application.post_type}
+                />
+              </View>
+              {formatAppliedLabel(application) ? (
+                <Text style={styles.appliedDate}>{formatAppliedLabel(application)}</Text>
+              ) : null}
+            </>
+          }
+        />
       </View>
+
+      <RowDivider />
 
       <View style={styles.body}>
         {application.status === 'interview_offered' && interviewSummary ? (
@@ -403,59 +375,25 @@ export function WorkerApplicationDetailCard({
           </View>
         ) : null}
 
-        <View style={styles.kitCard}>
-          <DetailSection title="What you submitted">
-            <DetailRow label="Name" value={application.worker_display_name} />
-            <RowDivider />
-            <DetailRow label="Location" value={application.worker_address} />
-            <RowDivider />
-            <DetailRow
-              label="Role"
-              value={
-                application.role_type ? getRoleTypeLabel(application.role_type) : null
-              }
-            />
-            <RowDivider />
-            <DetailRow label="Experience" value={experienceLabel} />
-            <RowDivider />
-            <DetailRow label="Education" value={formatApplicationEducation(application.education)} />
-            <RowDivider />
-            <DetailRow label="Software" value={softwareLabel} />
-            <RowDivider />
-            <DetailRow label="Specialties" value={specialtiesLabel} />
-            <RowDivider />
-            <DetailRow
-              label="Resume"
-              value={formatApplicationResumeStatus(application.resume_storage_path)}
-            />
-            {application.resume_storage_path ? (
-              <ResumeViewButton
-                storagePath={application.resume_storage_path}
-                fileName={resumeFileName}
-              />
-            ) : null}
-            {application.cover_message ? (
-              <DetailSectionDivider>
-                <DetailSection title="Cover message">
-                  <DetailProse text={application.cover_message} />
-                </DetailSection>
-              </DetailSectionDivider>
-            ) : null}
-            {application.post_type === 'job' && application.screening ? (
-              <DetailSectionDivider>
-                <DetailSection title="Culture fit screening">
-                  <ApplicationScreeningSection
-                    screening={application.screening}
-                    audience="worker"
-                  />
-                </DetailSection>
-              </DetailSectionDivider>
-            ) : null}
-          </DetailSection>
+        <View style={styles.submittedSection}>
+          <Text style={styles.sectionEyebrow}>What you submitted</Text>
+          <ApplicationSubmittedFields application={application} />
+
+          {application.cover_message ? (
+            <>
+              <RowDivider />
+              <View style={styles.subsection}>
+                <Text style={styles.sectionEyebrow}>Cover message</Text>
+                <DetailProse text={application.cover_message} />
+              </View>
+            </>
+          ) : null}
         </View>
 
         {hasActions ? (
-          <View style={styles.actionsSection}>
+          <>
+            <RowDivider />
+            <View style={styles.actionsSection}>
             <Text style={styles.actionsLabel}>Actions</Text>
             <View style={styles.actionsGrid}>
               {actionRows.map((row, rowIndex) => {
@@ -498,6 +436,7 @@ export function WorkerApplicationDetailCard({
               })}
             </View>
           </View>
+          </>
         ) : null}
       </View>
     </View>

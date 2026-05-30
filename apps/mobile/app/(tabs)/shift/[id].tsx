@@ -4,13 +4,17 @@ import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
+import { RequestedPillBadge } from '@/components/matching/ApplicationStatusBadge';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getApplyRoute } from '@/lib/routing';
+import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { guardApply } from '@/lib/workerGuard';
 import { useThemedStyles } from '@/theme';
 
@@ -23,25 +27,26 @@ export default function WorkerShiftDetailScreen() {
   const [hasApplied, setHasApplied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     content: { gap: spacing.lg },
     clinicCard: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
-      gap: spacing.xs,
     },
-    clinicLabel: {
-      fontSize: 12,
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    compensation: {
+      fontSize: 15,
       fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
       color: colors.primary,
     },
-    clinicName: { ...typography.body, fontWeight: '600' },
-    clinicMeta: typography.subtitle,
   }));
 
   const loadShift = useCallback(async () => {
@@ -103,12 +108,29 @@ export default function WorkerShiftDetailScreen() {
           }
         />
       }>
-      <AuthScreenHeader title="Fill-in details" subtitle="Temp shift" onBack={() => router.back()} />
+      <AuthScreenHeader
+        title="Fill-in details"
+        subtitle={shift.clinic.clinic_name}
+        onBack={() => router.back()}
+      />
       <View style={styles.content}>
         <View style={styles.clinicCard}>
-          <Text style={styles.clinicLabel}>Clinic</Text>
-          <Text style={styles.clinicName}>{shift.clinic.clinic_name}</Text>
-          {location ? <Text style={styles.clinicMeta}>{location}</Text> : null}
+          <ClinicPostHeader
+            clinicName={shift.clinic.clinic_name}
+            logoStoragePath={shift.clinic.logo_storage_path}
+            title={formatShiftPostRoleTitle(shift.role_type)}
+            location={location || null}
+            detail={formatShiftPostMeta(shift)}
+            accessory={<ShiftUrgencyBadge urgency={shift.urgency} />}
+            textFooter={hasApplied ? <RequestedPillBadge /> : null}
+            footer={
+              shift.compensation ? (
+                <View style={styles.footer}>
+                  <Text style={styles.compensation}>{shift.compensation}</Text>
+                </View>
+              ) : null
+            }
+          />
         </View>
         <ShiftPostDetailView shift={shift} softwareUsed={shift.clinic.software_used} />
       </View>
