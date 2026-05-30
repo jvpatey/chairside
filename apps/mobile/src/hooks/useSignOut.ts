@@ -10,7 +10,7 @@ export function useSignOut() {
   const { resetOnboarding } = useOnboarding();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  const handleSignOut = useCallback(async () => {
+  const performSignOut = useCallback(async () => {
     if (isSigningOut) return;
 
     setIsSigningOut(true);
@@ -28,5 +28,14 @@ export function useSignOut() {
     }
   }, [isSigningOut, resetOnboarding, signOut]);
 
-  return { isSigningOut, signOut: handleSignOut };
+  const confirmSignOut = useCallback(() => {
+    if (isSigningOut) return;
+
+    Alert.alert('Sign out?', 'You will need to sign in again to access your account.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: () => void performSignOut() },
+    ]);
+  }, [isSigningOut, performSignOut]);
+
+  return { isSigningOut, signOut: confirmSignOut };
 }
