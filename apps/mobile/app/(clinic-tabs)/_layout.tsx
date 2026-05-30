@@ -51,16 +51,6 @@ function ClinicTabNavigator() {
           }}
         />
         <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="chatbubbles-outline" size={22} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="index"
           options={{
             title: 'Dashboard',
@@ -79,19 +69,23 @@ function ClinicTabNavigator() {
           }}
         />
         <Tabs.Screen
-          name="profile"
+          name="messages"
           options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => <Ionicons name="person" size={22} color={color} />,
+            title: 'Messages',
+            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="chatbubbles-outline" size={22} color={color} />
+            ),
           }}
         />
+        <Tabs.Screen name="profile" options={{ href: null }} />
+        <Tabs.Screen name="application" options={{ href: null }} />
         <Tabs.Screen name="post-job" options={{ href: null }} />
         <Tabs.Screen name="post-shift" options={{ href: null }} />
         <Tabs.Screen name="job/[id]" options={{ href: null }} />
         <Tabs.Screen name="shift/[id]" options={{ href: null }} />
         <Tabs.Screen name="role-applicants/[jobId]" options={{ href: null }} />
         <Tabs.Screen name="shift-applicants/[shiftId]" options={{ href: null }} />
-        <Tabs.Screen name="application/[id]/messages" options={{ href: null }} />
         <Tabs.Screen name="role-history" options={{ href: null }} />
       </Tabs>
       <JobPostManageMenuHost />

@@ -35,8 +35,25 @@ function WorkerTabNavigator() {
       <Tabs.Screen
         name="browse"
         options={{
-          title: 'Browse',
-          tabBarIcon: ({ color }) => <Ionicons name="search" size={22} color={color} />,
+          title: 'Roles',
+          tabBarIcon: ({ color }) => <Ionicons name="briefcase-outline" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="fillins"
+        options={{
+          title: 'Fill-ins',
+          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Dashboard',
+          tabBarLabel: () => null,
+          tabBarItemStyle: { paddingVertical: 6 },
+          tabBarButton: (props) => <DashboardTabBarButton {...props} />,
+          tabBarIcon: ({ focused }) => <DashboardTabIcon focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -54,34 +71,10 @@ function WorkerTabNavigator() {
           tabBarIcon: ({ color }) => <Ionicons name="chatbubbles-outline" size={22} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Dashboard',
-          tabBarLabel: () => null,
-          tabBarItemStyle: { paddingVertical: 6 },
-          tabBarButton: (props) => <DashboardTabBarButton {...props} />,
-          tabBarIcon: ({ focused }) => <DashboardTabIcon focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="fillins"
-        options={{
-          title: 'Fill-ins',
-          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={22} color={color} />,
-        }}
-      />
+      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="application" options={{ href: null }} />
       <Tabs.Screen name="job/[id]" options={{ href: null }} />
       <Tabs.Screen name="shift/[id]" options={{ href: null }} />
-      <Tabs.Screen name="application/[id]" options={{ href: null }} />
-      <Tabs.Screen name="application/[id]/messages" options={{ href: null }} />
       <Tabs.Screen name="apply" options={{ href: null }} />
       <Tabs.Screen name="apply-screening" options={{ href: null }} />
       <Tabs.Screen name="open-fill-ins" options={{ href: null }} />

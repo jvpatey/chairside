@@ -10,6 +10,7 @@ type ProfileDetailScreenProps = {
   onBack: () => void;
   actionLabel?: string;
   onActionPress?: () => void;
+  headerRight?: ReactNode;
   children?: ReactNode;
 };
 
@@ -19,6 +20,7 @@ export function ProfileDetailScreen({
   onBack,
   actionLabel,
   onActionPress,
+  headerRight,
   children,
 }: ProfileDetailScreenProps) {
   const { colors } = useTheme();
@@ -37,10 +39,15 @@ export function ProfileDetailScreen({
       marginBottom: spacing.lg,
     },
     back: {
-      alignSelf: 'flex-start',
       paddingVertical: spacing.xs,
       minHeight: 44,
       justifyContent: 'center',
+    },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
     },
     backText: {
       fontSize: 16,
@@ -84,13 +91,16 @@ export function ProfileDetailScreen({
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
       ]}>
       <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={onBack}
-          style={styles.back}>
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
+        <View style={styles.topRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={onBack}
+            style={styles.back}>
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+          {headerRight}
+        </View>
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>
             <Text style={styles.title}>{title}</Text>

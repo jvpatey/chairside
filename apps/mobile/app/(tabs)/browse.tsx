@@ -95,7 +95,7 @@ export default function BrowseScreen() {
   }));
 
   return (
-    <Screen title="Browse" subtitle="Open roles at clinics in your province.">
+    <Screen title="Roles" subtitle="Open roles at clinics in your province.">
       <View style={styles.wrap}>
         <ChipSelector
           options={roleFilterOptions}

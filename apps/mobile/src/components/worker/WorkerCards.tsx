@@ -1,13 +1,16 @@
 import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
 import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { WORKER_PROFILE } from '@/lib/routing';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -82,6 +85,12 @@ export function WorkerDashboardHero({
       padding: spacing.lg,
       gap: spacing.sm,
     },
+    profile: {
+      position: 'absolute',
+      top: spacing.md,
+      left: spacing.md,
+      zIndex: 1,
+    },
     bell: {
       position: 'absolute',
       top: spacing.md,
@@ -103,6 +112,9 @@ export function WorkerDashboardHero({
 
   return (
     <View style={styles.card}>
+      <View style={styles.profile}>
+        <ProfileHeaderButton href={WORKER_PROFILE} placement="hero" />
+      </View>
       <View style={styles.bell}>
         <NotificationBell placement="hero" />
       </View>
@@ -224,6 +236,7 @@ type WorkerOverviewPanelProps = {
   shifts: LiveShiftPost[];
   applications: WorkerApplication[];
   appliedJobIds?: Set<string>;
+  unreadMap?: Record<string, boolean>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
   onApplicationPress?: (applicationId: string) => void;
@@ -235,6 +248,7 @@ export function WorkerOverviewPanel({
   shifts,
   applications,
   appliedJobIds,
+  unreadMap,
   onJobPress,
   onShiftPress,
   onApplicationPress,
@@ -251,6 +265,17 @@ export function WorkerOverviewPanel({
     },
     emptyText: { ...typography.subtitle, fontSize: 14, textAlign: 'center' },
   }));
+
+  const previewApplications = useMemo(() => {
+    return [...applications]
+      .sort((a, b) => {
+        const aUnread = unreadMap?.[a.id] ? 1 : 0;
+        const bUnread = unreadMap?.[b.id] ? 1 : 0;
+        if (aUnread !== bUnread) return bUnread - aUnread;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      })
+      .slice(0, 5);
+  }, [applications, unreadMap]);
 
   return (
     <View>
@@ -299,10 +324,11 @@ export function WorkerOverviewPanel({
           </View>
         ) : (
           <View style={styles.list}>
-            {applications.slice(0, 5).map((application) => (
+            {previewApplications.map((application) => (
               <WorkerApplicationListCard
                 key={application.id}
                 application={application}
+                hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                 onPress={
                   onApplicationPress ? () => onApplicationPress(application.id) : undefined
                 }

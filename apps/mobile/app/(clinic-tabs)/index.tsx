@@ -2,10 +2,12 @@ import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
   getMissingClinicProfileFields,
+  listConversationsForClinic,
   listJobApplicationSummaries,
   listJobPosts,
   listShiftPosts,
   type ClinicDashboardCounts,
+  type Conversation,
   type JobApplicationSummary,
   type JobPost,
   type ShiftPost,
@@ -24,13 +26,17 @@ import {
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
 import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
+import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
+  getClinicApplicationMessagesRoute,
+  getClinicMessagesRoute,
   getJobDetailRoute,
   getClinicRoleApplicationsRoute,
   getPostShiftRoute,
@@ -40,6 +46,7 @@ import { useThemedStyles } from '@/theme';
 
 export default function ClinicDashboardScreen() {
   const { user } = useAuth();
+  const { refreshUnread } = useMessageUnread();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
@@ -55,6 +62,7 @@ export default function ClinicDashboardScreen() {
     [],
   );
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: {
@@ -70,12 +78,14 @@ export default function ClinicDashboardScreen() {
     if (!user?.id) return;
 
     try {
-      const [nextCounts, jobPosts, shiftPosts, summaries, counts] = await Promise.all([
+      const [nextCounts, jobPosts, shiftPosts, summaries, counts, conversationRows] =
+        await Promise.all([
         getClinicDashboardCounts(user.id),
         listJobPosts(user.id),
         listShiftPosts(user.id),
         listJobApplicationSummaries(user.id),
         getJobPostApplicationCountsMap(user.id),
+        listConversationsForClinic(user.id),
       ]);
 
       setCounts(nextCounts);
@@ -83,14 +93,17 @@ export default function ClinicDashboardScreen() {
       setShifts(shiftPosts);
       setJobApplicationSummaries(summaries);
       setApplicantCounts(counts);
+      setConversations(conversationRows);
+      await refreshUnread();
     } catch {
       setCounts({ openRoles: 0, fillInsPosted: 0, totalApplications: 0, newApplications: 0 });
       setJobs([]);
       setShifts([]);
       setJobApplicationSummaries([]);
       setApplicantCounts({});
+      setConversations([]);
     }
-  }, [user?.id]);
+  }, [refreshUnread, user?.id]);
 
   useRefreshOnFocus(loadDashboard);
 
@@ -150,6 +163,17 @@ export default function ClinicDashboardScreen() {
         />
 
         <ClinicReadinessChecklist clinicProfile={clinicProfile} />
+
+        <DashboardUnreadMessagesCard
+          conversations={conversations}
+          avatarKind="worker"
+          onConversationPress={(applicationId) =>
+            router.push(
+              getClinicApplicationMessagesRoute(applicationId, 'messages-tab'),
+            )
+          }
+          onViewAllPress={() => router.push(getClinicMessagesRoute())}
+        />
 
         <View>
           <SectionHeader title="Quick actions" />
