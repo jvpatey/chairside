@@ -458,6 +458,16 @@ export async function listClinicApplicationsForJob(
   );
 }
 
+export async function listClinicApplicationsForShift(
+  clinicId: string,
+  shiftPostId: string,
+): Promise<ClinicApplication[]> {
+  const applications = await listClinicApplications(clinicId);
+  return applications.filter(
+    (application) => application.post_type === 'shift' && application.shift_post_id === shiftPostId,
+  );
+}
+
 export async function createApplication(
   workerId: string,
   input: CreateApplicationInput,

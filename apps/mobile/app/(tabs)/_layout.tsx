@@ -6,10 +6,12 @@ import {
   DashboardTabBarButton,
   DashboardTabIcon,
 } from '@/components/navigation/DashboardTabBarButton';
+import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useTheme } from '@/theme';
 
-export default function TabLayout() {
+function WorkerTabNavigator() {
   const { colors } = useTheme();
+  const { unreadCount } = useMessageUnread();
 
   return (
     <Tabs
@@ -45,6 +47,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarIcon: ({ color }) => <Ionicons name="chatbubbles-outline" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
@@ -71,9 +81,18 @@ export default function TabLayout() {
       <Tabs.Screen name="job/[id]" options={{ href: null }} />
       <Tabs.Screen name="shift/[id]" options={{ href: null }} />
       <Tabs.Screen name="application/[id]" options={{ href: null }} />
+      <Tabs.Screen name="application/[id]/messages" options={{ href: null }} />
       <Tabs.Screen name="apply" options={{ href: null }} />
       <Tabs.Screen name="apply-screening" options={{ href: null }} />
       <Tabs.Screen name="open-fill-ins" options={{ href: null }} />
     </Tabs>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <MessageUnreadProvider role="worker">
+      <WorkerTabNavigator />
+    </MessageUnreadProvider>
   );
 }

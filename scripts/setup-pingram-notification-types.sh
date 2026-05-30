@@ -73,7 +73,8 @@ for spec in \
   "fill_in_posted|Fill-in posted" \
   "application_rejected|Application rejected" \
   "application_hired|Application hired" \
-  "job_posted|Job posted"; do
+  "job_posted|Job posted" \
+  "message_received|Message received"; do
   id="${spec%%|*}"
   title="${spec#*|}"
   create_type "$id" "$title" || true

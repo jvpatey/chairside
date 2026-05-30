@@ -11,13 +11,14 @@ import {
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { Alert, Text, View } from 'react-native';
 
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import {
   DetailProse,
   RowDivider,
 } from '@/components/clinic/DetailCard';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationSubmittedFields } from '@/components/worker/ApplicationSubmittedFields';
@@ -30,13 +31,19 @@ import {
   buildInterviewInviteInputFromApplication,
   openInterviewCalendarInvite,
 } from '@/lib/calendarInvite';
+import {
+  getWorkerApplicationMessagesRoute,
+  type WorkerApplicationReturnTarget,
+} from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerApplicationDetailCardProps = {
   application: WorkerApplication;
+  returnTo?: WorkerApplicationReturnTarget;
   onViewPosting?: () => void;
   onCancelled?: () => void;
   onUpdated?: () => void;
+  hasUnreadMessages?: boolean;
 };
 
 function formatAppliedLabel(application: WorkerApplication): string | null {
@@ -47,9 +54,11 @@ function formatAppliedLabel(application: WorkerApplication): string | null {
 
 export function WorkerApplicationDetailCard({
   application,
+  returnTo = 'applications-tab',
   onViewPosting,
   onCancelled,
   onUpdated,
+  hasUnreadMessages = false,
 }: WorkerApplicationDetailCardProps) {
   const { colors } = useTheme();
   const canCancel = isActiveApplicationStatus(application.status);
@@ -148,7 +157,7 @@ export function WorkerApplicationDetailCard({
   }));
 
   const handleMessage = () => {
-    Alert.alert('Coming soon', 'Messaging clinics will be available in a future update.');
+    router.push(getWorkerApplicationMessagesRoute(application.id, returnTo));
   };
 
   const interviewSummary = formatInterviewDateTime(
@@ -271,7 +280,7 @@ export function WorkerApplicationDetailCard({
   }[] = [
     {
       key: 'message',
-      label: 'Message clinic',
+      label: hasUnreadMessages ? 'Message clinic · New' : 'Message clinic',
       onPress: handleMessage,
     },
     {

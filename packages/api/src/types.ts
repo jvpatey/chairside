@@ -278,9 +278,59 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['availability_blocks']['Insert']>;
         Relationships: [];
       };
+      conversations: {
+        Row: {
+          id: string;
+          application_id: string;
+          worker_id: string;
+          clinic_id: string;
+          worker_last_read_at: string | null;
+          clinic_last_read_at: string | null;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          last_sender_id: string | null;
+          messaging_closed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          conversation_id: string;
+          sender_id: string;
+          body: string;
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['messages']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      mark_conversation_read: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
+      accept_application_interview: {
+        Args: { p_application_id: string };
+        Returns: ApplicationRow;
+      };
+      decline_application_interview: {
+        Args: { p_application_id: string };
+        Returns: ApplicationRow;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

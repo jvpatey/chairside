@@ -1,4 +1,4 @@
-import { getShiftPost, type ShiftPost } from '@chairside/api';
+import { getShiftPost, getShiftPostApplicationCount, type ShiftPost } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -13,6 +13,7 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   getClinicHomeRoute,
   getClinicPostingsRoute,
+  getClinicShiftApplicantsRoute,
   getEditShiftRoute,
   type FillInReturnTarget,
 } from '@/lib/routing';
@@ -23,6 +24,7 @@ export default function ShiftDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: FillInReturnTarget }>();
   const shiftId = typeof id === 'string' ? id : '';
   const [shift, setShift] = useState<ShiftPost | null>(null);
+  const [applicationCount, setApplicationCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -47,13 +49,17 @@ export default function ShiftDetailScreen() {
 
     setIsLoading(true);
     try {
-      const nextShift = await getShiftPost(user.id, shiftId);
+      const [nextShift, count] = await Promise.all([
+        getShiftPost(user.id, shiftId),
+        getShiftPostApplicationCount(user.id, shiftId),
+      ]);
       if (!nextShift) {
         Alert.alert('Fill-in not found', 'This shift may have been removed.');
         router.back();
         return;
       }
       setShift(nextShift);
+      setApplicationCount(count);
     } catch (error) {
       Alert.alert(
         'Could not load fill-in',
@@ -83,6 +89,15 @@ export default function ShiftDetailScreen() {
     <OnboardingShell
       footer={
         <View style={styles.footer}>
+          {applicationCount > 0 ? (
+            <OnboardingButton
+              style={styles.footerButton}
+              label={`View applicants (${applicationCount})`}
+              onPress={() =>
+                router.push(getClinicShiftApplicantsRoute(shift.id, returnTo ?? 'postings-fill-ins'))
+              }
+            />
+          ) : null}
           {user?.id ? (
             <ShiftPostManageMenu
               style={styles.footerButton}

@@ -29,6 +29,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...base.android,
       package: base.android?.package ?? 'com.chairside.app',
+      softwareKeyboardLayoutMode: 'resize',
     },
   };
 };

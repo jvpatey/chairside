@@ -14,11 +14,13 @@ import { useThemedStyles } from '@/theme';
 
 type WorkerApplicationListCardProps = {
   application: WorkerApplication;
+  hasUnreadMessages?: boolean;
   onPress?: () => void;
 };
 
 export function WorkerApplicationListCard({
   application,
+  hasUnreadMessages = false,
   onPress,
 }: WorkerApplicationListCardProps) {
   const isJob = application.post_type === 'job';
@@ -44,7 +46,14 @@ export function WorkerApplicationListCard({
       logoStoragePath={application.clinic_logo_storage_path}
       title={application.post_title}
       location={application.clinic_city}
-      detail={appliedLabel ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}` : null}
+      detail={
+        [
+          appliedLabel ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}` : null,
+          hasUnreadMessages ? 'New message' : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') || null
+      }
       avatarSize={44}
       accessory={
         jobMatch && matchContext ? (

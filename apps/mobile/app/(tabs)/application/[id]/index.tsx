@@ -1,4 +1,4 @@
-import { getWorkerApplication, type WorkerApplication } from '@chairside/api';
+import { getWorkerApplication, getUnreadConversationMap, type WorkerApplication } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -21,6 +21,7 @@ export default function WorkerApplicationDetailScreen() {
   const applicationId = typeof id === 'string' ? id : '';
   const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
   const [application, setApplication] = useState<WorkerApplication | null>(null);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -40,13 +41,17 @@ export default function WorkerApplicationDetailScreen() {
 
     setIsLoading(true);
     try {
-      const row = await getWorkerApplication(user.id, applicationId);
+      const [row, unreadMap] = await Promise.all([
+        getWorkerApplication(user.id, applicationId),
+        getUnreadConversationMap(user.id, 'worker'),
+      ]);
       if (!row) {
         Alert.alert('Application not found', 'This application may have been removed.');
         goBack();
         return;
       }
       setApplication(row);
+      setHasUnreadMessages(Boolean(unreadMap[applicationId]));
     } catch (error) {
       Alert.alert(
         'Could not load application',
@@ -84,6 +89,8 @@ export default function WorkerApplicationDetailScreen() {
         {application ? (
           <WorkerApplicationDetailCard
             application={application}
+            returnTo={resolvedReturnTo}
+            hasUnreadMessages={hasUnreadMessages}
             onViewPosting={handleViewPosting}
             onUpdated={() => void load()}
             onCancelled={() => {

@@ -116,6 +116,7 @@ export {
   hasAppliedToShift,
   listClinicApplications,
   listClinicApplicationsForJob,
+  listClinicApplicationsForShift,
   listJobApplicationSummaries,
   listWorkerAppliedJobPostIds,
   listWorkerApplications,
@@ -136,6 +137,19 @@ export {
   type ScheduleApplicationInterviewInput,
   type WorkerApplication,
 } from './applications';
+export {
+  getConversation,
+  getConversationByApplicationId,
+  getUnreadConversationCount,
+  getUnreadConversationMap,
+  listConversationsForClinic,
+  listConversationsForWorker,
+  listMessages,
+  markConversationRead,
+  sendMessage,
+  type Conversation,
+  type Message,
+} from './messages';
 export {
   buildScreeningAnswersPayload,
   getApplicationScreening,

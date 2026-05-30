@@ -12,6 +12,7 @@ import {
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'react-native';
 
@@ -28,6 +29,10 @@ import {
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
 import { buildResumeFileName } from '@/lib/openResumePreview';
+import {
+  getClinicApplicationMessagesRoute,
+  type ClinicApplicationReturnTarget,
+} from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -36,6 +41,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 type ClinicApplicationCardProps = {
   application: ClinicApplication;
+  returnTo?: ClinicApplicationReturnTarget;
+  hasUnreadMessages?: boolean;
   onUpdated?: () => void;
   onShortlisted?: () => void;
   onScheduleInterview?: (application: ClinicApplication) => void;
@@ -49,6 +56,8 @@ function truncatePreview(text: string, maxLength = 88): string {
 
 export function ClinicApplicationCard({
   application,
+  returnTo = 'applications-tab',
+  hasUnreadMessages = false,
   onUpdated,
   onShortlisted,
   onScheduleInterview,
@@ -207,6 +216,10 @@ export function ClinicApplicationCard({
     application.status === 'interview_offered' ||
     application.status === 'interview_scheduled';
 
+  const handleMessage = () => {
+    router.push(getClinicApplicationMessagesRoute(application.id, returnTo));
+  };
+
   return (
     <View style={styles.card}>
       <View style={styles.applicantHeader}>
@@ -260,6 +273,12 @@ export function ClinicApplicationCard({
           </View>
         </View>
       ) : null}
+
+      <OnboardingButton
+        label={hasUnreadMessages ? 'Message applicant · New' : 'Message applicant'}
+        variant="secondary"
+        onPress={handleMessage}
+      />
 
       {!expanded && application.cover_message ? (
         <Text style={styles.preview} numberOfLines={2}>

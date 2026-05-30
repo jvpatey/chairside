@@ -1,4 +1,4 @@
-import { listWorkerJobApplications } from '@chairside/api';
+import { listWorkerJobApplications, getUnreadConversationMap } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -15,6 +15,7 @@ export default function WorkerApplicationsScreen() {
   const [applications, setApplications] = useState<Awaited<
     ReturnType<typeof listWorkerJobApplications>
   >>([]);
+  const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     list: { gap: spacing.md },
@@ -28,8 +29,12 @@ export default function WorkerApplicationsScreen() {
     }
 
     try {
-      const rows = await listWorkerJobApplications(user.id);
+      const [rows, unread] = await Promise.all([
+        listWorkerJobApplications(user.id),
+        getUnreadConversationMap(user.id, 'worker'),
+      ]);
       setApplications(rows);
+      setUnreadMap(unread);
     } catch (error) {
       setApplications([]);
       Alert.alert(
@@ -51,6 +56,7 @@ export default function WorkerApplicationsScreen() {
             <WorkerApplicationListCard
               key={application.id}
               application={application}
+              hasUnreadMessages={Boolean(unreadMap[application.id])}
               onPress={() =>
                 router.push(getWorkerApplicationRoute(application.id, 'applications-tab'))
               }

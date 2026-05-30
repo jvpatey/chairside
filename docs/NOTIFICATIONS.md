@@ -12,6 +12,7 @@ Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app
    - `application_hired`
    - `fill_in_posted` (configure SMS template + opt-out text)
    - `job_posted`
+   - `message_received`
 3. Mobile env: set `EXPO_PUBLIC_PINGRAM_CLIENT_ID` to either the **environment client ID** (Environments page) or the **public key** (`pingram_pk_...`). The app resolves `pingram_pk_` JWTs to the environment ID automatically — the SDK must not use the raw public key as `clientId`.
 4. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
 5. Configure **APNs** (iOS) — often under a notification’s **Mobile Integration** tab (not Settings → Integrations). See [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) when you ship Android push.
@@ -55,6 +56,7 @@ In Supabase → Database → Webhooks, create HTTP webhooks pointing to:
 | `applications`  | INSERT, UPDATE      | `x-supabase-webhook-secret: <NOTIFY_WEBHOOK_SECRET>` |
 | `shift_posts`   | INSERT, UPDATE      | same |
 | `job_posts`     | INSERT, UPDATE      | same |
+| `messages`      | INSERT              | same |
 
 Use `application/json` body (default Supabase webhook payload).
 
@@ -83,3 +85,4 @@ eas build --profile production --platform ios
 | Status → reviewed/rejected/hired | Worker | in-app, push |
 | Shift post → live | Workers (fill-in prefs + role) | in-app, push; + SMS if opted in |
 | Job post → live | Workers (role + job opt-in) | in-app, push |
+| New message | Other participant | in-app, push |

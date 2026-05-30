@@ -1,5 +1,6 @@
 import {
   getJobPost,
+  getUnreadConversationMap,
   listClinicApplicationsForJob,
   type ClinicApplication,
 } from '@chairside/api';
@@ -64,6 +65,7 @@ export default function ClinicRoleApplicationsScreen() {
   }, [resolvedReturnTo]);
   const [postTitle, setPostTitle] = useState('');
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
+  const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [listFilter, setListFilter] = useState<ApplicantListFilter>('all');
   const [scheduleTarget, setScheduleTarget] = useState<ClinicApplication | null>(null);
@@ -87,12 +89,14 @@ export default function ClinicRoleApplicationsScreen() {
 
     setIsLoading(true);
     try {
-      const [job, rows] = await Promise.all([
+      const [job, rows, unread] = await Promise.all([
         getJobPost(user.id, resolvedJobId),
         listClinicApplicationsForJob(user.id, resolvedJobId),
+        getUnreadConversationMap(user.id, 'clinic'),
       ]);
       setPostTitle(job?.title ?? 'Role applicants');
       setApplications(rows);
+      setUnreadMap(unread);
     } catch (error) {
       setApplications([]);
       Alert.alert(
@@ -152,6 +156,8 @@ export default function ClinicRoleApplicationsScreen() {
       <ClinicApplicationCard
         key={application.id}
         application={application}
+        returnTo={resolvedReturnTo ?? 'applications-tab'}
+        hasUnreadMessages={Boolean(unreadMap[application.id])}
         onUpdated={() => void load()}
         onShortlisted={handleShortlisted}
         onScheduleInterview={setScheduleTarget}

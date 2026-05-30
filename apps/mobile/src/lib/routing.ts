@@ -7,7 +7,9 @@ export type ApplicantReturnTarget = 'applications-tab' | 'dashboard-applications
 export type WorkerApplicationReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
-  | 'fill-ins-tab';
+  | 'fill-ins-tab'
+  | 'messages-tab';
+export type ClinicApplicationReturnTarget = ApplicantReturnTarget | 'messages-tab';
 export type PostingsTabParam = 'roles' | 'fill-ins';
 export type DashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
 export type WorkerBrowseTabParam = 'roles' | 'fill-ins';
@@ -118,6 +120,48 @@ export function getWorkerApplicationRoute(
   } as unknown as Href;
 }
 
+export function getWorkerApplicationMessagesRoute(
+  applicationId: string,
+  returnTo: WorkerApplicationReturnTarget = 'applications-tab',
+): Href {
+  return {
+    pathname: '/(tabs)/application/[id]/messages',
+    params: { id: applicationId, returnTo },
+  } as unknown as Href;
+}
+
+export function getClinicApplicationMessagesRoute(
+  applicationId: string,
+  returnTo?: ClinicApplicationReturnTarget,
+): Href {
+  return {
+    pathname: '/(clinic-tabs)/application/[id]/messages',
+    params: { id: applicationId, returnTo: returnTo ?? '' },
+  } as unknown as Href;
+}
+
+export function getWorkerMessagesRoute(): Href {
+  return '/(tabs)/messages' as Href;
+}
+
+export function getClinicMessagesRoute(): Href {
+  return '/(clinic-tabs)/messages' as Href;
+}
+
+export function getClinicShiftApplicantsRoute(
+  shiftId: string,
+  returnTo: FillInReturnTarget = 'postings-fill-ins',
+): Href {
+  return {
+    pathname: '/(clinic-tabs)/shift-applicants/[shiftId]',
+    params: { shiftId, returnTo },
+  } as Href;
+}
+
+export function navigateAfterMessageThread(router: { replace: (href: Href) => void }, role: 'worker' | 'clinic') {
+  router.replace(role === 'clinic' ? getClinicMessagesRoute() : getWorkerMessagesRoute());
+}
+
 export function navigateAfterWorkerApplication(
   router: { replace: (href: Href) => void; back: () => void },
   returnTo?: string,
@@ -128,6 +172,10 @@ export function navigateAfterWorkerApplication(
   }
   if (returnTo === 'fill-ins-tab') {
     router.replace(WORKER_FILLINS);
+    return;
+  }
+  if (returnTo === 'messages-tab') {
+    router.replace(getWorkerMessagesRoute());
     return;
   }
   router.replace(WORKER_APPLICATIONS);
