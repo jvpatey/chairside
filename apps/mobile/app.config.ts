@@ -4,11 +4,12 @@ import appJson from './app.json';
 
 /**
  * Dynamic Expo config — enables iOS push entitlements for EAS builds.
- * `aps-environment` must match the build profile (development vs App Store).
+ * Only the local dev-client profile uses sandbox APNs. TestFlight and App Store
+ * builds (preview + production) must use production APNs regardless of distribution.
  */
 export default ({ config }: ConfigContext): ExpoConfig => {
   const profile = process.env.EAS_BUILD_PROFILE ?? 'development';
-  const apsEnvironment = profile === 'production' ? 'production' : 'development';
+  const apsEnvironment = profile === 'development' ? 'development' : 'production';
 
   const base = { ...appJson.expo, ...config };
 
