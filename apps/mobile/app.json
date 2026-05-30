@@ -65,7 +65,9 @@
         {
           "calendarPermission": "Allow Chairside to add interview events to your calendar."
         }
-      ]
+      ],
+      "@config-plugins/react-native-blob-util",
+      "@config-plugins/react-native-pdf"
     ],
     "experiments": {
       "typedRoutes": true
