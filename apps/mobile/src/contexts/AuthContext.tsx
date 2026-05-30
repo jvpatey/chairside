@@ -1,6 +1,6 @@
 import {
-  getProfile,
   getSupabaseClient,
+  resolveAuthProfile,
   signOut as apiSignOut,
   type Profile,
 } from '@chairside/api';
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const requestId = ++profileRequestRef.current;
 
     try {
-      const nextProfile = await getProfile(userId);
+      const nextProfile = await resolveAuthProfile(userId);
       if (requestId !== profileRequestRef.current) return null;
       setProfile(nextProfile);
       return nextProfile;
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function loadProfile(userId: string, requestId: number) {
       try {
-        const nextProfile = await getProfile(userId);
+        const nextProfile = await resolveAuthProfile(userId);
         if (cancelled || requestId !== profileRequestRef.current) return;
         setProfile(nextProfile);
       } catch {

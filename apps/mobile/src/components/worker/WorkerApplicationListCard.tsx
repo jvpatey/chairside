@@ -10,6 +10,7 @@ import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
+import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 import { useThemedStyles } from '@/theme';
 
 type WorkerApplicationListCardProps = {
@@ -29,12 +30,15 @@ export function WorkerApplicationListCard({
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
   const appliedLabel = formatApplicationDate(application.created_at);
 
+  const isConfirmedShift = isShift && application.status === 'hired';
+  const shiftDisplay = isShift ? getWorkerShiftApplicationCardDisplay(application) : null;
+
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
-      backgroundColor: colors.surface,
+      backgroundColor: isConfirmedShift ? `${colors.success}10` : colors.surface,
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: isConfirmedShift ? `${colors.success}40` : colors.separator,
       padding: spacing.md,
     },
     cardPressed: { opacity: 0.92 },
@@ -44,11 +48,16 @@ export function WorkerApplicationListCard({
     <ClinicPostHeader
       clinicName={application.clinic_name}
       logoStoragePath={application.clinic_logo_storage_path}
-      title={application.post_title}
-      location={application.clinic_city}
+      title={shiftDisplay?.title ?? application.post_title}
+      location={shiftDisplay?.location ?? application.clinic_city}
       detail={
         [
-          appliedLabel ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}` : null,
+          shiftDisplay?.shiftSchedule ?? null,
+          !shiftDisplay && appliedLabel
+            ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}`
+            : shiftDisplay && appliedLabel && application.status !== 'hired'
+              ? `Requested ${appliedLabel}`
+              : null,
           hasUnreadMessages ? 'New message' : null,
         ]
           .filter(Boolean)

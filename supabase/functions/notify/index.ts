@@ -127,7 +127,9 @@ async function claimIdempotency(
   supabase: ReturnType<typeof createClient>,
   key: string,
 ): Promise<boolean> {
-  const { error } = await supabase.from('notification_dispatch_log').insert({ idempotency_key: key });
+  const { error } = await supabase
+    .from('notification_dispatch_log')
+    .insert({ idempotency_key: key });
   if (error?.code === '23505') return false;
   if (error) throw error;
   return true;
@@ -455,7 +457,13 @@ async function handleApplicationUpdate(
   if (oldStatus === 'interview_offered' && newStatus === 'in_progress') {
     const closedBy = record.interview_offer_closed_by as string | null;
     if (closedBy === 'clinic') {
-      await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, 'interview_cancelled');
+      await sendWorkerStatusNotification(
+        supabase,
+        pingramKey,
+        pingramBase,
+        record,
+        'interview_cancelled',
+      );
     } else {
       await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
         pingramType: PINGRAM_TYPES.applicationInterviewDeclined,
@@ -500,9 +508,7 @@ async function listFillInRecipients(
   if (error) throw error;
   if (!workers?.length) return [];
 
-  const roleMatched = workers.filter(
-    (w) => w.role_type && w.role_type === shift.role_type,
-  );
+  const roleMatched = workers.filter((w) => w.role_type && w.role_type === shift.role_type);
 
   const availableDaysOnly = roleMatched.filter(
     (w) => w.fill_in_notification_mode === 'available_days_only',

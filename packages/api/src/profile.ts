@@ -67,10 +67,29 @@ export async function setProfileRole(userId: string, role: UserRole) {
 export async function updateProfileDisplayName(userId: string, displayName: string) {
   const supabase = getSupabaseClient();
   const now = new Date().toISOString();
+  const trimmed = displayName.trim();
+  const existing = await getProfile(userId);
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ display_name: trimmed, updated_at: now })
+      .eq('id', userId)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({ display_name: displayName.trim(), updated_at: now })
-    .eq('id', userId)
+    .insert({
+      id: userId,
+      display_name: trimmed,
+      role: 'worker',
+      updated_at: now,
+    })
     .select('*')
     .single();
 

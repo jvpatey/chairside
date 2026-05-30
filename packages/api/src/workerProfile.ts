@@ -1,5 +1,6 @@
 import type { RoleType } from '@chairside/config';
 import { formatWorkerEducation } from '@chairside/config';
+import { getProfile, setProfileRole } from './profile';
 import { getSupabaseClient } from './client';
 import type { Database } from './types';
 
@@ -99,6 +100,23 @@ export function getMissingWorkerProfileFields(profile: WorkerProfile | null): st
   return missing;
 }
 
+async function ensureWorkerRoleForProfile(userId: string): Promise<void> {
+  const profile = await getProfile(userId);
+
+  if (!profile) {
+    await setProfileRole(userId, 'worker');
+    return;
+  }
+
+  if (profile.role === 'worker') return;
+
+  if (profile.role === 'clinic') {
+    throw new Error('This account is registered as a clinic');
+  }
+
+  await setProfileRole(userId, 'worker');
+}
+
 export async function getWorkerProfile(userId: string): Promise<WorkerProfile | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -115,6 +133,8 @@ export async function upsertWorkerProfile(
   userId: string,
   partial: WorkerProfileUpdate,
 ): Promise<WorkerProfile> {
+  await ensureWorkerRoleForProfile(userId);
+
   const supabase = getSupabaseClient();
   const now = new Date().toISOString();
 

@@ -32,7 +32,10 @@ export function useWorkerHiringCelebration(
         return bTime - aTime;
       });
 
-      const uncelebrated = await filterUncelebratedApplicationIds(sorted.map((item) => item.id));
+      const uncelebrated = await filterUncelebratedApplicationIds(
+        'worker',
+        sorted.map((item) => item.id),
+      );
       if (uncelebrated.length === 0) return;
 
       const next = sorted.find((item) => uncelebrated.includes(item.id));

@@ -44,7 +44,8 @@ function RoleApplicationSummaryCard({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+    >
       <Text style={styles.title}>{summary.post_title}</Text>
       <Text style={styles.stat}>{applicantLabel}</Text>
       {reviewMeta ? <Text style={styles.meta}>{reviewMeta}</Text> : null}

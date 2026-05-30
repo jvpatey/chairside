@@ -13,12 +13,12 @@ export function useHiringCelebration() {
   }, []);
 
   const closeCelebration = useCallback(async () => {
-    if (payload?.applicationId) {
-      await markApplicationCelebrated(payload.applicationId);
+    if (payload?.applicationId && payload.audience) {
+      await markApplicationCelebrated(payload.audience, payload.applicationId);
     }
     setVisible(false);
     setPayload(null);
-  }, [payload?.applicationId]);
+  }, [payload?.applicationId, payload?.audience]);
 
   return {
     celebrationVisible: visible,

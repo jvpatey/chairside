@@ -72,11 +72,33 @@ export type ClinicApplication = Application & {
 export type WorkerApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
+  post_role_type?: string | null;
+  shift_date?: string | null;
+  shift_start_time?: string | null;
+  shift_end_time?: string | null;
   clinic_name: string;
   clinic_city: string | null;
+  clinic_province?: string | null;
+  clinic_address?: string | null;
+  clinic_location?: string | null;
   clinic_logo_storage_path: string | null;
   screening: ApplicationScreening | null;
 };
+
+function formatWorkerClinicLocation(clinic: {
+  address_line1?: string | null;
+  city?: string | null;
+  province?: string | null;
+} | null | undefined): string | null {
+  if (!clinic) return null;
+
+  const parts = [
+    clinic.address_line1?.trim(),
+    [clinic.city?.trim(), clinic.province?.trim()].filter(Boolean).join(', '),
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
 
 export type CreateApplicationInput = {
   jobPostId?: string;
@@ -196,7 +218,10 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
       ? supabase.from('job_posts').select('id, title, clinic_id').in('id', jobIds)
       : Promise.resolve({ data: [], error: null }),
     shiftIds.length > 0
-      ? supabase.from('shift_posts').select('id, shift_date, clinic_id').in('id', shiftIds)
+      ? supabase
+          .from('shift_posts')
+          .select('id, role_type, shift_date, start_time, end_time, clinic_id')
+          .in('id', shiftIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -209,7 +234,14 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   const shiftMap = new Map(
     (shiftsResult.data ?? []).map((shift) => [
       shift.id,
-      { title: `Fill-in · ${shift.shift_date}`, clinic_id: shift.clinic_id },
+      {
+        title: `Fill-in · ${shift.shift_date}`,
+        clinic_id: shift.clinic_id,
+        role_type: shift.role_type,
+        shift_date: shift.shift_date,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+      },
     ]),
   );
 
@@ -222,7 +254,10 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
 
   const { data: clinics, error: clinicsError } =
     clinicIds.length > 0
-      ? await supabase.from('clinic_profiles').select('id, clinic_name, city, logo_storage_path').in('id', clinicIds)
+      ? await supabase
+          .from('clinic_profiles')
+          .select('id, clinic_name, city, province, address_line1, logo_storage_path')
+          .in('id', clinicIds)
       : { data: [], error: null };
 
   if (clinicsError) throw clinicsError;
@@ -256,8 +291,15 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
         ...application,
         post_title: shift.title,
         post_type: 'shift',
+        post_role_type: shift.role_type,
+        shift_date: shift.shift_date,
+        shift_start_time: shift.start_time,
+        shift_end_time: shift.end_time,
         clinic_name: clinic?.clinic_name ?? 'Clinic',
         clinic_city: clinic?.city ?? null,
+        clinic_province: clinic?.province ?? null,
+        clinic_address: clinic?.address_line1 ?? null,
+        clinic_location: formatWorkerClinicLocation(clinic),
         clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
         screening: null,
       });
@@ -288,7 +330,7 @@ async function enrichWorkerApplication(
 
     const { data: clinic, error: clinicError } = await supabase
       .from('clinic_profiles')
-      .select('clinic_name, city, logo_storage_path')
+      .select('clinic_name, city, province, address_line1, logo_storage_path')
       .eq('id', job.clinic_id)
       .maybeSingle();
 
@@ -308,7 +350,7 @@ async function enrichWorkerApplication(
   if (application.shift_post_id) {
     const { data: shift, error: shiftError } = await supabase
       .from('shift_posts')
-      .select('id, shift_date, clinic_id')
+      .select('id, role_type, shift_date, start_time, end_time, clinic_id')
       .eq('id', application.shift_post_id)
       .maybeSingle();
 
@@ -317,7 +359,7 @@ async function enrichWorkerApplication(
 
     const { data: clinic, error: clinicError } = await supabase
       .from('clinic_profiles')
-      .select('clinic_name, city, logo_storage_path')
+      .select('clinic_name, city, province, address_line1, logo_storage_path')
       .eq('id', shift.clinic_id)
       .maybeSingle();
 
@@ -327,8 +369,15 @@ async function enrichWorkerApplication(
       ...application,
       post_title: `Fill-in · ${shift.shift_date}`,
       post_type: 'shift',
+      post_role_type: shift.role_type,
+      shift_date: shift.shift_date,
+      shift_start_time: shift.start_time,
+      shift_end_time: shift.end_time,
       clinic_name: clinic?.clinic_name ?? 'Clinic',
       clinic_city: clinic?.city ?? null,
+      clinic_province: clinic?.province ?? null,
+      clinic_address: clinic?.address_line1 ?? null,
+      clinic_location: formatWorkerClinicLocation(clinic),
       clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
       screening: null,
     };
