@@ -493,6 +493,20 @@ export type LiveShiftPost = ShiftPost & {
   clinic: ClinicSummary;
 };
 
+export type WorkerAppliedShiftClinic = ClinicSummary & {
+  address_line1: string | null;
+  address_line2: string | null;
+  postal_code: string | null;
+  phone: string | null;
+  contact_name: string | null;
+  website: string | null;
+  team_size_range: string | null;
+};
+
+export type WorkerAppliedShiftPost = ShiftPost & {
+  clinic: WorkerAppliedShiftClinic;
+};
+
 export type WorkerDashboardCounts = {
   openRolesInProvince: number;
   openFillInsInProvince: number;
@@ -653,6 +667,53 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
   };
 }
 
+export async function getWorkerAppliedShiftPost(
+  shiftId: string,
+): Promise<WorkerAppliedShiftPost | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('shift_posts')
+    .select('*')
+    .eq('id', shiftId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const { data: clinic, error: clinicError } = await supabase
+    .from('clinic_profiles')
+    .select(
+      'id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path, address_line1, address_line2, postal_code, phone, contact_name, website, team_size_range',
+    )
+    .eq('id', data.clinic_id)
+    .maybeSingle();
+
+  if (clinicError) throw clinicError;
+  if (!clinic) return null;
+
+  return {
+    ...(data as ShiftPost),
+    clinic: {
+      clinic_id: clinic.id,
+      clinic_name: clinic.clinic_name,
+      city: clinic.city,
+      province: clinic.province,
+      specialty: clinic.specialty,
+      software_used: clinic.software_used ?? [],
+      latitude: clinic.latitude,
+      longitude: clinic.longitude,
+      logo_storage_path: clinic.logo_storage_path ?? null,
+      address_line1: clinic.address_line1 ?? null,
+      address_line2: clinic.address_line2 ?? null,
+      postal_code: clinic.postal_code ?? null,
+      phone: clinic.phone ?? null,
+      contact_name: clinic.contact_name ?? null,
+      website: clinic.website ?? null,
+      team_size_range: clinic.team_size_range ?? null,
+    },
+  };
+}
+
 export async function getWorkerDashboardCounts(
   workerId: string,
   province: string,
@@ -662,15 +723,17 @@ export async function getWorkerDashboardCounts(
     listLiveShiftPosts(province),
     getSupabaseClient()
       .from('applications')
-      .select('id, status')
+      .select('id, status, job_post_id, shift_post_id')
       .eq('worker_id', workerId),
   ]);
 
   if (applicationsResult.error) throw applicationsResult.error;
 
   const pendingApplications =
-    applicationsResult.data?.filter((row) =>
-      ['applied', 'reviewed', 'in_progress'].includes(row.status),
+    applicationsResult.data?.filter(
+      (row) =>
+        row.job_post_id &&
+        ['applied', 'reviewed', 'in_progress'].includes(row.status),
     ).length ?? 0;
 
   return {

@@ -4,7 +4,8 @@ import {
   listConversationsForWorker,
   listLiveJobPosts,
   listLiveShiftPosts,
-  listWorkerApplications,
+  listWorkerJobApplications,
+  listWorkerShiftApplications,
   type Conversation,
   type LiveJobPost,
   type LiveShiftPost,
@@ -55,7 +56,8 @@ export default function WorkerDashboardScreen() {
   const [selectedOverview, setSelectedOverview] = useState<WorkerOverviewStat>('roles');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
-  const [applications, setApplications] = useState<WorkerApplication[]>([]);
+  const [jobApplications, setJobApplications] = useState<WorkerApplication[]>([]);
+  const [shiftApplications, setShiftApplications] = useState<WorkerApplication[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -67,26 +69,29 @@ export default function WorkerDashboardScreen() {
     if (!user?.id) return;
 
     try {
-      const [nextCounts, jobPosts, shiftPosts, applicationRows, conversationRows] =
+      const [nextCounts, jobPosts, shiftPosts, jobApplicationRows, shiftApplicationRows, conversationRows] =
         await Promise.all([
         getWorkerDashboardCounts(user.id, province),
         listLiveJobPosts(province),
         listLiveShiftPosts(province),
-        listWorkerApplications(user.id),
+        listWorkerJobApplications(user.id),
+        listWorkerShiftApplications(user.id),
         listConversationsForWorker(user.id),
       ]);
 
       setCounts(nextCounts);
       setJobs(jobPosts);
       setShifts(shiftPosts);
-      setApplications(applicationRows);
+      setJobApplications(jobApplicationRows);
+      setShiftApplications(shiftApplicationRows);
       setConversations(conversationRows);
       await refreshUnread();
     } catch {
       setCounts({ openRolesInProvince: 0, openFillInsInProvince: 0, pendingApplications: 0 });
       setJobs([]);
       setShifts([]);
-      setApplications([]);
+      setJobApplications([]);
+      setShiftApplications([]);
       setConversations([]);
     }
   }, [province, refreshUnread, user?.id]);
@@ -102,11 +107,11 @@ export default function WorkerDashboardScreen() {
   const appliedJobIds = useMemo(
     () =>
       new Set(
-        applications
-          .filter((application) => application.post_type === 'job' && application.job_post_id)
+        jobApplications
+          .filter((application) => application.job_post_id)
           .map((application) => application.job_post_id as string),
       ),
-    [applications],
+    [jobApplications],
   );
 
   const unreadMap = useMemo(() => {
@@ -179,13 +184,17 @@ export default function WorkerDashboardScreen() {
           selected={selectedOverview}
           jobs={jobs}
           shifts={shifts}
-          applications={applications}
+          jobApplications={jobApplications}
+          shiftApplications={shiftApplications}
           appliedJobIds={appliedJobIds}
           unreadMap={unreadMap}
           onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
-          onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
-          onApplicationPress={(applicationId) =>
+          onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))}
+          onJobApplicationPress={(applicationId) =>
             router.push(getWorkerApplicationRoute(applicationId, 'dashboard-applications'))
+          }
+          onShiftApplicationPress={(applicationId) =>
+            router.push(getWorkerApplicationRoute(applicationId, 'dashboard-fill-ins'))
           }
         />
       </View>

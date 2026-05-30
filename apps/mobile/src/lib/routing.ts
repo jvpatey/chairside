@@ -7,8 +7,15 @@ export type ApplicantReturnTarget = 'applications-tab' | 'dashboard-applications
 export type WorkerApplicationReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
+  | 'dashboard-fill-ins'
   | 'fill-ins-tab'
   | 'messages-tab';
+
+export type WorkerShiftReturnTarget =
+  | 'fill-ins-tab'
+  | 'open-fill-ins'
+  | 'dashboard-fill-ins'
+  | 'browse-tab';
 export type ClinicApplicationReturnTarget =
   | ApplicantReturnTarget
   | 'messages-tab'
@@ -121,8 +128,41 @@ export function getShiftDetailRoute(
   } as Href;
 }
 
-export function getWorkerShiftDetailRoute(shiftId: string): Href {
-  return { pathname: '/(tabs)/shift/[id]', params: { id: shiftId } } as unknown as Href;
+export function getWorkerShiftDetailRoute(
+  shiftId: string,
+  returnTo?: WorkerShiftReturnTarget,
+): Href {
+  return {
+    pathname: '/(tabs)/shift/[id]',
+    params: returnTo ? { id: shiftId, returnTo } : { id: shiftId },
+  } as unknown as Href;
+}
+
+export function navigateAfterWorkerShift(
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
+  returnTo?: string,
+) {
+  if (returnTo === 'fill-ins-tab') {
+    router.replace(WORKER_FILLINS);
+    return;
+  }
+  if (returnTo === 'open-fill-ins') {
+    router.replace(WORKER_OPEN_FILLINS);
+    return;
+  }
+  if (returnTo === 'dashboard-fill-ins') {
+    router.replace(getWorkerHomeRoute('fill-ins'));
+    return;
+  }
+  if (returnTo === 'browse-tab') {
+    router.replace(WORKER_BROWSE);
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(WORKER_FILLINS);
 }
 
 export function getWorkerApplicationRoute(
@@ -205,6 +245,10 @@ export function navigateAfterWorkerApplication(
 ) {
   if (returnTo === 'dashboard-applications') {
     router.replace(getWorkerHomeRoute('applications'));
+    return;
+  }
+  if (returnTo === 'dashboard-fill-ins') {
+    router.replace(getWorkerHomeRoute('fill-ins'));
     return;
   }
   if (returnTo === 'fill-ins-tab') {

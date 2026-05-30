@@ -1,4 +1,4 @@
-import { getWorkerApplication, getUnreadConversationMap, type WorkerApplication } from '@chairside/api';
+import { getWorkerApplication, getUnreadConversationMap, getWorkerAppliedShiftPost, type WorkerApplication, type WorkerAppliedShiftPost } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -7,6 +7,7 @@ import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrati
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
+import { WorkerConfirmedFillInDetail } from '@/components/worker/WorkerConfirmedFillInDetail';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -17,6 +18,7 @@ import {
   getWorkerShiftDetailRoute,
   navigateAfterWorkerApplication,
 } from '@/lib/routing';
+import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerApplicationDetailScreen() {
@@ -25,6 +27,7 @@ export default function WorkerApplicationDetailScreen() {
   const applicationId = typeof id === 'string' ? id : '';
   const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
   const [application, setApplication] = useState<WorkerApplication | null>(null);
+  const [confirmedShift, setConfirmedShift] = useState<WorkerAppliedShiftPost | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const {
@@ -46,6 +49,7 @@ export default function WorkerApplicationDetailScreen() {
   const load = useCallback(async () => {
     if (!user?.id || !applicationId) {
       setApplication(null);
+      setConfirmedShift(null);
       setIsLoading(false);
       return;
     }
@@ -63,6 +67,14 @@ export default function WorkerApplicationDetailScreen() {
       }
       setApplication(row);
       setHasUnreadMessages(Boolean(unreadMap[applicationId]));
+
+      if (row.post_type === 'shift' && row.status === 'hired' && row.shift_post_id) {
+        const shift = await getWorkerAppliedShiftPost(row.shift_post_id);
+        setConfirmedShift(shift);
+      } else {
+        setConfirmedShift(null);
+      }
+
       await checkApplications([toCelebrationCandidate(row)]);
     } catch (error) {
       Alert.alert(
@@ -88,18 +100,39 @@ export default function WorkerApplicationDetailScreen() {
     }
   };
 
+  const isConfirmedFillIn =
+    application?.post_type === 'shift' && application.status === 'hired' && confirmedShift;
+
+  const shiftDisplay =
+    application?.post_type === 'shift' ? getWorkerShiftApplicationCardDisplay(application) : null;
+
   const subtitle = application
-    ? application.post_title
+    ? isConfirmedFillIn
+      ? shiftDisplay?.title ?? application.clinic_name
+      : application.post_title
     : isLoading
       ? 'Loading…'
       : 'Application details';
 
+  const headerTitle = isConfirmedFillIn ? 'Confirmed fill-in' : 'Application';
+
   return (
     <>
       <OnboardingShell>
-        <AuthScreenHeader title="Application" subtitle={subtitle} onBack={goBack} />
+        <AuthScreenHeader
+          title={headerTitle}
+          subtitle={isConfirmedFillIn ? application?.clinic_name ?? subtitle : subtitle}
+          onBack={goBack}
+        />
         <View style={styles.content}>
-          {application ? (
+          {isConfirmedFillIn && application ? (
+            <WorkerConfirmedFillInDetail
+              application={application}
+              shift={confirmedShift}
+              returnTo={resolvedReturnTo}
+              hasUnreadMessages={hasUnreadMessages}
+            />
+          ) : application ? (
             <WorkerApplicationDetailCard
               application={application}
               returnTo={resolvedReturnTo}

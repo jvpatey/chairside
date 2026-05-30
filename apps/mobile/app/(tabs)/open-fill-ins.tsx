@@ -113,7 +113,7 @@ export default function OpenFillInsScreen() {
               <FillInListingCard
                 key={shift.id}
                 shift={shift}
-                onPress={() => router.push(getWorkerShiftDetailRoute(shift.id))}
+                onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'open-fill-ins'))}
               />
             ))}
           </View>

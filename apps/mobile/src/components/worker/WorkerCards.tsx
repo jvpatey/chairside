@@ -234,27 +234,32 @@ type WorkerOverviewPanelProps = {
   selected: WorkerOverviewStat;
   jobs: LiveJobPost[];
   shifts: LiveShiftPost[];
-  applications: WorkerApplication[];
+  jobApplications: WorkerApplication[];
+  shiftApplications: WorkerApplication[];
   appliedJobIds?: Set<string>;
   unreadMap?: Record<string, boolean>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
-  onApplicationPress?: (applicationId: string) => void;
+  onJobApplicationPress?: (applicationId: string) => void;
+  onShiftApplicationPress?: (applicationId: string) => void;
 };
 
 export function WorkerOverviewPanel({
   selected,
   jobs,
   shifts,
-  applications,
+  jobApplications,
+  shiftApplications,
   appliedJobIds,
   unreadMap,
   onJobPress,
   onShiftPress,
-  onApplicationPress,
+  onJobApplicationPress,
+  onShiftApplicationPress,
 }: WorkerOverviewPanelProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     list: { gap: spacing.sm },
+    group: { gap: spacing.sm },
     empty: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -266,8 +271,8 @@ export function WorkerOverviewPanel({
     emptyText: { ...typography.subtitle, fontSize: 14, textAlign: 'center' },
   }));
 
-  const previewApplications = useMemo(() => {
-    return [...applications]
+  const previewJobApplications = useMemo(() => {
+    return [...jobApplications]
       .sort((a, b) => {
         const aUnread = unreadMap?.[a.id] ? 1 : 0;
         const bUnread = unreadMap?.[b.id] ? 1 : 0;
@@ -275,7 +280,22 @@ export function WorkerOverviewPanel({
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       })
       .slice(0, 5);
-  }, [applications, unreadMap]);
+  }, [jobApplications, unreadMap]);
+
+  const confirmedShiftApplications = useMemo(
+    () => shiftApplications.filter((application) => application.status === 'hired').slice(0, 5),
+    [shiftApplications],
+  );
+
+  const activeShiftApplications = useMemo(
+    () =>
+      shiftApplications
+        .filter((application) =>
+          ['applied', 'reviewed', 'in_progress'].includes(application.status),
+        )
+        .slice(0, 5),
+    [shiftApplications],
+  );
 
   return (
     <View>
@@ -300,37 +320,78 @@ export function WorkerOverviewPanel({
       ) : null}
 
       {selected === 'fill-ins' ? (
-        shifts.length === 0 ? (
+        shifts.length === 0 &&
+        confirmedShiftApplications.length === 0 &&
+        activeShiftApplications.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No fill-in shifts in your province yet.</Text>
           </View>
         ) : (
           <View style={styles.list}>
-            {shifts.slice(0, 5).map((shift) => (
-              <FillInListingCard
-                key={shift.id}
-                shift={shift}
-                onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
-              />
-            ))}
+            {shifts.length > 0 ? (
+              <View style={styles.group}>
+                <WorkerSectionHeader title="Open" />
+                {shifts.slice(0, 5).map((shift) => (
+                  <FillInListingCard
+                    key={shift.id}
+                    shift={shift}
+                    onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+                  />
+                ))}
+              </View>
+            ) : null}
+            {confirmedShiftApplications.length > 0 ? (
+              <View style={styles.group}>
+                <WorkerSectionHeader title="Confirmed" />
+                {confirmedShiftApplications.map((application) => (
+                  <WorkerApplicationListCard
+                    key={application.id}
+                    application={application}
+                    hasUnreadMessages={Boolean(unreadMap?.[application.id])}
+                    onPress={
+                      onShiftApplicationPress
+                        ? () => onShiftApplicationPress(application.id)
+                        : undefined
+                    }
+                  />
+                ))}
+              </View>
+            ) : null}
+            {activeShiftApplications.length > 0 ? (
+              <View style={styles.group}>
+                <WorkerSectionHeader title="In progress" />
+                {activeShiftApplications.map((application) => (
+                  <WorkerApplicationListCard
+                    key={application.id}
+                    application={application}
+                    hasUnreadMessages={Boolean(unreadMap?.[application.id])}
+                    onPress={
+                      onShiftApplicationPress
+                        ? () => onShiftApplicationPress(application.id)
+                        : undefined
+                    }
+                  />
+                ))}
+              </View>
+            ) : null}
           </View>
         )
       ) : null}
 
       {selected === 'applications' ? (
-        applications.length === 0 ? (
+        jobApplications.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>You have not applied to any postings yet.</Text>
+            <Text style={styles.emptyText}>You have not applied to any roles yet.</Text>
           </View>
         ) : (
           <View style={styles.list}>
-            {previewApplications.map((application) => (
+            {previewJobApplications.map((application) => (
               <WorkerApplicationListCard
                 key={application.id}
                 application={application}
                 hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                 onPress={
-                  onApplicationPress ? () => onApplicationPress(application.id) : undefined
+                  onJobApplicationPress ? () => onJobApplicationPress(application.id) : undefined
                 }
               />
             ))}
