@@ -23,6 +23,7 @@ function formatScheduleDaysCompact(blocks: AvailabilityBlock[]): string {
 export type FillInAvailabilityCollapsedSummary = {
   primaryLabel: string;
   primary: string;
+  primaryTone: 'positive' | 'negative';
   secondaryLabel: string;
   secondary: string;
 };
@@ -38,6 +39,7 @@ export function getFillInAvailabilityCollapsedSummary(
     return {
       primaryLabel: 'Status',
       primary: 'Not available',
+      primaryTone: 'negative',
       secondaryLabel: 'Schedule',
       secondary: schedulePart,
     };
@@ -54,6 +56,7 @@ export function getFillInAvailabilityCollapsedSummary(
   return {
     primaryLabel: 'Status',
     primary: `Available · ${alertPart}`,
+    primaryTone: 'positive',
     secondaryLabel: 'Schedule',
     secondary: schedulePart,
   };

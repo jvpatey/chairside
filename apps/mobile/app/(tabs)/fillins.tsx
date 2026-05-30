@@ -9,7 +9,6 @@ import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
-import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { RowDivider } from '@/components/clinic/DetailCard';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
@@ -25,10 +24,10 @@ import {
   getFillInAvailabilityCollapsedSummary,
   isFillInAvailabilityConfigured,
 } from '@/lib/fillInAvailabilitySummary';
-import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
 import {
   getWorkerApplicationRoute,
   getWorkerShiftDetailRoute,
+  WORKER_OPEN_FILLINS,
   WORKER_SETUP_AVAILABILITY_SCHEDULE,
 } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -36,6 +35,8 @@ import { useTheme, useThemedStyles } from '@/theme';
 function navigateToEditSchedule() {
   router.push(WORKER_SETUP_AVAILABILITY_SCHEDULE);
 }
+
+const OPEN_SHIFTS_PREVIEW_LIMIT = 3;
 
 function FillInsEmptyState({
   icon,
@@ -95,7 +96,6 @@ export default function FillInsScreen() {
   const province = workerProfile?.province ?? 'NS';
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
-  const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -118,17 +118,17 @@ export default function FillInsScreen() {
 
   useRefreshOnFocus(load);
 
-  const filteredShifts = useMemo(() => {
-    if (roleTypeFilter === 'all') return shifts;
-    return shifts.filter((shift) => shift.role_type === roleTypeFilter);
-  }, [shifts, roleTypeFilter]);
+  const previewShifts = useMemo(
+    () => shifts.slice(0, OPEN_SHIFTS_PREVIEW_LIMIT),
+    [shifts],
+  );
+  const hasMoreShifts = shifts.length > OPEN_SHIFTS_PREVIEW_LIMIT;
 
   const activeApplications = applications.filter((item) =>
     ['applied', 'reviewed', 'in_progress'].includes(item.status),
   );
   const confirmedApplications = applications.filter((item) => item.status === 'hired');
 
-  const roleFilterOptions = COMPACT_ROLE_TYPE_FILTER_OPTIONS;
   const availabilityConfigured = isFillInAvailabilityConfigured(workerProfile, availabilityBlocks);
   const availabilityCollapsedSummary = getFillInAvailabilityCollapsedSummary(
     workerProfile,
@@ -139,8 +139,20 @@ export default function FillInsScreen() {
   const styles = useThemedStyles(({ spacing, colors, typography }) => ({
     content: { gap: spacing.lg },
     sectionBody: { gap: spacing.md },
-    chipBlock: { paddingBottom: spacing.xs },
     list: { gap: spacing.md },
+    viewAllRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+    },
+    viewAllLabel: {
+      ...typography.body,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primary,
+    },
     applicationGroup: { gap: spacing.sm },
     scheduleSection: {
       paddingHorizontal: spacing.md,
@@ -195,16 +207,7 @@ export default function FillInsScreen() {
           sectionLabel="Open shifts"
           description="Open temp shifts in your province — request to cover the ones that fit your schedule.">
           <View style={styles.sectionBody}>
-            <View style={styles.chipBlock}>
-              <ChipSelector
-                options={roleFilterOptions}
-                selected={roleTypeFilter}
-                onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
-                horizontal
-                compact
-              />
-            </View>
-            {filteredShifts.length === 0 && !isLoading ? (
+            {shifts.length === 0 && !isLoading ? (
               <FillInsEmptyState
                 embedded
                 icon="calendar-outline"
@@ -212,15 +215,30 @@ export default function FillInsScreen() {
                 body="Check back soon — new fill-in shifts are posted throughout the week."
               />
             ) : (
-              <View style={styles.list}>
-                {filteredShifts.map((shift) => (
-                  <FillInListingCard
-                    key={shift.id}
-                    shift={shift}
-                    onPress={() => router.push(getWorkerShiftDetailRoute(shift.id))}
-                  />
-                ))}
-              </View>
+              <>
+                <View style={styles.list}>
+                  {previewShifts.map((shift) => (
+                    <FillInListingCard
+                      key={shift.id}
+                      shift={shift}
+                      onPress={() => router.push(getWorkerShiftDetailRoute(shift.id))}
+                    />
+                  ))}
+                </View>
+                {shifts.length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    style={styles.viewAllRow}
+                    onPress={() => router.push(WORKER_OPEN_FILLINS)}>
+                    <Text style={styles.viewAllLabel}>
+                      {hasMoreShifts
+                        ? `View all ${shifts.length} open fill-ins`
+                        : 'Browse open fill-ins'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                  </Pressable>
+                ) : null}
+              </>
             )}
           </View>
         </ScreenSection>

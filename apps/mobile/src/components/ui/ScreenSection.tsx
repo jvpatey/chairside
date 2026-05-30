@@ -5,11 +5,14 @@ import { Pressable, Text, View, type StyleProp, type ViewProps, type ViewStyle }
 import { RowDivider } from '@/components/clinic/DetailCard';
 import { useTheme, useThemedStyles } from '@/theme';
 
+export type CollapsedSummaryTone = 'positive' | 'negative';
+
 export type CollapsedSummaryContent =
   | string
   | {
       primary: string;
       primaryLabel?: string;
+      primaryTone?: CollapsedSummaryTone;
       secondary?: string;
       secondaryLabel?: string;
     };
@@ -123,6 +126,14 @@ export function ScreenSection({
       color: colors.labelSecondary,
       flex: 1,
     },
+    collapsedDetailValuePositive: {
+      color: colors.success,
+      fontWeight: '600',
+    },
+    collapsedDetailValueNegative: {
+      color: colors.destructive,
+      fontWeight: '600',
+    },
     collapsedSummary: {
       ...typography.subtitle,
       fontSize: 14,
@@ -187,6 +198,10 @@ export function ScreenSection({
     collapsedContent && typeof collapsedContent !== 'string'
       ? collapsedContent.primaryLabel
       : undefined;
+  const collapsedPrimaryTone =
+    collapsedContent && typeof collapsedContent !== 'string'
+      ? collapsedContent.primaryTone
+      : undefined;
   const collapsedSecondary = collapsedContent?.secondary;
   const collapsedSecondaryLabel =
     collapsedContent && typeof collapsedContent !== 'string'
@@ -219,7 +234,16 @@ export function ScreenSection({
                       {collapsedPrimaryLabel ? (
                         <View style={styles.collapsedDetailRow}>
                           <Text style={styles.collapsedDetailLabel}>{collapsedPrimaryLabel}</Text>
-                          <Text style={styles.collapsedDetailValue}>{collapsedPrimary}</Text>
+                          <Text
+                            style={[
+                              styles.collapsedDetailValue,
+                              collapsedPrimaryTone === 'positive' &&
+                                styles.collapsedDetailValuePositive,
+                              collapsedPrimaryTone === 'negative' &&
+                                styles.collapsedDetailValueNegative,
+                            ]}>
+                            {collapsedPrimary}
+                          </Text>
                         </View>
                       ) : (
                         <Text style={styles.collapsedSummary}>{collapsedPrimary}</Text>
