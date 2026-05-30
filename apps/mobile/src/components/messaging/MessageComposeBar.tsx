@@ -67,7 +67,6 @@ export function MessageComposeBar({
 
   const handleSend = () => {
     if (!canSend) return;
-    onChangeText('');
     void onSend(trimmed);
   };
 

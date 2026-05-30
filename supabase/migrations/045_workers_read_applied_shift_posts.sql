@@ -1,6 +1,7 @@
 -- Workers must read shift posts they applied to even after the shift is filled.
 -- Use a security definer helper so this policy does not recurse with applications RLS
--- (clinic application policies also select from shift_posts).
+-- (a direct applications subquery here caused infinite recursion: clinic application
+-- policies also select from shift_posts).
 
 drop policy if exists "Workers read shift posts they applied to" on public.shift_posts;
 

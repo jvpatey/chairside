@@ -230,6 +230,7 @@ begin
 end;
 $$;
 
+revoke all on function public.mark_conversation_read(uuid) from public;
 grant execute on function public.mark_conversation_read(uuid) to authenticated;
 
 alter table public.messages replica identity full;

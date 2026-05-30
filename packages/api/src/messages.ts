@@ -38,8 +38,20 @@ export type Message = MessageRow;
 
 const MESSAGE_BODY_MAX_LENGTH = 2000;
 
+const CONVERSATION_UNREAD_SELECT =
+  'application_id, last_message_at, last_sender_id, worker_last_read_at, clinic_last_read_at' as const;
+
+type ConversationUnreadSnapshot = Pick<
+  ConversationRow,
+  | 'application_id'
+  | 'last_message_at'
+  | 'last_sender_id'
+  | 'worker_last_read_at'
+  | 'clinic_last_read_at'
+>;
+
 function isUnreadForRole(
-  conversation: ConversationRow,
+  conversation: ConversationUnreadSnapshot,
   role: 'worker' | 'clinic',
   viewerId: string,
 ): boolean {
@@ -396,30 +408,42 @@ export async function markConversationRead(conversationId: string): Promise<void
   if (error) throw error;
 }
 
+async function listConversationUnreadSnapshots(
+  userId: string,
+  role: 'worker' | 'clinic',
+): Promise<ConversationUnreadSnapshot[]> {
+  const supabase = getSupabaseClient();
+  let query = supabase.from('conversations').select(CONVERSATION_UNREAD_SELECT);
+
+  if (role === 'worker') {
+    query = query.eq('worker_id', userId);
+  } else {
+    query = query.eq('clinic_id', userId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as ConversationUnreadSnapshot[];
+}
+
 export async function getUnreadConversationCount(
   userId: string,
   role: 'worker' | 'clinic',
 ): Promise<number> {
-  const conversations =
-    role === 'worker'
-      ? await listConversationsForWorker(userId)
-      : await listConversationsForClinic(userId);
-
-  return conversations.filter((conversation) => conversation.unread).length;
+  const conversations = await listConversationUnreadSnapshots(userId, role);
+  return conversations.filter((conversation) => isUnreadForRole(conversation, role, userId))
+    .length;
 }
 
 export async function getUnreadConversationMap(
   userId: string,
   role: 'worker' | 'clinic',
 ): Promise<Record<string, boolean>> {
-  const conversations =
-    role === 'worker'
-      ? await listConversationsForWorker(userId)
-      : await listConversationsForClinic(userId);
+  const conversations = await listConversationUnreadSnapshots(userId, role);
 
   const map: Record<string, boolean> = {};
   for (const conversation of conversations) {
-    if (conversation.unread) {
+    if (isUnreadForRole(conversation, role, userId)) {
       map[conversation.application_id] = true;
     }
   }

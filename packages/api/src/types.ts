@@ -323,11 +323,15 @@ export type Database = {
         Returns: undefined;
       };
       accept_application_interview: {
-        Args: { p_application_id: string };
+        Args: { application_id: string };
         Returns: ApplicationRow;
       };
       decline_application_interview: {
-        Args: { p_application_id: string };
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      confirm_fill_in_applicant: {
+        Args: { application_id: string };
         Returns: ApplicationRow;
       };
     };

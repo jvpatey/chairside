@@ -196,6 +196,7 @@ export function ApplicationMessageThread({
     try {
       const message = await sendMessage(userId, conversationId, body);
       appendMessage(message);
+      setDraft('');
       await refreshUnread();
     } catch (error) {
       Alert.alert(

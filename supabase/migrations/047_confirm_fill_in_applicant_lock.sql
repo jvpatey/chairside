@@ -1,18 +1,5 @@
--- Atomic fill-in accept: confirm one worker, decline pending siblings, mark shift filled.
-
-create or replace function public.is_fill_in_pending_status(p_status text)
-returns boolean
-language sql
-immutable
-as $$
-  select p_status in (
-    'applied',
-    'reviewed',
-    'in_progress',
-    'interview_offered',
-    'interview_scheduled'
-  );
-$$;
+-- No-op on fresh installs: locking is in 044_confirm_fill_in_applicant.sql.
+-- Kept for databases that applied 044 before the lock was added (replaces the function once).
 
 create or replace function public.confirm_fill_in_applicant(application_id uuid)
 returns public.applications
@@ -82,6 +69,3 @@ begin
   return v_row;
 end;
 $$;
-
-revoke all on function public.confirm_fill_in_applicant(uuid) from public;
-grant execute on function public.confirm_fill_in_applicant(uuid) to authenticated;
