@@ -26,13 +26,16 @@ import {
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
 import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
+import { DashboardCoverRequestsCard } from '@/components/clinic/DashboardCoverRequestsCard';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
+  CLINIC_FILL_INS,
   CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
   getClinicApplicationMessagesRoute,
@@ -40,13 +43,13 @@ import {
   getJobDetailRoute,
   getClinicRoleApplicationsRoute,
   getPostShiftRoute,
-  getShiftDetailRoute,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicDashboardScreen() {
   const { user } = useAuth();
   const { refreshUnread } = useMessageUnread();
+  const { pendingCount } = useFillInPending();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
@@ -164,6 +167,11 @@ export default function ClinicDashboardScreen() {
 
         <ClinicReadinessChecklist clinicProfile={clinicProfile} />
 
+        <DashboardCoverRequestsCard
+          pendingCount={pendingCount}
+          onPress={() => router.push(CLINIC_FILL_INS)}
+        />
+
         <DashboardUnreadMessagesCard
           conversations={conversations}
           avatarKind="worker"
@@ -189,7 +197,7 @@ export default function ClinicDashboardScreen() {
               description="Temp or urgent shift"
               icon="calendar-outline"
               variant="secondary"
-              onPress={() => guardPosting(getPostShiftRoute('dashboard-fill-ins'))}
+              onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
             />
           </View>
         </View>
@@ -216,9 +224,7 @@ export default function ClinicDashboardScreen() {
           onJobUpdated={handleJobUpdated}
           onJobDeleted={handleJobDeleted}
           onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
-          onShiftPress={(shiftId) =>
-            router.push(getShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
-          }
+          onShiftPress={() => router.push(CLINIC_FILL_INS)}
           onJobApplicationsPress={(jobId) =>
             router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
           }

@@ -94,6 +94,24 @@ export type JobApplicationSummary = {
   interview_count: number;
 };
 
+export const FILL_IN_PENDING_STATUSES: ApplicationStatus[] = [
+  'applied',
+  'reviewed',
+  'in_progress',
+  'interview_offered',
+  'interview_scheduled',
+];
+
+export type FillInCoverRequest = ClinicApplication & {
+  shift_date: string;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
+};
+
+function isFillInPendingStatus(status: ApplicationStatus): boolean {
+  return FILL_IN_PENDING_STATUSES.includes(status);
+}
+
 export async function listClinicApplications(clinicId: string): Promise<ClinicApplication[]> {
   const supabase = getSupabaseClient();
 
@@ -632,4 +650,111 @@ export async function cancelApplicationInterviewOffer(
 
   if (error) throw error;
   return data as Application;
+}
+
+export async function confirmFillInApplicant(
+  clinicId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('confirm_fill_in_applicant', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row?.shift_post_id) {
+    throw new Error('Fill-in application not found');
+  }
+
+  const { data: shift, error: shiftError } = await supabase
+    .from('shift_posts')
+    .select('clinic_id')
+    .eq('id', row.shift_post_id)
+    .maybeSingle();
+
+  if (shiftError) throw shiftError;
+  if (shift?.clinic_id !== clinicId) {
+    throw new Error('Fill-in application not found');
+  }
+
+  return row;
+}
+
+export async function listFillInCoverRequests(clinicId: string): Promise<FillInCoverRequest[]> {
+  const supabase = getSupabaseClient();
+
+  const { data: shifts, error: shiftsError } = await supabase
+    .from('shift_posts')
+    .select('id, role_type, shift_date, start_time, end_time, status')
+    .eq('clinic_id', clinicId)
+    .eq('status', 'live');
+
+  if (shiftsError) throw shiftsError;
+  if (!shifts?.length) return [];
+
+  const shiftMap = new Map(
+    shifts.map((shift) => [
+      shift.id,
+      {
+        title: `Fill-in · ${shift.shift_date}`,
+        role_type: shift.role_type,
+        shift_date: shift.shift_date,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+      },
+    ]),
+  );
+
+  const shiftIds = shifts.map((shift) => shift.id);
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*')
+    .in('shift_post_id', shiftIds)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  const requests: FillInCoverRequest[] = [];
+
+  for (const row of data ?? []) {
+    const application = row as Application;
+    if (!application.shift_post_id || !shiftMap.has(application.shift_post_id)) continue;
+    if (!isFillInPendingStatus(application.status)) continue;
+
+    const shift = shiftMap.get(application.shift_post_id)!;
+    requests.push({
+      ...application,
+      post_title: shift.title,
+      post_type: 'shift',
+      post_role_type: shift.role_type,
+      screening: null,
+      shift_date: shift.shift_date,
+      shift_start_time: shift.start_time,
+      shift_end_time: shift.end_time,
+    });
+  }
+
+  return requests.sort((a, b) => {
+    const dateCompare = a.shift_date.localeCompare(b.shift_date);
+    if (dateCompare !== 0) return dateCompare;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
+export async function getFillInPendingCount(clinicId: string): Promise<number> {
+  const requests = await listFillInCoverRequests(clinicId);
+  return requests.length;
+}
+
+export async function getShiftPostPendingApplicationCountsMap(
+  clinicId: string,
+): Promise<Record<string, number>> {
+  const requests = await listFillInCoverRequests(clinicId);
+  const counts: Record<string, number> = {};
+  for (const request of requests) {
+    if (!request.shift_post_id) continue;
+    counts[request.shift_post_id] = (counts[request.shift_post_id] ?? 0) + 1;
+  }
+  return counts;
 }

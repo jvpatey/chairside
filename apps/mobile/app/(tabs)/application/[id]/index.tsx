@@ -1,13 +1,17 @@
 import { getWorkerApplication, getUnreadConversationMap, type WorkerApplication } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
+import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
+import { toCelebrationCandidate } from '@/lib/hiringCelebrationCandidates';
 import {
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
@@ -23,6 +27,13 @@ export default function WorkerApplicationDetailScreen() {
   const [application, setApplication] = useState<WorkerApplication | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const {
+    celebrationVisible,
+    celebrationPayload,
+    showCelebration,
+    closeCelebration,
+  } = useHiringCelebration();
+  const { checkApplications } = useWorkerHiringCelebration(showCelebration);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
@@ -52,6 +63,7 @@ export default function WorkerApplicationDetailScreen() {
       }
       setApplication(row);
       setHasUnreadMessages(Boolean(unreadMap[applicationId]));
+      await checkApplications([toCelebrationCandidate(row)]);
     } catch (error) {
       Alert.alert(
         'Could not load application',
@@ -61,7 +73,7 @@ export default function WorkerApplicationDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [applicationId, goBack, user?.id]);
+  }, [applicationId, checkApplications, goBack, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -83,23 +95,30 @@ export default function WorkerApplicationDetailScreen() {
       : 'Application details';
 
   return (
-    <OnboardingShell>
-      <AuthScreenHeader title="Application" subtitle={subtitle} onBack={goBack} />
-      <View style={styles.content}>
-        {application ? (
-          <WorkerApplicationDetailCard
-            application={application}
-            returnTo={resolvedReturnTo}
-            hasUnreadMessages={hasUnreadMessages}
-            onViewPosting={handleViewPosting}
-            onUpdated={() => void load()}
-            onCancelled={() => {
-              Alert.alert('Application cancelled', 'Your application was removed.');
-              goBack();
-            }}
-          />
-        ) : null}
-      </View>
-    </OnboardingShell>
+    <>
+      <OnboardingShell>
+        <AuthScreenHeader title="Application" subtitle={subtitle} onBack={goBack} />
+        <View style={styles.content}>
+          {application ? (
+            <WorkerApplicationDetailCard
+              application={application}
+              returnTo={resolvedReturnTo}
+              hasUnreadMessages={hasUnreadMessages}
+              onViewPosting={handleViewPosting}
+              onUpdated={() => void load()}
+              onCancelled={() => {
+                Alert.alert('Application cancelled', 'Your application was removed.');
+                goBack();
+              }}
+            />
+          ) : null}
+        </View>
+      </OnboardingShell>
+      <HiringCelebrationModal
+        visible={celebrationVisible}
+        payload={celebrationPayload}
+        onClose={() => void closeCelebration()}
+      />
+    </>
   );
 }

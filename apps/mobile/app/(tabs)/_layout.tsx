@@ -40,10 +40,10 @@ function WorkerTabNavigator() {
         }}
       />
       <Tabs.Screen
-        name="fillins"
+        name="applications"
         options={{
-          title: 'Fill-ins',
-          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
+          title: 'Applications',
+          tabBarIcon: ({ color }) => <Ionicons name="document-text" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -57,10 +57,10 @@ function WorkerTabNavigator() {
         }}
       />
       <Tabs.Screen
-        name="applications"
+        name="fillins"
         options={{
-          title: 'Applications',
-          tabBarIcon: ({ color }) => <Ionicons name="document-text" size={22} color={color} />,
+          title: 'Fill-ins',
+          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
         }}
       />
       <Tabs.Screen

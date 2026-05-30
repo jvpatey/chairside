@@ -280,7 +280,7 @@ export function WorkerApplicationDetailCard({
   }[] = [
     {
       key: 'message',
-      label: hasUnreadMessages ? 'Message clinic · New' : 'Message clinic',
+      label: hasUnreadMessages ? 'Message · New' : 'Message',
       onPress: handleMessage,
     },
     {
@@ -301,18 +301,41 @@ export function WorkerApplicationDetailCard({
   if (canCancel) {
     secondarySlots.push({
       key: 'cancel',
-      label: isShift ? 'Withdraw request' : 'Cancel application',
+      label: isShift ? 'Withdraw' : 'Cancel',
       variant: 'destructive',
       onPress: handleCancel,
     });
   }
 
-  const actionRows = [0, 1].map((index) => ({
-    primary: primarySlots[index] ?? null,
-    secondary: secondarySlots[index] ?? null,
-  }));
+  type ActionSlot = {
+    key: string;
+    label: string;
+    onPress: () => void;
+    disabled?: boolean;
+    variant: 'primary' | 'secondary' | 'destructive';
+  };
 
-  const hasActions = actionRows.some((row) => row.primary || row.secondary);
+  const actionRows: ActionSlot[][] = [];
+  const [messageSlot, ...otherPrimarySlots] = primarySlots;
+
+  if (messageSlot) {
+    actionRows.push([{ ...messageSlot, variant: 'primary' }]);
+  }
+
+  const pairedRow: ActionSlot[] = [
+    ...otherPrimarySlots.map((slot) => ({ ...slot, variant: 'primary' as const })),
+    ...secondarySlots.map((slot) => ({ ...slot, disabled: undefined })),
+  ];
+
+  if (pairedRow.length === 1) {
+    actionRows.push(pairedRow);
+  } else if (pairedRow.length > 1) {
+    for (const slot of pairedRow) {
+      actionRows.push([slot]);
+    }
+  }
+
+  const hasActions = actionRows.length > 0;
 
   return (
     <View style={styles.card}>
@@ -405,44 +428,20 @@ export function WorkerApplicationDetailCard({
             <View style={styles.actionsSection}>
             <Text style={styles.actionsLabel}>Actions</Text>
             <View style={styles.actionsGrid}>
-              {actionRows.map((row, rowIndex) => {
-                const slots = [
-                  row.primary
-                    ? {
-                        key: row.primary.key,
-                        label: row.primary.label,
-                        onPress: row.primary.onPress,
-                        disabled: row.primary.disabled,
-                        variant: 'primary' as const,
-                      }
-                    : null,
-                  row.secondary
-                    ? {
-                        key: row.secondary.key,
-                        label: row.secondary.label,
-                        onPress: row.secondary.onPress,
-                        variant: row.secondary.variant,
-                      }
-                    : null,
-                ].filter((slot): slot is NonNullable<typeof slot> => slot != null);
-
-                if (slots.length === 0) return null;
-
-                return (
-                  <View key={`action-row-${rowIndex}`} style={styles.actionsRow}>
-                    {slots.map((slot) => (
-                      <View key={slot.key} style={styles.actionCell}>
-                        <OnboardingButton
-                          label={slot.label}
-                          variant={slot.variant}
-                          onPress={slot.onPress}
-                          disabled={'disabled' in slot ? slot.disabled : undefined}
-                        />
-                      </View>
-                    ))}
-                  </View>
-                );
-              })}
+              {actionRows.map((slots, rowIndex) => (
+                <View key={`action-row-${rowIndex}`} style={styles.actionsRow}>
+                  {slots.map((slot) => (
+                    <View key={slot.key} style={styles.actionCell}>
+                      <OnboardingButton
+                        label={slot.label}
+                        variant={slot.variant}
+                        onPress={slot.onPress}
+                        disabled={slot.disabled}
+                      />
+                    </View>
+                  ))}
+                </View>
+              ))}
             </View>
           </View>
           </>

@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
+import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { RowDivider } from '@/components/clinic/DetailCard';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
@@ -19,11 +20,14 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenSection } from '@/components/ui/ScreenSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import {
   getFillInAvailabilityCollapsedSummary,
   isFillInAvailabilityConfigured,
 } from '@/lib/fillInAvailabilitySummary';
+import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
 import {
   getWorkerApplicationRoute,
   getWorkerShiftDetailRoute,
@@ -97,6 +101,13 @@ export default function FillInsScreen() {
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const {
+    celebrationVisible,
+    celebrationPayload,
+    showCelebration,
+    closeCelebration,
+  } = useHiringCelebration();
+  const { checkApplications } = useWorkerHiringCelebration(showCelebration);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -107,6 +118,7 @@ export default function FillInsScreen() {
       ]);
       setShifts(shiftRows);
       setApplications(applicationRows);
+      await checkApplications(toShiftCelebrationCandidates(applicationRows));
     } catch {
       setShifts([]);
       setApplications([]);
@@ -114,7 +126,7 @@ export default function FillInsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [province, user?.id]);
+  }, [checkApplications, province, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -201,7 +213,8 @@ export default function FillInsScreen() {
   }));
 
   return (
-    <Screen title="Fill-ins" subtitle="Temporary shifts, your availability, and applications.">
+    <>
+      <Screen title="Fill-ins" subtitle="Temporary shifts, your availability, and applications.">
       <View style={styles.content}>
         <ScreenSection
           sectionLabel="Open shifts"
@@ -322,5 +335,11 @@ export default function FillInsScreen() {
         </ScreenSection>
       </View>
     </Screen>
+      <HiringCelebrationModal
+        visible={celebrationVisible}
+        payload={celebrationPayload}
+        onClose={() => void closeCelebration()}
+      />
+    </>
   );
 }

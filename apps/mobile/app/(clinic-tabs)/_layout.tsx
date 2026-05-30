@@ -7,12 +7,14 @@ import {
   DashboardTabBarButton,
   DashboardTabIcon,
 } from '@/components/navigation/DashboardTabBarButton';
+import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useTheme } from '@/theme';
 
 function ClinicTabNavigator() {
   const { colors } = useTheme();
   const { unreadCount } = useMessageUnread();
+  const { pendingCount } = useFillInPending();
 
   return (
     <>
@@ -62,10 +64,11 @@ function ClinicTabNavigator() {
           }}
         />
         <Tabs.Screen
-          name="clinic"
+          name="fill-ins"
           options={{
-            title: 'Clinic',
-            tabBarIcon: ({ color }) => <Ionicons name="business" size={22} color={color} />,
+            title: 'Fill-ins',
+            tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
+            tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -78,6 +81,7 @@ function ClinicTabNavigator() {
             ),
           }}
         />
+        <Tabs.Screen name="clinic" options={{ href: null }} />
         <Tabs.Screen name="profile" options={{ href: null }} />
         <Tabs.Screen name="application" options={{ href: null }} />
         <Tabs.Screen name="post-job" options={{ href: null }} />
@@ -96,7 +100,9 @@ function ClinicTabNavigator() {
 export default function ClinicTabLayout() {
   return (
     <MessageUnreadProvider role="clinic">
-      <ClinicTabNavigator />
+      <FillInPendingProvider>
+        <ClinicTabNavigator />
+      </FillInPendingProvider>
     </MessageUnreadProvider>
   );
 }

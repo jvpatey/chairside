@@ -266,7 +266,27 @@ async function sendWorkerStatusNotification(
   const template = typeMap[status];
   if (!template) return;
 
-  const idempotencyKey = `${template.pingramType}:${applicationId}:${status}`;
+  let notification = template;
+
+  if (status === 'rejected' && isShift) {
+    const shiftPostId = application.shift_post_id as string | null;
+    if (shiftPostId) {
+      const { data: shift } = await supabase
+        .from('shift_posts')
+        .select('status')
+        .eq('id', shiftPostId)
+        .maybeSingle();
+      if (shift?.status === 'filled') {
+        notification = {
+          pingramType: PINGRAM_TYPES.applicationRejected,
+          title: 'Cover request update',
+          message: 'This fill-in has been covered by another applicant.',
+        };
+      }
+    }
+  }
+
+  const idempotencyKey = `${notification.pingramType}:${applicationId}:${status}`;
   if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   const deepLink = `chairside:///(tabs)/application/${applicationId}`;
@@ -274,10 +294,10 @@ async function sendWorkerStatusNotification(
     pingramKey,
     pingramBase,
     buildSendBody({
-      type: template.pingramType,
+      type: notification.pingramType,
       userId: workerId,
-      title: template.title,
-      message: template.message,
+      title: notification.title,
+      message: notification.message,
       deepLink,
       secondaryId: idempotencyKey,
     }),

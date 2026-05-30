@@ -46,6 +46,7 @@ type ClinicApplicationCardProps = {
   onUpdated?: () => void;
   onShortlisted?: () => void;
   onScheduleInterview?: (application: ClinicApplication) => void;
+  onHired?: (application: ClinicApplication) => void;
 };
 
 function truncatePreview(text: string, maxLength = 88): string {
@@ -61,6 +62,7 @@ export function ClinicApplicationCard({
   onUpdated,
   onShortlisted,
   onScheduleInterview,
+  onHired,
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -153,6 +155,9 @@ export function ClinicApplicationCard({
     try {
       await updateApplicationStatus(application.id, status);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (status === 'selected') {
+        onHired?.(application);
+      }
       if (status === 'in_progress') {
         (onShortlisted ?? onUpdated)?.();
       } else {

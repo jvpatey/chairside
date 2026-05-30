@@ -10,13 +10,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import {
-  getClinicHomeRoute,
-  getClinicPostingsRoute,
-  getClinicShiftApplicantsRoute,
-  getEditShiftRoute,
-  type FillInReturnTarget,
-} from '@/lib/routing';
+import { CLINIC_FILL_INS, getClinicHomeRoute, getClinicShiftApplicantsRoute, getEditShiftRoute, type FillInReturnTarget } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function ShiftDetailScreen() {
@@ -32,13 +26,20 @@ export default function ShiftDetailScreen() {
       gap: spacing.lg,
     },
     footer: {
-      flexDirection: 'row',
       gap: spacing.sm,
     },
-    footerButton: {
+    footerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    footerRowButton: {
       flex: 1,
     },
   }));
+
+  const reviewApplicantsLabel =
+    applicationCount === 1 ? 'Review applicant' : `Review ${applicationCount} applicants`;
 
   const loadShift = useCallback(async () => {
     if (!shiftId || !user?.id) {
@@ -91,33 +92,38 @@ export default function ShiftDetailScreen() {
         <View style={styles.footer}>
           {applicationCount > 0 ? (
             <OnboardingButton
-              style={styles.footerButton}
-              label={`View applicants (${applicationCount})`}
+              label={reviewApplicantsLabel}
               onPress={() =>
-                router.push(getClinicShiftApplicantsRoute(shift.id, returnTo ?? 'postings-fill-ins'))
+                router.push(getClinicShiftApplicantsRoute(shift.id, returnTo ?? 'fill-ins-tab'))
               }
             />
           ) : null}
-          {user?.id ? (
-            <ShiftPostManageMenu
-              style={styles.footerButton}
-              clinicId={user.id}
-              shift={shift}
-              onUpdated={setShift}
-              onDeleted={() =>
-                router.replace(
-                  returnTo === 'dashboard-fill-ins'
-                    ? getClinicHomeRoute('fill-ins')
-                    : getClinicPostingsRoute('fill-ins'),
-                )
+          <View style={styles.footerRow}>
+            <OnboardingButton
+              style={styles.footerRowButton}
+              label="Edit fill-in"
+              variant={applicationCount > 0 ? 'secondary' : 'primary'}
+              onPress={() =>
+                router.push(getEditShiftRoute(shift.id, returnTo ?? 'fill-ins-tab'))
               }
             />
-          ) : null}
-          <OnboardingButton
-            style={styles.footerButton}
-            label="Edit fill-in"
-            onPress={() => router.push(getEditShiftRoute(shift.id, returnTo ?? 'postings-fill-ins'))}
-          />
+            {user?.id ? (
+              <ShiftPostManageMenu
+                trigger={applicationCount > 0 ? 'icon' : 'button'}
+                style={applicationCount > 0 ? undefined : styles.footerRowButton}
+                clinicId={user.id}
+                shift={shift}
+                onUpdated={setShift}
+                onDeleted={() =>
+                  router.replace(
+                    returnTo === 'dashboard-fill-ins'
+                      ? getClinicHomeRoute('fill-ins')
+                      : CLINIC_FILL_INS,
+                  )
+                }
+              />
+            ) : null}
+          </View>
         </View>
       }
     >

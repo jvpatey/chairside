@@ -3,10 +3,14 @@ import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
+import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { Screen } from '@/components/ui/Screen';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
+import { toJobCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
 import { getWorkerApplicationRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
@@ -16,6 +20,13 @@ export default function WorkerApplicationsScreen() {
     ReturnType<typeof listWorkerJobApplications>
   >>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
+  const {
+    celebrationVisible,
+    celebrationPayload,
+    showCelebration,
+    closeCelebration,
+  } = useHiringCelebration();
+  const { checkApplications } = useWorkerHiringCelebration(showCelebration);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     list: { gap: spacing.md },
@@ -35,6 +46,7 @@ export default function WorkerApplicationsScreen() {
       ]);
       setApplications(rows);
       setUnreadMap(unread);
+      await checkApplications(toJobCelebrationCandidates(rows));
     } catch (error) {
       setApplications([]);
       Alert.alert(
@@ -42,28 +54,35 @@ export default function WorkerApplicationsScreen() {
         error instanceof Error ? error.message : 'Please try again.',
       );
     }
-  }, [user?.id]);
+  }, [checkApplications, user?.id]);
 
   useRefreshOnFocus(load);
 
   return (
-    <Screen title="Applications" subtitle="Roles you've applied to — track status here.">
-      {applications.length === 0 ? (
-        <Text style={styles.empty}>No role applications yet. Browse open roles to get started.</Text>
-      ) : (
-        <View style={styles.list}>
-          {applications.map((application) => (
-            <WorkerApplicationListCard
-              key={application.id}
-              application={application}
-              hasUnreadMessages={Boolean(unreadMap[application.id])}
-              onPress={() =>
-                router.push(getWorkerApplicationRoute(application.id, 'applications-tab'))
-              }
-            />
-          ))}
-        </View>
-      )}
-    </Screen>
+    <>
+      <Screen title="Applications" subtitle="Roles you've applied to — track status here.">
+        {applications.length === 0 ? (
+          <Text style={styles.empty}>No role applications yet. Browse open roles to get started.</Text>
+        ) : (
+          <View style={styles.list}>
+            {applications.map((application) => (
+              <WorkerApplicationListCard
+                key={application.id}
+                application={application}
+                hasUnreadMessages={Boolean(unreadMap[application.id])}
+                onPress={() =>
+                  router.push(getWorkerApplicationRoute(application.id, 'applications-tab'))
+                }
+              />
+            ))}
+          </View>
+        )}
+      </Screen>
+      <HiringCelebrationModal
+        visible={celebrationVisible}
+        payload={celebrationPayload}
+        onClose={() => void closeCelebration()}
+      />
+    </>
   );
 }

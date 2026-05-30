@@ -5,10 +5,13 @@ import {
   type ShiftPost,
   type ShiftPostStatus,
 } from '@chairside/api';
-import { Alert, type StyleProp, type ViewStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { Alert, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type ManageAction = {
   label: string;
@@ -52,6 +55,7 @@ type ShiftPostManageMenuProps = {
   onUpdated: (shift: ShiftPost) => void;
   onDeleted: () => void;
   style?: StyleProp<ViewStyle>;
+  trigger?: 'button' | 'icon';
 };
 
 export function ShiftPostManageMenu({
@@ -60,7 +64,9 @@ export function ShiftPostManageMenu({
   onUpdated,
   onDeleted,
   style,
+  trigger = 'button',
 }: ShiftPostManageMenuProps) {
+  const { colors } = useTheme();
   const shiftLabel = formatShiftPostRoleTitle(shift.role_type);
 
   const handleStatusChange = async (status: ShiftPostStatus) => {
@@ -136,11 +142,49 @@ export function ShiftPostManageMenu({
     ]);
   };
 
+  const iconStyles = useThemedStyles(({ colors }) => ({
+    iconButton: {
+      width: 50,
+      height: 50,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
+    iconButtonPressed: {
+      backgroundColor: colors.backgroundGrouped,
+      opacity: 0.9,
+    },
+  }));
+
+  const handlePress = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    showManageMenu();
+  };
+
+  if (trigger === 'icon') {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Manage fill-in"
+        onPress={handlePress}
+        style={({ pressed }) => [
+          iconStyles.iconButton,
+          pressed && iconStyles.iconButtonPressed,
+          style,
+        ]}>
+        <Ionicons name="ellipsis-horizontal" size={22} color={colors.labelPrimary} />
+      </Pressable>
+    );
+  }
+
   return (
     <OnboardingButton
       label="Manage"
       variant="secondary"
-      onPress={showManageMenu}
+      onPress={handlePress}
       style={style}
     />
   );

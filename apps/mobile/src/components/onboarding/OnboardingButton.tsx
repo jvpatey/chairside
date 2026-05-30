@@ -22,6 +22,7 @@ export function OnboardingButton({
       alignSelf: 'stretch',
       borderRadius: 12,
       paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       minHeight: 50,
@@ -108,7 +109,9 @@ export function OnboardingButton({
               : isPrimary
                 ? [styles.labelPrimary, disabled && styles.labelPrimaryDisabled]
                 : styles.labelSecondary
-        }>
+        }
+        numberOfLines={2}
+        textAlign="center">
         {label}
       </Text>
     </Pressable>

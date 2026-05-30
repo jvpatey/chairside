@@ -1,20 +1,11 @@
-import { listJobPosts, listShiftPosts, getJobPostApplicationCountsMap, type JobPost, type ShiftPost } from '@chairside/api';
+import { listJobPosts, getJobPostApplicationCountsMap, type JobPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  CLINIC_POST_JOB,
-  getJobDetailRoute,
-  getPostShiftRoute,
-  getRoleHistoryRoute,
-  getShiftDetailRoute,
-  type FillInReturnTarget,
-} from '@/lib/routing';
+import { CLINIC_FILL_INS, CLINIC_POST_JOB, getJobDetailRoute, getRoleHistoryRoute } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
-import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
-import { RolePostingFilters, ShiftPostingFilters } from '@/components/clinic/PostingFilters';
-import { PostingsTabBar, type PostingsTab } from '@/components/clinic/PostingsTabBar';
+import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { Screen } from '@/components/ui/Screen';
@@ -23,13 +14,9 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   countHistoryJobs,
-  countMainListJobs,
   filterJobPostsForMainList,
-  filterShiftPosts,
   type JobStatusFilter,
   type RoleTypeFilter,
-  type ShiftDateFilter,
-  type ShiftStatusFilter,
 } from '@/lib/postingFilters';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -92,19 +79,14 @@ export default function ClinicPostingsScreen() {
   const { isProfileComplete } = useClinicProfile();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
-  const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
-  const [selectedTab, setSelectedTab] = useState<PostingsTab>('roles');
   const [jobStatusFilter, setJobStatusFilter] = useState<JobStatusFilter>('all');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
-  const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
-  const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
-  const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (tab === 'fill-ins') {
-      setSelectedTab('fill-ins');
+      router.replace(CLINIC_FILL_INS);
     }
   }, [tab]);
 
@@ -116,13 +98,7 @@ export default function ClinicPostingsScreen() {
   );
 
   const historyCounts = useMemo(() => countHistoryJobs(jobs), [jobs]);
-  const mainListCount = useMemo(() => countMainListJobs(jobs), [jobs]);
   const hasRoleHistory = historyCounts.archived > 0 || historyCounts.filled > 0;
-
-  const filteredShifts = useMemo(
-    () => filterShiftPosts(shifts, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter),
-    [shifts, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter],
-  );
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -161,24 +137,20 @@ export default function ClinicPostingsScreen() {
   const load = useCallback(async () => {
     if (!user?.id) {
       setJobs([]);
-      setShifts([]);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      const [jobPosts, shiftPosts, counts] = await Promise.all([
+      const [jobPosts, counts] = await Promise.all([
         listJobPosts(user.id),
-        listShiftPosts(user.id),
         getJobPostApplicationCountsMap(user.id),
       ]);
       setJobs(jobPosts);
-      setShifts(shiftPosts);
       setApplicantCounts(counts);
     } catch (error) {
       setJobs([]);
-      setShifts([]);
       setApplicantCounts({});
       Alert.alert(
         'Could not load postings',
@@ -204,21 +176,12 @@ export default function ClinicPostingsScreen() {
     });
   }, []);
 
-  const postTarget =
-    selectedTab === 'roles' ? CLINIC_POST_JOB : getPostShiftRoute('postings-fill-ins');
-  const postLabel = selectedTab === 'roles' ? 'Post role' : 'Post fill-in';
-  const fillInReturnTo: FillInReturnTarget = 'postings-fill-ins';
+  const postTarget = CLINIC_POST_JOB;
+  const postLabel = 'Post role';
 
   return (
-    <Screen title="Postings">
+    <Screen title="Postings" subtitle="Open roles at your clinic.">
       <View style={styles.wrap}>
-        <PostingsTabBar
-          selected={selectedTab}
-          roleCount={mainListCount}
-          fillInCount={shifts.length}
-          onChange={setSelectedTab}
-        />
-
         <OnboardingButton
           label={postLabel}
           disabled={!isProfileComplete}
@@ -227,7 +190,7 @@ export default function ClinicPostingsScreen() {
 
         {isLoading ? (
           <Text style={styles.loading}>Loading postings…</Text>
-        ) : selectedTab === 'roles' ? (
+        ) : (
           <>
             {mainListJobs.length > 0 ? (
               <RolePostingFilters
@@ -298,43 +261,6 @@ export default function ClinicPostingsScreen() {
                 <Ionicons name="chevron-forward" size={20} color={colors.labelTertiary} />
               </Pressable>
             ) : null}
-          </>
-        ) : (
-          <>
-            {shifts.length > 0 ? (
-              <ShiftPostingFilters
-                statusFilter={shiftStatusFilter}
-                roleTypeFilter={shiftRoleTypeFilter}
-                shiftDateFilter={shiftDateFilter}
-                onStatusChange={setShiftStatusFilter}
-                onRoleTypeChange={setShiftRoleTypeFilter}
-                onShiftDateChange={setShiftDateFilter}
-              />
-            ) : null}
-
-            {shifts.length === 0 ? (
-              <PostingListEmptyState
-                icon="calendar-outline"
-                title="No fill-ins yet"
-                body="Post a fill-in shift when you need temporary or urgent coverage."
-              />
-            ) : filteredShifts.length === 0 ? (
-              <PostingListEmptyState
-                icon="filter-outline"
-                title="No fill-ins in this filter"
-                body="Try a different filter or post a new fill-in shift."
-              />
-            ) : (
-              <View style={styles.list}>
-                {filteredShifts.map((shift) => (
-                  <FillInPostingCard
-                    key={shift.id}
-                    shift={shift}
-                    onPress={() => router.push(getShiftDetailRoute(shift.id, fillInReturnTo))}
-                  />
-                ))}
-              </View>
-            )}
           </>
         )}
       </View>
