@@ -188,6 +188,7 @@ export default function SignUpScreen() {
           label="Password"
           placeholder="Create a password"
           secureTextEntry
+          enablePasswordVisibilityToggle
           value={password}
           onChangeText={setPassword}
           editable={!isSubmitting}
@@ -196,6 +197,7 @@ export default function SignUpScreen() {
           label="Confirm password"
           placeholder="Confirm your password"
           secureTextEntry
+          enablePasswordVisibilityToggle
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           editable={!isSubmitting}

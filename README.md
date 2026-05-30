@@ -74,7 +74,9 @@ Press `i` in the Expo dev tools to open the iOS simulator.
 
 - **Email / Google:** work in Expo Go once Supabase env vars and redirect URLs (`chairside://**`) are configured.
 - **Sign in with Apple:** requires a dev build — `npx expo run:ios` (not Expo Go).
-- Supabase → Authentication → URL Configuration must include `chairside://**`.
+- Supabase → Authentication → URL Configuration:
+  - **Redirect URLs:** add `chairside://**` (and `exp://**` for Expo Go dev).
+  - **Site URL:** set to `chairside://auth/callback` (not `localhost`) so confirmation and password-reset links open the app on device.
 
 ## Scripts
 

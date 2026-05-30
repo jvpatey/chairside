@@ -76,6 +76,7 @@ export default function RootLayout() {
                   <Stack.Screen name="(clinic-setup)" options={{ headerShown: false }} />
                   <Stack.Screen name="(worker-setup)" options={{ headerShown: false }} />
                   <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+                  <Stack.Screen name="auth/reset-password" options={{ headerShown: false }} />
                   </Stack>
                 </OnboardingProvider>
               </ResumePreviewProvider>

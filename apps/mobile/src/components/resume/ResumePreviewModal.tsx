@@ -4,16 +4,16 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import Pdf from 'react-native-pdf';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ResumePdfViewer } from '@/components/resume/ResumePdfViewer';
+import { isNativePdfViewerAvailable } from '@/lib/nativePdfViewer';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ResumePreviewModalProps = {
@@ -40,14 +40,15 @@ export function ResumePreviewModal({
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const canUseNativePdf = isNativePdfViewerAvailable();
 
   useEffect(() => {
-    if (localUri) {
+    if (localUri && canUseNativePdf) {
       setIsPdfLoading(true);
     } else {
       setIsPdfLoading(false);
     }
-  }, [localUri]);
+  }, [canUseNativePdf, localUri]);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -103,7 +104,7 @@ export function ResumePreviewModal({
       ...StyleSheet.absoluteFillObject,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.08)',
+      backgroundColor: 'rgba(0, 0, 0, 0.08)',
     },
   }));
 
@@ -120,7 +121,8 @@ export function ResumePreviewModal({
     });
   };
 
-  const showPdf = localUri && !error && !isLoading;
+  const showPdf = localUri && !error && !isLoading && canUseNativePdf;
+  const showExpoGoFallback = localUri && !error && !isLoading && !canUseNativePdf;
 
   return (
     <Modal
@@ -166,19 +168,11 @@ export function ResumePreviewModal({
 
           {showPdf ? (
             <>
-              <Pdf
-                source={{ uri: localUri, cache: false }}
+              <ResumePdfViewer
+                uri={localUri}
                 style={styles.pdf}
-                trustAllCerts={Platform.OS === 'ios'}
                 onLoadComplete={() => setIsPdfLoading(false)}
-                onError={(pdfError) => {
-                  setIsPdfLoading(false);
-                  const message =
-                    pdfError instanceof Error
-                      ? pdfError.message
-                      : 'Could not display this resume.';
-                  onPdfError(message);
-                }}
+                onError={onPdfError}
               />
               {isPdfLoading ? (
                 <View style={styles.loadingOverlay} pointerEvents="none">
@@ -186,6 +180,17 @@ export function ResumePreviewModal({
                 </View>
               ) : null}
             </>
+          ) : null}
+
+          {showExpoGoFallback ? (
+            <View style={styles.centered}>
+              <Text style={styles.statusText}>
+                In-app PDF preview needs a development or TestFlight build. Share the resume to
+                open it in another app.
+              </Text>
+              <OnboardingButton label="Share resume" onPress={() => void handleShare()} />
+              <OnboardingButton label="Close" variant="secondary" onPress={onClose} />
+            </View>
           ) : null}
         </View>
       </View>
