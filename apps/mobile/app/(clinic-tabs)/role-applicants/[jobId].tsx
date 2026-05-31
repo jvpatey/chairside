@@ -71,6 +71,9 @@ export default function ClinicRoleApplicationsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [listFilter, setListFilter] = useState<ApplicantListFilter>('all');
   const [scheduleTarget, setScheduleTarget] = useState<ClinicApplication | null>(null);
+  const [scheduleMode, setScheduleMode] = useState<
+    'offer' | 'edit_offer' | 'propose_reschedule'
+  >('offer');
   const [sectionExpanded, setSectionExpanded] = useState<
     Partial<Record<ApplicantPipelineSectionId, boolean>>
   >({});
@@ -168,7 +171,10 @@ export default function ClinicRoleApplicationsScreen() {
         hasUnreadMessages={Boolean(unreadMap[application.id])}
         onUpdated={() => void load()}
         onShortlisted={handleShortlisted}
-        onScheduleInterview={setScheduleTarget}
+        onScheduleInterview={(application, sheetMode = 'offer') => {
+          setScheduleMode(sheetMode);
+          setScheduleTarget(application);
+        }}
         onHired={(hiredApplication) =>
           showCelebration({
             applicationId: hiredApplication.id,
@@ -237,8 +243,9 @@ export default function ClinicRoleApplicationsScreen() {
           visible
           application={scheduleTarget}
           clinicName={clinicName}
+          mode={scheduleMode}
           defaultLocation={defaultLocation}
-          onOffered={handleInterviewOffered}
+          onSaved={handleInterviewOffered}
           onClose={() => setScheduleTarget(null)}
         />
       ) : null}

@@ -2,6 +2,7 @@ import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
@@ -28,10 +29,20 @@ function ConversationAvatar({
     avatarKind === 'worker' ? conversation.counterpart_logo_storage_path : null,
   );
 
+  if (avatarKind === 'clinic') {
+    return (
+      <ClinicLogoAvatar
+        clinicName={conversation.counterpart_name}
+        logoUri={clinicLogoUri}
+        size={44}
+      />
+    );
+  }
+
   return (
     <WorkerProfileAvatar
       displayName={conversation.counterpart_name}
-      photoUri={avatarKind === 'clinic' ? clinicLogoUri : workerPhotoUri}
+      photoUri={workerPhotoUri}
       size={44}
     />
   );

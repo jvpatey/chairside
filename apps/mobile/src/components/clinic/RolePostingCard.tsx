@@ -18,6 +18,7 @@ type RolePostingCardProps = {
   job: JobPost;
   applicantCount?: number;
   onPress?: () => void;
+  onApplicantsPress?: () => void;
   manage?: RolePostingCardManageProps;
 };
 
@@ -25,6 +26,7 @@ export function RolePostingCard({
   job,
   applicantCount,
   onPress,
+  onApplicantsPress,
   manage,
 }: RolePostingCardProps) {
   const { colors } = useTheme();
@@ -118,6 +120,14 @@ export function RolePostingCard({
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
     },
+    applicantsPressable: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    applicantsPressablePressed: {
+      opacity: 0.75,
+    },
   }));
 
   const handleManagePress = () => {
@@ -174,14 +184,39 @@ export function RolePostingCard({
           )}
           {applicantCount != null ? (
             <View style={styles.footerEnd}>
-              <View style={hasApplicants ? styles.applicantsPill : undefined}>
-                <Text style={[styles.applicants, hasApplicants && styles.applicantsActive]}>
-                  {applicantCount === 1 ? '1 applicant' : `${applicantCount} applicants`}
-                </Text>
-              </View>
-              {onPress ? (
-                <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
-              ) : null}
+              {hasApplicants && onApplicantsPress ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Review ${applicantCount} applicants`}
+                  accessibilityHint="Opens applicants for this role"
+                  onPress={(event) => {
+                    event.stopPropagation?.();
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onApplicantsPress();
+                  }}
+                  style={({ pressed }) => [
+                    styles.applicantsPressable,
+                    pressed && styles.applicantsPressablePressed,
+                  ]}>
+                  <View style={styles.applicantsPill}>
+                    <Text style={[styles.applicants, styles.applicantsActive]}>
+                      {applicantCount === 1 ? '1 applicant' : `${applicantCount} applicants`}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+                </Pressable>
+              ) : (
+                <>
+                  <View style={hasApplicants ? styles.applicantsPill : undefined}>
+                    <Text style={[styles.applicants, hasApplicants && styles.applicantsActive]}>
+                      {applicantCount === 1 ? '1 applicant' : `${applicantCount} applicants`}
+                    </Text>
+                  </View>
+                  {onPress ? (
+                    <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+                  ) : null}
+                </>
+              )}
             </View>
           ) : onPress ? (
             <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />

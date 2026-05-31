@@ -1,5 +1,14 @@
-import { offerApplicationInterview, type ClinicApplication } from '@chairside/api';
-import { formatInterviewDateTime } from '@chairside/config';
+import {
+  offerApplicationInterview,
+  proposeApplicationInterviewUpdate,
+  updateApplicationInterviewOffer,
+  type ClinicApplication,
+  type ScheduleApplicationInterviewInput,
+} from '@chairside/api';
+import {
+  formatInterviewDateTime,
+  parseInterviewDetailsBlob,
+} from '@chairside/config';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -34,13 +43,46 @@ const DURATION_OPTIONS = [
   { value: '90', label: '90 min' },
 ] as const;
 
+export type InterviewScheduleSheetMode = 'offer' | 'edit_offer' | 'propose_reschedule';
+
 type InterviewScheduleSheetProps = {
   visible: boolean;
   application: ClinicApplication;
   clinicName: string;
+  mode?: InterviewScheduleSheetMode;
   defaultLocation?: string | null;
-  onOffered: () => void;
+  onSaved: () => void;
   onClose: () => void;
+  /** When set, overrides default clinic API submit (e.g. worker reschedule). */
+  onSubmit?: (input: ScheduleApplicationInterviewInput) => Promise<void>;
+  titleOverride?: string;
+  subtitleOverride?: string;
+  submitLabelOverride?: string;
+};
+
+const MODE_COPY: Record<
+  InterviewScheduleSheetMode,
+  { title: string; subtitle: string; submitLabel: string; showCalendarLink: boolean }
+> = {
+  offer: {
+    title: 'Schedule interview',
+    subtitle: 'The candidate must accept before the interview is marked as set.',
+    submitLabel: 'Send invite',
+    showCalendarLink: true,
+  },
+  edit_offer: {
+    title: 'Edit interview invite',
+    subtitle: 'Update the invitation before the candidate responds.',
+    submitLabel: 'Save changes',
+    showCalendarLink: true,
+  },
+  propose_reschedule: {
+    title: 'Propose new time',
+    subtitle:
+      'The confirmed interview stays until the candidate accepts this new time.',
+    submitLabel: 'Send proposal',
+    showCalendarLink: false,
+  },
 };
 
 function defaultInterviewDate(): Date {
@@ -49,13 +91,48 @@ function defaultInterviewDate(): Date {
   return date;
 }
 
+function resolveInitialInterviewState(
+  application: ClinicApplication,
+  mode: InterviewScheduleSheetMode,
+  defaultLocation?: string | null,
+): { interviewAt: Date; durationMinutes: string; location: string; details: string } {
+  const sourceAt =
+    mode === 'propose_reschedule'
+      ? application.interview_proposed_at ?? application.interview_at
+      : application.interview_at;
+  const sourceDuration =
+    mode === 'propose_reschedule'
+      ? application.interview_proposed_duration_minutes ?? application.interview_duration_minutes
+      : application.interview_duration_minutes;
+  const sourceDetails =
+    mode === 'propose_reschedule'
+      ? application.interview_proposed_details ?? application.interview_details
+      : application.interview_details;
+
+  const parsed = parseInterviewDetailsBlob(sourceDetails);
+  const interviewAt = sourceAt ? new Date(sourceAt) : defaultInterviewDate();
+  const safeDate = Number.isNaN(interviewAt.getTime()) ? defaultInterviewDate() : interviewAt;
+
+  return {
+    interviewAt: safeDate,
+    durationMinutes: String(sourceDuration ?? 45),
+    location: parsed.location ?? defaultLocation?.trim() ?? '',
+    details: parsed.notes ?? '',
+  };
+}
+
 export function InterviewScheduleSheet({
   visible,
   application,
   clinicName,
+  mode = 'offer',
   defaultLocation,
-  onOffered,
+  onSaved,
   onClose,
+  onSubmit,
+  titleOverride,
+  subtitleOverride,
+  submitLabelOverride,
 }: InterviewScheduleSheetProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -67,16 +144,24 @@ export function InterviewScheduleSheet({
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const copy = {
+    ...MODE_COPY[mode],
+    title: titleOverride ?? MODE_COPY[mode].title,
+    subtitle: subtitleOverride ?? MODE_COPY[mode].subtitle,
+    submitLabel: submitLabelOverride ?? MODE_COPY[mode].submitLabel,
+  };
+
   useEffect(() => {
     if (!visible) return;
-    setInterviewAt(defaultInterviewDate());
-    setDurationMinutes('45');
-    setDetails('');
-    setLocation(defaultLocation?.trim() ?? '');
+    const initial = resolveInitialInterviewState(application, mode, defaultLocation);
+    setInterviewAt(initial.interviewAt);
+    setDurationMinutes(initial.durationMinutes);
+    setDetails(initial.details);
+    setLocation(initial.location);
     setShowDatePicker(false);
     setShowTimePicker(false);
     setIsSaving(false);
-  }, [defaultLocation, visible]);
+  }, [application, defaultLocation, mode, visible]);
 
   const inviteInput = useMemo<InterviewInviteInput>(
     () => ({
@@ -278,25 +363,40 @@ export function InterviewScheduleSheet({
     });
   };
 
-  const sendInterviewOffer = useCallback(async () => {
+  const buildDetailsPayload = useCallback(
+    () => [location.trim(), details.trim()].filter(Boolean).join('\n\n') || null,
+    [details, location],
+  );
+
+  const submitInterview = useCallback(async () => {
     if (interviewAt.getTime() <= Date.now()) {
       Alert.alert('Choose a future time', 'Interview must be scheduled in the future.');
       return;
     }
 
+    const payload = {
+      interviewAt: interviewAt.toISOString(),
+      durationMinutes: Number(durationMinutes),
+      details: buildDetailsPayload(),
+    };
+
     setIsSaving(true);
     try {
-      await offerApplicationInterview(application.id, {
-        interviewAt: interviewAt.toISOString(),
-        durationMinutes: Number(durationMinutes),
-        details: [location.trim(), details.trim()].filter(Boolean).join('\n\n') || null,
-      });
+      if (onSubmit) {
+        await onSubmit(payload);
+      } else if (mode === 'offer') {
+        await offerApplicationInterview(application.id, payload);
+      } else if (mode === 'edit_offer') {
+        await updateApplicationInterviewOffer(application.id, payload);
+      } else {
+        await proposeApplicationInterviewUpdate(application.id, payload);
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onOffered();
+      onSaved();
       onClose();
     } catch (error) {
       Alert.alert(
-        'Could not send invite',
+        mode === 'offer' ? 'Could not send invite' : 'Could not save interview',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -304,12 +404,13 @@ export function InterviewScheduleSheet({
     }
   }, [
     application.id,
-    details,
+    buildDetailsPayload,
     durationMinutes,
     interviewAt,
-    location,
+    mode,
     onClose,
-    onOffered,
+    onSaved,
+    onSubmit,
   ]);
 
   const handleAddToCalendar = useCallback(async () => {
@@ -348,13 +449,11 @@ export function InterviewScheduleSheet({
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={styles.title}>Schedule interview</Text>
+            <Text style={styles.title}>{copy.title}</Text>
             <Text style={styles.subtitle}>
               {application.worker_display_name ?? 'Applicant'} · {application.post_title}
             </Text>
-            <Text style={[styles.subtitle, { fontSize: 13 }]}>
-              The candidate must accept before the interview is marked as set.
-            </Text>
+            <Text style={[styles.subtitle, { fontSize: 13 }]}>{copy.subtitle}</Text>
           </View>
 
           <ScrollView
@@ -471,18 +570,20 @@ export function InterviewScheduleSheet({
           <View style={styles.footer}>
             <View style={styles.actions}>
               <OnboardingButton
-                label="Send invite"
-                onPress={() => void sendInterviewOffer()}
+                label={copy.submitLabel}
+                onPress={() => void submitInterview()}
                 disabled={isSaving}
               />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add to my calendar"
-                onPress={() => void handleAddToCalendar()}
-                disabled={isSaving}
-                style={styles.calendarLink}>
-                <Text style={styles.calendarLinkText}>Add to my calendar</Text>
-              </Pressable>
+              {copy.showCalendarLink ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add to my calendar"
+                  onPress={() => void handleAddToCalendar()}
+                  disabled={isSaving}
+                  style={styles.calendarLink}>
+                  <Text style={styles.calendarLinkText}>Add to my calendar</Text>
+                </Pressable>
+              ) : null}
             </View>
 
             <Pressable

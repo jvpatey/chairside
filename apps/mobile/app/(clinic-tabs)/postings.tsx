@@ -1,7 +1,13 @@
 import { listJobPosts, getJobPostApplicationCountsMap, type JobPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CLINIC_FILL_INS, CLINIC_POST_JOB, getJobDetailRoute, getRoleHistoryRoute } from '@/lib/routing';
+import {
+  CLINIC_FILL_INS,
+  CLINIC_POST_JOB,
+  getClinicRoleApplicationsRoute,
+  getJobDetailRoute,
+  getRoleHistoryRoute,
+} from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
@@ -227,6 +233,14 @@ export default function ClinicPostingsScreen() {
                     job={job}
                     applicantCount={applicantCounts[job.id] ?? 0}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
+                    onApplicantsPress={
+                      (applicantCounts[job.id] ?? 0) > 0
+                        ? () =>
+                            router.push(
+                              getClinicRoleApplicationsRoute(job.id, 'postings-tab'),
+                            )
+                        : undefined
+                    }
                     manage={
                       user?.id
                         ? {

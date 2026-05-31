@@ -36,6 +36,10 @@ const PINGRAM_TYPES = {
   applicationInterviewAccepted: 'application_interview_accepted',
   applicationInterviewDeclined: 'application_interview_declined',
   applicationInterviewCancelled: 'application_interview_cancelled',
+  applicationInterviewRescheduleProposed: 'application_interview_reschedule_proposed',
+  applicationInterviewRescheduleAccepted: 'application_interview_reschedule_accepted',
+  applicationInterviewRescheduleDeclined: 'application_interview_reschedule_declined',
+  applicationInterviewScheduledCancelled: 'application_interview_scheduled_cancelled',
   applicationSelected: 'application_selected',
   applicationRejected: 'application_rejected',
   applicationHired: 'application_hired',
@@ -240,6 +244,26 @@ async function sendWorkerStatusNotification(
       title: 'Interview invitation cancelled',
       message: 'The clinic withdrew your interview invitation for this role.',
     },
+    interview_reschedule_proposed: {
+      pingramType: PINGRAM_TYPES.applicationInterviewRescheduleProposed,
+      title: 'New interview time proposed',
+      message: 'The clinic proposed a new interview time for this role.',
+    },
+    interview_reschedule_accepted: {
+      pingramType: PINGRAM_TYPES.applicationInterviewRescheduleAccepted,
+      title: 'Interview time updated',
+      message: 'Your interview time change was accepted.',
+    },
+    interview_reschedule_declined: {
+      pingramType: PINGRAM_TYPES.applicationInterviewRescheduleDeclined,
+      title: 'Interview time change declined',
+      message: 'The clinic declined your proposed interview time.',
+    },
+    interview_scheduled_cancelled: {
+      pingramType: PINGRAM_TYPES.applicationInterviewScheduledCancelled,
+      title: 'Interview cancelled',
+      message: 'The clinic cancelled your confirmed interview for this role.',
+    },
     interview_scheduled: {
       pingramType: PINGRAM_TYPES.applicationInterviewScheduled,
       title: 'Interview confirmed',
@@ -434,6 +458,73 @@ async function handleApplicationInsert(
   );
 }
 
+async function handleInterviewProposalChange(
+  supabase: ReturnType<typeof createClient>,
+  pingramKey: string,
+  pingramBase: string,
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+) {
+  const oldProposed = oldRecord?.interview_proposed_at as string | null | undefined;
+  const newProposed = record.interview_proposed_at as string | null | undefined;
+  const proposedBy = record.interview_proposed_by as string | null;
+
+  if (!oldProposed && newProposed && proposedBy) {
+    if (proposedBy === 'clinic') {
+      await sendWorkerStatusNotification(
+        supabase,
+        pingramKey,
+        pingramBase,
+        record,
+        'interview_reschedule_proposed',
+      );
+    } else {
+      await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+        pingramType: PINGRAM_TYPES.applicationInterviewRescheduleProposed,
+        title: 'Interview time change requested',
+        message: 'An applicant proposed a new interview time.',
+      });
+    }
+    return;
+  }
+
+  if (oldProposed && !newProposed) {
+    const oldAt = oldRecord?.interview_at as string | undefined;
+    const newAt = record.interview_at as string | undefined;
+    if (oldAt !== newAt) {
+      if (oldRecord?.interview_proposed_by === 'clinic') {
+        await sendWorkerStatusNotification(
+          supabase,
+          pingramKey,
+          pingramBase,
+          record,
+          'interview_reschedule_accepted',
+        );
+      } else {
+        await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+          pingramType: PINGRAM_TYPES.applicationInterviewRescheduleAccepted,
+          title: 'Interview time updated',
+          message: 'You accepted the proposed interview time.',
+        });
+      }
+    } else if (oldRecord?.interview_proposed_by === 'clinic') {
+      await sendWorkerStatusNotification(
+        supabase,
+        pingramKey,
+        pingramBase,
+        record,
+        'interview_reschedule_declined',
+      );
+    } else {
+      await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+        pingramType: PINGRAM_TYPES.applicationInterviewRescheduleDeclined,
+        title: 'Interview time change declined',
+        message: 'You declined the proposed interview time.',
+      });
+    }
+  }
+}
+
 async function handleApplicationUpdate(
   supabase: ReturnType<typeof createClient>,
   pingramKey: string,
@@ -443,7 +534,34 @@ async function handleApplicationUpdate(
 ) {
   const oldStatus = oldRecord?.status as string | undefined;
   const newStatus = record.status as string;
-  if (!newStatus || oldStatus === newStatus) return;
+  if (!newStatus) return;
+
+  if (newStatus === 'interview_scheduled' && oldStatus === 'interview_scheduled') {
+    await handleInterviewProposalChange(supabase, pingramKey, pingramBase, record, oldRecord);
+    return;
+  }
+
+  if (oldStatus === newStatus) return;
+
+  if (oldStatus === 'interview_scheduled' && newStatus === 'in_progress') {
+    const closedBy = record.interview_offer_closed_by as string | null;
+    if (closedBy === 'clinic') {
+      await sendWorkerStatusNotification(
+        supabase,
+        pingramKey,
+        pingramBase,
+        record,
+        'interview_scheduled_cancelled',
+      );
+    } else {
+      await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+        pingramType: PINGRAM_TYPES.applicationInterviewScheduledCancelled,
+        title: 'Interview cancelled',
+        message: 'An applicant cancelled the confirmed interview.',
+      });
+    }
+    return;
+  }
 
   if (oldStatus === 'interview_offered' && newStatus === 'interview_scheduled') {
     await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {

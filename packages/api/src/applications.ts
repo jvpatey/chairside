@@ -57,6 +57,10 @@ export type Application = {
   interview_at: string | null;
   interview_duration_minutes: number | null;
   interview_details: string | null;
+  interview_proposed_at: string | null;
+  interview_proposed_duration_minutes: number | null;
+  interview_proposed_details: string | null;
+  interview_proposed_by: 'clinic' | 'worker' | null;
   interview_offer_closed_by: 'clinic' | 'worker' | null;
   created_at: string;
   updated_at: string;
@@ -631,6 +635,10 @@ export async function offerApplicationInterview(
       interview_duration_minutes: input.durationMinutes,
       interview_details: input.details?.trim() || null,
       interview_offer_closed_by: null,
+      interview_proposed_at: null,
+      interview_proposed_duration_minutes: null,
+      interview_proposed_details: null,
+      interview_proposed_by: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', applicationId)
@@ -689,11 +697,165 @@ export async function cancelApplicationInterviewOffer(
       interview_at: null,
       interview_duration_minutes: null,
       interview_details: null,
+      interview_proposed_at: null,
+      interview_proposed_duration_minutes: null,
+      interview_proposed_details: null,
+      interview_proposed_by: null,
       interview_offer_closed_by: 'clinic',
       updated_at: new Date().toISOString(),
     })
     .eq('id', applicationId)
     .eq('status', 'interview_offered')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+/** Clinic updates a pending interview invite before the candidate accepts. */
+export async function updateApplicationInterviewOffer(
+  applicationId: string,
+  input: ScheduleApplicationInterviewInput,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      interview_at: input.interviewAt,
+      interview_duration_minutes: input.durationMinutes,
+      interview_details: input.details?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('status', 'interview_offered')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+/** Clinic proposes a new time; confirmed interview stays until the worker accepts. */
+export async function proposeApplicationInterviewUpdate(
+  applicationId: string,
+  input: ScheduleApplicationInterviewInput,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      interview_proposed_at: input.interviewAt,
+      interview_proposed_duration_minutes: input.durationMinutes,
+      interview_proposed_details: input.details?.trim() || null,
+      interview_proposed_by: 'clinic',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('status', 'interview_scheduled')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+export async function proposeApplicationInterviewUpdateAsWorker(
+  workerId: string,
+  applicationId: string,
+  input: ScheduleApplicationInterviewInput,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('propose_application_interview_update', {
+    application_id: applicationId,
+    proposed_at: input.interviewAt,
+    proposed_duration_minutes: input.durationMinutes,
+    proposed_details: input.details?.trim() || null,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Interview not found or cannot be updated');
+  }
+  return row;
+}
+
+export async function acceptApplicationInterviewUpdate(
+  applicationId: string,
+  workerId?: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('accept_application_interview_update', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('No pending interview change');
+  }
+  if (workerId != null && row.worker_id !== workerId) {
+    throw new Error('No pending interview change');
+  }
+  return row;
+}
+
+export async function declineApplicationInterviewUpdate(
+  applicationId: string,
+  workerId?: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('decline_application_interview_update', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('No pending interview change');
+  }
+  if (workerId != null && row.worker_id !== workerId) {
+    throw new Error('No pending interview change');
+  }
+  return row;
+}
+
+/** Cancels a confirmed interview and returns the application to shortlist. */
+export async function cancelScheduledApplicationInterview(
+  applicationId: string,
+  closedBy: 'clinic' | 'worker',
+): Promise<Application> {
+  if (closedBy === 'worker') {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.rpc('cancel_scheduled_application_interview', {
+      application_id: applicationId,
+    });
+    if (error) throw error;
+    const row = data as Application | null;
+    if (!row) {
+      throw new Error('Interview not found or cannot be cancelled');
+    }
+    return row;
+  }
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      status: 'in_progress',
+      interview_at: null,
+      interview_duration_minutes: null,
+      interview_details: null,
+      interview_proposed_at: null,
+      interview_proposed_duration_minutes: null,
+      interview_proposed_details: null,
+      interview_proposed_by: null,
+      interview_offer_closed_by: 'clinic',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('status', 'interview_scheduled')
     .select('*')
     .single();
 

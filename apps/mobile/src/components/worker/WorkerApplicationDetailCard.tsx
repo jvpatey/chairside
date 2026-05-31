@@ -1,17 +1,24 @@
 import {
   acceptApplicationInterview,
+  acceptApplicationInterviewUpdate,
+  cancelScheduledApplicationInterview,
   declineApplicationInterview,
+  declineApplicationInterviewUpdate,
   deleteApplication,
+  proposeApplicationInterviewUpdateAsWorker,
+  type ClinicApplication,
   type WorkerApplication,
 } from '@chairside/api';
 import {
   formatApplicationDate,
   formatInterviewDateTime,
+  hasPendingInterviewProposal,
   isActiveApplicationStatus,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -22,6 +29,7 @@ import {
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationSubmittedFields } from '@/components/worker/ApplicationSubmittedFields';
+import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import {
   getApplicationMatchDisplayContext,
@@ -61,6 +69,7 @@ export function WorkerApplicationDetailCard({
   hasUnreadMessages = false,
 }: WorkerApplicationDetailCardProps) {
   const { colors } = useTheme();
+  const [rescheduleVisible, setRescheduleVisible] = useState(false);
   const canCancel = isActiveApplicationStatus(application.status);
   const isShift = application.post_type === 'shift';
   const jobMatch = !isShift ? parseApplicationJobMatch(application) : null;
@@ -164,6 +173,15 @@ export function WorkerApplicationDetailCard({
     application.interview_at,
     application.interview_duration_minutes,
   );
+  const proposedSummary = formatInterviewDateTime(
+    application.interview_proposed_at,
+    application.interview_proposed_duration_minutes,
+  );
+  const pendingProposal = hasPendingInterviewProposal(application);
+  const clinicProposedChange =
+    pendingProposal && application.interview_proposed_by === 'clinic';
+  const workerProposedChange =
+    pendingProposal && application.interview_proposed_by === 'worker';
 
   const handleAddInterviewToCalendar = () => {
     const inviteInput = buildInterviewInviteInputFromApplication({
@@ -205,6 +223,91 @@ export function WorkerApplicationDetailCard({
               } catch (error) {
                 Alert.alert(
                   'Could not accept interview',
+                  error instanceof Error ? error.message : 'Please try again.',
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleAcceptProposal = () => {
+    Alert.alert('Accept new time?', 'Your confirmed interview will move to the proposed time.', [
+      { text: 'Not now', style: 'cancel' },
+      {
+        text: 'Accept',
+        onPress: () => {
+          void (async () => {
+            try {
+              await acceptApplicationInterviewUpdate(
+                application.id,
+                application.worker_id,
+              );
+              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              onUpdated?.();
+            } catch (error) {
+              Alert.alert(
+                'Could not accept',
+                error instanceof Error ? error.message : 'Please try again.',
+              );
+            }
+          })();
+        },
+      },
+    ]);
+  };
+
+  const handleDeclineProposal = () => {
+    Alert.alert(
+      'Decline new time?',
+      'Your confirmed interview time will stay as scheduled.',
+      [
+        { text: 'Keep current time', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await declineApplicationInterviewUpdate(
+                  application.id,
+                  application.worker_id,
+                );
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                onUpdated?.();
+              } catch (error) {
+                Alert.alert(
+                  'Could not decline',
+                  error instanceof Error ? error.message : 'Please try again.',
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleCancelScheduledInterview = () => {
+    Alert.alert(
+      'Cancel interview?',
+      'You will return to the shortlist for this role. You can request a new time or keep messaging the clinic.',
+      [
+        { text: 'Keep interview', style: 'cancel' },
+        {
+          text: 'Cancel interview',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await cancelScheduledApplicationInterview(application.id, 'worker');
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                onUpdated?.();
+              } catch (error) {
+                Alert.alert(
+                  'Could not cancel interview',
                   error instanceof Error ? error.message : 'Please try again.',
                 );
               }
@@ -403,7 +506,42 @@ export function WorkerApplicationDetailCard({
             {application.interview_details ? (
               <Text style={styles.interviewMeta}>{application.interview_details}</Text>
             ) : null}
-            <OnboardingButton label="Add to calendar" onPress={handleAddInterviewToCalendar} />
+            {clinicProposedChange && proposedSummary ? (
+              <Text style={styles.interviewMeta}>
+                Clinic proposed · {proposedSummary}
+              </Text>
+            ) : null}
+            {workerProposedChange && proposedSummary ? (
+              <Text style={styles.interviewMeta}>
+                Awaiting clinic response · {proposedSummary}
+              </Text>
+            ) : null}
+            {clinicProposedChange ? (
+              <>
+                <OnboardingButton label="Accept new time" onPress={handleAcceptProposal} />
+                <OnboardingButton
+                  label="Decline"
+                  variant="destructive"
+                  onPress={handleDeclineProposal}
+                />
+              </>
+            ) : (
+              <>
+                <OnboardingButton label="Add to calendar" onPress={handleAddInterviewToCalendar} />
+                {!workerProposedChange ? (
+                  <OnboardingButton
+                    label="Request new time"
+                    variant="secondary"
+                    onPress={() => setRescheduleVisible(true)}
+                  />
+                ) : null}
+                <OnboardingButton
+                  label="Cancel interview"
+                  variant="destructive"
+                  onPress={handleCancelScheduledInterview}
+                />
+              </>
+            )}
           </View>
         ) : null}
 
@@ -447,6 +585,30 @@ export function WorkerApplicationDetailCard({
           </>
         ) : null}
       </View>
+
+      {rescheduleVisible ? (
+        <InterviewScheduleSheet
+          visible
+          application={application as unknown as ClinicApplication}
+          clinicName={application.clinic_name}
+          mode="propose_reschedule"
+          titleOverride="Request new time"
+          subtitleOverride="The confirmed interview stays until the clinic accepts your proposed time."
+          submitLabelOverride="Send request"
+          onSubmit={(input) =>
+            proposeApplicationInterviewUpdateAsWorker(
+              application.worker_id,
+              application.id,
+              input,
+            )
+          }
+          onSaved={() => {
+            setRescheduleVisible(false);
+            onUpdated?.();
+          }}
+          onClose={() => setRescheduleVisible(false)}
+        />
+      ) : null}
     </View>
   );
 }

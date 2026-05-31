@@ -195,3 +195,32 @@ export function formatInterviewDateTime(
 
   return `${datePart} · ${timePart}`;
 }
+
+export function hasPendingInterviewProposal(application: {
+  interview_proposed_at?: string | null;
+}): boolean {
+  return Boolean(application.interview_proposed_at?.trim());
+}
+
+/** Split stored interview details into location and free-text notes. */
+export function parseInterviewDetailsBlob(value: string | null | undefined): {
+  location: string | null;
+  notes: string | null;
+} {
+  if (!value?.trim()) {
+    return { location: null, notes: null };
+  }
+
+  const parts = value.split('\n\n');
+  if (parts.length >= 2) {
+    const location = parts[0]?.trim() || null;
+    const notes = parts.slice(1).join('\n\n').trim() || null;
+    return { location, notes };
+  }
+
+  return { location: value.trim(), notes: null };
+}
+
+export function formatInterviewDetailsBlob(location: string, notes: string): string | null {
+  return [location.trim(), notes.trim()].filter(Boolean).join('\n\n') || null;
+}

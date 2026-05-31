@@ -9,6 +9,7 @@ import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
+import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WORKER_PROFILE } from '@/lib/routing';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -74,6 +75,7 @@ export function WorkerDashboardHero({
   province = 'NS',
   showProvinceBadge = false,
 }: WorkerDashboardHeroProps) {
+  const { photoUri } = useProfilePhoto();
   const name = displayName?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -113,7 +115,13 @@ export function WorkerDashboardHero({
   return (
     <View style={styles.card}>
       <View style={styles.profile}>
-        <ProfileHeaderButton href={WORKER_PROFILE} placement="hero" />
+        <ProfileHeaderButton
+          href={WORKER_PROFILE}
+          placement="hero"
+          avatarKind="worker"
+          displayName={name}
+          photoUri={photoUri}
+        />
       </View>
       <View style={styles.bell}>
         <NotificationBell placement="hero" />

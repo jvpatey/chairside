@@ -3,7 +3,10 @@ import type { Href } from 'expo-router';
 import type { UserRole } from '@/types';
 
 export type FillInReturnTarget = 'postings-fill-ins' | 'dashboard-fill-ins' | 'fill-ins-tab';
-export type ApplicantReturnTarget = 'applications-tab' | 'dashboard-applications';
+export type ApplicantReturnTarget =
+  | 'applications-tab'
+  | 'dashboard-applications'
+  | 'postings-tab';
 export type WorkerApplicationReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
@@ -289,6 +292,10 @@ export function navigateAfterRoleApplicants(
 ) {
   if (returnTo === 'dashboard-applications') {
     router.replace(getClinicHomeRoute('applications'));
+    return;
+  }
+  if (returnTo === 'postings-tab') {
+    router.replace(CLINIC_POSTINGS);
     return;
   }
   router.replace(CLINIC_APPLICATIONS);

@@ -21,11 +21,18 @@ export function OnboardingButton({
     base: {
       alignSelf: 'stretch',
       borderRadius: 12,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.sm,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      minHeight: 50,
+      minHeight: 52,
+    },
+    label: {
+      ...typography.body,
+      fontWeight: '600' as const,
+      fontSize: 15,
+      lineHeight: 20,
+      textAlign: 'center' as const,
     },
     primary: {
       backgroundColor: colors.primary,
@@ -58,26 +65,18 @@ export function OnboardingButton({
       backgroundColor: `${colors.destructive}14`,
     },
     labelPrimary: {
-      ...typography.body,
-      fontWeight: '600' as const,
       color: colors.primaryOnPrimary,
     },
     labelPrimaryDisabled: {
       color: colors.labelTertiary,
     },
     labelSecondary: {
-      ...typography.body,
-      fontWeight: '600' as const,
       color: colors.labelPrimary,
     },
     labelGhost: {
-      ...typography.body,
-      fontWeight: '600' as const,
       color: colors.primary,
     },
     labelDestructive: {
-      ...typography.body,
-      fontWeight: '600' as const,
       color: colors.destructive,
     },
   }));
@@ -101,17 +100,18 @@ export function OnboardingButton({
       ]}
     >
       <Text
-        style={
+        style={[
+          styles.label,
           variant === 'ghost'
             ? styles.labelGhost
             : variant === 'destructive'
               ? styles.labelDestructive
               : isPrimary
                 ? [styles.labelPrimary, disabled && styles.labelPrimaryDisabled]
-                : styles.labelSecondary
-        }
+                : styles.labelSecondary,
+        ]}
         numberOfLines={2}
-        textAlign="center">
+        adjustsFontSizeToFit={false}>
         {label}
       </Text>
     </Pressable>

@@ -9,6 +9,7 @@ import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
+import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { CLINIC_PROFILE } from '@/lib/routing';
 
@@ -29,6 +30,7 @@ export function DashboardHero({
   province = 'NS',
   showLocationBadge = false,
 }: DashboardHeroProps) {
+  const { logoUri } = useClinicLogo();
   const displayName = clinicName?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -78,7 +80,13 @@ export function DashboardHero({
   return (
     <View style={styles.card}>
       <View style={styles.profile}>
-        <ProfileHeaderButton href={CLINIC_PROFILE} placement="hero" />
+        <ProfileHeaderButton
+          href={CLINIC_PROFILE}
+          placement="hero"
+          avatarKind="clinic"
+          displayName={displayName}
+          photoUri={logoUri}
+        />
       </View>
       <View style={styles.bell}>
         <NotificationBell placement="hero" />
@@ -468,6 +476,11 @@ export function DashboardOverviewPanel({
                   job={job}
                   applicantCount={applicantCounts?.[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
+                  onApplicantsPress={
+                    onJobApplicationsPress && (applicantCounts?.[job.id] ?? 0) > 0
+                      ? () => onJobApplicationsPress(job.id)
+                      : undefined
+                  }
                   manage={
                     clinicId && onJobUpdated && onJobDeleted
                       ? {
