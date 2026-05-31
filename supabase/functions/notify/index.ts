@@ -134,8 +134,15 @@ function buildSendBody(input: {
     body.sms = { message: input.smsMessage };
   }
 
-  if (input.pushCustomData && Object.keys(input.pushCustomData).length > 0) {
-    body.options = { push: { customData: input.pushCustomData } };
+  if (sendPush) {
+    body.options = {
+      push: {
+        customData: {
+          url: input.deepLink,
+          ...(input.pushCustomData ?? {}),
+        },
+      },
+    };
   }
 
   return body;
