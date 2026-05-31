@@ -124,6 +124,82 @@ function normalizeE164(phone: string | null | undefined): string | null {
   return null;
 }
 
+function formatTime12h(time: string): string | null {
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(time.trim());
+  if (!match) return null;
+
+  const hours24 = Number(match[1]);
+  const minutes = match[2];
+  if (hours24 < 0 || hours24 > 23) return null;
+
+  const period = hours24 >= 12 ? 'PM' : 'AM';
+  const hours12 = hours24 % 12 || 12;
+  return minutes === '00' ? `${hours12} ${period}` : `${hours12}:${minutes} ${period}`;
+}
+
+function formatShiftTimeRange(startTime: string, endTime: string): string | null {
+  const start = formatTime12h(startTime);
+  const end = formatTime12h(endTime);
+  if (!start || !end) return null;
+  return `${start}–${end}`;
+}
+
+function formatShiftDateLabel(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim());
+  if (!match) return isoDate;
+
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return date.toLocaleDateString('en-CA', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatClinicLocation(clinic: {
+  city?: string | null;
+  province?: string | null;
+}): string {
+  const city = clinic.city?.trim();
+  const province = clinic.province?.trim();
+  if (city && province) return `${city}, ${province}`;
+  if (city) return city;
+  if (province) return province;
+  return '';
+}
+
+function buildFillInAlertCopy(input: {
+  clinicName: string;
+  locationLabel: string;
+  shiftDate: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  compensation?: string | null;
+  isUpdate?: boolean;
+}): { title: string; message: string; smsMessage: string } {
+  const locationSuffix = input.locationLabel ? ` (${input.locationLabel})` : '';
+  const dateLabel = formatShiftDateLabel(input.shiftDate);
+  const timeRange =
+    input.startTime && input.endTime
+      ? formatShiftTimeRange(input.startTime, input.endTime)
+      : null;
+  const compensation = input.compensation?.trim();
+  const compensationSuffix = compensation ? ` Compensation: ${compensation}.` : '';
+  const verb = input.isUpdate ? 'updated' : 'posted';
+
+  const title = input.isUpdate
+    ? `Fill-in updated · ${input.clinicName}`
+    : `New fill-in · ${input.clinicName}`;
+  const detailParts = [dateLabel, timeRange].filter(Boolean).join(', ');
+  const locationInMessage = input.locationLabel ? ` · ${input.locationLabel}` : '';
+  const message = `${input.clinicName}${locationInMessage} ${verb} a fill-in for ${detailParts}.${compensationSuffix}`;
+
+  const smsMessage = `Chairside: ${input.clinicName}${locationSuffix} ${verb} a fill-in for ${detailParts}.${compensationSuffix} Open Chairside to apply. Reply STOP to opt out.`;
+
+  return { title, message, smsMessage };
+}
+
 function shiftWeekday(shiftDate: string): number {
   const d = new Date(`${shiftDate}T12:00:00`);
   return d.getDay();
@@ -833,20 +909,34 @@ async function handleShiftPostLive(
   pingramKey: string,
   pingramBase: string,
   record: Record<string, unknown>,
+  options: { isUpdate?: boolean } = {},
 ) {
   const shiftId = record.id as string;
   const clinicId = record.clinic_id as string;
   const shiftDate = record.shift_date as string;
   const roleType = record.role_type as string;
+  const startTime = record.start_time as string | undefined;
+  const endTime = record.end_time as string | undefined;
+  const compensation = record.compensation as string | null | undefined;
+  const updatedAt = (record.updated_at as string | undefined) ?? shiftId;
 
   const { data: clinic } = await supabase
     .from('clinic_profiles')
-    .select('clinic_name, city')
+    .select('clinic_name, city, province')
     .eq('id', clinicId)
     .maybeSingle();
 
   const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
-  const cityLabel = clinic?.city ? ` · ${clinic.city}` : '';
+  const locationLabel = formatClinicLocation(clinic ?? {});
+  const fillInCopy = buildFillInAlertCopy({
+    clinicName,
+    locationLabel,
+    shiftDate,
+    startTime,
+    endTime,
+    compensation,
+    isUpdate: options.isUpdate === true,
+  });
   const recipients = await listFillInRecipients(
     supabase,
     {
@@ -863,11 +953,9 @@ async function handleShiftPostLive(
   );
 
   for (const worker of recipients) {
-    const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}`;
+    const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}:${updatedAt}`;
     if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 
-    const title = `New fill-in · ${clinicName}`;
-    const message = `${clinicName}${cityLabel} posted a fill-in on ${shiftDate}.`;
     const deepLink = 'chairside:///(tabs)/fillins';
     const smsOptIn = worker.fill_in_sms_opt_in === true;
     const e164 = smsOptIn ? normalizeE164(worker.phone as string | null) : null;
@@ -879,13 +967,13 @@ async function handleShiftPostLive(
         type: PINGRAM_TYPES.fillInPosted,
         userId: worker.id,
         phone: e164 ?? undefined,
-        title,
-        message,
+        title: fillInCopy.title,
+        message: fillInCopy.message,
         deepLink,
         secondaryId: idempotencyKey,
         includePush: pushPreferences.get(worker.id) ?? true,
         includeSms: Boolean(smsOptIn && e164),
-        smsMessage: `${message} Open Chairside to apply. Reply STOP to opt out.`,
+        smsMessage: fillInCopy.smsMessage,
       }),
     );
   }
@@ -962,6 +1050,39 @@ function becameLive(
   return oldStatus !== 'live';
 }
 
+const FILL_IN_NOTIFY_FIELDS = [
+  'role_type',
+  'shift_date',
+  'start_time',
+  'end_time',
+  'compensation',
+] as const;
+
+function fillInNotificationFieldsChanged(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown>,
+): boolean {
+  return FILL_IN_NOTIFY_FIELDS.some((field) => record[field] !== oldRecord[field]);
+}
+
+function shouldNotifyFillInShift(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+  eventType: WebhookPayload['type'],
+): boolean {
+  const status = record.status as string;
+  if (status !== 'live') return false;
+
+  if (becameLive(record, oldRecord)) return true;
+
+  if (eventType !== 'UPDATE' || !oldRecord) return false;
+
+  const oldStatus = oldRecord.status as string | undefined;
+  if (oldStatus !== 'live') return false;
+
+  return fillInNotificationFieldsChanged(record, oldRecord);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -1006,8 +1127,14 @@ Deno.serve(async (req) => {
           payload.old_record,
         );
       }
-    } else if (payload.table === 'shift_posts' && becameLive(payload.record, payload.old_record)) {
-      await handleShiftPostLive(supabase, pingramKey, pingramBase, payload.record);
+    } else if (
+      payload.table === 'shift_posts' &&
+      shouldNotifyFillInShift(payload.record, payload.old_record, payload.type)
+    ) {
+      await handleShiftPostLive(supabase, pingramKey, pingramBase, payload.record, {
+        isUpdate:
+          payload.type === 'UPDATE' && !becameLive(payload.record, payload.old_record),
+      });
     } else if (payload.table === 'job_posts' && becameLive(payload.record, payload.old_record)) {
       await handleJobPostLive(supabase, pingramKey, pingramBase, payload.record);
     } else if (payload.table === 'messages' && payload.type === 'INSERT') {
