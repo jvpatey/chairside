@@ -20,7 +20,7 @@ const MATCH_TIER_ORDER: Record<string, number> = {
   none: 3,
 };
 
-export type ApplicantListFilter = 'all' | 'shortlisted' | 'interview';
+export type ApplicantListFilter = 'all' | 'shortlisted' | 'interview' | 'decided';
 
 export type ApplicantFilterCounts = Record<ApplicantListFilter, number>;
 
@@ -80,6 +80,7 @@ export function groupApplicationsByPipeline(
 const FILTER_STATUS_MAP: Record<Exclude<ApplicantListFilter, 'all'>, string[]> = {
   shortlisted: ['in_progress'],
   interview: ['interview_offered', 'interview_scheduled'],
+  decided: ['selected', 'rejected', 'hired'],
 };
 
 export function getApplicantFilterCounts(
@@ -92,6 +93,9 @@ export function getApplicantFilterCounts(
     ).length,
     interview: applications.filter((application) =>
       FILTER_STATUS_MAP.interview.includes(application.status),
+    ).length,
+    decided: applications.filter((application) =>
+      FILTER_STATUS_MAP.decided.includes(application.status),
     ).length,
   };
 }

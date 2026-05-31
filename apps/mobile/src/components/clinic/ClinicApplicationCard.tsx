@@ -11,6 +11,7 @@ import {
   formatApplicationResumeStatus,
   formatInterviewDateTime,
   hasPendingInterviewProposal,
+  canClinicHideApplication,
   getRoleTypeLabel,
   getSpecialtyLabel,
 } from '@chairside/config';
@@ -60,6 +61,7 @@ import {
   type ClinicApplicationReturnTarget,
 } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
+import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -67,6 +69,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 type ClinicApplicationCardProps = {
   application: ClinicApplication;
+  clinicId?: string;
   returnTo?: ClinicApplicationReturnTarget;
   hasUnreadMessages?: boolean;
   onUpdated?: () => void;
@@ -76,6 +79,8 @@ type ClinicApplicationCardProps = {
     mode?: InterviewScheduleSheetMode,
   ) => void;
   onHired?: (application: ClinicApplication) => void;
+  onRemoved?: () => void;
+  onDecided?: () => void;
 };
 
 function ApplicationActionRow({ children }: { children: ReactNode }) {
@@ -121,12 +126,15 @@ function truncatePreview(text: string, maxLength = 88): string {
 
 export function ClinicApplicationCard({
   application,
+  clinicId,
   returnTo = 'applications-tab',
   hasUnreadMessages = false,
   onUpdated,
   onShortlisted,
   onScheduleInterview,
   onHired,
+  onRemoved,
+  onDecided,
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
   const { clinicProfile } = useClinicProfile();
@@ -232,6 +240,9 @@ export function ClinicApplicationCard({
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (status === 'selected') {
         onHired?.(application);
+      }
+      if (status === 'rejected') {
+        onDecided?.();
       }
       if (status === 'in_progress') {
         (onShortlisted ?? onUpdated)?.();
@@ -396,6 +407,8 @@ export function ClinicApplicationCard({
     application.status === 'interview_offered' ||
     application.status === 'interview_scheduled';
 
+  const canRemoveFromList = Boolean(clinicId) && canClinicHideApplication(application);
+
   const handleMessage = () => {
     router.push(getClinicApplicationMessagesRoute(application.id, returnTo));
   };
@@ -470,6 +483,16 @@ export function ClinicApplicationCard({
         variant="secondary"
         onPress={handleMessage}
       />
+
+      {canRemoveFromList && clinicId ? (
+        <OnboardingButton
+          label="Remove from list"
+          variant="secondary"
+          onPress={() =>
+            confirmHideClinicApplication(clinicId, application, () => onRemoved?.())
+          }
+        />
+      ) : null}
 
       {!expanded && application.cover_message ? (
         <Text style={styles.preview} numberOfLines={2}>

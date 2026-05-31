@@ -1,12 +1,11 @@
 import {
-  createApplication,
   getLiveJobPost,
   hasAppliedToJob,
   type LiveJobPost,
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
@@ -17,12 +16,8 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import {
-  WORKER_APPLICATIONS,
-  WORKER_SETUP_APPLICATION,
-  getApplyRoute,
-} from '@/lib/routing';
-import { guardQuickApply } from '@/lib/workerGuard';
+import { getApplyRoute } from '@/lib/routing';
+import { guardApply } from '@/lib/workerGuard';
 import {
   buildLiveJobMatchDisplayContext,
   computeJobMatchBreakdown,
@@ -31,15 +26,12 @@ import { useThemedStyles } from '@/theme';
 
 export default function WorkerJobDetailScreen() {
   const { user } = useAuth();
-  const { workerProfile, isProfileComplete, refreshWorkerProfile } = useWorkerProfile();
+  const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { id } = useLocalSearchParams<{ id: string }>();
   const jobId = typeof id === 'string' ? id : '';
   const [job, setJob] = useState<LiveJobPost | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const canQuickApply = isProfileComplete;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     content: { gap: spacing.lg },
@@ -87,53 +79,9 @@ export default function WorkerJobDetailScreen() {
 
   useRefreshOnFocus(loadJob);
 
-  const handlePrimaryApply = () => {
-    if (!user?.id || !job) return;
-
-    const hasScreening =
-      job.screening_enabled && (job.screening_questions?.length ?? 0) > 0;
-
-    if (!canQuickApply) {
-      guardQuickApply(workerProfile, WORKER_SETUP_APPLICATION);
-      return;
-    }
-
-    if (hasScreening) {
-      router.push(getApplyRoute('job', job.id));
-      return;
-    }
-
-    void handleQuickApply();
-  };
-
-  const handleQuickApply = async () => {
-    if (!user?.id || !job) return;
-
-    if (!canQuickApply) {
-      guardQuickApply(workerProfile, WORKER_SETUP_APPLICATION);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await createApplication(user.id, {
-        jobPostId: job.id,
-        coverMessage: workerProfile?.default_cover_message ?? undefined,
-      });
-      await refreshWorkerProfile();
-      setHasApplied(true);
-      Alert.alert('Application sent', 'Your application kit was submitted to the clinic.', [
-        { text: 'View applications', onPress: () => router.replace(WORKER_APPLICATIONS) },
-        { text: 'OK', style: 'cancel' },
-      ]);
-    } catch (error) {
-      Alert.alert(
-        'Application failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleApply = () => {
+    if (!job) return;
+    guardApply(workerProfile, isProfileComplete, getApplyRoute('job', job.id));
   };
 
   if (isLoading || !job) {
@@ -148,8 +96,6 @@ export default function WorkerJobDetailScreen() {
     );
   }
 
-  const hasScreening =
-    Boolean(job.screening_enabled) && (job.screening_questions?.length ?? 0) > 0;
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
   const jobMatch = workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
   const matchContext = workerProfile
@@ -161,26 +107,10 @@ export default function WorkerJobDetailScreen() {
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={
-              hasApplied
-                ? 'Applied'
-                : isSubmitting
-                  ? 'Applying…'
-                  : hasScreening
-                    ? 'Apply now'
-                    : 'Quick apply'
-            }
-            disabled={hasApplied || isSubmitting}
-            onPress={handlePrimaryApply}
+            label={hasApplied ? 'Applied' : 'Apply now'}
+            disabled={hasApplied}
+            onPress={handleApply}
           />
-          {!hasApplied && !hasScreening ? (
-            <OnboardingButton
-              label="Apply with note"
-              variant="secondary"
-              disabled={isSubmitting}
-              onPress={() => router.push(getApplyRoute('job', job.id))}
-            />
-          ) : null}
         </View>
       }>
       <AuthScreenHeader title="Role details" subtitle={job.clinic.clinic_name} onBack={() => router.back()} />

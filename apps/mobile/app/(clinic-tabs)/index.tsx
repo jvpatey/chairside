@@ -7,6 +7,8 @@ import {
   listJobPosts,
   listShiftPosts,
   type ClinicDashboardCounts,
+  listUpcomingConfirmedFillIns,
+  type ConfirmedFillInSummary,
   type Conversation,
   type JobApplicationSummary,
   type JobPost,
@@ -43,6 +45,7 @@ import {
   getJobDetailRoute,
   getClinicRoleApplicationsRoute,
   getPostShiftRoute,
+  getShiftDetailRoute,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
@@ -66,6 +69,7 @@ export default function ClinicDashboardScreen() {
   );
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [confirmedFillIns, setConfirmedFillIns] = useState<ConfirmedFillInSummary[]>([]);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: {
@@ -81,7 +85,7 @@ export default function ClinicDashboardScreen() {
     if (!user?.id) return;
 
     try {
-      const [nextCounts, jobPosts, shiftPosts, summaries, counts, conversationRows] =
+      const [nextCounts, jobPosts, shiftPosts, summaries, counts, conversationRows, confirmed] =
         await Promise.all([
         getClinicDashboardCounts(user.id),
         listJobPosts(user.id),
@@ -89,6 +93,7 @@ export default function ClinicDashboardScreen() {
         listJobApplicationSummaries(user.id),
         getJobPostApplicationCountsMap(user.id),
         listConversationsForClinic(user.id),
+        listUpcomingConfirmedFillIns(user.id),
       ]);
 
       setCounts(nextCounts);
@@ -97,6 +102,7 @@ export default function ClinicDashboardScreen() {
       setJobApplicationSummaries(summaries);
       setApplicantCounts(counts);
       setConversations(conversationRows);
+      setConfirmedFillIns(confirmed);
       await refreshUnread();
     } catch {
       setCounts({ openRoles: 0, fillInsPosted: 0, totalApplications: 0, newApplications: 0 });
@@ -105,6 +111,7 @@ export default function ClinicDashboardScreen() {
       setJobApplicationSummaries([]);
       setApplicantCounts({});
       setConversations([]);
+      setConfirmedFillIns([]);
     }
   }, [refreshUnread, user?.id]);
 
@@ -222,13 +229,17 @@ export default function ClinicDashboardScreen() {
           selected={selectedOverview}
           jobs={jobs}
           shifts={shifts}
+          confirmedFillIns={confirmedFillIns}
           jobApplicationSummaries={jobApplicationSummaries}
           applicantCounts={applicantCounts}
           clinicId={user?.id}
           onJobUpdated={handleJobUpdated}
           onJobDeleted={handleJobDeleted}
           onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
-          onShiftPress={() => router.push(CLINIC_FILL_INS)}
+          onShiftPress={(shiftId) => router.push(getShiftDetailRoute(shiftId, 'dashboard-fill-ins'))}
+          onConfirmedFillInPress={(shiftId) =>
+            router.push(getShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
+          }
           onJobApplicationsPress={(jobId) =>
             router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
           }

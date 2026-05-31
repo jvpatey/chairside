@@ -143,6 +143,10 @@ export default function WorkerApplicationDetailScreen() {
                 Alert.alert('Application cancelled', 'Your application was removed.');
                 goBack();
               }}
+              onHidden={() => {
+                Alert.alert('Removed from list', 'This application was hidden from your list.');
+                goBack();
+              }}
             />
           ) : null}
         </View>

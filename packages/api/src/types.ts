@@ -98,6 +98,8 @@ export type ApplicationRow = {
   interview_duration_minutes: number | null;
   interview_details: string | null;
   interview_offer_closed_by: string | null;
+  worker_hidden_at: string | null;
+  clinic_hidden_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -331,6 +333,14 @@ export type Database = {
         Returns: ApplicationRow;
       };
       confirm_fill_in_applicant: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      hide_worker_application: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      hide_clinic_application: {
         Args: { application_id: string };
         Returns: ApplicationRow;
       };

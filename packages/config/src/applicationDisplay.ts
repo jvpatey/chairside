@@ -134,6 +134,32 @@ export function isActiveApplicationStatus(status: string | null | undefined): bo
   );
 }
 
+export function isTerminalApplicationStatus(status: string | null | undefined): boolean {
+  return status === 'rejected' || status === 'selected' || status === 'hired';
+}
+
+export function canWorkerHideApplication(input: {
+  status: string;
+  worker_hidden_at?: string | null;
+  post_status?: string | null;
+}): boolean {
+  if (input.worker_hidden_at) return false;
+  if (isTerminalApplicationStatus(input.status)) return true;
+  return input.post_status === 'filled' || input.post_status === 'closed';
+}
+
+export function isDecidedApplicationStatus(status: string | null | undefined): boolean {
+  return status === 'rejected' || status === 'selected' || status === 'hired';
+}
+
+export function canClinicHideApplication(input: {
+  status: string;
+  clinic_hidden_at?: string | null;
+}): boolean {
+  if (input.clinic_hidden_at) return false;
+  return isDecidedApplicationStatus(input.status);
+}
+
 export function formatApplicationResumeStatus(
   resumeStoragePath: string | null | undefined,
 ): string {

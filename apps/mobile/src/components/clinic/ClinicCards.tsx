@@ -1,4 +1,4 @@
-import type { JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
+import type { ConfirmedFillInSummary, JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
 import { getProvinceLabel, formatJobApplicationSummaryMeta } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
+import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
@@ -312,6 +313,7 @@ type DashboardOverviewPanelProps = {
   selected: OverviewStat;
   jobs: JobPost[];
   shifts: ShiftPost[];
+  confirmedFillIns?: ConfirmedFillInSummary[];
   jobApplicationSummaries: JobApplicationSummary[];
   applicantCounts?: Record<string, number>;
   clinicId?: string;
@@ -319,6 +321,7 @@ type DashboardOverviewPanelProps = {
   onJobDeleted?: (jobId: string) => void;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
+  onConfirmedFillInPress?: (shiftId: string) => void;
   onJobApplicationsPress?: (jobId: string) => void;
 };
 
@@ -444,6 +447,7 @@ export function DashboardOverviewPanel({
   selected,
   jobs,
   shifts,
+  confirmedFillIns = [],
   jobApplicationSummaries,
   applicantCounts,
   clinicId,
@@ -451,11 +455,22 @@ export function DashboardOverviewPanel({
   onJobDeleted,
   onJobPress,
   onShiftPress,
+  onConfirmedFillInPress,
   onJobApplicationsPress,
 }: DashboardOverviewPanelProps) {
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ spacing, colors }) => ({
     list: {
       gap: spacing.sm,
+    },
+    subsection: {
+      gap: spacing.sm,
+    },
+    subsectionTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+      color: colors.labelSecondary,
     },
   }));
 
@@ -497,17 +512,45 @@ export function DashboardOverviewPanel({
       ) : null}
 
       {selected === 'fill-ins' ? (
-        liveShifts.length === 0 ? (
+        liveShifts.length === 0 && confirmedFillIns.length === 0 ? (
           <DashboardEmptyState message="No live fill-in shifts yet. Post a fill-in to get started." />
         ) : (
           <View style={styles.list}>
-            {liveShifts.map((shift) => (
-              <FillInPostingCard
-                key={shift.id}
-                shift={shift}
-                onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
-              />
-            ))}
+            {confirmedFillIns.length > 0 ? (
+              <View style={styles.subsection}>
+                <Text style={styles.subsectionTitle}>Upcoming confirmed</Text>
+                {confirmedFillIns.map((row) => (
+                  <ConfirmedFillInCard
+                    key={row.applicationId}
+                    workerName={row.workerName}
+                    postTitle={row.postTitle}
+                    shiftDate={row.shiftDate}
+                    startTime={row.startTime}
+                    endTime={row.endTime}
+                    compact
+                    onPress={
+                      onConfirmedFillInPress
+                        ? () => onConfirmedFillInPress(row.shiftPostId)
+                        : undefined
+                    }
+                  />
+                ))}
+              </View>
+            ) : null}
+            {liveShifts.length > 0 ? (
+              <View style={styles.subsection}>
+                {confirmedFillIns.length > 0 ? (
+                  <Text style={styles.subsectionTitle}>Open fill-ins</Text>
+                ) : null}
+                {liveShifts.map((shift) => (
+                  <FillInPostingCard
+                    key={shift.id}
+                    shift={shift}
+                    onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+                  />
+                ))}
+              </View>
+            ) : null}
           </View>
         )
       ) : null}

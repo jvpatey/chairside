@@ -10,6 +10,7 @@ import {
   type WorkerApplication,
 } from '@chairside/api';
 import {
+  canWorkerHideApplication,
   formatApplicationDate,
   formatInterviewDateTime,
   hasPendingInterviewProposal,
@@ -44,6 +45,7 @@ import {
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
+import { confirmHideWorkerApplication } from '@/lib/workerApplicationHide';
 
 type WorkerApplicationDetailCardProps = {
   application: WorkerApplication;
@@ -51,6 +53,7 @@ type WorkerApplicationDetailCardProps = {
   onViewPosting?: () => void;
   onCancelled?: () => void;
   onUpdated?: () => void;
+  onHidden?: () => void;
   hasUnreadMessages?: boolean;
 };
 
@@ -66,11 +69,13 @@ export function WorkerApplicationDetailCard({
   onViewPosting,
   onCancelled,
   onUpdated,
+  onHidden,
   hasUnreadMessages = false,
 }: WorkerApplicationDetailCardProps) {
   const { colors } = useTheme();
   const [rescheduleVisible, setRescheduleVisible] = useState(false);
   const canCancel = isActiveApplicationStatus(application.status);
+  const canHide = canWorkerHideApplication(application);
   const isShift = application.post_type === 'shift';
   const jobMatch = !isShift ? parseApplicationJobMatch(application) : null;
   const matchContext = !isShift ? getApplicationMatchDisplayContext(application) : null;
@@ -407,6 +412,15 @@ export function WorkerApplicationDetailCard({
       label: isShift ? 'Withdraw' : 'Cancel',
       variant: 'destructive',
       onPress: handleCancel,
+    });
+  }
+
+  if (canHide) {
+    secondarySlots.push({
+      key: 'hide',
+      label: 'Remove from list',
+      variant: 'destructive',
+      onPress: () => confirmHideWorkerApplication(application, () => onHidden?.()),
     });
   }
 

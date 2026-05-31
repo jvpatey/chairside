@@ -58,6 +58,10 @@ export {
   formatRoleApplicantPipelineSubtitle,
   hasPendingInterviewProposal,
   isActiveApplicationStatus,
+  isTerminalApplicationStatus,
+  canWorkerHideApplication,
+  isDecidedApplicationStatus,
+  canClinicHideApplication,
   parseInterviewDetailsBlob,
   type ApplicationPostType,
 } from './applicationDisplay';

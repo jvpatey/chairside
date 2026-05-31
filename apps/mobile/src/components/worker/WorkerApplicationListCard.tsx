@@ -1,7 +1,9 @@
 import type { WorkerApplication } from '@chairside/api';
-import { formatApplicationDate } from '@chairside/config';
+import { canWorkerHideApplication, formatApplicationDate } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
 import { Pressable, View } from 'react-native';
+
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
@@ -17,12 +19,14 @@ type WorkerApplicationListCardProps = {
   application: WorkerApplication;
   hasUnreadMessages?: boolean;
   onPress?: () => void;
+  onRemove?: () => void;
 };
 
 export function WorkerApplicationListCard({
   application,
   hasUnreadMessages = false,
   onPress,
+  onRemove,
 }: WorkerApplicationListCardProps) {
   const isJob = application.post_type === 'job';
   const isShift = application.post_type === 'shift';
@@ -40,9 +44,12 @@ export function WorkerApplicationListCard({
       borderWidth: 1,
       borderColor: isConfirmedShift ? `${colors.success}40` : colors.separator,
       padding: spacing.md,
+      gap: spacing.sm,
     },
     cardPressed: { opacity: 0.92 },
   }));
+
+  const showRemove = onRemove && canWorkerHideApplication(application);
 
   const content = (
     <ClinicPostHeader
@@ -83,18 +90,30 @@ export function WorkerApplicationListCard({
   );
 
   if (!onPress) {
-    return <View style={styles.card}>{content}</View>;
+    return (
+      <View style={styles.card}>
+        {content}
+        {showRemove ? (
+          <OnboardingButton label="Remove from list" variant="secondary" onPress={onRemove} />
+        ) : null}
+      </View>
+    );
   }
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      {content}
-    </Pressable>
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress?.();
+        }}
+        style={({ pressed }) => [pressed && styles.cardPressed]}>
+        {content}
+      </Pressable>
+      {showRemove ? (
+        <OnboardingButton label="Remove from list" variant="secondary" onPress={onRemove} />
+      ) : null}
+    </View>
   );
 }

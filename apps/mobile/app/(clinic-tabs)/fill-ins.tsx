@@ -4,7 +4,8 @@ import {
   getUnreadConversationMap,
   listFillInCoverRequests,
   listShiftPosts,
-  listClinicApplications,
+  listUpcomingConfirmedFillIns,
+  type ConfirmedFillInSummary,
   type FillInCoverRequest,
   type ShiftPost,
 } from '@chairside/api';
@@ -16,6 +17,7 @@ import { Alert, Text, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
+import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -36,7 +38,6 @@ import {
   getPostShiftRoute,
   getShiftDetailRoute,
 } from '@/lib/routing';
-import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function SectionHeader({ title }: { title: string }) {
@@ -94,55 +95,6 @@ function EmptyCard({ icon, title, body }: { icon: keyof typeof Ionicons.glyphMap
   );
 }
 
-function ConfirmedFillInRow({
-  workerName,
-  postTitle,
-  meta,
-}: {
-  workerName: string;
-  postTitle: string;
-  meta: string;
-}) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-    },
-    iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.primarySubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    text: { flex: 1, gap: 2 },
-    title: { ...typography.body, fontWeight: '600' },
-    meta: typography.subtitle,
-  }));
-
-  return (
-    <View style={styles.row}>
-      <View style={styles.iconWrap}>
-        <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
-      </View>
-      <View style={styles.text}>
-        <Text style={styles.title}>{workerName} confirmed</Text>
-        <Text style={styles.meta}>
-          {postTitle} · {meta}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 export default function ClinicFillInsScreen() {
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
@@ -150,9 +102,7 @@ export default function ClinicFillInsScreen() {
   const [coverRequests, setCoverRequests] = useState<FillInCoverRequest[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
-  const [confirmedRows, setConfirmedRows] = useState<
-    { workerName: string; postTitle: string; meta: string }[]
-  >([]);
+  const [confirmedRows, setConfirmedRows] = useState<ConfirmedFillInSummary[]>([]);
   const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('all');
@@ -183,38 +133,13 @@ export default function ClinicFillInsScreen() {
     }
 
     try {
-      const [requests, shiftPosts, counts, applications, unread] = await Promise.all([
+      const [requests, shiftPosts, counts, confirmed, unread] = await Promise.all([
         listFillInCoverRequests(user.id),
         listShiftPosts(user.id),
         getShiftPostPendingApplicationCountsMap(user.id),
-        listClinicApplications(user.id),
+        listUpcomingConfirmedFillIns(user.id),
         getUnreadConversationMap(user.id, 'clinic'),
       ]);
-
-      const today = new Date().toISOString().slice(0, 10);
-      const confirmed = applications
-        .filter(
-          (application) =>
-            application.post_type === 'shift' && application.status === 'hired',
-        )
-        .filter((application) => {
-          const shift = shiftPosts.find((row) => row.id === application.shift_post_id);
-          return shift ? shift.shift_date >= today : false;
-        })
-        .map((application) => {
-          const shift = shiftPosts.find((row) => row.id === application.shift_post_id);
-          return {
-            workerName: application.worker_display_name?.trim() || 'Applicant',
-            postTitle: application.post_title,
-            meta: shift
-              ? formatShiftPostMeta({
-                  shift_date: shift.shift_date,
-                  start_time: shift.start_time,
-                  end_time: shift.end_time,
-                })
-              : application.post_title,
-          };
-        });
 
       setCoverRequests(requests);
       setShifts(shiftPosts);
@@ -290,12 +215,17 @@ export default function ClinicFillInsScreen() {
             <View style={styles.section}>
               <SectionHeader title="Upcoming confirmed" />
               <View style={styles.list}>
-                {confirmedRows.map((row, index) => (
-                  <ConfirmedFillInRow
-                    key={`${row.workerName}-${index}`}
+                {confirmedRows.map((row) => (
+                  <ConfirmedFillInCard
+                    key={row.applicationId}
                     workerName={row.workerName}
                     postTitle={row.postTitle}
-                    meta={row.meta}
+                    shiftDate={row.shiftDate}
+                    startTime={row.startTime}
+                    endTime={row.endTime}
+                    onPress={() =>
+                      router.push(getShiftDetailRoute(row.shiftPostId, 'fill-ins-tab'))
+                    }
                   />
                 ))}
               </View>

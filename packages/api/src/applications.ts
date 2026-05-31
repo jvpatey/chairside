@@ -62,6 +62,8 @@ export type Application = {
   interview_proposed_details: string | null;
   interview_proposed_by: 'clinic' | 'worker' | null;
   interview_offer_closed_by: 'clinic' | 'worker' | null;
+  worker_hidden_at: string | null;
+  clinic_hidden_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -76,6 +78,7 @@ export type ClinicApplication = Application & {
 export type WorkerApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
+  post_status?: string | null;
   post_role_type?: string | null;
   shift_date?: string | null;
   shift_start_time?: string | null;
@@ -134,11 +137,26 @@ export type FillInCoverRequest = ClinicApplication & {
   shift_end_time: string | null;
 };
 
+export type ConfirmedFillInSummary = {
+  applicationId: string;
+  shiftPostId: string;
+  workerName: string;
+  postTitle: string;
+  shiftDate: string;
+  startTime: string | null;
+  endTime: string | null;
+};
+
 function isFillInPendingStatus(status: ApplicationStatus): boolean {
   return FILL_IN_PENDING_STATUSES.includes(status);
 }
 
-export async function listClinicApplications(clinicId: string): Promise<ClinicApplication[]> {
+export type ApplicationListVisibility = 'active' | 'archived';
+
+export async function listClinicApplications(
+  clinicId: string,
+  visibility: ApplicationListVisibility = 'active',
+): Promise<ClinicApplication[]> {
   const supabase = getSupabaseClient();
 
   const [jobsResult, shiftsResult] = await Promise.all([
@@ -176,6 +194,9 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
 
   for (const row of data ?? []) {
     const application = row as Application;
+    const isArchived = Boolean(application.clinic_hidden_at);
+    if (visibility === 'active' && isArchived) continue;
+    if (visibility === 'archived' && !isArchived) continue;
     const screening = screeningMap.get(row.id) ?? null;
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
@@ -202,7 +223,10 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
   return applications;
 }
 
-export async function listWorkerApplications(workerId: string): Promise<WorkerApplication[]> {
+export async function listWorkerApplications(
+  workerId: string,
+  visibility: ApplicationListVisibility = 'active',
+): Promise<WorkerApplication[]> {
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
@@ -219,12 +243,12 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
 
   const [jobsResult, shiftsResult] = await Promise.all([
     jobIds.length > 0
-      ? supabase.from('job_posts').select('id, title, clinic_id').in('id', jobIds)
+      ? supabase.from('job_posts').select('id, title, clinic_id, status').in('id', jobIds)
       : Promise.resolve({ data: [], error: null }),
     shiftIds.length > 0
       ? supabase
           .from('shift_posts')
-          .select('id, role_type, shift_date, start_time, end_time, clinic_id')
+          .select('id, role_type, shift_date, start_time, end_time, clinic_id, status')
           .in('id', shiftIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -233,7 +257,10 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   if (shiftsResult.error) throw shiftsResult.error;
 
   const jobMap = new Map(
-    (jobsResult.data ?? []).map((job) => [job.id, { title: job.title, clinic_id: job.clinic_id }]),
+    (jobsResult.data ?? []).map((job) => [
+      job.id,
+      { title: job.title, clinic_id: job.clinic_id, status: job.status },
+    ]),
   );
   const shiftMap = new Map(
     (shiftsResult.data ?? []).map((shift) => [
@@ -241,6 +268,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
       {
         title: `Fill-in · ${shift.shift_date}`,
         clinic_id: shift.clinic_id,
+        status: shift.status,
         role_type: shift.role_type,
         shift_date: shift.shift_date,
         start_time: shift.start_time,
@@ -274,6 +302,9 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
 
   for (const row of data) {
     const application = row as Application;
+    const isArchived = Boolean(application.worker_hidden_at);
+    if (visibility === 'active' && isArchived) continue;
+    if (visibility === 'archived' && !isArchived) continue;
     const screening = screeningMap.get(row.id) ?? null;
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
@@ -283,6 +314,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
         ...application,
         post_title: job.title,
         post_type: 'job',
+        post_status: job.status,
         clinic_name: clinic?.clinic_name ?? 'Clinic',
         clinic_city: clinic?.city ?? null,
         clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
@@ -295,6 +327,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
         ...application,
         post_title: shift.title,
         post_type: 'shift',
+        post_status: shift.status,
         post_role_type: shift.role_type,
         shift_date: shift.shift_date,
         shift_start_time: shift.start_time,
@@ -419,8 +452,68 @@ export async function deleteApplication(workerId: string, applicationId: string)
   if (error) throw error;
 }
 
-export async function listWorkerJobApplications(workerId: string): Promise<WorkerApplication[]> {
-  const applications = await listWorkerApplications(workerId);
+export async function hideWorkerApplication(
+  workerId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('hide_worker_application', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Application not found or cannot be removed');
+  }
+  return row;
+}
+
+export async function hideClinicApplication(
+  clinicId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('hide_clinic_application', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('Application not found or cannot be removed');
+  }
+
+  if (row.job_post_id) {
+    const { data: job, error: jobError } = await supabase
+      .from('job_posts')
+      .select('clinic_id')
+      .eq('id', row.job_post_id)
+      .maybeSingle();
+    if (jobError) throw jobError;
+    if (job?.clinic_id !== clinicId) {
+      throw new Error('Application not found or cannot be removed');
+    }
+  } else if (row.shift_post_id) {
+    const { data: shift, error: shiftError } = await supabase
+      .from('shift_posts')
+      .select('clinic_id')
+      .eq('id', row.shift_post_id)
+      .maybeSingle();
+    if (shiftError) throw shiftError;
+    if (shift?.clinic_id !== clinicId) {
+      throw new Error('Application not found or cannot be removed');
+    }
+  }
+
+  return row;
+}
+
+export async function listWorkerJobApplications(
+  workerId: string,
+  visibility: ApplicationListVisibility = 'active',
+): Promise<WorkerApplication[]> {
+  const applications = await listWorkerApplications(workerId, visibility);
   return applications.filter((application) => application.post_type === 'job');
 }
 
@@ -458,7 +551,8 @@ export async function getJobPostApplicationCountsMap(
   const { data: applications, error: applicationsError } = await supabase
     .from('applications')
     .select('job_post_id')
-    .in('job_post_id', jobIds);
+    .in('job_post_id', jobIds)
+    .is('clinic_hidden_at', null);
 
   if (applicationsError) throw applicationsError;
 
@@ -522,8 +616,9 @@ export async function listJobApplicationSummaries(
 export async function listClinicApplicationsForJob(
   clinicId: string,
   jobPostId: string,
+  visibility: ApplicationListVisibility = 'active',
 ): Promise<ClinicApplication[]> {
-  const applications = await listClinicApplications(clinicId);
+  const applications = await listClinicApplications(clinicId, visibility);
   return applications.filter(
     (application) => application.post_type === 'job' && application.job_post_id === jobPostId,
   );
@@ -968,4 +1063,59 @@ export async function getShiftPostPendingApplicationCountsMap(
     counts[request.shift_post_id] = (counts[request.shift_post_id] ?? 0) + 1;
   }
   return counts;
+}
+
+export async function listUpcomingConfirmedFillIns(
+  clinicId: string,
+): Promise<ConfirmedFillInSummary[]> {
+  const supabase = getSupabaseClient();
+
+  const { data: shifts, error: shiftsError } = await supabase
+    .from('shift_posts')
+    .select('id, shift_date, start_time, end_time')
+    .eq('clinic_id', clinicId);
+
+  if (shiftsError) throw shiftsError;
+  if (!shifts?.length) return [];
+
+  const today = new Date().toISOString().slice(0, 10);
+  const shiftMap = new Map(
+    shifts
+      .filter((shift) => shift.shift_date >= today)
+      .map((shift) => [shift.id, shift]),
+  );
+
+  if (shiftMap.size === 0) return [];
+
+  const shiftIds = [...shiftMap.keys()];
+  const { data, error } = await supabase
+    .from('applications')
+    .select('id, shift_post_id, status, worker_display_name')
+    .in('shift_post_id', shiftIds)
+    .eq('status', 'hired')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  const summaries: ConfirmedFillInSummary[] = [];
+
+  for (const row of data ?? []) {
+    if (!row.shift_post_id || !shiftMap.has(row.shift_post_id)) continue;
+    const shift = shiftMap.get(row.shift_post_id)!;
+    summaries.push({
+      applicationId: row.id,
+      shiftPostId: row.shift_post_id,
+      workerName: row.worker_display_name?.trim() || 'Applicant',
+      postTitle: `Fill-in · ${shift.shift_date}`,
+      shiftDate: shift.shift_date,
+      startTime: shift.start_time,
+      endTime: shift.end_time,
+    });
+  }
+
+  return summaries.sort((a, b) => {
+    const dateCompare = a.shiftDate.localeCompare(b.shiftDate);
+    if (dateCompare !== 0) return dateCompare;
+    return a.workerName.localeCompare(b.workerName);
+  });
 }
