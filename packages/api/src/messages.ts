@@ -454,7 +454,7 @@ async function enrichClinicConversations(
         shift_end_time: null,
         counterpart_name: workerDeleted
           ? DELETED_CANDIDATE_LABEL
-          : profile?.display_name?.trim() || 'Candidate',
+          : profile?.display_name?.trim() || 'Applicant',
         counterpart_logo_storage_path: workerDeleted
           ? null
           : worker?.photo_storage_path ?? null,

@@ -40,7 +40,7 @@ function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): 
     : null;
 
   if (conversation.conversation_type === 'general') {
-    const base = role === 'clinic' ? 'Not tied to a posting' : 'General inquiry';
+    const base = role === 'worker' ? 'Reach out without applying' : null;
     return [base, deletedNote].filter(Boolean).join(' · ');
   }
 
@@ -107,7 +107,7 @@ export function formatConversationDisplay(
       threadSubtitle: 'General inquiry',
       cardName: conversation.counterpart_name,
       cardTitle: 'General inquiry',
-      cardMeta: role === 'clinic' ? 'Not tied to a posting' : 'Reach out without applying',
+      cardMeta: formatCardMeta(conversation, role),
     };
   }
 
