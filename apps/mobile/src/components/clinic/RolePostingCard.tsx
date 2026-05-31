@@ -69,7 +69,6 @@ export function RolePostingCard({
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
-      height: 218,
     },
     cardPressed: {
       opacity: 0.92,
@@ -128,7 +127,6 @@ export function RolePostingCard({
       location={location || null}
       detail={formatJobPostRoleMeta(job)}
       avatarSize={44}
-      uniformCardLayout
       accessory={
         <View style={styles.headerAccessory}>
           <JobPostStatusBadge status={job.status} />
@@ -165,14 +163,14 @@ export function RolePostingCard({
           ) : (
             <ApplicantCountPill count={applicantCount} />
           )
-        ) : undefined
+        ) : null
       }
       footer={
         job.wage_range ? (
           <View style={styles.footer}>
             <Text style={styles.wage}>{job.wage_range}</Text>
           </View>
-        ) : undefined
+        ) : null
       }
     />
   );

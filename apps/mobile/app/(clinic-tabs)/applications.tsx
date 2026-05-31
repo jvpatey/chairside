@@ -30,7 +30,6 @@ function RoleApplicationSummaryCard({
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
-      height: 218,
     },
     cardPressed: { opacity: 0.92 },
     statPill: {
@@ -63,7 +62,6 @@ function RoleApplicationSummaryCard({
         location={location || null}
         detail={reviewMeta}
         avatarSize={44}
-        uniformCardLayout
         textFooter={
           <View style={styles.statPill}>
             <Text style={styles.statText}>{applicantLabel}</Text>

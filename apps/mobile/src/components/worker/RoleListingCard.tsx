@@ -31,7 +31,6 @@ export function RoleListingCard({
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
-      height: 218,
     },
     cardPressed: { opacity: 0.92 },
     footer: {
@@ -57,7 +56,6 @@ export function RoleListingCard({
       location={location || null}
       detail={formatJobPostCardMeta(job)}
       avatarSize={44}
-      uniformCardLayout
       accessory={
         jobMatch && matchContext ? (
           <MatchTierBadge
@@ -68,13 +66,13 @@ export function RoleListingCard({
           />
         ) : null
       }
-      textFooter={hasApplied ? <AppliedPillBadge /> : undefined}
+      textFooter={hasApplied ? <AppliedPillBadge /> : null}
       footer={
         job.wage_range ? (
           <View style={styles.footer}>
             <Text style={styles.wage}>{job.wage_range}</Text>
           </View>
-        ) : undefined
+        ) : null
       }
     />
   );
