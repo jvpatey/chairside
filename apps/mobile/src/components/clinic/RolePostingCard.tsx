@@ -6,8 +6,12 @@ import { Pressable, Text, View } from 'react-native';
 
 import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type RolePostingCardManageProps = {
@@ -19,6 +23,8 @@ export type RolePostingCardManageProps = {
 type RolePostingCardProps = {
   job: JobPost;
   applicantCount?: number;
+  layout?: ListingLayout;
+  isLast?: boolean;
   onPress?: () => void;
   onApplicantsPress?: () => void;
   manage?: RolePostingCardManageProps;
@@ -52,12 +58,15 @@ function ApplicantCountPill({ count }: { count: number }) {
 export function RolePostingCard({
   job,
   applicantCount,
+  layout = 'tile',
+  isLast,
   onPress,
   onApplicantsPress,
   manage,
 }: RolePostingCardProps) {
   const { colors } = useTheme();
   const { clinicProfile } = useClinicProfile();
+  const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
   const hasApplicants = applicantCount != null && applicantCount > 0;
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
@@ -98,6 +107,11 @@ export function RolePostingCard({
       fontWeight: '600',
       color: colors.primary,
     },
+    listWage: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
     applicantsPressable: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -105,6 +119,11 @@ export function RolePostingCard({
     },
     applicantsPressablePressed: {
       opacity: 0.75,
+    },
+    listAccessory: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
     },
   }));
 
@@ -119,6 +138,70 @@ export function RolePostingCard({
     });
   };
 
+  const manageButton = manage ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Manage role posting"
+      hitSlop={10}
+      onPress={(event) => {
+        event.stopPropagation?.();
+        handleManagePress();
+      }}
+      style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+      <Ionicons name="ellipsis-horizontal" size={20} color={colors.labelTertiary} />
+    </Pressable>
+  ) : null;
+
+  const applicantFooter =
+    applicantCount != null && applicantCount > 0 ? (
+      hasApplicants && onApplicantsPress ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Review ${applicantCount} applicants`}
+          onPress={(event) => {
+            event.stopPropagation?.();
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onApplicantsPress();
+          }}
+          style={({ pressed }) => [
+            styles.applicantsPressable,
+            pressed && styles.applicantsPressablePressed,
+          ]}>
+          <ApplicantCountPill count={applicantCount} />
+          <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+        </Pressable>
+      ) : (
+        <ApplicantCountPill count={applicantCount} />
+      )
+    ) : null;
+
+  if (layout === 'list') {
+    return (
+      <BrowseListRow
+        avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
+        eyebrow={clinicName}
+        title={job.title}
+        meta={location || null}
+        detail={formatJobPostRoleMeta(job)}
+        topTrailing={
+          <View style={styles.listAccessory}>
+            <JobPostStatusBadge status={job.status} />
+            {manageButton}
+          </View>
+        }
+        showChevron={!onApplicantsPress || !(applicantCount != null && applicantCount > 0)}
+        footer={
+          <>
+            {applicantFooter}
+            {job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
+          </>
+        }
+        isLast={isLast}
+        onPress={onPress}
+      />
+    );
+  }
+
   const content = (
     <ClinicPostHeader
       clinicName={clinicName}
@@ -130,41 +213,10 @@ export function RolePostingCard({
       accessory={
         <View style={styles.headerAccessory}>
           <JobPostStatusBadge status={job.status} />
-          {manage ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Manage role posting"
-              hitSlop={10}
-              onPress={handleManagePress}
-              style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
-              <Ionicons name="ellipsis-horizontal" size={20} color={colors.labelTertiary} />
-            </Pressable>
-          ) : null}
+          {manageButton}
         </View>
       }
-      textFooter={
-        applicantCount != null && applicantCount > 0 ? (
-          hasApplicants && onApplicantsPress ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Review ${applicantCount} applicants`}
-              onPress={(event) => {
-                event.stopPropagation?.();
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onApplicantsPress();
-              }}
-              style={({ pressed }) => [
-                styles.applicantsPressable,
-                pressed && styles.applicantsPressablePressed,
-              ]}>
-              <ApplicantCountPill count={applicantCount} />
-              <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
-            </Pressable>
-          ) : (
-            <ApplicantCountPill count={applicantCount} />
-          )
-        ) : null
-      }
+      textFooter={applicantFooter}
       footer={
         job.wage_range ? (
           <View style={styles.footer}>

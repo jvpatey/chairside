@@ -2,6 +2,7 @@ import type { Conversation } from '@chairside/api';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { ConversationFilterBar } from '@/components/messaging/ConversationFilterBar';
 import { ConversationListItem } from '@/components/messaging/ConversationListItem';
 import { confirmHideConversation } from '@/lib/conversationHide';
@@ -36,7 +37,6 @@ export function ConversationInboxList({
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     content: { gap: spacing.md },
-    list: { gap: spacing.md },
     empty: typography.subtitle,
   }));
 
@@ -62,7 +62,7 @@ export function ConversationInboxList({
       {filteredConversations.length === 0 ? (
         <Text style={styles.empty}>{emptyMessage}</Text>
       ) : (
-        <View style={styles.list}>
+        <BrowseListGroup>
           {filteredConversations.map((conversation) => (
             <ConversationListItem
               key={conversation.id}
@@ -75,7 +75,7 @@ export function ConversationInboxList({
               }
             />
           ))}
-        </View>
+        </BrowseListGroup>
       )}
     </View>
   );

@@ -14,6 +14,7 @@ import { RowDivider } from '@/components/clinic/DetailCard';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { WorkerSectionHeader } from '@/components/worker/WorkerCards';
 import { Screen } from '@/components/ui/Screen';
@@ -225,15 +226,16 @@ export default function FillInsScreen() {
                 />
               ) : (
                 <>
-                  <View style={styles.list}>
+                  <BrowseListGroup>
                     {previewShifts.map((shift) => (
                       <FillInListingCard
                         key={shift.id}
                         shift={shift}
+                        layout="list"
                         onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
                       />
                     ))}
-                  </View>
+                  </BrowseListGroup>
                   {shifts.length > 0 ? (
                     <Pressable
                       accessibilityRole="button"

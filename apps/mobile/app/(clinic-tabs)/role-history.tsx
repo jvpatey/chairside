@@ -11,6 +11,7 @@ import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -63,9 +64,6 @@ function HistorySection({
       fontSize: 14,
       lineHeight: 20,
     },
-    list: {
-      gap: spacing.sm,
-    },
     empty: {
       backgroundColor: colors.surface,
       borderRadius: 12,
@@ -99,11 +97,12 @@ function HistorySection({
           <Text style={styles.emptyBody}>{emptyBody}</Text>
         </View>
       ) : (
-        <View style={styles.list}>
+        <BrowseListGroup>
           {jobs.map((job) => (
             <RolePostingCard
               key={job.id}
               job={job}
+              layout="list"
               applicantCount={applicantCounts[job.id] ?? 0}
               onPress={() => router.push(getJobDetailRoute(job.id))}
               onApplicantsPress={
@@ -122,7 +121,7 @@ function HistorySection({
               }
             />
           ))}
-        </View>
+        </BrowseListGroup>
       )}
     </View>
   );

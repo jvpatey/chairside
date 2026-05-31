@@ -9,6 +9,7 @@ import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
@@ -82,7 +83,6 @@ export default function OpenFillInsScreen() {
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
-    list: { gap: spacing.md },
   }));
 
   return (
@@ -108,15 +108,16 @@ export default function OpenFillInsScreen() {
         {filteredShifts.length === 0 && !isLoading ? (
           <OpenFillInsEmptyState />
         ) : (
-          <View style={styles.list}>
+          <BrowseListGroup>
             {filteredShifts.map((shift) => (
               <FillInListingCard
                 key={shift.id}
                 shift={shift}
+                layout="list"
                 onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'open-fill-ins'))}
               />
             ))}
-          </View>
+          </BrowseListGroup>
         )}
       </View>
     </OnboardingShell>

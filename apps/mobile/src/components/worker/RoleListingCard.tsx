@@ -6,7 +6,11 @@ import { Pressable, Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { AppliedPillBadge } from '@/components/matching/ApplicationStatusBadge';
+import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
@@ -14,6 +18,8 @@ type RoleListingCardProps = {
   jobMatch?: JobMatchBreakdown | null;
   matchContext?: Partial<JobMatchContext>;
   hasApplied?: boolean;
+  layout?: ListingLayout;
+  isLast?: boolean;
   onPress?: () => void;
 };
 
@@ -22,8 +28,13 @@ export function RoleListingCard({
   jobMatch,
   matchContext,
   hasApplied,
+  layout = 'tile',
+  isLast,
   onPress,
 }: RoleListingCardProps) {
+  const logoUri = useClinicLogoUri(job.clinic.logo_storage_path);
+  const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -44,9 +55,44 @@ export function RoleListingCard({
       fontWeight: '600',
       color: colors.primary,
     },
+    listWage: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
   }));
 
-  const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+  if (layout === 'list') {
+    return (
+      <BrowseListRow
+        avatar={
+          <ClinicLogoAvatar clinicName={job.clinic.clinic_name} logoUri={logoUri} size={40} />
+        }
+        eyebrow={job.clinic.clinic_name}
+        title={job.title}
+        meta={location || null}
+        detail={formatJobPostCardMeta(job)}
+        topTrailing={
+          jobMatch && matchContext ? (
+            <MatchTierBadge
+              breakdown={jobMatch}
+              context={matchContext}
+              subtitle={job.title}
+              showProfileHint
+            />
+          ) : undefined
+        }
+        footer={
+          <>
+            {hasApplied ? <AppliedPillBadge /> : null}
+            {job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
+          </>
+        }
+        isLast={isLast}
+        onPress={onPress}
+      />
+    );
+  }
 
   const content = (
     <ClinicPostHeader

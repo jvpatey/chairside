@@ -15,6 +15,7 @@ import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { Screen } from '@/components/ui/Screen';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -109,9 +110,6 @@ export default function ClinicPostingsScreen() {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.lg,
-    },
-    list: {
-      gap: spacing.sm,
     },
     loading: typography.subtitle,
     historyLink: {
@@ -226,11 +224,12 @@ export default function ClinicPostingsScreen() {
                 body="Try a different filter or publish a new role."
               />
             ) : (
-              <View style={styles.list}>
+              <BrowseListGroup>
                 {filteredJobs.map((job) => (
                   <RolePostingCard
                     key={job.id}
                     job={job}
+                    layout="list"
                     applicantCount={applicantCounts[job.id] ?? 0}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
                     onApplicantsPress={
@@ -252,7 +251,7 @@ export default function ClinicPostingsScreen() {
                     }
                   />
                 ))}
-              </View>
+              </BrowseListGroup>
             )}
 
             {hasRoleHistory ? (

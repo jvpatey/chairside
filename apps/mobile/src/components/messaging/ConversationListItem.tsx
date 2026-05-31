@@ -1,7 +1,7 @@
 import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
@@ -17,6 +17,7 @@ type ConversationListItemProps = {
   role: 'worker' | 'clinic';
   onPress: () => void;
   onDelete?: () => void;
+  isLast?: boolean;
 };
 
 function ConversationAvatar({
@@ -38,7 +39,7 @@ function ConversationAvatar({
       <ClinicLogoAvatar
         clinicName={conversation.counterpart_name}
         logoUri={clinicLogoUri}
-        size={44}
+        size={40}
       />
     );
   }
@@ -47,7 +48,7 @@ function ConversationAvatar({
     <WorkerProfileAvatar
       displayName={conversation.counterpart_name}
       photoUri={workerPhotoUri}
-      size={44}
+      size={40}
     />
   );
 }
@@ -58,32 +59,34 @@ export function ConversationListItem({
   role,
   onPress,
   onDelete,
+  isLast = false,
 }: ConversationListItemProps) {
   const { colors } = useTheme();
   const timestamp = formatNotificationTime(conversation.last_message_at ?? undefined);
   const display = formatConversationDisplay(conversation, role);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
+    row: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: spacing.sm,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingLeft: spacing.lg,
-      paddingRight: spacing.sm,
-      paddingVertical: spacing.lg,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    rowSeparator: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.separator,
     },
     mainPressable: {
       flex: 1,
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: spacing.md,
       minWidth: 0,
     },
-    mainPressed: { opacity: 0.92 },
+    mainPressed: {
+      opacity: 0.92,
+    },
     textWrap: { flex: 1, gap: 2, minWidth: 0 },
     titleRow: {
       flexDirection: 'row',
@@ -92,7 +95,7 @@ export function ConversationListItem({
       gap: spacing.sm,
     },
     roleEyebrow: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '600',
       letterSpacing: 0.4,
       textTransform: 'uppercase',
@@ -101,19 +104,19 @@ export function ConversationListItem({
     },
     name: {
       ...typography.body,
-      fontSize: 20,
-      lineHeight: 26,
-      fontWeight: '700',
-      letterSpacing: -0.2,
+      fontSize: 16,
+      lineHeight: 21,
+      fontWeight: '600',
       color: colors.labelPrimary,
     },
     meta: {
-      fontSize: 14,
-      lineHeight: 20,
+      fontSize: 13,
+      lineHeight: 18,
       color: colors.labelSecondary,
     },
     preview: {
-      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
       color: conversation.unread ? colors.labelPrimary : colors.labelSecondary,
       fontWeight: conversation.unread ? '600' : '400',
     },
@@ -128,14 +131,20 @@ export function ConversationListItem({
       backgroundColor: colors.primary,
     },
     menuButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
+      marginTop: 2,
     },
     menuButtonPressed: {
       backgroundColor: colors.fillSubtle,
+    },
+    trailing: {
+      alignSelf: 'stretch',
+      justifyContent: 'center',
+      paddingTop: 2,
     },
   }));
 
@@ -150,7 +159,7 @@ export function ConversationListItem({
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.row, !isLast && styles.rowSeparator]}>
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
@@ -177,18 +186,20 @@ export function ConversationListItem({
           </View>
         </View>
       </Pressable>
-      {onDelete ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Conversation options"
-          hitSlop={8}
-          onPress={showMenu}
-          style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
-          <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
-        </Pressable>
-      ) : (
-        <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
-      )}
+      <View style={styles.trailing}>
+        {onDelete ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Conversation options"
+            hitSlop={8}
+            onPress={showMenu}
+            style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
+          </Pressable>
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+        )}
+      </View>
     </View>
   );
 }
