@@ -1,5 +1,6 @@
 import {
   confirmFillInApplicant,
+  getApplicantDisplayName,
   updateApplicationStatus,
   type ClinicApplication,
   type FillInCoverRequest,
@@ -59,8 +60,9 @@ export function FillInApplicantCard({
   onConfirmed,
 }: FillInApplicantCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const workerName = application.worker_display_name?.trim() || 'Applicant';
-  const pending = isPending(application);
+  const workerName = getApplicantDisplayName(application);
+  const workerDeleted = application.worker_account_deleted;
+  const pending = isPending(application) && !workerDeleted;
   const messagesReturnTo =
     returnTo === 'fill-ins-tab' || returnTo === 'postings-fill-ins' || returnTo === 'dashboard-fill-ins'
       ? 'messages-tab'
@@ -93,6 +95,17 @@ export function FillInApplicantCard({
       gap: spacing.sm,
     },
     action: { flex: 1, minWidth: 0 },
+    deletedBanner: {
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 10,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    deletedText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
   }));
 
   const handleAccept = () => {
@@ -164,7 +177,7 @@ export function FillInApplicantCard({
     <View style={styles.card}>
       <ApplicantPostHeader
         displayName={workerName}
-        photoStoragePath={application.worker_photo_storage_path}
+        photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
         title={getRoleTypeLabel(application.post_role_type)}
         detail={[
           getShiftMeta(application),
@@ -178,6 +191,14 @@ export function FillInApplicantCard({
 
       {application.cover_message?.trim() ? (
         <Text style={styles.preview}>{`\u201C${application.cover_message.trim()}\u201D`}</Text>
+      ) : null}
+
+      {workerDeleted ? (
+        <View style={styles.deletedBanner}>
+          <Text style={styles.deletedText}>
+            This candidate is no longer signed up for Chairside.
+          </Text>
+        </View>
       ) : null}
 
       {pending ? (
@@ -208,7 +229,13 @@ export function FillInApplicantCard({
         </View>
       ) : application.status !== 'rejected' ? (
         <OnboardingButton
-          label={hasUnreadMessages ? 'Message · New' : 'Message'}
+          label={
+            workerDeleted
+              ? 'View messages'
+              : hasUnreadMessages
+                ? 'Message · New'
+                : 'Message'
+          }
           variant="secondary"
           onPress={() =>
             router.push(getClinicApplicationMessagesRoute(application.id, messagesReturnTo))

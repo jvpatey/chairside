@@ -2,6 +2,11 @@ import { formatStoredEducation } from './clinicOptions';
 
 export type ApplicationPostType = 'job' | 'shift';
 
+/** Shown when a counterpart account has been deleted but history is retained. */
+export const DELETED_ACCOUNT_LABEL = 'No longer on Chairside';
+export const DELETED_CANDIDATE_LABEL = 'Candidate no longer on Chairside';
+export const DELETED_CLINIC_LABEL = 'Clinic no longer on Chairside';
+
 const JOB_STATUS_LABELS: Record<string, string> = {
   applied: 'Applied',
   reviewed: 'Viewed',

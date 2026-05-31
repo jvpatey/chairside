@@ -46,6 +46,9 @@ export {
   type TeamSizeRange,
 } from './clinicOptions';
 export {
+  DELETED_ACCOUNT_LABEL,
+  DELETED_CANDIDATE_LABEL,
+  DELETED_CLINIC_LABEL,
   formatApplicationDate,
   formatApplicationEducation,
   formatApplicationResumeStatus,

@@ -77,7 +77,8 @@ export function WorkerApplicationDetailCard({
 }: WorkerApplicationDetailCardProps) {
   const { colors } = useTheme();
   const [rescheduleVisible, setRescheduleVisible] = useState(false);
-  const canCancel = isActiveApplicationStatus(application.status);
+  const clinicDeleted = application.clinic_account_deleted;
+  const canCancel = isActiveApplicationStatus(application.status) && !clinicDeleted;
   const canHide = canWorkerHideApplication(application);
   const isShift = application.post_type === 'shift';
   const jobMatch = !isShift ? parseApplicationJobMatch(application) : null;
@@ -175,6 +176,16 @@ export function WorkerApplicationDetailCard({
       flex: 1,
     },
     interviewMeta: typography.subtitle,
+    deletedBanner: {
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+    },
+    deletedText: {
+      ...typography.subtitle,
+    },
   }));
 
   const handleMessage = () => {
@@ -395,14 +406,18 @@ export function WorkerApplicationDetailCard({
   }[] = [
     {
       key: 'message',
-      label: hasUnreadMessages ? 'Message · New' : 'Message',
+      label: clinicDeleted
+        ? 'View messages'
+        : hasUnreadMessages
+          ? 'Message · New'
+          : 'Message',
       onPress: handleMessage,
     },
     {
       key: 'posting',
       label: application.post_type === 'job' ? 'View role' : 'View shift',
       onPress: () => onViewPosting?.(),
-      disabled: !onViewPosting,
+      disabled: !onViewPosting || clinicDeleted,
     },
   ];
 
@@ -464,7 +479,15 @@ export function WorkerApplicationDetailCard({
   const bodyContent = (
     <>
       <View style={variant === 'embedded' ? styles.bodyEmbedded : styles.body}>
-        {application.status === 'interview_offered' && interviewSummary ? (
+        {clinicDeleted ? (
+          <View style={styles.deletedBanner}>
+            <Text style={styles.deletedText}>
+              This clinic is no longer signed up for Chairside.
+            </Text>
+          </View>
+        ) : null}
+
+        {!clinicDeleted && application.status === 'interview_offered' && interviewSummary ? (
           <View style={styles.interviewCard}>
             <View style={styles.interviewHeader}>
               <Ionicons name="calendar-outline" size={18} color={colors.warning} />
@@ -483,7 +506,7 @@ export function WorkerApplicationDetailCard({
           </View>
         ) : null}
 
-        {application.status === 'interview_scheduled' && interviewSummary ? (
+        {!clinicDeleted && application.status === 'interview_scheduled' && interviewSummary ? (
           <View style={styles.interviewCard}>
             <View style={styles.interviewHeader}>
               <Ionicons name="calendar-outline" size={18} color={colors.secondary} />

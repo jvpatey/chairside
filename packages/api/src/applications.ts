@@ -1,5 +1,9 @@
 import { getSupabaseClient } from './client';
 import {
+  DELETED_CANDIDATE_LABEL,
+  DELETED_CLINIC_LABEL,
+} from '@chairside/config';
+import {
   getApplicationScreening,
   getApplicationScreeningMap,
   insertApplicationScreening,
@@ -64,6 +68,12 @@ export type Application = {
   interview_offer_closed_by: 'clinic' | 'worker' | null;
   worker_hidden_at: string | null;
   clinic_hidden_at: string | null;
+  clinic_name: string | null;
+  clinic_city: string | null;
+  clinic_province: string | null;
+  clinic_logo_storage_path: string | null;
+  worker_account_deleted_at: string | null;
+  clinic_account_deleted_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -72,6 +82,7 @@ export type ClinicApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
   post_role_type: string;
+  worker_account_deleted: boolean;
   screening: ApplicationScreening | null;
 };
 
@@ -89,6 +100,7 @@ export type WorkerApplication = Application & {
   clinic_address?: string | null;
   clinic_location?: string | null;
   clinic_logo_storage_path: string | null;
+  clinic_account_deleted: boolean;
   screening: ApplicationScreening | null;
 };
 
@@ -105,6 +117,71 @@ function formatWorkerClinicLocation(clinic: {
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+export function getApplicantDisplayName(
+  application: Pick<Application, 'worker_display_name' | 'worker_account_deleted_at'>,
+): string {
+  if (application.worker_account_deleted_at) {
+    return DELETED_CANDIDATE_LABEL;
+  }
+  return application.worker_display_name?.trim() || 'Applicant';
+}
+
+function resolveWorkerClinicFields(
+  application: Application,
+  clinic?: {
+    clinic_name?: string | null;
+    city?: string | null;
+    province?: string | null;
+    address_line1?: string | null;
+    logo_storage_path?: string | null;
+  } | null,
+): Pick<
+  WorkerApplication,
+  | 'clinic_name'
+  | 'clinic_city'
+  | 'clinic_province'
+  | 'clinic_address'
+  | 'clinic_location'
+  | 'clinic_logo_storage_path'
+  | 'clinic_account_deleted'
+> {
+  const clinicDeleted = Boolean(application.clinic_account_deleted_at);
+
+  if (clinicDeleted) {
+    return {
+      clinic_name: DELETED_CLINIC_LABEL,
+      clinic_city: application.clinic_city ?? null,
+      clinic_province: application.clinic_province ?? null,
+      clinic_address: null,
+      clinic_location: [application.clinic_city, application.clinic_province]
+        .filter(Boolean)
+        .join(', ') || null,
+      clinic_logo_storage_path: null,
+      clinic_account_deleted: true,
+    };
+  }
+
+  return {
+    clinic_name: clinic?.clinic_name ?? application.clinic_name ?? 'Clinic',
+    clinic_city: clinic?.city ?? application.clinic_city ?? null,
+    clinic_province: clinic?.province ?? application.clinic_province ?? null,
+    clinic_address: clinic?.address_line1 ?? null,
+    clinic_location: formatWorkerClinicLocation(clinic),
+    clinic_logo_storage_path:
+      clinic?.logo_storage_path ?? application.clinic_logo_storage_path ?? null,
+    clinic_account_deleted: false,
+  };
+}
+
+export function isApplicationCounterpartDeleted(
+  application: Pick<Application, 'worker_account_deleted_at' | 'clinic_account_deleted_at'>,
+  role: 'worker' | 'clinic',
+): boolean {
+  return role === 'worker'
+    ? Boolean(application.clinic_account_deleted_at)
+    : Boolean(application.worker_account_deleted_at);
 }
 
 export type CreateApplicationInput = {
@@ -207,6 +284,7 @@ export async function listClinicApplications(
         post_title: job.title,
         post_type: 'job',
         post_role_type: job.role_type,
+        worker_account_deleted: Boolean(application.worker_account_deleted_at),
         screening,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
@@ -216,6 +294,7 @@ export async function listClinicApplications(
         post_title: shift.title,
         post_type: 'shift',
         post_role_type: shift.role_type,
+        worker_account_deleted: Boolean(application.worker_account_deleted_at),
         screening,
       });
     }
@@ -311,19 +390,19 @@ export async function listWorkerApplications(
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
       const clinic = clinicMap.get(job.clinic_id);
+      const clinicFields = resolveWorkerClinicFields(application, clinic);
       applications.push({
         ...application,
         post_title: job.title,
         post_type: 'job',
         post_status: job.status,
-        clinic_name: clinic?.clinic_name ?? 'Clinic',
-        clinic_city: clinic?.city ?? null,
-        clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
+        ...clinicFields,
         screening,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
       const clinic = clinicMap.get(shift.clinic_id);
+      const clinicFields = resolveWorkerClinicFields(application, clinic);
       applications.push({
         ...application,
         post_title: shift.title,
@@ -333,12 +412,7 @@ export async function listWorkerApplications(
         shift_date: shift.shift_date,
         shift_start_time: shift.start_time,
         shift_end_time: shift.end_time,
-        clinic_name: clinic?.clinic_name ?? 'Clinic',
-        clinic_city: clinic?.city ?? null,
-        clinic_province: clinic?.province ?? null,
-        clinic_address: clinic?.address_line1 ?? null,
-        clinic_location: formatWorkerClinicLocation(clinic),
-        clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
+        ...clinicFields,
         screening: null,
       });
     }
@@ -378,9 +452,7 @@ async function enrichWorkerApplication(
       ...application,
       post_title: job.title,
       post_type: 'job',
-      clinic_name: clinic?.clinic_name ?? 'Clinic',
-      clinic_city: clinic?.city ?? null,
-      clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
+      ...resolveWorkerClinicFields(application, clinic),
       screening,
     };
   }
@@ -411,12 +483,7 @@ async function enrichWorkerApplication(
       shift_date: shift.shift_date,
       shift_start_time: shift.start_time,
       shift_end_time: shift.end_time,
-      clinic_name: clinic?.clinic_name ?? 'Clinic',
-      clinic_city: clinic?.city ?? null,
-      clinic_province: clinic?.province ?? null,
-      clinic_address: clinic?.address_line1 ?? null,
-      clinic_location: formatWorkerClinicLocation(clinic),
-      clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
+      ...resolveWorkerClinicFields(application, clinic),
       screening: null,
     };
   }
@@ -1091,7 +1158,7 @@ export async function listUpcomingConfirmedFillIns(
   const shiftIds = [...shiftMap.keys()];
   const { data, error } = await supabase
     .from('applications')
-    .select('id, shift_post_id, status, worker_display_name, worker_photo_storage_path')
+    .select('id, shift_post_id, status, worker_display_name, worker_photo_storage_path, worker_account_deleted_at')
     .in('shift_post_id', shiftIds)
     .eq('status', 'hired')
     .order('created_at', { ascending: false });
@@ -1106,8 +1173,12 @@ export async function listUpcomingConfirmedFillIns(
     summaries.push({
       applicationId: row.id,
       shiftPostId: row.shift_post_id,
-      workerName: row.worker_display_name?.trim() || 'Applicant',
-      workerPhotoStoragePath: row.worker_photo_storage_path ?? null,
+      workerName: row.worker_account_deleted_at
+        ? DELETED_CANDIDATE_LABEL
+        : row.worker_display_name?.trim() || 'Applicant',
+      workerPhotoStoragePath: row.worker_account_deleted_at
+        ? null
+        : row.worker_photo_storage_path ?? null,
       postTitle: `Fill-in · ${shift.shift_date}`,
       shiftDate: shift.shift_date,
       startTime: shift.start_time,

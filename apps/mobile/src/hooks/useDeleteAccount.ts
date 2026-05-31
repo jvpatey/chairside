@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 
 const DELETE_SUMMARY =
-  'This will permanently delete your account and login, clinic profile, all role postings and fill-ins, and associated applications. This cannot be undone.';
+  'This will permanently delete your account and login. Your applications, messages, and postings will stay visible to others as historical records marked as no longer on Chairside. This cannot be undone.';
 
 export function useDeleteAccount() {
   const { signOut } = useAuth();

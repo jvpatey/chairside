@@ -37,6 +37,9 @@ function getEmptyStateMessage(conversation: Conversation | null, canSend: boolea
 }
 
 function getClosedBannerMessage(conversation: Conversation | null): string {
+  if (conversation?.counterpart_account_deleted) {
+    return 'This person is no longer signed up for Chairside. You can still read past messages.';
+  }
   if (conversation?.conversation_type === 'general') {
     return 'This clinic is no longer accepting general messages. You can still read past messages.';
   }

@@ -35,8 +35,13 @@ function formatCardRole(conversation: Conversation): string {
 }
 
 function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): string {
+  const deletedNote = conversation.counterpart_account_deleted
+    ? 'No longer on Chairside'
+    : null;
+
   if (conversation.conversation_type === 'general') {
-    return role === 'clinic' ? 'Not tied to a posting' : 'General inquiry';
+    const base = role === 'clinic' ? 'Not tied to a posting' : 'General inquiry';
+    return [base, deletedNote].filter(Boolean).join(' · ');
   }
 
   const statusLabel = formatStatusLabel(conversation, role);
@@ -49,10 +54,10 @@ function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): 
       conversation.shift_start_time && conversation.shift_end_time
         ? formatTimeRangePreview(conversation.shift_start_time, conversation.shift_end_time)
         : null;
-    return [dateLabel, hours, statusLabel].filter(Boolean).join(' · ');
+    return [dateLabel, hours, statusLabel, deletedNote].filter(Boolean).join(' · ');
   }
 
-  return `${conversation.post_title} · ${statusLabel}`;
+  return [conversation.post_title, statusLabel, deletedNote].filter(Boolean).join(' · ');
 }
 
 function formatStatusLabel(

@@ -144,6 +144,8 @@ export {
   listUpcomingConfirmedFillIns,
   hideWorkerApplication,
   hideClinicApplication,
+  getApplicantDisplayName,
+  isApplicationCounterpartDeleted,
   ACTIVE_APPLICATION_STATUSES,
   FILL_IN_PENDING_STATUSES,
   type Application,

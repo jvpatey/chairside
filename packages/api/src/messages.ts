@@ -1,4 +1,8 @@
 import { getSupabaseClient } from './client';
+import {
+  DELETED_CANDIDATE_LABEL,
+  DELETED_CLINIC_LABEL,
+} from '@chairside/config';
 import type { ApplicationStatus } from './applications';
 
 export type ConversationType = 'application' | 'general';
@@ -17,6 +21,8 @@ export type ConversationRow = {
   messaging_closed_at: string | null;
   worker_hidden_at: string | null;
   clinic_hidden_at: string | null;
+  worker_account_deleted_at: string | null;
+  clinic_account_deleted_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -39,6 +45,7 @@ export type Conversation = ConversationRow & {
   shift_end_time: string | null;
   counterpart_name: string;
   counterpart_logo_storage_path: string | null;
+  counterpart_account_deleted: boolean;
   unread: boolean;
   can_send: boolean;
 };
@@ -86,11 +93,24 @@ function isUnreadForRole(
   return new Date(conversation.last_message_at).getTime() > new Date(lastReadAt).getTime();
 }
 
+function isConversationCounterpartDeleted(
+  conversation: Pick<ConversationRow, 'worker_account_deleted_at' | 'clinic_account_deleted_at'>,
+  role: 'worker' | 'clinic',
+): boolean {
+  return role === 'worker'
+    ? Boolean(conversation.clinic_account_deleted_at)
+    : Boolean(conversation.worker_account_deleted_at);
+}
+
 function canSendApplicationMessages(
   applicationStatus: ApplicationStatus,
   messagingClosedAt: string | null,
+  conversation: Pick<ConversationRow, 'worker_account_deleted_at' | 'clinic_account_deleted_at'>,
 ): boolean {
   if (messagingClosedAt) return false;
+  if (conversation.worker_account_deleted_at || conversation.clinic_account_deleted_at) {
+    return false;
+  }
   return (
     applicationStatus === 'applied' ||
     applicationStatus === 'reviewed' ||
@@ -104,8 +124,12 @@ function canSendApplicationMessages(
 function canSendGeneralMessages(
   messagingClosedAt: string | null,
   clinicAcceptsGeneral: boolean,
+  conversation: Pick<ConversationRow, 'worker_account_deleted_at' | 'clinic_account_deleted_at'>,
 ): boolean {
   if (messagingClosedAt) return false;
+  if (conversation.worker_account_deleted_at || conversation.clinic_account_deleted_at) {
+    return false;
+  }
   return clinicAcceptsGeneral;
 }
 
@@ -182,6 +206,7 @@ async function enrichWorkerConversations(
       if (application.job_post_id && jobMap.has(application.job_post_id)) {
         const job = jobMap.get(application.job_post_id)!;
         const clinic = clinicMap.get(job.clinic_id);
+        const clinicDeleted = isConversationCounterpartDeleted(row, 'worker');
         conversations.push({
           ...row,
           application_status: status,
@@ -191,14 +216,20 @@ async function enrichWorkerConversations(
           shift_date: null,
           shift_start_time: null,
           shift_end_time: null,
-          counterpart_name: clinic?.clinic_name ?? 'Clinic',
-          counterpart_logo_storage_path: clinic?.logo_storage_path ?? null,
+          counterpart_name: clinicDeleted
+            ? DELETED_CLINIC_LABEL
+            : clinic?.clinic_name ?? 'Clinic',
+          counterpart_logo_storage_path: clinicDeleted
+            ? null
+            : clinic?.logo_storage_path ?? null,
+          counterpart_account_deleted: clinicDeleted,
           unread: isUnreadForRole(row, 'worker', workerId),
-          can_send: canSendApplicationMessages(status, row.messaging_closed_at),
+          can_send: canSendApplicationMessages(status, row.messaging_closed_at, row),
         });
       } else if (application.shift_post_id && shiftMap.has(application.shift_post_id)) {
         const shift = shiftMap.get(application.shift_post_id)!;
         const clinic = clinicMap.get(shift.clinic_id);
+        const clinicDeleted = isConversationCounterpartDeleted(row, 'worker');
         conversations.push({
           ...row,
           application_status: status,
@@ -208,10 +239,15 @@ async function enrichWorkerConversations(
           shift_date: shift.shift_date,
           shift_start_time: shift.start_time,
           shift_end_time: shift.end_time,
-          counterpart_name: clinic?.clinic_name ?? 'Clinic',
-          counterpart_logo_storage_path: clinic?.logo_storage_path ?? null,
+          counterpart_name: clinicDeleted
+            ? DELETED_CLINIC_LABEL
+            : clinic?.clinic_name ?? 'Clinic',
+          counterpart_logo_storage_path: clinicDeleted
+            ? null
+            : clinic?.logo_storage_path ?? null,
+          counterpart_account_deleted: clinicDeleted,
           unread: isUnreadForRole(row, 'worker', workerId),
-          can_send: canSendApplicationMessages(status, row.messaging_closed_at),
+          can_send: canSendApplicationMessages(status, row.messaging_closed_at, row),
         });
       }
     }
@@ -229,6 +265,7 @@ async function enrichWorkerConversations(
 
     for (const row of generalRows) {
       const clinic = clinicMap.get(row.clinic_id);
+      const clinicDeleted = isConversationCounterpartDeleted(row, 'worker');
       conversations.push({
         ...row,
         application_status: null,
@@ -238,12 +275,18 @@ async function enrichWorkerConversations(
         shift_date: null,
         shift_start_time: null,
         shift_end_time: null,
-        counterpart_name: clinic?.clinic_name ?? 'Clinic',
-        counterpart_logo_storage_path: clinic?.logo_storage_path ?? null,
+        counterpart_name: clinicDeleted
+          ? DELETED_CLINIC_LABEL
+          : clinic?.clinic_name ?? 'Clinic',
+        counterpart_logo_storage_path: clinicDeleted
+          ? null
+          : clinic?.logo_storage_path ?? null,
+        counterpart_account_deleted: clinicDeleted,
         unread: isUnreadForRole(row, 'worker', workerId),
         can_send: canSendGeneralMessages(
           row.messaging_closed_at,
           clinic?.accepts_general_candidate_messages ?? false,
+          row,
         ),
       });
     }
@@ -283,7 +326,7 @@ async function enrichClinicConversations(
     const [applicationsResult, workersResult] = await Promise.all([
       supabase
         .from('applications')
-        .select('id, status, job_post_id, shift_post_id, worker_display_name')
+        .select('id, status, job_post_id, shift_post_id, worker_display_name, worker_account_deleted_at')
         .in('id', applicationIds),
       supabase
         .from('worker_profiles')
@@ -328,7 +371,12 @@ async function enrichClinicConversations(
 
       const status = application.status as ApplicationStatus;
       const worker = workerMap.get(row.worker_id);
-      const counterpartName = application.worker_display_name?.trim() || 'Applicant';
+      const workerDeleted =
+        isConversationCounterpartDeleted(row, 'clinic') ||
+        Boolean(application.worker_account_deleted_at);
+      const counterpartName = workerDeleted
+        ? DELETED_CANDIDATE_LABEL
+        : application.worker_display_name?.trim() || 'Applicant';
 
       if (application.job_post_id && jobMap.has(application.job_post_id)) {
         const job = jobMap.get(application.job_post_id)!;
@@ -342,9 +390,12 @@ async function enrichClinicConversations(
           shift_start_time: null,
           shift_end_time: null,
           counterpart_name: counterpartName,
-          counterpart_logo_storage_path: worker?.photo_storage_path ?? null,
+          counterpart_logo_storage_path: workerDeleted
+            ? null
+            : worker?.photo_storage_path ?? null,
+          counterpart_account_deleted: workerDeleted,
           unread: isUnreadForRole(row, 'clinic', clinicId),
-          can_send: canSendApplicationMessages(status, row.messaging_closed_at),
+          can_send: canSendApplicationMessages(status, row.messaging_closed_at, row),
         });
       } else if (application.shift_post_id && shiftMap.has(application.shift_post_id)) {
         const shift = shiftMap.get(application.shift_post_id)!;
@@ -358,9 +409,12 @@ async function enrichClinicConversations(
           shift_start_time: shift.start_time,
           shift_end_time: shift.end_time,
           counterpart_name: counterpartName,
-          counterpart_logo_storage_path: worker?.photo_storage_path ?? null,
+          counterpart_logo_storage_path: workerDeleted
+            ? null
+            : worker?.photo_storage_path ?? null,
+          counterpart_account_deleted: workerDeleted,
           unread: isUnreadForRole(row, 'clinic', clinicId),
-          can_send: canSendApplicationMessages(status, row.messaging_closed_at),
+          can_send: canSendApplicationMessages(status, row.messaging_closed_at, row),
         });
       }
     }
@@ -388,6 +442,7 @@ async function enrichClinicConversations(
     for (const row of generalRows) {
       const worker = workerMap.get(row.worker_id);
       const profile = profileMap.get(row.worker_id);
+      const workerDeleted = isConversationCounterpartDeleted(row, 'clinic');
       conversations.push({
         ...row,
         application_status: null,
@@ -397,10 +452,15 @@ async function enrichClinicConversations(
         shift_date: null,
         shift_start_time: null,
         shift_end_time: null,
-        counterpart_name: profile?.display_name?.trim() || 'Candidate',
-        counterpart_logo_storage_path: worker?.photo_storage_path ?? null,
+        counterpart_name: workerDeleted
+          ? DELETED_CANDIDATE_LABEL
+          : profile?.display_name?.trim() || 'Candidate',
+        counterpart_logo_storage_path: workerDeleted
+          ? null
+          : worker?.photo_storage_path ?? null,
+        counterpart_account_deleted: workerDeleted,
         unread: isUnreadForRole(row, 'clinic', clinicId),
-        can_send: canSendGeneralMessages(row.messaging_closed_at, clinicAcceptsGeneral),
+        can_send: canSendGeneralMessages(row.messaging_closed_at, clinicAcceptsGeneral, row),
       });
     }
   }

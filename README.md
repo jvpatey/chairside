@@ -103,7 +103,7 @@ Build profiles are defined in [`apps/mobile/eas.json`](apps/mobile/eas.json) (`d
 
 Deploy from the project root. Use `--use-api` if local Docker bundling is unavailable.
 
-**Account deletion** — required for Profile → delete account:
+**Account deletion** — required for Profile → delete account. Preserves historical applications/messages for the other party (marked as no longer on Chairside), scrubs PII, and removes storage files:
 
 ```bash
 supabase functions deploy delete-account --use-api

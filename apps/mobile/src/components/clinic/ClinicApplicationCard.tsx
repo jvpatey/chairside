@@ -3,6 +3,7 @@ import {
   cancelApplicationInterviewOffer,
   cancelScheduledApplicationInterview,
   declineApplicationInterviewUpdate,
+  getApplicantDisplayName,
   updateApplicationStatus,
   type ClinicApplication,
 } from '@chairside/api';
@@ -201,6 +202,16 @@ export function ClinicApplicationCard({
       flex: 1,
       minWidth: 0,
     },
+    deletedBanner: {
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 10,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    deletedText: {
+      ...typography.subtitle,
+      fontSize: 14,
+    },
   }));
 
   const updateStatus = async (status: Parameters<typeof updateApplicationStatus>[1]) => {
@@ -370,11 +381,15 @@ export function ClinicApplicationCard({
     interviewSummary;
 
   const hasActions =
-    application.status === 'applied' ||
-    application.status === 'reviewed' ||
-    application.status === 'in_progress' ||
-    application.status === 'interview_offered' ||
-    application.status === 'interview_scheduled';
+    !application.worker_account_deleted &&
+    (application.status === 'applied' ||
+      application.status === 'reviewed' ||
+      application.status === 'in_progress' ||
+      application.status === 'interview_offered' ||
+      application.status === 'interview_scheduled');
+
+  const applicantName = getApplicantDisplayName(application);
+  const workerDeleted = application.worker_account_deleted;
 
   const canRemoveFromList = Boolean(clinicId) && canClinicHideApplication(application);
 
@@ -385,10 +400,10 @@ export function ClinicApplicationCard({
   return (
     <View style={styles.card}>
       <ApplicantPostHeader
-        displayName={application.worker_display_name?.trim() || 'Applicant'}
-        photoStoragePath={application.worker_photo_storage_path}
+        displayName={applicantName}
+        photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
         title={application.post_title}
-        detail={application.worker_address ?? null}
+        detail={workerDeleted ? null : application.worker_address ?? null}
         avatarSize={44}
         accessory={
           <ClinicApplicationStatusBadge status={application.status} postType={application.post_type} />
@@ -436,8 +451,22 @@ export function ClinicApplicationCard({
         </View>
       ) : null}
 
+      {workerDeleted ? (
+        <View style={styles.deletedBanner}>
+          <Text style={styles.deletedText}>
+            This candidate is no longer signed up for Chairside.
+          </Text>
+        </View>
+      ) : null}
+
       <OnboardingButton
-        label={hasUnreadMessages ? 'Message applicant · New' : 'Message applicant'}
+        label={
+          workerDeleted
+            ? 'View messages'
+            : hasUnreadMessages
+              ? 'Message applicant · New'
+              : 'Message applicant'
+        }
         variant="secondary"
         onPress={handleMessage}
       />
