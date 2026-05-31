@@ -1,28 +1,52 @@
 import type { WorkerApplication } from '@chairside/api';
 import { formatApplicationDate } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
-import { Pressable, View } from 'react-native';
+import {
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  UIManager,
+  View,
+} from 'react-native';
+
+import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
+import { type WorkerApplicationReturnTarget } from '@/lib/routing';
 import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 import { useThemedStyles } from '@/theme';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type WorkerApplicationListCardProps = {
   application: WorkerApplication;
   hasUnreadMessages?: boolean;
-  onPress?: () => void;
+  expanded?: boolean;
+  onExpandChange?: (expanded: boolean) => void;
+  returnTo?: WorkerApplicationReturnTarget;
+  onUpdated?: () => void;
+  onHidden?: () => void;
+  onViewPosting?: () => void;
 };
 
 export function WorkerApplicationListCard({
   application,
   hasUnreadMessages = false,
-  onPress,
+  expanded = false,
+  onExpandChange,
+  returnTo = 'applications-tab',
+  onUpdated,
+  onHidden,
+  onViewPosting,
 }: WorkerApplicationListCardProps) {
   const isJob = application.post_type === 'job';
   const isShift = application.post_type === 'shift';
@@ -39,10 +63,20 @@ export function WorkerApplicationListCard({
       borderRadius: 16,
       borderWidth: 1,
       borderColor: isConfirmedShift ? `${colors.success}40` : colors.separator,
-      padding: spacing.md,
+      padding: spacing.lg,
+      gap: spacing.md,
     },
     cardPressed: { opacity: 0.92 },
+    expandedBody: {
+      gap: spacing.sm,
+    },
   }));
+
+  const toggleExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onExpandChange?.(!expanded);
+  };
 
   const content = (
     <ClinicPostHeader
@@ -82,19 +116,32 @@ export function WorkerApplicationListCard({
     />
   );
 
-  if (!onPress) {
-    return <View style={styles.card}>{content}</View>;
-  }
-
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      {content}
-    </Pressable>
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        onPress={toggleExpanded}
+        style={({ pressed }) => [pressed && styles.cardPressed]}>
+        {content}
+      </Pressable>
+
+      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} />
+
+      {expanded ? (
+        <View style={styles.expandedBody}>
+          <WorkerApplicationDetailCard
+            application={application}
+            returnTo={returnTo}
+            hasUnreadMessages={hasUnreadMessages}
+            variant="embedded"
+            onViewPosting={onViewPosting}
+            onUpdated={onUpdated}
+            onHidden={onHidden}
+            onCancelled={onHidden}
+          />
+        </View>
+      ) : null}
+    </View>
   );
 }

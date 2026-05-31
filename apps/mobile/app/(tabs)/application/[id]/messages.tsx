@@ -11,6 +11,7 @@ import { MessageThreadLoadingShell } from '@/components/messaging/MessageThreadL
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { navigateAfterMessageThread } from '@/lib/routing';
+import { formatConversationDisplay } from '@/lib/conversationDisplay';
 
 export default function WorkerApplicationMessagesScreen() {
   const { user } = useAuth();
@@ -81,8 +82,8 @@ export default function WorkerApplicationMessagesScreen() {
       userId={user.id}
       role="worker"
       conversationId={conversation.id}
-      title={conversation.counterpart_name}
-      subtitle={conversation.post_title}
+      title={formatConversationDisplay(conversation, 'worker').threadTitle}
+      subtitle={formatConversationDisplay(conversation, 'worker').threadSubtitle}
       onBack={goBack}
       onConversationChange={setConversation}
     />

@@ -29,6 +29,51 @@ const TYPE_META: Record<string, NotificationDisplayMeta> = {
     accent: 'info',
     subtitle: 'Application update',
   },
+  application_interview_offered: {
+    icon: 'calendar-outline',
+    accent: 'primary',
+    subtitle: 'Interview invitation',
+  },
+  application_interview_scheduled: {
+    icon: 'calendar-outline',
+    accent: 'success',
+    subtitle: 'Interview confirmed',
+  },
+  application_interview_accepted: {
+    icon: 'checkmark-circle-outline',
+    accent: 'success',
+    subtitle: 'Interview accepted',
+  },
+  application_interview_declined: {
+    icon: 'close-circle-outline',
+    accent: 'destructive',
+    subtitle: 'Interview declined',
+  },
+  application_interview_cancelled: {
+    icon: 'close-circle-outline',
+    accent: 'destructive',
+    subtitle: 'Interview cancelled',
+  },
+  application_interview_reschedule_proposed: {
+    icon: 'calendar-outline',
+    accent: 'info',
+    subtitle: 'Interview reschedule',
+  },
+  application_interview_reschedule_accepted: {
+    icon: 'checkmark-circle-outline',
+    accent: 'success',
+    subtitle: 'Interview time updated',
+  },
+  application_interview_reschedule_declined: {
+    icon: 'close-circle-outline',
+    accent: 'destructive',
+    subtitle: 'Reschedule declined',
+  },
+  application_interview_scheduled_cancelled: {
+    icon: 'close-circle-outline',
+    accent: 'destructive',
+    subtitle: 'Interview cancelled',
+  },
   application_selected: {
     icon: 'checkmark-circle-outline',
     accent: 'success',

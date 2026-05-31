@@ -7,6 +7,7 @@ import { Text, View } from 'react-native';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { Screen } from '@/components/ui/Screen';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -91,7 +92,6 @@ export default function BrowseScreen() {
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
-    list: { gap: spacing.md },
   }));
 
   return (
@@ -112,11 +112,12 @@ export default function BrowseScreen() {
             body="Check back soon for new opportunities in your province."
           />
         ) : (
-          <View style={styles.list}>
+          <BrowseListGroup>
             {filteredJobs.map((job) => (
               <RoleListingCard
                 key={job.id}
                 job={job}
+                layout="list"
                 hasApplied={appliedJobIds.has(job.id)}
                 jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
                 matchContext={
@@ -125,7 +126,7 @@ export default function BrowseScreen() {
                 onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
               />
             ))}
-          </View>
+          </BrowseListGroup>
         )}
       </View>
     </Screen>

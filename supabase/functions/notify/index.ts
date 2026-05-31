@@ -25,6 +25,11 @@ type PingramSendBody = {
   sms?: { message: string };
   forceChannels: PingramForceChannel[];
   secondaryId?: string;
+  options?: {
+    push?: {
+      customData?: Record<string, string>;
+    };
+  };
 };
 
 const PINGRAM_TYPES = {
@@ -36,6 +41,10 @@ const PINGRAM_TYPES = {
   applicationInterviewAccepted: 'application_interview_accepted',
   applicationInterviewDeclined: 'application_interview_declined',
   applicationInterviewCancelled: 'application_interview_cancelled',
+  applicationInterviewRescheduleProposed: 'application_interview_reschedule_proposed',
+  applicationInterviewRescheduleAccepted: 'application_interview_reschedule_accepted',
+  applicationInterviewRescheduleDeclined: 'application_interview_reschedule_declined',
+  applicationInterviewScheduledCancelled: 'application_interview_scheduled_cancelled',
   applicationSelected: 'application_selected',
   applicationRejected: 'application_rejected',
   applicationHired: 'application_hired',
@@ -45,6 +54,59 @@ const PINGRAM_TYPES = {
 } as const;
 
 const DEFAULT_PINGRAM_API_URL = 'https://api.ca.pingram.io';
+
+const NOTIFICATION_PREFERENCE_CATEGORIES = {
+  messages: 'messages',
+  applicationsInterviews: 'applications_interviews',
+  jobAlerts: 'job_alerts',
+  fillInAlerts: 'fill_in_alerts',
+} as const;
+
+type NotificationPreferenceCategory =
+  (typeof NOTIFICATION_PREFERENCE_CATEGORIES)[keyof typeof NOTIFICATION_PREFERENCE_CATEGORIES];
+
+async function isPushEnabledForUser(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  category: NotificationPreferenceCategory,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('notification_preferences')
+    .select('push_enabled')
+    .eq('user_id', userId)
+    .eq('category', category)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.push_enabled ?? true;
+}
+
+async function loadPushPreferenceMap(
+  supabase: ReturnType<typeof createClient>,
+  userIds: string[],
+  category: NotificationPreferenceCategory,
+): Promise<Map<string, boolean>> {
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  const result = new Map<string, boolean>();
+  for (const id of uniqueIds) {
+    result.set(id, true);
+  }
+  if (uniqueIds.length === 0) return result;
+
+  const { data, error } = await supabase
+    .from('notification_preferences')
+    .select('user_id, push_enabled')
+    .in('user_id', uniqueIds)
+    .eq('category', category);
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    result.set(row.user_id as string, row.push_enabled === true);
+  }
+
+  return result;
+}
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -62,9 +124,104 @@ function normalizeE164(phone: string | null | undefined): string | null {
   return null;
 }
 
+function formatTime12h(time: string): string | null {
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(time.trim());
+  if (!match) return null;
+
+  const hours24 = Number(match[1]);
+  const minutes = match[2];
+  if (hours24 < 0 || hours24 > 23) return null;
+
+  const period = hours24 >= 12 ? 'PM' : 'AM';
+  const hours12 = hours24 % 12 || 12;
+  return minutes === '00' ? `${hours12} ${period}` : `${hours12}:${minutes} ${period}`;
+}
+
+function formatShiftTimeRange(startTime: string, endTime: string): string | null {
+  const start = formatTime12h(startTime);
+  const end = formatTime12h(endTime);
+  if (!start || !end) return null;
+  return `${start}–${end}`;
+}
+
+function formatShiftDateLabel(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim());
+  if (!match) return isoDate;
+
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return date.toLocaleDateString('en-CA', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatClinicLocation(clinic: {
+  city?: string | null;
+  province?: string | null;
+}): string {
+  const city = clinic.city?.trim();
+  const province = clinic.province?.trim();
+  if (city && province) return `${city}, ${province}`;
+  if (city) return city;
+  if (province) return province;
+  return '';
+}
+
+function buildFillInAlertCopy(input: {
+  clinicName: string;
+  locationLabel: string;
+  shiftDate: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  compensation?: string | null;
+  isUpdate?: boolean;
+}): { title: string; message: string; smsMessage: string } {
+  const locationSuffix = input.locationLabel ? ` (${input.locationLabel})` : '';
+  const dateLabel = formatShiftDateLabel(input.shiftDate);
+  const timeRange =
+    input.startTime && input.endTime
+      ? formatShiftTimeRange(input.startTime, input.endTime)
+      : null;
+  const compensation = input.compensation?.trim();
+  const compensationSuffix = compensation ? ` Compensation: ${compensation}.` : '';
+  const verb = input.isUpdate ? 'updated' : 'posted';
+
+  const title = input.isUpdate
+    ? `Fill-in updated · ${input.clinicName}`
+    : `New fill-in · ${input.clinicName}`;
+  const detailParts = [dateLabel, timeRange].filter(Boolean).join(', ');
+  const locationInMessage = input.locationLabel ? ` · ${input.locationLabel}` : '';
+  const message = `${input.clinicName}${locationInMessage} ${verb} a fill-in for ${detailParts}.${compensationSuffix}`;
+
+  const smsMessage = `Chairside: ${input.clinicName}${locationSuffix} ${verb} a fill-in for ${detailParts}.${compensationSuffix} Open Chairside to apply. Reply STOP to opt out.`;
+
+  return { title, message, smsMessage };
+}
+
 function shiftWeekday(shiftDate: string): number {
   const d = new Date(`${shiftDate}T12:00:00`);
   return d.getDay();
+}
+
+function normalizeUuid(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return value.trim().toLowerCase();
+}
+
+function resolveMessageRecipient(
+  conversation: { worker_id: string; clinic_id: string },
+  senderId: string,
+): string | null {
+  const sender = normalizeUuid(senderId);
+  const workerId = normalizeUuid(conversation.worker_id);
+  const clinicId = normalizeUuid(conversation.clinic_id);
+
+  if (!sender || !workerId || !clinicId) return null;
+  if (sender === workerId) return conversation.clinic_id;
+  if (sender === clinicId) return conversation.worker_id;
+  return null;
 }
 
 function buildSendBody(input: {
@@ -78,6 +235,7 @@ function buildSendBody(input: {
   includePush?: boolean;
   includeSms?: boolean;
   smsMessage?: string;
+  pushCustomData?: Record<string, string>;
 }): PingramSendBody {
   const sendPush = (input.includePush ?? true) && Boolean(input.message);
   const forceChannels: PingramForceChannel[] = ['INAPP_WEB'];
@@ -103,6 +261,17 @@ function buildSendBody(input: {
   if (input.includeSms && input.smsMessage && input.phone) {
     body.to.number = input.phone;
     body.sms = { message: input.smsMessage };
+  }
+
+  if (sendPush) {
+    body.options = {
+      push: {
+        customData: {
+          url: input.deepLink,
+          ...(input.pushCustomData ?? {}),
+        },
+      },
+    };
   }
 
   return body;
@@ -154,28 +323,45 @@ async function handleMessageInsert(
 
   const { data: conversation, error: conversationError } = await supabase
     .from('conversations')
-    .select('id, application_id, worker_id, clinic_id')
+    .select('id, application_id, conversation_type, worker_id, clinic_id')
     .eq('id', conversationId)
     .maybeSingle();
 
   if (conversationError) throw conversationError;
   if (!conversation) return;
 
-  const recipientId =
-    senderId === conversation.worker_id ? conversation.clinic_id : conversation.worker_id;
-  const recipientIsClinic = recipientId === conversation.clinic_id;
+  const recipientId = resolveMessageRecipient(conversation, senderId);
+  if (!recipientId) return;
+
+  const normalizedSenderId = normalizeUuid(senderId);
+  const normalizedRecipientId = normalizeUuid(recipientId);
+  if (normalizedSenderId && normalizedRecipientId && normalizedSenderId === normalizedRecipientId) {
+    return;
+  }
+
+  const recipientIsClinic = normalizeUuid(recipientId) === normalizeUuid(conversation.clinic_id);
+  const isGeneralConversation = conversation.conversation_type === 'general';
 
   const idempotencyKey = `${PINGRAM_TYPES.messageReceived}:${messageId}`;
   if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   let senderLabel = 'Someone';
-  if (senderId === conversation.worker_id) {
-    const { data: application } = await supabase
-      .from('applications')
-      .select('worker_display_name')
-      .eq('id', conversation.application_id)
-      .maybeSingle();
-    senderLabel = application?.worker_display_name?.trim() || 'An applicant';
+  if (normalizeUuid(senderId) === normalizeUuid(conversation.worker_id)) {
+    if (isGeneralConversation) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', conversation.worker_id)
+        .maybeSingle();
+      senderLabel = profile?.display_name?.trim() || 'A candidate';
+    } else {
+      const { data: application } = await supabase
+        .from('applications')
+        .select('worker_display_name')
+        .eq('id', conversation.application_id)
+        .maybeSingle();
+      senderLabel = application?.worker_display_name?.trim() || 'An applicant';
+    }
   } else {
     const { data: clinic } = await supabase
       .from('clinic_profiles')
@@ -187,9 +373,19 @@ async function handleMessageInsert(
 
   const title = `Message from ${senderLabel}`;
   const message = truncatePreview(body, 100);
-  const deepLink = recipientIsClinic
-    ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
-    : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
+  const deepLink = isGeneralConversation
+    ? recipientIsClinic
+      ? `chairside:///(clinic-tabs)/conversation/${conversation.id}`
+      : `chairside:///(tabs)/conversation/${conversation.id}`
+    : recipientIsClinic
+      ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
+      : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
+
+  const includePush = await isPushEnabledForUser(
+    supabase,
+    recipientId,
+    NOTIFICATION_PREFERENCE_CATEGORIES.messages,
+  );
 
   await pingramSend(
     pingramKey,
@@ -201,6 +397,8 @@ async function handleMessageInsert(
       message,
       deepLink,
       secondaryId: idempotencyKey,
+      includePush,
+      pushCustomData: { senderId },
     }),
   );
 }
@@ -239,6 +437,26 @@ async function sendWorkerStatusNotification(
       pingramType: PINGRAM_TYPES.applicationInterviewCancelled,
       title: 'Interview invitation cancelled',
       message: 'The clinic withdrew your interview invitation for this role.',
+    },
+    interview_reschedule_proposed: {
+      pingramType: PINGRAM_TYPES.applicationInterviewRescheduleProposed,
+      title: 'New interview time proposed',
+      message: 'The clinic proposed a new interview time for this role.',
+    },
+    interview_reschedule_accepted: {
+      pingramType: PINGRAM_TYPES.applicationInterviewRescheduleAccepted,
+      title: 'Interview time updated',
+      message: 'Your interview time change was accepted.',
+    },
+    interview_reschedule_declined: {
+      pingramType: PINGRAM_TYPES.applicationInterviewRescheduleDeclined,
+      title: 'Interview time change declined',
+      message: 'The clinic declined your proposed interview time.',
+    },
+    interview_scheduled_cancelled: {
+      pingramType: PINGRAM_TYPES.applicationInterviewScheduledCancelled,
+      title: 'Interview cancelled',
+      message: 'The clinic cancelled your confirmed interview for this role.',
     },
     interview_scheduled: {
       pingramType: PINGRAM_TYPES.applicationInterviewScheduled,
@@ -292,6 +510,11 @@ async function sendWorkerStatusNotification(
   if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   const deepLink = `chairside:///(tabs)/application/${applicationId}`;
+  const includePush = await isPushEnabledForUser(
+    supabase,
+    workerId,
+    NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+  );
   await pingramSend(
     pingramKey,
     pingramBase,
@@ -302,6 +525,7 @@ async function sendWorkerStatusNotification(
       message: notification.message,
       deepLink,
       secondaryId: idempotencyKey,
+      includePush,
     }),
   );
 }
@@ -353,6 +577,12 @@ async function sendClinicApplicationNotification(
     ? `chairside:///(clinic-tabs)/role-applicants/${jobPostId}`
     : 'chairside:///(clinic-tabs)/applications';
 
+  const includePush = await isPushEnabledForUser(
+    supabase,
+    clinicId,
+    NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+  );
+
   await pingramSend(
     pingramKey,
     pingramBase,
@@ -363,6 +593,7 @@ async function sendClinicApplicationNotification(
       message: template.message,
       deepLink,
       secondaryId: idempotencyKey,
+      includePush,
     }),
   );
 }
@@ -420,6 +651,12 @@ async function handleApplicationInsert(
     : `${workerName} applied to your ${postType}.`;
   const deepLink = 'chairside:///(clinic-tabs)/applications';
 
+  const includePush = await isPushEnabledForUser(
+    supabase,
+    clinicId,
+    NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+  );
+
   await pingramSend(
     pingramKey,
     pingramBase,
@@ -430,8 +667,76 @@ async function handleApplicationInsert(
       message,
       deepLink,
       secondaryId: idempotencyKey,
+      includePush,
     }),
   );
+}
+
+async function handleInterviewProposalChange(
+  supabase: ReturnType<typeof createClient>,
+  pingramKey: string,
+  pingramBase: string,
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+) {
+  const oldProposed = oldRecord?.interview_proposed_at as string | null | undefined;
+  const newProposed = record.interview_proposed_at as string | null | undefined;
+  const proposedBy = record.interview_proposed_by as string | null;
+
+  if (!oldProposed && newProposed && proposedBy) {
+    if (proposedBy === 'clinic') {
+      await sendWorkerStatusNotification(
+        supabase,
+        pingramKey,
+        pingramBase,
+        record,
+        'interview_reschedule_proposed',
+      );
+    } else {
+      await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+        pingramType: PINGRAM_TYPES.applicationInterviewRescheduleProposed,
+        title: 'Interview time change requested',
+        message: 'An applicant proposed a new interview time.',
+      });
+    }
+    return;
+  }
+
+  if (oldProposed && !newProposed) {
+    const oldAt = oldRecord?.interview_at as string | undefined;
+    const newAt = record.interview_at as string | undefined;
+    if (oldAt !== newAt) {
+      if (oldRecord?.interview_proposed_by === 'clinic') {
+        await sendWorkerStatusNotification(
+          supabase,
+          pingramKey,
+          pingramBase,
+          record,
+          'interview_reschedule_accepted',
+        );
+      } else {
+        await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+          pingramType: PINGRAM_TYPES.applicationInterviewRescheduleAccepted,
+          title: 'Interview time updated',
+          message: 'You accepted the proposed interview time.',
+        });
+      }
+    } else if (oldRecord?.interview_proposed_by === 'clinic') {
+      await sendWorkerStatusNotification(
+        supabase,
+        pingramKey,
+        pingramBase,
+        record,
+        'interview_reschedule_declined',
+      );
+    } else {
+      await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+        pingramType: PINGRAM_TYPES.applicationInterviewRescheduleDeclined,
+        title: 'Interview time change declined',
+        message: 'You declined the proposed interview time.',
+      });
+    }
+  }
 }
 
 async function handleApplicationUpdate(
@@ -443,7 +748,34 @@ async function handleApplicationUpdate(
 ) {
   const oldStatus = oldRecord?.status as string | undefined;
   const newStatus = record.status as string;
-  if (!newStatus || oldStatus === newStatus) return;
+  if (!newStatus) return;
+
+  if (newStatus === 'interview_scheduled' && oldStatus === 'interview_scheduled') {
+    await handleInterviewProposalChange(supabase, pingramKey, pingramBase, record, oldRecord);
+    return;
+  }
+
+  if (oldStatus === newStatus) return;
+
+  if (oldStatus === 'interview_scheduled' && newStatus === 'in_progress') {
+    const closedBy = record.interview_offer_closed_by as string | null;
+    if (closedBy === 'clinic') {
+      await sendWorkerStatusNotification(
+        supabase,
+        pingramKey,
+        pingramBase,
+        record,
+        'interview_scheduled_cancelled',
+      );
+    } else {
+      await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
+        pingramType: PINGRAM_TYPES.applicationInterviewScheduledCancelled,
+        title: 'Interview cancelled',
+        message: 'An applicant cancelled the confirmed interview.',
+      });
+    }
+    return;
+  }
 
   if (oldStatus === 'interview_offered' && newStatus === 'interview_scheduled') {
     await sendClinicApplicationNotification(supabase, pingramKey, pingramBase, record, {
@@ -451,6 +783,13 @@ async function handleApplicationUpdate(
       title: 'Interview accepted',
       message: 'An applicant confirmed your interview invitation.',
     });
+    await sendWorkerStatusNotification(
+      supabase,
+      pingramKey,
+      pingramBase,
+      record,
+      'interview_scheduled',
+    );
     return;
   }
 
@@ -490,9 +829,31 @@ async function handleApplicationUpdate(
   await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, newStatus);
 }
 
+async function filterWorkerNotificationRecipients(
+  supabase: ReturnType<typeof createClient>,
+  workers: Array<{ id: string }>,
+  excludeUserIds: string[],
+): Promise<Array<{ id: string }>> {
+  if (!workers.length) return [];
+  const excludeSet = new Set(excludeUserIds);
+  const candidateIds = workers.map((w) => w.id).filter((id) => !excludeSet.has(id));
+  if (!candidateIds.length) return [];
+
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .in('id', candidateIds)
+    .eq('role', 'worker');
+
+  if (error) throw error;
+  const workerRoleIds = new Set((profiles ?? []).map((p) => p.id));
+  return workers.filter((w) => workerRoleIds.has(w.id));
+}
+
 async function listFillInRecipients(
   supabase: ReturnType<typeof createClient>,
   shift: { role_type: string; shift_date: string },
+  clinicId: string,
 ) {
   const weekday = shiftWeekday(shift.shift_date);
 
@@ -508,7 +869,10 @@ async function listFillInRecipients(
   if (error) throw error;
   if (!workers?.length) return [];
 
-  const roleMatched = workers.filter((w) => w.role_type && w.role_type === shift.role_type);
+  const eligibleWorkers = await filterWorkerNotificationRecipients(supabase, workers, [clinicId]);
+  if (!eligibleWorkers.length) return [];
+
+  const roleMatched = eligibleWorkers.filter((w) => w.role_type && w.role_type === shift.role_type);
 
   const availableDaysOnly = roleMatched.filter(
     (w) => w.fill_in_notification_mode === 'available_days_only',
@@ -545,31 +909,53 @@ async function handleShiftPostLive(
   pingramKey: string,
   pingramBase: string,
   record: Record<string, unknown>,
+  options: { isUpdate?: boolean } = {},
 ) {
   const shiftId = record.id as string;
   const clinicId = record.clinic_id as string;
   const shiftDate = record.shift_date as string;
   const roleType = record.role_type as string;
+  const startTime = record.start_time as string | undefined;
+  const endTime = record.end_time as string | undefined;
+  const compensation = record.compensation as string | null | undefined;
+  const updatedAt = (record.updated_at as string | undefined) ?? shiftId;
 
   const { data: clinic } = await supabase
     .from('clinic_profiles')
-    .select('clinic_name, city')
+    .select('clinic_name, city, province')
     .eq('id', clinicId)
     .maybeSingle();
 
   const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
-  const cityLabel = clinic?.city ? ` · ${clinic.city}` : '';
-  const recipients = await listFillInRecipients(supabase, {
-    role_type: roleType,
-    shift_date: shiftDate,
+  const locationLabel = formatClinicLocation(clinic ?? {});
+  const fillInCopy = buildFillInAlertCopy({
+    clinicName,
+    locationLabel,
+    shiftDate,
+    startTime,
+    endTime,
+    compensation,
+    isUpdate: options.isUpdate === true,
   });
+  const recipients = await listFillInRecipients(
+    supabase,
+    {
+      role_type: roleType,
+      shift_date: shiftDate,
+    },
+    clinicId,
+  );
+
+  const pushPreferences = await loadPushPreferenceMap(
+    supabase,
+    recipients.map((worker) => worker.id),
+    NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
+  );
 
   for (const worker of recipients) {
-    const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}`;
+    const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}:${updatedAt}`;
     if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 
-    const title = `New fill-in · ${clinicName}`;
-    const message = `${clinicName}${cityLabel} posted a fill-in on ${shiftDate}.`;
     const deepLink = 'chairside:///(tabs)/fillins';
     const smsOptIn = worker.fill_in_sms_opt_in === true;
     const e164 = smsOptIn ? normalizeE164(worker.phone as string | null) : null;
@@ -581,12 +967,13 @@ async function handleShiftPostLive(
         type: PINGRAM_TYPES.fillInPosted,
         userId: worker.id,
         phone: e164 ?? undefined,
-        title,
-        message,
+        title: fillInCopy.title,
+        message: fillInCopy.message,
         deepLink,
         secondaryId: idempotencyKey,
+        includePush: pushPreferences.get(worker.id) ?? true,
         includeSms: Boolean(smsOptIn && e164),
-        smsMessage: `${message} Open Chairside to apply. Reply STOP to opt out.`,
+        smsMessage: fillInCopy.smsMessage,
       }),
     );
   }
@@ -621,7 +1008,15 @@ async function handleJobPostLive(
 
   if (error) throw error;
 
-  for (const worker of workers ?? []) {
+  const recipients = await filterWorkerNotificationRecipients(supabase, workers ?? [], [clinicId]);
+
+  const pushPreferences = await loadPushPreferenceMap(
+    supabase,
+    recipients.map((worker) => worker.id),
+    NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
+  );
+
+  for (const worker of recipients) {
     const idempotencyKey = `${PINGRAM_TYPES.jobPosted}:${jobId}:${worker.id}`;
     if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 
@@ -639,6 +1034,7 @@ async function handleJobPostLive(
         message,
         deepLink,
         secondaryId: idempotencyKey,
+        includePush: pushPreferences.get(worker.id) ?? true,
       }),
     );
   }
@@ -652,6 +1048,39 @@ function becameLive(
   if (status !== 'live') return false;
   const oldStatus = oldRecord?.status as string | undefined;
   return oldStatus !== 'live';
+}
+
+const FILL_IN_NOTIFY_FIELDS = [
+  'role_type',
+  'shift_date',
+  'start_time',
+  'end_time',
+  'compensation',
+] as const;
+
+function fillInNotificationFieldsChanged(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown>,
+): boolean {
+  return FILL_IN_NOTIFY_FIELDS.some((field) => record[field] !== oldRecord[field]);
+}
+
+function shouldNotifyFillInShift(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+  eventType: WebhookPayload['type'],
+): boolean {
+  const status = record.status as string;
+  if (status !== 'live') return false;
+
+  if (becameLive(record, oldRecord)) return true;
+
+  if (eventType !== 'UPDATE' || !oldRecord) return false;
+
+  const oldStatus = oldRecord.status as string | undefined;
+  if (oldStatus !== 'live') return false;
+
+  return fillInNotificationFieldsChanged(record, oldRecord);
 }
 
 Deno.serve(async (req) => {
@@ -698,8 +1127,14 @@ Deno.serve(async (req) => {
           payload.old_record,
         );
       }
-    } else if (payload.table === 'shift_posts' && becameLive(payload.record, payload.old_record)) {
-      await handleShiftPostLive(supabase, pingramKey, pingramBase, payload.record);
+    } else if (
+      payload.table === 'shift_posts' &&
+      shouldNotifyFillInShift(payload.record, payload.old_record, payload.type)
+    ) {
+      await handleShiftPostLive(supabase, pingramKey, pingramBase, payload.record, {
+        isUpdate:
+          payload.type === 'UPDATE' && !becameLive(payload.record, payload.old_record),
+      });
     } else if (payload.table === 'job_posts' && becameLive(payload.record, payload.old_record)) {
       await handleJobPostLive(supabase, pingramKey, pingramBase, payload.record);
     } else if (payload.table === 'messages' && payload.type === 'INSERT') {

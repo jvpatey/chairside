@@ -1,5 +1,6 @@
 import {
   confirmFillInApplicant,
+  getApplicantDisplayName,
   updateApplicationStatus,
   type ClinicApplication,
   type FillInCoverRequest,
@@ -10,9 +11,9 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
+import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
 import {
   getClinicApplicationMessagesRoute,
@@ -20,7 +21,6 @@ import {
   type FillInReturnTarget,
 } from '@/lib/routing';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
-import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { useThemedStyles } from '@/theme';
 
 type FillInApplicantApplication = ClinicApplication | FillInCoverRequest;
@@ -60,39 +60,34 @@ export function FillInApplicantCard({
   onConfirmed,
 }: FillInApplicantCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const photoUri = useWorkerPhotoUri(application.worker_photo_storage_path);
-  const workerName = application.worker_display_name?.trim() || 'Applicant';
-  const pending = isPending(application);
+  const workerName = getApplicantDisplayName(application);
+  const workerDeleted = application.worker_account_deleted;
+  const pending = isPending(application) && !workerDeleted;
   const messagesReturnTo =
     returnTo === 'fill-ins-tab' || returnTo === 'postings-fill-ins' || returnTo === 'dashboard-fill-ins'
       ? 'messages-tab'
       : returnTo;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.md,
+      padding: spacing.md,
+      gap: spacing.sm,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
+    preview: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontStyle: 'italic',
+      color: colors.labelSecondary,
+      paddingLeft: 56,
     },
-    headerText: { flex: 1, gap: 4 },
-    name: { ...typography.body, fontWeight: '700', fontSize: 17 },
-    meta: typography.subtitle,
     unread: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.primary,
-    },
-    preview: {
-      ...typography.subtitle,
-      fontStyle: 'italic',
     },
     actions: { gap: spacing.sm },
     row: {
@@ -100,6 +95,17 @@ export function FillInApplicantCard({
       gap: spacing.sm,
     },
     action: { flex: 1, minWidth: 0 },
+    deletedBanner: {
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 10,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    deletedText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
   }));
 
   const handleAccept = () => {
@@ -169,20 +175,30 @@ export function FillInApplicantCard({
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <WorkerProfileAvatar displayName={workerName} photoUri={photoUri} size={48} />
-        <View style={styles.headerText}>
-          <Text style={styles.name}>{workerName}</Text>
-          <Text style={styles.meta}>
-            {getRoleTypeLabel(application.post_role_type)} · {getShiftMeta(application)}
-          </Text>
-          {hasUnreadMessages ? <Text style={styles.unread}>New message</Text> : null}
-        </View>
-        <ClinicApplicationStatusBadge status={application.status} postType="shift" />
-      </View>
+      <ApplicantPostHeader
+        displayName={workerName}
+        photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
+        title={getRoleTypeLabel(application.post_role_type)}
+        detail={[
+          getShiftMeta(application),
+          hasUnreadMessages ? 'New message' : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        avatarSize={44}
+        accessory={<ClinicApplicationStatusBadge status={application.status} postType="shift" />}
+      />
 
       {application.cover_message?.trim() ? (
         <Text style={styles.preview}>{`\u201C${application.cover_message.trim()}\u201D`}</Text>
+      ) : null}
+
+      {workerDeleted ? (
+        <View style={styles.deletedBanner}>
+          <Text style={styles.deletedText}>
+            This candidate is no longer signed up for Chairside.
+          </Text>
+        </View>
       ) : null}
 
       {pending ? (
@@ -213,7 +229,13 @@ export function FillInApplicantCard({
         </View>
       ) : application.status !== 'rejected' ? (
         <OnboardingButton
-          label={hasUnreadMessages ? 'Message · New' : 'Message'}
+          label={
+            workerDeleted
+              ? 'View messages'
+              : hasUnreadMessages
+                ? 'Message · New'
+                : 'Message'
+          }
           variant="secondary"
           onPress={() =>
             router.push(getClinicApplicationMessagesRoute(application.id, messagesReturnTo))

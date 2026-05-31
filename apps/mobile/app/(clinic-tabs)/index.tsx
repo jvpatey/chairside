@@ -2,11 +2,15 @@ import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
   getMissingClinicProfileFields,
+  getShiftPostApplicationCount,
+  getShiftPostPendingApplicationCountsMap,
   listConversationsForClinic,
   listJobApplicationSummaries,
   listJobPosts,
   listShiftPosts,
   type ClinicDashboardCounts,
+  listUpcomingConfirmedFillIns,
+  type ConfirmedFillInSummary,
   type Conversation,
   type JobApplicationSummary,
   type JobPost,
@@ -34,12 +38,13 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
-  getClinicApplicationMessagesRoute,
   getClinicMessagesRoute,
+  getConversationMessagesRoute,
   getJobDetailRoute,
   getClinicRoleApplicationsRoute,
   getPostShiftRoute,
@@ -65,7 +70,10 @@ export default function ClinicDashboardScreen() {
     [],
   );
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
+  const [shiftPendingCounts, setShiftPendingCounts] = useState<Record<string, number>>({});
+  const [shiftApplicationCounts, setShiftApplicationCounts] = useState<Record<string, number>>({});
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [confirmedFillIns, setConfirmedFillIns] = useState<ConfirmedFillInSummary[]>([]);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: {
@@ -81,22 +89,34 @@ export default function ClinicDashboardScreen() {
     if (!user?.id) return;
 
     try {
-      const [nextCounts, jobPosts, shiftPosts, summaries, counts, conversationRows] =
+      const [nextCounts, jobPosts, shiftPosts, summaries, counts, pendingShiftCounts, conversationRows, confirmed] =
         await Promise.all([
         getClinicDashboardCounts(user.id),
         listJobPosts(user.id),
         listShiftPosts(user.id),
         listJobApplicationSummaries(user.id),
         getJobPostApplicationCountsMap(user.id),
+        getShiftPostPendingApplicationCountsMap(user.id),
         listConversationsForClinic(user.id),
+        listUpcomingConfirmedFillIns(user.id),
       ]);
+
+      const shiftApplicationCountEntries = await Promise.all(
+        shiftPosts.map(async (shift) => {
+          const count = await getShiftPostApplicationCount(user.id, shift.id);
+          return [shift.id, count] as const;
+        }),
+      );
 
       setCounts(nextCounts);
       setJobs(jobPosts);
       setShifts(shiftPosts);
       setJobApplicationSummaries(summaries);
       setApplicantCounts(counts);
+      setShiftPendingCounts(pendingShiftCounts);
+      setShiftApplicationCounts(Object.fromEntries(shiftApplicationCountEntries));
       setConversations(conversationRows);
+      setConfirmedFillIns(confirmed);
       await refreshUnread();
     } catch {
       setCounts({ openRoles: 0, fillInsPosted: 0, totalApplications: 0, newApplications: 0 });
@@ -104,11 +124,22 @@ export default function ClinicDashboardScreen() {
       setShifts([]);
       setJobApplicationSummaries([]);
       setApplicantCounts({});
+      setShiftPendingCounts({});
+      setShiftApplicationCounts({});
       setConversations([]);
+      setConfirmedFillIns([]);
     }
   }, [refreshUnread, user?.id]);
 
   useRefreshOnFocus(loadDashboard);
+
+  const handleShiftUpdated = useCallback((updated: ShiftPost) => {
+    setShifts((prev) => prev.map((shift) => (shift.id === updated.id ? updated : shift)));
+  }, []);
+
+  const handleShiftDeleted = useCallback((shiftId: string) => {
+    setShifts((prev) => prev.filter((shift) => shift.id !== shiftId));
+  }, []);
 
   const handleJobUpdated = useCallback(
     (updated: JobPost) => {
@@ -175,15 +206,21 @@ export default function ClinicDashboardScreen() {
         <DashboardUnreadMessagesCard
           conversations={conversations}
           avatarKind="worker"
-          onConversationPress={(conversation) =>
+          role="clinic"
+          onConversationPress={(conversation) => {
+            const preview = getMessageThreadPreview(conversation, 'clinic');
             router.push(
-              getClinicApplicationMessagesRoute(conversation.application_id, 'messages-tab', {
-                conversationId: conversation.id,
-                title: conversation.counterpart_name,
-                subtitle: conversation.post_title,
-              }),
-            )
-          }
+              getConversationMessagesRoute(
+                conversation,
+                'clinic',
+                {
+                  conversationId: conversation.id,
+                  ...preview,
+                },
+                'messages-tab',
+              ),
+            );
+          }}
           onViewAllPress={() => router.push(getClinicMessagesRoute())}
         />
 
@@ -222,13 +259,18 @@ export default function ClinicDashboardScreen() {
           selected={selectedOverview}
           jobs={jobs}
           shifts={shifts}
+          confirmedFillIns={confirmedFillIns}
           jobApplicationSummaries={jobApplicationSummaries}
           applicantCounts={applicantCounts}
+          shiftPendingCounts={shiftPendingCounts}
+          shiftApplicationCounts={shiftApplicationCounts}
           clinicId={user?.id}
+          fillInReturnTo="dashboard-fill-ins"
           onJobUpdated={handleJobUpdated}
           onJobDeleted={handleJobDeleted}
+          onShiftUpdated={handleShiftUpdated}
+          onShiftDeleted={handleShiftDeleted}
           onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
-          onShiftPress={() => router.push(CLINIC_FILL_INS)}
           onJobApplicationsPress={(jobId) =>
             router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
           }

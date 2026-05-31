@@ -1,7 +1,13 @@
 import { listJobPosts, getJobPostApplicationCountsMap, type JobPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CLINIC_FILL_INS, CLINIC_POST_JOB, getJobDetailRoute, getRoleHistoryRoute } from '@/lib/routing';
+import {
+  CLINIC_FILL_INS,
+  CLINIC_POST_JOB,
+  getClinicRoleApplicationsRoute,
+  getJobDetailRoute,
+  getRoleHistoryRoute,
+} from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
@@ -9,6 +15,7 @@ import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { Screen } from '@/components/ui/Screen';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -103,9 +110,6 @@ export default function ClinicPostingsScreen() {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.lg,
-    },
-    list: {
-      gap: spacing.sm,
     },
     loading: typography.subtitle,
     historyLink: {
@@ -220,13 +224,22 @@ export default function ClinicPostingsScreen() {
                 body="Try a different filter or publish a new role."
               />
             ) : (
-              <View style={styles.list}>
+              <BrowseListGroup>
                 {filteredJobs.map((job) => (
                   <RolePostingCard
                     key={job.id}
                     job={job}
+                    layout="list"
                     applicantCount={applicantCounts[job.id] ?? 0}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
+                    onApplicantsPress={
+                      (applicantCounts[job.id] ?? 0) > 0
+                        ? () =>
+                            router.push(
+                              getClinicRoleApplicationsRoute(job.id, 'postings-tab'),
+                            )
+                        : undefined
+                    }
                     manage={
                       user?.id
                         ? {
@@ -238,7 +251,7 @@ export default function ClinicPostingsScreen() {
                     }
                   />
                 ))}
-              </View>
+              </BrowseListGroup>
             )}
 
             {hasRoleHistory ? (

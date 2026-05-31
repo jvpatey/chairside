@@ -1,5 +1,9 @@
 import { getSupabaseClient } from './client';
 import {
+  DELETED_CANDIDATE_LABEL,
+  DELETED_CLINIC_LABEL,
+} from '@chairside/config';
+import {
   getApplicationScreening,
   getApplicationScreeningMap,
   insertApplicationScreening,
@@ -57,7 +61,19 @@ export type Application = {
   interview_at: string | null;
   interview_duration_minutes: number | null;
   interview_details: string | null;
+  interview_proposed_at: string | null;
+  interview_proposed_duration_minutes: number | null;
+  interview_proposed_details: string | null;
+  interview_proposed_by: 'clinic' | 'worker' | null;
   interview_offer_closed_by: 'clinic' | 'worker' | null;
+  worker_hidden_at: string | null;
+  clinic_hidden_at: string | null;
+  clinic_name: string | null;
+  clinic_city: string | null;
+  clinic_province: string | null;
+  clinic_logo_storage_path: string | null;
+  worker_account_deleted_at: string | null;
+  clinic_account_deleted_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -66,12 +82,14 @@ export type ClinicApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
   post_role_type: string;
+  worker_account_deleted: boolean;
   screening: ApplicationScreening | null;
 };
 
 export type WorkerApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
+  post_status?: string | null;
   post_role_type?: string | null;
   shift_date?: string | null;
   shift_start_time?: string | null;
@@ -82,6 +100,7 @@ export type WorkerApplication = Application & {
   clinic_address?: string | null;
   clinic_location?: string | null;
   clinic_logo_storage_path: string | null;
+  clinic_account_deleted: boolean;
   screening: ApplicationScreening | null;
 };
 
@@ -98,6 +117,71 @@ function formatWorkerClinicLocation(clinic: {
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+export function getApplicantDisplayName(
+  application: Pick<Application, 'worker_display_name' | 'worker_account_deleted_at'>,
+): string {
+  if (application.worker_account_deleted_at) {
+    return DELETED_CANDIDATE_LABEL;
+  }
+  return application.worker_display_name?.trim() || 'Applicant';
+}
+
+function resolveWorkerClinicFields(
+  application: Application,
+  clinic?: {
+    clinic_name?: string | null;
+    city?: string | null;
+    province?: string | null;
+    address_line1?: string | null;
+    logo_storage_path?: string | null;
+  } | null,
+): Pick<
+  WorkerApplication,
+  | 'clinic_name'
+  | 'clinic_city'
+  | 'clinic_province'
+  | 'clinic_address'
+  | 'clinic_location'
+  | 'clinic_logo_storage_path'
+  | 'clinic_account_deleted'
+> {
+  const clinicDeleted = Boolean(application.clinic_account_deleted_at);
+
+  if (clinicDeleted) {
+    return {
+      clinic_name: DELETED_CLINIC_LABEL,
+      clinic_city: application.clinic_city ?? null,
+      clinic_province: application.clinic_province ?? null,
+      clinic_address: null,
+      clinic_location: [application.clinic_city, application.clinic_province]
+        .filter(Boolean)
+        .join(', ') || null,
+      clinic_logo_storage_path: null,
+      clinic_account_deleted: true,
+    };
+  }
+
+  return {
+    clinic_name: clinic?.clinic_name ?? application.clinic_name ?? 'Clinic',
+    clinic_city: clinic?.city ?? application.clinic_city ?? null,
+    clinic_province: clinic?.province ?? application.clinic_province ?? null,
+    clinic_address: clinic?.address_line1 ?? null,
+    clinic_location: formatWorkerClinicLocation(clinic),
+    clinic_logo_storage_path:
+      clinic?.logo_storage_path ?? application.clinic_logo_storage_path ?? null,
+    clinic_account_deleted: false,
+  };
+}
+
+export function isApplicationCounterpartDeleted(
+  application: Pick<Application, 'worker_account_deleted_at' | 'clinic_account_deleted_at'>,
+  role: 'worker' | 'clinic',
+): boolean {
+  return role === 'worker'
+    ? Boolean(application.clinic_account_deleted_at)
+    : Boolean(application.worker_account_deleted_at);
 }
 
 export type CreateApplicationInput = {
@@ -130,11 +214,27 @@ export type FillInCoverRequest = ClinicApplication & {
   shift_end_time: string | null;
 };
 
+export type ConfirmedFillInSummary = {
+  applicationId: string;
+  shiftPostId: string;
+  workerName: string;
+  workerPhotoStoragePath: string | null;
+  postTitle: string;
+  shiftDate: string;
+  startTime: string | null;
+  endTime: string | null;
+};
+
 function isFillInPendingStatus(status: ApplicationStatus): boolean {
   return FILL_IN_PENDING_STATUSES.includes(status);
 }
 
-export async function listClinicApplications(clinicId: string): Promise<ClinicApplication[]> {
+export type ApplicationListVisibility = 'active' | 'archived';
+
+export async function listClinicApplications(
+  clinicId: string,
+  visibility: ApplicationListVisibility = 'active',
+): Promise<ClinicApplication[]> {
   const supabase = getSupabaseClient();
 
   const [jobsResult, shiftsResult] = await Promise.all([
@@ -172,6 +272,9 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
 
   for (const row of data ?? []) {
     const application = row as Application;
+    const isArchived = Boolean(application.clinic_hidden_at);
+    if (visibility === 'active' && isArchived) continue;
+    if (visibility === 'archived' && !isArchived) continue;
     const screening = screeningMap.get(row.id) ?? null;
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
@@ -181,6 +284,7 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
         post_title: job.title,
         post_type: 'job',
         post_role_type: job.role_type,
+        worker_account_deleted: Boolean(application.worker_account_deleted_at),
         screening,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
@@ -190,6 +294,7 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
         post_title: shift.title,
         post_type: 'shift',
         post_role_type: shift.role_type,
+        worker_account_deleted: Boolean(application.worker_account_deleted_at),
         screening,
       });
     }
@@ -198,7 +303,10 @@ export async function listClinicApplications(clinicId: string): Promise<ClinicAp
   return applications;
 }
 
-export async function listWorkerApplications(workerId: string): Promise<WorkerApplication[]> {
+export async function listWorkerApplications(
+  workerId: string,
+  visibility: ApplicationListVisibility = 'active',
+): Promise<WorkerApplication[]> {
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
@@ -215,12 +323,12 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
 
   const [jobsResult, shiftsResult] = await Promise.all([
     jobIds.length > 0
-      ? supabase.from('job_posts').select('id, title, clinic_id').in('id', jobIds)
+      ? supabase.from('job_posts').select('id, title, clinic_id, status').in('id', jobIds)
       : Promise.resolve({ data: [], error: null }),
     shiftIds.length > 0
       ? supabase
           .from('shift_posts')
-          .select('id, role_type, shift_date, start_time, end_time, clinic_id')
+          .select('id, role_type, shift_date, start_time, end_time, clinic_id, status')
           .in('id', shiftIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -229,7 +337,10 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
   if (shiftsResult.error) throw shiftsResult.error;
 
   const jobMap = new Map(
-    (jobsResult.data ?? []).map((job) => [job.id, { title: job.title, clinic_id: job.clinic_id }]),
+    (jobsResult.data ?? []).map((job) => [
+      job.id,
+      { title: job.title, clinic_id: job.clinic_id, status: job.status },
+    ]),
   );
   const shiftMap = new Map(
     (shiftsResult.data ?? []).map((shift) => [
@@ -237,6 +348,7 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
       {
         title: `Fill-in · ${shift.shift_date}`,
         clinic_id: shift.clinic_id,
+        status: shift.status,
         role_type: shift.role_type,
         shift_date: shift.shift_date,
         start_time: shift.start_time,
@@ -270,37 +382,37 @@ export async function listWorkerApplications(workerId: string): Promise<WorkerAp
 
   for (const row of data) {
     const application = row as Application;
+    const isArchived = Boolean(application.worker_hidden_at);
+    if (visibility === 'active' && isArchived) continue;
+    if (visibility === 'archived' && !isArchived) continue;
     const screening = screeningMap.get(row.id) ?? null;
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
       const clinic = clinicMap.get(job.clinic_id);
+      const clinicFields = resolveWorkerClinicFields(application, clinic);
       applications.push({
         ...application,
         post_title: job.title,
         post_type: 'job',
-        clinic_name: clinic?.clinic_name ?? 'Clinic',
-        clinic_city: clinic?.city ?? null,
-        clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
+        post_status: job.status,
+        ...clinicFields,
         screening,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
       const clinic = clinicMap.get(shift.clinic_id);
+      const clinicFields = resolveWorkerClinicFields(application, clinic);
       applications.push({
         ...application,
         post_title: shift.title,
         post_type: 'shift',
+        post_status: shift.status,
         post_role_type: shift.role_type,
         shift_date: shift.shift_date,
         shift_start_time: shift.start_time,
         shift_end_time: shift.end_time,
-        clinic_name: clinic?.clinic_name ?? 'Clinic',
-        clinic_city: clinic?.city ?? null,
-        clinic_province: clinic?.province ?? null,
-        clinic_address: clinic?.address_line1 ?? null,
-        clinic_location: formatWorkerClinicLocation(clinic),
-        clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
+        ...clinicFields,
         screening: null,
       });
     }
@@ -340,9 +452,7 @@ async function enrichWorkerApplication(
       ...application,
       post_title: job.title,
       post_type: 'job',
-      clinic_name: clinic?.clinic_name ?? 'Clinic',
-      clinic_city: clinic?.city ?? null,
-      clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
+      ...resolveWorkerClinicFields(application, clinic),
       screening,
     };
   }
@@ -373,12 +483,7 @@ async function enrichWorkerApplication(
       shift_date: shift.shift_date,
       shift_start_time: shift.start_time,
       shift_end_time: shift.end_time,
-      clinic_name: clinic?.clinic_name ?? 'Clinic',
-      clinic_city: clinic?.city ?? null,
-      clinic_province: clinic?.province ?? null,
-      clinic_address: clinic?.address_line1 ?? null,
-      clinic_location: formatWorkerClinicLocation(clinic),
-      clinic_logo_storage_path: clinic?.logo_storage_path ?? null,
+      ...resolveWorkerClinicFields(application, clinic),
       screening: null,
     };
   }
@@ -415,8 +520,68 @@ export async function deleteApplication(workerId: string, applicationId: string)
   if (error) throw error;
 }
 
-export async function listWorkerJobApplications(workerId: string): Promise<WorkerApplication[]> {
-  const applications = await listWorkerApplications(workerId);
+export async function hideWorkerApplication(
+  workerId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('hide_worker_application', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Application not found or cannot be removed');
+  }
+  return row;
+}
+
+export async function hideClinicApplication(
+  clinicId: string,
+  applicationId: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('hide_clinic_application', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('Application not found or cannot be removed');
+  }
+
+  if (row.job_post_id) {
+    const { data: job, error: jobError } = await supabase
+      .from('job_posts')
+      .select('clinic_id')
+      .eq('id', row.job_post_id)
+      .maybeSingle();
+    if (jobError) throw jobError;
+    if (job?.clinic_id !== clinicId) {
+      throw new Error('Application not found or cannot be removed');
+    }
+  } else if (row.shift_post_id) {
+    const { data: shift, error: shiftError } = await supabase
+      .from('shift_posts')
+      .select('clinic_id')
+      .eq('id', row.shift_post_id)
+      .maybeSingle();
+    if (shiftError) throw shiftError;
+    if (shift?.clinic_id !== clinicId) {
+      throw new Error('Application not found or cannot be removed');
+    }
+  }
+
+  return row;
+}
+
+export async function listWorkerJobApplications(
+  workerId: string,
+  visibility: ApplicationListVisibility = 'active',
+): Promise<WorkerApplication[]> {
+  const applications = await listWorkerApplications(workerId, visibility);
   return applications.filter((application) => application.post_type === 'job');
 }
 
@@ -454,7 +619,8 @@ export async function getJobPostApplicationCountsMap(
   const { data: applications, error: applicationsError } = await supabase
     .from('applications')
     .select('job_post_id')
-    .in('job_post_id', jobIds);
+    .in('job_post_id', jobIds)
+    .is('clinic_hidden_at', null);
 
   if (applicationsError) throw applicationsError;
 
@@ -518,8 +684,9 @@ export async function listJobApplicationSummaries(
 export async function listClinicApplicationsForJob(
   clinicId: string,
   jobPostId: string,
+  visibility: ApplicationListVisibility = 'active',
 ): Promise<ClinicApplication[]> {
-  const applications = await listClinicApplications(clinicId);
+  const applications = await listClinicApplications(clinicId, visibility);
   return applications.filter(
     (application) => application.post_type === 'job' && application.job_post_id === jobPostId,
   );
@@ -631,6 +798,10 @@ export async function offerApplicationInterview(
       interview_duration_minutes: input.durationMinutes,
       interview_details: input.details?.trim() || null,
       interview_offer_closed_by: null,
+      interview_proposed_at: null,
+      interview_proposed_duration_minutes: null,
+      interview_proposed_details: null,
+      interview_proposed_by: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', applicationId)
@@ -689,11 +860,165 @@ export async function cancelApplicationInterviewOffer(
       interview_at: null,
       interview_duration_minutes: null,
       interview_details: null,
+      interview_proposed_at: null,
+      interview_proposed_duration_minutes: null,
+      interview_proposed_details: null,
+      interview_proposed_by: null,
       interview_offer_closed_by: 'clinic',
       updated_at: new Date().toISOString(),
     })
     .eq('id', applicationId)
     .eq('status', 'interview_offered')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+/** Clinic updates a pending interview invite before the candidate accepts. */
+export async function updateApplicationInterviewOffer(
+  applicationId: string,
+  input: ScheduleApplicationInterviewInput,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      interview_at: input.interviewAt,
+      interview_duration_minutes: input.durationMinutes,
+      interview_details: input.details?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('status', 'interview_offered')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+/** Clinic proposes a new time; confirmed interview stays until the worker accepts. */
+export async function proposeApplicationInterviewUpdate(
+  applicationId: string,
+  input: ScheduleApplicationInterviewInput,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      interview_proposed_at: input.interviewAt,
+      interview_proposed_duration_minutes: input.durationMinutes,
+      interview_proposed_details: input.details?.trim() || null,
+      interview_proposed_by: 'clinic',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('status', 'interview_scheduled')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Application;
+}
+
+export async function proposeApplicationInterviewUpdateAsWorker(
+  workerId: string,
+  applicationId: string,
+  input: ScheduleApplicationInterviewInput,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('propose_application_interview_update', {
+    application_id: applicationId,
+    proposed_at: input.interviewAt,
+    proposed_duration_minutes: input.durationMinutes,
+    proposed_details: input.details?.trim() || null,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Interview not found or cannot be updated');
+  }
+  return row;
+}
+
+export async function acceptApplicationInterviewUpdate(
+  applicationId: string,
+  workerId?: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('accept_application_interview_update', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('No pending interview change');
+  }
+  if (workerId != null && row.worker_id !== workerId) {
+    throw new Error('No pending interview change');
+  }
+  return row;
+}
+
+export async function declineApplicationInterviewUpdate(
+  applicationId: string,
+  workerId?: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('decline_application_interview_update', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('No pending interview change');
+  }
+  if (workerId != null && row.worker_id !== workerId) {
+    throw new Error('No pending interview change');
+  }
+  return row;
+}
+
+/** Cancels a confirmed interview and returns the application to shortlist. */
+export async function cancelScheduledApplicationInterview(
+  applicationId: string,
+  closedBy: 'clinic' | 'worker',
+): Promise<Application> {
+  if (closedBy === 'worker') {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.rpc('cancel_scheduled_application_interview', {
+      application_id: applicationId,
+    });
+    if (error) throw error;
+    const row = data as Application | null;
+    if (!row) {
+      throw new Error('Interview not found or cannot be cancelled');
+    }
+    return row;
+  }
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      status: 'in_progress',
+      interview_at: null,
+      interview_duration_minutes: null,
+      interview_details: null,
+      interview_proposed_at: null,
+      interview_proposed_duration_minutes: null,
+      interview_proposed_details: null,
+      interview_proposed_by: null,
+      interview_offer_closed_by: 'clinic',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+    .eq('status', 'interview_scheduled')
     .select('*')
     .single();
 
@@ -806,4 +1131,64 @@ export async function getShiftPostPendingApplicationCountsMap(
     counts[request.shift_post_id] = (counts[request.shift_post_id] ?? 0) + 1;
   }
   return counts;
+}
+
+export async function listUpcomingConfirmedFillIns(
+  clinicId: string,
+): Promise<ConfirmedFillInSummary[]> {
+  const supabase = getSupabaseClient();
+
+  const { data: shifts, error: shiftsError } = await supabase
+    .from('shift_posts')
+    .select('id, shift_date, start_time, end_time')
+    .eq('clinic_id', clinicId);
+
+  if (shiftsError) throw shiftsError;
+  if (!shifts?.length) return [];
+
+  const today = new Date().toISOString().slice(0, 10);
+  const shiftMap = new Map(
+    shifts
+      .filter((shift) => shift.shift_date >= today)
+      .map((shift) => [shift.id, shift]),
+  );
+
+  if (shiftMap.size === 0) return [];
+
+  const shiftIds = [...shiftMap.keys()];
+  const { data, error } = await supabase
+    .from('applications')
+    .select('id, shift_post_id, status, worker_display_name, worker_photo_storage_path, worker_account_deleted_at')
+    .in('shift_post_id', shiftIds)
+    .eq('status', 'hired')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  const summaries: ConfirmedFillInSummary[] = [];
+
+  for (const row of data ?? []) {
+    if (!row.shift_post_id || !shiftMap.has(row.shift_post_id)) continue;
+    const shift = shiftMap.get(row.shift_post_id)!;
+    summaries.push({
+      applicationId: row.id,
+      shiftPostId: row.shift_post_id,
+      workerName: row.worker_account_deleted_at
+        ? DELETED_CANDIDATE_LABEL
+        : row.worker_display_name?.trim() || 'Applicant',
+      workerPhotoStoragePath: row.worker_account_deleted_at
+        ? null
+        : row.worker_photo_storage_path ?? null,
+      postTitle: `Fill-in · ${shift.shift_date}`,
+      shiftDate: shift.shift_date,
+      startTime: shift.start_time,
+      endTime: shift.end_time,
+    });
+  }
+
+  return summaries.sort((a, b) => {
+    const dateCompare = a.shiftDate.localeCompare(b.shiftDate);
+    if (dateCompare !== 0) return dateCompare;
+    return a.workerName.localeCompare(b.workerName);
+  });
 }

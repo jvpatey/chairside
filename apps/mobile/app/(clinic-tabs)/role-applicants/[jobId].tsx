@@ -50,6 +50,7 @@ function formatClinicAddress(profile: {
 const FILTER_EMPTY_MESSAGES: Record<Exclude<ApplicantListFilter, 'all'>, string> = {
   shortlisted: 'No shortlisted applicants yet. Add candidates from the All tab.',
   interview: 'No interview invitations yet. Send one from a shortlisted applicant.',
+  decided: 'No decided applicants yet. Mark applicants as hired or not moving forward.',
 };
 
 export default function ClinicRoleApplicationsScreen() {
@@ -67,10 +68,15 @@ export default function ClinicRoleApplicationsScreen() {
   }, [resolvedReturnTo]);
   const [postTitle, setPostTitle] = useState('');
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
+  const [archivedApplications, setArchivedApplications] = useState<ClinicApplication[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [listFilter, setListFilter] = useState<ApplicantListFilter>('all');
+  const [archivedExpanded, setArchivedExpanded] = useState(false);
   const [scheduleTarget, setScheduleTarget] = useState<ClinicApplication | null>(null);
+  const [scheduleMode, setScheduleMode] = useState<
+    'offer' | 'edit_offer' | 'propose_reschedule'
+  >('offer');
   const [sectionExpanded, setSectionExpanded] = useState<
     Partial<Record<ApplicantPipelineSectionId, boolean>>
   >({});
@@ -91,22 +97,26 @@ export default function ClinicRoleApplicationsScreen() {
   const load = useCallback(async () => {
     if (!user?.id || !resolvedJobId) {
       setApplications([]);
+      setArchivedApplications([]);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      const [job, rows, unread] = await Promise.all([
+      const [job, rows, archived, unread] = await Promise.all([
         getJobPost(user.id, resolvedJobId),
-        listClinicApplicationsForJob(user.id, resolvedJobId),
+        listClinicApplicationsForJob(user.id, resolvedJobId, 'active'),
+        listClinicApplicationsForJob(user.id, resolvedJobId, 'archived'),
         getUnreadConversationMap(user.id, 'clinic'),
       ]);
       setPostTitle(job?.title ?? 'Role applicants');
       setApplications(rows);
+      setArchivedApplications(archived);
       setUnreadMap(unread);
     } catch (error) {
       setApplications([]);
+      setArchivedApplications([]);
       Alert.alert(
         'Could not load applicants',
         error instanceof Error ? error.message : 'Please try again.',
@@ -159,16 +169,31 @@ export default function ClinicRoleApplicationsScreen() {
     void load();
   }, [load]);
 
+  const handleDecided = useCallback(() => {
+    setListFilter('decided');
+    setArchivedExpanded(true);
+    void load();
+  }, [load]);
+
+  const handleRemoved = useCallback(() => {
+    setArchivedExpanded(true);
+    void load();
+  }, [load]);
+
   const renderApplicationCards = (rows: ClinicApplication[]) =>
     rows.map((application) => (
       <ClinicApplicationCard
         key={application.id}
         application={application}
+        clinicId={user?.id}
         returnTo={resolvedReturnTo ?? 'applications-tab'}
         hasUnreadMessages={Boolean(unreadMap[application.id])}
         onUpdated={() => void load()}
         onShortlisted={handleShortlisted}
-        onScheduleInterview={setScheduleTarget}
+        onScheduleInterview={(application, sheetMode = 'offer') => {
+          setScheduleMode(sheetMode);
+          setScheduleTarget(application);
+        }}
         onHired={(hiredApplication) =>
           showCelebration({
             applicationId: hiredApplication.id,
@@ -178,8 +203,24 @@ export default function ClinicRoleApplicationsScreen() {
             postTitle: hiredApplication.post_title,
           })
         }
+        onRemoved={handleRemoved}
+        onDecided={handleDecided}
       />
     ));
+
+  const hasAnyApplicants = applications.length > 0 || archivedApplications.length > 0;
+
+  const renderArchivedSection = () =>
+    archivedApplications.length === 0 ? null : (
+      <ApplicantPipelineSectionBlock
+        title="Archived"
+        count={archivedApplications.length}
+        expanded={archivedExpanded}
+        collapsible
+        onToggle={() => setArchivedExpanded((current) => !current)}>
+        {renderApplicationCards(archivedApplications)}
+      </ApplicantPipelineSectionBlock>
+    );
 
   return (
     <>
@@ -190,7 +231,7 @@ export default function ClinicRoleApplicationsScreen() {
         onBack={goBack}
       />
       <View style={styles.content}>
-        {applications.length === 0 && !isLoading ? (
+        {!hasAnyApplicants && !isLoading ? (
           <Text style={styles.empty}>No applicants for this role yet.</Text>
         ) : (
           <>
@@ -202,7 +243,10 @@ export default function ClinicRoleApplicationsScreen() {
 
             {listFilter === 'all' ? (
               sections.length === 0 ? (
-                <Text style={styles.empty}>No applicants for this role yet.</Text>
+                <>
+                  <Text style={styles.empty}>No active applicants for this role.</Text>
+                  {renderArchivedSection()}
+                </>
               ) : (
                 <View style={styles.sections}>
                   {sections.map((section) => (
@@ -220,12 +264,19 @@ export default function ClinicRoleApplicationsScreen() {
                       {renderApplicationCards(section.applications)}
                     </ApplicantPipelineSectionBlock>
                   ))}
+                  {renderArchivedSection()}
                 </View>
               )
             ) : filteredApplications.length === 0 ? (
-              <Text style={styles.empty}>{FILTER_EMPTY_MESSAGES[listFilter]}</Text>
+              <View style={styles.sections}>
+                <Text style={styles.empty}>{FILTER_EMPTY_MESSAGES[listFilter]}</Text>
+                {listFilter === 'decided' ? renderArchivedSection() : null}
+              </View>
             ) : (
-              <View style={styles.list}>{renderApplicationCards(filteredApplications)}</View>
+              <View style={styles.sections}>
+                <View style={styles.list}>{renderApplicationCards(filteredApplications)}</View>
+                {listFilter === 'decided' ? renderArchivedSection() : null}
+              </View>
             )}
           </>
         )}
@@ -237,8 +288,9 @@ export default function ClinicRoleApplicationsScreen() {
           visible
           application={scheduleTarget}
           clinicName={clinicName}
+          mode={scheduleMode}
           defaultLocation={defaultLocation}
-          onOffered={handleInterviewOffered}
+          onSaved={handleInterviewOffered}
           onClose={() => setScheduleTarget(null)}
         />
       ) : null}

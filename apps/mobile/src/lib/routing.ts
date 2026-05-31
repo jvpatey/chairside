@@ -3,7 +3,10 @@ import type { Href } from 'expo-router';
 import type { UserRole } from '@/types';
 
 export type FillInReturnTarget = 'postings-fill-ins' | 'dashboard-fill-ins' | 'fill-ins-tab';
-export type ApplicantReturnTarget = 'applications-tab' | 'dashboard-applications';
+export type ApplicantReturnTarget =
+  | 'applications-tab'
+  | 'dashboard-applications'
+  | 'postings-tab';
 export type WorkerApplicationReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
@@ -56,6 +59,11 @@ export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
+export const CLINIC_PROFILE_PRACTICE: Href = '/(clinic-tabs)/profile/practice' as Href;
+export const CLINIC_PROFILE_ABOUT: Href = '/(clinic-tabs)/profile/about' as Href;
+export const CLINIC_PROFILE_MESSAGING: Href = '/(clinic-tabs)/profile/messaging' as Href;
+export const CLINIC_PROFILE_NOTIFICATIONS: Href = '/(clinic-tabs)/profile/notifications' as Href;
+export const CLINIC_PROFILE_ACCOUNT: Href = '/(clinic-tabs)/profile/account' as Href;
 export const WORKER_BROWSE: Href = '/(tabs)/browse' as Href;
 export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
@@ -221,6 +229,82 @@ export function getWorkerMessagesRoute(): Href {
   return '/(tabs)/messages' as Href;
 }
 
+export function getWorkerMessageClinicsRoute(): Href {
+  return '/(tabs)/messages/clinics' as Href;
+}
+
+export function getWorkerConversationRoute(
+  conversationId: string,
+  preview?: MessageThreadPreview,
+): Href {
+  return {
+    pathname: '/(tabs)/conversation/[id]',
+    params: {
+      id: conversationId,
+      ...(preview
+        ? {
+            conversationId: preview.conversationId,
+            title: preview.title,
+            subtitle: preview.subtitle,
+          }
+        : {}),
+    },
+  } as unknown as Href;
+}
+
+export function getClinicConversationRoute(
+  conversationId: string,
+  preview?: MessageThreadPreview,
+): Href {
+  return {
+    pathname: '/(clinic-tabs)/conversation/[id]',
+    params: {
+      id: conversationId,
+      ...(preview
+        ? {
+            conversationId: preview.conversationId,
+            title: preview.title,
+            subtitle: preview.subtitle,
+          }
+        : {}),
+    },
+  } as unknown as Href;
+}
+
+export function getConversationMessagesRoute(
+  conversation: Pick<
+    import('@chairside/api').Conversation,
+    'id' | 'conversation_type' | 'application_id'
+  >,
+  role: 'worker' | 'clinic',
+  preview?: MessageThreadPreview,
+  returnTo?: WorkerApplicationReturnTarget | ClinicApplicationReturnTarget,
+): Href {
+  const threadPreview = preview ?? {
+    conversationId: conversation.id,
+    title: '',
+    subtitle: '',
+  };
+
+  if (conversation.conversation_type === 'general' || !conversation.application_id) {
+    return role === 'worker'
+      ? getWorkerConversationRoute(conversation.id, threadPreview)
+      : getClinicConversationRoute(conversation.id, threadPreview);
+  }
+
+  return role === 'worker'
+    ? getWorkerApplicationMessagesRoute(
+        conversation.application_id,
+        (returnTo as WorkerApplicationReturnTarget) ?? 'messages-tab',
+        threadPreview,
+      )
+    : getClinicApplicationMessagesRoute(
+        conversation.application_id,
+        (returnTo as ClinicApplicationReturnTarget) ?? 'messages-tab',
+        threadPreview,
+      );
+}
+
 export function getClinicMessagesRoute(): Href {
   return '/(clinic-tabs)/messages' as Href;
 }
@@ -289,6 +373,10 @@ export function navigateAfterRoleApplicants(
 ) {
   if (returnTo === 'dashboard-applications') {
     router.replace(getClinicHomeRoute('applications'));
+    return;
+  }
+  if (returnTo === 'postings-tab') {
+    router.replace(CLINIC_POSTINGS);
     return;
   }
   router.replace(CLINIC_APPLICATIONS);

@@ -14,6 +14,7 @@ const FILTER_TABS: { value: ApplicantListFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'shortlisted', label: 'Shortlisted' },
   { value: 'interview', label: 'Interview' },
+  { value: 'decided', label: 'Decided' },
 ];
 
 export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilterBarProps) {
@@ -32,8 +33,8 @@ export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilt
       paddingHorizontal: spacing.xs,
       alignItems: 'center',
       justifyContent: 'center',
-      flexDirection: 'row',
-      gap: spacing.xs,
+      minHeight: 52,
+      gap: 2,
     },
     tabSelected: {
       backgroundColor: colors.surface,
@@ -41,19 +42,18 @@ export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilt
       borderColor: colors.separator,
     },
     label: {
-      fontSize: 14,
-      fontWeight: '500',
+      fontSize: 11,
+      fontWeight: '600',
       color: colors.labelSecondary,
+      textAlign: 'center',
     },
     labelSelected: {
-      fontWeight: '600',
       color: colors.labelPrimary,
     },
     count: {
-      fontSize: 12,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '700',
       color: colors.labelTertiary,
-      minWidth: 16,
       textAlign: 'center',
     },
     countSelected: {
@@ -75,7 +75,13 @@ export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilt
               onChange(tab.value);
             }}
             style={[styles.tab, isSelected && styles.tabSelected]}>
-            <Text style={[styles.label, isSelected && styles.labelSelected]}>{tab.label}</Text>
+            <Text
+              style={[styles.label, isSelected && styles.labelSelected]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}>
+              {tab.label}
+            </Text>
             <Text style={[styles.count, isSelected && styles.countSelected]}>
               {counts[tab.value]}
             </Text>

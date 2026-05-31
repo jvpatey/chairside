@@ -2,6 +2,11 @@ import { formatStoredEducation } from './clinicOptions';
 
 export type ApplicationPostType = 'job' | 'shift';
 
+/** Shown when a counterpart account has been deleted but history is retained. */
+export const DELETED_ACCOUNT_LABEL = 'No longer on Chairside';
+export const DELETED_CANDIDATE_LABEL = 'Candidate no longer on Chairside';
+export const DELETED_CLINIC_LABEL = 'Clinic no longer on Chairside';
+
 const JOB_STATUS_LABELS: Record<string, string> = {
   applied: 'Applied',
   reviewed: 'Viewed',
@@ -134,6 +139,32 @@ export function isActiveApplicationStatus(status: string | null | undefined): bo
   );
 }
 
+export function isTerminalApplicationStatus(status: string | null | undefined): boolean {
+  return status === 'rejected' || status === 'selected' || status === 'hired';
+}
+
+export function canWorkerHideApplication(input: {
+  status: string;
+  worker_hidden_at?: string | null;
+  post_status?: string | null;
+}): boolean {
+  if (input.worker_hidden_at) return false;
+  if (isTerminalApplicationStatus(input.status)) return true;
+  return input.post_status === 'filled' || input.post_status === 'closed';
+}
+
+export function isDecidedApplicationStatus(status: string | null | undefined): boolean {
+  return status === 'rejected' || status === 'selected' || status === 'hired';
+}
+
+export function canClinicHideApplication(input: {
+  status: string;
+  clinic_hidden_at?: string | null;
+}): boolean {
+  if (input.clinic_hidden_at) return false;
+  return isDecidedApplicationStatus(input.status);
+}
+
 export function formatApplicationResumeStatus(
   resumeStoragePath: string | null | undefined,
 ): string {
@@ -194,4 +225,33 @@ export function formatInterviewDateTime(
   }
 
   return `${datePart} · ${timePart}`;
+}
+
+export function hasPendingInterviewProposal(application: {
+  interview_proposed_at?: string | null;
+}): boolean {
+  return Boolean(application.interview_proposed_at?.trim());
+}
+
+/** Split stored interview details into location and free-text notes. */
+export function parseInterviewDetailsBlob(value: string | null | undefined): {
+  location: string | null;
+  notes: string | null;
+} {
+  if (!value?.trim()) {
+    return { location: null, notes: null };
+  }
+
+  const parts = value.split('\n\n');
+  if (parts.length >= 2) {
+    const location = parts[0]?.trim() || null;
+    const notes = parts.slice(1).join('\n\n').trim() || null;
+    return { location, notes };
+  }
+
+  return { location: value.trim(), notes: null };
+}
+
+export function formatInterviewDetailsBlob(location: string, notes: string): string | null {
+  return [location.trim(), notes.trim()].filter(Boolean).join('\n\n') || null;
 }

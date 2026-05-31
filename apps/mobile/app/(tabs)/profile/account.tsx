@@ -44,7 +44,7 @@ export default function WorkerProfileAccountScreen() {
           isDeleting={isDeleting}
           onSignOut={signOut}
           onDeleteAccount={confirmDeleteAccount}
-          deleteDescription="Permanently remove your account, worker profile, applications, and uploaded resume. This action cannot be undone."
+          deleteDescription="Permanently remove your account and login. Historical applications and messages will remain visible to others as no longer on Chairside."
         />
       </View>
     </ProfileDetailScreen>

@@ -15,7 +15,7 @@ export function ChipSelector<T extends string>({
   options,
   selected,
   multiple = false,
-  horizontal = false,
+  horizontal = true,
   compact = false,
   onChange,
 }: ChipSelectorProps<T>) {
@@ -92,6 +92,7 @@ export function ChipSelector<T extends string>({
   return horizontal ? (
     <ScrollView
       horizontal
+      nestedScrollEnabled
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.horizontalContent}
     >

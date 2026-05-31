@@ -1,17 +1,23 @@
 import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
+import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { formatNotificationTime } from '@/lib/notificationDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ConversationListItemProps = {
   conversation: Conversation;
   avatarKind: 'clinic' | 'worker';
+  role: 'worker' | 'clinic';
   onPress: () => void;
+  onDelete?: () => void;
+  isLast?: boolean;
 };
 
 function ConversationAvatar({
@@ -28,11 +34,21 @@ function ConversationAvatar({
     avatarKind === 'worker' ? conversation.counterpart_logo_storage_path : null,
   );
 
+  if (avatarKind === 'clinic') {
+    return (
+      <ClinicLogoAvatar
+        clinicName={conversation.counterpart_name}
+        logoUri={clinicLogoUri}
+        size={40}
+      />
+    );
+  }
+
   return (
     <WorkerProfileAvatar
       displayName={conversation.counterpart_name}
-      photoUri={avatarKind === 'clinic' ? clinicLogoUri : workerPhotoUri}
-      size={44}
+      photoUri={workerPhotoUri}
+      size={40}
     />
   );
 }
@@ -40,38 +56,67 @@ function ConversationAvatar({
 export function ConversationListItem({
   conversation,
   avatarKind,
+  role,
   onPress,
+  onDelete,
+  isLast = false,
 }: ConversationListItemProps) {
   const { colors } = useTheme();
   const timestamp = formatNotificationTime(conversation.last_message_at ?? undefined);
+  const display = formatConversationDisplay(conversation, role);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
+    row: {
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
     },
-    cardPressed: { opacity: 0.92 },
-    textWrap: { flex: 1, gap: 4 },
+    rowSeparator: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.separator,
+    },
+    mainPressable: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.md,
+      minWidth: 0,
+    },
+    mainPressed: {
+      opacity: 0.92,
+    },
+    textWrap: { flex: 1, gap: 2, minWidth: 0 },
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing.sm,
     },
-    title: {
-      ...typography.body,
+    roleEyebrow: {
+      fontSize: 11,
       fontWeight: '600',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.labelSecondary,
       flex: 1,
     },
-    postTitle: typography.subtitle,
+    name: {
+      ...typography.body,
+      fontSize: 16,
+      lineHeight: 21,
+      fontWeight: '600',
+      color: colors.labelPrimary,
+    },
+    meta: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
     preview: {
-      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
       color: conversation.unread ? colors.labelPrimary : colors.labelSecondary,
       fontWeight: conversation.unread ? '600' : '400',
     },
@@ -85,32 +130,76 @@ export function ConversationListItem({
       borderRadius: 4,
       backgroundColor: colors.primary,
     },
+    menuButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 2,
+    },
+    menuButtonPressed: {
+      backgroundColor: colors.fillSubtle,
+    },
+    trailing: {
+      alignSelf: 'stretch',
+      justifyContent: 'center',
+      paddingTop: 2,
+    },
   }));
 
+  const showMenu = () => {
+    if (!onDelete) return;
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert(display.cardName, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete from inbox', style: 'destructive', onPress: onDelete },
+    ]);
+  };
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      <ConversationAvatar conversation={conversation} avatarKind={avatarKind} />
-      <View style={styles.textWrap}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>
-            {conversation.counterpart_name}
+    <View style={[styles.row, !isLast && styles.rowSeparator]}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
+        <ConversationAvatar conversation={conversation} avatarKind={avatarKind} />
+        <View style={styles.textWrap}>
+          <View style={styles.titleRow}>
+            <Text style={styles.roleEyebrow} numberOfLines={1}>
+              {display.cardTitle}
+            </Text>
+            {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+          </View>
+          <Text style={styles.name} numberOfLines={2}>
+            {display.cardName}
           </Text>
-          {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
-        </View>
-        <Text style={styles.postTitle} numberOfLines={1}>
-          {conversation.post_title}
-        </Text>
-        <View style={styles.titleRow}>
-          <Text style={styles.preview} numberOfLines={2}>
-            {conversation.last_message_preview ?? 'No messages yet'}
+          <Text style={styles.meta} numberOfLines={2}>
+            {display.cardMeta}
           </Text>
-          {conversation.unread ? <View style={styles.unreadDot} /> : null}
+          <View style={styles.titleRow}>
+            <Text style={styles.preview} numberOfLines={2}>
+              {conversation.last_message_preview ?? 'No messages yet'}
+            </Text>
+            {conversation.unread ? <View style={styles.unreadDot} /> : null}
+          </View>
         </View>
+      </Pressable>
+      <View style={styles.trailing}>
+        {onDelete ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Conversation options"
+            hitSlop={8}
+            onPress={showMenu}
+            style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
+          </Pressable>
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+        )}
       </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
-    </Pressable>
+    </View>
   );
 }

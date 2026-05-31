@@ -14,6 +14,7 @@ import { RowDivider } from '@/components/clinic/DetailCard';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { WorkerSectionHeader } from '@/components/worker/WorkerCards';
 import { Screen } from '@/components/ui/Screen';
@@ -30,7 +31,6 @@ import {
 } from '@/lib/fillInAvailabilitySummary';
 import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
 import {
-  getWorkerApplicationRoute,
   getWorkerShiftDetailRoute,
   WORKER_OPEN_FILLINS,
   WORKER_SETUP_AVAILABILITY_SCHEDULE,
@@ -101,6 +101,7 @@ export default function FillInsScreen() {
   const province = workerProfile?.province ?? 'NS';
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
+  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
@@ -225,15 +226,16 @@ export default function FillInsScreen() {
                 />
               ) : (
                 <>
-                  <View style={styles.list}>
+                  <BrowseListGroup>
                     {previewShifts.map((shift) => (
                       <FillInListingCard
                         key={shift.id}
                         shift={shift}
+                        layout="list"
                         onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
                       />
                     ))}
-                  </View>
+                  </BrowseListGroup>
                   {shifts.length > 0 ? (
                     <Pressable
                       accessibilityRole="button"
@@ -273,9 +275,13 @@ export default function FillInsScreen() {
                       <WorkerApplicationListCard
                         key={application.id}
                         application={application}
-                        onPress={() =>
-                          router.push(getWorkerApplicationRoute(application.id, 'fill-ins-tab'))
+                        returnTo="fill-ins-tab"
+                        expanded={expandedApplicationId === application.id}
+                        onExpandChange={(next) =>
+                          setExpandedApplicationId(next ? application.id : null)
                         }
+                        onUpdated={() => void load()}
+                        onHidden={() => void load()}
                       />
                     ))}
                   </View>
@@ -287,9 +293,13 @@ export default function FillInsScreen() {
                       <WorkerApplicationListCard
                         key={application.id}
                         application={application}
-                        onPress={() =>
-                          router.push(getWorkerApplicationRoute(application.id, 'fill-ins-tab'))
+                        returnTo="fill-ins-tab"
+                        expanded={expandedApplicationId === application.id}
+                        onExpandChange={(next) =>
+                          setExpandedApplicationId(next ? application.id : null)
                         }
+                        onUpdated={() => void load()}
+                        onHidden={() => void load()}
                       />
                     ))}
                   </View>

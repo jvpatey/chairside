@@ -8,6 +8,17 @@ Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app
 2. Create notification types matching `packages/config/src/notifications.ts`:
    - `application_received`
    - `application_reviewed`
+   - `application_in_progress`
+   - `application_interview_offered`
+   - `application_interview_scheduled`
+   - `application_interview_accepted`
+   - `application_interview_declined`
+   - `application_interview_cancelled`
+   - `application_interview_reschedule_proposed`
+   - `application_interview_reschedule_accepted`
+   - `application_interview_reschedule_declined`
+   - `application_interview_scheduled_cancelled`
+   - `application_selected`
    - `application_rejected`
    - `application_hired`
    - `fill_in_posted` (configure SMS template + opt-out text)
@@ -65,6 +76,9 @@ Use `application/json` body (default Supabase webhook payload).
 - In-app: works in Expo Go when `EXPO_PUBLIC_PINGRAM_CLIENT_ID` is set.
 - Push: requires an **EAS build** on a **physical device** (not Expo Go). See **[PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md)** for APNs + Pingram + `eas build --profile production`.
 - SMS: worker opts in on the **Fill-ins** tab (or Profile → Alerts); enter mobile number inline when enabling "Text me for fill-ins".
+- Push preferences: candidates and clinics can mute push by category under **Profile → Notifications**. In-app notification history still records muted categories.
+
+Run migration [`supabase/migrations/057_notification_preferences.sql`](../supabase/migrations/057_notification_preferences.sql) before relying on preference toggles in production.
 
 After changing `notify`, redeploy:
 
@@ -82,7 +96,13 @@ eas build --profile production --platform ios
 | Event | Recipient | Channels |
 | ----- | --------- | -------- |
 | Application submitted | Clinic | in-app, push |
-| Status → reviewed/rejected/hired | Worker | in-app, push |
-| Shift post → live | Workers (fill-in prefs + role) | in-app, push; + SMS if opted in |
-| Job post → live | Workers (role + job opt-in) | in-app, push |
+| Status → reviewed/in_progress/rejected/selected/hired | Worker | in-app, push |
+| Interview offered | Worker | in-app, push |
+| Interview accepted (→ scheduled) | Clinic + Worker | in-app, push |
+| Interview declined/cancelled | Opposite party | in-app, push |
+| Interview reschedule propose/accept/decline | Opposite party | in-app, push |
+| Shift post → live | Workers only (fill-in prefs + role; excludes posting clinic) | in-app, push; + SMS if opted in |
+| Job post → live | Workers only (role + job opt-in; excludes posting clinic) | in-app, push |
 | New message | Other participant | in-app, push |
+| New message (application thread) | Other participant | Deep link: `/(tabs)/application/{application_id}/messages` or clinic equivalent |
+| New message (general inquiry) | Other participant | Deep link: `/(tabs)/conversation/{conversation_id}` or clinic equivalent |

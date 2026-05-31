@@ -1,4 +1,8 @@
-import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
+import type {
+  ClinicSpecialty,
+  NotificationPreferenceCategory,
+  TeamSizeRange,
+} from '@chairside/config';
 
 export type UserRole = 'worker' | 'clinic';
 
@@ -32,6 +36,7 @@ export type ClinicProfileRow = {
   logo_storage_path: string | null;
   logo_uploaded_at: string | null;
   setup_completed_at: string | null;
+  accepts_general_candidate_messages: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -98,6 +103,14 @@ export type ApplicationRow = {
   interview_duration_minutes: number | null;
   interview_details: string | null;
   interview_offer_closed_by: string | null;
+  worker_hidden_at: string | null;
+  clinic_hidden_at: string | null;
+  clinic_name: string | null;
+  clinic_city: string | null;
+  clinic_province: string | null;
+  clinic_logo_storage_path: string | null;
+  worker_account_deleted_at: string | null;
+  clinic_account_deleted_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -152,6 +165,14 @@ export type AvailabilityBlockRow = {
   updated_at: string;
 };
 
+export type NotificationPreferenceRow = {
+  user_id: string;
+  category: NotificationPreferenceCategory;
+  push_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -196,6 +217,7 @@ export type Database = {
           logo_storage_path?: string | null;
           logo_uploaded_at?: string | null;
           setup_completed_at?: string | null;
+          accepts_general_candidate_messages?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -281,7 +303,8 @@ export type Database = {
       conversations: {
         Row: {
           id: string;
-          application_id: string;
+          application_id: string | null;
+          conversation_type: 'application' | 'general';
           worker_id: string;
           clinic_id: string;
           worker_last_read_at: string | null;
@@ -290,6 +313,8 @@ export type Database = {
           last_message_preview: string | null;
           last_sender_id: string | null;
           messaging_closed_at: string | null;
+          worker_hidden_at: string | null;
+          clinic_hidden_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -315,12 +340,36 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['messages']['Insert']>;
         Relationships: [];
       };
+      notification_preferences: {
+        Row: NotificationPreferenceRow;
+        Insert: {
+          user_id: string;
+          category: NotificationPreferenceCategory;
+          push_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['notification_preferences']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       mark_conversation_read: {
         Args: { p_conversation_id: string };
         Returns: undefined;
+      };
+      get_or_create_general_conversation: {
+        Args: { p_clinic_id: string };
+        Returns: string;
+      };
+      hide_worker_conversation: {
+        Args: { p_conversation_id: string };
+        Returns: Database['public']['Tables']['conversations']['Row'];
+      };
+      hide_clinic_conversation: {
+        Args: { p_conversation_id: string };
+        Returns: Database['public']['Tables']['conversations']['Row'];
       };
       accept_application_interview: {
         Args: { application_id: string };
@@ -331,6 +380,14 @@ export type Database = {
         Returns: ApplicationRow;
       };
       confirm_fill_in_applicant: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      hide_worker_application: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      hide_clinic_application: {
         Args: { application_id: string };
         Returns: ApplicationRow;
       };

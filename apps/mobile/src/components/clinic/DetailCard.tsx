@@ -78,6 +78,7 @@ export function DetailRow({
     label: {
       fontSize: 15,
       lineHeight: 20,
+      fontWeight: '600',
       color: colors.labelSecondary,
     },
     labelInline: {

@@ -73,6 +73,17 @@ for spec in \
   "fill_in_posted|Fill-in posted" \
   "application_rejected|Application rejected" \
   "application_hired|Application hired" \
+  "application_in_progress|Application in progress" \
+  "application_interview_offered|Interview offered" \
+  "application_interview_scheduled|Interview scheduled" \
+  "application_interview_accepted|Interview accepted" \
+  "application_interview_declined|Interview declined" \
+  "application_interview_cancelled|Interview cancelled" \
+  "application_interview_reschedule_proposed|Interview reschedule proposed" \
+  "application_interview_reschedule_accepted|Interview reschedule accepted" \
+  "application_interview_reschedule_declined|Interview reschedule declined" \
+  "application_interview_scheduled_cancelled|Interview scheduled cancelled" \
+  "application_selected|Application selected" \
   "job_posted|Job posted" \
   "message_received|Message received"; do
   id="${spec%%|*}"

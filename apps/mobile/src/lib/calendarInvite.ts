@@ -202,6 +202,25 @@ export function buildInterviewInviteTitle(input: Pick<InterviewInviteInput, 'cli
   return `Interview · ${input.roleTitle} · ${input.clinicName}`;
 }
 
+function parseInterviewDetailsForCalendar(details: string | null | undefined): {
+  location: string | null;
+  notes: string | null;
+} {
+  if (!details?.trim()) {
+    return { location: null, notes: null };
+  }
+
+  const parts = details.split('\n\n');
+  if (parts.length >= 2) {
+    return {
+      location: parts[0]?.trim() || null,
+      notes: parts.slice(1).join('\n\n').trim() || null,
+    };
+  }
+
+  return { location: details.trim(), notes: null };
+}
+
 export function buildInterviewInviteInputFromApplication(options: {
   clinicName: string;
   roleTitle: string;
@@ -217,12 +236,15 @@ export function buildInterviewInviteInputFromApplication(options: {
     roleTitle: options.roleTitle,
   });
 
+  const { location, notes } = parseInterviewDetailsForCalendar(options.details);
+
   return {
     title,
     clinicName: options.clinicName,
     roleTitle: options.roleTitle,
     interviewAt,
     durationMinutes: options.durationMinutes ?? 45,
-    details: options.details,
+    details: notes ?? options.details,
+    location,
   };
 }

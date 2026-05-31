@@ -2,17 +2,32 @@ import type { LiveShiftPost } from '@chairside/api';
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
+import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { useThemedStyles } from '@/theme';
 
 type FillInListingCardProps = {
   shift: LiveShiftPost;
+  layout?: ListingLayout;
+  isLast?: boolean;
   onPress?: () => void;
 };
 
-export function FillInListingCard({ shift, onPress }: FillInListingCardProps) {
+export function FillInListingCard({
+  shift,
+  layout = 'tile',
+  isLast,
+  onPress,
+}: FillInListingCardProps) {
+  const logoUri = useClinicLogoUri(shift.clinic.logo_storage_path);
+  const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
+  const roleTitle = formatShiftPostRoleTitle(shift.role_type);
+
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -33,15 +48,40 @@ export function FillInListingCard({ shift, onPress }: FillInListingCardProps) {
       fontWeight: '600',
       color: colors.primary,
     },
+    listCompensation: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
   }));
 
-  const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
+  if (layout === 'list') {
+    return (
+      <BrowseListRow
+        avatar={
+          <ClinicLogoAvatar clinicName={shift.clinic.clinic_name} logoUri={logoUri} size={40} />
+        }
+        eyebrow={shift.clinic.clinic_name}
+        title={roleTitle}
+        meta={location || null}
+        detail={formatShiftPostMeta(shift)}
+        topTrailing={<ShiftUrgencyBadge urgency={shift.urgency} />}
+        footer={
+          shift.compensation ? (
+            <Text style={styles.listCompensation}>{shift.compensation}</Text>
+          ) : undefined
+        }
+        isLast={isLast}
+        onPress={onPress}
+      />
+    );
+  }
 
   const content = (
     <ClinicPostHeader
       clinicName={shift.clinic.clinic_name}
       logoStoragePath={shift.clinic.logo_storage_path}
-      title={formatShiftPostRoleTitle(shift.role_type)}
+      title={roleTitle}
       location={location || null}
       detail={formatShiftPostMeta(shift)}
       avatarSize={44}
