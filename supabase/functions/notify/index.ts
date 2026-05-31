@@ -569,6 +569,13 @@ async function handleApplicationUpdate(
       title: 'Interview accepted',
       message: 'An applicant confirmed your interview invitation.',
     });
+    await sendWorkerStatusNotification(
+      supabase,
+      pingramKey,
+      pingramBase,
+      record,
+      'interview_scheduled',
+    );
     return;
   }
 
@@ -608,9 +615,31 @@ async function handleApplicationUpdate(
   await sendWorkerStatusNotification(supabase, pingramKey, pingramBase, record, newStatus);
 }
 
+async function filterWorkerNotificationRecipients(
+  supabase: ReturnType<typeof createClient>,
+  workers: Array<{ id: string }>,
+  excludeUserIds: string[],
+): Promise<Array<{ id: string }>> {
+  if (!workers.length) return [];
+  const excludeSet = new Set(excludeUserIds);
+  const candidateIds = workers.map((w) => w.id).filter((id) => !excludeSet.has(id));
+  if (!candidateIds.length) return [];
+
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .in('id', candidateIds)
+    .eq('role', 'worker');
+
+  if (error) throw error;
+  const workerRoleIds = new Set((profiles ?? []).map((p) => p.id));
+  return workers.filter((w) => workerRoleIds.has(w.id));
+}
+
 async function listFillInRecipients(
   supabase: ReturnType<typeof createClient>,
   shift: { role_type: string; shift_date: string },
+  clinicId: string,
 ) {
   const weekday = shiftWeekday(shift.shift_date);
 
@@ -626,7 +655,10 @@ async function listFillInRecipients(
   if (error) throw error;
   if (!workers?.length) return [];
 
-  const roleMatched = workers.filter((w) => w.role_type && w.role_type === shift.role_type);
+  const eligibleWorkers = await filterWorkerNotificationRecipients(supabase, workers, [clinicId]);
+  if (!eligibleWorkers.length) return [];
+
+  const roleMatched = eligibleWorkers.filter((w) => w.role_type && w.role_type === shift.role_type);
 
   const availableDaysOnly = roleMatched.filter(
     (w) => w.fill_in_notification_mode === 'available_days_only',
@@ -677,10 +709,14 @@ async function handleShiftPostLive(
 
   const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
   const cityLabel = clinic?.city ? ` · ${clinic.city}` : '';
-  const recipients = await listFillInRecipients(supabase, {
-    role_type: roleType,
-    shift_date: shiftDate,
-  });
+  const recipients = await listFillInRecipients(
+    supabase,
+    {
+      role_type: roleType,
+      shift_date: shiftDate,
+    },
+    clinicId,
+  );
 
   for (const worker of recipients) {
     const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}`;
@@ -739,7 +775,9 @@ async function handleJobPostLive(
 
   if (error) throw error;
 
-  for (const worker of workers ?? []) {
+  const recipients = await filterWorkerNotificationRecipients(supabase, workers ?? [], [clinicId]);
+
+  for (const worker of recipients) {
     const idempotencyKey = `${PINGRAM_TYPES.jobPosted}:${jobId}:${worker.id}`;
     if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 

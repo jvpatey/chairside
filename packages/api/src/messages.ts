@@ -28,6 +28,10 @@ export type Conversation = ConversationRow & {
   application_status: ApplicationStatus;
   post_title: string;
   post_type: 'job' | 'shift';
+  post_role_type: string | null;
+  shift_date: string | null;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
   counterpart_name: string;
   counterpart_logo_storage_path: string | null;
   unread: boolean;
@@ -103,10 +107,13 @@ async function enrichWorkerConversations(
 
   const [jobsResult, shiftsResult] = await Promise.all([
     jobIds.length > 0
-      ? supabase.from('job_posts').select('id, title, clinic_id').in('id', jobIds)
+      ? supabase.from('job_posts').select('id, title, role_type, clinic_id').in('id', jobIds)
       : Promise.resolve({ data: [], error: null }),
     shiftIds.length > 0
-      ? supabase.from('shift_posts').select('id, shift_date, clinic_id').in('id', shiftIds)
+      ? supabase
+          .from('shift_posts')
+          .select('id, shift_date, start_time, end_time, role_type, clinic_id')
+          .in('id', shiftIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -149,6 +156,10 @@ async function enrichWorkerConversations(
         application_status: status,
         post_title: job.title,
         post_type: 'job',
+        post_role_type: job.role_type ?? null,
+        shift_date: null,
+        shift_start_time: null,
+        shift_end_time: null,
         counterpart_name: clinic?.clinic_name ?? 'Clinic',
         counterpart_logo_storage_path: clinic?.logo_storage_path ?? null,
         unread: isUnreadForRole(row, 'worker', workerId),
@@ -162,6 +173,10 @@ async function enrichWorkerConversations(
         application_status: status,
         post_title: `Fill-in · ${shift.shift_date}`,
         post_type: 'shift',
+        post_role_type: shift.role_type ?? null,
+        shift_date: shift.shift_date,
+        shift_start_time: shift.start_time,
+        shift_end_time: shift.end_time,
         counterpart_name: clinic?.clinic_name ?? 'Clinic',
         counterpart_logo_storage_path: clinic?.logo_storage_path ?? null,
         unread: isUnreadForRole(row, 'worker', workerId),
@@ -213,10 +228,13 @@ async function enrichClinicConversations(
 
   const [jobsResult, shiftsResult] = await Promise.all([
     jobIds.length > 0
-      ? supabase.from('job_posts').select('id, title').in('id', jobIds)
+      ? supabase.from('job_posts').select('id, title, role_type').in('id', jobIds)
       : Promise.resolve({ data: [], error: null }),
     shiftIds.length > 0
-      ? supabase.from('shift_posts').select('id, shift_date').in('id', shiftIds)
+      ? supabase
+          .from('shift_posts')
+          .select('id, shift_date, start_time, end_time, role_type')
+          .in('id', shiftIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -244,6 +262,10 @@ async function enrichClinicConversations(
         application_status: status,
         post_title: job.title,
         post_type: 'job',
+        post_role_type: job.role_type ?? null,
+        shift_date: null,
+        shift_start_time: null,
+        shift_end_time: null,
         counterpart_name: counterpartName,
         counterpart_logo_storage_path: worker?.photo_storage_path ?? null,
         unread: isUnreadForRole(row, 'clinic', clinicId),
@@ -256,6 +278,10 @@ async function enrichClinicConversations(
         application_status: status,
         post_title: `Fill-in · ${shift.shift_date}`,
         post_type: 'shift',
+        post_role_type: shift.role_type ?? null,
+        shift_date: shift.shift_date,
+        shift_start_time: shift.start_time,
+        shift_end_time: shift.end_time,
         counterpart_name: counterpartName,
         counterpart_logo_storage_path: worker?.photo_storage_path ?? null,
         unread: isUnreadForRole(row, 'clinic', clinicId),

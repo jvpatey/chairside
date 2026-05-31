@@ -1,5 +1,4 @@
 import { listWorkerJobApplications, getUnreadConversationMap } from '@chairside/api';
-import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -11,9 +10,7 @@ import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import { toJobCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
-import { getWorkerApplicationRoute } from '@/lib/routing';
 import {
-  confirmHideWorkerApplication,
   partitionWorkerApplications,
 } from '@/lib/workerApplicationHide';
 import { useThemedStyles } from '@/theme';
@@ -22,11 +19,17 @@ function ApplicationSection({
   title,
   applications,
   unreadMap,
+  expandedApplicationId,
+  onExpandChange,
+  onUpdated,
   onHide,
 }: {
   title: string;
   applications: Awaited<ReturnType<typeof listWorkerJobApplications>>;
   unreadMap: Record<string, boolean>;
+  expandedApplicationId: string | null;
+  onExpandChange: (applicationId: string | null) => void;
+  onUpdated?: () => void;
   onHide?: () => void;
 }) {
   const styles = useThemedStyles(({ spacing, typography }) => ({
@@ -53,14 +56,11 @@ function ApplicationSection({
             key={application.id}
             application={application}
             hasUnreadMessages={Boolean(unreadMap[application.id])}
-            onPress={() =>
-              router.push(getWorkerApplicationRoute(application.id, 'applications-tab'))
-            }
-            onRemove={
-              onHide
-                ? () => confirmHideWorkerApplication(application, onHide)
-                : undefined
-            }
+            returnTo="applications-tab"
+            expanded={expandedApplicationId === application.id}
+            onExpandChange={(next) => onExpandChange(next ? application.id : null)}
+            onUpdated={onUpdated}
+            onHidden={onHide}
           />
         ))}
       </View>
@@ -77,6 +77,7 @@ export default function WorkerApplicationsScreen() {
     ReturnType<typeof listWorkerJobApplications>
   >>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
+  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const {
     celebrationVisible,
     celebrationPayload,
@@ -141,17 +142,26 @@ export default function WorkerApplicationsScreen() {
               title="Active"
               applications={active}
               unreadMap={unreadMap}
+              expandedApplicationId={expandedApplicationId}
+              onExpandChange={setExpandedApplicationId}
+              onUpdated={() => void load()}
             />
             <ApplicationSection
               title="Past"
               applications={past}
               unreadMap={unreadMap}
+              expandedApplicationId={expandedApplicationId}
+              onExpandChange={setExpandedApplicationId}
+              onUpdated={() => void load()}
               onHide={handleHidden}
             />
             <ApplicationSection
               title="Removed from list"
               applications={archivedApplications}
               unreadMap={unreadMap}
+              expandedApplicationId={expandedApplicationId}
+              onExpandChange={setExpandedApplicationId}
+              onUpdated={() => void load()}
             />
           </View>
         )}

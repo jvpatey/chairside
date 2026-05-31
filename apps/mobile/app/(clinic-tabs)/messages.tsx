@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getClinicApplicationMessagesRoute } from '@/lib/routing';
+import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicMessagesScreen() {
@@ -53,15 +54,16 @@ export default function ClinicMessagesScreen() {
               key={conversation.id}
               conversation={conversation}
               avatarKind="worker"
-              onPress={() =>
+              role="clinic"
+              onPress={() => {
+                const preview = getMessageThreadPreview(conversation, 'clinic');
                 router.push(
                   getClinicApplicationMessagesRoute(conversation.application_id, 'messages-tab', {
                     conversationId: conversation.id,
-                    title: conversation.counterpart_name,
-                    subtitle: conversation.post_title,
+                    ...preview,
                   }),
-                )
-              }
+                );
+              }}
             />
           ))}
         </View>

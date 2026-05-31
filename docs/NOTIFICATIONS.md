@@ -8,6 +8,17 @@ Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app
 2. Create notification types matching `packages/config/src/notifications.ts`:
    - `application_received`
    - `application_reviewed`
+   - `application_in_progress`
+   - `application_interview_offered`
+   - `application_interview_scheduled`
+   - `application_interview_accepted`
+   - `application_interview_declined`
+   - `application_interview_cancelled`
+   - `application_interview_reschedule_proposed`
+   - `application_interview_reschedule_accepted`
+   - `application_interview_reschedule_declined`
+   - `application_interview_scheduled_cancelled`
+   - `application_selected`
    - `application_rejected`
    - `application_hired`
    - `fill_in_posted` (configure SMS template + opt-out text)
@@ -82,7 +93,11 @@ eas build --profile production --platform ios
 | Event | Recipient | Channels |
 | ----- | --------- | -------- |
 | Application submitted | Clinic | in-app, push |
-| Status → reviewed/rejected/hired | Worker | in-app, push |
-| Shift post → live | Workers (fill-in prefs + role) | in-app, push; + SMS if opted in |
-| Job post → live | Workers (role + job opt-in) | in-app, push |
+| Status → reviewed/in_progress/rejected/selected/hired | Worker | in-app, push |
+| Interview offered | Worker | in-app, push |
+| Interview accepted (→ scheduled) | Clinic + Worker | in-app, push |
+| Interview declined/cancelled | Opposite party | in-app, push |
+| Interview reschedule propose/accept/decline | Opposite party | in-app, push |
+| Shift post → live | Workers only (fill-in prefs + role; excludes posting clinic) | in-app, push; + SMS if opted in |
+| Job post → live | Workers only (role + job opt-in; excludes posting clinic) | in-app, push |
 | New message | Other participant | in-app, push |

@@ -7,6 +7,7 @@ import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
+import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const PREVIEW_LIMIT = 2;
@@ -14,6 +15,7 @@ const PREVIEW_LIMIT = 2;
 type DashboardUnreadMessagesCardProps = {
   conversations: Conversation[];
   avatarKind: 'clinic' | 'worker';
+  role: 'worker' | 'clinic';
   onConversationPress: (conversation: Conversation) => void;
   onViewAllPress: () => void;
 };
@@ -54,6 +56,7 @@ function PreviewAvatar({
 export function DashboardUnreadMessagesCard({
   conversations,
   avatarKind,
+  role,
   onConversationPress,
   onViewAllPress,
 }: DashboardUnreadMessagesCardProps) {
@@ -114,19 +117,31 @@ export function DashboardUnreadMessagesCard({
       flex: 1,
       gap: 2,
     },
-    previewName: {
-      ...typography.body,
+    roleEyebrow: {
+      fontSize: 12,
       fontWeight: '600',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.labelSecondary,
+    },
+    name: {
+      ...typography.body,
+      fontSize: 20,
+      lineHeight: 26,
+      fontWeight: '700',
+      letterSpacing: -0.2,
+      color: colors.labelPrimary,
+    },
+    cardMeta: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
     },
     previewMessage: {
       ...typography.subtitle,
       fontSize: 14,
       color: colors.labelPrimary,
       fontWeight: '500',
-    },
-    previewPost: {
-      ...typography.subtitle,
-      fontSize: 13,
     },
   }));
 
@@ -156,7 +171,9 @@ export function DashboardUnreadMessagesCard({
         </Pressable>
       </View>
       <View style={styles.previews}>
-        {previews.map((conversation) => (
+        {previews.map((conversation) => {
+          const display = formatConversationDisplay(conversation, role);
+          return (
           <Pressable
             key={conversation.id}
             accessibilityRole="button"
@@ -167,11 +184,14 @@ export function DashboardUnreadMessagesCard({
             style={({ pressed }) => [styles.previewRow, pressed && styles.previewRowPressed]}>
             <PreviewAvatar conversation={conversation} avatarKind={avatarKind} />
             <View style={styles.previewText}>
-              <Text style={styles.previewName} numberOfLines={1}>
-                {conversation.counterpart_name}
+              <Text style={styles.roleEyebrow} numberOfLines={1}>
+                {display.cardTitle}
               </Text>
-              <Text style={styles.previewPost} numberOfLines={1}>
-                {conversation.post_title}
+              <Text style={styles.name} numberOfLines={2}>
+                {display.cardName}
+              </Text>
+              <Text style={styles.cardMeta} numberOfLines={2}>
+                {display.cardMeta}
               </Text>
               <Text style={styles.previewMessage} numberOfLines={1}>
                 {conversation.last_message_preview ?? 'New message'}
@@ -179,7 +199,8 @@ export function DashboardUnreadMessagesCard({
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
           </Pressable>
-        ))}
+          );
+        })}
       </View>
     </View>
   );

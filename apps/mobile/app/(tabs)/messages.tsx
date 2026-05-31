@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getWorkerApplicationMessagesRoute } from '@/lib/routing';
+import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerMessagesScreen() {
@@ -53,15 +54,16 @@ export default function WorkerMessagesScreen() {
               key={conversation.id}
               conversation={conversation}
               avatarKind="clinic"
-              onPress={() =>
+              role="worker"
+              onPress={() => {
+                const preview = getMessageThreadPreview(conversation, 'worker');
                 router.push(
                   getWorkerApplicationMessagesRoute(conversation.application_id, 'messages-tab', {
                     conversationId: conversation.id,
-                    title: conversation.counterpart_name,
-                    subtitle: conversation.post_title,
+                    ...preview,
                   }),
-                )
-              }
+                );
+              }}
             />
           ))}
         </View>

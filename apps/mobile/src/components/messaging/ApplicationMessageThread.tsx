@@ -15,6 +15,7 @@ import { MessageComposeBar } from '@/components/messaging/MessageComposeBar';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useMessageRealtime } from '@/hooks/useMessageRealtime';
+import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { useThemedStyles } from '@/theme';
 
 type ApplicationMessageThreadProps = {
@@ -209,11 +210,16 @@ export function ApplicationMessageThread({
   };
 
   const canSend = Boolean(conversation?.can_send);
+  const headerDisplay = conversation
+    ? formatConversationDisplay(conversation, role)
+    : null;
+  const headerTitle = headerDisplay?.threadTitle ?? title;
+  const headerSubtitle = headerDisplay?.threadSubtitle ?? subtitle;
 
   return (
     <View ref={containerRef} style={styles.container} collapsable={false}>
       <View style={styles.header}>
-        <AuthScreenHeader title={title} subtitle={subtitle} onBack={onBack} />
+        <AuthScreenHeader title={headerTitle} subtitle={headerSubtitle} onBack={onBack} />
       </View>
 
       <FlatList

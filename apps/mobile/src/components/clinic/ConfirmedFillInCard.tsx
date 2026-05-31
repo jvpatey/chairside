@@ -1,9 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import {
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  UIManager,
+  View,
+} from 'react-native';
 
+import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
+import { DetailRow, RowDivider } from '@/components/clinic/DetailCard';
+import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
+import { getClinicApplicationMessagesRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type ConfirmedFillInCardProps = {
   workerName: string;
@@ -11,8 +28,10 @@ type ConfirmedFillInCardProps = {
   shiftDate: string;
   startTime: string | null;
   endTime: string | null;
-  compact?: boolean;
-  onPress?: () => void;
+  applicationId?: string;
+  expanded?: boolean;
+  onExpandChange?: (expanded: boolean) => void;
+  returnTo?: ClinicApplicationReturnTarget;
 };
 
 export function ConfirmedFillInCard({
@@ -21,89 +40,94 @@ export function ConfirmedFillInCard({
   shiftDate,
   startTime,
   endTime,
-  compact = false,
-  onPress,
+  applicationId,
+  expanded = false,
+  onExpandChange,
+  returnTo = 'fill-ins-tab',
 }: ConfirmedFillInCardProps) {
   const { colors } = useTheme();
-  const meta = formatShiftPostMeta({
+  const shiftMeta = formatShiftPostMeta({
     shift_date: shiftDate,
     start_time: startTime ?? '',
     end_time: endTime ?? '',
   });
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      backgroundColor: colors.surface,
-      borderRadius: compact ? 12 : 16,
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    card: {
+      backgroundColor: `${colors.success}10`,
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: colors.separator,
-      padding: compact ? spacing.md : spacing.lg,
+      borderColor: `${colors.success}40`,
+      padding: spacing.md,
+      gap: spacing.sm,
     },
-    rowPressed: {
-      opacity: 0.92,
+    cardPressed: { opacity: 0.92 },
+    expandedBody: {
+      gap: spacing.md,
+      paddingTop: spacing.xs,
     },
-    iconWrap: {
-      width: compact ? 36 : 40,
-      height: compact ? 36 : 40,
-      borderRadius: compact ? 18 : 20,
-      backgroundColor: colors.primarySubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
+    detailsCard: {
+      gap: spacing.sm,
     },
-    text: { flex: 1, gap: 2 },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-      fontSize: compact ? 15 : typography.body.fontSize,
-    },
-    meta: {
-      ...typography.subtitle,
-      fontSize: compact ? 13 : typography.subtitle.fontSize,
-    },
-    chevron: {
-      marginLeft: spacing.xs,
+    confirmedAccessory: {
+      paddingTop: 2,
     },
   }));
 
-  const content = (
-    <>
-      <View style={styles.iconWrap}>
-        <Ionicons name="checkmark-circle" size={compact ? 20 : 22} color={colors.primary} />
-      </View>
-      <View style={styles.text}>
-        <Text style={styles.title}>{workerName} confirmed</Text>
-        <Text style={styles.meta}>
-          {postTitle} · {meta}
-        </Text>
-      </View>
-      {onPress ? (
-        <Ionicons
-          name="chevron-forward"
-          size={18}
-          color={colors.labelTertiary}
-          style={styles.chevron}
-        />
-      ) : null}
-    </>
-  );
-
-  if (!onPress) {
-    return <View style={styles.row}>{content}</View>;
-  }
+  const toggleExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    onExpandChange?.(!expanded);
+  };
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${workerName} confirmed for ${postTitle}`}
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-      {content}
-    </Pressable>
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={`${workerName} confirmed for ${postTitle}`}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          toggleExpanded();
+        }}
+        style={({ pressed }) => [pressed && styles.cardPressed]}>
+        <ApplicantPostHeader
+          displayName={workerName}
+          title={postTitle}
+          detail={shiftMeta}
+          avatarSize={44}
+          accessory={
+            <View style={styles.confirmedAccessory}>
+              <Ionicons name="checkmark-circle" size={22} color={colors.success} />
+            </View>
+          }
+          textFooter={<ClinicApplicationStatusBadge status="hired" postType="shift" />}
+        />
+      </Pressable>
+
+      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} />
+
+      {expanded ? (
+        <View style={styles.expandedBody}>
+          <View style={styles.detailsCard}>
+            <DetailRow label="Worker" value={workerName} />
+            <RowDivider />
+            <DetailRow label="Role" value={postTitle} />
+            <RowDivider />
+            <DetailRow label="Schedule" value={shiftMeta} />
+            <RowDivider />
+            <DetailRow label="Status" value="Confirmed" />
+          </View>
+          {applicationId ? (
+            <OnboardingButton
+              label="Message worker"
+              variant="secondary"
+              onPress={() =>
+                router.push(getClinicApplicationMessagesRoute(applicationId, returnTo))
+              }
+            />
+          ) : null}
+        </View>
+      ) : null}
+    </View>
   );
 }

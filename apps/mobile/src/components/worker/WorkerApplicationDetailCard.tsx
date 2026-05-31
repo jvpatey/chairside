@@ -55,6 +55,8 @@ type WorkerApplicationDetailCardProps = {
   onUpdated?: () => void;
   onHidden?: () => void;
   hasUnreadMessages?: boolean;
+  /** Inline body only — for expandable list cards. */
+  variant?: 'full' | 'embedded';
 };
 
 function formatAppliedLabel(application: WorkerApplication): string | null {
@@ -71,6 +73,7 @@ export function WorkerApplicationDetailCard({
   onUpdated,
   onHidden,
   hasUnreadMessages = false,
+  variant = 'full',
 }: WorkerApplicationDetailCardProps) {
   const { colors } = useTheme();
   const [rescheduleVisible, setRescheduleVisible] = useState(false);
@@ -113,6 +116,10 @@ export function WorkerApplicationDetailCard({
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
       paddingBottom: spacing.lg,
+      gap: spacing.lg,
+    },
+    bodyEmbedded: {
+      paddingTop: spacing.sm,
       gap: spacing.lg,
     },
     submittedSection: {
@@ -454,43 +461,9 @@ export function WorkerApplicationDetailCard({
 
   const hasActions = actionRows.length > 0;
 
-  return (
-    <View style={styles.card}>
-      <View style={styles.hero}>
-        <ClinicPostHeader
-          clinicName={application.clinic_name}
-          logoStoragePath={application.clinic_logo_storage_path}
-          title={application.post_title}
-          location={clinicLocation}
-          accessory={
-            jobMatch && matchContext ? (
-              <MatchTierBadge
-                breakdown={jobMatch}
-                context={matchContext}
-                subtitle={application.post_title}
-              />
-            ) : null
-          }
-          footer={
-            <>
-              <View style={styles.statusRow}>
-                <Text style={styles.metaLabel}>Status</Text>
-                <WorkerApplicationStatusBadge
-                  status={application.status}
-                  postType={application.post_type}
-                />
-              </View>
-              {formatAppliedLabel(application) ? (
-                <Text style={styles.appliedDate}>{formatAppliedLabel(application)}</Text>
-              ) : null}
-            </>
-          }
-        />
-      </View>
-
-      <RowDivider />
-
-      <View style={styles.body}>
+  const bodyContent = (
+    <>
+      <View style={variant === 'embedded' ? styles.bodyEmbedded : styles.body}>
         {application.status === 'interview_offered' && interviewSummary ? (
           <View style={styles.interviewCard}>
             <View style={styles.interviewHeader}>
@@ -609,13 +582,13 @@ export function WorkerApplicationDetailCard({
           titleOverride="Request new time"
           subtitleOverride="The confirmed interview stays until the clinic accepts your proposed time."
           submitLabelOverride="Send request"
-          onSubmit={(input) =>
-            proposeApplicationInterviewUpdateAsWorker(
+          onSubmit={async (input) => {
+            await proposeApplicationInterviewUpdateAsWorker(
               application.worker_id,
               application.id,
               input,
-            )
-          }
+            );
+          }}
           onSaved={() => {
             setRescheduleVisible(false);
             onUpdated?.();
@@ -623,6 +596,50 @@ export function WorkerApplicationDetailCard({
           onClose={() => setRescheduleVisible(false)}
         />
       ) : null}
+    </>
+  );
+
+  if (variant === 'embedded') {
+    return bodyContent;
+  }
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.hero}>
+        <ClinicPostHeader
+          clinicName={application.clinic_name}
+          logoStoragePath={application.clinic_logo_storage_path}
+          title={application.post_title}
+          location={clinicLocation}
+          accessory={
+            jobMatch && matchContext ? (
+              <MatchTierBadge
+                breakdown={jobMatch}
+                context={matchContext}
+                subtitle={application.post_title}
+              />
+            ) : null
+          }
+          footer={
+            <>
+              <View style={styles.statusRow}>
+                <Text style={styles.metaLabel}>Status</Text>
+                <WorkerApplicationStatusBadge
+                  status={application.status}
+                  postType={application.post_type}
+                />
+              </View>
+              {formatAppliedLabel(application) ? (
+                <Text style={styles.appliedDate}>{formatAppliedLabel(application)}</Text>
+              ) : null}
+            </>
+          }
+        />
+      </View>
+
+      <RowDivider />
+
+      {bodyContent}
     </View>
   );
 }

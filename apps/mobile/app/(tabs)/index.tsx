@@ -31,11 +31,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   WORKER_BROWSE,
   WORKER_FILLINS,
   getWorkerApplicationMessagesRoute,
-  getWorkerApplicationRoute,
   getWorkerJobDetailRoute,
   getWorkerMessagesRoute,
   getWorkerShiftDetailRoute,
@@ -138,15 +138,16 @@ export default function WorkerDashboardScreen() {
         <DashboardUnreadMessagesCard
           conversations={conversations}
           avatarKind="clinic"
-          onConversationPress={(conversation) =>
+          role="worker"
+          onConversationPress={(conversation) => {
+            const preview = getMessageThreadPreview(conversation, 'worker');
             router.push(
               getWorkerApplicationMessagesRoute(conversation.application_id, 'dashboard-applications', {
                 conversationId: conversation.id,
-                title: conversation.counterpart_name,
-                subtitle: conversation.post_title,
+                ...preview,
               }),
-            )
-          }
+            );
+          }}
           onViewAllPress={() => router.push(getWorkerMessagesRoute())}
         />
 
@@ -190,12 +191,7 @@ export default function WorkerDashboardScreen() {
           unreadMap={unreadMap}
           onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
           onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))}
-          onJobApplicationPress={(applicationId) =>
-            router.push(getWorkerApplicationRoute(applicationId, 'dashboard-applications'))
-          }
-          onShiftApplicationPress={(applicationId) =>
-            router.push(getWorkerApplicationRoute(applicationId, 'dashboard-fill-ins'))
-          }
+          onApplicationUpdated={() => void loadDashboard()}
         />
       </View>
     </Screen>

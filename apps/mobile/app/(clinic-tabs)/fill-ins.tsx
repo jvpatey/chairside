@@ -1,5 +1,6 @@
 import {
   getMissingClinicProfileFields,
+  getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
   getUnreadConversationMap,
   listFillInCoverRequests,
@@ -36,7 +37,6 @@ import {
 import {
   CLINIC_SETUP_BASICS,
   getPostShiftRoute,
-  getShiftDetailRoute,
 } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -102,7 +102,10 @@ export default function ClinicFillInsScreen() {
   const [coverRequests, setCoverRequests] = useState<FillInCoverRequest[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+  const [applicationCounts, setApplicationCounts] = useState<Record<string, number>>({});
   const [confirmedRows, setConfirmedRows] = useState<ConfirmedFillInSummary[]>([]);
+  const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
+  const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
   const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('all');
@@ -141,9 +144,17 @@ export default function ClinicFillInsScreen() {
         getUnreadConversationMap(user.id, 'clinic'),
       ]);
 
+      const applicationCountEntries = await Promise.all(
+        shiftPosts.map(async (shift) => {
+          const count = await getShiftPostApplicationCount(user.id, shift.id);
+          return [shift.id, count] as const;
+        }),
+      );
+
       setCoverRequests(requests);
       setShifts(shiftPosts);
       setPendingCounts(counts);
+      setApplicationCounts(Object.fromEntries(applicationCountEntries));
       setConfirmedRows(confirmed);
       setUnreadMap(unread);
       await refreshPending();
@@ -223,8 +234,11 @@ export default function ClinicFillInsScreen() {
                     shiftDate={row.shiftDate}
                     startTime={row.startTime}
                     endTime={row.endTime}
-                    onPress={() =>
-                      router.push(getShiftDetailRoute(row.shiftPostId, 'fill-ins-tab'))
+                    applicationId={row.applicationId}
+                    returnTo="fill-ins-tab"
+                    expanded={expandedConfirmedId === row.applicationId}
+                    onExpandChange={(next) =>
+                      setExpandedConfirmedId(next ? row.applicationId : null)
                     }
                   />
                 ))}
@@ -263,7 +277,20 @@ export default function ClinicFillInsScreen() {
                     key={shift.id}
                     shift={shift}
                     pendingRequestCount={pendingCounts[shift.id] ?? 0}
-                    onPress={() => router.push(getShiftDetailRoute(shift.id, 'fill-ins-tab'))}
+                    applicationCount={applicationCounts[shift.id] ?? 0}
+                    clinicId={user?.id}
+                    returnTo="fill-ins-tab"
+                    expanded={expandedShiftId === shift.id}
+                    onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
+                    onShiftUpdated={(updated) =>
+                      setShifts((current) =>
+                        current.map((row) => (row.id === updated.id ? updated : row)),
+                      )
+                    }
+                    onShiftDeleted={() => {
+                      setShifts((current) => current.filter((row) => row.id !== shift.id));
+                      setExpandedShiftId((current) => (current === shift.id ? null : current));
+                    }}
                   />
                 ))}
               </View>

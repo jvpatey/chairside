@@ -11,6 +11,7 @@ import { MessageThreadLoadingShell } from '@/components/messaging/MessageThreadL
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { navigateAfterMessageThread } from '@/lib/routing';
+import { formatConversationDisplay } from '@/lib/conversationDisplay';
 
 export default function ClinicApplicationMessagesScreen() {
   const { user } = useAuth();
@@ -81,8 +82,8 @@ export default function ClinicApplicationMessagesScreen() {
       userId={user.id}
       role="clinic"
       conversationId={conversation.id}
-      title={conversation.counterpart_name}
-      subtitle={conversation.post_title}
+      title={formatConversationDisplay(conversation, 'clinic').threadTitle}
+      subtitle={formatConversationDisplay(conversation, 'clinic').threadSubtitle}
       onBack={goBack}
       onConversationChange={setConversation}
     />

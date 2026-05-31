@@ -1,7 +1,7 @@
 import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
 import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
@@ -248,8 +248,7 @@ type WorkerOverviewPanelProps = {
   unreadMap?: Record<string, boolean>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
-  onJobApplicationPress?: (applicationId: string) => void;
-  onShiftApplicationPress?: (applicationId: string) => void;
+  onApplicationUpdated?: () => void;
 };
 
 export function WorkerOverviewPanel({
@@ -262,9 +261,9 @@ export function WorkerOverviewPanel({
   unreadMap,
   onJobPress,
   onShiftPress,
-  onJobApplicationPress,
-  onShiftApplicationPress,
+  onApplicationUpdated,
 }: WorkerOverviewPanelProps) {
+  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     list: { gap: spacing.sm },
     group: { gap: spacing.sm },
@@ -356,11 +355,13 @@ export function WorkerOverviewPanel({
                     key={application.id}
                     application={application}
                     hasUnreadMessages={Boolean(unreadMap?.[application.id])}
-                    onPress={
-                      onShiftApplicationPress
-                        ? () => onShiftApplicationPress(application.id)
-                        : undefined
+                    returnTo="dashboard-fill-ins"
+                    expanded={expandedApplicationId === application.id}
+                    onExpandChange={(next) =>
+                      setExpandedApplicationId(next ? application.id : null)
                     }
+                    onUpdated={onApplicationUpdated}
+                    onHidden={onApplicationUpdated}
                   />
                 ))}
               </View>
@@ -373,11 +374,13 @@ export function WorkerOverviewPanel({
                     key={application.id}
                     application={application}
                     hasUnreadMessages={Boolean(unreadMap?.[application.id])}
-                    onPress={
-                      onShiftApplicationPress
-                        ? () => onShiftApplicationPress(application.id)
-                        : undefined
+                    returnTo="dashboard-fill-ins"
+                    expanded={expandedApplicationId === application.id}
+                    onExpandChange={(next) =>
+                      setExpandedApplicationId(next ? application.id : null)
                     }
+                    onUpdated={onApplicationUpdated}
+                    onHidden={onApplicationUpdated}
                   />
                 ))}
               </View>
@@ -398,9 +401,11 @@ export function WorkerOverviewPanel({
                 key={application.id}
                 application={application}
                 hasUnreadMessages={Boolean(unreadMap?.[application.id])}
-                onPress={
-                  onJobApplicationPress ? () => onJobApplicationPress(application.id) : undefined
-                }
+                returnTo="dashboard-applications"
+                expanded={expandedApplicationId === application.id}
+                onExpandChange={(next) => setExpandedApplicationId(next ? application.id : null)}
+                onUpdated={onApplicationUpdated}
+                onHidden={onApplicationUpdated}
               />
             ))}
           </View>

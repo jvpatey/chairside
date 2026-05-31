@@ -3,6 +3,7 @@ import { getProvinceLabel, formatJobApplicationSummaryMeta } from '@chairside/co
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
@@ -10,11 +11,12 @@ import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { CLINIC_PROFILE } from '@/lib/routing';
+import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { isMainListJob } from '@/lib/postingFilters';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -316,12 +318,15 @@ type DashboardOverviewPanelProps = {
   confirmedFillIns?: ConfirmedFillInSummary[];
   jobApplicationSummaries: JobApplicationSummary[];
   applicantCounts?: Record<string, number>;
+  shiftPendingCounts?: Record<string, number>;
+  shiftApplicationCounts?: Record<string, number>;
   clinicId?: string;
+  fillInReturnTo?: FillInReturnTarget;
   onJobUpdated?: (job: JobPost) => void;
   onJobDeleted?: (jobId: string) => void;
+  onShiftUpdated?: (shift: ShiftPost) => void;
+  onShiftDeleted?: (shiftId: string) => void;
   onJobPress?: (jobId: string) => void;
-  onShiftPress?: (shiftId: string) => void;
-  onConfirmedFillInPress?: (shiftId: string) => void;
   onJobApplicationsPress?: (jobId: string) => void;
 };
 
@@ -338,51 +343,57 @@ function DashboardListCard({
   statusBadge?: ReactNode;
   onPress?: () => void;
 }) {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const { clinicProfile } = useClinicProfile();
+  const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
+  const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
+
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
-      gap: spacing.xs,
     },
     cardPressed: {
-      opacity: 0.9,
+      opacity: 0.92,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
+    statPill: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.primarySubtle,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
     },
-    headerMain: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-    },
-    subtitle: typography.subtitle,
-    meta: {
+    statText: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.primary,
     },
+    meta: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
   }));
 
   const content = (
-    <>
-      <View style={styles.header}>
-        <View style={styles.headerMain}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
-        </View>
-        {statusBadge}
-      </View>
-      {meta ? <Text style={styles.meta}>{meta}</Text> : null}
-    </>
+    <ClinicPostHeader
+      clinicName={clinicName}
+      logoStoragePath={clinicProfile?.logo_storage_path}
+      title={title}
+      location={location || null}
+      detail={meta ?? null}
+      avatarSize={44}
+      accessory={statusBadge}
+      textFooter={
+        subtitle ? (
+          <View style={styles.statPill}>
+            <Text style={styles.statText}>{subtitle}</Text>
+          </View>
+        ) : null
+      }
+    />
   );
 
   if (!onPress) {
@@ -450,20 +461,25 @@ export function DashboardOverviewPanel({
   confirmedFillIns = [],
   jobApplicationSummaries,
   applicantCounts,
+  shiftPendingCounts = {},
+  shiftApplicationCounts = {},
   clinicId,
+  fillInReturnTo = 'dashboard-fill-ins',
   onJobUpdated,
   onJobDeleted,
+  onShiftUpdated,
+  onShiftDeleted,
   onJobPress,
-  onShiftPress,
-  onConfirmedFillInPress,
   onJobApplicationsPress,
 }: DashboardOverviewPanelProps) {
+  const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
+  const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
   const styles = useThemedStyles(({ spacing, colors }) => ({
     list: {
-      gap: spacing.sm,
+      gap: spacing.md,
     },
     subsection: {
-      gap: spacing.sm,
+      gap: spacing.md,
     },
     subsectionTitle: {
       fontSize: 13,
@@ -527,11 +543,11 @@ export function DashboardOverviewPanel({
                     shiftDate={row.shiftDate}
                     startTime={row.startTime}
                     endTime={row.endTime}
-                    compact
-                    onPress={
-                      onConfirmedFillInPress
-                        ? () => onConfirmedFillInPress(row.shiftPostId)
-                        : undefined
+                    applicationId={row.applicationId}
+                    returnTo="dashboard-fill-ins"
+                    expanded={expandedConfirmedId === row.applicationId}
+                    onExpandChange={(next) =>
+                      setExpandedConfirmedId(next ? row.applicationId : null)
                     }
                   />
                 ))}
@@ -546,7 +562,14 @@ export function DashboardOverviewPanel({
                   <FillInPostingCard
                     key={shift.id}
                     shift={shift}
-                    onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+                    pendingRequestCount={shiftPendingCounts[shift.id] ?? 0}
+                    applicationCount={shiftApplicationCounts[shift.id] ?? 0}
+                    clinicId={clinicId}
+                    returnTo={fillInReturnTo}
+                    expanded={expandedShiftId === shift.id}
+                    onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
+                    onShiftUpdated={onShiftUpdated}
+                    onShiftDeleted={() => onShiftDeleted?.(shift.id)}
                   />
                 ))}
               </View>

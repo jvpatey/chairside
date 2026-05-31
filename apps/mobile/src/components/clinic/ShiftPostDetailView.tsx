@@ -18,12 +18,15 @@ type ShiftPostDetailViewProps = {
   shift: ShiftPost;
   softwareUsed?: string[] | null;
   showStatusBadge?: boolean;
+  /** Compact labeled rows for inline expandable cards (no hero). */
+  variant?: 'full' | 'embedded';
 };
 
 export function ShiftPostDetailView({
   shift,
   softwareUsed,
   showStatusBadge = true,
+  variant = 'full',
 }: ShiftPostDetailViewProps) {
   const dateLabel = formatShiftPostDateLabel(shift.shift_date);
   const hoursLabel = formatTimeRangePreview(shift.start_time, shift.end_time);
@@ -84,6 +87,45 @@ export function ShiftPostDetailView({
     },
   }));
 
+  const detailSection = (
+    <View style={variant === 'embedded' ? undefined : styles.card}>
+      <DetailSection title={variant === 'embedded' ? 'Details' : 'Shift details'}>
+        <DetailRow label="Date" value={dateLabel} />
+        <RowDivider />
+        <DetailRow label="Hours" value={hoursLabel} />
+        <RowDivider />
+        <DetailRow label="Compensation" value={shift.compensation} />
+        {softwareLabel ? (
+          <>
+            <RowDivider />
+            <DetailRow label="Software" value={softwareLabel} />
+          </>
+        ) : null}
+      </DetailSection>
+
+      {description && variant === 'full' ? (
+        <DetailSectionDivider>
+          <DetailSection title="Notes">
+            <DetailProse text={description} />
+          </DetailSection>
+        </DetailSectionDivider>
+      ) : null}
+    </View>
+  );
+
+  if (variant === 'embedded') {
+    return (
+      <View style={styles.wrap}>
+        {detailSection}
+        {description ? (
+          <DetailSection title="Notes">
+            <DetailProse text={description} />
+          </DetailSection>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap}>
       <View style={styles.hero}>
@@ -99,29 +141,7 @@ export function ShiftPostDetailView({
         <Text style={styles.meta}>{dateLabel}</Text>
       </View>
 
-      <View style={styles.card}>
-        <DetailSection title="Shift details">
-          <DetailRow label="Date" value={dateLabel} />
-          <RowDivider />
-          <DetailRow label="Hours" value={hoursLabel} />
-          <RowDivider />
-          <DetailRow label="Compensation" value={shift.compensation} />
-          {softwareLabel ? (
-            <>
-              <RowDivider />
-              <DetailRow label="Software" value={softwareLabel} />
-            </>
-          ) : null}
-        </DetailSection>
-
-        {description ? (
-          <DetailSectionDivider>
-            <DetailSection title="Notes">
-              <DetailProse text={description} />
-            </DetailSection>
-          </DetailSectionDivider>
-        ) : null}
-      </View>
+      {detailSection}
     </View>
   );
 }

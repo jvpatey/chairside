@@ -39,14 +39,15 @@ import {
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
+import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
 import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
-import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
-import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
@@ -138,9 +139,8 @@ export function ClinicApplicationCard({
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
   const { clinicProfile } = useClinicProfile();
-  const [expanded, setExpanded] = useState(false);
-  const photoUri = useWorkerPhotoUri(application.worker_photo_storage_path);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
+  const [expanded, setExpanded] = useState(false);
   const isJob = application.post_type === 'job';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
@@ -161,30 +161,12 @@ export function ClinicApplicationCard({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
+      padding: spacing.md,
       gap: spacing.sm,
     },
-    applicantName: {
-      ...typography.body,
-      fontWeight: '700',
-      fontSize: 17,
-    },
-    applicantHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-    },
-    applicantHeaderText: { flex: 1, gap: 2 },
-    applicantTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-    },
-    meta: typography.subtitle,
     preview: {
       ...typography.subtitle,
       fontStyle: 'italic',
@@ -202,19 +184,6 @@ export function ClinicApplicationCard({
       ...typography.subtitle,
       flex: 1,
       fontSize: 14,
-    },
-    toggle: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    toggleText: {
-      ...typography.body,
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.primary,
     },
     details: {
       gap: spacing.sm,
@@ -415,39 +384,28 @@ export function ClinicApplicationCard({
 
   return (
     <View style={styles.card}>
-      <View style={styles.applicantHeader}>
-        <WorkerProfileAvatar
-          displayName={application.worker_display_name}
-          photoUri={photoUri}
-          size={44}
-        />
-        <View style={styles.applicantHeaderText}>
-          <View style={styles.applicantTitleRow}>
-            {application.worker_display_name ? (
-              <Text style={[styles.applicantName, { flex: 1 }]}>
-                {application.worker_display_name}
-              </Text>
-            ) : (
-              <View style={{ flex: 1 }} />
-            )}
-            <ClinicApplicationStatusBadge status={application.status} />
-          </View>
-          {application.worker_address ? (
-            <Text style={styles.meta}>{application.worker_address}</Text>
-          ) : null}
-        </View>
-      </View>
-
-      {jobMatch && matchContext ? (
-        <BadgeRow>
-          <MatchTierBadge
-            breakdown={jobMatch}
-            context={matchContext}
-            subtitle={application.post_title}
-            audience="clinic"
-          />
-        </BadgeRow>
-      ) : null}
+      <ApplicantPostHeader
+        displayName={application.worker_display_name?.trim() || 'Applicant'}
+        photoStoragePath={application.worker_photo_storage_path}
+        title={application.post_title}
+        detail={application.worker_address ?? null}
+        avatarSize={44}
+        accessory={
+          <ClinicApplicationStatusBadge status={application.status} postType={application.post_type} />
+        }
+        textFooter={
+          jobMatch && matchContext ? (
+            <BadgeRow>
+              <MatchTierBadge
+                breakdown={jobMatch}
+                context={matchContext}
+                subtitle={application.post_title}
+                audience="clinic"
+              />
+            </BadgeRow>
+          ) : null
+        }
+      />
 
       {hasInterviewDetails ? (
         <View style={styles.interviewRow}>
@@ -500,55 +458,56 @@ export function ClinicApplicationCard({
         </Text>
       ) : null}
 
-      <Pressable
-        style={styles.toggle}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        onPress={toggleExpanded}>
-        <Text style={styles.toggleText}>{expanded ? 'Hide details' : 'View details'}</Text>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.labelTertiary}
-        />
-      </Pressable>
+      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} />
 
       {expanded ? (
         <View style={styles.details}>
-          {application.years_of_experience != null || application.education ? (
-            <Text style={styles.meta}>
-              {application.years_of_experience != null
-                ? `${application.years_of_experience} yrs`
-                : ''}
-              {application.years_of_experience != null && application.education ? ' · ' : ''}
-              {formatApplicationEducation(application.education)}
-            </Text>
+          {application.years_of_experience != null ? (
+            <ApplicationPreviewField
+              label="Experience"
+              value={`${application.years_of_experience} years`}
+            />
+          ) : null}
+          {formatApplicationEducation(application.education) ? (
+            <ApplicationPreviewField
+              label="Education"
+              value={formatApplicationEducation(application.education)}
+            />
           ) : null}
           {application.role_type ? (
-            <Text style={styles.meta}>{getRoleTypeLabel(application.role_type)}</Text>
+            <ApplicationPreviewField
+              label="Role"
+              value={getRoleTypeLabel(application.role_type)}
+            />
           ) : null}
           {(application.software_used ?? []).length > 0 ? (
-            <Text style={styles.meta}>
-              Software: {(application.software_used ?? []).join(', ')}
-            </Text>
+            <ApplicationPreviewField
+              label="Software"
+              value={(application.software_used ?? []).join(', ')}
+            />
           ) : null}
           {(application.practice_types ?? []).length > 0 ? (
-            <Text style={styles.meta}>
-              Specialties: {(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
-            </Text>
+            <ApplicationPreviewField
+              label="Specialties"
+              value={(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
+            />
           ) : null}
           {application.cover_message ? (
-            <Text style={styles.meta}>{application.cover_message}</Text>
+            <ApplicationPreviewField label="Cover message" value={application.cover_message} />
           ) : null}
           {application.post_type === 'job' && application.screening ? (
             <ApplicationScreeningSection screening={application.screening} />
           ) : null}
           {application.interview_details ? (
-            <Text style={styles.meta}>Interview details · {application.interview_details}</Text>
+            <ApplicationPreviewField
+              label="Interview details"
+              value={application.interview_details}
+            />
           ) : null}
-          <Text style={styles.meta}>
-            Resume · {formatApplicationResumeStatus(application.resume_storage_path)}
-          </Text>
+          <ApplicationPreviewField
+            label="Resume"
+            value={formatApplicationResumeStatus(application.resume_storage_path)}
+          />
           {application.resume_storage_path ? (
             <ResumeViewButton
               storagePath={application.resume_storage_path}
