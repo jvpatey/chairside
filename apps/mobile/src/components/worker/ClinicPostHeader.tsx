@@ -17,6 +17,8 @@ type ClinicPostHeaderProps = {
   footer?: ReactNode;
   avatarSize?: number;
   stackedAccessory?: boolean;
+  /** Reserve fixed line heights so cards in a list stay the same size. */
+  uniformCardLayout?: boolean;
 };
 
 export function ClinicPostHeader({
@@ -30,6 +32,7 @@ export function ClinicPostHeader({
   footer,
   avatarSize = 48,
   stackedAccessory = false,
+  uniformCardLayout = false,
 }: ClinicPostHeaderProps) {
   const logoUri = useClinicLogoUri(logoStoragePath);
   const { spacing } = useTheme();
@@ -94,7 +97,28 @@ export function ClinicPostHeader({
     footer: {
       gap: spacing.sm,
     },
+    uniformClinicName: {
+      minHeight: 16,
+    },
+    uniformTitle: {
+      minHeight: 52,
+    },
+    uniformMetaSlot: {
+      minHeight: 20,
+      justifyContent: 'center',
+    },
+    uniformTextFooterSlot: {
+      minHeight: 32,
+      justifyContent: 'center',
+    },
+    uniformFooterSlot: {
+      minHeight: 28,
+      justifyContent: 'center',
+    },
   }));
+
+  const showLocation = Boolean(location) || uniformCardLayout;
+  const showDetail = Boolean(detail) || uniformCardLayout;
 
   return (
     <View style={styles.wrap}>
@@ -103,21 +127,33 @@ export function ClinicPostHeader({
         <View style={styles.textBlock}>
           <View style={styles.titleRow}>
             <View style={styles.textColumn}>
-              <Text style={styles.clinicName} numberOfLines={2}>
+              <Text
+                style={[styles.clinicName, uniformCardLayout && styles.uniformClinicName]}
+                numberOfLines={1}>
                 {clinicName}
               </Text>
-              <Text style={styles.title} numberOfLines={2}>
+              <Text
+                style={[styles.title, uniformCardLayout && styles.uniformTitle]}
+                numberOfLines={2}>
                 {title}
               </Text>
-              {location ? (
-                <Text style={styles.meta} numberOfLines={2}>
-                  {location}
-                </Text>
+              {showLocation ? (
+                <View style={uniformCardLayout ? styles.uniformMetaSlot : undefined}>
+                  {location ? (
+                    <Text style={styles.meta} numberOfLines={uniformCardLayout ? 1 : 2}>
+                      {location}
+                    </Text>
+                  ) : null}
+                </View>
               ) : null}
-              {detail ? (
-                <Text style={styles.meta} numberOfLines={2}>
-                  {detail}
-                </Text>
+              {showDetail ? (
+                <View style={uniformCardLayout ? styles.uniformMetaSlot : undefined}>
+                  {detail ? (
+                    <Text style={styles.meta} numberOfLines={uniformCardLayout ? 1 : 2}>
+                      {detail}
+                    </Text>
+                  ) : null}
+                </View>
               ) : null}
             </View>
             {accessory ? (
@@ -126,11 +162,27 @@ export function ClinicPostHeader({
               </View>
             ) : null}
           </View>
-          {textFooter ? <View style={styles.textFooter}>{textFooter}</View> : null}
+          {textFooter ? (
+            <View
+              style={[
+                styles.textFooter,
+                uniformCardLayout && styles.uniformTextFooterSlot,
+              ]}>
+              {textFooter}
+            </View>
+          ) : uniformCardLayout ? (
+            <View style={[styles.textFooter, styles.uniformTextFooterSlot]} />
+          ) : null}
         </View>
       </View>
-      {footer ? (
-        <View style={[styles.footer, { paddingLeft: footerInset }]}>{footer}</View>
+      {footer || uniformCardLayout ? (
+        <View style={[styles.footer, { paddingLeft: footerInset }]}>
+          {uniformCardLayout ? (
+            <View style={styles.uniformFooterSlot}>{footer}</View>
+          ) : (
+            footer
+          )}
+        </View>
       ) : null}
     </View>
   );

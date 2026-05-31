@@ -30,7 +30,7 @@ export function RoleCard({
       borderWidth: 2,
       borderColor: colors.separator,
       padding: spacing.lg,
-      minHeight: 44,
+      minHeight: 96,
     },
     cardSelected: {
       backgroundColor: colors.primarySubtle,
@@ -87,7 +87,9 @@ export function RoleCard({
       </View>
       <View style={styles.textBlock}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <Text style={styles.description} numberOfLines={2}>
+          {description}
+        </Text>
       </View>
     </Pressable>
   );
