@@ -160,15 +160,21 @@ export {
 export {
   getConversation,
   getConversationByApplicationId,
+  getOrCreateGeneralConversation,
   getUnreadConversationCount,
   getUnreadConversationMap,
+  hideClinicConversation,
+  hideWorkerConversation,
   listConversationsForClinic,
   listConversationsForWorker,
+  listMessageableClinicsForWorker,
   listMessages,
   markConversationRead,
   sendMessage,
   type Conversation,
+  type ConversationType,
   type Message,
+  type MessageableClinic,
 } from './messages';
 export {
   buildScreeningAnswersPayload,

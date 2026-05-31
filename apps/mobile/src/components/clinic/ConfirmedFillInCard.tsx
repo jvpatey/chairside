@@ -14,7 +14,7 @@ import { DetailRow, RowDivider } from '@/components/clinic/DetailCard';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
-import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
+import { formatFillInRoleLabel, formatShiftPostMeta, formatShiftPostTimeDetail } from '@/lib/shiftPostDisplay';
 import { getClinicApplicationMessagesRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -24,7 +24,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 type ConfirmedFillInCardProps = {
   workerName: string;
-  postTitle: string;
+  workerPhotoStoragePath?: string | null;
   shiftDate: string;
   startTime: string | null;
   endTime: string | null;
@@ -36,7 +36,7 @@ type ConfirmedFillInCardProps = {
 
 export function ConfirmedFillInCard({
   workerName,
-  postTitle,
+  workerPhotoStoragePath,
   shiftDate,
   startTime,
   endTime,
@@ -46,11 +46,14 @@ export function ConfirmedFillInCard({
   returnTo = 'fill-ins-tab',
 }: ConfirmedFillInCardProps) {
   const { colors } = useTheme();
-  const shiftMeta = formatShiftPostMeta({
+  const roleLabel = formatFillInRoleLabel(shiftDate);
+  const shiftTimes = {
     shift_date: shiftDate,
     start_time: startTime ?? '',
     end_time: endTime ?? '',
-  });
+  };
+  const shiftMeta = formatShiftPostMeta(shiftTimes);
+  const scheduleDetail = formatShiftPostTimeDetail(shiftTimes);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -84,7 +87,7 @@ export function ConfirmedFillInCard({
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${workerName} confirmed for ${postTitle}`}
+        accessibilityLabel={`${workerName} confirmed for ${roleLabel}`}
         onPress={() => {
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           toggleExpanded();
@@ -92,8 +95,10 @@ export function ConfirmedFillInCard({
         style={({ pressed }) => [pressed && styles.cardPressed]}>
         <ApplicantPostHeader
           displayName={workerName}
-          title={postTitle}
-          detail={shiftMeta}
+          photoStoragePath={workerPhotoStoragePath}
+          eyebrow={roleLabel}
+          title={workerName}
+          detail={scheduleDetail}
           avatarSize={44}
           accessory={
             <View style={styles.confirmedAccessory}>
@@ -109,17 +114,17 @@ export function ConfirmedFillInCard({
       {expanded ? (
         <View style={styles.expandedBody}>
           <View style={styles.detailsCard}>
-            <DetailRow label="Worker" value={workerName} />
+            <DetailRow label="Name" value={workerName} />
             <RowDivider />
-            <DetailRow label="Role" value={postTitle} />
+            <DetailRow label="Role" value={roleLabel} />
             <RowDivider />
-            <DetailRow label="Schedule" value={shiftMeta} />
+            <DetailRow label="Schedule" value={scheduleDetail ?? shiftMeta} />
             <RowDivider />
             <DetailRow label="Status" value="Confirmed" />
           </View>
           {applicationId ? (
             <OnboardingButton
-              label="Message worker"
+              label="Message"
               variant="secondary"
               onPress={() =>
                 router.push(getClinicApplicationMessagesRoute(applicationId, returnTo))

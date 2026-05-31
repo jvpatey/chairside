@@ -101,3 +101,5 @@ eas build --profile production --platform ios
 | Shift post → live | Workers only (fill-in prefs + role; excludes posting clinic) | in-app, push; + SMS if opted in |
 | Job post → live | Workers only (role + job opt-in; excludes posting clinic) | in-app, push |
 | New message | Other participant | in-app, push |
+| New message (application thread) | Other participant | Deep link: `/(tabs)/application/{application_id}/messages` or clinic equivalent |
+| New message (general inquiry) | Other participant | Deep link: `/(tabs)/conversation/{conversation_id}` or clinic equivalent |

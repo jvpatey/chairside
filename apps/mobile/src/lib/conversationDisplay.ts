@@ -3,6 +3,7 @@ import {
   formatApplicationStatus,
   formatClinicApplicationStatus,
   getRoleTypeLabel,
+  SPECIALTY_OPTIONS,
 } from '@chairside/config';
 
 import { formatShiftPostDateLabel, formatShiftPostMeta } from '@/lib/shiftPostDisplay';
@@ -17,7 +18,16 @@ export type ConversationDisplay = {
   cardMeta: string;
 };
 
+function formatSpecialtyLabel(specialty: string | null | undefined): string | null {
+  if (!specialty) return null;
+  return SPECIALTY_OPTIONS.find((option) => option.value === specialty)?.label ?? null;
+}
+
 function formatCardRole(conversation: Conversation): string {
+  if (conversation.conversation_type === 'general') {
+    return 'General inquiry';
+  }
+
   if (conversation.post_role_type) {
     return getRoleTypeLabel(conversation.post_role_type);
   }
@@ -25,6 +35,10 @@ function formatCardRole(conversation: Conversation): string {
 }
 
 function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): string {
+  if (conversation.conversation_type === 'general') {
+    return role === 'clinic' ? 'Not tied to a posting' : 'General inquiry';
+  }
+
   const statusLabel = formatStatusLabel(conversation, role);
 
   if (conversation.post_type === 'shift') {
@@ -45,10 +59,12 @@ function formatStatusLabel(
   conversation: Conversation,
   role: 'worker' | 'clinic',
 ): string {
+  if (!conversation.application_status) return '';
+
   if (role === 'clinic') {
     return formatClinicApplicationStatus(conversation.application_status);
   }
-  return formatApplicationStatus(conversation.application_status, conversation.post_type);
+  return formatApplicationStatus(conversation.application_status, conversation.post_type ?? 'job');
 }
 
 function formatJobContext(conversation: Conversation, role: 'worker' | 'clinic'): string {
@@ -79,6 +95,17 @@ export function formatConversationDisplay(
   conversation: Conversation,
   role: 'worker' | 'clinic',
 ): ConversationDisplay {
+  if (conversation.conversation_type === 'general') {
+    return {
+      contextLine: 'General inquiry',
+      threadTitle: conversation.counterpart_name,
+      threadSubtitle: 'General inquiry',
+      cardName: conversation.counterpart_name,
+      cardTitle: 'General inquiry',
+      cardMeta: role === 'clinic' ? 'Not tied to a posting' : 'Reach out without applying',
+    };
+  }
+
   const contextLine =
     conversation.post_type === 'shift'
       ? formatShiftContext(conversation, role)
@@ -119,4 +146,14 @@ export function formatConversationShiftMeta(
     start_time: conversation.shift_start_time ?? '',
     end_time: conversation.shift_end_time ?? '',
   });
+}
+
+export function formatMessageableClinicMeta(clinic: {
+  city: string | null;
+  province: string;
+  specialty: string;
+}): string {
+  const specialtyLabel = formatSpecialtyLabel(clinic.specialty);
+  const location = [clinic.city, clinic.province].filter(Boolean).join(', ');
+  return [location, specialtyLabel].filter(Boolean).join(' · ');
 }

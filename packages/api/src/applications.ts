@@ -141,6 +141,7 @@ export type ConfirmedFillInSummary = {
   applicationId: string;
   shiftPostId: string;
   workerName: string;
+  workerPhotoStoragePath: string | null;
   postTitle: string;
   shiftDate: string;
   startTime: string | null;
@@ -1090,7 +1091,7 @@ export async function listUpcomingConfirmedFillIns(
   const shiftIds = [...shiftMap.keys()];
   const { data, error } = await supabase
     .from('applications')
-    .select('id, shift_post_id, status, worker_display_name')
+    .select('id, shift_post_id, status, worker_display_name, worker_photo_storage_path')
     .in('shift_post_id', shiftIds)
     .eq('status', 'hired')
     .order('created_at', { ascending: false });
@@ -1106,6 +1107,7 @@ export async function listUpcomingConfirmedFillIns(
       applicationId: row.id,
       shiftPostId: row.shift_post_id,
       workerName: row.worker_display_name?.trim() || 'Applicant',
+      workerPhotoStoragePath: row.worker_photo_storage_path ?? null,
       postTitle: `Fill-in · ${shift.shift_date}`,
       shiftDate: shift.shift_date,
       startTime: shift.start_time,

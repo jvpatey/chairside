@@ -50,19 +50,19 @@ async function getDeviceRegistrationInfo() {
   };
 }
 
-async function syncPushTokenWithPingram(userId: string, token: string): Promise<void> {
+async function syncPushTokenWithPingram(
+  userId: string,
+  pushTokens: Array<{
+    type: 'APN' | 'FCM';
+    token: string;
+    device: Awaited<ReturnType<typeof getDeviceRegistrationInfo>>;
+    environment?: 'sandbox' | 'production';
+  }>,
+): Promise<void> {
   const clientId = getPingramClientId();
   if (!clientId) {
     throw new Error('Pingram client ID is not configured');
   }
-
-  const device = await getDeviceRegistrationInfo();
-  const pushToken = {
-    type: Platform.OS === 'ios' ? ('APN' as const) : ('FCM' as const),
-    token,
-    device,
-    ...(Platform.OS === 'ios' ? { environment: getApnsEnvironment() } : {}),
-  };
 
   const response = await fetch(
     `${getPingramApiBaseUrl()}/${clientId}/users/${encodeURIComponent(userId)}/`,
@@ -74,13 +74,23 @@ async function syncPushTokenWithPingram(userId: string, token: string): Promise<
       },
       body: JSON.stringify({
         id: userId,
-        pushTokens: [pushToken],
+        pushTokens,
       }),
     },
   );
 
   if (!response.ok) {
     throw new Error(`Pingram push registration failed (${response.status})`);
+  }
+}
+
+export async function unregisterPingramPushNotifications(userId: string): Promise<void> {
+  if (!Device.isDevice || !getPingramClientId()) return;
+
+  try {
+    await syncPushTokenWithPingram(userId, []);
+  } catch (error) {
+    console.warn('Pingram push deregistration failed', error);
   }
 }
 
@@ -106,6 +116,14 @@ export async function registerPingramPushNotifications(userId: string): Promise<
     throw new Error('Device push token is unavailable');
   }
 
-  await syncPushTokenWithPingram(userId, pushToken.data);
+  const device = await getDeviceRegistrationInfo();
+  await syncPushTokenWithPingram(userId, [
+    {
+      type: Platform.OS === 'ios' ? 'APN' : 'FCM',
+      token: pushToken.data,
+      device,
+      ...(Platform.OS === 'ios' ? { environment: getApnsEnvironment() } : {}),
+    },
+  ]);
   return true;
 }

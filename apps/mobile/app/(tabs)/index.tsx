@@ -35,7 +35,7 @@ import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   WORKER_BROWSE,
   WORKER_FILLINS,
-  getWorkerApplicationMessagesRoute,
+  getConversationMessagesRoute,
   getWorkerJobDetailRoute,
   getWorkerMessagesRoute,
   getWorkerShiftDetailRoute,
@@ -117,7 +117,7 @@ export default function WorkerDashboardScreen() {
   const unreadMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     for (const conversation of conversations) {
-      if (conversation.unread) {
+      if (conversation.application_id && conversation.unread) {
         map[conversation.application_id] = true;
       }
     }
@@ -142,10 +142,15 @@ export default function WorkerDashboardScreen() {
           onConversationPress={(conversation) => {
             const preview = getMessageThreadPreview(conversation, 'worker');
             router.push(
-              getWorkerApplicationMessagesRoute(conversation.application_id, 'dashboard-applications', {
-                conversationId: conversation.id,
-                ...preview,
-              }),
+              getConversationMessagesRoute(
+                conversation,
+                'worker',
+                {
+                  conversationId: conversation.id,
+                  ...preview,
+                },
+                'dashboard-applications',
+              ),
             );
           }}
           onViewAllPress={() => router.push(getWorkerMessagesRoute())}

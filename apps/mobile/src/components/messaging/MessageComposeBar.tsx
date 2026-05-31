@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
@@ -7,8 +8,6 @@ type MessageComposeBarProps = {
   disabled?: boolean;
   placeholder?: string;
   sending?: boolean;
-  value: string;
-  onChangeText: (text: string) => void;
   onFocus?: () => void;
   onBlur?: () => void;
   onSend: (body: string) => Promise<void>;
@@ -18,13 +17,13 @@ export function MessageComposeBar({
   disabled = false,
   placeholder = 'Write a message…',
   sending = false,
-  value,
-  onChangeText,
   onFocus,
   onBlur,
   onSend,
 }: MessageComposeBarProps) {
   const { colors } = useTheme();
+  const inputRef = useRef<TextInput>(null);
+  const [draft, setDraft] = useState('');
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -62,21 +61,35 @@ export function MessageComposeBar({
     },
   }));
 
-  const trimmed = value.trim();
+  const trimmed = draft.trim();
   const canSend = !disabled && !sending && trimmed.length > 0;
 
-  const handleSend = () => {
+  const clearDraft = () => {
+    inputRef.current?.clear();
+    setDraft('');
+  };
+
+  const handleSend = async () => {
     if (!canSend) return;
-    void onSend(trimmed);
+
+    const body = trimmed;
+
+    try {
+      await onSend(body);
+      clearDraft();
+    } catch {
+      // Parent shows the error; keep the draft in the input.
+    }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.inputWrap}>
         <TextInput
+          ref={inputRef}
           style={styles.input}
-          value={value}
-          onChangeText={onChangeText}
+          defaultValue=""
+          onChangeText={setDraft}
           onFocus={onFocus}
           onBlur={onBlur}
           placeholder={placeholder}
@@ -84,13 +97,20 @@ export function MessageComposeBar({
           multiline
           editable={!disabled && !sending}
           maxLength={2000}
+          autoCorrect
+          spellCheck
+          autoCapitalize="sentences"
+          blurOnSubmit={false}
+          textAlignVertical="center"
         />
       </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Send message"
         disabled={!canSend}
-        onPress={handleSend}
+        onPress={() => {
+          void handleSend();
+        }}
         style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}>
         {sending ? (
           <ActivityIndicator color={colors.primaryOnPrimary} size="small" />

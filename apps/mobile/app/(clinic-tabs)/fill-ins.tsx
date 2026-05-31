@@ -230,7 +230,7 @@ export default function ClinicFillInsScreen() {
                   <ConfirmedFillInCard
                     key={row.applicationId}
                     workerName={row.workerName}
-                    postTitle={row.postTitle}
+                    workerPhotoStoragePath={row.workerPhotoStoragePath}
                     shiftDate={row.shiftDate}
                     startTime={row.startTime}
                     endTime={row.endTime}

@@ -25,6 +25,11 @@ type PingramSendBody = {
   sms?: { message: string };
   forceChannels: PingramForceChannel[];
   secondaryId?: string;
+  options?: {
+    push?: {
+      customData?: Record<string, string>;
+    };
+  };
 };
 
 const PINGRAM_TYPES = {
@@ -71,6 +76,25 @@ function shiftWeekday(shiftDate: string): number {
   return d.getDay();
 }
 
+function normalizeUuid(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return value.trim().toLowerCase();
+}
+
+function resolveMessageRecipient(
+  conversation: { worker_id: string; clinic_id: string },
+  senderId: string,
+): string | null {
+  const sender = normalizeUuid(senderId);
+  const workerId = normalizeUuid(conversation.worker_id);
+  const clinicId = normalizeUuid(conversation.clinic_id);
+
+  if (!sender || !workerId || !clinicId) return null;
+  if (sender === workerId) return conversation.clinic_id;
+  if (sender === clinicId) return conversation.worker_id;
+  return null;
+}
+
 function buildSendBody(input: {
   type: string;
   userId: string;
@@ -82,6 +106,7 @@ function buildSendBody(input: {
   includePush?: boolean;
   includeSms?: boolean;
   smsMessage?: string;
+  pushCustomData?: Record<string, string>;
 }): PingramSendBody {
   const sendPush = (input.includePush ?? true) && Boolean(input.message);
   const forceChannels: PingramForceChannel[] = ['INAPP_WEB'];
@@ -107,6 +132,10 @@ function buildSendBody(input: {
   if (input.includeSms && input.smsMessage && input.phone) {
     body.to.number = input.phone;
     body.sms = { message: input.smsMessage };
+  }
+
+  if (input.pushCustomData && Object.keys(input.pushCustomData).length > 0) {
+    body.options = { push: { customData: input.pushCustomData } };
   }
 
   return body;
@@ -158,28 +187,45 @@ async function handleMessageInsert(
 
   const { data: conversation, error: conversationError } = await supabase
     .from('conversations')
-    .select('id, application_id, worker_id, clinic_id')
+    .select('id, application_id, conversation_type, worker_id, clinic_id')
     .eq('id', conversationId)
     .maybeSingle();
 
   if (conversationError) throw conversationError;
   if (!conversation) return;
 
-  const recipientId =
-    senderId === conversation.worker_id ? conversation.clinic_id : conversation.worker_id;
-  const recipientIsClinic = recipientId === conversation.clinic_id;
+  const recipientId = resolveMessageRecipient(conversation, senderId);
+  if (!recipientId) return;
+
+  const normalizedSenderId = normalizeUuid(senderId);
+  const normalizedRecipientId = normalizeUuid(recipientId);
+  if (normalizedSenderId && normalizedRecipientId && normalizedSenderId === normalizedRecipientId) {
+    return;
+  }
+
+  const recipientIsClinic = normalizeUuid(recipientId) === normalizeUuid(conversation.clinic_id);
+  const isGeneralConversation = conversation.conversation_type === 'general';
 
   const idempotencyKey = `${PINGRAM_TYPES.messageReceived}:${messageId}`;
   if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   let senderLabel = 'Someone';
-  if (senderId === conversation.worker_id) {
-    const { data: application } = await supabase
-      .from('applications')
-      .select('worker_display_name')
-      .eq('id', conversation.application_id)
-      .maybeSingle();
-    senderLabel = application?.worker_display_name?.trim() || 'An applicant';
+  if (normalizeUuid(senderId) === normalizeUuid(conversation.worker_id)) {
+    if (isGeneralConversation) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', conversation.worker_id)
+        .maybeSingle();
+      senderLabel = profile?.display_name?.trim() || 'A candidate';
+    } else {
+      const { data: application } = await supabase
+        .from('applications')
+        .select('worker_display_name')
+        .eq('id', conversation.application_id)
+        .maybeSingle();
+      senderLabel = application?.worker_display_name?.trim() || 'An applicant';
+    }
   } else {
     const { data: clinic } = await supabase
       .from('clinic_profiles')
@@ -191,9 +237,13 @@ async function handleMessageInsert(
 
   const title = `Message from ${senderLabel}`;
   const message = truncatePreview(body, 100);
-  const deepLink = recipientIsClinic
-    ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
-    : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
+  const deepLink = isGeneralConversation
+    ? recipientIsClinic
+      ? `chairside:///(clinic-tabs)/conversation/${conversation.id}`
+      : `chairside:///(tabs)/conversation/${conversation.id}`
+    : recipientIsClinic
+      ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
+      : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
 
   await pingramSend(
     pingramKey,
@@ -205,6 +255,7 @@ async function handleMessageInsert(
       message,
       deepLink,
       secondaryId: idempotencyKey,
+      pushCustomData: { senderId },
     }),
   );
 }

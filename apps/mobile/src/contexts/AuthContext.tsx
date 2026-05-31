@@ -16,6 +16,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import { unregisterPingramPushNotifications } from '@/lib/pingramPushRegistration';
+
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
@@ -148,10 +150,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    const userId = user?.id;
     profileRequestRef.current += 1;
     signingOutRef.current = true;
 
     try {
+      if (userId) {
+        await unregisterPingramPushNotifications(userId);
+      }
       await apiSignOut();
       setSession(null);
       setUser(null);
@@ -159,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       signingOutRef.current = false;
     }
-  }, []);
+  }, [user?.id]);
 
   const value = useMemo(
     () => ({

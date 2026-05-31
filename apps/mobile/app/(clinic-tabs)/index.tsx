@@ -43,8 +43,8 @@ import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
-  getClinicApplicationMessagesRoute,
   getClinicMessagesRoute,
+  getConversationMessagesRoute,
   getJobDetailRoute,
   getClinicRoleApplicationsRoute,
   getPostShiftRoute,
@@ -210,10 +210,15 @@ export default function ClinicDashboardScreen() {
           onConversationPress={(conversation) => {
             const preview = getMessageThreadPreview(conversation, 'clinic');
             router.push(
-              getClinicApplicationMessagesRoute(conversation.application_id, 'messages-tab', {
-                conversationId: conversation.id,
-                ...preview,
-              }),
+              getConversationMessagesRoute(
+                conversation,
+                'clinic',
+                {
+                  conversationId: conversation.id,
+                  ...preview,
+                },
+                'messages-tab',
+              ),
             );
           }}
           onViewAllPress={() => router.push(getClinicMessagesRoute())}

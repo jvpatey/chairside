@@ -113,6 +113,9 @@ export async function upsertClinicProfile(
   if (partial.setup_completed_at !== undefined) {
     payload.setup_completed_at = partial.setup_completed_at;
   }
+  if (partial.accepts_general_candidate_messages !== undefined) {
+    payload.accepts_general_candidate_messages = partial.accepts_general_candidate_messages;
+  }
 
   const { data, error } = await supabase
     .from('clinic_profiles')

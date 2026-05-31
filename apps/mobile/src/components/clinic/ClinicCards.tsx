@@ -539,7 +539,7 @@ export function DashboardOverviewPanel({
                   <ConfirmedFillInCard
                     key={row.applicationId}
                     workerName={row.workerName}
-                    postTitle={row.postTitle}
+                    workerPhotoStoragePath={row.workerPhotoStoragePath}
                     shiftDate={row.shiftDate}
                     startTime={row.startTime}
                     endTime={row.endTime}

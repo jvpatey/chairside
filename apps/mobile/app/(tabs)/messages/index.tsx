@@ -1,23 +1,21 @@
-import { listConversationsForClinic } from '@chairside/api';
+import { listConversationsForWorker } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import { ClinicMessagingPreferences } from '@/components/clinic/ClinicMessagingPreferences';
 import { ConversationInboxList } from '@/components/messaging/ConversationInboxList';
+import { WorkerMessageClinicAction } from '@/components/messaging/WorkerMessageClinicAction';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
-import { getConversationMessagesRoute } from '@/lib/routing';
+import { getConversationMessagesRoute, getWorkerMessageClinicsRoute } from '@/lib/routing';
 
-export default function ClinicMessagesScreen() {
+export default function WorkerMessagesScreen() {
   const { user } = useAuth();
-  const { refreshClinicProfile } = useClinicProfile();
   const { refreshUnread } = useMessageUnread();
   const [conversations, setConversations] = useState<Awaited<
-    ReturnType<typeof listConversationsForClinic>
+    ReturnType<typeof listConversationsForWorker>
   >>([]);
 
   const load = useCallback(async () => {
@@ -27,14 +25,13 @@ export default function ClinicMessagesScreen() {
     }
 
     try {
-      await refreshClinicProfile();
-      const rows = await listConversationsForClinic(user.id);
+      const rows = await listConversationsForWorker(user.id);
       setConversations(rows);
       await refreshUnread();
     } catch {
       setConversations([]);
     }
-  }, [refreshClinicProfile, refreshUnread, user?.id]);
+  }, [refreshUnread, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -42,7 +39,7 @@ export default function ClinicMessagesScreen() {
     return (
       <Screen
         title="Messages"
-        subtitle="Conversations with applicants about roles, fill-ins, and general inquiries."
+        subtitle="Conversations about your applications, fill-ins, and clinic outreach."
       />
     );
   }
@@ -50,19 +47,21 @@ export default function ClinicMessagesScreen() {
   return (
     <Screen
       title="Messages"
-      subtitle="Conversations with applicants about roles, fill-ins, and general inquiries.">
+      subtitle="Conversations about your applications, fill-ins, and clinic outreach.">
       <ConversationInboxList
         conversations={conversations}
-        role="clinic"
+        role="worker"
         userId={user.id}
-        avatarKind="worker"
-        header={<ClinicMessagingPreferences variant="compact" />}
+        avatarKind="clinic"
+        header={
+          <WorkerMessageClinicAction onPress={() => router.push(getWorkerMessageClinicsRoute())} />
+        }
         onConversationPress={(conversation) => {
-          const preview = getMessageThreadPreview(conversation, 'clinic');
+          const preview = getMessageThreadPreview(conversation, 'worker');
           router.push(
             getConversationMessagesRoute(
               conversation,
-              'clinic',
+              'worker',
               {
                 conversationId: conversation.id,
                 ...preview,

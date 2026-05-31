@@ -14,6 +14,12 @@ export function formatShiftPostRoleTitle(roleType: string): string {
   return getRoleTypeLabel(roleType);
 }
 
+export function formatFillInRoleLabel(shiftDate: string): string {
+  const date = parseISODate(shiftDate);
+  const dateLabel = date ? formatShiftDateLabel(date) : shiftDate;
+  return `Fill-in · ${dateLabel}`;
+}
+
 export function formatShiftPostDateLabel(shiftDate: string): string {
   const date = parseISODate(shiftDate);
   if (!date) return shiftDate;
@@ -32,4 +38,20 @@ export function formatShiftPostMeta(
   const dateLabel = formatShiftPostDateLabel(shift.shift_date);
   const hours = formatTimeRangePreview(shift.start_time, shift.end_time);
   return hours ? `${dateLabel} · ${hours}` : dateLabel;
+}
+
+/** Hours (and Today/Tomorrow when relevant) without repeating the written date. */
+export function formatShiftPostTimeDetail(
+  shift: Pick<ShiftPost, 'shift_date' | 'start_time' | 'end_time'>,
+): string | null {
+  const hours = formatTimeRangePreview(shift.start_time, shift.end_time);
+  if (!hours) return null;
+
+  const date = parseISODate(shift.shift_date);
+  if (!date) return hours;
+
+  const today = startOfDay(new Date());
+  if (isSameDay(date, today)) return `Today · ${hours}`;
+  if (isSameDay(date, addDays(today, 1))) return `Tomorrow · ${hours}`;
+  return hours;
 }

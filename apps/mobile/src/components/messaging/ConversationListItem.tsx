@@ -1,6 +1,7 @@
 import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
@@ -15,6 +16,7 @@ type ConversationListItemProps = {
   avatarKind: 'clinic' | 'worker';
   role: 'worker' | 'clinic';
   onPress: () => void;
+  onDelete?: () => void;
 };
 
 function ConversationAvatar({
@@ -55,6 +57,7 @@ export function ConversationListItem({
   avatarKind,
   role,
   onPress,
+  onDelete,
 }: ConversationListItemProps) {
   const { colors } = useTheme();
   const timestamp = formatNotificationTime(conversation.last_message_at ?? undefined);
@@ -64,15 +67,24 @@ export function ConversationListItem({
     card: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
+      gap: spacing.sm,
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
+      paddingLeft: spacing.lg,
+      paddingRight: spacing.sm,
+      paddingVertical: spacing.lg,
     },
-    cardPressed: { opacity: 0.92 },
-    textWrap: { flex: 1, gap: 2 },
+    mainPressable: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      minWidth: 0,
+    },
+    mainPressed: { opacity: 0.92 },
+    textWrap: { flex: 1, gap: 2, minWidth: 0 },
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -115,35 +127,68 @@ export function ConversationListItem({
       borderRadius: 4,
       backgroundColor: colors.primary,
     },
+    menuButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    menuButtonPressed: {
+      backgroundColor: colors.fillSubtle,
+    },
   }));
 
+  const showMenu = () => {
+    if (!onDelete) return;
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert(display.cardName, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete from inbox', style: 'destructive', onPress: onDelete },
+    ]);
+  };
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      <ConversationAvatar conversation={conversation} avatarKind={avatarKind} />
-      <View style={styles.textWrap}>
-        <View style={styles.titleRow}>
-          <Text style={styles.roleEyebrow} numberOfLines={1}>
-            {display.cardTitle}
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
+        <ConversationAvatar conversation={conversation} avatarKind={avatarKind} />
+        <View style={styles.textWrap}>
+          <View style={styles.titleRow}>
+            <Text style={styles.roleEyebrow} numberOfLines={1}>
+              {display.cardTitle}
+            </Text>
+            {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+          </View>
+          <Text style={styles.name} numberOfLines={2}>
+            {display.cardName}
           </Text>
-          {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
-        </View>
-        <Text style={styles.name} numberOfLines={2}>
-          {display.cardName}
-        </Text>
-        <Text style={styles.meta} numberOfLines={2}>
-          {display.cardMeta}
-        </Text>
-        <View style={styles.titleRow}>
-          <Text style={styles.preview} numberOfLines={2}>
-            {conversation.last_message_preview ?? 'No messages yet'}
+          <Text style={styles.meta} numberOfLines={2}>
+            {display.cardMeta}
           </Text>
-          {conversation.unread ? <View style={styles.unreadDot} /> : null}
+          <View style={styles.titleRow}>
+            <Text style={styles.preview} numberOfLines={2}>
+              {conversation.last_message_preview ?? 'No messages yet'}
+            </Text>
+            {conversation.unread ? <View style={styles.unreadDot} /> : null}
+          </View>
         </View>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
-    </Pressable>
+      </Pressable>
+      {onDelete ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Conversation options"
+          hitSlop={8}
+          onPress={showMenu}
+          style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+          <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
+        </Pressable>
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
+      )}
+    </View>
   );
 }

@@ -7,13 +7,26 @@ import { ClinicPracticeView } from '@/components/clinic/ClinicPracticeView';
 import { ClinicProfileHero } from '@/components/clinic/ClinicProfileHero';
 import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
+import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
+import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { ProfileSection } from '@/components/worker/ProfileSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useSignOut } from '@/hooks/useSignOut';
-import { CLINIC_HOME, CLINIC_SETUP_ABOUT, CLINIC_SETUP_BASICS } from '@/lib/routing';
+import {
+  CLINIC_HOME,
+  CLINIC_PROFILE_MESSAGING,
+  CLINIC_SETUP_ABOUT,
+  CLINIC_SETUP_BASICS,
+} from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
+
+function getClinicMessagingSubtitle(acceptsGeneralMessages: boolean): string {
+  return acceptsGeneralMessages
+    ? 'Candidates in your province can reach out without applying.'
+    : 'General candidate messages are off.';
+}
 
 export default function ClinicAccountProfileScreen() {
   const { user } = useAuth();
@@ -50,6 +63,17 @@ export default function ClinicAccountProfileScreen() {
           onActionPress={() => router.push(CLINIC_SETUP_ABOUT)}>
           <ClinicAboutView profile={clinicProfile} />
         </ProfileSection>
+
+        <ProfileSettingsGroup>
+          <ProfileSettingsRow
+            icon="chatbubbles-outline"
+            title="Messaging"
+            subtitle={getClinicMessagingSubtitle(
+              clinicProfile?.accepts_general_candidate_messages ?? false,
+            )}
+            onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}
+          />
+        </ProfileSettingsGroup>
 
         <AccountProfileView
           user={user}

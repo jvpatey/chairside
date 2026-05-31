@@ -9,14 +9,10 @@ import { getPingramClientId } from '@/lib/pingram';
 import { registerPingramPushNotifications } from '@/lib/pingramPushRegistration';
 import { isNativePushAvailable } from '@/lib/pingramPush';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+function getPushSenderId(data: Record<string, unknown> | undefined): string | null {
+  const senderId = data?.senderId;
+  return typeof senderId === 'string' && senderId.trim() ? senderId.trim().toLowerCase() : null;
+}
 
 /**
  * Registers the device push token with Pingram after onboarding.
@@ -29,6 +25,35 @@ export function useRegisterPushNotifications() {
   const { clinicProfile, isProfileComplete: clinicComplete } = useClinicProfile();
   const registeredForUserRef = useRef<string | null>(null);
   const registerInFlightRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
+  userIdRef.current = user?.id ?? null;
+
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        const senderId = getPushSenderId(
+          notification.request.content.data as Record<string, unknown> | undefined,
+        );
+        const currentUserId = userIdRef.current?.toLowerCase() ?? null;
+
+        if (senderId && currentUserId && senderId === currentUserId) {
+          return {
+            shouldShowBanner: false,
+            shouldShowList: false,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+          };
+        }
+
+        return {
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        };
+      },
+    });
+  }, []);
 
   const setupComplete =
     profile?.role === 'worker'
