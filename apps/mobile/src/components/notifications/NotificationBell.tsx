@@ -46,7 +46,7 @@ export function NotificationBell({ placement = 'header' }: NotificationBellProps
       justifyContent: 'center',
       paddingHorizontal: 5,
       borderWidth: 2,
-      borderColor: inHero ? colors.surface : colors.backgroundGrouped,
+      borderColor: colors.backgroundGrouped,
     },
     badgeText: {
       color: colors.primaryOnPrimary,

@@ -1,5 +1,5 @@
 import type { ConfirmedFillInSummary, JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
-import { getProvinceLabel, formatJobApplicationSummaryMeta } from '@chairside/config';
+import { formatJobApplicationSummaryMeta } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
@@ -9,11 +9,9 @@ import { Pressable, Text, View } from 'react-native';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
-import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
-import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
+import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 
@@ -34,83 +32,17 @@ export function DashboardHero({
   showLocationBadge = false,
 }: DashboardHeroProps) {
   const { logoUri } = useClinicLogo();
-  const displayName = clinicName?.trim();
-
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.sm,
-    },
-    profile: {
-      position: 'absolute',
-      top: spacing.md,
-      left: spacing.md,
-      zIndex: 1,
-    },
-    bell: {
-      position: 'absolute',
-      top: spacing.md,
-      right: spacing.md,
-      zIndex: 1,
-    },
-    wordmarkWrap: {
-      alignItems: 'center',
-    },
-    name: {
-      ...typography.title,
-      fontSize: 26,
-      lineHeight: 32,
-      minHeight: 32,
-      textAlign: 'center',
-    },
-    nameHidden: {
-      opacity: 0,
-    },
-    badge: {
-      alignSelf: 'center',
-      backgroundColor: colors.secondarySubtle,
-      borderRadius: 6,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    badgeText: { fontSize: 12, fontWeight: '600', color: colors.secondary },
-  }));
 
   return (
-    <View style={styles.card}>
-      <View style={styles.profile}>
-        <ProfileHeaderButton
-          href={CLINIC_PROFILE}
-          placement="hero"
-          avatarKind="clinic"
-          displayName={displayName}
-          photoUri={logoUri}
-        />
-      </View>
-      <View style={styles.bell}>
-        <NotificationBell placement="hero" />
-      </View>
-      <View style={styles.wordmarkWrap}>
-        <ChairsideWordmark variant="small" />
-      </View>
-      <Text
-        style={[styles.name, !displayName && styles.nameHidden]}
-        numberOfLines={1}
-        accessibilityElementsHidden={!displayName}
-        importantForAccessibility={displayName ? 'yes' : 'no-hide-descendants'}
-      >
-        {displayName || CLINIC_NAME_PLACEHOLDER}
-      </Text>
-      {showLocationBadge ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{getProvinceLabel(province)}</Text>
-        </View>
-      ) : null}
-    </View>
+    <DashboardHeroCard
+      profileHref={CLINIC_PROFILE}
+      avatarKind="clinic"
+      displayName={clinicName}
+      photoUri={logoUri}
+      namePlaceholder={CLINIC_NAME_PLACEHOLDER}
+      province={province}
+      showProvinceBadge={showLocationBadge}
+    />
   );
 }
 
