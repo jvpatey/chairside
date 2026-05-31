@@ -76,6 +76,9 @@ Use `application/json` body (default Supabase webhook payload).
 - In-app: works in Expo Go when `EXPO_PUBLIC_PINGRAM_CLIENT_ID` is set.
 - Push: requires an **EAS build** on a **physical device** (not Expo Go). See **[PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md)** for APNs + Pingram + `eas build --profile production`.
 - SMS: worker opts in on the **Fill-ins** tab (or Profile → Alerts); enter mobile number inline when enabling "Text me for fill-ins".
+- Push preferences: candidates and clinics can mute push by category under **Profile → Notifications**. In-app notification history still records muted categories.
+
+Run migration [`supabase/migrations/057_notification_preferences.sql`](../supabase/migrations/057_notification_preferences.sql) before relying on preference toggles in production.
 
 After changing `notify`, redeploy:
 

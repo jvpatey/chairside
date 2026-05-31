@@ -3,12 +3,10 @@ import { Text, View } from 'react-native';
 
 import { NotificationCategoryPreferences } from '@/components/notifications/NotificationCategoryPreferences';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
-import { FillInSettingsLink } from '@/components/worker/FillInSettingsLink';
-import { WorkerJobNotificationPreferences } from '@/components/worker/WorkerJobNotificationPreferences';
 import { NOTIFICATION_PREFERENCE_CATEGORIES } from '@chairside/config';
 import { useThemedStyles } from '@/theme';
 
-export default function WorkerProfileNotificationsScreen() {
+export default function ClinicProfileNotificationsScreen() {
   const styles = useThemedStyles(({ spacing, colors }) => ({
     section: { gap: spacing.sm },
     label: {
@@ -16,6 +14,12 @@ export default function WorkerProfileNotificationsScreen() {
       fontWeight: '600',
       letterSpacing: 0.4,
       textTransform: 'uppercase',
+      color: colors.labelSecondary,
+      paddingHorizontal: spacing.xs,
+    },
+    hint: {
+      fontSize: 14,
+      lineHeight: 20,
       color: colors.labelSecondary,
       paddingHorizontal: spacing.xs,
     },
@@ -32,19 +36,13 @@ export default function WorkerProfileNotificationsScreen() {
           categories={[
             NOTIFICATION_PREFERENCE_CATEGORIES.messages,
             NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
-            NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
-            NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
           ]}
         />
       </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Permanent roles</Text>
-        <WorkerJobNotificationPreferences />
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Fill-in shifts</Text>
-        <FillInSettingsLink />
-      </View>
+      <Text style={styles.hint}>
+        Application and message notifications still appear in your notification inbox when push is
+        off.
+      </Text>
     </ProfileDetailScreen>
   );
 }

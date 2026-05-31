@@ -68,7 +68,13 @@ export {
   parseInterviewDetailsBlob,
   type ApplicationPostType,
 } from './applicationDisplay';
-export { PINGRAM_NOTIFICATION_TYPES, type PingramNotificationType } from './notifications';
+export {
+  NOTIFICATION_PREFERENCE_CATEGORIES,
+  NOTIFICATION_PREFERENCE_CATEGORY_LABELS,
+  PINGRAM_NOTIFICATION_TYPES,
+  type NotificationPreferenceCategory,
+  type PingramNotificationType,
+} from './notifications';
 export { normalizePhoneForStorage, normalizePhoneToE164 } from './phone';
 export {
   ALL_SCREENING_CATALOG_SLUGS,

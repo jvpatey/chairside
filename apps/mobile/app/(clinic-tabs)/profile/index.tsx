@@ -1,38 +1,33 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
-import { AccountProfileView } from '@/components/account/AccountProfileView';
-import { ClinicAboutView } from '@/components/clinic/ClinicAboutView';
-import { ClinicPracticeView } from '@/components/clinic/ClinicPracticeView';
 import { ClinicProfileHero } from '@/components/clinic/ClinicProfileHero';
 import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
-import { ProfileSection } from '@/components/worker/ProfileSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { useDeleteAccount } from '@/hooks/useDeleteAccount';
-import { useSignOut } from '@/hooks/useSignOut';
+import {
+  getAccountSubtitle,
+  getClinicAboutSubtitle,
+  getClinicMessagingSubtitle,
+  getClinicNotificationsSubtitle,
+  getClinicPracticeSubtitle,
+} from '@/lib/profileHubSubtitles';
 import {
   CLINIC_HOME,
+  CLINIC_PROFILE_ABOUT,
+  CLINIC_PROFILE_ACCOUNT,
   CLINIC_PROFILE_MESSAGING,
-  CLINIC_SETUP_ABOUT,
-  CLINIC_SETUP_BASICS,
+  CLINIC_PROFILE_NOTIFICATIONS,
+  CLINIC_PROFILE_PRACTICE,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
-
-function getClinicMessagingSubtitle(acceptsGeneralMessages: boolean): string {
-  return acceptsGeneralMessages
-    ? 'Candidates in your province can reach out without applying.'
-    : 'General candidate messages are off.';
-}
 
 export default function ClinicAccountProfileScreen() {
   const { user } = useAuth();
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
-  const { isSigningOut, signOut } = useSignOut();
-  const { isDeleting, confirmDeleteAccount } = useDeleteAccount();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
@@ -48,43 +43,38 @@ export default function ClinicAccountProfileScreen() {
       <View style={styles.content}>
         <ClinicProfileHero email={user?.email} profile={clinicProfile} editable />
 
-        <ProfileSection
-          title="Practice details"
-          subtitle="Location, contact, and practice info."
-          actionLabel="Edit"
-          onActionPress={() => router.push(CLINIC_SETUP_BASICS)}>
-          <ClinicPracticeView profile={clinicProfile} />
-        </ProfileSection>
-
-        <ProfileSection
-          title="About"
-          subtitle="Description and website shown to candidates."
-          actionLabel="Edit"
-          onActionPress={() => router.push(CLINIC_SETUP_ABOUT)}>
-          <ClinicAboutView profile={clinicProfile} />
-        </ProfileSection>
-
         <ProfileSettingsGroup>
+          <ProfileSettingsRow
+            icon="business-outline"
+            title="Practice details"
+            subtitle={getClinicPracticeSubtitle(clinicProfile)}
+            onPress={() => router.push(CLINIC_PROFILE_PRACTICE)}
+          />
+          <ProfileSettingsRow
+            icon="document-text-outline"
+            title="About"
+            subtitle={getClinicAboutSubtitle(clinicProfile)}
+            onPress={() => router.push(CLINIC_PROFILE_ABOUT)}
+          />
+          <ProfileSettingsRow
+            icon="notifications-outline"
+            title="Notifications"
+            subtitle={getClinicNotificationsSubtitle()}
+            onPress={() => router.push(CLINIC_PROFILE_NOTIFICATIONS)}
+          />
           <ProfileSettingsRow
             icon="chatbubbles-outline"
             title="Messaging"
-            subtitle={getClinicMessagingSubtitle(
-              clinicProfile?.accepts_general_candidate_messages ?? false,
-            )}
+            subtitle={getClinicMessagingSubtitle(clinicProfile)}
             onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}
           />
+          <ProfileSettingsRow
+            icon="person-circle-outline"
+            title="Account"
+            subtitle={getAccountSubtitle(user?.email)}
+            onPress={() => router.push(CLINIC_PROFILE_ACCOUNT)}
+          />
         </ProfileSettingsGroup>
-
-        <AccountProfileView
-          user={user}
-          email={user?.email}
-          accountTypeLabel="Clinic"
-          isSigningOut={isSigningOut}
-          isDeleting={isDeleting}
-          onSignOut={signOut}
-          onDeleteAccount={confirmDeleteAccount}
-          deleteDescription="Permanently remove your account and login. Historical applications and messages will remain visible to others as no longer on Chairside."
-        />
       </View>
     </ProfileDetailScreen>
   );

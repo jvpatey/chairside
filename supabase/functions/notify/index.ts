@@ -55,6 +55,59 @@ const PINGRAM_TYPES = {
 
 const DEFAULT_PINGRAM_API_URL = 'https://api.ca.pingram.io';
 
+const NOTIFICATION_PREFERENCE_CATEGORIES = {
+  messages: 'messages',
+  applicationsInterviews: 'applications_interviews',
+  jobAlerts: 'job_alerts',
+  fillInAlerts: 'fill_in_alerts',
+} as const;
+
+type NotificationPreferenceCategory =
+  (typeof NOTIFICATION_PREFERENCE_CATEGORIES)[keyof typeof NOTIFICATION_PREFERENCE_CATEGORIES];
+
+async function isPushEnabledForUser(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  category: NotificationPreferenceCategory,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('notification_preferences')
+    .select('push_enabled')
+    .eq('user_id', userId)
+    .eq('category', category)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.push_enabled ?? true;
+}
+
+async function loadPushPreferenceMap(
+  supabase: ReturnType<typeof createClient>,
+  userIds: string[],
+  category: NotificationPreferenceCategory,
+): Promise<Map<string, boolean>> {
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  const result = new Map<string, boolean>();
+  for (const id of uniqueIds) {
+    result.set(id, true);
+  }
+  if (uniqueIds.length === 0) return result;
+
+  const { data, error } = await supabase
+    .from('notification_preferences')
+    .select('user_id, push_enabled')
+    .in('user_id', uniqueIds)
+    .eq('category', category);
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    result.set(row.user_id as string, row.push_enabled === true);
+  }
+
+  return result;
+}
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -252,6 +305,12 @@ async function handleMessageInsert(
       ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
       : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
 
+  const includePush = await isPushEnabledForUser(
+    supabase,
+    recipientId,
+    NOTIFICATION_PREFERENCE_CATEGORIES.messages,
+  );
+
   await pingramSend(
     pingramKey,
     pingramBase,
@@ -262,6 +321,7 @@ async function handleMessageInsert(
       message,
       deepLink,
       secondaryId: idempotencyKey,
+      includePush,
       pushCustomData: { senderId },
     }),
   );
@@ -374,6 +434,11 @@ async function sendWorkerStatusNotification(
   if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   const deepLink = `chairside:///(tabs)/application/${applicationId}`;
+  const includePush = await isPushEnabledForUser(
+    supabase,
+    workerId,
+    NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+  );
   await pingramSend(
     pingramKey,
     pingramBase,
@@ -384,6 +449,7 @@ async function sendWorkerStatusNotification(
       message: notification.message,
       deepLink,
       secondaryId: idempotencyKey,
+      includePush,
     }),
   );
 }
@@ -435,6 +501,12 @@ async function sendClinicApplicationNotification(
     ? `chairside:///(clinic-tabs)/role-applicants/${jobPostId}`
     : 'chairside:///(clinic-tabs)/applications';
 
+  const includePush = await isPushEnabledForUser(
+    supabase,
+    clinicId,
+    NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+  );
+
   await pingramSend(
     pingramKey,
     pingramBase,
@@ -445,6 +517,7 @@ async function sendClinicApplicationNotification(
       message: template.message,
       deepLink,
       secondaryId: idempotencyKey,
+      includePush,
     }),
   );
 }
@@ -502,6 +575,12 @@ async function handleApplicationInsert(
     : `${workerName} applied to your ${postType}.`;
   const deepLink = 'chairside:///(clinic-tabs)/applications';
 
+  const includePush = await isPushEnabledForUser(
+    supabase,
+    clinicId,
+    NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+  );
+
   await pingramSend(
     pingramKey,
     pingramBase,
@@ -512,6 +591,7 @@ async function handleApplicationInsert(
       message,
       deepLink,
       secondaryId: idempotencyKey,
+      includePush,
     }),
   );
 }
@@ -776,6 +856,12 @@ async function handleShiftPostLive(
     clinicId,
   );
 
+  const pushPreferences = await loadPushPreferenceMap(
+    supabase,
+    recipients.map((worker) => worker.id),
+    NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
+  );
+
   for (const worker of recipients) {
     const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}`;
     if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
@@ -797,6 +883,7 @@ async function handleShiftPostLive(
         message,
         deepLink,
         secondaryId: idempotencyKey,
+        includePush: pushPreferences.get(worker.id) ?? true,
         includeSms: Boolean(smsOptIn && e164),
         smsMessage: `${message} Open Chairside to apply. Reply STOP to opt out.`,
       }),
@@ -835,6 +922,12 @@ async function handleJobPostLive(
 
   const recipients = await filterWorkerNotificationRecipients(supabase, workers ?? [], [clinicId]);
 
+  const pushPreferences = await loadPushPreferenceMap(
+    supabase,
+    recipients.map((worker) => worker.id),
+    NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
+  );
+
   for (const worker of recipients) {
     const idempotencyKey = `${PINGRAM_TYPES.jobPosted}:${jobId}:${worker.id}`;
     if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
@@ -853,6 +946,7 @@ async function handleJobPostLive(
         message,
         deepLink,
         secondaryId: idempotencyKey,
+        includePush: pushPreferences.get(worker.id) ?? true,
       }),
     );
   }

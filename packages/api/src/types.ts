@@ -1,4 +1,8 @@
-import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
+import type {
+  ClinicSpecialty,
+  NotificationPreferenceCategory,
+  TeamSizeRange,
+} from '@chairside/config';
 
 export type UserRole = 'worker' | 'clinic';
 
@@ -157,6 +161,14 @@ export type AvailabilityBlockRow = {
   day_of_week: number;
   start_time: string;
   end_time: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NotificationPreferenceRow = {
+  user_id: string;
+  category: NotificationPreferenceCategory;
+  push_enabled: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -326,6 +338,18 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['messages']['Insert']>;
+        Relationships: [];
+      };
+      notification_preferences: {
+        Row: NotificationPreferenceRow;
+        Insert: {
+          user_id: string;
+          category: NotificationPreferenceCategory;
+          push_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['notification_preferences']['Insert']>;
         Relationships: [];
       };
     };

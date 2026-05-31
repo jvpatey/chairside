@@ -56,9 +56,10 @@ export function WorkerJobNotificationPreferences() {
     <View style={styles.card}>
       <View style={styles.row}>
         <View style={styles.rowText}>
-          <Text style={styles.rowTitle}>New job alerts</Text>
+          <Text style={styles.rowTitle}>Job post alerts</Text>
           <Text style={styles.rowHint}>
-            Notify me when a clinic posts a live role matching my position.
+            Get notified when a clinic posts a live role matching your position. Turn off push
+            separately above if you only want in-app alerts.
           </Text>
         </View>
         <Switch

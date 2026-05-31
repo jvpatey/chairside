@@ -201,4 +201,14 @@ export {
   setProfileRole,
   updateProfileDisplayName,
 } from './profile';
+export {
+  getNotificationPreference,
+  isPushEnabledByDefault,
+  listNotificationPreferences,
+  resolvePushEnabled,
+  upsertNotificationPreference,
+  type NotificationPreference,
+  type NotificationPreferenceCategory,
+  type NotificationPreferenceUpdate,
+} from './notificationPreferences';
 export type { Database, Profile, UserRole } from './types';
