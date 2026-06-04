@@ -8,6 +8,7 @@ export const DELETED_CANDIDATE_LABEL = 'Candidate no longer on Chairside';
 export const DELETED_CLINIC_LABEL = 'Clinic no longer on Chairside';
 
 const JOB_STATUS_LABELS: Record<string, string> = {
+  screening_submitted: 'Screening submitted',
   applied: 'Applied',
   reviewed: 'Viewed',
   in_progress: 'Shortlisted',
@@ -32,6 +33,7 @@ const SHIFT_STATUS_LABELS: Record<string, string> = {
 };
 
 const CLINIC_STATUS_LABELS: Record<string, string> = {
+  screening_submitted: 'Screening',
   applied: 'New',
   reviewed: 'Viewed',
   in_progress: 'Shortlisted',
@@ -60,6 +62,7 @@ export function formatClinicApplicationStatus(status: string | null | undefined)
 
 export function formatJobApplicationSummaryMeta(summary: {
   applicant_count: number;
+  screening_count?: number;
   pending_count: number;
   shortlisted_count?: number;
   interview_count?: number;
@@ -68,6 +71,10 @@ export function formatJobApplicationSummaryMeta(summary: {
 
   const parts: string[] = [];
 
+  if ((summary.screening_count ?? 0) > 0) {
+    const count = summary.screening_count ?? 0;
+    parts.push(count === 1 ? '1 screening' : `${count} screening`);
+  }
   if (summary.pending_count > 0) {
     parts.push(summary.pending_count === 1 ? '1 new' : `${summary.pending_count} new`);
   }
@@ -98,6 +105,9 @@ export function formatRoleApplicantPipelineSubtitle(applications: {
 }[]): string | undefined {
   if (applications.length === 0) return undefined;
 
+  const screeningCount = applications.filter(
+    (application) => application.status === 'screening_submitted',
+  ).length;
   const newCount = applications.filter(
     (application) => application.status === 'applied' || application.status === 'reviewed',
   ).length;
@@ -111,6 +121,9 @@ export function formatRoleApplicantPipelineSubtitle(applications: {
   ).length;
 
   const parts: string[] = [];
+  if (screeningCount > 0) {
+    parts.push(screeningCount === 1 ? '1 screening' : `${screeningCount} screening`);
+  }
   if (newCount > 0) {
     parts.push(newCount === 1 ? '1 to review' : `${newCount} to review`);
   }
@@ -131,12 +144,51 @@ export function formatRoleApplicantPipelineSubtitle(applications: {
 
 export function isActiveApplicationStatus(status: string | null | undefined): boolean {
   return (
+    status === 'screening_submitted' ||
     status === 'applied' ||
     status === 'reviewed' ||
     status === 'in_progress' ||
     status === 'interview_offered' ||
     status === 'interview_scheduled'
   );
+}
+
+export function isScreeningStageStatus(status: string | null | undefined): boolean {
+  return status === 'screening_submitted';
+}
+
+export function hasApplicationKitSubmitted(application: {
+  application_kit_submitted_at?: string | null;
+  status?: string | null;
+}): boolean {
+  if (application.application_kit_submitted_at) return true;
+  return application.status != null && application.status !== 'screening_submitted';
+}
+
+export function isAwaitingApplicationKit(application: {
+  application_kit_requested_at?: string | null;
+  application_kit_submitted_at?: string | null;
+  status?: string | null;
+}): boolean {
+  return (
+    application.status === 'screening_submitted' &&
+    Boolean(application.application_kit_requested_at) &&
+    !application.application_kit_submitted_at
+  );
+}
+
+export function formatClinicScreeningStatus(application: {
+  application_kit_requested_at?: string | null;
+  application_kit_submitted_at?: string | null;
+  status?: string | null;
+}): string {
+  if (application.status !== 'screening_submitted') {
+    return formatClinicApplicationStatus(application.status);
+  }
+  if (isAwaitingApplicationKit(application)) {
+    return 'Awaiting application kit';
+  }
+  return 'Screening';
 }
 
 export function isTerminalApplicationStatus(status: string | null | undefined): boolean {
@@ -186,7 +238,7 @@ export function formatApplicationScreeningStatus(
   status: 'completed' | 'skipped' | null | undefined,
 ): string | null {
   if (!status) return null;
-  return status === 'completed' ? 'Completed' : 'Incomplete';
+  return status === 'completed' ? 'Completed' : 'Skipped';
 }
 
 /** Format education text stored on application snapshots. */

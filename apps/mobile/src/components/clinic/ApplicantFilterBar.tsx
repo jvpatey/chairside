@@ -12,6 +12,7 @@ type ApplicantFilterBarProps = {
 
 const FILTER_TABS: { value: ApplicantListFilter; label: string }[] = [
   { value: 'all', label: 'All' },
+  { value: 'screening', label: 'Screening' },
   { value: 'shortlisted', label: 'Shortlisted' },
   { value: 'interview', label: 'Interview' },
   { value: 'decided', label: 'Decided' },

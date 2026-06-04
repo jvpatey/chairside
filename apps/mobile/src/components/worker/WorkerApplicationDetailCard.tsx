@@ -13,8 +13,11 @@ import {
   canWorkerHideApplication,
   formatApplicationDate,
   formatInterviewDateTime,
+  hasApplicationKitSubmitted,
   hasPendingInterviewProposal,
   isActiveApplicationStatus,
+  isAwaitingApplicationKit,
+  isScreeningStageStatus,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -30,6 +33,8 @@ import {
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationSubmittedFields } from '@/components/worker/ApplicationSubmittedFields';
+import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
+import { WorkerApplicationKitSubmission } from '@/components/worker/WorkerApplicationKitSubmission';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import {
@@ -62,7 +67,11 @@ type WorkerApplicationDetailCardProps = {
 function formatAppliedLabel(application: WorkerApplication): string | null {
   const date = formatApplicationDate(application.created_at);
   if (!date) return null;
-  return `${application.post_type === 'shift' ? 'Requested' : 'Applied'} ${date}`;
+  if (application.post_type === 'shift') return `Requested ${date}`;
+  if (isScreeningStageStatus(application.status) && !hasApplicationKitSubmitted(application)) {
+    return `Screening submitted ${date}`;
+  }
+  return `Applied ${date}`;
 }
 
 export function WorkerApplicationDetailCard({
@@ -205,6 +214,9 @@ export function WorkerApplicationDetailCard({
     pendingProposal && application.interview_proposed_by === 'clinic';
   const workerProposedChange =
     pendingProposal && application.interview_proposed_by === 'worker';
+  const awaitingKit = isAwaitingApplicationKit(application);
+  const hasKitSubmitted = hasApplicationKitSubmitted(application);
+  const isScreeningStage = isScreeningStageStatus(application.status);
 
   const handleAddInterviewToCalendar = () => {
     const inviteInput = buildInterviewInviteInputFromApplication({
@@ -555,11 +567,28 @@ export function WorkerApplicationDetailCard({
           </View>
         ) : null}
 
-        <View style={styles.submittedSection}>
-          <Text style={styles.sectionEyebrow}>What you submitted</Text>
-          <ApplicationSubmittedFields application={application} />
+        {awaitingKit ? (
+          <WorkerApplicationKitSubmission
+            applicationId={application.id}
+            clinicName={application.clinic_name}
+            postTitle={application.post_title}
+            onSubmitted={onUpdated}
+          />
+        ) : null}
 
-          {application.cover_message ? (
+        <View style={styles.submittedSection}>
+          <Text style={styles.sectionEyebrow}>
+            {isScreeningStage && !hasKitSubmitted ? 'Your screening submission' : 'What you submitted'}
+          </Text>
+          {application.post_type === 'job' && application.screening ? (
+            <ApplicationScreeningSection screening={application.screening} audience="worker" />
+          ) : null}
+          {hasKitSubmitted ? <ApplicationSubmittedFields application={application} /> : null}
+          {isScreeningStage && !hasKitSubmitted && !application.screening ? (
+            <Text style={styles.interviewMeta}>Screening responses submitted.</Text>
+          ) : null}
+
+          {hasKitSubmitted && application.cover_message ? (
             <>
               <RowDivider />
               <View style={styles.subsection}>

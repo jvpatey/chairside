@@ -1,5 +1,6 @@
 import type { ScreeningQuestionType } from '@chairside/config';
 import {
+  formatScreeningQuestionTypeLabel,
   getDefaultScreeningSelection,
   SCREENING_CATEGORIES,
   SCREENING_CATEGORY_LABELS,
@@ -7,12 +8,12 @@ import {
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { LayoutAnimation, Modal, Platform, Pressable, Switch, Text, UIManager, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LayoutAnimation, Platform, Pressable, Switch, Text, UIManager, View } from 'react-native';
 
 import { CustomScreeningQuestionSheet } from '@/components/clinic/CustomScreeningQuestionSheet';
 import { ScreeningQuestionPicker } from '@/components/clinic/ScreeningQuestionPicker';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ScreeningWorkerPreviewModal } from '@/components/clinic/ScreeningWorkerPreviewModal';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useTheme, useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -43,20 +44,16 @@ export function ScreeningToggleSection({
   onCustomQuestionsChange,
 }: ScreeningToggleSectionProps) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { clinicProfile } = useClinicProfile();
   const [customSheetOpen, setCustomSheetOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const totalSelected = selectedCatalogSlugs.length + customQuestions.length;
+  const promptContext = useMemo(
+    () => ({ province: clinicProfile?.province ?? null }),
+    [clinicProfile?.province],
+  );
 
-  const previewQuestions = useMemo(() => {
-    const preset = selectedCatalogSlugs
-      .slice(0, 2)
-      .map((slug) => getScreeningQuestionsByCategory('work_style').find((q) => q.slug === slug))
-      .filter(Boolean);
-    if (preset.length > 0) return preset;
-    return getScreeningQuestionsByCategory('work_style').slice(0, 2);
-  }, [selectedCatalogSlugs]);
+  const totalSelected = selectedCatalogSlugs.length + customQuestions.length;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -124,72 +121,6 @@ export function ScreeningToggleSection({
       ...typography.subtitle,
       fontSize: 12,
     },
-    previewBackdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.45)',
-      justifyContent: 'flex-end',
-    },
-    previewSheet: {
-      backgroundColor: colors.surface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.md,
-      paddingBottom: Math.max(insets.bottom, spacing.lg),
-      gap: spacing.md,
-    },
-    previewTitle: {
-      ...typography.body,
-      fontSize: 17,
-      fontWeight: '600',
-    },
-    previewProgress: {
-      height: 4,
-      borderRadius: 999,
-      backgroundColor: colors.separator,
-      overflow: 'hidden',
-    },
-    previewProgressFill: {
-      width: '25%',
-      height: '100%',
-      backgroundColor: colors.primary,
-      borderRadius: 999,
-    },
-    previewQuestion: {
-      gap: spacing.sm,
-      padding: spacing.md,
-      backgroundColor: colors.backgroundGrouped,
-      borderRadius: 12,
-    },
-    previewQuestionText: {
-      ...typography.body,
-      fontSize: 15,
-    },
-    previewPills: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-    previewPill: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      alignItems: 'center',
-    },
-    previewPillSelected: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    previewPillText: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.labelPrimary,
-    },
-    previewPillTextSelected: {
-      color: colors.primaryOnPrimary,
-    },
   }));
 
   const handleToggle = (next: boolean) => {
@@ -208,16 +139,17 @@ export function ScreeningToggleSection({
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Culture fit screening</Text>
+          <Text style={styles.title}>Screening questions</Text>
           <Text style={styles.subtitle}>
-            Optional questionnaire workers complete when they apply.
+            Workers complete screening first. You can request their full application kit after
+            reviewing responses.
           </Text>
         </View>
         <Switch
           value={enabled}
           onValueChange={handleToggle}
           trackColor={{ false: colors.separator, true: colors.primary }}
-          accessibilityLabel="Enable culture fit screening"
+          accessibilityLabel="Enable screening questions"
         />
       </View>
 
@@ -234,6 +166,7 @@ export function ScreeningToggleSection({
               categoryLabel={SCREENING_CATEGORY_LABELS[category]}
               questions={getScreeningQuestionsByCategory(category)}
               selectedSlugs={selectedCatalogSlugs}
+              promptContext={promptContext}
               onChange={onSelectedCatalogSlugsChange}
             />
           ))}
@@ -245,7 +178,7 @@ export function ScreeningToggleSection({
                   <View style={{ flex: 1, gap: 4 }}>
                     <Text style={styles.customPrompt}>{question.prompt}</Text>
                     <Text style={styles.customMeta}>
-                      Custom · {question.type === 'yes_no' ? 'Yes / No' : '1–5 rating'}
+                      Custom · {formatScreeningQuestionTypeLabel(question.type)}
                     </Text>
                   </View>
                   <Pressable
@@ -283,30 +216,13 @@ export function ScreeningToggleSection({
         }}
       />
 
-      <Modal visible={previewOpen} animationType="slide" transparent onRequestClose={() => setPreviewOpen(false)}>
-        <Pressable style={styles.previewBackdrop} onPress={() => setPreviewOpen(false)}>
-          <Pressable style={styles.previewSheet} onPress={(event) => event.stopPropagation()}>
-            <Text style={styles.previewTitle}>Worker preview</Text>
-            <View style={styles.previewProgress}>
-              <View style={styles.previewProgressFill} />
-            </View>
-            {previewQuestions.map((question) => (
-              <View key={question!.slug} style={styles.previewQuestion}>
-                <Text style={styles.previewQuestionText}>{question!.prompt}</Text>
-                <View style={styles.previewPills}>
-                  <View style={[styles.previewPill, styles.previewPillSelected]}>
-                    <Text style={[styles.previewPillText, styles.previewPillTextSelected]}>Yes</Text>
-                  </View>
-                  <View style={styles.previewPill}>
-                    <Text style={styles.previewPillText}>No</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-            <OnboardingButton label="Close preview" variant="secondary" onPress={() => setPreviewOpen(false)} />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <ScreeningWorkerPreviewModal
+        visible={previewOpen}
+        selectedCatalogSlugs={selectedCatalogSlugs}
+        customQuestions={customQuestions}
+        promptContext={promptContext}
+        onClose={() => setPreviewOpen(false)}
+      />
     </View>
   );
 }

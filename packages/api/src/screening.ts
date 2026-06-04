@@ -1,6 +1,7 @@
 import {
   getScreeningCatalogQuestion,
   resolveScreeningPrompt,
+  type ScreeningPromptContext,
   type ScreeningQuestionType,
 } from '@chairside/config';
 import { getSupabaseClient } from './client';
@@ -24,6 +25,9 @@ export type ScreeningQuestion = {
   prompt: string;
   sortOrder: number;
   reverseScored: boolean;
+  min?: number;
+  max?: number;
+  unitLabel?: string;
 };
 
 export type ScreeningQuestionInput = {
@@ -37,7 +41,7 @@ export type ScreeningAnswerItem = {
   id: string;
   prompt: string;
   type: ScreeningQuestionType;
-  answer: boolean | number;
+  answer: boolean | number | string;
   reverseScored?: boolean;
 };
 
@@ -56,21 +60,49 @@ export type ApplicationScreening = {
   createdAt: string;
 };
 
-function mapScreeningQuestionRow(row: JobPostScreeningQuestionRow): ScreeningQuestion {
+function mapScreeningQuestionRow(
+  row: JobPostScreeningQuestionRow,
+  context?: ScreeningPromptContext,
+): ScreeningQuestion {
   const catalog = row.catalog_slug ? getScreeningCatalogQuestion(row.catalog_slug) : undefined;
   return {
     id: row.id,
     catalogSlug: row.catalog_slug,
     customPrompt: row.custom_prompt,
     type: row.question_type,
-    prompt: resolveScreeningPrompt(row.catalog_slug, row.custom_prompt),
+    prompt: resolveScreeningPrompt(row.catalog_slug, row.custom_prompt, context),
     sortOrder: row.sort_order,
     reverseScored: catalog?.reverseScored ?? false,
+    min: catalog?.min,
+    max: catalog?.max,
+    unitLabel: catalog?.unitLabel,
   };
+}
+
+async function getJobPostProvince(jobPostId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('job_posts')
+    .select('clinic_id')
+    .eq('id', jobPostId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.clinic_id) return null;
+
+  const { data: clinic, error: clinicError } = await supabase
+    .from('clinic_profiles')
+    .select('province')
+    .eq('id', data.clinic_id)
+    .maybeSingle();
+
+  if (clinicError) throw clinicError;
+  return clinic?.province ?? null;
 }
 
 export async function getJobPostScreeningQuestions(
   jobPostId: string,
+  promptContext?: ScreeningPromptContext,
 ): Promise<ScreeningQuestion[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -80,7 +112,16 @@ export async function getJobPostScreeningQuestions(
     .order('sort_order', { ascending: true });
 
   if (error) throw error;
-  return ((data ?? []) as JobPostScreeningQuestionRow[]).map(mapScreeningQuestionRow);
+
+  const context =
+    promptContext ??
+    ({
+      province: await getJobPostProvince(jobPostId),
+    } satisfies ScreeningPromptContext);
+
+  return ((data ?? []) as JobPostScreeningQuestionRow[]).map((row) =>
+    mapScreeningQuestionRow(row, context),
+  );
 }
 
 export async function replaceJobPostScreeningQuestions(
@@ -194,7 +235,7 @@ export async function getApplicationScreeningMap(
 
 export function buildScreeningAnswersPayload(
   questions: ScreeningQuestion[],
-  answers: Record<string, boolean | number | undefined>,
+  answers: Record<string, boolean | number | string | undefined>,
 ): ScreeningAnswersPayload {
   return {
     questions: questions
@@ -202,11 +243,14 @@ export function buildScreeningAnswersPayload(
         const answerKey = question.catalogSlug ?? question.id;
         const answer = answers[answerKey];
         if (answer === undefined) return null;
+        if (question.type === 'text' && typeof answer === 'string' && !answer.trim()) {
+          return null;
+        }
         return {
           id: answerKey,
           prompt: question.prompt,
           type: question.type,
-          answer,
+          answer: question.type === 'text' && typeof answer === 'string' ? answer.trim() : answer,
           reverseScored: question.reverseScored || undefined,
         };
       })

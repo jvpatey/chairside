@@ -7,12 +7,14 @@ import {
 import type { RatingScaleValue } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { RatingQuestionCard } from '@/components/worker/screening/RatingQuestionCard';
+import { NumberQuestionCard } from '@/components/worker/screening/NumberQuestionCard';
+import { TextQuestionCard } from '@/components/worker/screening/TextQuestionCard';
 import { ScreeningIntroCard } from '@/components/worker/screening/ScreeningIntroCard';
 import { ScreeningWizardShell } from '@/components/worker/screening/ScreeningWizardShell';
 import { YesNoQuestionCard } from '@/components/worker/screening/YesNoQuestionCard';
@@ -23,23 +25,20 @@ import {
   countAnsweredQuestions,
   getScreeningQuestionKey,
   isScreeningPageComplete,
+  type ScreeningAnswerValue,
 } from '@/lib/screeningWizard';
 import { useThemedStyles } from '@/theme';
 
 export default function ApplyScreeningScreen() {
   const { user } = useAuth();
-  const { postId, coverMessage } = useLocalSearchParams<{
+  const { postId } = useLocalSearchParams<{
     postId?: string;
-    coverMessage?: string;
   }>();
   const jobId = typeof postId === 'string' ? postId : '';
-  const note = typeof coverMessage === 'string' ? coverMessage : '';
 
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, boolean | RatingScaleValue | undefined>>(
-    {},
-  );
+  const [answers, setAnswers] = useState<Record<string, ScreeningAnswerValue | undefined>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,15 +47,6 @@ export default function ApplyScreeningScreen() {
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: { gap: spacing.lg },
-    skipLink: {
-      alignSelf: 'center',
-      paddingVertical: spacing.sm,
-    },
-    skipText: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
     reviewCard: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -106,25 +96,23 @@ export default function ApplyScreeningScreen() {
     void loadJob();
   }, [loadJob]);
 
-  const submitApplication = async (skipped: boolean) => {
+  const submitScreening = async () => {
     if (!user?.id || !jobId) return;
 
     setIsSubmitting(true);
     try {
       await createApplication(user.id, {
         jobPostId: jobId,
-        coverMessage: note.trim() || undefined,
-        screening: skipped
-          ? { status: 'skipped' }
-          : {
-              status: 'completed',
-              answers: buildScreeningAnswersPayload(questions, answers),
-            },
+        screeningOnly: true,
+        screening: {
+          status: 'completed',
+          answers: buildScreeningAnswersPayload(questions, answers),
+        },
       });
       router.replace(WORKER_APPLICATIONS);
     } catch (error) {
       Alert.alert(
-        'Application failed',
+        'Submission failed',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -136,12 +124,12 @@ export default function ApplyScreeningScreen() {
     if (!currentPage) return;
 
     if (currentPage.kind === 'review') {
-      void submitApplication(false);
+      void submitScreening();
       return;
     }
 
     if (currentPage.kind === 'questions' && !isScreeningPageComplete(currentPage, answers)) {
-      Alert.alert('Answer required', 'Answer each question on this page or skip screening.');
+      Alert.alert('Answer required', 'Answer each question on this page to continue.');
       return;
     }
 
@@ -160,7 +148,7 @@ export default function ApplyScreeningScreen() {
     return (
       <OnboardingShell>
         <AuthScreenHeader
-          title="Culture fit"
+          title="Screening questions"
           subtitle={isLoading ? 'Loading…' : 'Unavailable'}
           onBack={() => router.back()}
         />
@@ -173,7 +161,7 @@ export default function ApplyScreeningScreen() {
     currentPage.kind === 'review'
       ? isSubmitting
         ? 'Submitting…'
-        : 'Submit application'
+        : 'Submit screening'
       : 'Continue';
 
   return (
@@ -182,23 +170,14 @@ export default function ApplyScreeningScreen() {
         <View style={styles.footer}>
           <OnboardingButton
             label={continueLabel}
-            disabled={isSubmitting || (currentPage.kind === 'review' && isSubmitting)}
+            disabled={isSubmitting}
             onPress={handleContinue}
           />
-          {!isSubmitting ? (
-            <Pressable
-              style={styles.skipLink}
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              onPress={() => void submitApplication(true)}>
-              <Text style={styles.skipText}>Skip screening</Text>
-            </Pressable>
-          ) : null}
         </View>
       }>
       <AuthScreenHeader
-        title="Culture fit"
-        subtitle="Complete before submitting your application"
+        title="Screening questions"
+        subtitle="Required before your screening submission is sent"
         onBack={handleBack}
       />
 
@@ -213,7 +192,7 @@ export default function ApplyScreeningScreen() {
                 ? 'Ready to submit'
                 : currentPage.questions[0]?.type === 'rating_1_5'
                   ? 'Rate these attributes'
-                  : 'Culture fit questions'
+                  : 'Screening questions'
           }
           subtitle={
             currentPage.kind === 'questions' && currentPage.questions[0]?.type === 'rating_1_5'
@@ -240,6 +219,35 @@ export default function ApplyScreeningScreen() {
                   );
                 }
 
+                if (question.type === 'number') {
+                  return (
+                    <NumberQuestionCard
+                      key={key}
+                      prompt={question.prompt}
+                      value={answers[key] as number | undefined}
+                      min={question.min}
+                      max={question.max}
+                      unitLabel={question.unitLabel}
+                      onChange={(value) =>
+                        setAnswers((current) => ({ ...current, [key]: value }))
+                      }
+                    />
+                  );
+                }
+
+                if (question.type === 'text') {
+                  return (
+                    <TextQuestionCard
+                      key={key}
+                      prompt={question.prompt}
+                      value={answers[key] as string | undefined}
+                      onChange={(value) =>
+                        setAnswers((current) => ({ ...current, [key]: value }))
+                      }
+                    />
+                  );
+                }
+
                 return (
                   <RatingQuestionCard
                     key={key}
@@ -253,11 +261,11 @@ export default function ApplyScreeningScreen() {
 
           {currentPage.kind === 'review' ? (
             <View style={styles.reviewCard}>
-              <Text style={styles.reviewTitle}>Application ready</Text>
+              <Text style={styles.reviewTitle}>Screening ready</Text>
               <Text style={styles.reviewMeta}>
                 You answered {answeredCount} of {questions.length} screening question
-                {questions.length === 1 ? '' : 's'}. Your application kit and cover note will be
-                sent to the clinic.
+                {questions.length === 1 ? '' : 's'}. The clinic will review your responses and can
+                request your full application kit if they want to continue.
               </Text>
             </View>
           ) : null}

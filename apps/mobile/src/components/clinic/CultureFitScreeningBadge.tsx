@@ -14,7 +14,7 @@ export function CultureFitScreeningBadge({
   style,
 }: CultureFitScreeningBadgeProps) {
   const { colors } = useTheme();
-  const label = compact ? 'Culture fit' : 'Culture fit screening';
+  const label = compact ? 'Screening' : 'Screening questions';
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     badge: {

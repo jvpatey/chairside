@@ -2,6 +2,7 @@ import type { ApplicationStatus } from '@chairside/api';
 import {
   formatApplicationStatus,
   formatClinicApplicationStatus,
+  formatClinicScreeningStatus,
   type ApplicationPostType,
 } from '@chairside/config';
 
@@ -10,6 +11,7 @@ import { useTheme } from '@/theme';
 
 export type ApplicationStatusVariant =
   | 'applied'
+  | 'screening'
   | 'viewed'
   | 'inProgress'
   | 'interviewOffered'
@@ -22,6 +24,7 @@ export function getWorkerApplicationStatusVariant(
   status: ApplicationStatus | string,
   postType?: ApplicationPostType,
 ): ApplicationStatusVariant {
+  if (status === 'screening_submitted') return 'screening';
   if (status === 'reviewed') return 'viewed';
   if (status === 'in_progress') return 'inProgress';
   if (status === 'interview_offered') return 'interviewOffered';
@@ -36,6 +39,7 @@ export function getClinicApplicationStatusVariant(
   status: ApplicationStatus | string,
   postType?: ApplicationPostType,
 ): ApplicationStatusVariant {
+  if (status === 'screening_submitted') return 'screening';
   if (status === 'applied') return 'applied';
   if (status === 'reviewed') return 'viewed';
   if (status === 'in_progress') return 'inProgress';
@@ -59,6 +63,8 @@ function useStatusVariantPalette(variant: ApplicationStatusVariant) {
       return { color: colors.warning, backgroundColor: `${colors.warning}18` };
     case 'interviewScheduled':
       return { color: colors.secondary, backgroundColor: colors.secondarySubtle };
+    case 'screening':
+      return { color: colors.warning, backgroundColor: `${colors.warning}18` };
     case 'rejected':
       return { color: colors.destructive, backgroundColor: `${colors.destructive}18` };
     case 'confirmed':
@@ -106,15 +112,28 @@ export function WorkerApplicationStatusBadge({
 type ClinicApplicationStatusBadgeProps = {
   status: ApplicationStatus | string;
   postType?: ApplicationPostType;
+  applicationKitRequestedAt?: string | null;
+  applicationKitSubmittedAt?: string | null;
 };
 
 export function ClinicApplicationStatusBadge({
   status,
   postType,
+  applicationKitRequestedAt,
+  applicationKitSubmittedAt,
 }: ClinicApplicationStatusBadgeProps) {
+  const label =
+    status === 'screening_submitted'
+      ? formatClinicScreeningStatus({
+          status,
+          application_kit_requested_at: applicationKitRequestedAt,
+          application_kit_submitted_at: applicationKitSubmittedAt,
+        })
+      : formatClinicApplicationStatus(status);
+
   return (
     <ApplicationStatusBadge
-      label={formatClinicApplicationStatus(status)}
+      label={label}
       variant={getClinicApplicationStatusVariant(status, postType)}
     />
   );

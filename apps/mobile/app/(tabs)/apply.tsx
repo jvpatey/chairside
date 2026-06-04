@@ -2,8 +2,12 @@ import {
   createApplication,
   getLiveJobPost,
   getLiveShiftPost,
+  type LiveJobPost,
+  type LiveShiftPost,
 } from '@chairside/api';
 import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
+import { formatJobPostCardMeta } from '@chairside/config';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
@@ -14,25 +18,28 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationPackageFields } from '@/components/worker/ApplicationPackageFields';
+import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS, getApplyScreeningRoute } from '@/lib/routing';
+import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import {
   buildLiveJobMatchDisplayContext,
   computeJobMatchBreakdown,
 } from '@/lib/workerMatch';
-import { useThemedStyles } from '@/theme';
+import { useThemedStyles, useTheme } from '@/theme';
 
 export default function ApplyScreen() {
   const { user, profile } = useAuth();
+  const { colors } = useTheme();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { postType, postId } = useLocalSearchParams<{ postType?: string; postId?: string }>();
   const type = postType === 'shift' ? 'shift' : 'job';
   const id = typeof postId === 'string' ? postId : '';
   const [coverMessage, setCoverMessage] = useState('');
-  const [postTitle, setPostTitle] = useState('');
-  const [clinicName, setClinicName] = useState('');
+  const [job, setJob] = useState<LiveJobPost | null>(null);
+  const [shift, setShift] = useState<LiveShiftPost | null>(null);
   const [jobMatch, setJobMatch] = useState<JobMatchBreakdown | null>(null);
   const [matchContext, setMatchContext] = useState<Partial<JobMatchContext> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,11 +53,24 @@ export default function ApplyScreen() {
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
+      padding: spacing.md,
+    },
+    wage: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    compensation: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       gap: spacing.sm,
     },
-    cardTitle: { ...typography.body, fontWeight: '600' },
-    cardMeta: typography.subtitle,
     credentialsTitle: {
       fontSize: 13,
       fontWeight: '600',
@@ -61,11 +81,25 @@ export default function ApplyScreen() {
     hint: { ...typography.subtitle, fontSize: 13 },
     editLink: { color: colors.primary, fontWeight: '600' },
     screeningNote: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.md,
       backgroundColor: colors.surface,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
+    },
+    screeningIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySubtle,
+    },
+    screeningContent: {
+      flex: 1,
       gap: spacing.xs,
     },
     screeningEyebrow: {
@@ -87,23 +121,23 @@ export default function ApplyScreen() {
     setIsLoading(true);
     try {
       if (type === 'job') {
-        const job = await getLiveJobPost(id);
-        if (!job) throw new Error('Role not found');
-        setPostTitle(job.title);
-        setClinicName(job.clinic.clinic_name);
-        setScreeningEnabled(job.screening_enabled && job.screening_questions.length > 0);
+        const loadedJob = await getLiveJobPost(id);
+        if (!loadedJob) throw new Error('Role not found');
+        setJob(loadedJob);
+        setShift(null);
+        setScreeningEnabled(loadedJob.screening_enabled && loadedJob.screening_questions.length > 0);
         if (workerProfile) {
-          setJobMatch(computeJobMatchBreakdown(workerProfile, job));
-          setMatchContext(buildLiveJobMatchDisplayContext(workerProfile, job));
+          setJobMatch(computeJobMatchBreakdown(workerProfile, loadedJob));
+          setMatchContext(buildLiveJobMatchDisplayContext(workerProfile, loadedJob));
         } else {
           setJobMatch(null);
           setMatchContext(null);
         }
       } else {
-        const shift = await getLiveShiftPost(id);
-        if (!shift) throw new Error('Shift not found');
-        setPostTitle(`Fill-in · ${shift.shift_date}`);
-        setClinicName(shift.clinic.clinic_name);
+        const loadedShift = await getLiveShiftPost(id);
+        if (!loadedShift) throw new Error('Shift not found');
+        setShift(loadedShift);
+        setJob(null);
         setJobMatch(null);
         setMatchContext(null);
       }
@@ -136,7 +170,7 @@ export default function ApplyScreen() {
 
   const handleContinue = () => {
     if (type === 'job' && screeningEnabled) {
-      router.push(getApplyScreeningRoute(id, coverMessage));
+      router.push(getApplyScreeningRoute(id));
       return;
     }
     void handleSubmit();
@@ -197,63 +231,109 @@ export default function ApplyScreen() {
         subtitle={
           type === 'shift'
             ? 'Review what the clinic will receive with your cover request.'
-            : 'Review what the clinic will receive.'
+            : screeningEnabled
+              ? undefined
+              : 'Review what the clinic will receive.'
         }
         onBack={() => router.back()}
       />
       <View style={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{postTitle}</Text>
-          <Text style={styles.cardMeta}>{clinicName}</Text>
-          {type === 'job' && jobMatch && matchContext ? (
-            <MatchTierBadge
-              breakdown={jobMatch}
-              context={matchContext}
-              subtitle={postTitle}
-              showProfileHint
+        {type === 'job' && job ? (
+          <View style={styles.card}>
+            <ClinicPostHeader
+              clinicName={job.clinic.clinic_name}
+              logoStoragePath={job.clinic.logo_storage_path}
+              title={job.title}
+              location={[job.clinic.city, job.clinic.province].filter(Boolean).join(', ') || null}
+              detail={formatJobPostCardMeta(job)}
+              avatarSize={44}
+              accessory={
+                jobMatch && matchContext ? (
+                  <MatchTierBadge
+                    breakdown={jobMatch}
+                    context={matchContext}
+                    subtitle={job.title}
+                    showProfileHint
+                  />
+                ) : null
+              }
+              footer={
+                job.wage_range ? (
+                  <View style={styles.footer}>
+                    <Text style={styles.wage}>{job.wage_range}</Text>
+                  </View>
+                ) : null
+              }
             />
-          ) : null}
-        </View>
+          </View>
+        ) : null}
 
-        <View style={styles.card}>
-          <Text style={styles.credentialsTitle}>
-            {type === 'shift' ? 'Cover request details' : 'Application credentials'}
-          </Text>
-          <Text style={styles.hint}>
-            {type === 'shift'
-              ? 'This is what the clinic will receive with your cover request.'
-              : 'This is what the clinic will receive with your application.'}
-          </Text>
-          {workerProfile ? (
-            <ApplicationPackageFields
-              profile={workerProfile}
-              displayName={profile?.display_name}
-              photoUri={photoUri}
-              showDefaultNote
+        {type === 'shift' && shift ? (
+          <View style={styles.card}>
+            <ClinicPostHeader
+              clinicName={shift.clinic.clinic_name}
+              logoStoragePath={shift.clinic.logo_storage_path}
+              title={formatShiftPostRoleTitle(shift.role_type)}
+              location={[shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ') || null}
+              detail={formatShiftPostMeta(shift)}
+              avatarSize={44}
+              footer={
+                shift.compensation ? (
+                  <View style={styles.footer}>
+                    <Text style={styles.compensation}>{shift.compensation}</Text>
+                  </View>
+                ) : null
+              }
             />
-          ) : null}
-          <Pressable onPress={() => router.push(WORKER_SETUP_APPLICATION)}>
-            <Text style={styles.editLink}>Edit application kit</Text>
-          </Pressable>
-        </View>
-
-        <AuthField
-          label="Cover message (optional)"
-          placeholder="Optional message"
-          value={coverMessage}
-          onChangeText={setCoverMessage}
-          multiline
-        />
+          </View>
+        ) : null}
 
         {type === 'job' && screeningEnabled ? (
           <View style={styles.screeningNote}>
-            <Text style={styles.screeningEyebrow}>Culture fit screening</Text>
-            <Text style={styles.screeningText}>
-              This clinic included a short questionnaire as part of your application. You can skip
-              it if you prefer.
-            </Text>
+            <View style={styles.screeningIconWrap}>
+              <Ionicons name="clipboard-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.screeningContent}>
+              <Text style={styles.screeningEyebrow}>Screening questions</Text>
+              <Text style={styles.screeningText}>
+                This clinic uses screening questions before reviewing full applications. You will only
+                submit your application kit if the clinic requests it.
+              </Text>
+            </View>
           </View>
-        ) : null}
+        ) : (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.credentialsTitle}>
+                {type === 'shift' ? 'Cover request details' : 'Application credentials'}
+              </Text>
+              <Text style={styles.hint}>
+                {type === 'shift'
+                  ? 'This is what the clinic will receive with your cover request.'
+                  : 'This is what the clinic will receive with your application.'}
+              </Text>
+              {workerProfile ? (
+                <ApplicationPackageFields
+                  profile={workerProfile}
+                  displayName={profile?.display_name}
+                  photoUri={photoUri}
+                  showDefaultNote
+                />
+              ) : null}
+              <Pressable onPress={() => router.push(WORKER_SETUP_APPLICATION)}>
+                <Text style={styles.editLink}>Edit application kit</Text>
+              </Pressable>
+            </View>
+
+            <AuthField
+              label="Cover message (optional)"
+              placeholder="Optional message"
+              value={coverMessage}
+              onChangeText={setCoverMessage}
+              multiline
+            />
+          </>
+        )}
       </View>
     </OnboardingShell>
   );

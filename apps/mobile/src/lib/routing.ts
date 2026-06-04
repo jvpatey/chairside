@@ -350,10 +350,10 @@ export function getApplyRoute(postType: ApplyPostType, postId: string): Href {
   return { pathname: '/(tabs)/apply', params: { postType, postId } } as unknown as Href;
 }
 
-export function getApplyScreeningRoute(postId: string, coverMessage?: string): Href {
+export function getApplyScreeningRoute(postId: string): Href {
   return {
     pathname: '/(tabs)/apply-screening',
-    params: { postId, coverMessage: coverMessage ?? '' },
+    params: { postId },
   } as unknown as Href;
 }
 

@@ -610,7 +610,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
   if (!clinic) return null;
 
   const screeningQuestions = (data as JobPost).screening_enabled
-    ? await getJobPostScreeningQuestions(jobId)
+    ? await getJobPostScreeningQuestions(jobId, { province: clinic.province })
     : [];
 
   return {

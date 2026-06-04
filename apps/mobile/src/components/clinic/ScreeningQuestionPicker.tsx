@@ -1,4 +1,5 @@
-import type { ScreeningCatalogQuestion, ScreeningQuestionCategory } from '@chairside/config';
+import type { ScreeningCatalogQuestion, ScreeningPromptContext, ScreeningQuestionCategory } from '@chairside/config';
+import { formatScreeningPromptTemplate } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'react-native';
@@ -14,6 +15,7 @@ type ScreeningQuestionPickerProps = {
   categoryLabel: string;
   questions: ScreeningCatalogQuestion[];
   selectedSlugs: string[];
+  promptContext?: ScreeningPromptContext;
   onChange: (slugs: string[]) => void;
 };
 
@@ -21,6 +23,7 @@ export function ScreeningQuestionPicker({
   categoryLabel,
   questions,
   selectedSlugs,
+  promptContext,
   onChange,
 }: ScreeningQuestionPickerProps) {
   const { colors } = useTheme();
@@ -132,7 +135,9 @@ export function ScreeningQuestionPicker({
                     <Ionicons name="checkmark" size={14} color={colors.primaryOnPrimary} />
                   ) : null}
                 </View>
-                <Text style={styles.prompt}>{question.prompt}</Text>
+                <Text style={styles.prompt}>
+                  {formatScreeningPromptTemplate(question.prompt, promptContext)}
+                </Text>
               </Pressable>
             );
           })}
