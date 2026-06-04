@@ -8,7 +8,8 @@ import { useTheme, useThemedStyles } from '@/theme';
 type ClinicPostHeaderProps = {
   clinicName: string;
   logoStoragePath?: string | null;
-  title: string;
+  /** Omit on detail screens where the clinic name is the primary heading. */
+  title?: string;
   location?: string | null;
   detail?: string | null;
   accessory?: ReactNode;
@@ -34,6 +35,7 @@ export function ClinicPostHeader({
   const logoUri = useClinicLogoUri(logoStoragePath);
   const { spacing } = useTheme();
   const footerInset = avatarSize + spacing.md;
+  const showClinicAsTitle = !title?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -103,12 +105,20 @@ export function ClinicPostHeader({
         <View style={styles.textBlock}>
           <View style={styles.titleRow}>
             <View style={styles.textColumn}>
-              <Text style={styles.clinicName} numberOfLines={2}>
-                {clinicName}
-              </Text>
-              <Text style={styles.title} numberOfLines={2}>
-                {title}
-              </Text>
+              {showClinicAsTitle ? (
+                <Text style={styles.title} numberOfLines={2}>
+                  {clinicName}
+                </Text>
+              ) : (
+                <>
+                  <Text style={styles.clinicName} numberOfLines={2}>
+                    {clinicName}
+                  </Text>
+                  <Text style={styles.title} numberOfLines={2}>
+                    {title}
+                  </Text>
+                </>
+              )}
               {location ? (
                 <Text style={styles.meta} numberOfLines={2}>
                   {location}

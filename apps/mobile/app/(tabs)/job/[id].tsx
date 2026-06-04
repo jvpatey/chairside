@@ -3,6 +3,7 @@ import {
   hasAppliedToJob,
   type LiveJobPost,
 } from '@chairside/api';
+import { getSpecialtyLabel } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -119,8 +120,8 @@ export default function WorkerJobDetailScreen() {
           <ClinicPostHeader
             clinicName={job.clinic.clinic_name}
             logoStoragePath={job.clinic.logo_storage_path}
-            title={job.title}
             location={location || null}
+            detail={getSpecialtyLabel(job.clinic.specialty)}
             accessory={
               jobMatch && matchContext ? (
                 <MatchTierBadge
