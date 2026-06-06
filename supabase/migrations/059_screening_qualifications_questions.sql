@@ -71,11 +71,3 @@ set
   sort_order = excluded.sort_order,
   reverse_scored = excluded.reverse_scored,
   active = true;
-
-update public.screening_question_catalog
-set
-  prompt = 'If hired, how many weeks of notice do you need before you can start?',
-  question_type = 'number',
-  sort_order = 160,
-  active = true
-where slug = 'weeks_notice_to_start';

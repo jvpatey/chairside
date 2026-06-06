@@ -286,14 +286,14 @@ alter table public.screening_question_catalog
 
 alter table public.screening_question_catalog
   add constraint screening_question_catalog_question_type_check
-  check (question_type in ('yes_no', 'rating_1_5', 'number', 'text'));
+  check (question_type in ('yes_no', 'rating_1_5', 'number'));
 
 alter table public.job_post_screening_questions
   drop constraint if exists job_post_screening_questions_question_type_check;
 
 alter table public.job_post_screening_questions
   add constraint job_post_screening_questions_question_type_check
-  check (question_type in ('yes_no', 'rating_1_5', 'number', 'text'));
+  check (question_type in ('yes_no', 'rating_1_5', 'number'));
 
 -- Expand screening catalog with practical role-screening questions.
 insert into public.screening_question_catalog (slug, question_type, prompt, category, sort_order, reverse_scored)

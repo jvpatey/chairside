@@ -162,7 +162,16 @@ export function hasApplicationKitSubmitted(application: {
   status?: string | null;
 }): boolean {
   if (application.application_kit_submitted_at) return true;
-  return application.status != null && application.status !== 'screening_submitted';
+  return (
+    application.status === 'applied' ||
+    application.status === 'reviewed' ||
+    application.status === 'in_progress' ||
+    application.status === 'shortlisted' ||
+    application.status === 'interview_offered' ||
+    application.status === 'interview_scheduled' ||
+    application.status === 'selected' ||
+    application.status === 'hired'
+  );
 }
 
 export function isAwaitingApplicationKit(application: {

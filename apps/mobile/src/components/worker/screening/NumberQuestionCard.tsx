@@ -66,6 +66,7 @@ export function NumberQuestionCard({
     const parsed = Number.parseInt(raw, 10);
     if (Number.isNaN(parsed)) return;
     const clamped = Math.min(max, Math.max(min, parsed));
+    setText(String(clamped));
     onChange(clamped);
   };
 

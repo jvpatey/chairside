@@ -158,7 +158,7 @@ export function ScreeningWorkerPreviewModal({
 
   const pageSubtitle =
     currentPage?.kind === 'questions' && currentPage.questions[0]?.type === 'rating_1_5'
-      ? '5 = Strongly agree · 0 = Not at all'
+      ? '5 = Strongly agree · 1 = Not at all'
       : undefined;
 
   const canGoBack = pageIndex > 0;

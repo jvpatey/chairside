@@ -142,7 +142,20 @@ export async function getJobPostWithScreening(
   const job = await getJobPost(clinicId, jobId);
   if (!job) return null;
 
-  const screeningQuestions = job.screening_enabled ? await getJobPostScreeningQuestions(jobId) : [];
+  let screeningQuestions: ScreeningQuestion[] = [];
+  if (job.screening_enabled) {
+    const supabase = getSupabaseClient();
+    const { data: clinic, error: clinicError } = await supabase
+      .from('clinic_profiles')
+      .select('province')
+      .eq('id', clinicId)
+      .maybeSingle();
+
+    if (clinicError) throw clinicError;
+    screeningQuestions = await getJobPostScreeningQuestions(jobId, {
+      province: clinic?.province ?? null,
+    });
+  }
 
   return { ...job, screening_questions: screeningQuestions };
 }
