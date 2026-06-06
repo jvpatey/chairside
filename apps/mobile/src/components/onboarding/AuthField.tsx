@@ -69,6 +69,7 @@ export function AuthField({
       borderColor: colors.separator,
       borderRadius: 12,
       minHeight: multiline ? 120 : 50,
+      ...(Platform.OS === 'web' ? { overflow: 'hidden' as const } : {}),
     },
     inputRowValidated: {
       borderColor: colors.success,
@@ -84,6 +85,13 @@ export function AuthField({
       paddingVertical: Platform.OS === 'ios' ? 14 : 10,
       color: colors.labelPrimary,
       minHeight: multiline ? 120 : 50,
+      ...(Platform.OS === 'web'
+        ? {
+            backgroundColor: 'transparent',
+            outlineStyle: 'none' as const,
+            borderWidth: 0,
+          }
+        : {}),
       ...(multiline
         ? { textAlignVertical: 'top' as const, paddingTop: Platform.OS === 'ios' ? 14 : 12 }
         : Platform.OS === 'android'
