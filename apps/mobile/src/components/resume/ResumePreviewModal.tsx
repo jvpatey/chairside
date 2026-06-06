@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -41,14 +42,15 @@ export function ResumePreviewModal({
   const { colors } = useTheme();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const canUseNativePdf = isNativePdfViewerAvailable();
+  const canShowInlinePdf = canUseNativePdf || Platform.OS === 'web';
 
   useEffect(() => {
-    if (localUri && canUseNativePdf) {
+    if (localUri && canShowInlinePdf) {
       setIsPdfLoading(true);
     } else {
       setIsPdfLoading(false);
     }
-  }, [canUseNativePdf, localUri]);
+  }, [canShowInlinePdf, localUri]);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -121,8 +123,8 @@ export function ResumePreviewModal({
     });
   };
 
-  const showPdf = localUri && !error && !isLoading && canUseNativePdf;
-  const showExpoGoFallback = localUri && !error && !isLoading && !canUseNativePdf;
+  const showPdf = localUri && !error && !isLoading && canShowInlinePdf;
+  const showExpoGoFallback = localUri && !error && !isLoading && !canShowInlinePdf;
 
   return (
     <Modal
