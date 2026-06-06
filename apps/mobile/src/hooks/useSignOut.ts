@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 
 export function useSignOut() {
   const { signOut } = useAuth();
@@ -31,10 +32,13 @@ export function useSignOut() {
   const confirmSignOut = useCallback(() => {
     if (isSigningOut) return;
 
-    Alert.alert('Sign out?', 'You will need to sign in again to access your account.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => void performSignOut() },
-    ]);
+    showConfirmActionSheet({
+      title: 'Sign out?',
+      message: 'You will need to sign in again to access your account.',
+      confirmLabel: 'Sign out',
+      destructive: true,
+      onConfirm: () => performSignOut(),
+    });
   }, [isSigningOut, performSignOut]);
 
   return { isSigningOut, signOut: confirmSignOut };

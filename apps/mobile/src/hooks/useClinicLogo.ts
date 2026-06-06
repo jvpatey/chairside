@@ -7,6 +7,7 @@ import { Alert } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 
 export function useClinicLogo() {
   const { user } = useAuth();
@@ -62,27 +63,26 @@ export function useClinicLogo() {
   const removeLogo = async () => {
     if (!user?.id || !storagePath) return;
 
-    Alert.alert('Remove logo', 'Your clinic profile will no longer show a logo.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          setIsUploading(true);
-          try {
-            await deleteClinicLogo(user.id, storagePath);
-            await refreshClinicProfile();
-          } catch (error) {
-            Alert.alert(
-              'Could not remove',
-              error instanceof Error ? error.message : 'Please try again.',
-            );
-          } finally {
-            setIsUploading(false);
-          }
-        },
+    showConfirmActionSheet({
+      title: 'Remove logo',
+      message: 'Your clinic profile will no longer show a logo.',
+      confirmLabel: 'Remove',
+      destructive: true,
+      onConfirm: async () => {
+        setIsUploading(true);
+        try {
+          await deleteClinicLogo(user.id, storagePath);
+          await refreshClinicProfile();
+        } catch (error) {
+          Alert.alert(
+            'Could not remove',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        } finally {
+          setIsUploading(false);
+        }
       },
-    ]);
+    });
   };
 
   return {

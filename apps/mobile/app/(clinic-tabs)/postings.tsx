@@ -136,6 +136,9 @@ export default function ClinicPostingsScreen() {
       ...typography.subtitle,
       fontSize: 13,
     },
+    filterRow: {
+      alignItems: 'flex-end',
+    },
   }));
 
   const load = useCallback(async () => {
@@ -197,12 +200,14 @@ export default function ClinicPostingsScreen() {
         ) : (
           <>
             {mainListJobs.length > 0 ? (
-              <RolePostingFilters
-                statusFilter={jobStatusFilter}
-                roleTypeFilter={jobRoleTypeFilter}
-                onStatusChange={setJobStatusFilter}
-                onRoleTypeChange={setJobRoleTypeFilter}
-              />
+              <View style={styles.filterRow}>
+                <RolePostingFilters
+                  statusFilter={jobStatusFilter}
+                  roleTypeFilter={jobRoleTypeFilter}
+                  onStatusChange={setJobStatusFilter}
+                  onRoleTypeChange={setJobRoleTypeFilter}
+                />
+              </View>
             ) : null}
 
             {jobs.length === 0 ? (

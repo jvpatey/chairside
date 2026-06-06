@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { buildResumeFileName, openResumePreview } from '@/lib/openResumePreview';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -105,28 +106,27 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
   const handleRemove = async () => {
     if (!user?.id) return;
 
-    Alert.alert('Remove resume', 'Clinics will no longer receive your resume with applications.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          setIsUploading(true);
-          try {
-            await deleteWorkerResume(user.id);
-            await refreshWorkerProfile();
-            onUploaded?.();
-          } catch (error) {
-            Alert.alert(
-              'Could not remove',
-              error instanceof Error ? error.message : 'Please try again.',
-            );
-          } finally {
-            setIsUploading(false);
-          }
-        },
+    showConfirmActionSheet({
+      title: 'Remove resume',
+      message: 'Clinics will no longer receive your resume with applications.',
+      confirmLabel: 'Remove',
+      destructive: true,
+      onConfirm: async () => {
+        setIsUploading(true);
+        try {
+          await deleteWorkerResume(user.id);
+          await refreshWorkerProfile();
+          onUploaded?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not remove',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        } finally {
+          setIsUploading(false);
+        }
       },
-    ]);
+    });
   };
 
   const hasResume = Boolean(workerProfile?.resume_storage_path);

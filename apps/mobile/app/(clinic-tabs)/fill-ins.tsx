@@ -300,7 +300,6 @@ export default function ClinicFillInsScreen() {
                     />
                   </View>
                   <ShiftPostingFilters
-                    variant="sheet"
                     statusOptions={
                       fillInsListMode === 'history' ? HISTORY_SHIFT_STATUS_FILTER_OPTIONS : undefined
                     }

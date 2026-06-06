@@ -5,6 +5,7 @@ import { Alert } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 
 const DELETE_SUMMARY =
   'This will permanently delete your account and login. Your applications, messages, and postings will stay visible to others as historical records marked as no longer on Chairside. This cannot be undone.';
@@ -36,23 +37,21 @@ export function useDeleteAccount() {
   const confirmDeleteAccount = useCallback(() => {
     if (isDeleting) return;
 
-    Alert.alert('Delete your account?', DELETE_SUMMARY, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Continue',
-        style: 'destructive',
-        onPress: () => {
-          Alert.alert(
-            'Are you sure?',
-            'Your account and all associated data will be permanently removed.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete account', style: 'destructive', onPress: () => void performDelete() },
-            ],
-          );
-        },
+    showConfirmActionSheet({
+      title: 'Delete your account?',
+      message: DELETE_SUMMARY,
+      confirmLabel: 'Continue',
+      destructive: true,
+      onConfirm: () => {
+        showConfirmActionSheet({
+          title: 'Are you sure?',
+          message: 'Your account and all associated data will be permanently removed.',
+          confirmLabel: 'Delete account',
+          destructive: true,
+          onConfirm: () => performDelete(),
+        });
       },
-    ]);
+    });
   }, [isDeleting, performDelete]);
 
   return { isDeleting, confirmDeleteAccount };

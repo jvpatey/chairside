@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { useThemedStyles } from '@/theme';
 
 type ManageAction = {
@@ -53,17 +54,6 @@ function getManageActions(status: JobPostStatus): ManageAction[] {
     default:
       return [{ label: 'Delete', isDelete: true, destructive: true }];
   }
-}
-
-function confirmPostAgain(jobTitle: string, onConfirm: () => void) {
-  Alert.alert(
-    'Post again?',
-    `"${jobTitle}" will go live and appear to candidates again. Applications stay linked to this posting.`,
-    [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Post again', onPress: onConfirm },
-    ],
-  );
 }
 
 export type JobPostManageSheetProps = {
@@ -180,30 +170,23 @@ export function JobPostManageSheet({
           ? ` This will permanently delete the posting and ${applicationCount} application${applicationCount === 1 ? '' : 's'}.`
           : ' This posting will be permanently deleted.';
 
-      Alert.alert(
-        'Delete posting?',
-        `Are you sure you want to delete "${job.title}"?${applicationWarning}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              void (async () => {
-                try {
-                  await deleteJobPost(clinicId, job.id);
-                  onDeleted();
-                } catch (error) {
-                  Alert.alert(
-                    'Delete failed',
-                    error instanceof Error ? error.message : 'Please try again.',
-                  );
-                }
-              })();
-            },
-          },
-        ],
-      );
+      showConfirmActionSheet({
+        title: 'Delete posting?',
+        message: `Are you sure you want to delete "${job.title}"?${applicationWarning}`,
+        confirmLabel: 'Delete',
+        destructive: true,
+        onConfirm: async () => {
+          try {
+            await deleteJobPost(clinicId, job.id);
+            onDeleted();
+          } catch (error) {
+            Alert.alert(
+              'Delete failed',
+              error instanceof Error ? error.message : 'Please try again.',
+            );
+          }
+        },
+      });
     } catch (error) {
       Alert.alert(
         'Delete failed',
@@ -220,8 +203,13 @@ export function JobPostManageSheet({
         return;
       }
       if (action.status === 'live' && (job.status === 'closed' || job.status === 'filled')) {
-        confirmPostAgain(job.title, () => {
-          void handleStatusChange('live');
+        showConfirmActionSheet({
+          title: 'Post again?',
+          message: `"${job.title}" will go live and appear to candidates again. Applications stay linked to this posting.`,
+          confirmLabel: 'Post again',
+          onConfirm: () => {
+            void handleStatusChange('live');
+          },
         });
         return;
       }

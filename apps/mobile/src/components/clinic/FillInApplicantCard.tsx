@@ -15,6 +15,7 @@ import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   getClinicApplicationMessagesRoute,
   type ClinicApplicationReturnTarget,
@@ -109,68 +110,58 @@ export function FillInApplicantCard({
   }));
 
   const handleAccept = () => {
-    Alert.alert(
-      'Accept cover request?',
-      `Confirm ${workerName} for this fill-in? Other pending requests will be declined and the shift will be marked filled.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Accept',
-          onPress: () => {
-            void (async () => {
-              setIsSubmitting(true);
-              try {
-                await confirmFillInApplicant(clinicId, application.id);
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onConfirmed?.({
-                  applicationId: application.id,
-                  postType: 'shift',
-                  audience: 'clinic',
-                  counterpartName: workerName,
-                  postTitle: getRoleTypeLabel(application.post_role_type),
-                  shiftDateLabel: getShiftMeta(application),
-                });
-                onUpdated?.();
-              } catch (error) {
-                Alert.alert(
-                  'Could not accept',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              } finally {
-                setIsSubmitting(false);
-              }
-            })();
-          },
-        },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Accept cover request?',
+      message: `Confirm ${workerName} for this fill-in? Other pending requests will be declined and the shift will be marked filled.`,
+      confirmLabel: 'Accept',
+      onConfirm: async () => {
+        setIsSubmitting(true);
+        try {
+          await confirmFillInApplicant(clinicId, application.id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onConfirmed?.({
+            applicationId: application.id,
+            postType: 'shift',
+            audience: 'clinic',
+            counterpartName: workerName,
+            postTitle: getRoleTypeLabel(application.post_role_type),
+            shiftDateLabel: getShiftMeta(application),
+          });
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not accept',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        } finally {
+          setIsSubmitting(false);
+        }
+      },
+    });
   };
 
   const handleDecline = () => {
-    Alert.alert('Decline cover request?', `Decline ${workerName} for this fill-in?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Decline',
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            setIsSubmitting(true);
-            try {
-              await updateApplicationStatus(application.id, 'rejected');
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              onUpdated?.();
-            } catch (error) {
-              Alert.alert(
-                'Could not decline',
-                error instanceof Error ? error.message : 'Please try again.',
-              );
-            } finally {
-              setIsSubmitting(false);
-            }
-          })();
-        },
+    showConfirmActionSheet({
+      title: 'Decline cover request?',
+      message: `Decline ${workerName} for this fill-in?`,
+      confirmLabel: 'Decline',
+      destructive: true,
+      onConfirm: async () => {
+        setIsSubmitting(true);
+        try {
+          await updateApplicationStatus(application.id, 'rejected');
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not decline',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        } finally {
+          setIsSubmitting(false);
+        }
       },
-    ]);
+    });
   };
 
   return (

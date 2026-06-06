@@ -1,13 +1,16 @@
 import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
+import { getHideConversationMessage } from '@/lib/conversationHide';
 import { formatNotificationTime } from '@/lib/notificationDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -62,6 +65,8 @@ export function ConversationListItem({
   isLast = false,
 }: ConversationListItemProps) {
   const { colors } = useTheme();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const timestamp = formatNotificationTime(conversation.last_message_at ?? undefined);
   const display = formatConversationDisplay(conversation, role);
 
@@ -148,58 +153,96 @@ export function ConversationListItem({
     },
   }));
 
-  const showMenu = () => {
+  const openMenu = () => {
     if (!onDelete) return;
-
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(display.cardName, undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete from inbox', style: 'destructive', onPress: onDelete },
-    ]);
+    setMenuVisible(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    try {
+      await onDelete?.();
+    } catch (error) {
+      Alert.alert(
+        'Could not delete',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
   };
 
   return (
-    <View style={[styles.row, !isLast && styles.rowSeparator]}>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPress}
-        style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
-        <ConversationAvatar conversation={conversation} avatarKind={avatarKind} />
-        <View style={styles.textWrap}>
-          <View style={styles.titleRow}>
-            <Text style={styles.roleEyebrow} numberOfLines={1}>
-              {display.cardTitle}
+    <>
+      <View style={[styles.row, !isLast && styles.rowSeparator]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onPress}
+          style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
+          <ConversationAvatar conversation={conversation} avatarKind={avatarKind} />
+          <View style={styles.textWrap}>
+            <View style={styles.titleRow}>
+              <Text style={styles.roleEyebrow} numberOfLines={1}>
+                {display.cardTitle}
+              </Text>
+              {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+            </View>
+            <Text style={styles.name} numberOfLines={2}>
+              {display.cardName}
             </Text>
-            {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
-          </View>
-          <Text style={styles.name} numberOfLines={2}>
-            {display.cardName}
-          </Text>
-          <Text style={styles.meta} numberOfLines={2}>
-            {display.cardMeta}
-          </Text>
-          <View style={styles.titleRow}>
-            <Text style={styles.preview} numberOfLines={2}>
-              {conversation.last_message_preview ?? 'No messages yet'}
+            <Text style={styles.meta} numberOfLines={2}>
+              {display.cardMeta}
             </Text>
-            {conversation.unread ? <View style={styles.unreadDot} /> : null}
+            <View style={styles.titleRow}>
+              <Text style={styles.preview} numberOfLines={2}>
+                {conversation.last_message_preview ?? 'No messages yet'}
+              </Text>
+              {conversation.unread ? <View style={styles.unreadDot} /> : null}
+            </View>
           </View>
+        </Pressable>
+        <View style={styles.trailing}>
+          {onDelete ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Conversation options"
+              hitSlop={8}
+              onPress={openMenu}
+              style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+              <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
+            </Pressable>
+          ) : (
+            <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+          )}
         </View>
-      </Pressable>
-      <View style={styles.trailing}>
-        {onDelete ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Conversation options"
-            hitSlop={8}
-            onPress={showMenu}
-            style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
-            <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
-          </Pressable>
-        ) : (
-          <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
-        )}
       </View>
-    </View>
+
+      <ActionMenuSheet
+        visible={menuVisible}
+        title={display.cardName}
+        actions={[
+          {
+            label: 'Delete from inbox',
+            destructive: true,
+            onPress: () => setConfirmVisible(true),
+          },
+        ]}
+        onClose={() => setMenuVisible(false)}
+      />
+
+      <ActionMenuSheet
+        visible={confirmVisible}
+        title="Delete conversation?"
+        message={getHideConversationMessage(conversation)}
+        actions={[
+          {
+            label: 'Delete',
+            destructive: true,
+            onPress: () => {
+              void handleDeleteConfirmed();
+            },
+          },
+        ]}
+        onClose={() => setConfirmVisible(false)}
+      />
+    </>
   );
 }
