@@ -1,8 +1,5 @@
 import { getSupabaseClient } from './client';
-import {
-  DELETED_CANDIDATE_LABEL,
-  DELETED_CLINIC_LABEL,
-} from '@chairside/config';
+import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
 import {
   getApplicationScreening,
   getApplicationScreeningMap,
@@ -108,11 +105,16 @@ export type WorkerApplication = Application & {
   screening: ApplicationScreening | null;
 };
 
-function formatWorkerClinicLocation(clinic: {
-  address_line1?: string | null;
-  city?: string | null;
-  province?: string | null;
-} | null | undefined): string | null {
+function formatWorkerClinicLocation(
+  clinic:
+    | {
+        address_line1?: string | null;
+        city?: string | null;
+        province?: string | null;
+      }
+    | null
+    | undefined,
+): string | null {
   if (!clinic) return null;
 
   const parts = [
@@ -159,9 +161,8 @@ function resolveWorkerClinicFields(
       clinic_city: application.clinic_city ?? null,
       clinic_province: application.clinic_province ?? null,
       clinic_address: null,
-      clinic_location: [application.clinic_city, application.clinic_province]
-        .filter(Boolean)
-        .join(', ') || null,
+      clinic_location:
+        [application.clinic_city, application.clinic_province].filter(Boolean).join(', ') || null,
       clinic_logo_storage_path: null,
       clinic_account_deleted: true,
     };
@@ -435,9 +436,7 @@ async function enrichWorkerApplication(
 ): Promise<WorkerApplication | null> {
   const supabase = getSupabaseClient();
   const screening =
-    application.job_post_id != null
-      ? await getApplicationScreening(application.id)
-      : null;
+    application.job_post_id != null ? await getApplicationScreening(application.id) : null;
 
   if (application.job_post_id) {
     const { data: job, error: jobError } = await supabase
@@ -678,8 +677,7 @@ export async function listJobApplicationSummaries(
         pending_count: application.status === 'applied' ? 1 : 0,
         shortlisted_count: application.status === 'in_progress' ? 1 : 0,
         interview_count:
-          application.status === 'interview_offered' ||
-          application.status === 'interview_scheduled'
+          application.status === 'interview_offered' || application.status === 'interview_scheduled'
             ? 1
             : 0,
       });
@@ -906,9 +904,7 @@ export async function declineApplicationInterview(
   return row;
 }
 
-export async function cancelApplicationInterviewOffer(
-  applicationId: string,
-): Promise<Application> {
+export async function cancelApplicationInterviewOffer(applicationId: string): Promise<Application> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('applications')
@@ -1205,9 +1201,7 @@ export async function listUpcomingConfirmedFillIns(
 
   const today = new Date().toISOString().slice(0, 10);
   const shiftMap = new Map(
-    shifts
-      .filter((shift) => shift.shift_date >= today)
-      .map((shift) => [shift.id, shift]),
+    shifts.filter((shift) => shift.shift_date >= today).map((shift) => [shift.id, shift]),
   );
 
   if (shiftMap.size === 0) return [];
@@ -1215,7 +1209,9 @@ export async function listUpcomingConfirmedFillIns(
   const shiftIds = [...shiftMap.keys()];
   const { data, error } = await supabase
     .from('applications')
-    .select('id, shift_post_id, status, worker_display_name, worker_photo_storage_path, worker_account_deleted_at')
+    .select(
+      'id, shift_post_id, status, worker_display_name, worker_photo_storage_path, worker_account_deleted_at',
+    )
     .in('shift_post_id', shiftIds)
     .eq('status', 'hired')
     .order('created_at', { ascending: false });
@@ -1235,7 +1231,7 @@ export async function listUpcomingConfirmedFillIns(
         : row.worker_display_name?.trim() || 'Applicant',
       workerPhotoStoragePath: row.worker_account_deleted_at
         ? null
-        : row.worker_photo_storage_path ?? null,
+        : (row.worker_photo_storage_path ?? null),
       postTitle: `Fill-in · ${shift.shift_date}`,
       shiftDate: shift.shift_date,
       startTime: shift.start_time,

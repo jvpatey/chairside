@@ -31,6 +31,47 @@ function countRolePostingFilterChanges(
   );
 }
 
+type RoleTypeFiltersProps = {
+  roleTypeFilter: RoleTypeFilter;
+  onRoleTypeChange: (value: RoleTypeFilter) => void;
+  accessibilityLabel?: string;
+  sheetTitle?: string;
+};
+
+export function RoleTypeFilters({
+  roleTypeFilter,
+  onRoleTypeChange,
+  accessibilityLabel = 'Filter by role type',
+  sheetTitle = 'Filter by role',
+}: RoleTypeFiltersProps) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const defaultRoleType: RoleTypeFilter = 'all';
+  const activeCount = roleTypeFilter === defaultRoleType ? 0 : 1;
+
+  return (
+    <>
+      <FilterTriggerButton
+        activeCount={activeCount}
+        onPress={() => setSheetOpen(true)}
+        accessibilityLabel={accessibilityLabel}
+      />
+      <FilterSheet
+        visible={sheetOpen}
+        title={sheetTitle}
+        onClose={() => setSheetOpen(false)}
+        onReset={() => onRoleTypeChange(defaultRoleType)}
+      >
+        <FilterSheetSection
+          label="Role type"
+          options={ROLE_TYPE_FILTER_OPTIONS}
+          selected={roleTypeFilter}
+          onChange={onRoleTypeChange}
+        />
+      </FilterSheet>
+    </>
+  );
+}
+
 export function RolePostingFilters({
   statusFilter,
   roleTypeFilter,

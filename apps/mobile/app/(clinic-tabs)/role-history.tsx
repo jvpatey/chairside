@@ -7,17 +7,18 @@ import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 
+import { RoleTypeFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
-import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  COMPACT_ROLE_TYPE_FILTER_OPTIONS,
   filterArchivedJobPosts,
   filterFilledJobPosts,
+  isArchivedJob,
+  isFilledJob,
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
 import { getClinicRoleApplicationsRoute, getJobDetailRoute } from '@/lib/routing';
@@ -144,13 +145,17 @@ export default function RoleHistoryScreen() {
     [jobs, roleTypeFilter],
   );
 
+  const hasHistory = useMemo(
+    () => jobs.some((job) => isArchivedJob(job) || isFilledJob(job)),
+    [jobs],
+  );
+
+  const showRoleFilter = !isLoading && hasHistory;
+
   const styles = useThemedStyles(({ spacing, typography }) => ({
     content: {
       gap: spacing.lg,
       paddingBottom: spacing.xl,
-    },
-    filterWrap: {
-      gap: spacing.sm,
     },
     loading: typography.subtitle,
   }));
@@ -205,22 +210,22 @@ export default function RoleHistoryScreen() {
           title="Role history"
           subtitle="Archived and filled roles"
           onBack={() => router.back()}
+          accessory={
+            showRoleFilter ? (
+              <RoleTypeFilters
+                roleTypeFilter={roleTypeFilter}
+                onRoleTypeChange={setRoleTypeFilter}
+                accessibilityLabel="Filter role history"
+                sheetTitle="Filter role history"
+              />
+            ) : undefined
+          }
         />
 
         {isLoading ? (
           <Text style={styles.loading}>Loading role history…</Text>
         ) : (
           <>
-            <View style={styles.filterWrap}>
-              <ChipSelector
-                horizontal
-                compact
-                options={COMPACT_ROLE_TYPE_FILTER_OPTIONS}
-                selected={roleTypeFilter}
-                onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
-              />
-            </View>
-
             <HistorySection
               title="Archived"
               helper="Roles you archived. Post again when the same position opens up."

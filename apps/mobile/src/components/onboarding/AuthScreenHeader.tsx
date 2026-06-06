@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { useThemedStyles } from '@/theme';
@@ -7,6 +8,8 @@ type AuthScreenHeaderProps = {
   subtitle?: string;
   onBack?: () => void;
   backLabel?: string;
+  /** Renders beside the title block (e.g. filter control). */
+  accessory?: ReactNode;
 };
 
 export function AuthScreenHeader({
@@ -14,6 +17,7 @@ export function AuthScreenHeader({
   subtitle,
   onBack,
   backLabel = 'Back',
+  accessory,
 }: AuthScreenHeaderProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -31,6 +35,16 @@ export function AuthScreenHeader({
       fontSize: 16,
       fontWeight: '600',
       color: colors.primary,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    titleBlock: {
+      flex: 1,
+      gap: spacing.sm,
     },
     title: {
       ...typography.title,
@@ -55,8 +69,15 @@ export function AuthScreenHeader({
       ) : (
         <View style={styles.placeholder} />
       )}
-      {title ? <Text style={styles.title}>{title}</Text> : null}
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {title || subtitle || accessory ? (
+        <View style={styles.titleRow}>
+          <View style={styles.titleBlock}>
+            {title ? <Text style={styles.title}>{title}</Text> : null}
+            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          </View>
+          {accessory}
+        </View>
+      ) : null}
     </View>
   );
 }

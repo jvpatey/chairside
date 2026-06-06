@@ -136,9 +136,6 @@ export default function ClinicPostingsScreen() {
       ...typography.subtitle,
       fontSize: 13,
     },
-    filterRow: {
-      alignItems: 'flex-end',
-    },
   }));
 
   const load = useCallback(async () => {
@@ -185,9 +182,22 @@ export default function ClinicPostingsScreen() {
 
   const postTarget = CLINIC_POST_JOB;
   const postLabel = 'Post role';
+  const showRoleFilters = !isLoading && mainListJobs.length > 0;
 
   return (
-    <Screen title="Postings" subtitle="Open roles at your clinic.">
+    <Screen
+      title="Postings"
+      subtitle="Open roles at your clinic."
+      headerAccessory={
+        showRoleFilters ? (
+          <RolePostingFilters
+            statusFilter={jobStatusFilter}
+            roleTypeFilter={jobRoleTypeFilter}
+            onStatusChange={setJobStatusFilter}
+            onRoleTypeChange={setJobRoleTypeFilter}
+          />
+        ) : undefined
+      }>
       <View style={styles.wrap}>
         <OnboardingButton
           label={postLabel}
@@ -199,17 +209,6 @@ export default function ClinicPostingsScreen() {
           <Text style={styles.loading}>Loading postings…</Text>
         ) : (
           <>
-            {mainListJobs.length > 0 ? (
-              <View style={styles.filterRow}>
-                <RolePostingFilters
-                  statusFilter={jobStatusFilter}
-                  roleTypeFilter={jobRoleTypeFilter}
-                  onStatusChange={setJobStatusFilter}
-                  onRoleTypeChange={setJobRoleTypeFilter}
-                />
-              </View>
-            ) : null}
-
             {jobs.length === 0 ? (
               <PostingListEmptyState
                 icon="briefcase-outline"

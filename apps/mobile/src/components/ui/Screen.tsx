@@ -11,6 +11,8 @@ type ScreenProps = {
   children?: ReactNode;
   showHeader?: boolean;
   showNotifications?: boolean;
+  /** Renders in the top header row, left of the notification bell. */
+  headerAccessory?: ReactNode;
 };
 
 export function Screen({
@@ -19,6 +21,7 @@ export function Screen({
   children,
   showHeader = true,
   showNotifications = true,
+  headerAccessory,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -41,6 +44,11 @@ export function Screen({
       gap: spacing.sm,
     },
     headerText: { flex: 1, gap: spacing.sm },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
     headerHidden: {
       marginBottom: 0,
     },
@@ -63,7 +71,12 @@ export function Screen({
               {title ? <Text style={styles.title}>{title}</Text> : null}
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
-            {showNotifications ? <NotificationBell /> : null}
+            {headerAccessory || showNotifications ? (
+              <View style={styles.headerActions}>
+                {headerAccessory}
+                {showNotifications ? <NotificationBell /> : null}
+              </View>
+            ) : null}
           </View>
         ) : null}
       </View>
