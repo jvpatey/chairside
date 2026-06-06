@@ -55,3 +55,14 @@ export function formatShiftDateLabel(date: Date): string {
 export function todayISO(): string {
   return toISODate(startOfDay(new Date()));
 }
+
+export function formatPostedDateLabel(isoTimestamp: string | null | undefined): string {
+  if (!isoTimestamp) return '';
+  const date = new Date(isoTimestamp);
+  if (Number.isNaN(date.getTime())) return '';
+  return `Posted ${date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })}`;
+}

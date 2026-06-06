@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { FilterSheet, FilterSheetSection } from '@/components/ui/FilterSheet';
 import { FilterTriggerButton } from '@/components/ui/FilterTriggerButton';
 import {
+  JOB_POSTED_SORT_OPTIONS,
   JOB_STATUS_FILTER_OPTIONS,
   ROLE_TYPE_FILTER_OPTIONS,
   SHIFT_DATE_FILTER_OPTIONS,
   SHIFT_STATUS_FILTER_OPTIONS,
+  type JobPostedSort,
   type JobStatusFilter,
   type RoleTypeFilter,
   type ShiftDateFilter,
@@ -66,6 +68,60 @@ export function RoleTypeFilters({
           options={ROLE_TYPE_FILTER_OPTIONS}
           selected={roleTypeFilter}
           onChange={onRoleTypeChange}
+        />
+      </FilterSheet>
+    </>
+  );
+}
+
+type WorkerRoleBrowseFiltersProps = {
+  roleTypeFilter: RoleTypeFilter;
+  postedSort: JobPostedSort;
+  onRoleTypeChange: (value: RoleTypeFilter) => void;
+  onPostedSortChange: (value: JobPostedSort) => void;
+};
+
+export function WorkerRoleBrowseFilters({
+  roleTypeFilter,
+  postedSort,
+  onRoleTypeChange,
+  onPostedSortChange,
+}: WorkerRoleBrowseFiltersProps) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const defaults = { roleTypeFilter: 'all' as RoleTypeFilter, postedSort: 'newest' as JobPostedSort };
+  const activeCount =
+    (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
+    (postedSort === defaults.postedSort ? 0 : 1);
+
+  const handleReset = () => {
+    onRoleTypeChange(defaults.roleTypeFilter);
+    onPostedSortChange(defaults.postedSort);
+  };
+
+  return (
+    <>
+      <FilterTriggerButton
+        activeCount={activeCount}
+        onPress={() => setSheetOpen(true)}
+        accessibilityLabel="Filter roles"
+      />
+      <FilterSheet
+        visible={sheetOpen}
+        title="Filter roles"
+        onClose={() => setSheetOpen(false)}
+        onReset={handleReset}
+      >
+        <FilterSheetSection
+          label="Role type"
+          options={ROLE_TYPE_FILTER_OPTIONS}
+          selected={roleTypeFilter}
+          onChange={onRoleTypeChange}
+        />
+        <FilterSheetSection
+          label="Date posted"
+          options={JOB_POSTED_SORT_OPTIONS}
+          selected={postedSort}
+          onChange={onPostedSortChange}
         />
       </FilterSheet>
     </>

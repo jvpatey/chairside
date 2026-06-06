@@ -13,6 +13,11 @@ type BrowseListRowProps = {
   title: string;
   meta?: string | null;
   detail?: string | null;
+  postedLabel?: string | null;
+  /** Renders below the text block, aligned with the title column. */
+  textFooter?: ReactNode;
+  /** Renders on its own line at the bottom of the card content. */
+  statusFooter?: ReactNode;
   /** Renders in the top-right, aligned with the title row. */
   topTrailing?: ReactNode;
   trailing?: ReactNode;
@@ -28,6 +33,9 @@ export function BrowseListRow({
   title,
   meta,
   detail,
+  postedLabel,
+  textFooter,
+  statusFooter,
   topTrailing,
   trailing,
   footer,
@@ -78,6 +86,16 @@ export function BrowseListRow({
       gap: spacing.xs,
       marginTop: spacing.xs,
     },
+    textFooter: {
+      marginTop: spacing.xs,
+      alignSelf: 'flex-start',
+    },
+    statusFooterRow: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.md,
+      paddingTop: spacing.xs,
+      alignSelf: 'stretch',
+    },
     trailingCol: {
       flexShrink: 0,
       alignItems: 'flex-end',
@@ -95,7 +113,7 @@ export function BrowseListRow({
     },
   }));
 
-  const content = (
+  const mainRow = (
     <>
       {avatar}
       <View style={styles.textWrap}>
@@ -117,7 +135,13 @@ export function BrowseListRow({
             {detail}
           </Text>
         ) : null}
+        {postedLabel ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {postedLabel}
+          </Text>
+        ) : null}
         {footer ? <View style={styles.footer}>{footer}</View> : null}
+        {textFooter ? <View style={styles.textFooter}>{textFooter}</View> : null}
       </View>
       {topTrailing || trailing || showChevron ? (
         <View style={[styles.trailingCol, !topTrailing && styles.trailingColCentered]}>
@@ -135,7 +159,14 @@ export function BrowseListRow({
     </>
   );
 
-  const rowStyle = [styles.row, !isLast && styles.rowSeparator];
+  const content = (
+    <>
+      <View style={[styles.row, statusFooter ? { paddingBottom: 0 } : null]}>{mainRow}</View>
+      {statusFooter ? <View style={styles.statusFooterRow}>{statusFooter}</View> : null}
+    </>
+  );
+
+  const rowStyle = [!isLast && styles.rowSeparator];
 
   if (!onPress) {
     return <View style={rowStyle}>{content}</View>;

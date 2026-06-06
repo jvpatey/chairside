@@ -216,6 +216,43 @@ export default function FillInsScreen() {
       <Screen title="Fill-ins" subtitle="Temporary shifts, your availability, and applications.">
         <View style={styles.content}>
           <ScreenSection
+            sectionLabel="Your availability"
+            description="Let clinics know when you're available to cover fill-in shifts."
+            collapsible
+            subtitle="Manage fill-in alerts, SMS, and your weekly schedule."
+            collapsedSummary={availabilityCollapsedSummary}
+            defaultExpanded={!availabilityConfigured}
+            collapsedActionLabel="Edit schedule"
+            onCollapsedActionPress={navigateToEditSchedule}
+            contentStyle={styles.availabilityCardBody}
+          >
+            <FillInModePanel variant="grouped" />
+            <RowDivider />
+            <View
+              style={[styles.scheduleSection, !fillInsAvailable && styles.scheduleSectionMuted]}
+            >
+              <View style={styles.scheduleHeader}>
+                <Text style={styles.scheduleLabel}>Weekly schedule</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  style={styles.scheduleEdit}
+                  onPress={navigateToEditSchedule}
+                >
+                  <Text style={styles.scheduleEditLabel}>Edit schedule</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                </Pressable>
+              </View>
+              {!fillInsAvailable ? (
+                <Text style={styles.scheduleHint}>
+                  Turn on fill-ins above to use your schedule for day-matched alerts.
+                </Text>
+              ) : null}
+              <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
+            </View>
+          </ScreenSection>
+
+          <ScreenSection
             sectionLabel="Open shifts"
             description="Open temp shifts in your province — request to cover the ones that fit your schedule."
           >
@@ -321,43 +358,6 @@ export default function FillInsScreen() {
                 ) : null}
               </View>
             )}
-          </ScreenSection>
-
-          <ScreenSection
-            sectionLabel="Your availability"
-            description="Let clinics know when you're available to cover fill-in shifts."
-            collapsible
-            subtitle="Manage fill-in alerts, SMS, and your weekly schedule."
-            collapsedSummary={availabilityCollapsedSummary}
-            defaultExpanded={!availabilityConfigured}
-            collapsedActionLabel="Edit schedule"
-            onCollapsedActionPress={navigateToEditSchedule}
-            contentStyle={styles.availabilityCardBody}
-          >
-            <FillInModePanel variant="grouped" />
-            <RowDivider />
-            <View
-              style={[styles.scheduleSection, !fillInsAvailable && styles.scheduleSectionMuted]}
-            >
-              <View style={styles.scheduleHeader}>
-                <Text style={styles.scheduleLabel}>Weekly schedule</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  style={styles.scheduleEdit}
-                  onPress={navigateToEditSchedule}
-                >
-                  <Text style={styles.scheduleEditLabel}>Edit schedule</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                </Pressable>
-              </View>
-              {!fillInsAvailable ? (
-                <Text style={styles.scheduleHint}>
-                  Turn on fill-ins above to use your schedule for day-matched alerts.
-                </Text>
-              ) : null}
-              <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
-            </View>
           </ScreenSection>
         </View>
       </Screen>

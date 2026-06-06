@@ -56,27 +56,18 @@ export default function WorkerExperienceScreen() {
   }, [workerProfile]);
 
   const handleContinue = async () => {
-    const years = yearsOfExperience.trim() ? Number(yearsOfExperience) : NaN;
-    const gradYear = graduationYear.trim() ? Number(graduationYear) : NaN;
+    const years = yearsOfExperience.trim() ? Number(yearsOfExperience) : null;
+    const gradYear = graduationYear.trim() ? Number(graduationYear) : null;
 
-    if (!Number.isFinite(years) || years < 0) {
-      Alert.alert('Missing information', 'Enter your years of experience.');
+    if (years != null && (!Number.isFinite(years) || years < 0)) {
+      Alert.alert('Invalid information', 'Enter a valid number of years of experience.');
       return;
     }
-    if (!Number.isFinite(gradYear) || gradYear < 1950 || gradYear > CURRENT_YEAR + 1) {
-      Alert.alert('Missing information', 'Enter a valid graduation year.');
-      return;
-    }
-    if (!degreeType) {
-      Alert.alert('Missing information', 'Select your degree or credential type.');
-      return;
-    }
-    if (!fieldOfStudy.trim()) {
-      Alert.alert('Missing information', 'Enter your field of study.');
-      return;
-    }
-    if (!institution.trim()) {
-      Alert.alert('Missing information', 'Enter your university or college.');
+    if (
+      gradYear != null &&
+      (!Number.isFinite(gradYear) || gradYear < 1950 || gradYear > CURRENT_YEAR + 1)
+    ) {
+      Alert.alert('Invalid information', 'Enter a valid graduation year.');
       return;
     }
 
@@ -86,8 +77,8 @@ export default function WorkerExperienceScreen() {
         years_of_experience: years,
         education_graduation_year: gradYear,
         education_degree_type: degreeType,
-        education_field: fieldOfStudy.trim(),
-        education_institution: institution.trim(),
+        education_field: fieldOfStudy.trim() || null,
+        education_institution: institution.trim() || null,
         education: null,
       });
       router.push(WORKER_SETUP_SKILLS);
@@ -121,7 +112,7 @@ export default function WorkerExperienceScreen() {
       />
       <View style={styles.form}>
         <AuthField
-          label="Years of experience"
+          label="Years of experience (optional)"
           placeholder="Years"
           value={yearsOfExperience}
           onChangeText={setYearsOfExperience}
@@ -129,8 +120,8 @@ export default function WorkerExperienceScreen() {
         />
 
         <View style={styles.section}>
-          <Text style={styles.label}>Education</Text>
-          <Text style={styles.hint}>Your highest relevant credential.</Text>
+          <Text style={styles.label}>Education (optional)</Text>
+          <Text style={styles.hint}>Your highest relevant credential, if applicable.</Text>
           <View style={styles.educationBlock}>
             <AuthField
               label="Graduation year"

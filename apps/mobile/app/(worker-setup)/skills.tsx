@@ -46,15 +46,6 @@ export default function WorkerSkillsScreen() {
   }, [workerProfile]);
 
   const handleContinue = async () => {
-    if (softwareUsed.length === 0) {
-      Alert.alert('Missing information', 'Select at least one software system.');
-      return;
-    }
-    if (!travelRadiusRange) {
-      Alert.alert('Missing information', 'Select how far you are willing to travel.');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await save({
@@ -95,7 +86,7 @@ export default function WorkerSkillsScreen() {
       />
       <View style={styles.form}>
         <View style={styles.section}>
-          <Text style={styles.label}>Software familiarity</Text>
+          <Text style={styles.label}>Software familiarity (optional)</Text>
           <ChipSelector
             options={SOFTWARE_OPTIONS.map((item) => ({ value: item, label: item }))}
             selected={softwareUsed}
@@ -124,7 +115,7 @@ export default function WorkerSkillsScreen() {
           />
         </View>
         <View style={styles.section}>
-          <Text style={styles.label}>Travel distance</Text>
+          <Text style={styles.label}>Travel distance (optional)</Text>
           <Text style={styles.hint}>How far you are willing to commute for work.</Text>
           <ChipSelector
             options={[...TRAVEL_RADIUS_RANGE_OPTIONS]}

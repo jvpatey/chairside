@@ -12,6 +12,23 @@ export type ShiftDateFilter = 'all' | 'today' | 'upcoming' | 'past';
 
 export type RoleTypeFilter = 'all' | RoleType;
 
+export type JobPostedSort = 'newest' | 'oldest';
+
+export const JOB_POSTED_SORT_OPTIONS: { value: JobPostedSort; label: string }[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+];
+
+export function sortJobsByPostedDate<T extends { created_at: string }>(
+  jobs: T[],
+  sort: JobPostedSort,
+): T[] {
+  return [...jobs].sort((a, b) => {
+    const compare = b.created_at.localeCompare(a.created_at);
+    return sort === 'newest' ? compare : -compare;
+  });
+}
+
 export const JOB_STATUS_FILTER_OPTIONS: { value: JobStatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'live', label: 'Live' },

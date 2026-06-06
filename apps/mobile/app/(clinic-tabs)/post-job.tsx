@@ -11,7 +11,7 @@ import {
   EMPLOYMENT_TYPE_OPTIONS,
   ROLE_TYPE_OPTIONS,
 } from '@chairside/config';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { CLINIC_POSTINGS } from '@/lib/routing';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -58,6 +58,19 @@ function applyJobToForm(job: JobPostWithScreening) {
   };
 }
 
+const DEFAULT_CREATE_FORM = {
+  roleType: 'hygienist' as RoleType,
+  employmentType: 'permanent' as EmploymentType,
+  title: '',
+  wageRange: '',
+  schedule: '',
+  offerings: [] as string[],
+  description: '',
+  screeningEnabled: false,
+  selectedCatalogSlugs: [] as string[],
+  customQuestions: [] as CustomScreeningQuestion[],
+};
+
 export default function PostJobScreen() {
   const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -87,6 +100,28 @@ export default function PostJobScreen() {
     },
     loading: typography.subtitle,
   }));
+
+  const resetForm = useCallback(() => {
+    setRoleType(DEFAULT_CREATE_FORM.roleType);
+    setEmploymentType(DEFAULT_CREATE_FORM.employmentType);
+    setTitle(DEFAULT_CREATE_FORM.title);
+    setWageRange(DEFAULT_CREATE_FORM.wageRange);
+    setSchedule(DEFAULT_CREATE_FORM.schedule);
+    setOfferings(DEFAULT_CREATE_FORM.offerings);
+    setDescription(DEFAULT_CREATE_FORM.description);
+    setScreeningEnabled(DEFAULT_CREATE_FORM.screeningEnabled);
+    setSelectedCatalogSlugs(DEFAULT_CREATE_FORM.selectedCatalogSlugs);
+    setCustomQuestions(DEFAULT_CREATE_FORM.customQuestions);
+    setFormKey((current) => current + 1);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isEditing) {
+        resetForm();
+      }
+    }, [isEditing, resetForm]),
+  );
 
   const loadJob = useCallback(async () => {
     if (!jobId || !user?.id) {
@@ -168,6 +203,7 @@ export default function PostJobScreen() {
           offerings: offerings.length > 0 ? offerings : undefined,
           status: 'live',
         });
+        resetForm();
         router.replace(CLINIC_POSTINGS);
       }
     } catch (error) {

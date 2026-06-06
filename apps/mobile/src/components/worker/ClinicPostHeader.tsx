@@ -12,6 +12,9 @@ type ClinicPostHeaderProps = {
   title?: string;
   location?: string | null;
   detail?: string | null;
+  postedLabel?: string | null;
+  /** Renders on its own line at the bottom of the card. */
+  statusFooter?: ReactNode;
   accessory?: ReactNode;
   /** Renders below the title block, aligned with the text column. */
   textFooter?: ReactNode;
@@ -26,6 +29,8 @@ export function ClinicPostHeader({
   title,
   location,
   detail,
+  postedLabel,
+  statusFooter,
   accessory,
   textFooter,
   footer,
@@ -96,6 +101,9 @@ export function ClinicPostHeader({
     footer: {
       gap: spacing.sm,
     },
+    statusFooter: {
+      alignSelf: 'flex-start',
+    },
   }));
 
   return (
@@ -129,6 +137,11 @@ export function ClinicPostHeader({
                   {detail}
                 </Text>
               ) : null}
+              {postedLabel ? (
+                <Text style={styles.meta} numberOfLines={1}>
+                  {postedLabel}
+                </Text>
+              ) : null}
             </View>
             {accessory ? (
               <View style={[styles.accessory, stackedAccessory && styles.accessoryStack]}>
@@ -141,6 +154,9 @@ export function ClinicPostHeader({
       </View>
       {footer ? (
         <View style={[styles.footer, { paddingLeft: footerInset }]}>{footer}</View>
+      ) : null}
+      {statusFooter ? (
+        <View style={[styles.statusFooter, { paddingLeft: footerInset }]}>{statusFooter}</View>
       ) : null}
     </View>
   );

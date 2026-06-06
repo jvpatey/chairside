@@ -4,14 +4,18 @@ import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
+import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
 import { Screen } from '@/components/ui/Screen';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
+import {
+  sortJobsByPostedDate,
+  type JobPostedSort,
+  type RoleTypeFilter,
+} from '@/lib/postingFilters';
 import {
   buildLiveJobMatchDisplayContext,
   computeJobMatchBreakdown,
@@ -62,6 +66,7 @@ export default function BrowseScreen() {
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
+  const [postedSort, setPostedSort] = useState<JobPostedSort>('newest');
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -84,32 +89,48 @@ export default function BrowseScreen() {
   useRefreshOnFocus(load);
 
   const filteredJobs = useMemo(() => {
-    if (roleTypeFilter === 'all') return jobs;
-    return jobs.filter((job) => job.role_type === roleTypeFilter);
-  }, [jobs, roleTypeFilter]);
+    const byRole =
+      roleTypeFilter === 'all'
+        ? jobs
+        : jobs.filter((job) => job.role_type === roleTypeFilter);
+    return sortJobsByPostedDate(byRole, postedSort);
+  }, [jobs, postedSort, roleTypeFilter]);
 
-  const roleFilterOptions = COMPACT_ROLE_TYPE_FILTER_OPTIONS;
-
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ spacing, typography }) => ({
     wrap: { gap: spacing.lg },
+    loading: typography.subtitle,
   }));
 
-  return (
-    <Screen title="Roles" subtitle="Open roles at clinics in your province.">
-      <View style={styles.wrap}>
-        <ChipSelector
-          options={roleFilterOptions}
-          selected={roleTypeFilter}
-          onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
-          horizontal
-          compact
-        />
+  const showRoleFilters = !isLoading && jobs.length > 0;
 
-        {filteredJobs.length === 0 && !isLoading ? (
+  return (
+    <Screen
+      title="Roles"
+      subtitle="Open roles at clinics in your province."
+      headerAccessory={
+        showRoleFilters ? (
+          <WorkerRoleBrowseFilters
+            roleTypeFilter={roleTypeFilter}
+            postedSort={postedSort}
+            onRoleTypeChange={setRoleTypeFilter}
+            onPostedSortChange={setPostedSort}
+          />
+        ) : undefined
+      }>
+      <View style={styles.wrap}>
+        {isLoading ? (
+          <Text style={styles.loading}>Loading roles…</Text>
+        ) : jobs.length === 0 ? (
           <BrowseEmptyState
             icon="briefcase-outline"
             title="No open roles"
             body="Check back soon for new opportunities in your province."
+          />
+        ) : filteredJobs.length === 0 ? (
+          <BrowseEmptyState
+            icon="filter-outline"
+            title="No roles in this filter"
+            body="Try a different filter or check back soon for new opportunities."
           />
         ) : (
           <BrowseListGroup>
