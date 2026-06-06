@@ -47,6 +47,8 @@ import {
 } from '@/lib/calendarInvite';
 import {
   getWorkerApplicationMessagesRoute,
+  getWorkerJobDetailRoute,
+  getWorkerShiftDetailRoute,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
@@ -201,6 +203,28 @@ export function WorkerApplicationDetailCard({
   const handleMessage = () => {
     router.push(getWorkerApplicationMessagesRoute(application.id, returnTo));
   };
+
+  const handleViewPosting = () => {
+    if (onViewPosting) {
+      onViewPosting();
+      return;
+    }
+    if (application.post_type === 'job' && application.job_post_id) {
+      router.push(getWorkerJobDetailRoute(application.job_post_id));
+      return;
+    }
+    if (application.post_type === 'shift' && application.shift_post_id) {
+      router.push(getWorkerShiftDetailRoute(application.shift_post_id));
+    }
+  };
+
+  const canViewPosting =
+    !clinicDeleted &&
+    Boolean(
+      onViewPosting ||
+        (application.post_type === 'job' && application.job_post_id) ||
+        (application.post_type === 'shift' && application.shift_post_id),
+    );
 
   const interviewSummary = formatInterviewDateTime(
     application.interview_at,
@@ -386,8 +410,8 @@ export function WorkerApplicationDetailCard({
     {
       key: 'posting',
       label: application.post_type === 'job' ? 'View role' : 'View shift',
-      onPress: () => onViewPosting?.(),
-      disabled: !onViewPosting || clinicDeleted,
+      onPress: handleViewPosting,
+      disabled: !canViewPosting,
     },
   ];
 

@@ -470,7 +470,7 @@ export function DashboardOverviewPanel({
           <DashboardEmptyState message="No live fill-in shifts yet. Post a fill-in to get started." />
         ) : (
           <View style={styles.list}>
-            {confirmedFillIns.length > 0 ? (
+                {confirmedFillIns.length > 0 ? (
               <View style={styles.subsection}>
                 <Text style={styles.subsectionTitle}>Upcoming confirmed</Text>
                 {confirmedFillIns.map((row) => (

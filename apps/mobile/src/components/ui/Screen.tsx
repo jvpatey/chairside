@@ -1,8 +1,10 @@
 import { ReactNode } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useThemedStyles } from '@/theme';
 
 type ScreenProps = {
@@ -13,6 +15,9 @@ type ScreenProps = {
   showNotifications?: boolean;
   /** Renders in the top header row, left of the notification bell. */
   headerAccessory?: ReactNode;
+  /** When true (default), constrain and center content on tablet widths. */
+  constrainWidth?: boolean;
+  contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
 export function Screen({
@@ -22,8 +27,15 @@ export function Screen({
   showHeader = true,
   showNotifications = true,
   headerAccessory,
+  constrainWidth = true,
+  contentContainerStyle,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
+  const { contentMaxWidth, isTablet } = useResponsiveLayout();
+  const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
+  const topPadding =
+    isTablet && !showHeader ? insets.top + TABLET_TOP_INSET_EXTRA : insets.top + 16;
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       flex: 1,
@@ -32,6 +44,10 @@ export function Screen({
     content: {
       flexGrow: 1,
       paddingHorizontal: spacing.lg,
+      width: '100%',
+      ...(constrainWidth && contentMaxWidth
+        ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const }
+        : {}),
     },
     header: {
       gap: spacing.sm,
@@ -52,6 +68,9 @@ export function Screen({
     headerHidden: {
       marginBottom: 0,
     },
+    headerCompact: {
+      marginBottom: spacing.sm,
+    },
     title: typography.title,
     subtitle: typography.subtitle,
   }));
@@ -61,16 +80,27 @@ export function Screen({
       style={styles.container}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
+        { paddingTop: topPadding, paddingBottom: insets.bottom + 24 },
+        contentContainerStyle,
       ]}
     >
-      <View style={[styles.header, !showHeader && styles.headerHidden]}>
-        {showHeader ? (
+      <View
+        style={[
+          styles.header,
+          !showTopBar && styles.headerHidden,
+          !showHeader && showTopBar && styles.headerCompact,
+        ]}
+      >
+        {showTopBar ? (
           <View style={styles.headerRow}>
-            <View style={styles.headerText}>
-              {title ? <Text style={styles.title}>{title}</Text> : null}
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-            </View>
+            {showHeader ? (
+              <View style={styles.headerText}>
+                {title ? <Text style={styles.title}>{title}</Text> : null}
+                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+              </View>
+            ) : (
+              <View style={styles.headerText} />
+            )}
             {headerAccessory || showNotifications ? (
               <View style={styles.headerActions}>
                 {headerAccessory}

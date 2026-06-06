@@ -1,0 +1,51 @@
+import { Platform } from 'react-native';
+
+import { TABLET_SIDEBAR_WIDTH } from '@/components/navigation/TabletSidebar';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { useTheme } from '@/theme';
+
+export function useAdaptiveTabScreenOptions() {
+  const { colors } = useTheme();
+  const { isTablet } = useResponsiveLayout();
+
+  const shared = {
+    tabBarActiveTintColor: colors.primary,
+    tabBarInactiveTintColor: colors.tabInactive,
+    headerShown: false,
+    sceneStyle: {
+      backgroundColor: colors.backgroundGrouped,
+    },
+  };
+
+  if (isTablet) {
+    return {
+      ...shared,
+      safeAreaInsets: { top: 0, bottom: 0, left: 0, right: 0 },
+      tabBarStyle: {
+        width: TABLET_SIDEBAR_WIDTH,
+        maxWidth: TABLET_SIDEBAR_WIDTH,
+        flexGrow: 0,
+        flexShrink: 0,
+        alignSelf: 'stretch',
+        backgroundColor: colors.surface,
+        borderRightWidth: Platform.OS === 'ios' ? 0.5 : 1,
+        borderRightColor: colors.separator,
+        paddingTop: 0,
+        paddingBottom: 0,
+      },
+    };
+  }
+
+  return {
+    ...shared,
+    tabBarStyle: {
+      backgroundColor: colors.surface,
+      borderTopColor: colors.separator,
+      ...(Platform.OS === 'ios' ? { borderTopWidth: 0.5 } : {}),
+    },
+    tabBarLabelStyle: {
+      fontSize: 10,
+      fontWeight: '500' as const,
+    },
+  };
+}

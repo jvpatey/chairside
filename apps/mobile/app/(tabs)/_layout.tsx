@@ -1,37 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
 
-import {
-  DashboardTabBarButton,
-  DashboardTabIcon,
-} from '@/components/navigation/DashboardTabBarButton';
+import { renderWorkerTabBar } from '@/components/navigation/AdaptiveTabBar';
+import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
+import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
-import { useTheme } from '@/theme';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 function WorkerTabNavigator() {
-  const { colors } = useTheme();
   const { unreadCount } = useMessageUnread();
+  const { isTablet } = useResponsiveLayout();
+  const screenOptions = useAdaptiveTabScreenOptions();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.tabInactive,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.separator,
-          ...(Platform.OS === 'ios' ? { borderTopWidth: 0.5 } : {}),
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '500',
-        },
-        headerShown: false,
-        sceneStyle: {
-          backgroundColor: colors.backgroundGrouped,
-        },
-      }}>
+    <Tabs tabBar={renderWorkerTabBar} screenOptions={screenOptions}>
       <Tabs.Screen
         name="browse"
         options={{
@@ -46,16 +28,7 @@ function WorkerTabNavigator() {
           tabBarIcon: ({ color }) => <Ionicons name="document-text" size={22} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Dashboard',
-          tabBarLabel: () => null,
-          tabBarItemStyle: { paddingVertical: 6 },
-          tabBarButton: (props) => <DashboardTabBarButton {...props} />,
-          tabBarIcon: ({ focused }) => <DashboardTabIcon focused={focused} />,
-        }}
-      />
+      <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
       <Tabs.Screen
         name="fillins"
         options={{

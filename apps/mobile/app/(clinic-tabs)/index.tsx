@@ -31,6 +31,7 @@ import {
 } from '@/components/clinic/ClinicCards';
 import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
 import { DashboardCoverRequestsCard } from '@/components/clinic/DashboardCoverRequestsCard';
+import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +39,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   CLINIC_FILL_INS,
@@ -57,6 +59,7 @@ export default function ClinicDashboardScreen() {
   const { pendingCount } = useFillInPending();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
+  const { isTablet } = useResponsiveLayout();
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
     openRoles: 0,
     fillInsPosted: 0,
@@ -190,11 +193,35 @@ export default function ClinicDashboardScreen() {
   return (
     <Screen showHeader={false} showNotifications={false}>
       <View style={styles.content}>
-        <DashboardHero
-          clinicName={clinicName}
-          province={province}
-          showLocationBadge={isProfileComplete}
-        />
+        {!isTablet ? (
+          <DashboardHero
+            clinicName={clinicName}
+            province={province}
+            showLocationBadge={isProfileComplete}
+          />
+        ) : null}
+
+        {isTablet ? (
+          <View>
+            <DashboardTabletSectionHeader title="Quick actions" />
+            <View style={styles.row}>
+              <QuickActionTile
+                label="Post a role"
+                description="Full-time or part-time hire"
+                icon="briefcase-outline"
+                variant="primary"
+                onPress={() => guardPosting(CLINIC_POST_JOB)}
+              />
+              <QuickActionTile
+                label="Post fill-in"
+                description="Temp or urgent shift"
+                icon="calendar-outline"
+                variant="secondary"
+                onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
+              />
+            </View>
+          </View>
+        ) : null}
 
         <ClinicReadinessChecklist clinicProfile={clinicProfile} />
 
@@ -224,25 +251,27 @@ export default function ClinicDashboardScreen() {
           onViewAllPress={() => router.push(getClinicMessagesRoute())}
         />
 
-        <View>
-          <SectionHeader title="Quick actions" />
-          <View style={styles.row}>
-            <QuickActionTile
-              label="Post a role"
-              description="Full-time or part-time hire"
-              icon="briefcase-outline"
-              variant="primary"
-              onPress={() => guardPosting(CLINIC_POST_JOB)}
-            />
-            <QuickActionTile
-              label="Post fill-in"
-              description="Temp or urgent shift"
-              icon="calendar-outline"
-              variant="secondary"
-              onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
-            />
+        {!isTablet ? (
+          <View>
+            <SectionHeader title="Quick actions" />
+            <View style={styles.row}>
+              <QuickActionTile
+                label="Post a role"
+                description="Full-time or part-time hire"
+                icon="briefcase-outline"
+                variant="primary"
+                onPress={() => guardPosting(CLINIC_POST_JOB)}
+              />
+              <QuickActionTile
+                label="Post fill-in"
+                description="Temp or urgent shift"
+                icon="calendar-outline"
+                variant="secondary"
+                onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
+              />
+            </View>
           </View>
-        </View>
+        ) : null}
 
         <View>
           <SectionHeader title="Overview" />
@@ -257,25 +286,25 @@ export default function ClinicDashboardScreen() {
         </View>
 
         <DashboardOverviewPanel
-          selected={selectedOverview}
-          jobs={jobs}
-          shifts={shifts}
-          confirmedFillIns={confirmedFillIns}
-          jobApplicationSummaries={jobApplicationSummaries}
-          applicantCounts={applicantCounts}
-          shiftPendingCounts={shiftPendingCounts}
-          shiftApplicationCounts={shiftApplicationCounts}
-          clinicId={user?.id}
-          fillInReturnTo="dashboard-fill-ins"
-          onJobUpdated={handleJobUpdated}
-          onJobDeleted={handleJobDeleted}
-          onShiftUpdated={handleShiftUpdated}
-          onShiftDeleted={handleShiftDeleted}
-          onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
-          onJobApplicationsPress={(jobId) =>
-            router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
-          }
-        />
+            selected={selectedOverview}
+            jobs={jobs}
+            shifts={shifts}
+            confirmedFillIns={confirmedFillIns}
+            jobApplicationSummaries={jobApplicationSummaries}
+            applicantCounts={applicantCounts}
+            shiftPendingCounts={shiftPendingCounts}
+            shiftApplicationCounts={shiftApplicationCounts}
+            clinicId={user?.id}
+            fillInReturnTo="dashboard-fill-ins"
+            onJobUpdated={handleJobUpdated}
+            onJobDeleted={handleJobDeleted}
+            onShiftUpdated={handleShiftUpdated}
+            onShiftDeleted={handleShiftDeleted}
+            onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
+            onJobApplicationsPress={(jobId) =>
+              router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
+            }
+          />
       </View>
     </Screen>
   );

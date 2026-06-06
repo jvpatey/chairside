@@ -16,7 +16,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
+import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
+import { Screen } from '@/components/ui/Screen';
 import {
   QuickActionTile,
   WorkerDashboardHero,
@@ -26,11 +28,11 @@ import {
   type WorkerOverviewStat,
 } from '@/components/worker/WorkerCards';
 import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
-import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   WORKER_BROWSE,
@@ -47,6 +49,7 @@ export default function WorkerDashboardScreen() {
   const { refreshUnread } = useMessageUnread();
   const { workerProfile } = useWorkerProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
+  const { isTablet } = useResponsiveLayout();
   const province = workerProfile?.province ?? 'NS';
   const [counts, setCounts] = useState<WorkerDashboardCounts>({
     openRolesInProvince: 0,
@@ -127,11 +130,35 @@ export default function WorkerDashboardScreen() {
   return (
     <Screen showHeader={false} showNotifications={false}>
       <View style={styles.content}>
-        <WorkerDashboardHero
-          displayName={profile?.display_name}
-          province={province}
-          showProvinceBadge={isWorkerProfileComplete(workerProfile)}
-        />
+        {!isTablet ? (
+          <WorkerDashboardHero
+            displayName={profile?.display_name}
+            province={province}
+            showProvinceBadge={isWorkerProfileComplete(workerProfile)}
+          />
+        ) : null}
+
+        {isTablet ? (
+          <View>
+            <DashboardTabletSectionHeader title="Quick actions" />
+            <View style={styles.row}>
+              <QuickActionTile
+                label="Find jobs"
+                description="Browse open roles nearby"
+                icon="briefcase-outline"
+                variant="primary"
+                onPress={() => router.push(WORKER_BROWSE)}
+              />
+              <QuickActionTile
+                label="Find fill-ins"
+                description="Browse temp shifts nearby"
+                icon="calendar-outline"
+                variant="secondary"
+                onPress={() => router.push(WORKER_FILLINS)}
+              />
+            </View>
+          </View>
+        ) : null}
 
         <WorkerReadinessChecklist workerProfile={workerProfile} />
 
@@ -156,25 +183,27 @@ export default function WorkerDashboardScreen() {
           onViewAllPress={() => router.push(getWorkerMessagesRoute())}
         />
 
-        <View>
-          <WorkerSectionHeader title="Quick actions" />
-          <View style={styles.row}>
-            <QuickActionTile
-              label="Find jobs"
-              description="Browse open roles nearby"
-              icon="briefcase-outline"
-              variant="primary"
-              onPress={() => router.push(WORKER_BROWSE)}
-            />
-            <QuickActionTile
-              label="Find fill-ins"
-              description="Browse temp shifts nearby"
-              icon="calendar-outline"
-              variant="secondary"
-              onPress={() => router.push(WORKER_FILLINS)}
-            />
+        {!isTablet ? (
+          <View>
+            <WorkerSectionHeader title="Quick actions" />
+            <View style={styles.row}>
+              <QuickActionTile
+                label="Find jobs"
+                description="Browse open roles nearby"
+                icon="briefcase-outline"
+                variant="primary"
+                onPress={() => router.push(WORKER_BROWSE)}
+              />
+              <QuickActionTile
+                label="Find fill-ins"
+                description="Browse temp shifts nearby"
+                icon="calendar-outline"
+                variant="secondary"
+                onPress={() => router.push(WORKER_FILLINS)}
+              />
+            </View>
           </View>
-        </View>
+        ) : null}
 
         <View>
           <WorkerSectionHeader title="Overview" />
