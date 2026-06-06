@@ -7,11 +7,13 @@ import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOpti
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 function ClinicTabNavigator() {
   const { unreadCount } = useMessageUnread();
   const { pendingCount } = useFillInPending();
+  const { pendingCount: applicationPendingCount } = useApplicationTabBadge();
   const { isTablet } = useResponsiveLayout();
   const screenOptions = useAdaptiveTabScreenOptions();
 
@@ -30,6 +32,7 @@ function ClinicTabNavigator() {
           options={{
             title: 'Applications',
             tabBarAccessibilityLabel: 'Applications',
+            tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
             tabBarIcon: ({ color }) => <Ionicons name="people" size={22} color={color} />,
           }}
         />
@@ -73,7 +76,9 @@ export default function ClinicTabLayout() {
   return (
     <MessageUnreadProvider role="clinic">
       <FillInPendingProvider>
-        <ClinicTabNavigator />
+        <ApplicationTabBadgeProvider role="clinic">
+          <ClinicTabNavigator />
+        </ApplicationTabBadgeProvider>
       </FillInPendingProvider>
     </MessageUnreadProvider>
   );

@@ -1,8 +1,8 @@
-import { createSessionFromUrl } from '@chairside/api';
+import { createSessionFromUrl, getSupabaseClient } from '@chairside/api';
 import * as Linking from 'expo-linking';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -10,6 +10,13 @@ import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
 import { useTheme } from '@/theme';
 
 async function resolveCallbackUrl() {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const href = window.location.href;
+    if (href.includes('auth/callback')) {
+      return href;
+    }
+  }
+
   const initialUrl = await Linking.getInitialURL();
   if (initialUrl?.includes('auth/callback')) {
     return initialUrl;
@@ -41,6 +48,23 @@ export default function AuthCallbackScreen() {
 
     async function handleCallback() {
       try {
+        if (Platform.OS === 'web') {
+          const supabase = getSupabaseClient();
+          const {
+            data: { session: existingSession },
+          } = await supabase.auth.getSession();
+
+          if (existingSession?.user) {
+            if (cancelled) return;
+            await handleAuthSuccess(
+              refreshProfile,
+              completeOnboarding,
+              existingSession.user.id,
+            );
+            return;
+          }
+        }
+
         const url = await resolveCallbackUrl();
         if (!url) {
           throw new Error('No authentication callback URL found.');

@@ -7,6 +7,7 @@ import { Text, View } from 'react-native';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -29,6 +30,7 @@ function RoleApplicationSummaryRow({
   const applicantLabel =
     summary.applicant_count === 1 ? '1 applicant' : `${summary.applicant_count} applicants`;
   const reviewMeta = formatJobApplicationSummaryMeta(summary);
+  const hasNewApplicants = summary.pending_count > 0;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     statPill: {
@@ -38,10 +40,18 @@ function RoleApplicationSummaryRow({
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
     },
+    statPillNew: {
+      backgroundColor: colors.primary,
+    },
     statText: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.primary,
+    },
+    statTextNew: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primaryOnPrimary,
     },
   }));
 
@@ -52,9 +62,16 @@ function RoleApplicationSummaryRow({
       title={summary.post_title}
       meta={location || null}
       detail={reviewMeta}
+      topTrailing={hasNewApplicants ? <ApplicationCardBadge /> : undefined}
       footer={
-        <View style={styles.statPill}>
-          <Text style={styles.statText}>{applicantLabel}</Text>
+        <View style={[styles.statPill, hasNewApplicants && styles.statPillNew]}>
+          <Text style={[styles.statText, hasNewApplicants && styles.statTextNew]}>
+            {hasNewApplicants
+              ? summary.pending_count === 1
+                ? '1 new applicant'
+                : `${summary.pending_count} new applicants`
+              : applicantLabel}
+          </Text>
         </View>
       }
       onPress={onPress}

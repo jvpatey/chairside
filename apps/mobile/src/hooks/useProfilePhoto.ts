@@ -1,13 +1,13 @@
 import { deleteWorkerPhoto, uploadWorkerPhotoFromBase64 } from '@chairside/api';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { readFileAsBase64 } from '@/lib/readFileAsBase64';
 
 export function useProfilePhoto() {
   const { user } = useAuth();
@@ -40,9 +40,10 @@ export function useProfilePhoto() {
 
       const asset = result.assets[0];
       setIsUploading(true);
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const base64 = await readFileAsBase64(
+        asset.uri,
+        Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
+      );
       await uploadWorkerPhotoFromBase64(
         user.id,
         base64,

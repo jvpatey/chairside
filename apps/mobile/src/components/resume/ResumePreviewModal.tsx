@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -41,14 +42,15 @@ export function ResumePreviewModal({
   const { colors } = useTheme();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const canUseNativePdf = isNativePdfViewerAvailable();
+  const canShowInlinePdf = canUseNativePdf || Platform.OS === 'web';
 
   useEffect(() => {
-    if (localUri && canUseNativePdf) {
+    if (localUri && canShowInlinePdf) {
       setIsPdfLoading(true);
     } else {
       setIsPdfLoading(false);
     }
-  }, [canUseNativePdf, localUri]);
+  }, [canShowInlinePdf, localUri]);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -111,6 +113,17 @@ export function ResumePreviewModal({
   const handleShare = async () => {
     if (!localUri) return;
 
+    if (Platform.OS === 'web') {
+      const link = document.createElement('a');
+      link.href = localUri;
+      link.download = fileName;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
     const canShare = await Sharing.isAvailableAsync();
     if (!canShare) return;
 
@@ -121,8 +134,8 @@ export function ResumePreviewModal({
     });
   };
 
-  const showPdf = localUri && !error && !isLoading && canUseNativePdf;
-  const showExpoGoFallback = localUri && !error && !isLoading && !canUseNativePdf;
+  const showPdf = localUri && !error && !isLoading && canShowInlinePdf;
+  const showExpoGoFallback = localUri && !error && !isLoading && !canShowInlinePdf;
 
   return (
     <Modal
@@ -140,8 +153,12 @@ export function ResumePreviewModal({
               <Pressable
                 onPress={() => void handleShare()}
                 accessibilityRole="button"
-                accessibilityLabel="Share resume">
-                <Ionicons name="share-outline" size={22} color={colors.primary} />
+                accessibilityLabel={Platform.OS === 'web' ? 'Download resume' : 'Share resume'}>
+                <Ionicons
+                  name={Platform.OS === 'web' ? 'download-outline' : 'share-outline'}
+                  size={22}
+                  color={colors.primary}
+                />
               </Pressable>
             ) : null}
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Done">

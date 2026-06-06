@@ -9,13 +9,14 @@ import {
 } from '@chairside/api';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
@@ -37,6 +38,7 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -68,6 +70,7 @@ export default function SignUpScreen() {
     if (isSubmitting) return;
 
     setIsSubmitting(true);
+    setFormError(null);
     try {
       await action();
       const {
@@ -89,7 +92,10 @@ export default function SignUpScreen() {
     } catch (error) {
       const message = getAuthErrorMessage(error);
       if (message !== 'Sign in was cancelled.') {
-        Alert.alert('Sign up failed', message);
+        setFormError(message);
+        if (Platform.OS !== 'web') {
+          Alert.alert('Sign up failed', message);
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -105,29 +111,41 @@ export default function SignUpScreen() {
     if (isSubmitting) return;
 
     if (!email.trim() || !password || !confirmPassword) {
-      Alert.alert('Missing information', 'Fill in all fields to create your account.');
+      setFormError('Fill in all fields to create your account.');
+      if (Platform.OS !== 'web') {
+        Alert.alert('Missing information', 'Fill in all fields to create your account.');
+      }
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Passwords do not match', 'Make sure both password fields match.');
+      setFormError('Make sure both password fields match.');
+      if (Platform.OS !== 'web') {
+        Alert.alert('Passwords do not match', 'Make sure both password fields match.');
+      }
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Password too short', 'Use at least 6 characters.');
+      setFormError('Use at least 6 characters.');
+      if (Platform.OS !== 'web') {
+        Alert.alert('Password too short', 'Use at least 6 characters.');
+      }
       return;
     }
 
     setIsSubmitting(true);
+    setFormError(null);
     try {
       const { session, user } = await signUpWithEmail(email, password, role);
 
       if (!session) {
-        Alert.alert(
-          'Confirm your email',
-          'We sent a confirmation link. Open it to finish setting up your account, then sign in.',
-        );
+        const message =
+          'We sent a confirmation link. Open it to finish setting up your account, then sign in.';
+        setFormError(message);
+        if (Platform.OS !== 'web') {
+          Alert.alert('Confirm your email', message);
+        }
         router.replace('/(onboarding)/sign-in');
         return;
       }
@@ -136,7 +154,11 @@ export default function SignUpScreen() {
         await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
       }
     } catch (error) {
-      Alert.alert('Create account failed', getAuthErrorMessage(error));
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Create account failed', message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -176,6 +198,7 @@ export default function SignUpScreen() {
         onGooglePress={() => runSocialSignIn(signInWithGoogle)}
       />
       <View style={styles.form}>
+        <FormErrorBanner message={formError} />
         <AuthField
           label="Email"
           placeholder="you@example.com"

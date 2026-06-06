@@ -8,6 +8,7 @@ import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
+import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -116,6 +117,8 @@ type WorkerStatGridProps = {
   openRoles: number;
   openFillIns: number;
   pendingApplications: number;
+  applicationUpdateCount?: number;
+  fillInUpdateCount?: number;
   selected: WorkerOverviewStat;
   onSelect: (stat: WorkerOverviewStat) => void;
 };
@@ -124,6 +127,8 @@ export function WorkerStatGrid({
   openRoles,
   openFillIns,
   pendingApplications,
+  applicationUpdateCount = 0,
+  fillInUpdateCount = 0,
   selected,
   onSelect,
 }: WorkerStatGridProps) {
@@ -131,16 +136,31 @@ export function WorkerStatGrid({
     key: WorkerOverviewStat;
     label: string;
     value: number;
+    badgeCount: number;
   }[] = [
-    { key: 'roles', label: 'Open roles', value: openRoles },
-    { key: 'fill-ins', label: 'Fill-ins', value: openFillIns },
-    { key: 'applications', label: 'Applications', value: pendingApplications },
+    { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
+    { key: 'fill-ins', label: 'Fill-ins', value: openFillIns, badgeCount: fillInUpdateCount },
+    {
+      key: 'applications',
+      label: 'Applications',
+      value: pendingApplications,
+      badgeCount: applicationUpdateCount,
+    },
   ];
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     grid: { flexDirection: 'row', gap: spacing.sm },
-    cell: {
+    cellWrap: {
       flex: 1,
+      position: 'relative',
+    },
+    badgeAnchor: {
+      position: 'absolute',
+      top: -4,
+      right: -2,
+      zIndex: 1,
+    },
+    cell: {
       backgroundColor: colors.backgroundGrouped,
       borderRadius: 12,
       borderWidth: 1,
@@ -174,20 +194,28 @@ export function WorkerStatGrid({
       {stats.map((stat) => {
         const isSelected = selected === stat.key;
         return (
-          <Pressable
-            key={stat.key}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={`${stat.label}: ${stat.value}`}
-            onPress={() => onSelect(stat.key)}
-            style={({ pressed }) => [
-              styles.cell,
-              isSelected && styles.cellSelected,
-              pressed && { opacity: 0.85 },
-            ]}>
-            <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
-            <Text style={styles.label}>{stat.label}</Text>
-          </Pressable>
+          <View key={stat.key} style={styles.cellWrap}>
+            {stat.badgeCount > 0 ? (
+              <View style={styles.badgeAnchor}>
+                <NotificationCountBadge count={stat.badgeCount} />
+              </View>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={`${stat.label}: ${stat.value}${
+                stat.badgeCount > 0 ? `, ${stat.badgeCount} updates` : ''
+              }`}
+              onPress={() => onSelect(stat.key)}
+              style={({ pressed }) => [
+                styles.cell,
+                isSelected && styles.cellSelected,
+                pressed && { opacity: 0.85 },
+              ]}>
+              <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
+              <Text style={styles.label}>{stat.label}</Text>
+            </Pressable>
+          </View>
         );
       })}
     </View>

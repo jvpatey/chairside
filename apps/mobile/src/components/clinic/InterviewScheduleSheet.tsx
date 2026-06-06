@@ -26,13 +26,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { WebDateField, WebTimeField } from '@/components/clinic/WebDateTimeField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import {
   buildInterviewInviteTitle,
   addInterviewToCalendar,
   type InterviewInviteInput,
 } from '@/lib/calendarInvite';
-import { addDays, startOfDay } from '@/lib/dates';
+import { addDays, parseISODate, startOfDay, toISODate } from '@/lib/dates';
+import { formatTime24h, parseTime24h } from '@/lib/time';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const DURATION_OPTIONS = [
@@ -465,61 +467,96 @@ export function InterviewScheduleSheet({
             bounces={false}>
             <View style={styles.fieldBlock}>
               <Text style={styles.fieldLabel}>Date</Text>
-              <Pressable
-                style={[styles.pickerButton, showDatePicker && styles.pickerButtonActive]}
-                onPress={() => {
-                  setShowTimePicker(false);
-                  setShowDatePicker((current) => !current);
-                }}
-                accessibilityRole="button">
-                <Text style={styles.pickerButtonText}>{dateLabel}</Text>
-                <Text style={styles.pickerButtonHint}>Tap to change date</Text>
-              </Pressable>
-              {showDatePicker ? (
+              {Platform.OS === 'web' ? (
+                <WebDateField
+                  value={toISODate(interviewAt)}
+                  min={toISODate(startOfDay(new Date()))}
+                  onChange={(iso) => {
+                    const date = parseISODate(iso);
+                    if (!date) return;
+                    setInterviewAt((current) => {
+                      const next = new Date(current);
+                      next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                      return next;
+                    });
+                  }}
+                />
+              ) : (
                 <>
-                  <DateTimePicker
-                    value={interviewAt}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                    minimumDate={startOfDay(new Date())}
-                    onChange={handleDateChange}
-                  />
-                  {Platform.OS === 'ios' ? (
-                    <Pressable onPress={() => setShowDatePicker(false)}>
-                      <Text style={styles.doneText}>Done</Text>
-                    </Pressable>
+                  <Pressable
+                    style={[styles.pickerButton, showDatePicker && styles.pickerButtonActive]}
+                    onPress={() => {
+                      setShowTimePicker(false);
+                      setShowDatePicker((current) => !current);
+                    }}
+                    accessibilityRole="button">
+                    <Text style={styles.pickerButtonText}>{dateLabel}</Text>
+                    <Text style={styles.pickerButtonHint}>Tap to change date</Text>
+                  </Pressable>
+                  {showDatePicker ? (
+                    <>
+                      <DateTimePicker
+                        value={interviewAt}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        minimumDate={startOfDay(new Date())}
+                        onChange={handleDateChange}
+                      />
+                      {Platform.OS === 'ios' ? (
+                        <Pressable onPress={() => setShowDatePicker(false)}>
+                          <Text style={styles.doneText}>Done</Text>
+                        </Pressable>
+                      ) : null}
+                    </>
                   ) : null}
                 </>
-              ) : null}
+              )}
             </View>
 
             <View style={styles.fieldBlock}>
               <Text style={styles.fieldLabel}>Time</Text>
-              <Pressable
-                style={[styles.pickerButton, showTimePicker && styles.pickerButtonActive]}
-                onPress={() => {
-                  setShowDatePicker(false);
-                  setShowTimePicker((current) => !current);
-                }}
-                accessibilityRole="button">
-                <Text style={styles.pickerButtonText}>{timeLabel}</Text>
-                <Text style={styles.pickerButtonHint}>Tap to change time</Text>
-              </Pressable>
-              {showTimePicker ? (
+              {Platform.OS === 'web' ? (
+                <WebTimeField
+                  value={formatTime24h(interviewAt)}
+                  onChange={(timeValue) => {
+                    const parsed = parseTime24h(timeValue);
+                    if (!parsed) return;
+                    setInterviewAt((current) => {
+                      const next = new Date(current);
+                      next.setHours(parsed.getHours(), parsed.getMinutes(), 0, 0);
+                      return next;
+                    });
+                  }}
+                />
+              ) : (
                 <>
-                  <DateTimePicker
-                    value={interviewAt}
-                    mode="time"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handleTimeChange}
-                  />
-                  {Platform.OS === 'ios' ? (
-                    <Pressable onPress={() => setShowTimePicker(false)}>
-                      <Text style={styles.doneText}>Done</Text>
-                    </Pressable>
+                  <Pressable
+                    style={[styles.pickerButton, showTimePicker && styles.pickerButtonActive]}
+                    onPress={() => {
+                      setShowDatePicker(false);
+                      setShowTimePicker((current) => !current);
+                    }}
+                    accessibilityRole="button">
+                    <Text style={styles.pickerButtonText}>{timeLabel}</Text>
+                    <Text style={styles.pickerButtonHint}>Tap to change time</Text>
+                  </Pressable>
+                  {showTimePicker ? (
+                    <>
+                      <DateTimePicker
+                        value={interviewAt}
+                        mode="time"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={handleTimeChange}
+                      />
+                      {Platform.OS === 'ios' ? (
+                        <Pressable onPress={() => setShowTimePicker(false)}>
+                          <Text style={styles.doneText}>Done</Text>
+                        </Pressable>
+                      ) : null}
+                    </>
                   ) : null}
                 </>
-              ) : null}
+              )}
             </View>
 
             <View style={styles.fieldBlock}>

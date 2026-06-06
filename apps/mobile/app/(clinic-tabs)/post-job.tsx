@@ -14,7 +14,7 @@ import {
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { CLINIC_POSTINGS } from '@/lib/routing';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OfferingsInput } from '@/components/clinic/OfferingsInput';
@@ -28,6 +28,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemedStyles } from '@/theme';
 
@@ -90,6 +91,7 @@ export default function PostJobScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [formKey, setFormKey] = useState(0);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
@@ -133,7 +135,11 @@ export default function PostJobScreen() {
     try {
       const job = await getJobPostWithScreening(user.id, jobId);
       if (!job) {
-        Alert.alert('Role not found', 'This posting may have been removed.');
+        const message = 'This posting may have been removed.';
+        setFormError(message);
+        if (Platform.OS !== 'web') {
+          Alert.alert('Role not found', message);
+        }
         router.back();
         return;
       }
@@ -151,10 +157,11 @@ export default function PostJobScreen() {
       setCustomQuestions(form.customQuestions);
       setFormKey((current) => current + 1);
     } catch (error) {
-      Alert.alert(
-        'Could not load role',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not load role', message);
+      }
       router.back();
     } finally {
       setIsLoading(false);
@@ -167,16 +174,25 @@ export default function PostJobScreen() {
 
   const handleSubmit = async () => {
     if (!user?.id || !title.trim()) {
-      Alert.alert('Missing information', 'Enter a job title to continue.');
+      const message = 'Enter a job title to continue.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Missing information', message);
+      }
       return;
     }
 
     if (screeningEnabled && selectedCatalogSlugs.length === 0 && customQuestions.length === 0) {
-      Alert.alert('Screening questions', 'Select at least one question or turn off screening.');
+      const message = 'Select at least one question or turn off screening.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Screening questions', message);
+      }
       return;
     }
 
     setIsSubmitting(true);
+    setFormError(null);
     try {
       const screeningQuestions = screeningEnabled
         ? screeningQuestionInputFromSelection(selectedCatalogSlugs, customQuestions)
@@ -207,10 +223,11 @@ export default function PostJobScreen() {
         router.replace(CLINIC_POSTINGS);
       }
     } catch (error) {
-      Alert.alert(
-        isEditing ? 'Could not save changes' : 'Could not publish',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert(isEditing ? 'Could not save changes' : 'Could not publish', message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -236,6 +253,8 @@ export default function PostJobScreen() {
           }
           onBack={() => router.back()}
         />
+
+        <FormErrorBanner message={formError} />
 
         <View style={styles.section}>
           <Text style={styles.label}>Role type</Text>

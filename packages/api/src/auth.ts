@@ -10,6 +10,10 @@ import type { UserRole } from './types';
 WebBrowser.maybeCompleteAuthSession();
 
 function getOAuthRedirectUrl() {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.origin}/auth/callback`;
+  }
+
   return Linking.createURL('auth/callback');
 }
 
@@ -105,6 +109,23 @@ export async function updatePassword(newPassword: string) {
 export async function signInWithGoogle() {
   const supabase = getSupabaseClient();
   const redirectTo = getOAuthRedirectUrl();
+
+  if (Platform.OS === 'web') {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) throw error;
+    if (!data.url) {
+      throw new Error('Google sign-in URL was not returned.');
+    }
+
+    window.location.assign(data.url);
+    return null;
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',

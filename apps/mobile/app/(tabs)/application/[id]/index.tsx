@@ -1,16 +1,21 @@
 import { getWorkerApplication, getUnreadConversationMap, getWorkerAppliedShiftPost, type WorkerApplication, type WorkerAppliedShiftPost } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
 import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
+import { WorkerApplicationsInboxPanel } from '@/components/worker/WorkerApplicationsInboxPanel';
 import { WorkerConfirmedFillInDetail } from '@/components/worker/WorkerConfirmedFillInDetail';
 import { useAuth } from '@/contexts/AuthContext';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import { toCelebrationCandidate } from '@/lib/hiringCelebrationCandidates';
 import {
@@ -23,6 +28,7 @@ import { useThemedStyles } from '@/theme';
 
 export default function WorkerApplicationDetailScreen() {
   const { user } = useAuth();
+  const { isTablet } = useResponsiveLayout();
   const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: string }>();
   const applicationId = typeof id === 'string' ? id : '';
   const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
@@ -30,6 +36,7 @@ export default function WorkerApplicationDetailScreen() {
   const [confirmedShift, setConfirmedShift] = useState<WorkerAppliedShiftPost | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [formError, setFormError] = useState<string | null>(null);
   const {
     celebrationVisible,
     celebrationPayload,
@@ -37,6 +44,7 @@ export default function WorkerApplicationDetailScreen() {
     closeCelebration,
   } = useHiringCelebration();
   const { checkApplications } = useWorkerHiringCelebration(showCelebration);
+  const { markApplicationSeen } = useApplicationTabBadge();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
@@ -61,11 +69,17 @@ export default function WorkerApplicationDetailScreen() {
         getUnreadConversationMap(user.id, 'worker'),
       ]);
       if (!row) {
-        Alert.alert('Application not found', 'This application may have been removed.');
+        const message = 'This application may have been removed.';
+        setFormError(message);
+        if (Platform.OS !== 'web') {
+          Alert.alert('Application not found', message);
+        }
         goBack();
         return;
       }
       setApplication(row);
+      setFormError(null);
+      await markApplicationSeen(row.id, row.updated_at);
       setHasUnreadMessages(Boolean(unreadMap[applicationId]));
 
       if (row.post_type === 'shift' && row.status === 'hired' && row.shift_post_id) {
@@ -77,15 +91,16 @@ export default function WorkerApplicationDetailScreen() {
 
       await checkApplications([toCelebrationCandidate(row)]);
     } catch (error) {
-      Alert.alert(
-        'Could not load application',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not load application', message);
+      }
       goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [applicationId, checkApplications, goBack, user?.id]);
+  }, [applicationId, checkApplications, goBack, markApplicationSeen, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -116,41 +131,57 @@ export default function WorkerApplicationDetailScreen() {
 
   const headerTitle = isConfirmedFillIn ? 'Confirmed fill-in' : 'Application';
 
+  const detail = (
+    <OnboardingShell>
+      <AuthScreenHeader
+        title={headerTitle}
+        subtitle={isConfirmedFillIn ? application?.clinic_name ?? subtitle : subtitle}
+        onBack={goBack}
+      />
+      <View style={styles.content}>
+        <FormErrorBanner message={formError} />
+        {isConfirmedFillIn && application ? (
+          <WorkerConfirmedFillInDetail
+            application={application}
+            shift={confirmedShift}
+            returnTo={resolvedReturnTo}
+            hasUnreadMessages={hasUnreadMessages}
+          />
+        ) : application ? (
+          <WorkerApplicationDetailCard
+            application={application}
+            returnTo={resolvedReturnTo}
+            hasUnreadMessages={hasUnreadMessages}
+            onViewPosting={handleViewPosting}
+            onUpdated={() => void load()}
+            onCancelled={goBack}
+            onHidden={goBack}
+          />
+        ) : null}
+      </View>
+    </OnboardingShell>
+  );
+
+  if (isTablet) {
+    return (
+      <>
+        <MasterDetailLayout
+          master={<WorkerApplicationsInboxPanel compact />}
+          detail={detail}
+          showDetail
+        />
+        <HiringCelebrationModal
+          visible={celebrationVisible}
+          payload={celebrationPayload}
+          onClose={() => void closeCelebration()}
+        />
+      </>
+    );
+  }
+
   return (
     <>
-      <OnboardingShell>
-        <AuthScreenHeader
-          title={headerTitle}
-          subtitle={isConfirmedFillIn ? application?.clinic_name ?? subtitle : subtitle}
-          onBack={goBack}
-        />
-        <View style={styles.content}>
-          {isConfirmedFillIn && application ? (
-            <WorkerConfirmedFillInDetail
-              application={application}
-              shift={confirmedShift}
-              returnTo={resolvedReturnTo}
-              hasUnreadMessages={hasUnreadMessages}
-            />
-          ) : application ? (
-            <WorkerApplicationDetailCard
-              application={application}
-              returnTo={resolvedReturnTo}
-              hasUnreadMessages={hasUnreadMessages}
-              onViewPosting={handleViewPosting}
-              onUpdated={() => void load()}
-              onCancelled={() => {
-                Alert.alert('Application cancelled', 'Your application was removed.');
-                goBack();
-              }}
-              onHidden={() => {
-                Alert.alert('Removed from list', 'This application was hidden from your list.');
-                goBack();
-              }}
-            />
-          ) : null}
-        </View>
-      </OnboardingShell>
+      {detail}
       <HiringCelebrationModal
         visible={celebrationVisible}
         payload={celebrationPayload}

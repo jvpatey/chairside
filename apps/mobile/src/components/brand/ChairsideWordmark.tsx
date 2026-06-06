@@ -5,6 +5,7 @@ import { useTheme } from '@/theme';
 
 type ChairsideWordmarkProps = {
   variant?: 'hero' | 'compact' | 'small';
+  align?: 'left' | 'center';
 };
 
 const COMPACT = { fontSize: 28, letterSpacing: -0.6 } as const;
@@ -14,7 +15,7 @@ function heroSize(screenWidth: number) {
   return Math.round(Math.max(52, Math.min(screenWidth * 0.14, 56)));
 }
 
-export function ChairsideWordmark({ variant = 'hero' }: ChairsideWordmarkProps) {
+export function ChairsideWordmark({ variant = 'hero', align = 'center' }: ChairsideWordmarkProps) {
   const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
 
@@ -30,7 +31,10 @@ export function ChairsideWordmark({ variant = 'hero' }: ChairsideWordmarkProps) 
         : COMPACT.letterSpacing;
 
   return (
-    <View accessibilityRole="header" accessibilityLabel="chairside">
+    <View
+      accessibilityRole="header"
+      accessibilityLabel="chairside"
+      style={{ alignSelf: align === 'left' ? 'flex-start' : 'center' }}>
       <Text
         style={{
           fontFamily: fontWordmark,

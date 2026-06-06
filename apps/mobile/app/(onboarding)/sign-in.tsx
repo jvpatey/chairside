@@ -26,10 +26,20 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
       gap: spacing.md,
+    },
+    formError: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.destructive,
+      backgroundColor: `${colors.destructive}14`,
+      borderRadius: 12,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
     },
     forgot: {
       alignSelf: 'flex-end',
@@ -68,6 +78,7 @@ export default function SignInScreen() {
     if (isSubmitting) return;
 
     setIsSubmitting(true);
+    setFormError(null);
     try {
       await action();
       const {
@@ -79,6 +90,7 @@ export default function SignInScreen() {
     } catch (error) {
       const message = getAuthErrorMessage(error);
       if (message !== 'Sign in was cancelled.') {
+        setFormError(message);
         Alert.alert('Sign in failed', message);
       }
     } finally {
@@ -90,18 +102,23 @@ export default function SignInScreen() {
     if (isSubmitting) return;
 
     if (!email.trim() || !password) {
-      Alert.alert('Missing information', 'Enter your email and password.');
+      const message = 'Enter your email and password.';
+      setFormError(message);
+      Alert.alert('Missing information', message);
       return;
     }
 
     setIsSubmitting(true);
+    setFormError(null);
     try {
       const { user } = await signInWithEmail(email, password);
       if (!user) return;
 
       await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
     } catch (error) {
-      Alert.alert('Sign in failed', getAuthErrorMessage(error));
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      Alert.alert('Sign in failed', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -154,12 +171,17 @@ export default function SignInScreen() {
         onGooglePress={() => runSocialSignIn(signInWithGoogle)}
       />
       <View style={styles.form}>
+        {formError ? <Text style={styles.formError}>{formError}</Text> : null}
         <AuthField
           label="Email"
           placeholder="you@example.com"
           keyboardType="email-address"
+          autoComplete="email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setFormError(null);
+            setEmail(text);
+          }}
           editable={!isSubmitting}
         />
         <AuthField
@@ -167,8 +189,12 @@ export default function SignInScreen() {
           placeholder="Your password"
           secureTextEntry
           enablePasswordVisibilityToggle
+          autoComplete="current-password"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setFormError(null);
+            setPassword(text);
+          }}
           editable={!isSubmitting}
         />
         <Pressable

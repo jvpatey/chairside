@@ -598,6 +598,135 @@ export async function listWorkerShiftApplications(workerId: string): Promise<Wor
   return applications.filter((application) => application.post_type === 'shift');
 }
 
+export async function getClinicNewApplicationCount(clinicId: string): Promise<number> {
+  const supabase = getSupabaseClient();
+
+  const { data: jobs, error: jobsError } = await supabase
+    .from('job_posts')
+    .select('id')
+    .eq('clinic_id', clinicId);
+
+  if (jobsError) throw jobsError;
+
+  const jobIds = (jobs ?? []).map((job) => job.id);
+  if (jobIds.length === 0) return 0;
+
+  const { count, error } = await supabase
+    .from('applications')
+    .select('*', { count: 'exact', head: true })
+    .in('job_post_id', jobIds)
+    .is('clinic_hidden_at', null)
+    .in('status', ['applied', 'screening_submitted']);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export const APPLICATION_UPDATE_GRACE_MS = 2_000;
+
+export function hasWorkerApplicationClinicUpdate(
+  application: Pick<Application, 'created_at' | 'updated_at' | 'worker_hidden_at'>,
+): boolean {
+  if (application.worker_hidden_at) return false;
+
+  const updatedMs = new Date(application.updated_at).getTime();
+  const createdMs = new Date(application.created_at).getTime();
+  return updatedMs - createdMs >= APPLICATION_UPDATE_GRACE_MS;
+}
+
+export function isClinicNewApplication(
+  application: Pick<Application, 'post_type' | 'status' | 'clinic_hidden_at'>,
+): boolean {
+  return (
+    application.post_type === 'job' &&
+    !application.clinic_hidden_at &&
+    (application.status === 'applied' || application.status === 'screening_submitted')
+  );
+}
+
+export function isClinicNewFillInRequest(
+  application: Pick<Application, 'post_type' | 'status' | 'clinic_hidden_at'>,
+): boolean {
+  return (
+    application.post_type === 'shift' &&
+    !application.clinic_hidden_at &&
+    FILL_IN_PENDING_STATUSES.includes(application.status)
+  );
+}
+
+export function isWorkerApplicationUpdateUnseen(
+  application: Pick<Application, 'id' | 'created_at' | 'updated_at' | 'worker_hidden_at'>,
+  seenUpdatedAtById: Record<string, string> = {},
+): boolean {
+  if (!hasWorkerApplicationClinicUpdate(application)) return false;
+
+  const seenAt = seenUpdatedAtById[application.id];
+  if (!seenAt) return true;
+
+  return new Date(application.updated_at).getTime() > new Date(seenAt).getTime();
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Past or decided fill-in applications should not contribute to Fill-ins tab badges. */
+export function isPastWorkerFillInApplication(
+  application: Pick<Application, 'post_type' | 'status'> & { shift_date?: string | null },
+): boolean {
+  if (application.post_type !== 'shift') return false;
+  if (application.status === 'rejected' || application.status === 'selected') return true;
+  return (application.shift_date ?? '') < todayISO();
+}
+
+/** Unseen clinic updates on upcoming fill-in applications only. */
+export function isWorkerFillInApplicationUpdateCountable(
+  application: Pick<
+    Application,
+    'id' | 'post_type' | 'status' | 'created_at' | 'updated_at' | 'worker_hidden_at'
+  > & { shift_date?: string | null },
+  seenUpdatedAtById: Record<string, string> = {},
+): boolean {
+  if (application.post_type !== 'shift') return false;
+  if (isPastWorkerFillInApplication(application)) return false;
+  return isWorkerApplicationUpdateUnseen(application, seenUpdatedAtById);
+}
+
+/** Card/list highlight — only after the worker has previously opened this application. */
+export function isWorkerApplicationUpdateHighlighted(
+  application: Pick<Application, 'id' | 'created_at' | 'updated_at' | 'worker_hidden_at'>,
+  seenUpdatedAtById: Record<string, string> = {},
+): boolean {
+  if (!hasWorkerApplicationClinicUpdate(application)) return false;
+
+  const seenAt = seenUpdatedAtById[application.id];
+  if (!seenAt) return false;
+
+  return new Date(application.updated_at).getTime() > new Date(seenAt).getTime();
+}
+
+/** Count job applications with clinic-side updates the worker has not opened since. */
+export async function getWorkerApplicationUpdateCount(
+  workerId: string,
+  seenUpdatedAtById: Record<string, string> = {},
+): Promise<number> {
+  const applications = await listWorkerJobApplications(workerId, 'active');
+  return applications.filter((application) =>
+    isWorkerApplicationUpdateUnseen(application, seenUpdatedAtById),
+  ).length;
+}
+
+/** Count fill-in applications with clinic-side updates the worker has not opened since. */
+export async function getWorkerShiftApplicationUpdateCount(
+  workerId: string,
+  seenUpdatedAtById: Record<string, string> = {},
+): Promise<number> {
+  const applications = await listWorkerShiftApplications(workerId);
+  return applications.filter((application) =>
+    isWorkerFillInApplicationUpdateCountable(application, seenUpdatedAtById),
+  ).length;
+}
+
 export async function listWorkerAppliedJobPostIds(workerId: string): Promise<string[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -1138,6 +1267,7 @@ export async function listFillInCoverRequests(clinicId: string): Promise<FillInC
     .from('applications')
     .select('*')
     .in('shift_post_id', shiftIds)
+    .is('clinic_hidden_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;

@@ -21,6 +21,7 @@ export default function Root({ children }: { children: ReactNode }) {
 
         {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
+        <style dangerouslySetInnerHTML={{ __html: autofillStyles }} />
         {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
       <body>{children}</body>
@@ -35,5 +36,43 @@ body {
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #000;
+  }
+}`;
+
+/** Match AuthField surface + label colors; override browser autofill paint on web. */
+const autofillStyles = `
+textarea:focus,
+input:focus {
+  outline: none;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active {
+  border-radius: 12px;
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: #1C1C1E !important;
+  caret-color: #1C1C1E;
+  transition: background-color 5000s ease-in-out 0s;
+}
+@media (prefers-color-scheme: dark) {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  textarea:-webkit-autofill:active {
+    border-radius: 12px;
+    -webkit-box-shadow: 0 0 0 1000px #1C1C1E inset !important;
+    box-shadow: 0 0 0 1000px #1C1C1E inset !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    caret-color: #FFFFFF;
   }
 }`;

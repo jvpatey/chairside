@@ -34,6 +34,7 @@ import { DashboardCoverRequestsCard } from '@/components/clinic/DashboardCoverRe
 import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { Screen } from '@/components/ui/Screen';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
@@ -56,7 +57,8 @@ import { useThemedStyles } from '@/theme';
 export default function ClinicDashboardScreen() {
   const { user } = useAuth();
   const { refreshUnread } = useMessageUnread();
-  const { pendingCount } = useFillInPending();
+  const { pendingCount: fillInUpdateCount } = useFillInPending();
+  const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const { isTablet } = useResponsiveLayout();
@@ -226,7 +228,7 @@ export default function ClinicDashboardScreen() {
         <ClinicReadinessChecklist clinicProfile={clinicProfile} />
 
         <DashboardCoverRequestsCard
-          pendingCount={pendingCount}
+          pendingCount={fillInUpdateCount}
           onPress={() => router.push(CLINIC_FILL_INS)}
         />
 
@@ -279,7 +281,8 @@ export default function ClinicDashboardScreen() {
             openRoles={counts.openRoles}
             fillInsPosted={counts.fillInsPosted}
             totalApplications={counts.totalApplications}
-            newApplications={counts.newApplications}
+            applicationUpdateCount={applicationUpdateCount}
+            fillInUpdateCount={fillInUpdateCount}
             selected={selectedOverview}
             onSelect={setSelectedOverview}
           />

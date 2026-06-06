@@ -124,8 +124,31 @@ function buildCalendarEventData(input: InterviewInviteInput) {
   };
 }
 
+/** Opens Google Calendar on web, or downloads an ICS file as a fallback. */
+export function downloadInterviewIcsOnWeb(input: InterviewInviteInput): void {
+  if (typeof window === 'undefined') return;
+
+  const blob = new Blob([buildInterviewIcsContent(input)], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${sanitizeFileName(input.title)}.ics`;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 /** Opens the native OS calendar UI to add the interview event. */
 export async function addInterviewToCalendar(input: InterviewInviteInput): Promise<void> {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined') {
+      window.open(buildGoogleCalendarUrl(input), '_blank', 'noopener,noreferrer');
+    }
+    return;
+  }
+
   try {
     await Calendar.createEventInCalendarAsync(buildCalendarEventData(input));
   } catch {
