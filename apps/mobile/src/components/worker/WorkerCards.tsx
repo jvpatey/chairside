@@ -141,17 +141,25 @@ export function WorkerStatGrid({
     grid: { flexDirection: 'row', gap: spacing.sm },
     cell: {
       flex: 1,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.separator,
-      paddingVertical: spacing.md,
+      paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: 2,
     },
-    cellSelected: { borderColor: colors.primary, backgroundColor: colors.primarySubtle },
-    value: { ...typography.title, fontSize: 24, lineHeight: 28 },
+    cellSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+    },
+    value: {
+      ...typography.title,
+      fontSize: 20,
+      lineHeight: 24,
+      color: colors.labelPrimary,
+    },
     valueSelected: { color: colors.primary },
     label: {
       fontSize: 11,
@@ -168,8 +176,15 @@ export function WorkerStatGrid({
         return (
           <Pressable
             key={stat.key}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
+            accessibilityLabel={`${stat.label}: ${stat.value}`}
             onPress={() => onSelect(stat.key)}
-            style={[styles.cell, isSelected && styles.cellSelected]}>
+            style={({ pressed }) => [
+              styles.cell,
+              isSelected && styles.cellSelected,
+              pressed && { opacity: 0.85 },
+            ]}>
             <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
             <Text style={styles.label}>{stat.label}</Text>
           </Pressable>

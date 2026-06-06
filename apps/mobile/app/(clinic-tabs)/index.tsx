@@ -229,8 +229,9 @@ export default function ClinicDashboardScreen() {
           <View style={styles.row}>
             <QuickActionTile
               label="Post a role"
-              description="Full Time or Part Time"
+              description="Full-time or part-time hire"
               icon="briefcase-outline"
+              variant="primary"
               onPress={() => guardPosting(CLINIC_POST_JOB)}
             />
             <QuickActionTile
