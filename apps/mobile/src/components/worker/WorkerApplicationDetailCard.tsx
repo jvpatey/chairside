@@ -13,8 +13,11 @@ import {
   canWorkerHideApplication,
   formatApplicationDate,
   formatInterviewDateTime,
+  hasApplicationKitSubmitted,
   hasPendingInterviewProposal,
   isActiveApplicationStatus,
+  isAwaitingApplicationKit,
+  isScreeningStageStatus,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -30,6 +33,8 @@ import {
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationSubmittedFields } from '@/components/worker/ApplicationSubmittedFields';
+import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
+import { WorkerApplicationKitSubmission } from '@/components/worker/WorkerApplicationKitSubmission';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import {
@@ -44,6 +49,7 @@ import {
   getWorkerApplicationMessagesRoute,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { useTheme, useThemedStyles } from '@/theme';
 import { confirmHideWorkerApplication } from '@/lib/workerApplicationHide';
 
@@ -62,7 +68,11 @@ type WorkerApplicationDetailCardProps = {
 function formatAppliedLabel(application: WorkerApplication): string | null {
   const date = formatApplicationDate(application.created_at);
   if (!date) return null;
-  return `${application.post_type === 'shift' ? 'Requested' : 'Applied'} ${date}`;
+  if (application.post_type === 'shift') return `Requested ${date}`;
+  if (isScreeningStageStatus(application.status) && !hasApplicationKitSubmitted(application)) {
+    return `Screening submitted ${date}`;
+  }
+  return `Applied ${date}`;
 }
 
 export function WorkerApplicationDetailCard({
@@ -205,6 +215,9 @@ export function WorkerApplicationDetailCard({
     pendingProposal && application.interview_proposed_by === 'clinic';
   const workerProposedChange =
     pendingProposal && application.interview_proposed_by === 'worker';
+  const awaitingKit = isAwaitingApplicationKit(application);
+  const hasKitSubmitted = hasApplicationKitSubmitted(application);
+  const isScreeningStage = isScreeningStageStatus(application.status);
 
   const handleAddInterviewToCalendar = () => {
     const inviteInput = buildInterviewInviteInputFromApplication({
@@ -230,172 +243,129 @@ export function WorkerApplicationDetailCard({
   };
 
   const handleAcceptInterview = () => {
-    Alert.alert(
-      'Accept interview?',
-      'Confirm that you can attend at the proposed date and time.',
-      [
-        { text: 'Not now', style: 'cancel' },
-        {
-          text: 'Accept interview',
-          onPress: () => {
-            void (async () => {
-              try {
-                await acceptApplicationInterview(application.worker_id, application.id);
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onUpdated?.();
-              } catch (error) {
-                Alert.alert(
-                  'Could not accept interview',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              }
-            })();
-          },
-        },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Accept interview?',
+      message: 'Confirm that you can attend at the proposed date and time.',
+      confirmLabel: 'Accept interview',
+      onConfirm: async () => {
+        try {
+          await acceptApplicationInterview(application.worker_id, application.id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not accept interview',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
   };
 
   const handleAcceptProposal = () => {
-    Alert.alert('Accept new time?', 'Your confirmed interview will move to the proposed time.', [
-      { text: 'Not now', style: 'cancel' },
-      {
-        text: 'Accept',
-        onPress: () => {
-          void (async () => {
-            try {
-              await acceptApplicationInterviewUpdate(
-                application.id,
-                application.worker_id,
-              );
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              onUpdated?.();
-            } catch (error) {
-              Alert.alert(
-                'Could not accept',
-                error instanceof Error ? error.message : 'Please try again.',
-              );
-            }
-          })();
-        },
+    showConfirmActionSheet({
+      title: 'Accept new time?',
+      message: 'Your confirmed interview will move to the proposed time.',
+      confirmLabel: 'Accept',
+      onConfirm: async () => {
+        try {
+          await acceptApplicationInterviewUpdate(application.id, application.worker_id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not accept',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
       },
-    ]);
+    });
   };
 
   const handleDeclineProposal = () => {
-    Alert.alert(
-      'Decline new time?',
-      'Your confirmed interview time will stay as scheduled.',
-      [
-        { text: 'Keep current time', style: 'cancel' },
-        {
-          text: 'Decline',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await declineApplicationInterviewUpdate(
-                  application.id,
-                  application.worker_id,
-                );
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onUpdated?.();
-              } catch (error) {
-                Alert.alert(
-                  'Could not decline',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              }
-            })();
-          },
-        },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Decline new time?',
+      message: 'Your confirmed interview time will stay as scheduled.',
+      confirmLabel: 'Decline',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await declineApplicationInterviewUpdate(application.id, application.worker_id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not decline',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
   };
 
   const handleCancelScheduledInterview = () => {
-    Alert.alert(
-      'Cancel interview?',
-      'You will return to the shortlist for this role. You can request a new time or keep messaging the clinic.',
-      [
-        { text: 'Keep interview', style: 'cancel' },
-        {
-          text: 'Cancel interview',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await cancelScheduledApplicationInterview(application.id, 'worker');
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onUpdated?.();
-              } catch (error) {
-                Alert.alert(
-                  'Could not cancel interview',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              }
-            })();
-          },
-        },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Cancel interview?',
+      message:
+        'You will return to the shortlist for this role. You can request a new time or keep messaging the clinic.',
+      confirmLabel: 'Cancel interview',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await cancelScheduledApplicationInterview(application.id, 'worker');
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not cancel interview',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
   };
 
   const handleDeclineInterview = () => {
-    Alert.alert(
-      'Decline interview?',
-      'The clinic will be notified. You will remain shortlisted for this role.',
-      [
-        { text: 'Keep invitation', style: 'cancel' },
-        {
-          text: 'Decline',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await declineApplicationInterview(application.worker_id, application.id);
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onUpdated?.();
-              } catch (error) {
-                Alert.alert(
-                  'Could not decline interview',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              }
-            })();
-          },
-        },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Decline interview?',
+      message: 'The clinic will be notified. You will remain shortlisted for this role.',
+      confirmLabel: 'Decline',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await declineApplicationInterview(application.worker_id, application.id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not decline interview',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
   };
 
   const handleCancel = () => {
-    Alert.alert(
-      isShift ? 'Withdraw cover request?' : 'Cancel application?',
-      isShift
+    showConfirmActionSheet({
+      title: isShift ? 'Withdraw cover request?' : 'Cancel application?',
+      message: isShift
         ? 'This removes your request from the clinic. You can request to cover again if the shift is still open.'
         : 'This removes your application from the clinic. You can apply again later if the posting is still open.',
-      [
-        { text: isShift ? 'Keep request' : 'Keep application', style: 'cancel' },
-        {
-          text: isShift ? 'Withdraw request' : 'Cancel application',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await deleteApplication(application.worker_id, application.id);
-                onCancelled?.();
-              } catch (error) {
-                Alert.alert(
-                  isShift ? 'Could not withdraw request' : 'Could not cancel application',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              }
-            })();
-          },
-        },
-      ],
-    );
+      confirmLabel: isShift ? 'Withdraw request' : 'Cancel application',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteApplication(application.worker_id, application.id);
+          onCancelled?.();
+        } catch (error) {
+          Alert.alert(
+            isShift ? 'Could not withdraw request' : 'Could not cancel application',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
   };
 
   const primarySlots: {
@@ -555,11 +525,28 @@ export function WorkerApplicationDetailCard({
           </View>
         ) : null}
 
-        <View style={styles.submittedSection}>
-          <Text style={styles.sectionEyebrow}>What you submitted</Text>
-          <ApplicationSubmittedFields application={application} />
+        {awaitingKit ? (
+          <WorkerApplicationKitSubmission
+            applicationId={application.id}
+            clinicName={application.clinic_name}
+            postTitle={application.post_title}
+            onSubmitted={onUpdated}
+          />
+        ) : null}
 
-          {application.cover_message ? (
+        <View style={styles.submittedSection}>
+          <Text style={styles.sectionEyebrow}>
+            {isScreeningStage && !hasKitSubmitted ? 'Your screening submission' : 'What you submitted'}
+          </Text>
+          {application.post_type === 'job' && application.screening ? (
+            <ApplicationScreeningSection screening={application.screening} audience="worker" />
+          ) : null}
+          {hasKitSubmitted ? <ApplicationSubmittedFields application={application} /> : null}
+          {isScreeningStage && !hasKitSubmitted && !application.screening ? (
+            <Text style={styles.interviewMeta}>Screening responses submitted.</Text>
+          ) : null}
+
+          {hasKitSubmitted && application.cover_message ? (
             <>
               <RowDivider />
               <View style={styles.subsection}>

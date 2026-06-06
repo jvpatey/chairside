@@ -57,6 +57,7 @@ export default function ClinicMessagesScreen() {
         userId={user.id}
         avatarKind="worker"
         header={<ClinicMessagingPreferences variant="compact" />}
+        filterBesideHeader
         onConversationPress={(conversation) => {
           const preview = getMessageThreadPreview(conversation, 'clinic');
           router.push(

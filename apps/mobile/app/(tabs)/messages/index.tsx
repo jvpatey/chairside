@@ -56,6 +56,7 @@ export default function WorkerMessagesScreen() {
         header={
           <WorkerMessageClinicAction onPress={() => router.push(getWorkerMessageClinicsRoute())} />
         }
+        filterBesideHeader
         onConversationPress={(conversation) => {
           const preview = getMessageThreadPreview(conversation, 'worker');
           router.push(

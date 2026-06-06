@@ -130,7 +130,11 @@ export function ShiftPostDetailView({
     <View style={styles.wrap}>
       <View style={styles.hero}>
         {showStatusBadge ? (
-          <ShiftPostStatusBadge status={shift.status} style={styles.statusBadge} />
+          <ShiftPostStatusBadge
+            status={shift.status}
+            shiftDate={shift.shift_date}
+            style={styles.statusBadge}
+          />
         ) : null}
 
         <View style={styles.heroTop}>

@@ -103,7 +103,7 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
       </View>
 
       <View style={styles.card}>
-        <DetailSection title="Compensation & schedule">
+        <DetailSection>
           <DetailRow label="Compensation" value={job.wage_range} />
           <RowDivider />
           <DetailRow label="Schedule" value={job.schedule} />

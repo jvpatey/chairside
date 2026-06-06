@@ -3,9 +3,9 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
-import { ConversationFilterBar } from '@/components/messaging/ConversationFilterBar';
+import { ConversationInboxFilters } from '@/components/messaging/ConversationInboxFilters';
 import { ConversationListItem } from '@/components/messaging/ConversationListItem';
-import { confirmHideConversation } from '@/lib/conversationHide';
+import { hideConversation } from '@/lib/conversationHide';
 import {
   filterConversations,
   getConversationFilterCounts,
@@ -20,6 +20,7 @@ type ConversationInboxListProps = {
   userId: string;
   avatarKind: 'clinic' | 'worker';
   header?: ReactNode;
+  filterBesideHeader?: boolean;
   onConversationPress: (conversation: Conversation) => void;
   onConversationHidden: () => void;
 };
@@ -30,6 +31,7 @@ export function ConversationInboxList({
   userId,
   avatarKind,
   header,
+  filterBesideHeader = false,
   onConversationPress,
   onConversationHidden,
 }: ConversationInboxListProps) {
@@ -37,6 +39,19 @@ export function ConversationInboxList({
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     content: { gap: spacing.md },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    headerContent: {
+      flex: 1,
+      minWidth: 0,
+    },
+    filterRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
     empty: typography.subtitle,
   }));
 
@@ -51,12 +66,24 @@ export function ConversationInboxList({
       ? getConversationInboxEmptyMessage('all', role)
       : getConversationInboxEmptyMessage(filter, role);
 
+  const filterButton =
+    conversations.length > 0 ? (
+      <ConversationInboxFilters selected={filter} counts={filterCounts} onChange={setFilter} />
+    ) : null;
+
   return (
     <View style={styles.content}>
-      {header}
+      {header && filterBesideHeader ? (
+        <View style={styles.headerRow}>
+          <View style={styles.headerContent}>{header}</View>
+          {filterButton}
+        </View>
+      ) : null}
 
-      {conversations.length > 0 ? (
-        <ConversationFilterBar selected={filter} counts={filterCounts} onChange={setFilter} />
+      {header && !filterBesideHeader ? header : null}
+
+      {filterButton && !filterBesideHeader ? (
+        <View style={styles.filterRow}>{filterButton}</View>
       ) : null}
 
       {filteredConversations.length === 0 ? (
@@ -70,9 +97,10 @@ export function ConversationInboxList({
               avatarKind={avatarKind}
               role={role}
               onPress={() => onConversationPress(conversation)}
-              onDelete={() =>
-                confirmHideConversation(conversation, role, userId, onConversationHidden)
-              }
+              onDelete={async () => {
+                await hideConversation(conversation, role, userId);
+                onConversationHidden();
+              }}
             />
           ))}
         </BrowseListGroup>

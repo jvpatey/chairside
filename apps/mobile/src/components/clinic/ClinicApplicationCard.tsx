@@ -4,6 +4,7 @@ import {
   cancelScheduledApplicationInterview,
   declineApplicationInterviewUpdate,
   getApplicantDisplayName,
+  requestApplicationKit,
   updateApplicationStatus,
   type ClinicApplication,
 } from '@chairside/api';
@@ -11,8 +12,11 @@ import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
   formatInterviewDateTime,
+  hasApplicationKitSubmitted,
   hasPendingInterviewProposal,
   canClinicHideApplication,
+  isAwaitingApplicationKit,
+  isScreeningStageStatus,
   getRoleTypeLabel,
   getSpecialtyLabel,
 } from '@chairside/config';
@@ -31,7 +35,6 @@ import {
   Alert,
   LayoutAnimation,
   Platform,
-  Pressable,
   Text,
   UIManager,
   View,
@@ -62,6 +65,7 @@ import {
   getClinicApplicationMessagesRoute,
   type ClinicApplicationReturnTarget,
 } from '@/lib/routing';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { useTheme, useThemedStyles } from '@/theme';
 import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
 
@@ -212,6 +216,16 @@ export function ClinicApplicationCard({
       ...typography.subtitle,
       fontSize: 14,
     },
+    pendingKitBanner: {
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 10,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    pendingKitText: {
+      ...typography.subtitle,
+      fontSize: 14,
+    },
   }));
 
   const updateStatus = async (status: Parameters<typeof updateApplicationStatus>[1]) => {
@@ -259,110 +273,86 @@ export function ClinicApplicationCard({
   };
 
   const cancelScheduledInterview = () => {
-    Alert.alert(
-      'Cancel interview?',
-      'This returns the applicant to your shortlist. You can reschedule or continue messaging.',
-      [
-        { text: 'Keep interview', style: 'cancel' },
-        {
-          text: 'Cancel interview',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await cancelScheduledApplicationInterview(application.id, 'clinic');
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                (onShortlisted ?? onUpdated)?.();
-              } catch (error) {
-                Alert.alert(
-                  'Update failed',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              }
-            })();
-          },
-        },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Cancel interview?',
+      message: 'This returns the applicant to your shortlist. You can reschedule or continue messaging.',
+      confirmLabel: 'Cancel interview',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await cancelScheduledApplicationInterview(application.id, 'clinic');
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          (onShortlisted ?? onUpdated)?.();
+        } catch (error) {
+          Alert.alert(
+            'Update failed',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
   };
 
   const acceptWorkerProposal = () => {
-    Alert.alert('Accept new time?', 'The confirmed interview will move to the proposed time.', [
-      { text: 'Not now', style: 'cancel' },
-      {
-        text: 'Accept',
-        onPress: () => {
-          void (async () => {
-            try {
-              await acceptApplicationInterviewUpdate(application.id);
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              onUpdated?.();
-            } catch (error) {
-              Alert.alert(
-                'Update failed',
-                error instanceof Error ? error.message : 'Please try again.',
-              );
-            }
-          })();
-        },
+    showConfirmActionSheet({
+      title: 'Accept new time?',
+      message: 'The confirmed interview will move to the proposed time.',
+      confirmLabel: 'Accept',
+      onConfirm: async () => {
+        try {
+          await acceptApplicationInterviewUpdate(application.id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Update failed',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
       },
-    ]);
+    });
   };
 
   const declineWorkerProposal = () => {
-    Alert.alert(
-      'Decline new time?',
-      'The confirmed interview time will stay as scheduled.',
-      [
-        { text: 'Keep reviewing', style: 'cancel' },
-        {
-          text: 'Decline',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await declineApplicationInterviewUpdate(application.id);
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                onUpdated?.();
-              } catch (error) {
-                Alert.alert(
-                  'Update failed',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              }
-            })();
-          },
-        },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Decline new time?',
+      message: 'The confirmed interview time will stay as scheduled.',
+      confirmLabel: 'Decline',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await declineApplicationInterviewUpdate(application.id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Update failed',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
   };
 
   const cancelInterviewInvite = () => {
-    Alert.alert(
-      'Cancel interview invite?',
-      'This withdraws the invitation and moves the applicant back to your shortlist.',
-      [
-        { text: 'Keep invite', style: 'cancel' },
-        {
-          text: 'Cancel invite',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await cancelApplicationInterviewOffer(application.id);
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                (onShortlisted ?? onUpdated)?.();
-              } catch (error) {
-                Alert.alert(
-                  'Update failed',
-                  error instanceof Error ? error.message : 'Please try again.',
-                );
-              }
-            })();
-          },
-        },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Cancel interview invite?',
+      message: 'This withdraws the invitation and moves the applicant back to your shortlist.',
+      confirmLabel: 'Cancel invite',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await cancelApplicationInterviewOffer(application.id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          (onShortlisted ?? onUpdated)?.();
+        } catch (error) {
+          Alert.alert(
+            'Update failed',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
   };
 
   const toggleExpanded = () => {
@@ -380,9 +370,37 @@ export function ClinicApplicationCard({
       application.status === 'interview_scheduled') &&
     interviewSummary;
 
+  const hasKitSubmitted = hasApplicationKitSubmitted(application);
+  const isScreeningStage = isScreeningStageStatus(application.status);
+  const awaitingKit = isAwaitingApplicationKit(application);
+
+  const requestKit = async () => {
+    try {
+      await requestApplicationKit(application.id);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onUpdated?.();
+    } catch (error) {
+      Alert.alert(
+        'Request failed',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  };
+
+  const handleRequestKit = () => {
+    showConfirmActionSheet({
+      title: 'Request application kit?',
+      message:
+        'The candidate will be asked to confirm and submit their full application before you can review it.',
+      confirmLabel: 'Request application',
+      onConfirm: () => requestKit(),
+    });
+  };
+
   const hasActions =
     !application.worker_account_deleted &&
-    (application.status === 'applied' ||
+    (isScreeningStage ||
+      application.status === 'applied' ||
       application.status === 'reviewed' ||
       application.status === 'in_progress' ||
       application.status === 'interview_offered' ||
@@ -406,7 +424,12 @@ export function ClinicApplicationCard({
         detail={workerDeleted ? null : application.worker_address ?? null}
         avatarSize={44}
         accessory={
-          <ClinicApplicationStatusBadge status={application.status} postType={application.post_type} />
+          <ClinicApplicationStatusBadge
+            status={application.status}
+            postType={application.post_type}
+            applicationKitRequestedAt={application.application_kit_requested_at}
+            applicationKitSubmittedAt={application.application_kit_submitted_at}
+          />
         }
         textFooter={
           jobMatch && matchContext ? (
@@ -451,6 +474,14 @@ export function ClinicApplicationCard({
         </View>
       ) : null}
 
+      {awaitingKit ? (
+        <View style={styles.pendingKitBanner}>
+          <Text style={styles.pendingKitText}>
+            Application kit requested. Waiting for the candidate to submit.
+          </Text>
+        </View>
+      ) : null}
+
       {workerDeleted ? (
         <View style={styles.deletedBanner}>
           <Text style={styles.deletedText}>
@@ -491,41 +522,47 @@ export function ClinicApplicationCard({
 
       {expanded ? (
         <View style={styles.details}>
-          {application.years_of_experience != null ? (
+          {application.post_type === 'job' && application.screening ? (
+            <ApplicationScreeningSection screening={application.screening} />
+          ) : null}
+          {hasKitSubmitted && application.years_of_experience != null ? (
             <ApplicationPreviewField
               label="Experience"
               value={`${application.years_of_experience} years`}
             />
           ) : null}
-          {formatApplicationEducation(application.education) ? (
+          {hasKitSubmitted && formatApplicationEducation(application.education) ? (
             <ApplicationPreviewField
               label="Education"
               value={formatApplicationEducation(application.education)}
             />
           ) : null}
-          {application.role_type ? (
+          {hasKitSubmitted && application.role_type ? (
             <ApplicationPreviewField
               label="Role"
               value={getRoleTypeLabel(application.role_type)}
             />
           ) : null}
-          {(application.software_used ?? []).length > 0 ? (
+          {hasKitSubmitted && (application.software_used ?? []).length > 0 ? (
             <ApplicationPreviewField
               label="Software"
               value={(application.software_used ?? []).join(', ')}
             />
           ) : null}
-          {(application.practice_types ?? []).length > 0 ? (
+          {hasKitSubmitted && (application.practice_types ?? []).length > 0 ? (
             <ApplicationPreviewField
               label="Specialties"
               value={(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
             />
           ) : null}
-          {application.cover_message ? (
+          {hasKitSubmitted && application.cover_message ? (
             <ApplicationPreviewField label="Cover message" value={application.cover_message} />
           ) : null}
-          {application.post_type === 'job' && application.screening ? (
-            <ApplicationScreeningSection screening={application.screening} />
+          {isScreeningStage && !hasKitSubmitted ? (
+            <ApplicationPreviewField
+              label="Application kit"
+              value="Not submitted yet"
+            />
           ) : null}
           {application.interview_details ? (
             <ApplicationPreviewField
@@ -533,19 +570,36 @@ export function ClinicApplicationCard({
               value={application.interview_details}
             />
           ) : null}
-          <ApplicationPreviewField
-            label="Resume"
-            value={formatApplicationResumeStatus(application.resume_storage_path)}
-          />
-          {application.resume_storage_path ? (
-            <ResumeViewButton
-              storagePath={application.resume_storage_path}
-              fileName={resumeFileName}
-            />
+          {hasKitSubmitted ? (
+            <>
+              <ApplicationPreviewField
+                label="Resume"
+                value={formatApplicationResumeStatus(application.resume_storage_path)}
+              />
+              {application.resume_storage_path ? (
+                <ResumeViewButton
+                  storagePath={application.resume_storage_path}
+                  fileName={resumeFileName}
+                />
+              ) : null}
+            </>
           ) : null}
 
           {hasActions ? (
             <View style={styles.actions}>
+              {isScreeningStage && !awaitingKit ? (
+                <ApplicationActionRow>
+                  <OnboardingButton
+                    label="Request application kit"
+                    onPress={handleRequestKit}
+                  />
+                  <OnboardingButton
+                    label="Not moving forward"
+                    variant="destructive"
+                    onPress={() => void updateStatus('rejected')}
+                  />
+                </ApplicationActionRow>
+              ) : null}
               {application.status === 'applied' ? (
                 <ApplicationActionRow>
                   <OnboardingButton

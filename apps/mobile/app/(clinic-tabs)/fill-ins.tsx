@@ -17,6 +17,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
@@ -29,7 +30,12 @@ import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  filterShiftPosts,
+  FILL_INS_LIST_MODE_OPTIONS,
+  filterShiftPostsForFillInsListMode,
+  type FillInsListMode,
+} from '@/lib/fillInFilters';
+import {
+  HISTORY_SHIFT_STATUS_FILTER_OPTIONS,
   type RoleTypeFilter,
   type ShiftDateFilter,
   type ShiftStatusFilter,
@@ -106,9 +112,10 @@ export default function ClinicFillInsScreen() {
   const [confirmedRows, setConfirmedRows] = useState<ConfirmedFillInSummary[]>([]);
   const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
   const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
+  const [fillInsListMode, setFillInsListMode] = useState<FillInsListMode>('active');
   const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
-  const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('all');
+  const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('past');
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const {
     celebrationVisible,
@@ -121,12 +128,40 @@ export default function ClinicFillInsScreen() {
     wrap: { gap: spacing.xl },
     list: { gap: spacing.md },
     section: { gap: spacing.sm },
+    sectionBody: { gap: spacing.lg },
+    filterToolbar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    modeSwitch: {
+      flex: 1,
+    },
   }));
 
   const filteredShifts = useMemo(
-    () => filterShiftPosts(shifts, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter),
-    [shifts, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter],
+    () =>
+      filterShiftPostsForFillInsListMode(
+        shifts,
+        fillInsListMode,
+        shiftStatusFilter,
+        shiftRoleTypeFilter,
+        shiftDateFilter,
+      ),
+    [shifts, fillInsListMode, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter],
   );
+
+  const handleFillInsListModeChange = (value: FillInsListMode) => {
+    setFillInsListMode(value);
+    setExpandedShiftId(null);
+    if (value === 'active') {
+      setShiftStatusFilter('open');
+      setShiftDateFilter('all');
+      return;
+    }
+    setShiftStatusFilter('all');
+    setShiftDateFilter('past');
+  };
 
   const load = useCallback(async () => {
     if (!user?.id) {
@@ -248,51 +283,84 @@ export default function ClinicFillInsScreen() {
 
           <View style={styles.section}>
             <SectionHeader title="Your fill-ins" />
-            {shifts.length > 0 ? (
-              <ShiftPostingFilters
-                statusFilter={shiftStatusFilter}
-                roleTypeFilter={shiftRoleTypeFilter}
-                shiftDateFilter={shiftDateFilter}
-                onStatusChange={setShiftStatusFilter}
-                onRoleTypeChange={setShiftRoleTypeFilter}
-                onShiftDateChange={setShiftDateFilter}
-              />
-            ) : null}
             {shifts.length === 0 ? (
               <EmptyCard
                 icon="calendar-outline"
                 title="No fill-ins yet"
                 body="Post a fill-in shift when you need temporary or urgent coverage."
               />
-            ) : filteredShifts.length === 0 ? (
-              <EmptyCard
-                icon="filter-outline"
-                title="No fill-ins in this filter"
-                body="Try a different filter or post a new fill-in shift."
-              />
             ) : (
-              <View style={styles.list}>
-                {filteredShifts.map((shift) => (
-                  <FillInPostingCard
-                    key={shift.id}
-                    shift={shift}
-                    pendingRequestCount={pendingCounts[shift.id] ?? 0}
-                    applicationCount={applicationCounts[shift.id] ?? 0}
-                    clinicId={user?.id}
-                    returnTo="fill-ins-tab"
-                    expanded={expandedShiftId === shift.id}
-                    onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
-                    onShiftUpdated={(updated) =>
-                      setShifts((current) =>
-                        current.map((row) => (row.id === updated.id ? updated : row)),
-                      )
+              <View style={styles.sectionBody}>
+                <View style={styles.filterToolbar}>
+                  <View style={styles.modeSwitch}>
+                    <SegmentedControl
+                      options={FILL_INS_LIST_MODE_OPTIONS}
+                      selected={fillInsListMode}
+                      onChange={handleFillInsListModeChange}
+                    />
+                  </View>
+                  <ShiftPostingFilters
+                    statusOptions={
+                      fillInsListMode === 'history' ? HISTORY_SHIFT_STATUS_FILTER_OPTIONS : undefined
                     }
-                    onShiftDeleted={() => {
-                      setShifts((current) => current.filter((row) => row.id !== shift.id));
-                      setExpandedShiftId((current) => (current === shift.id ? null : current));
-                    }}
+                    includeStatusInSheet={fillInsListMode === 'history'}
+                    includeDateInSheet={fillInsListMode === 'history'}
+                    defaults={
+                      fillInsListMode === 'history'
+                        ? {
+                            statusFilter: 'all',
+                            roleTypeFilter: 'all',
+                            shiftDateFilter: 'past',
+                          }
+                        : {
+                            statusFilter: 'open',
+                            roleTypeFilter: 'all',
+                            shiftDateFilter: 'all',
+                          }
+                    }
+                    statusFilter={shiftStatusFilter}
+                    roleTypeFilter={shiftRoleTypeFilter}
+                    shiftDateFilter={shiftDateFilter}
+                    onStatusChange={setShiftStatusFilter}
+                    onRoleTypeChange={setShiftRoleTypeFilter}
+                    onShiftDateChange={setShiftDateFilter}
                   />
-                ))}
+                </View>
+                {filteredShifts.length === 0 ? (
+                  <EmptyCard
+                    icon="filter-outline"
+                    title={fillInsListMode === 'history' ? 'No past fill-ins' : 'No active fill-ins'}
+                    body={
+                      fillInsListMode === 'history'
+                        ? 'Past, filled, and closed fill-ins will appear here.'
+                        : 'Try a different filter or post a new fill-in shift.'
+                    }
+                  />
+                ) : (
+                  <View style={styles.list}>
+                    {filteredShifts.map((shift) => (
+                      <FillInPostingCard
+                        key={shift.id}
+                        shift={shift}
+                        pendingRequestCount={pendingCounts[shift.id] ?? 0}
+                        applicationCount={applicationCounts[shift.id] ?? 0}
+                        clinicId={user?.id}
+                        returnTo="fill-ins-tab"
+                        expanded={expandedShiftId === shift.id}
+                        onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
+                        onShiftUpdated={(updated) =>
+                          setShifts((current) =>
+                            current.map((row) => (row.id === updated.id ? updated : row)),
+                          )
+                        }
+                        onShiftDeleted={() => {
+                          setShifts((current) => current.filter((row) => row.id !== shift.id));
+                          setExpandedShiftId((current) => (current === shift.id ? null : current));
+                        }}
+                      />
+                    ))}
+                  </View>
+                )}
               </View>
             )}
           </View>

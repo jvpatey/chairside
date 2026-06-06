@@ -12,6 +12,7 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
+import { formatPostedDateLabel } from '@/lib/dates';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type RolePostingCardManageProps = {
@@ -70,6 +71,7 @@ export function RolePostingCard({
   const hasApplicants = applicantCount != null && applicantCount > 0;
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
+  const postedLabel = formatPostedDateLabel(job.created_at);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -81,11 +83,6 @@ export function RolePostingCard({
     },
     cardPressed: {
       opacity: 0.92,
-    },
-    headerAccessory: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
     },
     menuButton: {
       width: 28,
@@ -120,11 +117,6 @@ export function RolePostingCard({
     applicantsPressablePressed: {
       opacity: 0.75,
     },
-    listAccessory: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
   }));
 
   const handleManagePress = () => {
@@ -151,6 +143,8 @@ export function RolePostingCard({
       <Ionicons name="ellipsis-horizontal" size={20} color={colors.labelTertiary} />
     </Pressable>
   ) : null;
+
+  const statusBadge = <JobPostStatusBadge status={job.status} />;
 
   const applicantFooter =
     applicantCount != null && applicantCount > 0 ? (
@@ -183,12 +177,8 @@ export function RolePostingCard({
         title={job.title}
         meta={location || null}
         detail={formatJobPostRoleMeta(job)}
-        topTrailing={
-          <View style={styles.listAccessory}>
-            <JobPostStatusBadge status={job.status} />
-            {manageButton}
-          </View>
-        }
+        postedLabel={postedLabel || null}
+        topTrailing={manageButton}
         showChevron={!onApplicantsPress || !(applicantCount != null && applicantCount > 0)}
         footer={
           <>
@@ -196,6 +186,7 @@ export function RolePostingCard({
             {job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
           </>
         }
+        statusFooter={statusBadge}
         isLast={isLast}
         onPress={onPress}
       />
@@ -209,13 +200,9 @@ export function RolePostingCard({
       title={job.title}
       location={location || null}
       detail={formatJobPostRoleMeta(job)}
+      postedLabel={postedLabel || null}
       avatarSize={44}
-      accessory={
-        <View style={styles.headerAccessory}>
-          <JobPostStatusBadge status={job.status} />
-          {manageButton}
-        </View>
-      }
+      accessory={manageButton}
       textFooter={applicantFooter}
       footer={
         job.wage_range ? (
@@ -224,6 +211,7 @@ export function RolePostingCard({
           </View>
         ) : null
       }
+      statusFooter={statusBadge}
     />
   );
 

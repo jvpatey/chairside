@@ -29,10 +29,11 @@ export function ScreeningIntroCard() {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>Culture fit</Text>
+      <Text style={styles.eyebrow}>Screening questions</Text>
       <Text style={styles.title}>A few quick questions</Text>
       <Text style={styles.body}>
-        This clinic included a short culture fit questionnaire. You can skip if you prefer.
+        This clinic uses screening questions before reviewing full applications. Answer each
+        question to submit your screening responses.
       </Text>
     </View>
   );

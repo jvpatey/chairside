@@ -15,6 +15,7 @@ import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 
+import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -88,7 +89,8 @@ export function QuickActionTile({
   onPress,
 }: QuickActionTileProps) {
   const { colors } = useTheme();
-  const isPrimary = variant === 'primary';
+  const iconWrapBackground =
+    variant === 'primary' ? colors.primarySubtle : colors.fillSubtle;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     tile: {
@@ -98,8 +100,12 @@ export function QuickActionTile({
       gap: spacing.sm,
       minHeight: 112,
       borderWidth: 1,
-      borderColor: isPrimary ? colors.primary : colors.separator,
-      backgroundColor: isPrimary ? colors.primary : colors.surface,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
+    },
+    tilePressed: {
+      opacity: 0.88,
+      backgroundColor: colors.fillSubtle,
     },
     iconWrap: {
       width: 36,
@@ -107,18 +113,18 @@ export function QuickActionTile({
       borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isPrimary ? 'rgba(255,255,255,0.2)' : colors.fillSubtle,
+      backgroundColor: iconWrapBackground,
     },
     label: {
       ...typography.body,
       fontWeight: '600',
       fontSize: 15,
-      color: isPrimary ? colors.primaryOnPrimary : colors.labelPrimary,
+      color: colors.labelPrimary,
     },
     description: {
       fontSize: 12,
       lineHeight: 16,
-      color: isPrimary ? 'rgba(255,255,255,0.85)' : colors.labelSecondary,
+      color: colors.labelSecondary,
     },
   }));
 
@@ -130,15 +136,12 @@ export function QuickActionTile({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={`${label}. ${description}`}
+      accessibilityHint="Opens this section of the app"
       onPress={handlePress}
-      style={({ pressed }) => [styles.tile, pressed && { opacity: 0.9 }]}>
+      style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}>
       <View style={styles.iconWrap}>
-        <Ionicons
-          name={icon}
-          size={20}
-          color={isPrimary ? colors.primaryOnPrimary : colors.primary}
-        />
+        <Ionicons name={icon} size={20} color={colors.primary} />
       </View>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.description}>{description}</Text>
@@ -183,23 +186,24 @@ export function StatGrid({
     },
     cell: {
       flex: 1,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.separator,
-      paddingVertical: spacing.md,
+      paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: 2,
     },
     cellSelected: {
       borderColor: colors.primary,
-      backgroundColor: colors.primarySubtle,
+      backgroundColor: colors.surface,
     },
     value: {
       ...typography.title,
-      fontSize: 24,
-      lineHeight: 28,
+      fontSize: 20,
+      lineHeight: 24,
+      color: colors.labelPrimary,
     },
     valueSelected: {
       color: colors.primary,
@@ -423,7 +427,9 @@ export function DashboardOverviewPanel({
   }));
 
   const roleJobs = jobs.filter(isMainListJob);
-  const liveShifts = shifts.filter((shift) => shift.status === 'live');
+  const liveShifts = shifts.filter(
+    (shift) => shift.status === 'live' && isTodayOrUpcomingShiftDate(shift.shift_date),
+  );
 
   return (
     <View>

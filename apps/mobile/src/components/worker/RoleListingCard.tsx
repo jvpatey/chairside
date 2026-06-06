@@ -11,6 +11,7 @@ import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
+import { formatPostedDateLabel } from '@/lib/dates';
 import { useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
@@ -34,6 +35,8 @@ export function RoleListingCard({
 }: RoleListingCardProps) {
   const logoUri = useClinicLogoUri(job.clinic.logo_storage_path);
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+  const detail = formatJobPostCardMeta(job);
+  const postedLabel = formatPostedDateLabel(job.created_at);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -62,6 +65,16 @@ export function RoleListingCard({
     },
   }));
 
+  const matchBadge =
+    jobMatch && matchContext ? (
+      <MatchTierBadge
+        breakdown={jobMatch}
+        context={matchContext}
+        subtitle={job.title}
+        showProfileHint
+      />
+    ) : null;
+
   if (layout === 'list') {
     return (
       <BrowseListRow
@@ -71,23 +84,11 @@ export function RoleListingCard({
         eyebrow={job.clinic.clinic_name}
         title={job.title}
         meta={location || null}
-        detail={formatJobPostCardMeta(job)}
-        topTrailing={
-          jobMatch && matchContext ? (
-            <MatchTierBadge
-              breakdown={jobMatch}
-              context={matchContext}
-              subtitle={job.title}
-              showProfileHint
-            />
-          ) : undefined
-        }
-        footer={
-          <>
-            {hasApplied ? <AppliedPillBadge /> : null}
-            {job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
-          </>
-        }
+        detail={detail || null}
+        postedLabel={postedLabel || null}
+        topTrailing={matchBadge ?? undefined}
+        textFooter={hasApplied ? <AppliedPillBadge /> : null}
+        footer={job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
         isLast={isLast}
         onPress={onPress}
       />
@@ -100,19 +101,10 @@ export function RoleListingCard({
       logoStoragePath={job.clinic.logo_storage_path}
       title={job.title}
       location={location || null}
-      detail={formatJobPostCardMeta(job)}
+      detail={detail || null}
+      postedLabel={postedLabel || null}
       avatarSize={44}
-      accessory={
-        jobMatch && matchContext ? (
-          <MatchTierBadge
-            breakdown={jobMatch}
-            context={matchContext}
-            subtitle={job.title}
-            showProfileHint
-          />
-        ) : null
-      }
-      textFooter={hasApplied ? <AppliedPillBadge /> : null}
+      accessory={matchBadge}
       footer={
         job.wage_range ? (
           <View style={styles.footer}>
@@ -120,6 +112,7 @@ export function RoleListingCard({
           </View>
         ) : null
       }
+      statusFooter={hasApplied ? <AppliedPillBadge /> : null}
     />
   );
 

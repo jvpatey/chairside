@@ -1,8 +1,5 @@
 import { getSupabaseClient } from './client';
-import {
-  DELETED_CANDIDATE_LABEL,
-  DELETED_CLINIC_LABEL,
-} from '@chairside/config';
+import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
 import {
   getApplicationScreening,
   getApplicationScreeningMap,
@@ -12,6 +9,7 @@ import {
 } from './screening';
 
 export type ApplicationStatus =
+  | 'screening_submitted'
   | 'applied'
   | 'reviewed'
   | 'in_progress'
@@ -23,6 +21,7 @@ export type ApplicationStatus =
 
 /** Non-terminal statuses where the worker may still withdraw. */
 export const ACTIVE_APPLICATION_STATUSES: ApplicationStatus[] = [
+  'screening_submitted',
   'applied',
   'reviewed',
   'in_progress',
@@ -74,6 +73,8 @@ export type Application = {
   clinic_logo_storage_path: string | null;
   worker_account_deleted_at: string | null;
   clinic_account_deleted_at: string | null;
+  application_kit_requested_at: string | null;
+  application_kit_submitted_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -104,11 +105,16 @@ export type WorkerApplication = Application & {
   screening: ApplicationScreening | null;
 };
 
-function formatWorkerClinicLocation(clinic: {
-  address_line1?: string | null;
-  city?: string | null;
-  province?: string | null;
-} | null | undefined): string | null {
+function formatWorkerClinicLocation(
+  clinic:
+    | {
+        address_line1?: string | null;
+        city?: string | null;
+        province?: string | null;
+      }
+    | null
+    | undefined,
+): string | null {
   if (!clinic) return null;
 
   const parts = [
@@ -155,9 +161,8 @@ function resolveWorkerClinicFields(
       clinic_city: application.clinic_city ?? null,
       clinic_province: application.clinic_province ?? null,
       clinic_address: null,
-      clinic_location: [application.clinic_city, application.clinic_province]
-        .filter(Boolean)
-        .join(', ') || null,
+      clinic_location:
+        [application.clinic_city, application.clinic_province].filter(Boolean).join(', ') || null,
       clinic_logo_storage_path: null,
       clinic_account_deleted: true,
     };
@@ -188,6 +193,8 @@ export type CreateApplicationInput = {
   jobPostId?: string;
   shiftPostId?: string;
   coverMessage?: string;
+  /** When true, creates a screening-stage application without the full application kit. */
+  screeningOnly?: boolean;
   screening?: ScreeningSubmissionInput;
 };
 
@@ -195,6 +202,7 @@ export type JobApplicationSummary = {
   job_post_id: string;
   post_title: string;
   applicant_count: number;
+  screening_count: number;
   pending_count: number;
   shortlisted_count: number;
   interview_count: number;
@@ -207,6 +215,8 @@ export const FILL_IN_PENDING_STATUSES: ApplicationStatus[] = [
   'interview_offered',
   'interview_scheduled',
 ];
+
+export const SCREENING_STAGE_STATUSES: ApplicationStatus[] = ['screening_submitted'];
 
 export type FillInCoverRequest = ClinicApplication & {
   shift_date: string;
@@ -426,9 +436,7 @@ async function enrichWorkerApplication(
 ): Promise<WorkerApplication | null> {
   const supabase = getSupabaseClient();
   const screening =
-    application.job_post_id != null
-      ? await getApplicationScreening(application.id)
-      : null;
+    application.job_post_id != null ? await getApplicationScreening(application.id) : null;
 
   if (application.job_post_id) {
     const { data: job, error: jobError } = await supabase
@@ -645,6 +653,9 @@ export async function listJobApplicationSummaries(
     const existing = summaries.get(application.job_post_id);
     if (existing) {
       existing.applicant_count += 1;
+      if (application.status === 'screening_submitted') {
+        existing.screening_count += 1;
+      }
       if (application.status === 'applied') {
         existing.pending_count += 1;
       }
@@ -662,11 +673,11 @@ export async function listJobApplicationSummaries(
         job_post_id: application.job_post_id,
         post_title: application.post_title,
         applicant_count: 1,
+        screening_count: application.status === 'screening_submitted' ? 1 : 0,
         pending_count: application.status === 'applied' ? 1 : 0,
         shortlisted_count: application.status === 'in_progress' ? 1 : 0,
         interview_count:
-          application.status === 'interview_offered' ||
-          application.status === 'interview_scheduled'
+          application.status === 'interview_offered' || application.status === 'interview_scheduled'
             ? 1
             : 0,
       });
@@ -716,14 +727,25 @@ export async function createApplication(
     throw new Error('Application cannot reference both job and shift posts');
   }
 
+  if (input.screeningOnly) {
+    if (!input.jobPostId || input.shiftPostId) {
+      throw new Error('Screening-only applications require a job post');
+    }
+    if (!input.screening || input.screening.status !== 'completed') {
+      throw new Error('Screening answers are required');
+    }
+  }
+
+  const status: ApplicationStatus = input.screeningOnly ? 'screening_submitted' : 'applied';
+
   const { data, error } = await supabase
     .from('applications')
     .insert({
       worker_id: workerId,
       job_post_id: input.jobPostId ?? null,
       shift_post_id: input.shiftPostId ?? null,
-      cover_message: input.coverMessage?.trim() || null,
-      status: 'applied',
+      cover_message: input.screeningOnly ? null : input.coverMessage?.trim() || null,
+      status,
       updated_at: now,
     })
     .select('*')
@@ -743,6 +765,39 @@ export async function createApplication(
   }
 
   return application;
+}
+
+export async function requestApplicationKit(applicationId: string): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('request_application_kit', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('Application kit could not be requested');
+  }
+  return row;
+}
+
+export async function submitRequestedApplicationKit(
+  workerId: string,
+  applicationId: string,
+  coverMessage?: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('submit_requested_application_kit', {
+    application_id: applicationId,
+    cover_message: coverMessage?.trim() || null,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row || row.worker_id !== workerId) {
+    throw new Error('Application kit could not be submitted');
+  }
+  return row;
 }
 
 export async function hasAppliedToJob(workerId: string, jobPostId: string): Promise<boolean> {
@@ -849,9 +904,7 @@ export async function declineApplicationInterview(
   return row;
 }
 
-export async function cancelApplicationInterviewOffer(
-  applicationId: string,
-): Promise<Application> {
+export async function cancelApplicationInterviewOffer(applicationId: string): Promise<Application> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('applications')
@@ -1148,9 +1201,7 @@ export async function listUpcomingConfirmedFillIns(
 
   const today = new Date().toISOString().slice(0, 10);
   const shiftMap = new Map(
-    shifts
-      .filter((shift) => shift.shift_date >= today)
-      .map((shift) => [shift.id, shift]),
+    shifts.filter((shift) => shift.shift_date >= today).map((shift) => [shift.id, shift]),
   );
 
   if (shiftMap.size === 0) return [];
@@ -1158,7 +1209,9 @@ export async function listUpcomingConfirmedFillIns(
   const shiftIds = [...shiftMap.keys()];
   const { data, error } = await supabase
     .from('applications')
-    .select('id, shift_post_id, status, worker_display_name, worker_photo_storage_path, worker_account_deleted_at')
+    .select(
+      'id, shift_post_id, status, worker_display_name, worker_photo_storage_path, worker_account_deleted_at',
+    )
     .in('shift_post_id', shiftIds)
     .eq('status', 'hired')
     .order('created_at', { ascending: false });
@@ -1178,7 +1231,7 @@ export async function listUpcomingConfirmedFillIns(
         : row.worker_display_name?.trim() || 'Applicant',
       workerPhotoStoragePath: row.worker_account_deleted_at
         ? null
-        : row.worker_photo_storage_path ?? null,
+        : (row.worker_photo_storage_path ?? null),
       postTitle: `Fill-in · ${shift.shift_date}`,
       shiftDate: shift.shift_date,
       startTime: shift.start_time,

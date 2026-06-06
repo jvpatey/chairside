@@ -145,7 +145,7 @@ export function FillInPostingCard({
           location={location || null}
           detail={formatShiftPostMeta(shift)}
           avatarSize={44}
-          accessory={<ShiftPostStatusBadge status={shift.status} />}
+          accessory={<ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />}
           textFooter={pendingRequestCount > 0 ? <RequestCountPill count={pendingRequestCount} /> : null}
           footer={
             shift.compensation ? (

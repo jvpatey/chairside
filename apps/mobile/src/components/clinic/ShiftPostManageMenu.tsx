@@ -7,9 +7,12 @@ import {
 } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
 import { Alert, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -67,6 +70,7 @@ export function ShiftPostManageMenu({
   trigger = 'button',
 }: ShiftPostManageMenuProps) {
   const { colors } = useTheme();
+  const [menuVisible, setMenuVisible] = useState(false);
   const shiftLabel = formatShiftPostRoleTitle(shift.role_type);
 
   const handleStatusChange = async (status: ShiftPostStatus) => {
@@ -89,30 +93,23 @@ export function ShiftPostManageMenu({
           ? ` This will permanently delete the fill-in and ${applicationCount} application${applicationCount === 1 ? '' : 's'}.`
           : ' This fill-in will be permanently deleted.';
 
-      Alert.alert(
-        'Delete fill-in?',
-        `Are you sure you want to delete "${shiftLabel}"?${applicationWarning}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              void (async () => {
-                try {
-                  await deleteShiftPost(clinicId, shift.id);
-                  onDeleted();
-                } catch (error) {
-                  Alert.alert(
-                    'Delete failed',
-                    error instanceof Error ? error.message : 'Please try again.',
-                  );
-                }
-              })();
-            },
-          },
-        ],
-      );
+      showConfirmActionSheet({
+        title: 'Delete fill-in?',
+        message: `Are you sure you want to delete "${shiftLabel}"?${applicationWarning}`,
+        confirmLabel: 'Delete',
+        destructive: true,
+        onConfirm: async () => {
+          try {
+            await deleteShiftPost(clinicId, shift.id);
+            onDeleted();
+          } catch (error) {
+            Alert.alert(
+              'Delete failed',
+              error instanceof Error ? error.message : 'Please try again.',
+            );
+          }
+        },
+      });
     } catch (error) {
       Alert.alert(
         'Delete failed',
@@ -121,26 +118,21 @@ export function ShiftPostManageMenu({
     }
   };
 
-  const showManageMenu = () => {
-    const actions = getManageActions(shift.status);
-
-    Alert.alert('Manage fill-in', 'Choose an action for this shift.', [
-      ...actions.map((action) => ({
-        text: action.label,
-        style: action.destructive ? ('destructive' as const) : undefined,
-        onPress: () => {
-          if (action.isDelete) {
-            void confirmDelete();
-            return;
-          }
-          if (action.status) {
-            void handleStatusChange(action.status);
-          }
-        },
-      })),
-      { text: 'Cancel', style: 'cancel' as const },
-    ]);
+  const runAction = (action: ManageAction) => {
+    if (action.isDelete) {
+      void confirmDelete();
+      return;
+    }
+    if (action.status) {
+      void handleStatusChange(action.status);
+    }
   };
+
+  const menuActions = getManageActions(shift.status).map((action) => ({
+    label: action.label,
+    destructive: action.destructive,
+    onPress: () => runAction(action),
+  }));
 
   const iconStyles = useThemedStyles(({ colors }) => ({
     iconButton: {
@@ -159,17 +151,17 @@ export function ShiftPostManageMenu({
     },
   }));
 
-  const handlePress = () => {
+  const openMenu = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showManageMenu();
+    setMenuVisible(true);
   };
 
-  if (trigger === 'icon') {
-    return (
+  const triggerControl =
+    trigger === 'icon' ? (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Manage fill-in"
-        onPress={handlePress}
+        onPress={openMenu}
         style={({ pressed }) => [
           iconStyles.iconButton,
           pressed && iconStyles.iconButtonPressed,
@@ -177,15 +169,20 @@ export function ShiftPostManageMenu({
         ]}>
         <Ionicons name="ellipsis-horizontal" size={22} color={colors.labelPrimary} />
       </Pressable>
+    ) : (
+      <OnboardingButton label="Manage" variant="secondary" onPress={openMenu} style={style} />
     );
-  }
 
   return (
-    <OnboardingButton
-      label="Manage"
-      variant="secondary"
-      onPress={handlePress}
-      style={style}
-    />
+    <>
+      {triggerControl}
+      <ActionMenuSheet
+        visible={menuVisible}
+        title="Manage fill-in"
+        message="Choose an action for this shift."
+        actions={menuActions}
+        onClose={() => setMenuVisible(false)}
+      />
+    </>
   );
 }

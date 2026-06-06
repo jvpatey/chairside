@@ -6,11 +6,28 @@ import { parseISODate, startOfDay, todayISO } from '@/lib/dates';
 
 export type JobStatusFilter = 'live' | 'paused' | 'all';
 
-export type ShiftStatusFilter = 'open' | 'filled' | 'closed' | 'all';
+export type ShiftStatusFilter = 'open' | 'filled' | 'closed' | 'expired' | 'all';
 
 export type ShiftDateFilter = 'all' | 'today' | 'upcoming' | 'past';
 
 export type RoleTypeFilter = 'all' | RoleType;
+
+export type JobPostedSort = 'newest' | 'oldest';
+
+export const JOB_POSTED_SORT_OPTIONS: { value: JobPostedSort; label: string }[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+];
+
+export function sortJobsByPostedDate<T extends { created_at: string }>(
+  jobs: T[],
+  sort: JobPostedSort,
+): T[] {
+  return [...jobs].sort((a, b) => {
+    const compare = b.created_at.localeCompare(a.created_at);
+    return sort === 'newest' ? compare : -compare;
+  });
+}
 
 export const JOB_STATUS_FILTER_OPTIONS: { value: JobStatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -97,6 +114,14 @@ export const SHIFT_STATUS_FILTER_OPTIONS: { value: ShiftStatusFilter; label: str
   { value: 'all', label: 'All' },
 ];
 
+/** History view: "Open" is replaced with "Expired" (past date, still live). */
+export const HISTORY_SHIFT_STATUS_FILTER_OPTIONS: { value: ShiftStatusFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'filled', label: 'Filled' },
+  { value: 'closed', label: 'Closed' },
+];
+
 export const SHIFT_DATE_FILTER_OPTIONS: { value: ShiftDateFilter; label: string }[] = [
   { value: 'all', label: 'All dates' },
   { value: 'today', label: 'Today' },
@@ -139,6 +164,8 @@ function matchesShiftStatus(shift: ShiftPost, statusFilter: ShiftStatusFilter): 
   switch (statusFilter) {
     case 'open':
       return shift.status === 'live';
+    case 'expired':
+      return shift.status === 'live' && matchesShiftDate(shift, 'past');
     case 'filled':
       return shift.status === 'filled';
     case 'closed':

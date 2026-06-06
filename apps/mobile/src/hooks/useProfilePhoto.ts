@@ -7,6 +7,7 @@ import { Alert } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 
 export function useProfilePhoto() {
   const { user } = useAuth();
@@ -62,27 +63,26 @@ export function useProfilePhoto() {
   const removePhoto = async () => {
     if (!user?.id || !storagePath) return;
 
-    Alert.alert('Remove photo', 'Clinics will no longer see a profile photo with your applications.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          setIsUploading(true);
-          try {
-            await deleteWorkerPhoto(user.id, storagePath);
-            await refreshWorkerProfile();
-          } catch (error) {
-            Alert.alert(
-              'Could not remove',
-              error instanceof Error ? error.message : 'Please try again.',
-            );
-          } finally {
-            setIsUploading(false);
-          }
-        },
+    showConfirmActionSheet({
+      title: 'Remove photo',
+      message: 'Clinics will no longer see a profile photo with your applications.',
+      confirmLabel: 'Remove',
+      destructive: true,
+      onConfirm: async () => {
+        setIsUploading(true);
+        try {
+          await deleteWorkerPhoto(user.id, storagePath);
+          await refreshWorkerProfile();
+        } catch (error) {
+          Alert.alert(
+            'Could not remove',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        } finally {
+          setIsUploading(false);
+        }
       },
-    ]);
+    });
   };
 
   return {

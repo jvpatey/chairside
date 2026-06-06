@@ -1,11 +1,14 @@
-export type ScreeningQuestionType = 'yes_no' | 'rating_1_5';
+import { getProvinceLabel } from './clinicOptions';
+
+export type ScreeningQuestionType = 'yes_no' | 'rating_1_5' | 'number' | 'text';
 
 export type ScreeningQuestionCategory =
   | 'work_style'
   | 'communication'
   | 'standards'
   | 'workspace'
-  | 'attributes';
+  | 'attributes'
+  | 'qualifications';
 
 export type ScreeningCatalogQuestion = {
   slug: string;
@@ -14,6 +17,13 @@ export type ScreeningCatalogQuestion = {
   category: ScreeningQuestionCategory;
   sortOrder: number;
   reverseScored?: boolean;
+  min?: number;
+  max?: number;
+  unitLabel?: string;
+};
+
+export type ScreeningPromptContext = {
+  province?: string | null;
 };
 
 export const SCREENING_CATEGORY_LABELS: Record<ScreeningQuestionCategory, string> = {
@@ -22,6 +32,7 @@ export const SCREENING_CATEGORY_LABELS: Record<ScreeningQuestionCategory, string
   standards: 'Standards',
   workspace: 'Workspace',
   attributes: 'Attributes (1–5)',
+  qualifications: 'Qualifications',
 };
 
 export const RATING_SCALE_OPTIONS = [
@@ -123,6 +134,48 @@ export const SCREENING_CATALOG: ScreeningCatalogQuestion[] = [
     category: 'workspace',
     sortOrder: 120,
   },
+  {
+    slug: 'years_experience_in_role',
+    type: 'number',
+    prompt: 'How many years of experience do you have in this role?',
+    category: 'qualifications',
+    sortOrder: 130,
+    min: 0,
+    max: 50,
+    unitLabel: 'years',
+  },
+  {
+    slug: 'provincial_certification_training',
+    type: 'yes_no',
+    prompt:
+      'Do you have the proper certification or training required for this role in {{province}}?',
+    category: 'qualifications',
+    sortOrder: 140,
+  },
+  {
+    slug: 'currently_employed_dental',
+    type: 'yes_no',
+    prompt: 'Are you currently working in a dental practice?',
+    category: 'qualifications',
+    sortOrder: 150,
+  },
+  {
+    slug: 'weeks_notice_to_start',
+    type: 'number',
+    prompt: 'If hired, how many weeks of notice do you need before you can start?',
+    category: 'qualifications',
+    sortOrder: 160,
+    min: 0,
+    max: 52,
+    unitLabel: 'weeks',
+  },
+  {
+    slug: 'reliable_schedule',
+    type: 'yes_no',
+    prompt: 'Can you reliably maintain the schedule required for this role?',
+    category: 'qualifications',
+    sortOrder: 170,
+  },
   { slug: 'attr_honest', type: 'rating_1_5', prompt: 'Honest', category: 'attributes', sortOrder: 200 },
   {
     slug: 'attr_conscientious',
@@ -188,6 +241,7 @@ export function getScreeningQuestionsByCategory(
 }
 
 export const SCREENING_CATEGORIES: ScreeningQuestionCategory[] = [
+  'qualifications',
   'work_style',
   'communication',
   'standards',
@@ -202,11 +256,40 @@ export function getDefaultScreeningSelection(): string[] {
 export function resolveScreeningPrompt(
   catalogSlug: string | null,
   customPrompt: string | null,
+  context?: ScreeningPromptContext,
 ): string {
   if (customPrompt?.trim()) return customPrompt.trim();
   if (catalogSlug) {
     const preset = getScreeningCatalogQuestion(catalogSlug);
-    if (preset) return preset.prompt;
+    if (preset) {
+      return formatScreeningPromptTemplate(preset.prompt, context);
+    }
   }
   return 'Question';
+}
+
+export function formatScreeningQuestionTypeLabel(type: ScreeningQuestionType): string {
+  switch (type) {
+    case 'yes_no':
+      return 'Yes / No';
+    case 'number':
+      return 'Number';
+    case 'text':
+      return 'Text answer';
+    case 'rating_1_5':
+      return '1–5 rating';
+  }
+}
+
+export function formatScreeningPromptTemplate(
+  prompt: string,
+  context?: ScreeningPromptContext,
+): string {
+  if (!prompt.includes('{{province}}')) return prompt;
+
+  const provinceLabel = context?.province?.trim()
+    ? getProvinceLabel(context.province.trim())
+    : 'your province';
+
+  return prompt.replace(/\{\{province\}\}/g, provinceLabel);
 }

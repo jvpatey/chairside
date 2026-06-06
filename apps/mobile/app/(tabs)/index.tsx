@@ -161,13 +161,14 @@ export default function WorkerDashboardScreen() {
           <View style={styles.row}>
             <QuickActionTile
               label="Find jobs"
-              description="Open roles in your province"
-              icon="search-outline"
+              description="Browse open roles nearby"
+              icon="briefcase-outline"
+              variant="primary"
               onPress={() => router.push(WORKER_BROWSE)}
             />
             <QuickActionTile
               label="Find fill-ins"
-              description="Temp shifts in your province"
+              description="Browse temp shifts nearby"
               icon="calendar-outline"
               variant="secondary"
               onPress={() => router.push(WORKER_FILLINS)}

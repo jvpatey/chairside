@@ -1,5 +1,5 @@
 import type { ApplicationScreening } from '@chairside/api';
-import { RATING_SCALE_OPTIONS } from '@chairside/config';
+import { getScreeningCatalogQuestion, RATING_SCALE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -18,6 +18,20 @@ function formatYesNo(answer: boolean): string {
 function formatRating(answer: number): string {
   const option = RATING_SCALE_OPTIONS.find((item) => item.value === answer);
   return option ? `${answer} · ${option.label}` : String(answer);
+}
+
+function formatAnswer(
+  type: 'yes_no' | 'rating_1_5' | 'number' | 'text',
+  answer: boolean | number | string,
+  unitLabel?: string,
+): string {
+  if (type === 'yes_no') return formatYesNo(answer as boolean);
+  if (type === 'text') return String(answer).trim();
+  if (type === 'number') {
+    const value = String(answer);
+    return unitLabel ? `${value} ${unitLabel}` : value;
+  }
+  return formatRating(answer as number);
 }
 
 export function ApplicationScreeningSection({
@@ -89,7 +103,7 @@ export function ApplicationScreeningSection({
         <View style={styles.skippedBadge}>
           <Text style={styles.skippedText}>
             {audience === 'worker'
-              ? 'You skipped culture fit screening'
+              ? 'You skipped screening questions'
               : 'Screening skipped by applicant'}
           </Text>
         </View>
@@ -103,7 +117,7 @@ export function ApplicationScreeningSection({
   const toggleLabel =
     audience === 'worker'
       ? `Your responses (${questions.length})`
-      : `Culture fit responses (${questions.length})`;
+      : `Screening responses (${questions.length})`;
 
   return (
     <View style={styles.wrap}>
@@ -126,9 +140,11 @@ export function ApplicationScreeningSection({
             <View key={item.id} style={styles.answerRow}>
               <Text style={styles.prompt}>{item.prompt}</Text>
               <Text style={styles.answer}>
-                {item.type === 'yes_no'
-                  ? formatYesNo(item.answer as boolean)
-                  : formatRating(item.answer as number)}
+                {formatAnswer(
+                  item.type,
+                  item.answer as boolean | number | string,
+                  getScreeningCatalogQuestion(item.id)?.unitLabel,
+                )}
               </Text>
               {item.reverseScored ? (
                 <Text style={styles.reverseNote}>Lower scores are preferred for this trait.</Text>

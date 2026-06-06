@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
@@ -140,17 +141,25 @@ export function WorkerStatGrid({
     grid: { flexDirection: 'row', gap: spacing.sm },
     cell: {
       flex: 1,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
+      backgroundColor: colors.backgroundGrouped,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.separator,
-      paddingVertical: spacing.md,
+      paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: 2,
     },
-    cellSelected: { borderColor: colors.primary, backgroundColor: colors.primarySubtle },
-    value: { ...typography.title, fontSize: 24, lineHeight: 28 },
+    cellSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+    },
+    value: {
+      ...typography.title,
+      fontSize: 20,
+      lineHeight: 24,
+      color: colors.labelPrimary,
+    },
     valueSelected: { color: colors.primary },
     label: {
       fontSize: 11,
@@ -167,8 +176,15 @@ export function WorkerStatGrid({
         return (
           <Pressable
             key={stat.key}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
+            accessibilityLabel={`${stat.label}: ${stat.value}`}
             onPress={() => onSelect(stat.key)}
-            style={[styles.cell, isSelected && styles.cellSelected]}>
+            style={({ pressed }) => [
+              styles.cell,
+              isSelected && styles.cellSelected,
+              pressed && { opacity: 0.85 },
+            ]}>
             <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
             <Text style={styles.label}>{stat.label}</Text>
           </Pressable>
@@ -235,19 +251,19 @@ export function WorkerOverviewPanel({
       .slice(0, 5);
   }, [jobApplications, unreadMap]);
 
-  const confirmedShiftApplications = useMemo(
-    () => shiftApplications.filter((application) => application.status === 'hired').slice(0, 5),
+  const { upcomingConfirmed, upcomingInProgress } = useMemo(
+    () => partitionWorkerShiftApplications(shiftApplications),
     [shiftApplications],
   );
 
+  const confirmedShiftApplications = useMemo(
+    () => upcomingConfirmed.slice(0, 5),
+    [upcomingConfirmed],
+  );
+
   const activeShiftApplications = useMemo(
-    () =>
-      shiftApplications
-        .filter((application) =>
-          ['applied', 'reviewed', 'in_progress'].includes(application.status),
-        )
-        .slice(0, 5),
-    [shiftApplications],
+    () => upcomingInProgress.slice(0, 5),
+    [upcomingInProgress],
   );
 
   return (
@@ -295,7 +311,7 @@ export function WorkerOverviewPanel({
             ) : null}
             {confirmedShiftApplications.length > 0 ? (
               <View style={styles.group}>
-                <WorkerSectionHeader title="Confirmed" />
+                <WorkerSectionHeader title="Upcoming confirmed" />
                 {confirmedShiftApplications.map((application) => (
                   <WorkerApplicationListCard
                     key={application.id}

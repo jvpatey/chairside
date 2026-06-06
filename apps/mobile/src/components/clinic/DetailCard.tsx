@@ -15,7 +15,7 @@ export function RowDivider() {
   return <View style={styles.divider} />;
 }
 
-export function DetailSection({ title, children }: { title: string; children: ReactNode }) {
+export function DetailSection({ title, children }: { title?: string; children: ReactNode }) {
   const styles = useThemedStyles(({ spacing, colors }) => ({
     section: {
       gap: spacing.sm,
@@ -33,7 +33,7 @@ export function DetailSection({ title, children }: { title: string; children: Re
 
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>{title}</Text>
+      {title ? <Text style={styles.title}>{title}</Text> : null}
       <View style={styles.body}>{children}</View>
     </View>
   );

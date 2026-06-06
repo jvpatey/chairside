@@ -60,9 +60,9 @@ export type ShiftPost = {
 export type ClinicDashboardCounts = {
   openRoles: number;
   fillInsPosted: number;
-  /** All applications across this clinic's postings. */
+  /** Active role applications (excludes hidden and fill-in cover requests). */
   totalApplications: number;
-  /** Unviewed applications (status applied). */
+  /** Unviewed role applications (status applied). */
   newApplications: number;
 };
 
@@ -142,9 +142,20 @@ export async function getJobPostWithScreening(
   const job = await getJobPost(clinicId, jobId);
   if (!job) return null;
 
-  const screeningQuestions = job.screening_enabled
-    ? await getJobPostScreeningQuestions(jobId)
-    : [];
+  let screeningQuestions: ScreeningQuestion[] = [];
+  if (job.screening_enabled) {
+    const supabase = getSupabaseClient();
+    const { data: clinic, error: clinicError } = await supabase
+      .from('clinic_profiles')
+      .select('province')
+      .eq('id', clinicId)
+      .maybeSingle();
+
+    if (clinicError) throw clinicError;
+    screeningQuestions = await getJobPostScreeningQuestions(jobId, {
+      province: clinic?.province ?? null,
+    });
+  }
 
   return { ...job, screening_questions: screeningQuestions };
 }
@@ -215,10 +226,7 @@ export async function deleteJobPost(clinicId: string, jobId: string): Promise<vo
   if (error) throw error;
 }
 
-export async function getJobPostApplicationCount(
-  clinicId: string,
-  jobId: string,
-): Promise<number> {
+export async function getJobPostApplicationCount(clinicId: string, jobId: string): Promise<number> {
   const supabase = getSupabaseClient();
 
   const { data: job, error: jobError } = await supabase
@@ -240,10 +248,7 @@ export async function getJobPostApplicationCount(
   return count ?? 0;
 }
 
-export async function createJobPost(
-  clinicId: string,
-  input: CreateJobPostInput,
-): Promise<JobPost> {
+export async function createJobPost(clinicId: string, input: CreateJobPostInput): Promise<JobPost> {
   const supabase = getSupabaseClient();
   const now = new Date().toISOString();
 
@@ -293,12 +298,7 @@ export async function createJobPost(
 
   const job = data as JobPost;
   if (input.screening_enabled && input.screeningQuestions?.length) {
-    await replaceJobPostScreeningQuestions(
-      clinicId,
-      job.id,
-      true,
-      input.screeningQuestions,
-    );
+    await replaceJobPostScreeningQuestions(clinicId, job.id, true, input.screeningQuestions);
   }
 
   return job;
@@ -433,8 +433,13 @@ export async function getClinicDashboardCounts(clinicId: string): Promise<Clinic
       .from('shift_posts')
       .select('id', { count: 'exact', head: true })
       .eq('clinic_id', clinicId)
-      .eq('status', 'live'),
-    supabase.from('applications').select('id, job_post_id, shift_post_id, status'),
+      .eq('status', 'live')
+      .gte('shift_date', new Date().toISOString().slice(0, 10)),
+    supabase
+      .from('applications')
+      .select('id, job_post_id, status, clinic_hidden_at')
+      .not('job_post_id', 'is', null)
+      .is('clinic_hidden_at', null),
   ]);
 
   if (jobsResult.error) throw jobsResult.error;
@@ -442,22 +447,16 @@ export async function getClinicDashboardCounts(clinicId: string): Promise<Clinic
   if (applicationsResult.error) throw applicationsResult.error;
 
   const jobIds = new Set(
-    (
-      await supabase.from('job_posts').select('id').eq('clinic_id', clinicId)
-    ).data?.map((row) => row.id) ?? [],
-  );
-  const shiftIds = new Set(
-    (
-      await supabase.from('shift_posts').select('id').eq('clinic_id', clinicId)
-    ).data?.map((row) => row.id) ?? [],
+    (await supabase.from('job_posts').select('id').eq('clinic_id', clinicId)).data?.map(
+      (row) => row.id,
+    ) ?? [],
   );
 
   const clinicApplications =
-    applicationsResult.data?.filter((application) => {
-      if (application.job_post_id && jobIds.has(application.job_post_id)) return true;
-      if (application.shift_post_id && shiftIds.has(application.shift_post_id)) return true;
-      return false;
-    }) ?? [];
+    applicationsResult.data?.filter(
+      (application) =>
+        application.job_post_id != null && jobIds.has(application.job_post_id),
+    ) ?? [];
 
   const totalApplications = clinicApplications.length;
   const newApplications = clinicApplications.filter(
@@ -513,11 +512,15 @@ export type WorkerDashboardCounts = {
   pendingApplications: number;
 };
 
-async function listClinicSummariesInProvince(province: string): Promise<Map<string, ClinicSummary>> {
+async function listClinicSummariesInProvince(
+  province: string,
+): Promise<Map<string, ClinicSummary>> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path')
+    .select(
+      'id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path',
+    )
     .eq('province', province);
 
   if (error) throw error;
@@ -577,11 +580,14 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
   const clinicIds = [...clinicMap.keys()];
   if (clinicIds.length === 0) return [];
 
+  const today = new Date().toISOString().slice(0, 10);
+
   const { data, error } = await supabase
     .from('shift_posts')
     .select('*')
     .eq('status', 'live')
     .in('clinic_id', clinicIds)
+    .gte('shift_date', today)
     .order('shift_date', { ascending: true });
 
   if (error) throw error;
@@ -602,7 +608,9 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
 
   const { data: clinic, error: clinicError } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path')
+    .select(
+      'id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path',
+    )
     .eq('id', data.clinic_id)
     .maybeSingle();
 
@@ -610,7 +618,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
   if (!clinic) return null;
 
   const screeningQuestions = (data as JobPost).screening_enabled
-    ? await getJobPostScreeningQuestions(jobId)
+    ? await getJobPostScreeningQuestions(jobId, { province: clinic.province })
     : [];
 
   return {
@@ -644,7 +652,9 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
 
   const { data: clinic, error: clinicError } = await supabase
     .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path')
+    .select(
+      'id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path',
+    )
     .eq('id', data.clinic_id)
     .maybeSingle();
 
@@ -731,9 +741,7 @@ export async function getWorkerDashboardCounts(
 
   const pendingApplications =
     applicationsResult.data?.filter(
-      (row) =>
-        row.job_post_id &&
-        ['applied', 'reviewed', 'in_progress'].includes(row.status),
+      (row) => row.job_post_id && ['applied', 'reviewed', 'in_progress'].includes(row.status),
     ).length ?? 0;
 
   return {

@@ -2,7 +2,6 @@ import type { WorkerApplication } from '@chairside/api';
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
-  formatApplicationScreeningStatus,
   getRoleTypeLabel,
   getSpecialtyLabel,
 } from '@chairside/config';
@@ -82,13 +81,6 @@ export function ApplicationSubmittedFields({ application }: ApplicationSubmitted
         label="Resume"
         value={formatApplicationResumeStatus(application.resume_storage_path)}
       />
-
-      {application.screening ? (
-        <ApplicationPreviewField
-          label="Culture fit screening"
-          value={formatApplicationScreeningStatus(application.screening.status)}
-        />
-      ) : null}
 
       {application.resume_storage_path ? (
         <View style={styles.resumeAction}>

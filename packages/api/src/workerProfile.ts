@@ -38,65 +38,27 @@ function normalizeRoleType(value: string | null | undefined): RoleType | null {
   return null;
 }
 
-function hasStructuredEducation(profile: WorkerProfile): boolean {
-  return (
-    profile.education_graduation_year != null &&
-    Boolean(profile.education_degree_type?.trim()) &&
-    Boolean(profile.education_field?.trim()) &&
-    Boolean(profile.education_institution?.trim())
-  );
-}
-
-function hasTravelRadius(profile: WorkerProfile): boolean {
-  return Boolean(profile.travel_radius_range?.trim()) || (profile.travel_radius_km ?? 0) > 0;
-}
-
 export function isWorkerProfileComplete(profile: WorkerProfile | null): boolean {
   if (!profile) return false;
 
-  const hasEducation =
-    hasStructuredEducation(profile) || Boolean(profile.education?.trim());
-
   return (
     Boolean(profile.role_type?.trim()) &&
-    profile.years_of_experience != null &&
-    profile.years_of_experience >= 0 &&
-    hasEducation &&
-    profile.software_used.length > 0 &&
     Boolean(profile.address_line1?.trim()) &&
     Boolean(profile.city?.trim()) &&
-    Boolean(profile.postal_code?.trim()) &&
-    hasTravelRadius(profile)
+    Boolean(profile.postal_code?.trim())
   );
 }
 
 export function getMissingWorkerProfileFields(profile: WorkerProfile | null): string[] {
   if (!profile) {
-    return [
-      'Role type',
-      'Years of experience',
-      'Education',
-      'Software familiarity',
-      'Street address',
-      'City',
-      'Postal code',
-      'Travel radius',
-    ];
+    return ['Role type', 'Street address', 'City', 'Postal code'];
   }
 
   const missing: string[] = [];
   if (!profile.role_type?.trim()) missing.push('Role type');
-  if (profile.years_of_experience == null || profile.years_of_experience < 0) {
-    missing.push('Years of experience');
-  }
-  if (!hasStructuredEducation(profile) && !profile.education?.trim()) {
-    missing.push('Education');
-  }
-  if (profile.software_used.length === 0) missing.push('Software familiarity');
   if (!profile.address_line1?.trim()) missing.push('Street address');
   if (!profile.city?.trim()) missing.push('City');
   if (!profile.postal_code?.trim()) missing.push('Postal code');
-  if (!hasTravelRadius(profile)) missing.push('Travel radius');
   return missing;
 }
 

@@ -4,8 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
 
-const CIRCLE_SIZE_FOCUSED = 48;
-const CIRCLE_SIZE_BLURRED = 42;
+const CIRCLE_SIZE = 40;
 const ICON_SIZE_FOCUSED = 22;
 const ICON_SIZE_BLURRED = 20;
 
@@ -15,30 +14,24 @@ type DashboardTabIconProps = {
 
 export function DashboardTabIcon({ focused }: DashboardTabIconProps) {
   const { colors } = useTheme();
-  const size = focused ? CIRCLE_SIZE_FOCUSED : CIRCLE_SIZE_BLURRED;
 
   const styles = useThemedStyles(() => ({
     circle: {
+      width: CIRCLE_SIZE,
+      height: CIRCLE_SIZE,
+      borderRadius: CIRCLE_SIZE / 2,
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: focused ? colors.primarySubtle : 'transparent',
     },
   }));
 
   return (
-    <View
-      style={[
-        styles.circle,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: focused ? colors.primary : colors.fillSubtle,
-        },
-      ]}>
+    <View style={styles.circle}>
       <Ionicons
         name="home"
         size={focused ? ICON_SIZE_FOCUSED : ICON_SIZE_BLURRED}
-        color={focused ? colors.primaryOnPrimary : colors.tabInactive}
+        color={focused ? colors.primary : colors.tabInactive}
       />
     </View>
   );

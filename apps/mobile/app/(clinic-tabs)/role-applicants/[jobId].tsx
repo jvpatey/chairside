@@ -48,6 +48,7 @@ function formatClinicAddress(profile: {
 }
 
 const FILTER_EMPTY_MESSAGES: Record<Exclude<ApplicantListFilter, 'all'>, string> = {
+  screening: 'No screening submissions yet. They appear here when candidates complete screening questions.',
   shortlisted: 'No shortlisted applicants yet. Add candidates from the All tab.',
   interview: 'No interview invitations yet. Send one from a shortlisted applicant.',
   decided: 'No decided applicants yet. Mark applicants as hired or not moving forward.',

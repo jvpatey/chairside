@@ -1,16 +1,25 @@
 import type { ShiftPostStatus } from '@chairside/api';
 import { Text, View, type ViewStyle } from 'react-native';
 
+import { isExpiredLiveShift } from '@/lib/fillInFilters';
 import { useThemedStyles } from '@/theme';
 
 type ShiftPostStatusBadgeProps = {
   status: ShiftPostStatus;
+  shiftDate?: string | null;
   style?: ViewStyle;
 };
 
-type BadgeVariant = 'open' | 'filled' | 'draft' | 'closed';
+type BadgeVariant = 'open' | 'filled' | 'draft' | 'closed' | 'expired';
 
-function getShiftPostStatusBadgeVariant(status: ShiftPostStatus): BadgeVariant {
+function getShiftPostStatusBadgeVariant(
+  status: ShiftPostStatus,
+  shiftDate?: string | null,
+): BadgeVariant {
+  if (status === 'live' && shiftDate && isExpiredLiveShift({ status, shift_date: shiftDate })) {
+    return 'expired';
+  }
+
   switch (status) {
     case 'live':
       return 'open';
@@ -24,7 +33,11 @@ function getShiftPostStatusBadgeVariant(status: ShiftPostStatus): BadgeVariant {
 }
 
 /** Fill-in shifts use coverage language, not generic job-post "Live". */
-function getShiftPostStatusLabel(status: ShiftPostStatus): string {
+function getShiftPostStatusLabel(status: ShiftPostStatus, shiftDate?: string | null): string {
+  if (status === 'live' && shiftDate && isExpiredLiveShift({ status, shift_date: shiftDate })) {
+    return 'Expired';
+  }
+
   switch (status) {
     case 'live':
       return 'Open';
@@ -37,9 +50,9 @@ function getShiftPostStatusLabel(status: ShiftPostStatus): string {
   }
 }
 
-export function ShiftPostStatusBadge({ status, style }: ShiftPostStatusBadgeProps) {
-  const variant = getShiftPostStatusBadgeVariant(status);
-  const label = getShiftPostStatusLabel(status);
+export function ShiftPostStatusBadge({ status, shiftDate, style }: ShiftPostStatusBadgeProps) {
+  const variant = getShiftPostStatusBadgeVariant(status, shiftDate);
+  const label = getShiftPostStatusLabel(status, shiftDate);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     badge: {
@@ -67,6 +80,11 @@ export function ShiftPostStatusBadge({ status, style }: ShiftPostStatusBadgeProp
       borderWidth: 1,
       borderColor: colors.separator,
     },
+    badgeExpired: {
+      backgroundColor: colors.fillSubtle,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
     textOpen: {
       fontSize: 12,
       fontWeight: '600',
@@ -87,6 +105,11 @@ export function ShiftPostStatusBadge({ status, style }: ShiftPostStatusBadgeProp
       fontWeight: '600',
       color: colors.labelSecondary,
     },
+    textExpired: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.labelSecondary,
+    },
   }));
 
   const badgeStyle = [
@@ -95,6 +118,7 @@ export function ShiftPostStatusBadge({ status, style }: ShiftPostStatusBadgeProp
     variant === 'filled' && styles.badgeFilled,
     variant === 'draft' && styles.badgeDraft,
     variant === 'closed' && styles.badgeClosed,
+    variant === 'expired' && styles.badgeExpired,
     style,
   ];
 
@@ -105,7 +129,9 @@ export function ShiftPostStatusBadge({ status, style }: ShiftPostStatusBadgeProp
         ? styles.textFilled
         : variant === 'draft'
           ? styles.textDraft
-          : styles.textClosed;
+          : variant === 'expired'
+            ? styles.textExpired
+            : styles.textClosed;
 
   return (
     <View style={badgeStyle}>

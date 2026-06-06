@@ -1,6 +1,7 @@
 import type { ClinicApplication } from '@chairside/api';
 
 export type ApplicantPipelineSectionId =
+  | 'screening'
   | 'needs_review'
   | 'shortlisted'
   | 'interview_set'
@@ -20,7 +21,7 @@ const MATCH_TIER_ORDER: Record<string, number> = {
   none: 3,
 };
 
-export type ApplicantListFilter = 'all' | 'shortlisted' | 'interview' | 'decided';
+export type ApplicantListFilter = 'all' | 'screening' | 'shortlisted' | 'interview' | 'decided';
 
 export type ApplicantFilterCounts = Record<ApplicantListFilter, number>;
 
@@ -38,6 +39,12 @@ const SECTION_CONFIG: {
   defaultExpanded: boolean;
   statuses: string[];
 }[] = [
+  {
+    id: 'screening',
+    title: 'Screening',
+    defaultExpanded: true,
+    statuses: ['screening_submitted'],
+  },
   {
     id: 'needs_review',
     title: 'Needs review',
@@ -78,6 +85,7 @@ export function groupApplicationsByPipeline(
 }
 
 const FILTER_STATUS_MAP: Record<Exclude<ApplicantListFilter, 'all'>, string[]> = {
+  screening: ['screening_submitted'],
   shortlisted: ['in_progress'],
   interview: ['interview_offered', 'interview_scheduled'],
   decided: ['selected', 'rejected', 'hired'],
@@ -88,6 +96,9 @@ export function getApplicantFilterCounts(
 ): ApplicantFilterCounts {
   return {
     all: applications.length,
+    screening: applications.filter((application) =>
+      FILTER_STATUS_MAP.screening.includes(application.status),
+    ).length,
     shortlisted: applications.filter((application) =>
       FILTER_STATUS_MAP.shortlisted.includes(application.status),
     ).length,

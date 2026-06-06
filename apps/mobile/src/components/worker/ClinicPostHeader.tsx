@@ -8,9 +8,13 @@ import { useTheme, useThemedStyles } from '@/theme';
 type ClinicPostHeaderProps = {
   clinicName: string;
   logoStoragePath?: string | null;
-  title: string;
+  /** Omit on detail screens where the clinic name is the primary heading. */
+  title?: string;
   location?: string | null;
   detail?: string | null;
+  postedLabel?: string | null;
+  /** Renders on its own line at the bottom of the card. */
+  statusFooter?: ReactNode;
   accessory?: ReactNode;
   /** Renders below the title block, aligned with the text column. */
   textFooter?: ReactNode;
@@ -25,6 +29,8 @@ export function ClinicPostHeader({
   title,
   location,
   detail,
+  postedLabel,
+  statusFooter,
   accessory,
   textFooter,
   footer,
@@ -34,6 +40,7 @@ export function ClinicPostHeader({
   const logoUri = useClinicLogoUri(logoStoragePath);
   const { spacing } = useTheme();
   const footerInset = avatarSize + spacing.md;
+  const showClinicAsTitle = !title?.trim();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -94,6 +101,9 @@ export function ClinicPostHeader({
     footer: {
       gap: spacing.sm,
     },
+    statusFooter: {
+      alignSelf: 'flex-start',
+    },
   }));
 
   return (
@@ -103,12 +113,20 @@ export function ClinicPostHeader({
         <View style={styles.textBlock}>
           <View style={styles.titleRow}>
             <View style={styles.textColumn}>
-              <Text style={styles.clinicName} numberOfLines={2}>
-                {clinicName}
-              </Text>
-              <Text style={styles.title} numberOfLines={2}>
-                {title}
-              </Text>
+              {showClinicAsTitle ? (
+                <Text style={styles.title} numberOfLines={2}>
+                  {clinicName}
+                </Text>
+              ) : (
+                <>
+                  <Text style={styles.clinicName} numberOfLines={2}>
+                    {clinicName}
+                  </Text>
+                  <Text style={styles.title} numberOfLines={2}>
+                    {title}
+                  </Text>
+                </>
+              )}
               {location ? (
                 <Text style={styles.meta} numberOfLines={2}>
                   {location}
@@ -117,6 +135,11 @@ export function ClinicPostHeader({
               {detail ? (
                 <Text style={styles.meta} numberOfLines={2}>
                   {detail}
+                </Text>
+              ) : null}
+              {postedLabel ? (
+                <Text style={styles.meta} numberOfLines={1}>
+                  {postedLabel}
                 </Text>
               ) : null}
             </View>
@@ -131,6 +154,9 @@ export function ClinicPostHeader({
       </View>
       {footer ? (
         <View style={[styles.footer, { paddingLeft: footerInset }]}>{footer}</View>
+      ) : null}
+      {statusFooter ? (
+        <View style={[styles.statusFooter, { paddingLeft: footerInset }]}>{statusFooter}</View>
       ) : null}
     </View>
   );

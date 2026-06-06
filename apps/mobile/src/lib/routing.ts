@@ -12,6 +12,7 @@ export type WorkerApplicationReturnTarget =
   | 'dashboard-applications'
   | 'dashboard-fill-ins'
   | 'fill-ins-tab'
+  | 'past-fill-ins'
   | 'messages-tab';
 
 export type WorkerShiftReturnTarget =
@@ -68,6 +69,7 @@ export const WORKER_BROWSE: Href = '/(tabs)/browse' as Href;
 export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;
+export const WORKER_PAST_FILLINS: Href = '/(tabs)/past-fill-ins' as Href;
 export const WORKER_PROFILE: Href = '/(tabs)/profile' as Href;
 export const WORKER_PROFILE_PROFESSIONAL: Href = '/(tabs)/profile/professional' as Href;
 export const WORKER_PROFILE_APPLICATION_KIT: Href = '/(tabs)/profile/application-kit' as Href;
@@ -339,6 +341,10 @@ export function navigateAfterWorkerApplication(
     router.replace(WORKER_FILLINS);
     return;
   }
+  if (returnTo === 'past-fill-ins') {
+    router.replace(WORKER_PAST_FILLINS);
+    return;
+  }
   if (returnTo === 'messages-tab') {
     router.replace(getWorkerMessagesRoute());
     return;
@@ -350,10 +356,10 @@ export function getApplyRoute(postType: ApplyPostType, postId: string): Href {
   return { pathname: '/(tabs)/apply', params: { postType, postId } } as unknown as Href;
 }
 
-export function getApplyScreeningRoute(postId: string, coverMessage?: string): Href {
+export function getApplyScreeningRoute(postId: string): Href {
   return {
     pathname: '/(tabs)/apply-screening',
-    params: { postId, coverMessage: coverMessage ?? '' },
+    params: { postId },
   } as unknown as Href;
 }
 
