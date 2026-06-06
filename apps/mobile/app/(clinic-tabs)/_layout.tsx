@@ -1,42 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
 
 import { JobPostManageMenuHost } from '@/components/clinic/JobPostManageMenuHost';
-import {
-  DashboardTabBarButton,
-  DashboardTabIcon,
-} from '@/components/navigation/DashboardTabBarButton';
+import { renderClinicTabBar } from '@/components/navigation/AdaptiveTabBar';
+import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
+import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
-import { useTheme } from '@/theme';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 function ClinicTabNavigator() {
-  const { colors } = useTheme();
   const { unreadCount } = useMessageUnread();
   const { pendingCount } = useFillInPending();
+  const { isTablet } = useResponsiveLayout();
+  const screenOptions = useAdaptiveTabScreenOptions();
 
   return (
     <>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.tabInactive,
-          tabBarStyle: {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.separator,
-            ...(Platform.OS === 'ios' ? { borderTopWidth: 0.5 } : {}),
-          },
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontWeight: '500',
-          },
-          headerShown: false,
-          sceneStyle: {
-            backgroundColor: colors.backgroundGrouped,
-          },
-        }}
-      >
+      <Tabs tabBar={renderClinicTabBar} screenOptions={screenOptions}>
         <Tabs.Screen
           name="postings"
           options={{
@@ -52,17 +33,7 @@ function ClinicTabNavigator() {
             tabBarIcon: ({ color }) => <Ionicons name="people" size={22} color={color} />,
           }}
         />
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Dashboard',
-            tabBarAccessibilityLabel: 'Dashboard',
-            tabBarLabel: () => null,
-            tabBarItemStyle: { paddingVertical: 6 },
-            tabBarButton: (props) => <DashboardTabBarButton {...props} />,
-            tabBarIcon: ({ focused }) => <DashboardTabIcon focused={focused} />,
-          }}
-        />
+        <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
         <Tabs.Screen
           name="fill-ins"
           options={{

@@ -5,6 +5,15 @@ import { Colors, getColors, lightColors } from './colors';
 
 export { Colors, darkColors, getColors, lightColors } from './colors';
 export { fontWordmark } from './fonts';
+export {
+  BREAKPOINTS,
+  CONTENT_MAX_WIDTH,
+  getContentMaxWidth,
+  getWidthTier,
+  isTabletWidth,
+  isWideWidth,
+  type WidthTier,
+} from '@/lib/breakpoints';
 
 export const spacing = {
   xs: 4,
