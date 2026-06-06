@@ -11,11 +11,13 @@ import {
 } from 'react-native';
 
 import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
+import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
@@ -51,6 +53,8 @@ export function WorkerApplicationListCard({
   onViewPosting,
   linkToDetail = false,
 }: WorkerApplicationListCardProps) {
+  const { isApplicationHighlighted, getApplicationHighlightLabel, markApplicationSeen } =
+    useApplicationTabBadge();
   const isJob = application.post_type === 'job';
   const isShift = application.post_type === 'shift';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
@@ -59,6 +63,8 @@ export function WorkerApplicationListCard({
 
   const isConfirmedShift = isShift && application.status === 'hired';
   const shiftDisplay = isShift ? getWorkerShiftApplicationCardDisplay(application) : null;
+  const hasApplicationUpdate = isApplicationHighlighted(application);
+  const applicationUpdateLabel = getApplicationHighlightLabel(application);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -78,11 +84,17 @@ export function WorkerApplicationListCard({
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!expanded && hasApplicationUpdate) {
+      void markApplicationSeen(application.id, application.updated_at);
+    }
     onExpandChange?.(!expanded);
   };
 
   const handlePress = () => {
     if (linkToDetail) {
+      if (hasApplicationUpdate) {
+        void markApplicationSeen(application.id, application.updated_at);
+      }
       router.push(getWorkerApplicationRoute(application.id, returnTo));
       return;
     }
@@ -104,18 +116,24 @@ export function WorkerApplicationListCard({
               ? `Requested ${appliedLabel}`
               : null,
           hasUnreadMessages ? 'New message' : null,
+          applicationUpdateLabel,
         ]
           .filter(Boolean)
           .join(' · ') || null
       }
       avatarSize={44}
       accessory={
-        jobMatch && matchContext ? (
-          <MatchTierBadge
-            breakdown={jobMatch}
-            context={matchContext}
-            subtitle={application.post_title}
-          />
+        hasApplicationUpdate || (jobMatch && matchContext) ? (
+          <View style={{ alignItems: 'flex-end', gap: 8 }}>
+            {hasApplicationUpdate ? <ApplicationCardBadge /> : null}
+            {jobMatch && matchContext ? (
+              <MatchTierBadge
+                breakdown={jobMatch}
+                context={matchContext}
+                subtitle={application.post_title}
+              />
+            ) : null}
+          </View>
         ) : null
       }
       textFooter={

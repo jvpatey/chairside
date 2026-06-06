@@ -81,18 +81,20 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
         selected={mode}
         onChange={(next) => handleModeChange(next as ShiftDateMode)}
       />
-      <View style={styles.dateDisplay}>
-        <Text style={styles.dateDisplayLabel}>Selected date</Text>
-        <Text style={styles.dateDisplayText}>{formatShiftDateLabel(selectedDate)}</Text>
-      </View>
       {mode === 'custom' ? (
         <WebDateField
-          label="Custom date"
+          label="Selected date"
           value={value || todayISO()}
           min={minDate}
           onChange={onChange}
+          hint="Tap to select date"
         />
-      ) : null}
+      ) : (
+        <View style={styles.dateDisplay}>
+          <Text style={styles.dateDisplayLabel}>Selected date</Text>
+          <Text style={styles.dateDisplayText}>{formatShiftDateLabel(selectedDate)}</Text>
+        </View>
+      )}
     </View>
   );
 }

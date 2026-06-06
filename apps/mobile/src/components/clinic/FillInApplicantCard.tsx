@@ -14,7 +14,9 @@ import { Alert, Text, View } from 'react-native';
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
+import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   getClinicApplicationMessagesRoute,
@@ -61,9 +63,13 @@ export function FillInApplicantCard({
   onConfirmed,
 }: FillInApplicantCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { refreshPending, isCoverRequestHighlighted, getCoverRequestHighlightLabel } =
+    useFillInPending();
   const workerName = getApplicantDisplayName(application);
   const workerDeleted = application.worker_account_deleted;
   const pending = isPending(application) && !workerDeleted;
+  const hasNewCoverRequest = isCoverRequestHighlighted(application);
+  const newCoverRequestLabel = getCoverRequestHighlightLabel(application);
   const messagesReturnTo =
     returnTo === 'fill-ins-tab' || returnTo === 'postings-fill-ins' || returnTo === 'dashboard-fill-ins'
       ? 'messages-tab'
@@ -119,6 +125,7 @@ export function FillInApplicantCard({
         try {
           await confirmFillInApplicant(clinicId, application.id);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await refreshPending();
           onConfirmed?.({
             applicationId: application.id,
             postType: 'shift',
@@ -151,6 +158,7 @@ export function FillInApplicantCard({
         try {
           await updateApplicationStatus(application.id, 'rejected');
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await refreshPending();
           onUpdated?.();
         } catch (error) {
           Alert.alert(
@@ -173,11 +181,17 @@ export function FillInApplicantCard({
         detail={[
           getShiftMeta(application),
           hasUnreadMessages ? 'New message' : null,
+          newCoverRequestLabel,
         ]
           .filter(Boolean)
           .join(' · ')}
         avatarSize={44}
-        accessory={<ClinicApplicationStatusBadge status={application.status} postType="shift" />}
+        accessory={
+          <View style={{ alignItems: 'flex-end', gap: 8 }}>
+            {hasNewCoverRequest ? <ApplicationCardBadge /> : null}
+            <ClinicApplicationStatusBadge status={application.status} postType="shift" />
+          </View>
+        }
       />
 
       {application.cover_message?.trim() ? (

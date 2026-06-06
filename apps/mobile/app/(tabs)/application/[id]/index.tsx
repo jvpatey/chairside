@@ -12,6 +12,7 @@ import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicati
 import { WorkerApplicationsInboxPanel } from '@/components/worker/WorkerApplicationsInboxPanel';
 import { WorkerConfirmedFillInDetail } from '@/components/worker/WorkerConfirmedFillInDetail';
 import { useAuth } from '@/contexts/AuthContext';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -43,6 +44,7 @@ export default function WorkerApplicationDetailScreen() {
     closeCelebration,
   } = useHiringCelebration();
   const { checkApplications } = useWorkerHiringCelebration(showCelebration);
+  const { markApplicationSeen } = useApplicationTabBadge();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
@@ -77,6 +79,7 @@ export default function WorkerApplicationDetailScreen() {
       }
       setApplication(row);
       setFormError(null);
+      await markApplicationSeen(row.id, row.updated_at);
       setHasUnreadMessages(Boolean(unreadMap[applicationId]));
 
       if (row.post_type === 'shift' && row.status === 'hired' && row.shift_post_id) {
@@ -97,7 +100,7 @@ export default function WorkerApplicationDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [applicationId, checkApplications, goBack, user?.id]);
+  }, [applicationId, checkApplications, goBack, markApplicationSeen, user?.id]);
 
   useRefreshOnFocus(load);
 

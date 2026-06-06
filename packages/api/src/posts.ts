@@ -594,6 +594,31 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
   return attachClinic((data ?? []) as ShiftPost[], clinicMap);
 }
 
+function shiftWeekday(shiftDate: string): number {
+  const date = new Date(`${shiftDate}T12:00:00`);
+  return date.getDay();
+}
+
+/** Live shifts matching worker role and availability weekdays (mirrors notify fill-in recipient logic). */
+export async function getMatchingLiveShiftPostCount(
+  province: string,
+  roleType: string | null,
+  availabilityDaySet: number[],
+): Promise<{ shifts: LiveShiftPost[] }> {
+  if (!roleType || availabilityDaySet.length === 0) {
+    return { shifts: [] };
+  }
+
+  const daySet = new Set(availabilityDaySet);
+  const liveShifts = await listLiveShiftPosts(province);
+  const shifts = liveShifts.filter((shift) => {
+    if (shift.role_type !== roleType) return false;
+    return daySet.has(shiftWeekday(shift.shift_date));
+  });
+
+  return { shifts };
+}
+
 export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase

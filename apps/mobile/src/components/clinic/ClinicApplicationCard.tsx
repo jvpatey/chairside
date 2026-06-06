@@ -43,12 +43,14 @@ import {
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
 import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
+import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
@@ -143,6 +145,8 @@ export function ClinicApplicationCard({
   onDecided,
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
+  const { refreshPending: refreshApplicationTabBadge, isApplicationHighlighted, getApplicationHighlightLabel } =
+    useApplicationTabBadge();
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const [expanded, setExpanded] = useState(false);
@@ -162,6 +166,8 @@ export function ClinicApplicationCard({
     pendingProposal && application.interview_proposed_by === 'worker';
   const clinicProposedChange =
     pendingProposal && application.interview_proposed_by === 'clinic';
+  const hasNewApplication = isApplicationHighlighted(application);
+  const newApplicationLabel = getApplicationHighlightLabel(application);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -232,6 +238,7 @@ export function ClinicApplicationCard({
     try {
       await updateApplicationStatus(application.id, status);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await refreshApplicationTabBadge();
       if (status === 'selected') {
         onHired?.(application);
       }
@@ -421,15 +428,22 @@ export function ClinicApplicationCard({
         displayName={applicantName}
         photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
         title={application.post_title}
-        detail={workerDeleted ? null : application.worker_address ?? null}
+        detail={
+          workerDeleted
+            ? null
+            : [application.worker_address, newApplicationLabel].filter(Boolean).join(' · ') || null
+        }
         avatarSize={44}
         accessory={
-          <ClinicApplicationStatusBadge
-            status={application.status}
-            postType={application.post_type}
-            applicationKitRequestedAt={application.application_kit_requested_at}
-            applicationKitSubmittedAt={application.application_kit_submitted_at}
-          />
+          <View style={{ alignItems: 'flex-end', gap: 8 }}>
+            {hasNewApplication ? <ApplicationCardBadge /> : null}
+            <ClinicApplicationStatusBadge
+              status={application.status}
+              postType={application.post_type}
+              applicationKitRequestedAt={application.application_kit_requested_at}
+              applicationKitSubmittedAt={application.application_kit_submitted_at}
+            />
+          </View>
         }
         textFooter={
           jobMatch && matchContext ? (

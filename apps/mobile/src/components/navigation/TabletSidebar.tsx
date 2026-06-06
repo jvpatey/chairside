@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CommonActions } from '@react-navigation/native';
 import { router, usePathname } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
@@ -50,7 +50,7 @@ type TabletSidebarProps = BottomTabBarProps & {
 export function TabletSidebar({ state, descriptors, navigation, role }: TabletSidebarProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
-  const { colors } = useTheme();
+  const { colors, spacing } = useTheme();
   const { profile } = useAuth();
   const { photoUri } = useProfilePhoto();
   const { logoUri } = useClinicLogo();
@@ -65,6 +65,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingHorizontal: spacing.md,
     },
     profileSection: {
+      flexShrink: 0,
       minHeight: TABLET_PROFILE_ROW_HEIGHT,
       justifyContent: 'center',
       paddingBottom: spacing.sm,
@@ -78,9 +79,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingTop: spacing.xs,
     },
     footer: {
+      flexShrink: 0,
       borderTopWidth: 0.5,
       borderTopColor: colors.separator,
       paddingTop: spacing.sm,
+      paddingBottom: spacing.sm,
       marginTop: spacing.sm,
     },
     item: {
@@ -139,7 +142,15 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         : 'View profile';
 
   return (
-    <View style={[styles.sidebar, { paddingTop: insets.top + TABLET_TOP_INSET_EXTRA, paddingBottom: insets.bottom }]}>
+    <View
+      style={[
+        styles.sidebar,
+        {
+          paddingTop: insets.top + TABLET_TOP_INSET_EXTRA,
+          paddingBottom: Math.max(insets.bottom, spacing.md),
+          ...(Platform.OS === 'web' ? { minHeight: 0 } : {}),
+        },
+      ]}>
       <View style={styles.profileSection}>
         <SidebarProfileHeader
           href={profileHref}

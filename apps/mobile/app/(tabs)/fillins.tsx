@@ -1,6 +1,7 @@
 import {
   listLiveShiftPosts,
   listWorkerShiftApplications,
+  isPastWorkerFillInApplication,
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
@@ -19,6 +20,7 @@ import { WorkerApplicationListCard } from '@/components/worker/WorkerApplication
 import { WorkerSectionHeader } from '@/components/worker/WorkerCards';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenSection } from '@/components/ui/ScreenSection';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
@@ -108,6 +110,7 @@ export default function FillInsScreen() {
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
   const { checkApplications } = useWorkerHiringCelebration(showCelebration);
+  const { markShiftPostsSeen, markApplicationsSeen } = useApplicationTabBadge();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -118,6 +121,18 @@ export default function FillInsScreen() {
       ]);
       setShifts(shiftRows);
       setApplications(applicationRows);
+      await markShiftPostsSeen(shiftRows.map((shift) => shift.id));
+
+      const pastShiftApplications = applicationRows.filter(isPastWorkerFillInApplication);
+      if (pastShiftApplications.length > 0) {
+        await markApplicationsSeen(
+          pastShiftApplications.map((application) => ({
+            id: application.id,
+            updated_at: application.updated_at,
+          })),
+        );
+      }
+
       await checkApplications(toShiftCelebrationCandidates(applicationRows));
     } catch {
       setShifts([]);
@@ -126,7 +141,7 @@ export default function FillInsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [checkApplications, province, user?.id]);
+  }, [checkApplications, markApplicationsSeen, markShiftPostsSeen, province, user?.id]);
 
   useRefreshOnFocus(load);
   useRefreshOnForeground(load);

@@ -5,10 +5,12 @@ import { renderWorkerTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 function WorkerTabNavigator() {
   const { unreadCount } = useMessageUnread();
+  const { pendingCount: applicationPendingCount, fillInPendingCount } = useApplicationTabBadge();
   const { isTablet } = useResponsiveLayout();
   const screenOptions = useAdaptiveTabScreenOptions();
 
@@ -25,6 +27,7 @@ function WorkerTabNavigator() {
         name="applications"
         options={{
           title: 'Applications',
+          tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
           tabBarIcon: ({ color }) => <Ionicons name="document-text" size={22} color={color} />,
         }}
       />
@@ -33,6 +36,7 @@ function WorkerTabNavigator() {
         name="fillins"
         options={{
           title: 'Fill-ins',
+          tabBarBadge: fillInPendingCount > 0 ? fillInPendingCount : undefined,
           tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
         }}
       />
@@ -60,7 +64,9 @@ function WorkerTabNavigator() {
 export default function TabLayout() {
   return (
     <MessageUnreadProvider role="worker">
-      <WorkerTabNavigator />
+      <ApplicationTabBadgeProvider role="worker">
+        <WorkerTabNavigator />
+      </ApplicationTabBadgeProvider>
     </MessageUnreadProvider>
   );
 }

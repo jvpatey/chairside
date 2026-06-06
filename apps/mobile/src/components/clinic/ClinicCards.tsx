@@ -10,6 +10,8 @@ import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
+import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
@@ -155,7 +157,8 @@ type StatGridProps = {
   openRoles: number;
   fillInsPosted: number;
   totalApplications: number;
-  newApplications: number;
+  applicationUpdateCount?: number;
+  fillInUpdateCount?: number;
   selected: OverviewStat;
   onSelect: (stat: OverviewStat) => void;
 };
@@ -164,18 +167,24 @@ export function StatGrid({
   openRoles,
   fillInsPosted,
   totalApplications,
-  newApplications,
+  applicationUpdateCount = 0,
+  fillInUpdateCount = 0,
   selected,
   onSelect,
 }: StatGridProps) {
-  const stats: { key: OverviewStat; label: string; value: number; highlight?: boolean }[] = [
-    { key: 'roles', label: 'Open roles', value: openRoles },
-    { key: 'fill-ins', label: 'Fill-ins', value: fillInsPosted },
+  const stats: {
+    key: OverviewStat;
+    label: string;
+    value: number;
+    badgeCount: number;
+  }[] = [
+    { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
+    { key: 'fill-ins', label: 'Fill-ins', value: fillInsPosted, badgeCount: fillInUpdateCount },
     {
       key: 'applications',
       label: 'Applications',
       value: totalApplications,
-      highlight: newApplications > 0,
+      badgeCount: applicationUpdateCount,
     },
   ];
 
@@ -184,8 +193,17 @@ export function StatGrid({
       flexDirection: 'row',
       gap: spacing.sm,
     },
-    cell: {
+    cellWrap: {
       flex: 1,
+      position: 'relative',
+    },
+    badgeAnchor: {
+      position: 'absolute',
+      top: -4,
+      right: -2,
+      zIndex: 1,
+    },
+    cell: {
       backgroundColor: colors.backgroundGrouped,
       borderRadius: 12,
       borderWidth: 1,
@@ -221,20 +239,28 @@ export function StatGrid({
       {stats.map((stat) => {
         const isSelected = selected === stat.key;
         return (
-          <Pressable
-            key={stat.key}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={`${stat.label}: ${stat.value}`}
-            onPress={() => onSelect(stat.key)}
-            style={({ pressed }) => [
-              styles.cell,
-              isSelected && styles.cellSelected,
-              pressed && { opacity: 0.85 },
-            ]}>
-            <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
-            <Text style={styles.label}>{stat.label}</Text>
-          </Pressable>
+          <View key={stat.key} style={styles.cellWrap}>
+            {stat.badgeCount > 0 ? (
+              <View style={styles.badgeAnchor}>
+                <NotificationCountBadge count={stat.badgeCount} />
+              </View>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={`${stat.label}: ${stat.value}${
+                stat.badgeCount > 0 ? `, ${stat.badgeCount} updates` : ''
+              }`}
+              onPress={() => onSelect(stat.key)}
+              style={({ pressed }) => [
+                styles.cell,
+                isSelected && styles.cellSelected,
+                pressed && { opacity: 0.85 },
+              ]}>
+              <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
+              <Text style={styles.label}>{stat.label}</Text>
+            </Pressable>
+          </View>
         );
       })}
     </View>
@@ -271,12 +297,14 @@ function DashboardListCard({
   subtitle,
   meta,
   statusBadge,
+  highlighted = false,
   onPress,
 }: {
   title: string;
   subtitle: string;
   meta?: string;
   statusBadge?: ReactNode;
+  highlighted?: boolean;
   onPress?: () => void;
 }) {
   const { clinicProfile } = useClinicProfile();
@@ -301,10 +329,16 @@ function DashboardListCard({
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
     },
+    statPillHighlighted: {
+      backgroundColor: colors.primary,
+    },
     statText: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.primary,
+    },
+    statTextHighlighted: {
+      color: colors.primaryOnPrimary,
     },
     meta: {
       fontSize: 14,
@@ -312,6 +346,8 @@ function DashboardListCard({
       color: colors.labelSecondary,
     },
   }));
+
+  const accessory = highlighted ? (statusBadge ?? <ApplicationCardBadge />) : statusBadge;
 
   const content = (
     <ClinicPostHeader
@@ -321,11 +357,13 @@ function DashboardListCard({
       location={location || null}
       detail={meta ?? null}
       avatarSize={44}
-      accessory={statusBadge}
+      accessory={accessory}
       textFooter={
         subtitle ? (
-          <View style={styles.statPill}>
-            <Text style={styles.statText}>{subtitle}</Text>
+          <View style={[styles.statPill, highlighted && styles.statPillHighlighted]}>
+            <Text style={[styles.statText, highlighted && styles.statTextHighlighted]}>
+              {subtitle}
+            </Text>
           </View>
         ) : null
       }
@@ -521,23 +559,31 @@ export function DashboardOverviewPanel({
           <DashboardEmptyState message="No applications yet. They will appear when workers apply to your postings." />
         ) : (
           <View style={styles.list}>
-            {jobApplicationSummaries.map((summary) => (
-              <DashboardListCard
-                key={summary.job_post_id}
-                title={summary.post_title}
-                subtitle={
-                  summary.applicant_count === 1
-                    ? '1 applicant'
-                    : `${summary.applicant_count} applicants`
-                }
-                meta={formatJobApplicationSummaryMeta(summary)}
-                onPress={
-                  onJobApplicationsPress
-                    ? () => onJobApplicationsPress(summary.job_post_id)
-                    : undefined
-                }
-              />
-            ))}
+            {jobApplicationSummaries.map((summary) => {
+              const hasNewApplicants = summary.pending_count > 0;
+              return (
+                <DashboardListCard
+                  key={summary.job_post_id}
+                  title={summary.post_title}
+                  subtitle={
+                    hasNewApplicants
+                      ? summary.pending_count === 1
+                        ? '1 new applicant'
+                        : `${summary.pending_count} new applicants`
+                      : summary.applicant_count === 1
+                        ? '1 applicant'
+                        : `${summary.applicant_count} applicants`
+                  }
+                  meta={formatJobApplicationSummaryMeta(summary)}
+                  highlighted={hasNewApplicants}
+                  onPress={
+                    onJobApplicationsPress
+                      ? () => onJobApplicationsPress(summary.job_post_id)
+                      : undefined
+                  }
+                />
+              );
+            })}
           </View>
         )
       ) : null}

@@ -28,6 +28,7 @@ import {
   type WorkerOverviewStat,
 } from '@/components/worker/WorkerCards';
 import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -47,6 +48,7 @@ import { useThemedStyles } from '@/theme';
 export default function WorkerDashboardScreen() {
   const { user, profile } = useAuth();
   const { refreshUnread } = useMessageUnread();
+  const { pendingCount: applicationUpdateCount, fillInPendingCount } = useApplicationTabBadge();
   const { workerProfile } = useWorkerProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const { isTablet } = useResponsiveLayout();
@@ -211,6 +213,8 @@ export default function WorkerDashboardScreen() {
             openRoles={counts.openRolesInProvince}
             openFillIns={counts.openFillInsInProvince}
             pendingApplications={counts.pendingApplications}
+            applicationUpdateCount={applicationUpdateCount}
+            fillInUpdateCount={fillInPendingCount}
             selected={selectedOverview}
             onSelect={setSelectedOverview}
           />

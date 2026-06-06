@@ -117,6 +117,11 @@ export function RolePostingCard({
     applicantsPressablePressed: {
       opacity: 0.75,
     },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
   }));
 
   const handleManagePress = () => {
@@ -145,6 +150,13 @@ export function RolePostingCard({
   ) : null;
 
   const statusBadge = <JobPostStatusBadge status={job.status} />;
+
+  const headerActions = (
+    <View style={styles.headerActions}>
+      {statusBadge}
+      {manageButton}
+    </View>
+  );
 
   const applicantFooter =
     applicantCount != null && applicantCount > 0 ? (
@@ -178,7 +190,7 @@ export function RolePostingCard({
         meta={location || null}
         detail={formatJobPostRoleMeta(job)}
         postedLabel={postedLabel || null}
-        topTrailing={manageButton}
+        topTrailing={headerActions}
         showChevron={!onApplicantsPress || !(applicantCount != null && applicantCount > 0)}
         footer={
           <>
@@ -186,7 +198,6 @@ export function RolePostingCard({
             {job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
           </>
         }
-        statusFooter={statusBadge}
         isLast={isLast}
         onPress={onPress}
       />
@@ -202,7 +213,7 @@ export function RolePostingCard({
       detail={formatJobPostRoleMeta(job)}
       postedLabel={postedLabel || null}
       avatarSize={44}
-      accessory={manageButton}
+      accessory={headerActions}
       textFooter={applicantFooter}
       footer={
         job.wage_range ? (
@@ -211,7 +222,6 @@ export function RolePostingCard({
           </View>
         ) : null
       }
-      statusFooter={statusBadge}
     />
   );
 

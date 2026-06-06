@@ -1,6 +1,6 @@
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { TABLET_SIDEBAR_WIDTH, TabletSidebar } from '@/components/navigation/TabletSidebar';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -24,6 +24,13 @@ function AdaptiveTabBar({ role, ...props }: AdaptiveTabBarProps) {
           flexShrink: 0,
           alignSelf: 'stretch',
           backgroundColor: colors.surface,
+          ...(Platform.OS === 'web'
+            ? {
+                // @ts-expect-error — percentage height is web-only
+                height: '100%',
+                overflow: 'visible',
+              }
+            : {}),
         }}>
         <TabletSidebar {...props} role={role} />
       </View>
