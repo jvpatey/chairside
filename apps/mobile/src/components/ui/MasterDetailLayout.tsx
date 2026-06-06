@@ -47,7 +47,7 @@ export function MasterDetailLayout({
   }));
 
   if (!isTablet || !showDetail) {
-    return <View style={style}>{master}</View>;
+    return <View style={[{ flex: 1, minHeight: 0 }, style]}>{master}</View>;
   }
 
   return (
