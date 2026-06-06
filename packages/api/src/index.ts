@@ -48,7 +48,7 @@ export {
   getLiveShiftPost,
   getWorkerAppliedShiftPost,
   getWorkerDashboardCounts,
-  getMatchingLiveShiftPostCount,
+  getMatchingLiveShiftPosts,
   listLiveJobPosts,
   listLiveShiftPosts,
   listJobPosts,

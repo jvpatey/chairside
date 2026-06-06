@@ -600,23 +600,21 @@ function shiftWeekday(shiftDate: string): number {
 }
 
 /** Live shifts matching worker role and availability weekdays (mirrors notify fill-in recipient logic). */
-export async function getMatchingLiveShiftPostCount(
+export async function getMatchingLiveShiftPosts(
   province: string,
   roleType: string | null,
   availabilityDaySet: number[],
-): Promise<{ shifts: LiveShiftPost[] }> {
+): Promise<LiveShiftPost[]> {
   if (!roleType || availabilityDaySet.length === 0) {
-    return { shifts: [] };
+    return [];
   }
 
   const daySet = new Set(availabilityDaySet);
   const liveShifts = await listLiveShiftPosts(province);
-  const shifts = liveShifts.filter((shift) => {
+  return liveShifts.filter((shift) => {
     if (shift.role_type !== roleType) return false;
     return daySet.has(shiftWeekday(shift.shift_date));
   });
-
-  return { shifts };
 }
 
 export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null> {

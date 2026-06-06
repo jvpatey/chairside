@@ -165,7 +165,6 @@ export default function ApplyScreen() {
       showConfirmActionSheet({
         title: 'Complete your profile',
         message: 'Finish setup before applying.',
-        cancelLabel: 'Cancel',
         confirmLabel: 'Continue setup',
         onConfirm: () => router.replace(WORKER_SETUP_BASICS),
       });

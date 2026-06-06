@@ -599,8 +599,27 @@ export async function listWorkerShiftApplications(workerId: string): Promise<Wor
 }
 
 export async function getClinicNewApplicationCount(clinicId: string): Promise<number> {
-  const applications = await listClinicApplications(clinicId);
-  return applications.filter(isClinicNewApplication).length;
+  const supabase = getSupabaseClient();
+
+  const { data: jobs, error: jobsError } = await supabase
+    .from('job_posts')
+    .select('id')
+    .eq('clinic_id', clinicId);
+
+  if (jobsError) throw jobsError;
+
+  const jobIds = (jobs ?? []).map((job) => job.id);
+  if (jobIds.length === 0) return 0;
+
+  const { count, error } = await supabase
+    .from('applications')
+    .select('*', { count: 'exact', head: true })
+    .in('job_post_id', jobIds)
+    .is('clinic_hidden_at', null)
+    .in('status', ['applied', 'screening_submitted']);
+
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export const APPLICATION_UPDATE_GRACE_MS = 2_000;

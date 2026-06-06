@@ -10,7 +10,7 @@ import {
 
 import {
   getClinicNewApplicationCount,
-  getMatchingLiveShiftPostCount,
+  getMatchingLiveShiftPosts,
   getWorkerApplicationUpdateCount,
   getWorkerShiftApplicationUpdateCount,
   isClinicNewApplication,
@@ -118,6 +118,7 @@ export function ApplicationTabBadgeProvider({
       setPendingCount(0);
       setFillInPendingCount(0);
       setSeenMap({});
+      setSeenMapReady(false);
       return;
     }
 
@@ -140,11 +141,11 @@ export function ApplicationTabBadgeProvider({
       const [jobCount, shiftCount, matchingShifts, seenShiftPostIds] = await Promise.all([
         getWorkerApplicationUpdateCount(user.id, nextSeenMap),
         getWorkerShiftApplicationUpdateCount(user.id, nextSeenMap),
-        getMatchingLiveShiftPostCount(province, roleType, availabilityDaySet),
+        getMatchingLiveShiftPosts(province, roleType, availabilityDaySet),
         getSeenShiftPostIds(),
       ]);
 
-      const newShiftPostingCount = matchingShifts.shifts.filter(
+      const newShiftPostingCount = matchingShifts.filter(
         (shift) => !seenShiftPostIds.has(shift.id),
       ).length;
 

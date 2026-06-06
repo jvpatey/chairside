@@ -26,7 +26,6 @@ export function guardApply(
       missing.length > 0
         ? `Add the following before applying: ${missing.join(', ')}`
         : 'Finish your profile to apply.',
-    cancelLabel: 'Cancel',
     confirmLabel: 'Continue setup',
     onConfirm: () => router.push(WORKER_SETUP_BASICS),
   });
@@ -44,7 +43,6 @@ export function guardQuickApply(workerProfile: WorkerProfile | null, _kitRoute: 
       missing.length > 0
         ? `Add the following before applying: ${missing.join(', ')}`
         : 'Finish your professional background to apply.',
-    cancelLabel: 'Cancel',
     confirmLabel: 'Add background',
     onConfirm: () => router.push(WORKER_SETUP_BASICS),
   });
