@@ -83,9 +83,6 @@ export function WorkerApplicationsInboxPanel({
   const [applications, setApplications] = useState<Awaited<
     ReturnType<typeof listWorkerJobApplications>
   >>([]);
-  const [archivedApplications, setArchivedApplications] = useState<Awaited<
-    ReturnType<typeof listWorkerJobApplications>
-  >>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -110,24 +107,20 @@ export function WorkerApplicationsInboxPanel({
   const load = useCallback(async () => {
     if (!user?.id) {
       setApplications([]);
-      setArchivedApplications([]);
       return;
     }
 
     try {
-      const [rows, archived, unread] = await Promise.all([
+      const [rows, unread] = await Promise.all([
         listWorkerJobApplications(user.id, 'active'),
-        listWorkerJobApplications(user.id, 'archived'),
         getUnreadConversationMap(user.id, 'worker'),
       ]);
       setApplications(rows);
-      setArchivedApplications(archived);
       setUnreadMap(unread);
       setFormError(null);
       await checkApplications(toJobCelebrationCandidates(rows));
     } catch (error) {
       setApplications([]);
-      setArchivedApplications([]);
       const message = error instanceof Error ? error.message : 'Please try again.';
       setFormError(message);
       if (Platform.OS !== 'web') {
@@ -142,7 +135,7 @@ export function WorkerApplicationsInboxPanel({
     void load();
   }, [load]);
 
-  const hasAnyApplications = applications.length > 0 || archivedApplications.length > 0;
+  const hasAnyApplications = applications.length > 0;
 
   return (
     <>
@@ -177,15 +170,6 @@ export function WorkerApplicationsInboxPanel({
               onExpandChange={setExpandedApplicationId}
               onUpdated={() => void load()}
               onHide={handleHidden}
-              linkToDetail={compact}
-            />
-            <ApplicationSection
-              title="Removed from list"
-              applications={archivedApplications}
-              unreadMap={unreadMap}
-              expandedApplicationId={expandedApplicationId}
-              onExpandChange={setExpandedApplicationId}
-              onUpdated={() => void load()}
               linkToDetail={compact}
             />
           </View>

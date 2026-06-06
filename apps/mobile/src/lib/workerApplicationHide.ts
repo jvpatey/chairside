@@ -42,8 +42,8 @@ export function confirmHideWorkerApplication(
   showConfirmActionSheet({
     title: isShift ? 'Remove from list?' : 'Remove application?',
     message: isShift
-      ? 'This hides the request from your list. The clinic still has the record.'
-      : 'This hides the application from your list. The clinic still has your application on file.',
+      ? 'This removes the request from your list. The clinic still has the record.'
+      : 'This removes the application from your list. The clinic still has your application on file.',
     confirmLabel: 'Remove',
     destructive: true,
     onConfirm: async () => {
