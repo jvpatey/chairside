@@ -6,6 +6,7 @@ export type ConfirmActionSheetRequest = {
   title: string;
   message?: string;
   confirmLabel: string;
+  cancelLabel?: string;
   destructive?: boolean;
   onConfirm: () => void | Promise<void>;
 };
@@ -34,6 +35,14 @@ export function ConfirmActionSheetHost() {
       actions={
         request
           ? [
+              ...(request.cancelLabel
+                ? [
+                    {
+                      label: request.cancelLabel,
+                      onPress: () => {},
+                    },
+                  ]
+                : []),
               {
                 label: request.confirmLabel,
                 destructive: request.destructive,

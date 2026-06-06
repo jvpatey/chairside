@@ -1,13 +1,13 @@
 import { deleteClinicLogo, uploadClinicLogoFromBase64 } from '@chairside/api';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { readFileAsBase64 } from '@/lib/readFileAsBase64';
 
 export function useClinicLogo() {
   const { user } = useAuth();
@@ -40,9 +40,10 @@ export function useClinicLogo() {
 
       const asset = result.assets[0];
       setIsUploading(true);
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const base64 = await readFileAsBase64(
+        asset.uri,
+        Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
+      );
       await uploadClinicLogoFromBase64(
         user.id,
         base64,

@@ -5,13 +5,17 @@ import { Alert } from 'react-native';
 
 import { MessageThreadLoadingShell } from '@/components/messaging/MessageThreadLoadingShell';
 import { MessageThread } from '@/components/messaging/MessageThread';
+import { WorkerMessagesInboxPanel } from '@/components/messaging/WorkerMessagesInboxPanel';
+import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { navigateAfterMessageThread } from '@/lib/routing';
 
 export default function WorkerConversationScreen() {
   const { user } = useAuth();
+  const { isTablet } = useResponsiveLayout();
   const { id, conversationId, title, subtitle } = useLocalSearchParams<{
     id?: string;
     conversationId?: string;
@@ -61,7 +65,7 @@ export default function WorkerConversationScreen() {
   }
 
   if (routeTitle) {
-    return (
+    const thread = (
       <MessageThread
         userId={user.id}
         role="worker"
@@ -72,13 +76,25 @@ export default function WorkerConversationScreen() {
         onConversationChange={setConversation}
       />
     );
+
+    if (isTablet) {
+      return (
+        <MasterDetailLayout
+          master={<WorkerMessagesInboxPanel compact />}
+          detail={thread}
+          showDetail
+        />
+      );
+    }
+
+    return thread;
   }
 
   if (!conversation) {
     return <MessageThreadLoadingShell onBack={goBack} />;
   }
 
-  return (
+  const thread = (
     <MessageThread
       userId={user.id}
       role="worker"
@@ -89,4 +105,16 @@ export default function WorkerConversationScreen() {
       onConversationChange={setConversation}
     />
   );
+
+  if (isTablet) {
+    return (
+      <MasterDetailLayout
+        master={<WorkerMessagesInboxPanel compact />}
+        detail={thread}
+        showDetail
+      />
+    );
+  }
+
+  return thread;
 }

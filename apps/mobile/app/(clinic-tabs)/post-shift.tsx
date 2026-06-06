@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { CompensationInput } from '@/components/clinic/CompensationInput';
@@ -20,6 +20,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { todayISO } from '@/lib/dates';
 import { isValidTimeRange, normalizeTime24h, parseTime24h } from '@/lib/time';
@@ -52,6 +53,7 @@ export default function PostShiftScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [formKey, setFormKey] = useState(0);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleCompensationChange = useCallback((value: string) => {
     setCompensation(value);
@@ -110,7 +112,11 @@ export default function PostShiftScreen() {
     try {
       const shift = await getShiftPost(user.id, shiftId);
       if (!shift) {
-        Alert.alert('Fill-in not found', 'This shift may have been removed.');
+        const message = 'This shift may have been removed.';
+        setFormError(message);
+        if (Platform.OS !== 'web') {
+          Alert.alert('Fill-in not found', message);
+        }
         router.back();
         return;
       }
@@ -124,10 +130,11 @@ export default function PostShiftScreen() {
       setDescription(form.description);
       setFormKey((current) => current + 1);
     } catch (error) {
-      Alert.alert(
-        'Could not load fill-in',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not load fill-in', message);
+      }
       router.back();
     } finally {
       setIsLoading(false);
@@ -140,21 +147,34 @@ export default function PostShiftScreen() {
 
   const handleSubmit = async () => {
     if (!user?.id || !shiftDate.trim()) {
-      Alert.alert('Missing information', 'Select a shift date to continue.');
+      const message = 'Select a shift date to continue.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Missing information', message);
+      }
       return;
     }
 
     if (!parseTime24h(startTime) || !parseTime24h(endTime)) {
-      Alert.alert('Invalid times', 'Choose a valid start and end time.');
+      const message = 'Choose a valid start and end time.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Invalid times', message);
+      }
       return;
     }
 
     if (!isValidTimeRange(startTime, endTime)) {
-      Alert.alert('Invalid times', 'End time must be after start time.');
+      const message = 'End time must be after start time.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Invalid times', message);
+      }
       return;
     }
 
     setIsSubmitting(true);
+    setFormError(null);
     try {
       const payload = {
         role_type: roleType,
@@ -176,10 +196,11 @@ export default function PostShiftScreen() {
         navigateAfterFillInSave(router, returnTo);
       }
     } catch (error) {
-      Alert.alert(
-        isEditing ? 'Could not save changes' : 'Could not publish',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert(isEditing ? 'Could not save changes' : 'Could not publish', message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -205,6 +226,8 @@ export default function PostShiftScreen() {
           }
           onBack={() => router.back()}
         />
+
+        <FormErrorBanner message={formError} />
 
         <View style={styles.section}>
           <Text style={styles.label}>Role type</Text>

@@ -41,6 +41,10 @@ body {
 
 /** Match AuthField surface + label colors; override browser autofill paint on web. */
 const autofillStyles = `
+textarea:focus,
+input:focus {
+  outline: none;
+}
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,

@@ -1,5 +1,6 @@
 import type { WorkerApplication } from '@chairside/api';
 import { formatApplicationDate } from '@chairside/config';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   LayoutAnimation,
@@ -19,7 +20,7 @@ import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
-import { type WorkerApplicationReturnTarget } from '@/lib/routing';
+import { getWorkerApplicationRoute, type WorkerApplicationReturnTarget } from '@/lib/routing';
 import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 import { useThemedStyles } from '@/theme';
 
@@ -36,6 +37,7 @@ type WorkerApplicationListCardProps = {
   onUpdated?: () => void;
   onHidden?: () => void;
   onViewPosting?: () => void;
+  linkToDetail?: boolean;
 };
 
 export function WorkerApplicationListCard({
@@ -47,6 +49,7 @@ export function WorkerApplicationListCard({
   onUpdated,
   onHidden,
   onViewPosting,
+  linkToDetail = false,
 }: WorkerApplicationListCardProps) {
   const isJob = application.post_type === 'job';
   const isShift = application.post_type === 'shift';
@@ -76,6 +79,14 @@ export function WorkerApplicationListCard({
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onExpandChange?.(!expanded);
+  };
+
+  const handlePress = () => {
+    if (linkToDetail) {
+      router.push(getWorkerApplicationRoute(application.id, returnTo));
+      return;
+    }
+    toggleExpanded();
   };
 
   const content = (
@@ -120,15 +131,15 @@ export function WorkerApplicationListCard({
     <View style={styles.card}>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        onPress={toggleExpanded}
+        accessibilityState={{ expanded: linkToDetail ? undefined : expanded }}
+        onPress={handlePress}
         style={({ pressed }) => [pressed && styles.cardPressed]}>
         {content}
       </Pressable>
 
-      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} />
+      {!linkToDetail ? <CardExpandToggle expanded={expanded} onPress={toggleExpanded} /> : null}
 
-      {expanded ? (
+      {!linkToDetail && expanded ? (
         <View style={styles.expandedBody}>
           <WorkerApplicationDetailCard
             application={application}

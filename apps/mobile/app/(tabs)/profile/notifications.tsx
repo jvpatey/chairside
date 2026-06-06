@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 
 import { NotificationCategoryPreferences } from '@/components/notifications/NotificationCategoryPreferences';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
@@ -24,10 +24,16 @@ export default function WorkerProfileNotificationsScreen() {
   return (
     <ProfileDetailScreen
       title="Notifications"
-      subtitle="Choose which alerts send push notifications. In-app history stays available."
+      subtitle={
+        Platform.OS === 'web'
+          ? 'Choose which events show in-app alerts. Notification history stays available.'
+          : 'Choose which alerts send push notifications. In-app history stays available.'
+      }
       onBack={() => router.back()}>
       <View style={styles.section}>
-        <Text style={styles.label}>Push alerts</Text>
+        <Text style={styles.label}>
+          {Platform.OS === 'web' ? 'In-app alerts' : 'Push alerts'}
+        </Text>
         <NotificationCategoryPreferences
           categories={[
             NOTIFICATION_PREFERENCE_CATEGORIES.messages,

@@ -20,6 +20,7 @@ type AuthFieldProps = {
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: 'email' | 'password' | 'username' | 'current-password' | 'new-password' | 'off';
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'number-pad' | 'url';
   editable?: boolean;
   multiline?: boolean;
@@ -38,6 +39,7 @@ export function AuthField({
   onChangeText,
   secureTextEntry,
   autoCapitalize = 'none',
+  autoComplete,
   keyboardType = 'default',
   editable = true,
   multiline = false,
@@ -187,6 +189,7 @@ export function AuthField({
           onChangeText={onChangeText}
           secureTextEntry={isSecure}
           autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
           keyboardType={keyboardType}
           editable={editable}
           multiline={multiline}

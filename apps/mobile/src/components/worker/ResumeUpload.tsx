@@ -1,14 +1,14 @@
 import { deleteWorkerResume, uploadWorkerResumeFromBase64 } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { buildResumeFileName, openResumePreview } from '@/lib/openResumePreview';
+import { readFileAsBase64 } from '@/lib/readFileAsBase64';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ResumeUploadProps = {
@@ -70,9 +70,10 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
 
       const asset = result.assets[0];
       setIsUploading(true);
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const base64 = await readFileAsBase64(
+        asset.uri,
+        Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
+      );
       await uploadWorkerResumeFromBase64(user.id, base64, asset.name ?? 'resume.pdf');
       await refreshWorkerProfile();
       onUploaded?.();

@@ -113,6 +113,17 @@ export function ResumePreviewModal({
   const handleShare = async () => {
     if (!localUri) return;
 
+    if (Platform.OS === 'web') {
+      const link = document.createElement('a');
+      link.href = localUri;
+      link.download = fileName;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
     const canShare = await Sharing.isAvailableAsync();
     if (!canShare) return;
 
@@ -142,8 +153,12 @@ export function ResumePreviewModal({
               <Pressable
                 onPress={() => void handleShare()}
                 accessibilityRole="button"
-                accessibilityLabel="Share resume">
-                <Ionicons name="share-outline" size={22} color={colors.primary} />
+                accessibilityLabel={Platform.OS === 'web' ? 'Download resume' : 'Share resume'}>
+                <Ionicons
+                  name={Platform.OS === 'web' ? 'download-outline' : 'share-outline'}
+                  size={22}
+                  color={colors.primary}
+                />
               </Pressable>
             ) : null}
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Done">

@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { Platform } from 'react-native';
 
 import { ResumePreviewModal } from '@/components/resume/ResumePreviewModal';
 import {
@@ -40,6 +41,11 @@ export function ResumePreviewProvider({ children }: { children: ReactNode }) {
 
   const clearCachedFile = useCallback(async (uri: string | null) => {
     if (!uri) return;
+
+    if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+      URL.revokeObjectURL(uri);
+      return;
+    }
 
     try {
       const info = await FileSystem.getInfoAsync(uri);

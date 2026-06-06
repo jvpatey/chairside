@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, TextInput, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -24,6 +24,7 @@ export function MessageComposeBar({
   const { colors } = useTheme();
   const inputRef = useRef<TextInput>(null);
   const [draft, setDraft] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -41,12 +42,24 @@ export function MessageComposeBar({
       backgroundColor: colors.surface,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
+      ...(Platform.OS === 'web' ? { overflow: 'hidden' as const } : {}),
+    },
+    inputWrapFocused: {
+      borderColor: colors.primary,
     },
     input: {
       ...typography.body,
       color: colors.labelPrimary,
       padding: 0,
       minHeight: 22,
+      ...(Platform.OS === 'web'
+        ? {
+            backgroundColor: 'transparent',
+            outlineStyle: 'none' as const,
+            borderWidth: 0,
+            width: '100%',
+          }
+        : {}),
     },
     sendButton: {
       width: 44,
@@ -84,14 +97,20 @@ export function MessageComposeBar({
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputWrap}>
+      <View style={[styles.inputWrap, isFocused && styles.inputWrapFocused]}>
         <TextInput
           ref={inputRef}
           style={styles.input}
           defaultValue=""
           onChangeText={setDraft}
-          onFocus={onFocus}
-          onBlur={onBlur}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocus?.();
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            onBlur?.();
+          }}
           placeholder={placeholder}
           placeholderTextColor={colors.labelTertiary}
           multiline

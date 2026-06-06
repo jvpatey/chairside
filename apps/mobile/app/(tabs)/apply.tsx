@@ -10,7 +10,7 @@ import { formatJobPostCardMeta } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
@@ -19,9 +19,11 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationPackageFields } from '@/components/worker/ApplicationPackageFields';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS, getApplyScreeningRoute } from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import {
@@ -45,6 +47,7 @@ export default function ApplyScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [screeningEnabled, setScreeningEnabled] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: { gap: spacing.lg },
@@ -142,10 +145,11 @@ export default function ApplyScreen() {
         setMatchContext(null);
       }
     } catch (error) {
-      Alert.alert(
-        'Could not load posting',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not load posting', message);
+      }
       router.back();
     } finally {
       setIsLoading(false);
@@ -158,9 +162,13 @@ export default function ApplyScreen() {
 
   useEffect(() => {
     if (!isProfileComplete) {
-      Alert.alert('Complete your profile', 'Finish setup before applying.', [
-        { text: 'OK', onPress: () => router.replace(WORKER_SETUP_BASICS) },
-      ]);
+      showConfirmActionSheet({
+        title: 'Complete your profile',
+        message: 'Finish setup before applying.',
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Continue setup',
+        onConfirm: () => router.replace(WORKER_SETUP_BASICS),
+      });
       return;
     }
     void loadPost();
@@ -188,10 +196,11 @@ export default function ApplyScreen() {
       });
       router.replace(type === 'shift' ? WORKER_FILLINS : WORKER_APPLICATIONS);
     } catch (error) {
-      Alert.alert(
-        type === 'shift' ? 'Request failed' : 'Application failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert(type === 'shift' ? 'Request failed' : 'Application failed', message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -238,6 +247,7 @@ export default function ApplyScreen() {
         onBack={() => router.back()}
       />
       <View style={styles.content}>
+        <FormErrorBanner message={formError} />
         {type === 'job' && job ? (
           <View style={styles.card}>
             <ClinicPostHeader
