@@ -20,6 +20,7 @@ export function useAdaptiveTabScreenOptions() {
   if (isTablet) {
     return {
       ...shared,
+      tabBarPosition: 'left' as const,
       safeAreaInsets: { top: 0, bottom: 0, left: 0, right: 0 },
       tabBarStyle: {
         width: TABLET_SIDEBAR_WIDTH,
