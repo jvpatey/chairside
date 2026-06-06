@@ -6,7 +6,7 @@ import { parseISODate, startOfDay, todayISO } from '@/lib/dates';
 
 export type JobStatusFilter = 'live' | 'paused' | 'all';
 
-export type ShiftStatusFilter = 'open' | 'filled' | 'closed' | 'all';
+export type ShiftStatusFilter = 'open' | 'filled' | 'closed' | 'expired' | 'all';
 
 export type ShiftDateFilter = 'all' | 'today' | 'upcoming' | 'past';
 
@@ -97,6 +97,14 @@ export const SHIFT_STATUS_FILTER_OPTIONS: { value: ShiftStatusFilter; label: str
   { value: 'all', label: 'All' },
 ];
 
+/** History view: "Open" is replaced with "Expired" (past date, still live). */
+export const HISTORY_SHIFT_STATUS_FILTER_OPTIONS: { value: ShiftStatusFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'filled', label: 'Filled' },
+  { value: 'closed', label: 'Closed' },
+];
+
 export const SHIFT_DATE_FILTER_OPTIONS: { value: ShiftDateFilter; label: string }[] = [
   { value: 'all', label: 'All dates' },
   { value: 'today', label: 'Today' },
@@ -139,6 +147,8 @@ function matchesShiftStatus(shift: ShiftPost, statusFilter: ShiftStatusFilter): 
   switch (statusFilter) {
     case 'open':
       return shift.status === 'live';
+    case 'expired':
+      return shift.status === 'live' && matchesShiftDate(shift, 'past');
     case 'filled':
       return shift.status === 'filled';
     case 'closed':

@@ -15,6 +15,7 @@ import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 
+import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -423,7 +424,9 @@ export function DashboardOverviewPanel({
   }));
 
   const roleJobs = jobs.filter(isMainListJob);
-  const liveShifts = shifts.filter((shift) => shift.status === 'live');
+  const liveShifts = shifts.filter(
+    (shift) => shift.status === 'live' && isTodayOrUpcomingShiftDate(shift.shift_date),
+  );
 
   return (
     <View>

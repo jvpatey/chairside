@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
@@ -235,19 +236,19 @@ export function WorkerOverviewPanel({
       .slice(0, 5);
   }, [jobApplications, unreadMap]);
 
-  const confirmedShiftApplications = useMemo(
-    () => shiftApplications.filter((application) => application.status === 'hired').slice(0, 5),
+  const { upcomingConfirmed, upcomingInProgress } = useMemo(
+    () => partitionWorkerShiftApplications(shiftApplications),
     [shiftApplications],
   );
 
+  const confirmedShiftApplications = useMemo(
+    () => upcomingConfirmed.slice(0, 5),
+    [upcomingConfirmed],
+  );
+
   const activeShiftApplications = useMemo(
-    () =>
-      shiftApplications
-        .filter((application) =>
-          ['applied', 'reviewed', 'in_progress'].includes(application.status),
-        )
-        .slice(0, 5),
-    [shiftApplications],
+    () => upcomingInProgress.slice(0, 5),
+    [upcomingInProgress],
   );
 
   return (
@@ -295,7 +296,7 @@ export function WorkerOverviewPanel({
             ) : null}
             {confirmedShiftApplications.length > 0 ? (
               <View style={styles.group}>
-                <WorkerSectionHeader title="Confirmed" />
+                <WorkerSectionHeader title="Upcoming confirmed" />
                 {confirmedShiftApplications.map((application) => (
                   <WorkerApplicationListCard
                     key={application.id}

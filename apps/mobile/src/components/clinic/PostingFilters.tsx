@@ -16,6 +16,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import {
   JOB_STATUS_FILTER_OPTIONS,
   ROLE_TYPE_FILTER_OPTIONS,
+  HISTORY_SHIFT_STATUS_FILTER_OPTIONS,
   SHIFT_DATE_FILTER_OPTIONS,
   SHIFT_STATUS_FILTER_OPTIONS,
   type JobStatusFilter,
@@ -270,6 +271,12 @@ export function RolePostingFilters({
   );
 }
 
+type ShiftPostingFilterDefaults = {
+  statusFilter?: ShiftStatusFilter;
+  roleTypeFilter?: RoleTypeFilter;
+  shiftDateFilter?: ShiftDateFilter;
+};
+
 type ShiftPostingFiltersProps = {
   statusFilter: ShiftStatusFilter;
   roleTypeFilter: RoleTypeFilter;
@@ -277,7 +284,89 @@ type ShiftPostingFiltersProps = {
   onStatusChange: (value: ShiftStatusFilter) => void;
   onRoleTypeChange: (value: RoleTypeFilter) => void;
   onShiftDateChange: (value: ShiftDateFilter) => void;
+  variant?: 'bar' | 'sheet';
+  defaults?: ShiftPostingFilterDefaults;
+  statusOptions?: { value: ShiftStatusFilter; label: string }[];
+  includeStatusInSheet?: boolean;
+  includeDateInSheet?: boolean;
 };
+
+function countShiftPostingFilterChanges(
+  statusFilter: ShiftStatusFilter,
+  roleTypeFilter: RoleTypeFilter,
+  shiftDateFilter: ShiftDateFilter,
+  defaults: Required<ShiftPostingFilterDefaults>,
+): number {
+  return (
+    (statusFilter === defaults.statusFilter ? 0 : 1) +
+    (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
+    (shiftDateFilter === defaults.shiftDateFilter ? 0 : 1)
+  );
+}
+
+function FilterTriggerButton({
+  activeCount,
+  onPress,
+}: {
+  activeCount: number;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    button: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: activeCount > 0 ? colors.primary : colors.separator,
+      backgroundColor: activeCount > 0 ? colors.primarySubtle : colors.surface,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 8,
+      minWidth: 44,
+      justifyContent: 'center',
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: activeCount > 0 ? colors.primary : colors.labelPrimary,
+    },
+    badge: {
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primaryOnPrimary,
+    },
+  }));
+
+  return (
+    <Pressable
+      style={styles.button}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Filter fill-ins"
+    >
+      <Ionicons
+        name="options-outline"
+        size={16}
+        color={activeCount > 0 ? colors.primary : colors.labelPrimary}
+      />
+      {activeCount > 0 ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{activeCount}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
 
 export function ShiftPostingFilters({
   statusFilter,
@@ -286,43 +375,72 @@ export function ShiftPostingFilters({
   onStatusChange,
   onRoleTypeChange,
   onShiftDateChange,
+  variant = 'bar',
+  defaults,
+  statusOptions = SHIFT_STATUS_FILTER_OPTIONS,
+  includeStatusInSheet = true,
+  includeDateInSheet = true,
 }: ShiftPostingFiltersProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const extraFilterCount =
-    (roleTypeFilter === 'all' ? 0 : 1) + (shiftDateFilter === 'all' ? 0 : 1);
+  const resolvedDefaults: Required<ShiftPostingFilterDefaults> = {
+    statusFilter: defaults?.statusFilter ?? 'open',
+    roleTypeFilter: defaults?.roleTypeFilter ?? 'all',
+    shiftDateFilter: defaults?.shiftDateFilter ?? 'all',
+  };
+  const extraFilterCount = countShiftPostingFilterChanges(
+    statusFilter,
+    roleTypeFilter,
+    shiftDateFilter,
+    resolvedDefaults,
+  );
 
   const handleReset = () => {
-    onRoleTypeChange('all');
-    onShiftDateChange('all');
+    onStatusChange(resolvedDefaults.statusFilter);
+    onRoleTypeChange(resolvedDefaults.roleTypeFilter);
+    onShiftDateChange(resolvedDefaults.shiftDateFilter);
   };
 
   return (
     <>
-      <FilterBar
-        statusOptions={SHIFT_STATUS_FILTER_OPTIONS}
-        statusFilter={statusFilter}
-        onStatusChange={(value) => onStatusChange(value as ShiftStatusFilter)}
-        extraFilterCount={extraFilterCount}
-        onOpenSheet={() => setSheetOpen(true)}
-      />
+      {variant === 'bar' ? (
+        <FilterBar
+          statusOptions={SHIFT_STATUS_FILTER_OPTIONS}
+          statusFilter={statusFilter}
+          onStatusChange={(value) => onStatusChange(value as ShiftStatusFilter)}
+          extraFilterCount={extraFilterCount}
+          onOpenSheet={() => setSheetOpen(true)}
+        />
+      ) : (
+        <FilterTriggerButton activeCount={extraFilterCount} onPress={() => setSheetOpen(true)} />
+      )}
       <FilterSheet
         visible={sheetOpen}
         title="Filter fill-ins"
         onClose={() => setSheetOpen(false)}
         onReset={handleReset}
       >
+        {variant === 'sheet' && includeStatusInSheet ? (
+          <FilterSheetSection
+            label="Status"
+            options={statusOptions}
+            selected={statusFilter}
+            onChange={onStatusChange}
+          />
+        ) : null}
         <FilterSheetSection
           label="Role type"
           options={ROLE_TYPE_FILTER_OPTIONS}
           selected={roleTypeFilter}
           onChange={onRoleTypeChange}
         />
-        <FilterSheetSection
-          label="Shift date"
-          options={SHIFT_DATE_FILTER_OPTIONS}
-          selected={shiftDateFilter}
-          onChange={onShiftDateChange}
-        />
+        {includeDateInSheet ? (
+          <FilterSheetSection
+            label="Shift date"
+            options={SHIFT_DATE_FILTER_OPTIONS}
+            selected={shiftDateFilter}
+            onChange={onShiftDateChange}
+          />
+        ) : null}
       </FilterSheet>
     </>
   );

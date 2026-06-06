@@ -29,10 +29,12 @@ import {
   getFillInAvailabilityCollapsedSummary,
   isFillInAvailabilityConfigured,
 } from '@/lib/fillInAvailabilitySummary';
+import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
 import {
   getWorkerShiftDetailRoute,
   WORKER_OPEN_FILLINS,
+  WORKER_PAST_FILLINS,
   WORKER_SETUP_AVAILABILITY_SCHEDULE,
 } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -132,10 +134,11 @@ export default function FillInsScreen() {
   const previewShifts = useMemo(() => shifts.slice(0, OPEN_SHIFTS_PREVIEW_LIMIT), [shifts]);
   const hasMoreShifts = shifts.length > OPEN_SHIFTS_PREVIEW_LIMIT;
 
-  const activeApplications = applications.filter((item) =>
-    ['applied', 'reviewed', 'in_progress'].includes(item.status),
+  const { upcomingConfirmed, pastConfirmed, pastInProgress, upcomingInProgress } = useMemo(
+    () => partitionWorkerShiftApplications(applications),
+    [applications],
   );
-  const confirmedApplications = applications.filter((item) => item.status === 'hired');
+  const pastFillInCount = pastConfirmed.length + pastInProgress.length;
 
   const availabilityConfigured = isFillInAvailabilityConfigured(workerProfile, availabilityBlocks);
   const availabilityCollapsedSummary = getFillInAvailabilityCollapsedSummary(
@@ -259,7 +262,7 @@ export default function FillInsScreen() {
             sectionLabel="Your fill-in shifts"
             description="Shifts you've requested to cover or been confirmed for."
           >
-            {activeApplications.length === 0 && confirmedApplications.length === 0 ? (
+            {upcomingInProgress.length === 0 && upcomingConfirmed.length === 0 ? (
               <FillInsEmptyState
                 embedded
                 icon="document-text-outline"
@@ -268,10 +271,10 @@ export default function FillInsScreen() {
               />
             ) : (
               <View style={styles.sectionBody}>
-                {confirmedApplications.length > 0 ? (
+                {upcomingConfirmed.length > 0 ? (
                   <View style={styles.applicationGroup}>
-                    <WorkerSectionHeader title="Confirmed" />
-                    {confirmedApplications.map((application) => (
+                    <WorkerSectionHeader title="Upcoming confirmed" />
+                    {upcomingConfirmed.map((application) => (
                       <WorkerApplicationListCard
                         key={application.id}
                         application={application}
@@ -286,10 +289,10 @@ export default function FillInsScreen() {
                     ))}
                   </View>
                 ) : null}
-                {activeApplications.length > 0 ? (
+                {upcomingInProgress.length > 0 ? (
                   <View style={styles.applicationGroup}>
                     <WorkerSectionHeader title="In progress" />
-                    {activeApplications.map((application) => (
+                    {upcomingInProgress.map((application) => (
                       <WorkerApplicationListCard
                         key={application.id}
                         application={application}
@@ -303,6 +306,18 @@ export default function FillInsScreen() {
                       />
                     ))}
                   </View>
+                ) : null}
+                {pastFillInCount > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    style={styles.viewAllRow}
+                    onPress={() => router.push(WORKER_PAST_FILLINS)}
+                  >
+                    <Text style={styles.viewAllLabel}>
+                      View {pastFillInCount} past fill-in{pastFillInCount === 1 ? '' : 's'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                  </Pressable>
                 ) : null}
               </View>
             )}

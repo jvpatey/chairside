@@ -433,7 +433,8 @@ export async function getClinicDashboardCounts(clinicId: string): Promise<Clinic
       .from('shift_posts')
       .select('id', { count: 'exact', head: true })
       .eq('clinic_id', clinicId)
-      .eq('status', 'live'),
+      .eq('status', 'live')
+      .gte('shift_date', new Date().toISOString().slice(0, 10)),
     supabase.from('applications').select('id, job_post_id, shift_post_id, status'),
   ]);
 
@@ -577,11 +578,14 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
   const clinicIds = [...clinicMap.keys()];
   if (clinicIds.length === 0) return [];
 
+  const today = new Date().toISOString().slice(0, 10);
+
   const { data, error } = await supabase
     .from('shift_posts')
     .select('*')
     .eq('status', 'live')
     .in('clinic_id', clinicIds)
+    .gte('shift_date', today)
     .order('shift_date', { ascending: true });
 
   if (error) throw error;
