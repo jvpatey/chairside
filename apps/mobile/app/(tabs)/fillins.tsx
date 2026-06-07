@@ -16,6 +16,7 @@ import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilitySch
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { WorkerSectionHeader } from '@/components/worker/WorkerCards';
 import { Screen } from '@/components/ui/Screen';
@@ -272,7 +273,9 @@ export default function FillInsScreen() {
             description="Open temp shifts in your province — request to cover the ones that fit your schedule."
           >
             <View style={styles.sectionBody}>
-              {shifts.length === 0 && !isLoading ? (
+              {isLoading ? (
+                <PageLoadingList rowCount={3} />
+              ) : shifts.length === 0 ? (
                 <FillInsEmptyState
                   embedded
                   icon="calendar-outline"

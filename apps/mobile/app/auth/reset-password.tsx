@@ -2,21 +2,21 @@ import { getAuthErrorMessage, getSupabaseClient, updatePassword } from '@chairsi
 import type { User } from '@supabase/supabase-js';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingSpinner } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 const MIN_PASSWORD_LENGTH = 6;
 
 export default function ResetPasswordScreen() {
-  const { colors } = useTheme();
   const { session, refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const [password, setPassword] = useState('');
@@ -115,17 +115,7 @@ export default function ResetPasswordScreen() {
   };
 
   if (!sessionChecked || !user) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.background,
-        }}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
+    return <PageLoadingSpinner message="Verifying reset link…" />;
   }
 
   return (

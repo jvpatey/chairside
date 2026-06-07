@@ -10,6 +10,7 @@ import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
@@ -91,7 +92,7 @@ export default function OpenFillInsScreen() {
         title="Open fill-ins"
         subtitle={
           isLoading
-            ? 'Loading…'
+            ? undefined
             : `${shifts.length} open in ${getProvinceLabel(province)}`
         }
         onBack={() => router.replace(WORKER_FILLINS)}
@@ -105,7 +106,9 @@ export default function OpenFillInsScreen() {
           compact
         />
 
-        {filteredShifts.length === 0 && !isLoading ? (
+        {isLoading ? (
+          <PageLoadingList />
+        ) : filteredShifts.length === 0 ? (
           <OpenFillInsEmptyState />
         ) : (
           <BrowseListGroup>

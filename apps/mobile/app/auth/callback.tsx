@@ -2,12 +2,12 @@ import { createSessionFromUrl, getSupabaseClient } from '@chairside/api';
 import * as Linking from 'expo-linking';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 
+import { PageLoadingSpinner } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
-import { useTheme } from '@/theme';
 
 async function resolveCallbackUrl() {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -38,7 +38,6 @@ async function resolveCallbackUrl() {
 }
 
 export default function AuthCallbackScreen() {
-  const { colors } = useTheme();
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const [failed, setFailed] = useState(false);
@@ -99,15 +98,5 @@ export default function AuthCallbackScreen() {
     return <Redirect href="/(onboarding)/sign-in" />;
   }
 
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.background,
-      }}>
-      <ActivityIndicator color={colors.primary} />
-    </View>
-  );
+  return <PageLoadingSpinner message="Signing you in…" />;
 }

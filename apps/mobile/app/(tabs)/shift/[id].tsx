@@ -8,6 +8,7 @@ import { RequestedPillBadge } from '@/components/matching/ApplicationStatusBadge
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -93,9 +94,10 @@ export default function WorkerShiftDetailScreen() {
       <OnboardingShell>
         <AuthScreenHeader
           title="Fill-in details"
-          subtitle={isLoading ? 'Loading…' : 'Fill-in not found.'}
+          subtitle={isLoading ? undefined : 'Fill-in not found.'}
           onBack={goBack}
         />
+        {isLoading ? <PageLoadingDetail /> : null}
       </OnboardingShell>
     );
   }

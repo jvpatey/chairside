@@ -6,6 +6,7 @@ import { Alert, Text, View } from 'react-native';
 
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { WorkerSectionHeader } from '@/components/worker/WorkerCards';
 import { useAuth } from '@/contexts/AuthContext';
@@ -93,7 +94,7 @@ export default function PastFillInsScreen() {
         title="Past fill-ins"
         subtitle={
           isLoading
-            ? 'Loading…'
+            ? undefined
             : totalPast === 0
               ? 'No past fill-ins yet'
               : `${totalPast} past fill-in${totalPast === 1 ? '' : 's'}`
@@ -101,7 +102,9 @@ export default function PastFillInsScreen() {
         onBack={() => router.replace(WORKER_FILLINS)}
       />
       <View style={styles.content}>
-        {totalPast === 0 && !isLoading ? (
+        {isLoading ? (
+          <PageLoadingList />
+        ) : totalPast === 0 ? (
           <PastFillInsEmptyState />
         ) : (
           <>

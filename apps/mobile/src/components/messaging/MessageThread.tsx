@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MessageBubble } from '@/components/messaging/MessageBubble';
 import { MessageComposeBar } from '@/components/messaging/MessageComposeBar';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useMessageRealtime } from '@/hooks/useMessageRealtime';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
@@ -235,11 +236,12 @@ export function MessageThread({
 
   return (
     <View ref={containerRef} style={styles.container} collapsable={false}>
-      <View style={styles.header}>
-        <AuthScreenHeader title={headerTitle} subtitle={headerSubtitle} onBack={onBack} />
-      </View>
+      <WebPageEnter style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <AuthScreenHeader title={headerTitle} subtitle={headerSubtitle} onBack={onBack} />
+        </View>
 
-      <FlatList
+        <FlatList
         ref={listRef}
         style={styles.list}
         contentContainerStyle={[
@@ -287,6 +289,7 @@ export function MessageThread({
           onSend={handleSend}
         />
       </View>
+      </WebPageEnter>
     </View>
   );
 }

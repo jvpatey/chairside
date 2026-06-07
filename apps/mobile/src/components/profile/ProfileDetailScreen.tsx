@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ProfileDetailScreenProps = {
@@ -90,34 +91,36 @@ export function ProfileDetailScreen({
         styles.content,
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
       ]}>
-      <View style={styles.header}>
-        <View style={styles.topRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={onBack}
-            style={styles.back}>
-            <Text style={styles.backText}>Back</Text>
-          </Pressable>
-          {headerRight}
-        </View>
-        <View style={styles.titleRow}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>{title}</Text>
-            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-          </View>
-          {actionLabel && onActionPress ? (
+      <WebPageEnter>
+        <View style={styles.header}>
+          <View style={styles.topRow}>
             <Pressable
               accessibilityRole="button"
-              hitSlop={8}
-              style={styles.action}
-              onPress={onActionPress}>
-              <Text style={styles.actionLabel}>{actionLabel}</Text>
+              accessibilityLabel="Go back"
+              onPress={onBack}
+              style={styles.back}>
+              <Text style={styles.backText}>Back</Text>
             </Pressable>
-          ) : null}
+            {headerRight}
+          </View>
+          <View style={styles.titleRow}>
+            <View style={styles.titleBlock}>
+              <Text style={styles.title}>{title}</Text>
+              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            </View>
+            {actionLabel && onActionPress ? (
+              <Pressable
+                accessibilityRole="button"
+                hitSlop={8}
+                style={styles.action}
+                onPress={onActionPress}>
+                <Text style={styles.actionLabel}>{actionLabel}</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
-      </View>
-      <View style={styles.body}>{children}</View>
+        <View style={styles.body}>{children}</View>
+      </WebPageEnter>
     </ScrollView>
   );
 }

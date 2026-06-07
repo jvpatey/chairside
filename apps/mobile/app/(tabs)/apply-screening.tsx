@@ -12,6 +12,7 @@ import { Alert, Text, View } from 'react-native';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { RatingQuestionCard } from '@/components/worker/screening/RatingQuestionCard';
 import { NumberQuestionCard } from '@/components/worker/screening/NumberQuestionCard';
 import { TextQuestionCard } from '@/components/worker/screening/TextQuestionCard';
@@ -149,9 +150,10 @@ export default function ApplyScreeningScreen() {
       <OnboardingShell>
         <AuthScreenHeader
           title="Screening questions"
-          subtitle={isLoading ? 'Loading…' : 'Unavailable'}
+          subtitle={isLoading ? undefined : 'Unavailable'}
           onBack={() => router.back()}
         />
+        {isLoading ? <PageLoadingDetail /> : null}
       </OnboardingShell>
     );
   }

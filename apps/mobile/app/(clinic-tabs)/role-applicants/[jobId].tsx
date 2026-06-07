@@ -16,6 +16,7 @@ import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleShe
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
@@ -143,7 +144,7 @@ export default function ClinicRoleApplicationsScreen() {
   );
 
   const subtitle = useMemo(() => {
-    if (isLoading) return 'Loading…';
+    if (isLoading) return undefined;
     return formatRoleApplicantPipelineSubtitle(applications);
   }, [applications, isLoading]);
 
@@ -232,7 +233,9 @@ export default function ClinicRoleApplicationsScreen() {
         onBack={goBack}
       />
       <View style={styles.content}>
-        {!hasAnyApplicants && !isLoading ? (
+        {isLoading ? (
+          <PageLoadingList />
+        ) : !hasAnyApplicants ? (
           <Text style={styles.empty}>No applicants for this role yet.</Text>
         ) : (
           <>

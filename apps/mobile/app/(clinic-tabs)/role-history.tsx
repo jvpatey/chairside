@@ -12,6 +12,7 @@ import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -223,7 +224,7 @@ export default function RoleHistoryScreen() {
         />
 
         {isLoading ? (
-          <Text style={styles.loading}>Loading role history…</Text>
+          <PageLoadingList message="Loading role history…" />
         ) : (
           <>
             <HistorySection

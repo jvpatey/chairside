@@ -20,6 +20,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { todayISO } from '@/lib/dates';
@@ -209,7 +210,11 @@ export default function PostShiftScreen() {
   if (isLoading) {
     return (
       <OnboardingShell>
-        <Text style={styles.loading}>Loading fill-in…</Text>
+        <AuthScreenHeader
+          title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
+          onBack={() => router.back()}
+        />
+        <PageLoadingDetail />
       </OnboardingShell>
     );
   }

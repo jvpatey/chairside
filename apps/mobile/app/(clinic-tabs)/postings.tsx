@@ -14,6 +14,7 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
@@ -111,7 +112,6 @@ export default function ClinicPostingsScreen() {
     wrap: {
       gap: spacing.lg,
     },
-    loading: typography.subtitle,
     historyLink: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -206,7 +206,7 @@ export default function ClinicPostingsScreen() {
         />
 
         {isLoading ? (
-          <Text style={styles.loading}>Loading postings…</Text>
+          <PageLoadingList message="Loading postings…" />
         ) : (
           <>
             {jobs.length === 0 ? (

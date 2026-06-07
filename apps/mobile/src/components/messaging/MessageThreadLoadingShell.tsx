@@ -2,18 +2,18 @@ import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useThemedStyles } from '@/theme';
 
 type MessageThreadLoadingShellProps = {
   onBack: () => void;
   title?: string;
-  subtitle?: string;
 };
 
 export function MessageThreadLoadingShell({
   onBack,
   title = 'Messages',
-  subtitle = 'Loading…',
 }: MessageThreadLoadingShellProps) {
   const insets = useSafeAreaInsets();
 
@@ -26,13 +26,22 @@ export function MessageThreadLoadingShell({
       paddingHorizontal: spacing.lg,
       paddingTop: insets.top + spacing.sm,
     },
+    body: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+    },
   }));
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <AuthScreenHeader title={title} subtitle={subtitle} onBack={onBack} />
-      </View>
+      <WebPageEnter style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <AuthScreenHeader title={title} onBack={onBack} />
+        </View>
+        <View style={styles.body}>
+          <PageLoadingDetail />
+        </View>
+      </WebPageEnter>
     </View>
   );
 }

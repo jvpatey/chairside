@@ -6,6 +6,7 @@ import { Text, View } from 'react-native';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
@@ -96,9 +97,8 @@ export default function BrowseScreen() {
     return sortJobsByPostedDate(byRole, postedSort);
   }, [jobs, postedSort, roleTypeFilter]);
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
-    loading: typography.subtitle,
   }));
 
   const showRoleFilters = !isLoading && jobs.length > 0;
@@ -119,7 +119,7 @@ export default function BrowseScreen() {
       }>
       <View style={styles.wrap}>
         {isLoading ? (
-          <Text style={styles.loading}>Loading roles…</Text>
+          <PageLoadingList message="Loading roles…" />
         ) : jobs.length === 0 ? (
           <BrowseEmptyState
             icon="briefcase-outline"

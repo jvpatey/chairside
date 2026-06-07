@@ -1,18 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import {
+  Animated,
   Pressable,
   ScrollView,
   Text,
   useWindowDimensions,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { ONBOARDING_SUBTITLE } from '@/constants';
 import { BREAKPOINTS, CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import { useBounceLoop } from '@/lib/webMotion.web';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const HERO_HEADLINE = 'Staffing for dental clinics, simplified.';
@@ -44,9 +50,26 @@ type FeatureCardProps = {
   icon: (typeof FEATURES)[number]['icon'];
   title: string;
   body: string;
+  enterDelayMs?: number;
 };
 
-function FeatureCard({ icon, title, body }: FeatureCardProps) {
+function ScrollHint({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const bounceY = useBounceLoop(4);
+
+  return (
+    <Animated.View style={[style, { transform: [{ translateY: bounceY }] }]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+function FeatureCard({ icon, title, body, enterDelayMs = 0 }: FeatureCardProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
@@ -86,13 +109,15 @@ function FeatureCard({ icon, title, body }: FeatureCardProps) {
   }));
 
   return (
-    <View style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={22} color={colors.primary} />
+    <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1, minWidth: 240 }}>
+      <View style={styles.card}>
+        <View style={styles.iconWrap}>
+          <Ionicons name={icon} size={22} color={colors.primary} />
+        </View>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.body}>{body}</Text>
       </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.body}>{body}</Text>
-    </View>
+    </WebPageEnter>
   );
 }
 
@@ -240,12 +265,18 @@ export function WelcomeWebLayout() {
       showsVerticalScrollIndicator={false}>
       <View style={[styles.hero, { paddingTop: insets.top + (isWide ? 48 : 32) }]}>
         <View style={styles.heroCopy}>
-          <ChairsideWordmark variant="hero" align="center" />
-          <Text style={styles.headline}>{HERO_HEADLINE}</Text>
-          <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+          <WebPageEnter delayMs={0}>
+            <ChairsideWordmark variant="hero" align="center" />
+          </WebPageEnter>
+          <WebPageEnter delayMs={80}>
+            <Text style={styles.headline}>{HERO_HEADLINE}</Text>
+          </WebPageEnter>
+          <WebPageEnter delayMs={160}>
+            <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+          </WebPageEnter>
         </View>
 
-        <View style={styles.ctaRow}>
+        <WebPageEnter delayMs={240} style={styles.ctaRow}>
           <OnboardingButton
             label="Get started"
             onPress={() => router.push('/(onboarding)/role')}
@@ -257,9 +288,9 @@ export function WelcomeWebLayout() {
             onPress={() => router.push('/(onboarding)/sign-in')}
             style={styles.ctaSecondary}
           />
-        </View>
+        </WebPageEnter>
 
-        <View style={styles.roleBadges}>
+        <WebPageEnter delayMs={320} style={styles.roleBadges}>
           {ROLE_BADGES.map(({ label, icon }) => (
             <Pressable
               key={label}
@@ -270,29 +301,32 @@ export function WelcomeWebLayout() {
               <Text style={styles.roleBadgeText}>{label}</Text>
             </Pressable>
           ))}
-        </View>
+        </WebPageEnter>
 
-        <View style={styles.scrollHint}>
-          <Text style={styles.scrollHintText}>See features</Text>
-          <Ionicons name="chevron-down" size={16} color={colors.labelTertiary} />
-        </View>
+        <WebPageEnter delayMs={400} style={styles.scrollHint}>
+          <ScrollHint style={styles.scrollHint}>
+            <Text style={styles.scrollHintText}>See features</Text>
+            <Ionicons name="chevron-down" size={16} color={colors.labelTertiary} />
+          </ScrollHint>
+        </WebPageEnter>
       </View>
 
       <View style={styles.featuresSection}>
-        <View style={styles.featuresHeader}>
+        <WebPageEnter delayMs={480} style={styles.featuresHeader}>
           <Text style={styles.featuresTitle}>Built for how dental teams work</Text>
           <Text style={styles.featuresSubtitle}>
             Everything clinics and professionals need to hire, apply, and coordinate—without
             the back-and-forth.
           </Text>
-        </View>
+        </WebPageEnter>
         <View style={styles.featureGrid}>
-          {FEATURES.map((feature) => (
+          {FEATURES.map((feature, index) => (
             <FeatureCard
               key={feature.title}
               icon={feature.icon}
               title={feature.title}
               body={feature.body}
+              enterDelayMs={560 + index * 80}
             />
           ))}
         </View>

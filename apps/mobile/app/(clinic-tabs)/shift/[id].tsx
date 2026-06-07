@@ -8,6 +8,7 @@ import { ShiftPostManageMenu } from '@/components/clinic/ShiftPostManageMenu';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { CLINIC_FILL_INS, getClinicHomeRoute, getClinicShiftApplicantsRoute, getEditShiftRoute, type FillInReturnTarget } from '@/lib/routing';
@@ -79,9 +80,10 @@ export default function ShiftDetailScreen() {
       <OnboardingShell>
         <AuthScreenHeader
           title="Fill-in details"
-          subtitle={isLoading ? 'Loading…' : 'Fill-in not found.'}
+          subtitle={isLoading ? undefined : 'Fill-in not found.'}
           onBack={() => router.back()}
         />
+        {isLoading ? <PageLoadingDetail /> : null}
       </OnboardingShell>
     );
   }

@@ -13,6 +13,7 @@ import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -90,9 +91,10 @@ export default function WorkerJobDetailScreen() {
       <OnboardingShell>
         <AuthScreenHeader
           title="Role details"
-          subtitle={isLoading ? 'Loading…' : 'Role not found.'}
+          subtitle={isLoading ? undefined : 'Role not found.'}
           onBack={() => router.back()}
         />
+        {isLoading ? <PageLoadingDetail /> : null}
       </OnboardingShell>
     );
   }
