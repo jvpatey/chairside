@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
+import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type FilterTriggerButtonProps = {
@@ -29,6 +30,14 @@ export function FilterTriggerButton({
       minWidth: 44,
       minHeight: 36,
       justifyContent: 'center',
+      ...webPointer(),
+    },
+    buttonHovered: {
+      backgroundColor: activeCount > 0 ? colors.primarySubtle : colors.backgroundGrouped,
+      borderColor: activeCount > 0 ? colors.primary : colors.labelTertiary,
+    },
+    buttonPressed: {
+      opacity: 0.85,
     },
     badge: {
       minWidth: 18,
@@ -46,9 +55,15 @@ export function FilterTriggerButton({
     },
   }));
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <Pressable
-      style={styles.button}
+      style={({ pressed, hovered }) => [
+        styles.button,
+        isWeb && hovered && !pressed && styles.buttonHovered,
+        isWeb && pressed && styles.buttonPressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}

@@ -8,6 +8,7 @@ import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
 import { WorkerApplicationsInboxPanel } from '@/components/worker/WorkerApplicationsInboxPanel';
 import { WorkerConfirmedFillInDetail } from '@/components/worker/WorkerConfirmedFillInDetail';
@@ -125,9 +126,7 @@ export default function WorkerApplicationDetailScreen() {
     ? isConfirmedFillIn
       ? shiftDisplay?.title ?? application.clinic_name
       : application.post_title
-    : isLoading
-      ? 'Loading…'
-      : 'Application details';
+    : 'Application details';
 
   const headerTitle = isConfirmedFillIn ? 'Confirmed fill-in' : 'Application';
 
@@ -140,7 +139,9 @@ export default function WorkerApplicationDetailScreen() {
       />
       <View style={styles.content}>
         <FormErrorBanner message={formError} />
-        {isConfirmedFillIn && application ? (
+        {isLoading ? (
+          <PageLoadingDetail />
+        ) : isConfirmedFillIn && application ? (
           <WorkerConfirmedFillInDetail
             application={application}
             shift={confirmedShift}

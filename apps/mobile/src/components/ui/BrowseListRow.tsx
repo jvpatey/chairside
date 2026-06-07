@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type ListingLayout = 'tile' | 'list';
@@ -51,11 +52,13 @@ export function BrowseListRow({
       gap: spacing.md,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
+      ...webPointer(),
     },
     rowSeparator: {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.separator,
     },
+    rowHovered: webListRowHoverStyles(colors),
     rowPressed: {
       backgroundColor: colors.fillSubtle,
     },
@@ -179,7 +182,11 @@ export function BrowseListRow({
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
-      style={({ pressed }) => [rowStyle, pressed && styles.rowPressed]}>
+      style={({ pressed, hovered }) => [
+        rowStyle,
+        webHover(hovered, pressed, styles.rowHovered),
+        pressed && styles.rowPressed,
+      ]}>
       {content}
     </Pressable>
   );

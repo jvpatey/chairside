@@ -13,6 +13,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { formatPostedDateLabel } from '@/lib/dates';
+import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type RolePostingCardManageProps = {
@@ -73,14 +74,16 @@ export function RolePostingCard({
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
   const postedLabel = formatPostedDateLabel(job.created_at);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
+      ...webPointer(),
     },
+    cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: {
       opacity: 0.92,
     },
@@ -236,7 +239,11 @@ export function RolePostingCard({
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      style={({ pressed, hovered }) => [
+        styles.card,
+        webHover(hovered, pressed, styles.cardHovered),
+        pressed && styles.cardPressed,
+      ]}>
       {content}
     </Pressable>
   );

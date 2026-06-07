@@ -8,6 +8,7 @@ import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const PREVIEW_LIMIT = 2;
@@ -93,6 +94,13 @@ export function DashboardUnreadMessagesCard({
       fontWeight: '600',
       color: colors.primary,
     },
+    viewAllPressable: {
+      borderRadius: 8,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+      ...webPointer(),
+    },
+    viewAllHovered: webListRowHoverStyles(colors),
     viewAll: {
       fontSize: 14,
       fontWeight: '600',
@@ -109,7 +117,9 @@ export function DashboardUnreadMessagesCard({
       backgroundColor: colors.surface,
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
+      ...webPointer(),
     },
+    previewRowHovered: webListRowHoverStyles(colors),
     previewRowPressed: {
       opacity: 0.92,
     },
@@ -166,7 +176,11 @@ export function DashboardUnreadMessagesCard({
           accessibilityRole="button"
           accessibilityLabel="View all messages"
           hitSlop={8}
-          onPress={handleViewAll}>
+          onPress={handleViewAll}
+          style={({ pressed, hovered }) => [
+            styles.viewAllPressable,
+            webHover(hovered, pressed, styles.viewAllHovered),
+          ]}>
           <Text style={styles.viewAll}>View all</Text>
         </Pressable>
       </View>
@@ -181,7 +195,11 @@ export function DashboardUnreadMessagesCard({
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onConversationPress(conversation);
             }}
-            style={({ pressed }) => [styles.previewRow, pressed && styles.previewRowPressed]}>
+            style={({ pressed, hovered }) => [
+              styles.previewRow,
+              webHover(hovered, pressed, styles.previewRowHovered),
+              pressed && styles.previewRowPressed,
+            ]}>
             <PreviewAvatar conversation={conversation} avatarKind={avatarKind} />
             <View style={styles.previewText}>
               <Text style={styles.roleEyebrow} numberOfLines={1}>

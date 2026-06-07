@@ -1,5 +1,6 @@
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 
+import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TABLET_PROFILE_ROW_HEIGHT } from '@/lib/breakpoints';
 import { useThemedStyles } from '@/theme';
@@ -27,12 +28,23 @@ export function DashboardTabletSectionHeader({ title }: DashboardTabletSectionHe
       textTransform: 'uppercase',
       color: typography.subtitle.color,
     },
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      flexShrink: 0,
+    },
   }));
+
+  const showSignOut = Platform.OS === 'web';
 
   return (
     <View style={styles.row}>
       <Text style={styles.title}>{title}</Text>
-      <NotificationBell placement="hero" />
+      <View style={styles.actions}>
+        <NotificationBell placement="hero" />
+        {showSignOut ? <SignOutHeaderButton /> : null}
+      </View>
     </View>
   );
 }

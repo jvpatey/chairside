@@ -8,6 +8,7 @@ import { JobPostManageMenu } from '@/components/clinic/JobPostManageMenu';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getEditJobRoute } from '@/lib/routing';
@@ -67,9 +68,10 @@ export default function JobDetailScreen() {
       <OnboardingShell>
         <AuthScreenHeader
           title="Role details"
-          subtitle={isLoading ? 'Loading…' : 'Role not found.'}
+          subtitle={isLoading ? undefined : 'Role not found.'}
           onBack={() => router.back()}
         />
+        {isLoading ? <PageLoadingDetail /> : null}
       </OnboardingShell>
     );
   }

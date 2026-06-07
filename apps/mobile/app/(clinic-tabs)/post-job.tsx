@@ -28,6 +28,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemedStyles } from '@/theme';
@@ -236,7 +237,11 @@ export default function PostJobScreen() {
   if (isLoading) {
     return (
       <OnboardingShell>
-        <Text style={styles.loading}>Loading role…</Text>
+        <AuthScreenHeader
+          title={isEditing ? 'Edit role' : 'Post a role'}
+          onBack={() => router.back()}
+        />
+        <PageLoadingDetail />
       </OnboardingShell>
     );
   }

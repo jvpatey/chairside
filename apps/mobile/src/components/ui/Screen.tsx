@@ -3,6 +3,7 @@ import { ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useThemedStyles } from '@/theme';
@@ -84,33 +85,35 @@ export function Screen({
         contentContainerStyle,
       ]}
     >
-      <View
-        style={[
-          styles.header,
-          !showTopBar && styles.headerHidden,
-          !showHeader && showTopBar && styles.headerCompact,
-        ]}
-      >
-        {showTopBar ? (
-          <View style={styles.headerRow}>
-            {showHeader ? (
-              <View style={styles.headerText}>
-                {title ? <Text style={styles.title}>{title}</Text> : null}
-                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-              </View>
-            ) : (
-              <View style={styles.headerText} />
-            )}
-            {headerAccessory || showNotifications ? (
-              <View style={styles.headerActions}>
-                {headerAccessory}
-                {showNotifications ? <NotificationBell /> : null}
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-      </View>
-      {children}
+      <WebPageEnter>
+        <View
+          style={[
+            styles.header,
+            !showTopBar && styles.headerHidden,
+            !showHeader && showTopBar && styles.headerCompact,
+          ]}
+        >
+          {showTopBar ? (
+            <View style={styles.headerRow}>
+              {showHeader ? (
+                <View style={styles.headerText}>
+                  {title ? <Text style={styles.title}>{title}</Text> : null}
+                  {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+                </View>
+              ) : (
+                <View style={styles.headerText} />
+              )}
+              {headerAccessory || showNotifications ? (
+                <View style={styles.headerActions}>
+                  {headerAccessory}
+                  {showNotifications ? <NotificationBell /> : null}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+        {children}
+      </WebPageEnter>
     </ScrollView>
   );
 }

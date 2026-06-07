@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useThemedStyles } from '@/theme';
 
 const DEFAULT_MASTER_WIDTH = 340;
@@ -47,13 +48,19 @@ export function MasterDetailLayout({
   }));
 
   if (!isTablet || !showDetail) {
-    return <View style={[{ flex: 1, minHeight: 0 }, style]}>{master}</View>;
+    return (
+      <View style={[{ flex: 1, minHeight: 0 }, style]}>
+        <WebPageEnter style={{ flex: 1, minHeight: 0 }}>{master}</WebPageEnter>
+      </View>
+    );
   }
 
   return (
-    <View style={[styles.row, style]}>
-      <View style={styles.master}>{master}</View>
-      <View style={styles.detail}>{detail}</View>
-    </View>
+    <WebPageEnter style={[{ flex: 1, minHeight: 0 }, style]}>
+      <View style={styles.row}>
+        <View style={styles.master}>{master}</View>
+        <View style={styles.detail}>{detail}</View>
+      </View>
+    </WebPageEnter>
   );
 }

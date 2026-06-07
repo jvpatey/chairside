@@ -20,6 +20,7 @@ import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationPackageFields } from '@/components/worker/ApplicationPackageFields';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
@@ -210,9 +211,9 @@ export default function ApplyScreen() {
       <OnboardingShell>
         <AuthScreenHeader
           title={type === 'shift' ? 'Request to cover' : 'Apply'}
-          subtitle="Loading…"
           onBack={() => router.back()}
         />
+        <PageLoadingDetail />
       </OnboardingShell>
     );
   }

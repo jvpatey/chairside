@@ -1,7 +1,7 @@
 import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 
 import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
@@ -12,6 +12,7 @@ import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { webOnlyStyle, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerSetupBannerProps = {
@@ -148,7 +149,7 @@ export function WorkerStatGrid({
     },
   ];
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     grid: { flexDirection: 'row', gap: spacing.sm },
     cellWrap: {
       flex: 1,
@@ -169,11 +170,19 @@ export function WorkerStatGrid({
       paddingHorizontal: spacing.sm,
       alignItems: 'center',
       gap: 2,
+      ...webPointer(),
     },
     cellSelected: {
       borderColor: colors.primary,
       backgroundColor: colors.surface,
     },
+    cellHovered: webTileHoverStyles(colors, isDark),
+    cellSelectedHovered: webOnlyStyle({
+      borderColor: colors.primary,
+      boxShadow: isDark
+        ? '0 4px 12px rgba(74, 154, 255, 0.16)'
+        : '0 4px 12px rgba(26, 111, 212, 0.12)',
+    } as ViewStyle),
     value: {
       ...typography.title,
       fontSize: 20,
@@ -188,6 +197,8 @@ export function WorkerStatGrid({
       textAlign: 'center',
     },
   }));
+
+  const isWeb = Platform.OS === 'web';
 
   return (
     <View style={styles.grid}>
@@ -207,9 +218,10 @@ export function WorkerStatGrid({
                 stat.badgeCount > 0 ? `, ${stat.badgeCount} updates` : ''
               }`}
               onPress={() => onSelect(stat.key)}
-              style={({ pressed }) => [
+              style={({ pressed, hovered }) => [
                 styles.cell,
                 isSelected && styles.cellSelected,
+                isWeb && hovered && !pressed && (isSelected ? styles.cellSelectedHovered : styles.cellHovered),
                 pressed && { opacity: 0.85 },
               ]}>
               <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>

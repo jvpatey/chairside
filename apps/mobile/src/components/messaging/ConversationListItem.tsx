@@ -2,7 +2,7 @@ import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
@@ -12,6 +12,7 @@ import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { getHideConversationMessage } from '@/lib/conversationHide';
 import { formatNotificationTime } from '@/lib/notificationDisplay';
+import { webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ConversationListItemProps = {
@@ -67,6 +68,8 @@ export function ConversationListItem({
   const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [rowHovered, setRowHovered] = useState(false);
+  const isWeb = Platform.OS === 'web';
   const timestamp = formatNotificationTime(conversation.last_message_at ?? undefined);
   const display = formatConversationDisplay(conversation, role);
 
@@ -78,6 +81,7 @@ export function ConversationListItem({
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
     },
+    rowHovered: webListRowHoverStyles(colors),
     rowSeparator: {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.separator,
@@ -88,6 +92,7 @@ export function ConversationListItem({
       alignItems: 'flex-start',
       gap: spacing.md,
       minWidth: 0,
+      ...webPointer(),
     },
     mainPressed: {
       opacity: 0.92,
@@ -142,9 +147,10 @@ export function ConversationListItem({
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 2,
+      ...webPointer(),
     },
     menuButtonPressed: {
-      backgroundColor: colors.fillSubtle,
+      opacity: 0.75,
     },
     trailing: {
       alignSelf: 'stretch',
@@ -172,7 +178,18 @@ export function ConversationListItem({
 
   return (
     <>
-      <View style={[styles.row, !isLast && styles.rowSeparator]}>
+      <View
+        style={[
+          styles.row,
+          !isLast && styles.rowSeparator,
+          isWeb && rowHovered && styles.rowHovered,
+        ]}
+        {...(isWeb
+          ? {
+              onMouseEnter: () => setRowHovered(true),
+              onMouseLeave: () => setRowHovered(false),
+            }
+          : {})}>
         <Pressable
           accessibilityRole="button"
           onPress={onPress}
@@ -205,7 +222,10 @@ export function ConversationListItem({
               accessibilityRole="button"
               accessibilityLabel="Conversation options"
               hitSlop={8}
-              onPress={openMenu}
+              onPress={(event) => {
+                event.stopPropagation?.();
+                openMenu();
+              }}
               style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
               <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
             </Pressable>

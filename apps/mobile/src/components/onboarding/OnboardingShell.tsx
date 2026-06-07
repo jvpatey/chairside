@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useThemedStyles, spacing } from '@/theme';
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 
 type FormScrollContextValue = {
   scrollWrapIntoView: (wrapRef: View | null) => void;
@@ -208,7 +209,7 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       automaticallyAdjustKeyboardInsets={Platform.OS === 'ios' && !footer}
       showsVerticalScrollIndicator={false}>
       <View ref={contentRef} style={[styles.body, contentStyle]} collapsable={false}>
-        {children}
+        <WebPageEnter style={styles.body}>{children}</WebPageEnter>
       </View>
     </ScrollView>
   );

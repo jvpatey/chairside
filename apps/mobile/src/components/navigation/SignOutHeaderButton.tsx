@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { ActivityIndicator, Platform, Pressable } from 'react-native';
 
 import { useSignOut } from '@/hooks/useSignOut';
+import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export function SignOutHeaderButton() {
@@ -17,6 +18,10 @@ export function SignOutHeaderButton() {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.fillSubtle,
+      ...webPointer(isSigningOut ? 'default' : 'pointer'),
+    },
+    buttonHovered: {
+      backgroundColor: colors.separator,
     },
     buttonPressed: {
       backgroundColor: colors.separator,
@@ -27,10 +32,13 @@ export function SignOutHeaderButton() {
     },
   }));
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <Pressable
-      style={({ pressed }) => [
+      style={({ pressed, hovered }) => [
         styles.button,
+        isWeb && hovered && !pressed && !isSigningOut && styles.buttonHovered,
         pressed && !isSigningOut && styles.buttonPressed,
         isSigningOut && styles.buttonDisabled,
       ]}

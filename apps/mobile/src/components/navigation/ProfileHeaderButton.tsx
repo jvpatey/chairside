@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router, type Href } from 'expo-router';
-import { Image, Pressable } from 'react-native';
+import { Image, Platform, Pressable } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ProfileHeaderButtonProps = {
@@ -37,6 +38,10 @@ export function ProfileHeaderButton({
       marginRight: inHero ? 0 : spacing.sm,
       backgroundColor: colors.fillSubtle,
       overflow: 'hidden',
+      ...webPointer(),
+    },
+    buttonHovered: {
+      backgroundColor: colors.separator,
     },
     buttonPressed: {
       backgroundColor: colors.separator,
@@ -48,9 +53,15 @@ export function ProfileHeaderButton({
     },
   }));
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+      style={({ pressed, hovered }) => [
+        styles.button,
+        isWeb && hovered && !pressed && styles.buttonHovered,
+        pressed && styles.buttonPressed,
+      ]}
       accessibilityRole="button"
       accessibilityLabel="Profile"
       onPress={() => {

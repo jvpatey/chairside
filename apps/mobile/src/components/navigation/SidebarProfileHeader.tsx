@@ -1,9 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { router, type Href } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 const AVATAR_SIZE = 56;
@@ -33,6 +34,10 @@ export function SidebarProfileHeader({
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.sm,
       borderRadius: 12,
+      ...webPointer(),
+    },
+    pressableHovered: {
+      backgroundColor: colors.fillSubtle,
     },
     pressablePressed: {
       backgroundColor: colors.fillSubtle,
@@ -55,6 +60,8 @@ export function SidebarProfileHeader({
     },
   }));
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -63,7 +70,11 @@ export function SidebarProfileHeader({
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.push(href);
       }}
-      style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]}>
+      style={({ pressed, hovered }) => [
+        styles.pressable,
+        isWeb && hovered && !pressed && styles.pressableHovered,
+        pressed && styles.pressablePressed,
+      ]}>
       {avatarKind === 'worker' ? (
         <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={AVATAR_SIZE} />
       ) : (

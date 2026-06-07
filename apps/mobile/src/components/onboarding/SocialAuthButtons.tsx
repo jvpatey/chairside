@@ -1,7 +1,8 @@
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 
+import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type SocialAuthButtonsProps = {
@@ -26,6 +27,7 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
       justifyContent: 'center' as const,
       paddingHorizontal: spacing.md,
       opacity: disabled ? 0.55 : 1,
+      ...webPointer(disabled ? 'default' : 'pointer'),
     },
     apple: {
       backgroundColor: isDark ? colors.surface : '#000000',
@@ -35,6 +37,12 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
     applePressed: {
       backgroundColor: isDark ? colors.surfaceElevated : '#1C1C1E',
     },
+    appleHovered: webOnlyStyle({
+      backgroundColor: isDark ? colors.surfaceElevated : '#1C1C1E',
+      boxShadow: isDark
+        ? '0 4px 12px rgba(0, 0, 0, 0.35)'
+        : '0 4px 12px rgba(0, 0, 0, 0.18)',
+    } as ViewStyle),
     google: {
       backgroundColor: colors.surface,
       borderWidth: 1,
@@ -42,6 +50,10 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
     },
     googlePressed: {
       backgroundColor: colors.backgroundGrouped,
+    },
+    googleHovered: {
+      backgroundColor: colors.backgroundGrouped,
+      borderColor: colors.labelTertiary,
     },
     content: {
       flexDirection: 'row' as const,
@@ -64,17 +76,26 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
   }));
 
   const isApple = variant === 'apple';
+  const isWeb = Platform.OS === 'web';
 
   return (
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }) => [
         styles.button,
         isApple
-          ? [styles.apple, pressed && !disabled && styles.applePressed]
-          : [styles.google, pressed && !disabled && styles.googlePressed],
+          ? [
+              styles.apple,
+              isWeb && hovered && !pressed && !disabled && styles.appleHovered,
+              pressed && !disabled && styles.applePressed,
+            ]
+          : [
+              styles.google,
+              isWeb && hovered && !pressed && !disabled && styles.googleHovered,
+              pressed && !disabled && styles.googlePressed,
+            ],
       ]}>
       <View style={styles.content}>
         {isApple ? (

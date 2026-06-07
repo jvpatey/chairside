@@ -1,8 +1,9 @@
 import { getProvinceLabel } from '@chairside/config';
 import { type Href } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 
 import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
+import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { getTimeOfDayGreeting } from '@/lib/greeting';
 import { useThemedStyles } from '@/theme';
@@ -28,6 +29,7 @@ export function DashboardHeroCard({
 }: DashboardHeroCardProps) {
   const name = displayName?.trim();
   const greeting = getTimeOfDayGreeting();
+  const showSignOut = Platform.OS === 'web';
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     hero: {
@@ -98,6 +100,7 @@ export function DashboardHeroCard({
             photoUri={photoUri}
           />
           <NotificationBell placement="hero" />
+          {showSignOut ? <SignOutHeaderButton /> : null}
         </View>
       </View>
     </View>

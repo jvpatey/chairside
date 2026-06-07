@@ -12,6 +12,7 @@ import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PushRegistration } from '@/components/notifications/PushRegistration';
+import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
 import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -69,6 +70,7 @@ export default function RootLayout() {
                   <SplashScreenController fontsReady={fontsReady} />
                   <PushRegistration />
                   <ConfirmActionSheetHost />
+                  <VercelAnalytics />
                   <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                   <Stack>
                   <Stack.Screen name="index" options={{ headerShown: false }} />

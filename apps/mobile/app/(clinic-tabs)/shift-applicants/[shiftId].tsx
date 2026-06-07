@@ -12,6 +12,7 @@ import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -83,7 +84,7 @@ export default function ClinicShiftApplicationsScreen() {
   useRefreshOnFocus(load);
 
   const subtitle = isLoading
-    ? 'Loading…'
+    ? undefined
     : applications.length === 1
       ? '1 cover request'
       : `${applications.length} cover requests`;
@@ -93,7 +94,9 @@ export default function ClinicShiftApplicationsScreen() {
       <OnboardingShell>
         <AuthScreenHeader title={postTitle || 'Fill-in applicants'} subtitle={subtitle} onBack={goBack} />
         <View style={styles.content}>
-          {applications.length === 0 && !isLoading ? (
+          {isLoading ? (
+            <PageLoadingList />
+          ) : applications.length === 0 ? (
             <Text style={styles.empty}>No cover requests for this fill-in yet.</Text>
           ) : (
             <View style={styles.list}>
