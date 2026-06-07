@@ -5,6 +5,7 @@ import { Image, Platform, Pressable } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ProfileHeaderButtonProps = {
@@ -37,10 +38,7 @@ export function ProfileHeaderButton({
       marginRight: inHero ? 0 : spacing.sm,
       backgroundColor: colors.fillSubtle,
       overflow: 'hidden',
-      // @ts-expect-error — cursor is web-only
-      cursor: 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(),
     },
     buttonHovered: {
       backgroundColor: colors.separator,

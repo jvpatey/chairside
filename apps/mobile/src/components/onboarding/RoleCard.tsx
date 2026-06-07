@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 
+import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type RoleCardProps = {
@@ -31,30 +32,25 @@ export function RoleCard({
       borderColor: colors.separator,
       padding: spacing.lg,
       minHeight: 44,
-      // @ts-expect-error — cursor is web-only
-      cursor: 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(),
     },
     cardSelected: {
       backgroundColor: colors.primarySubtle,
       borderColor: colors.primary,
     },
-    cardHovered: {
+    cardHovered: webOnlyStyle({
       backgroundColor: colors.backgroundGrouped,
       borderColor: colors.labelTertiary,
-      // @ts-expect-error — boxShadow is web-only
       boxShadow: isDark
         ? '0 6px 18px rgba(0, 0, 0, 0.22)'
         : '0 4px 14px rgba(0, 0, 0, 0.08)',
-    },
-    cardSelectedHovered: {
+    } as ViewStyle),
+    cardSelectedHovered: webOnlyStyle({
       borderColor: colors.primary,
-      // @ts-expect-error — boxShadow is web-only
       boxShadow: isDark
         ? '0 6px 18px rgba(74, 154, 255, 0.18)'
         : '0 4px 14px rgba(26, 111, 212, 0.14)',
-    },
+    } as ViewStyle),
     iconWrap: {
       width: 40,
       height: 40,

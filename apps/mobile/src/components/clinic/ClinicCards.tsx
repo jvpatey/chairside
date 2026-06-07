@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Pressable, Platform, Text, View } from 'react-native';
+import { Pressable, Platform, Text, View, type ViewStyle } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
@@ -19,7 +19,7 @@ import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
-import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { webHover, webOnlyStyle, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
@@ -105,19 +105,9 @@ export function QuickActionTile({
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
-      // @ts-expect-error — cursor is web-only
-      cursor: 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(),
     },
-    tileHovered: {
-      backgroundColor: colors.fillSubtle,
-      borderColor: colors.labelTertiary,
-      // @ts-expect-error — boxShadow is web-only
-      boxShadow: isDark
-        ? '0 6px 18px rgba(0, 0, 0, 0.22)'
-        : '0 4px 14px rgba(0, 0, 0, 0.08)',
-    },
+    tileHovered: webTileHoverStyles(colors, isDark),
     tilePressed: {
       opacity: 0.88,
       backgroundColor: colors.fillSubtle,
@@ -231,30 +221,19 @@ export function StatGrid({
       paddingHorizontal: spacing.sm,
       alignItems: 'center',
       gap: 2,
-      // @ts-expect-error — cursor is web-only
-      cursor: 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(),
     },
     cellSelected: {
       borderColor: colors.primary,
       backgroundColor: colors.surface,
     },
-    cellHovered: {
-      backgroundColor: colors.surface,
-      borderColor: colors.labelTertiary,
-      // @ts-expect-error — boxShadow is web-only
-      boxShadow: isDark
-        ? '0 4px 12px rgba(0, 0, 0, 0.2)'
-        : '0 4px 12px rgba(0, 0, 0, 0.07)',
-    },
-    cellSelectedHovered: {
+    cellHovered: webTileHoverStyles(colors, isDark),
+    cellSelectedHovered: webOnlyStyle({
       borderColor: colors.primary,
-      // @ts-expect-error — boxShadow is web-only
       boxShadow: isDark
         ? '0 4px 12px rgba(74, 154, 255, 0.16)'
         : '0 4px 12px rgba(26, 111, 212, 0.12)',
-    },
+    } as ViewStyle),
     value: {
       ...typography.title,
       fontSize: 20,

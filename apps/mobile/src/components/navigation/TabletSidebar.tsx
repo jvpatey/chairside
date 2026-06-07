@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CommonActions } from '@react-navigation/native';
 import { router, usePathname } from 'expo-router';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
@@ -15,6 +15,7 @@ import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
 import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
+import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export const TABLET_SIDEBAR_WIDTH = 240;
@@ -93,10 +94,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingVertical: 11,
       paddingHorizontal: spacing.sm,
       borderRadius: 10,
-      // @ts-expect-error — cursor is web-only
-      cursor: 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(),
     },
     itemActive: {
       backgroundColor: colors.primarySubtle,
@@ -104,13 +102,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     itemHovered: {
       backgroundColor: colors.fillSubtle,
     },
-    itemActiveHovered: {
+    itemActiveHovered: webOnlyStyle({
       backgroundColor: colors.primarySubtle,
-      // @ts-expect-error — boxShadow is web-only
       boxShadow: isDark
         ? '0 4px 12px rgba(74, 154, 255, 0.12)'
         : '0 4px 12px rgba(26, 111, 212, 0.1)',
-    },
+    } as ViewStyle),
     itemPressed: {
       opacity: 0.85,
     },

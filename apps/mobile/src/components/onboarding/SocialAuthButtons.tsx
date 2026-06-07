@@ -1,7 +1,8 @@
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 
+import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type SocialAuthButtonsProps = {
@@ -26,10 +27,7 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
       justifyContent: 'center' as const,
       paddingHorizontal: spacing.md,
       opacity: disabled ? 0.55 : 1,
-      // @ts-expect-error — cursor is web-only
-      cursor: disabled ? 'default' : 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(disabled ? 'default' : 'pointer'),
     },
     apple: {
       backgroundColor: isDark ? colors.surface : '#000000',
@@ -39,13 +37,12 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
     applePressed: {
       backgroundColor: isDark ? colors.surfaceElevated : '#1C1C1E',
     },
-    appleHovered: {
+    appleHovered: webOnlyStyle({
       backgroundColor: isDark ? colors.surfaceElevated : '#1C1C1E',
-      // @ts-expect-error — boxShadow is web-only
       boxShadow: isDark
         ? '0 4px 12px rgba(0, 0, 0, 0.35)'
         : '0 4px 12px rgba(0, 0, 0, 0.18)',
-    },
+    } as ViewStyle),
     google: {
       backgroundColor: colors.surface,
       borderWidth: 1,

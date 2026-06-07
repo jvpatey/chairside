@@ -2,15 +2,16 @@ import { Platform, type ViewStyle } from 'react-native';
 
 export const IS_WEB = Platform.OS === 'web';
 
+export function webOnlyStyle(style: ViewStyle): ViewStyle {
+  return IS_WEB ? (style as ViewStyle) : {};
+}
+
 /** Pointer + transition for interactive pressables on web. */
-export function webPointer(): ViewStyle {
-  if (!IS_WEB) return {};
-  return {
-    // @ts-expect-error — cursor is web-only
-    cursor: 'pointer',
-    // @ts-expect-error — transitionDuration is web-only
+export function webPointer(cursor: 'default' | 'pointer' = 'pointer'): ViewStyle {
+  return webOnlyStyle({
+    cursor,
     transitionDuration: '140ms',
-  };
+  } as ViewStyle);
 }
 
 /** Returns hover style only on web when hovered and not pressed. */
@@ -36,12 +37,11 @@ type HoverColors = {
 
 /** Hover styles for bordered tile/card pressables. */
 export function webTileHoverStyles(colors: HoverColors, isDark: boolean): ViewStyle {
-  return {
+  return webOnlyStyle({
     backgroundColor: colors.fillSubtle,
     borderColor: colors.labelTertiary,
-    // @ts-expect-error — boxShadow is web-only
     boxShadow: webTileHoverShadow(isDark),
-  };
+  } as ViewStyle);
 }
 
 /** Hover styles for flat list rows. */

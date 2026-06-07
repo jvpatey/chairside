@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, Pressable, Text, View } from 'react-native';
 
+import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type FilterTriggerButtonProps = {
@@ -29,10 +30,7 @@ export function FilterTriggerButton({
       minWidth: 44,
       minHeight: 36,
       justifyContent: 'center',
-      // @ts-expect-error — cursor is web-only
-      cursor: 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(),
     },
     buttonHovered: {
       backgroundColor: activeCount > 0 ? colors.primarySubtle : colors.backgroundGrouped,

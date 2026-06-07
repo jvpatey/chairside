@@ -1,5 +1,6 @@
 import { Platform, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 
+import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type OnboardingButtonProps = {
@@ -27,16 +28,8 @@ export function OnboardingButton({
       justifyContent: 'center' as const,
       minHeight: 52,
     },
-    webInteractive: {
-      // @ts-expect-error — cursor is web-only
-      cursor: 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
-    },
-    webDisabled: {
-      // @ts-expect-error — cursor is web-only
-      cursor: 'default',
-    },
+    webInteractive: webPointer(),
+    webDisabled: webPointer('default'),
     label: {
       ...typography.body,
       fontWeight: '600' as const,
@@ -50,15 +43,13 @@ export function OnboardingButton({
     primaryPressed: {
       backgroundColor: colors.primaryPressed,
     },
-    primaryHovered: {
+    primaryHovered: webOnlyStyle({
       backgroundColor: colors.primaryPressed,
-      // @ts-expect-error — transform is web-only
       transform: [{ translateY: -1 }],
-      // @ts-expect-error — boxShadow is web-only
       boxShadow: isDark
         ? '0 6px 16px rgba(74, 154, 255, 0.28)'
         : '0 4px 12px rgba(26, 111, 212, 0.28)',
-    },
+    } as ViewStyle),
     primaryDisabled: {
       backgroundColor: colors.fillSubtle,
     },

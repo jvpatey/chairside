@@ -4,6 +4,7 @@ import { Platform, Pressable, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 const AVATAR_SIZE = 56;
@@ -33,10 +34,7 @@ export function SidebarProfileHeader({
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.sm,
       borderRadius: 12,
-      // @ts-expect-error — cursor is web-only
-      cursor: 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(),
     },
     pressableHovered: {
       backgroundColor: colors.fillSubtle,

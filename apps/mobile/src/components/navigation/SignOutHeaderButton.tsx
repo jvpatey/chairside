@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { ActivityIndicator, Platform, Pressable } from 'react-native';
 
 import { useSignOut } from '@/hooks/useSignOut';
+import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export function SignOutHeaderButton() {
@@ -17,10 +18,7 @@ export function SignOutHeaderButton() {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.fillSubtle,
-      // @ts-expect-error — cursor is web-only
-      cursor: isSigningOut ? 'default' : 'pointer',
-      // @ts-expect-error — transitionDuration is web-only
-      transitionDuration: '140ms',
+      ...webPointer(isSigningOut ? 'default' : 'pointer'),
     },
     buttonHovered: {
       backgroundColor: colors.separator,

@@ -148,7 +148,7 @@ function SkeletonListRow({ pulse, isLast }: { pulse: Animated.Value; isLast?: bo
 }
 
 /** Inline list loading placeholder for tab screens. */
-export function PageLoadingList({ rowCount = 4 }: PageLoadingListProps) {
+export function PageLoadingList({ message = 'Loading…', rowCount = 4 }: PageLoadingListProps) {
   const pulse = usePulseOpacity();
 
   const styles = useThemedStyles(({ colors, isDark }) => ({
@@ -174,7 +174,7 @@ export function PageLoadingList({ rowCount = 4 }: PageLoadingListProps) {
     <View
       style={styles.container}
       accessibilityRole="progressbar"
-      accessibilityLabel="Loading"
+      accessibilityLabel={message}
     >
       <View style={styles.card}>
         {Array.from({ length: rowCount }, (_, index) => (
