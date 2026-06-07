@@ -1,4 +1,4 @@
-import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useThemedStyles } from '@/theme';
 
@@ -17,7 +17,7 @@ export function OnboardingButton({
   onPress,
   style,
 }: OnboardingButtonProps) {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     base: {
       alignSelf: 'stretch',
       borderRadius: 12,
@@ -26,6 +26,16 @@ export function OnboardingButton({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       minHeight: 52,
+    },
+    webInteractive: {
+      // @ts-expect-error — cursor is web-only
+      cursor: 'pointer',
+      // @ts-expect-error — transitionDuration is web-only
+      transitionDuration: '140ms',
+    },
+    webDisabled: {
+      // @ts-expect-error — cursor is web-only
+      cursor: 'default',
     },
     label: {
       ...typography.body,
@@ -40,6 +50,15 @@ export function OnboardingButton({
     primaryPressed: {
       backgroundColor: colors.primaryPressed,
     },
+    primaryHovered: {
+      backgroundColor: colors.primaryPressed,
+      // @ts-expect-error — transform is web-only
+      transform: [{ translateY: -1 }],
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 6px 16px rgba(74, 154, 255, 0.28)'
+        : '0 4px 12px rgba(26, 111, 212, 0.28)',
+    },
     primaryDisabled: {
       backgroundColor: colors.fillSubtle,
     },
@@ -51,10 +70,17 @@ export function OnboardingButton({
     secondaryPressed: {
       backgroundColor: colors.backgroundGrouped,
     },
+    secondaryHovered: {
+      backgroundColor: colors.backgroundGrouped,
+      borderColor: colors.labelTertiary,
+    },
     ghost: {
       backgroundColor: 'transparent',
       minHeight: 44,
       paddingVertical: spacing.sm,
+    },
+    ghostHovered: {
+      backgroundColor: colors.primarySubtle,
     },
     destructive: {
       backgroundColor: colors.surface,
@@ -63,6 +89,10 @@ export function OnboardingButton({
     },
     destructivePressed: {
       backgroundColor: `${colors.destructive}14`,
+    },
+    destructiveHovered: {
+      backgroundColor: `${colors.destructive}0D`,
+      borderColor: colors.destructive,
     },
     labelPrimary: {
       color: colors.primaryOnPrimary,
@@ -82,20 +112,38 @@ export function OnboardingButton({
   }));
 
   const isPrimary = variant === 'primary';
+  const isWeb = Platform.OS === 'web';
 
   return (
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }) => [
         styles.base,
+        isWeb && (disabled ? styles.webDisabled : styles.webInteractive),
         variant === 'primary' &&
-          (disabled ? styles.primaryDisabled : [styles.primary, pressed && styles.primaryPressed]),
-        variant === 'secondary' && [styles.secondary, pressed && styles.secondaryPressed],
-        variant === 'ghost' && styles.ghost,
-        variant === 'destructive' &&
-          [styles.destructive, pressed && styles.destructivePressed],
+          (disabled
+            ? styles.primaryDisabled
+            : [
+                styles.primary,
+                isWeb && hovered && !pressed && styles.primaryHovered,
+                pressed && styles.primaryPressed,
+              ]),
+        variant === 'secondary' && [
+          styles.secondary,
+          isWeb && hovered && !pressed && styles.secondaryHovered,
+          pressed && styles.secondaryPressed,
+        ],
+        variant === 'ghost' && [
+          styles.ghost,
+          isWeb && hovered && !pressed && styles.ghostHovered,
+        ],
+        variant === 'destructive' && [
+          styles.destructive,
+          isWeb && hovered && !pressed && styles.destructiveHovered,
+          pressed && styles.destructivePressed,
+        ],
         style,
       ]}
     >

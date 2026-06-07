@@ -1,7 +1,7 @@
 import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
@@ -148,7 +148,7 @@ export function WorkerStatGrid({
     },
   ];
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     grid: { flexDirection: 'row', gap: spacing.sm },
     cellWrap: {
       flex: 1,
@@ -169,10 +169,29 @@ export function WorkerStatGrid({
       paddingHorizontal: spacing.sm,
       alignItems: 'center',
       gap: 2,
+      // @ts-expect-error — cursor is web-only
+      cursor: 'pointer',
+      // @ts-expect-error — transitionDuration is web-only
+      transitionDuration: '140ms',
     },
     cellSelected: {
       borderColor: colors.primary,
       backgroundColor: colors.surface,
+    },
+    cellHovered: {
+      backgroundColor: colors.surface,
+      borderColor: colors.labelTertiary,
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 4px 12px rgba(0, 0, 0, 0.2)'
+        : '0 4px 12px rgba(0, 0, 0, 0.07)',
+    },
+    cellSelectedHovered: {
+      borderColor: colors.primary,
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 4px 12px rgba(74, 154, 255, 0.16)'
+        : '0 4px 12px rgba(26, 111, 212, 0.12)',
     },
     value: {
       ...typography.title,
@@ -188,6 +207,8 @@ export function WorkerStatGrid({
       textAlign: 'center',
     },
   }));
+
+  const isWeb = Platform.OS === 'web';
 
   return (
     <View style={styles.grid}>
@@ -207,9 +228,10 @@ export function WorkerStatGrid({
                 stat.badgeCount > 0 ? `, ${stat.badgeCount} updates` : ''
               }`}
               onPress={() => onSelect(stat.key)}
-              style={({ pressed }) => [
+              style={({ pressed, hovered }) => [
                 styles.cell,
                 isSelected && styles.cellSelected,
+                isWeb && hovered && !pressed && (isSelected ? styles.cellSelectedHovered : styles.cellHovered),
                 pressed && { opacity: 0.85 },
               ]}>
               <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>

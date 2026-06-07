@@ -24,6 +24,7 @@ import {
 } from '@/lib/matchDisplay';
 import { getWorkerApplicationRoute, type WorkerApplicationReturnTarget } from '@/lib/routing';
 import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -75,6 +76,12 @@ export function WorkerApplicationListCard({
       padding: spacing.lg,
       gap: spacing.md,
     },
+    cardHeaderPressable: {
+      alignSelf: 'stretch',
+      borderRadius: 12,
+      ...webPointer(),
+    },
+    cardHeaderHovered: webListRowHoverStyles(colors),
     cardPressed: { opacity: 0.92 },
     expandedBody: {
       gap: spacing.sm,
@@ -151,7 +158,11 @@ export function WorkerApplicationListCard({
         accessibilityRole="button"
         accessibilityState={{ expanded: linkToDetail ? undefined : expanded }}
         onPress={handlePress}
-        style={({ pressed }) => [pressed && styles.cardPressed]}>
+        style={({ pressed, hovered }) => [
+          styles.cardHeaderPressable,
+          webHover(hovered, pressed, styles.cardHeaderHovered),
+          pressed && styles.cardPressed,
+        ]}>
         {content}
       </Pressable>
 

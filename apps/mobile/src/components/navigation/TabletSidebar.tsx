@@ -57,7 +57,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { clinicProfile } = useClinicProfile();
   const { workerProfile } = useWorkerProfile();
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     sidebar: {
       flex: 1,
       width: '100%',
@@ -93,9 +93,23 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingVertical: 11,
       paddingHorizontal: spacing.sm,
       borderRadius: 10,
+      // @ts-expect-error — cursor is web-only
+      cursor: 'pointer',
+      // @ts-expect-error — transitionDuration is web-only
+      transitionDuration: '140ms',
     },
     itemActive: {
       backgroundColor: colors.primarySubtle,
+    },
+    itemHovered: {
+      backgroundColor: colors.fillSubtle,
+    },
+    itemActiveHovered: {
+      backgroundColor: colors.primarySubtle,
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 4px 12px rgba(74, 154, 255, 0.12)'
+        : '0 4px 12px rgba(26, 111, 212, 0.1)',
     },
     itemPressed: {
       opacity: 0.85,
@@ -140,6 +154,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       : clinicProfile?.province
         ? getProvinceLabel(clinicProfile.province)
         : 'View profile';
+
+  const isWeb = Platform.OS === 'web';
 
   return (
     <View
@@ -202,9 +218,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
               accessibilityLabel={label}
               onPress={onPress}
               onLongPress={onLongPress}
-              style={({ pressed }) => [
+              style={({ pressed, hovered }) => [
                 styles.item,
                 isFocused && styles.itemActive,
+                isWeb && hovered && !pressed && (isFocused ? styles.itemActiveHovered : styles.itemHovered),
                 pressed && styles.itemPressed,
               ]}>
               {options.tabBarIcon?.({ focused: isFocused, color, size: 22 })}
@@ -230,9 +247,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push(profileHref);
           }}
-          style={({ pressed }) => [
+          style={({ pressed, hovered }) => [
             styles.item,
             isProfileActive && styles.itemActive,
+            isWeb && hovered && !pressed && (isProfileActive ? styles.itemActiveHovered : styles.itemHovered),
             pressed && styles.itemPressed,
           ]}>
           <Ionicons

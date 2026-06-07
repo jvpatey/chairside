@@ -9,6 +9,7 @@ import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
+import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type FillInListingCardProps = {
@@ -28,14 +29,16 @@ export function FillInListingCard({
   const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
   const roleTitle = formatShiftPostRoleTitle(shift.role_type);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
+      ...webPointer(),
     },
+    cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: { opacity: 0.92 },
     footer: {
       flexDirection: 'row',
@@ -105,7 +108,11 @@ export function FillInListingCard({
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      style={({ pressed, hovered }) => [
+        styles.card,
+        webHover(hovered, pressed, styles.cardHovered),
+        pressed && styles.cardPressed,
+      ]}>
       {content}
     </Pressable>
   );

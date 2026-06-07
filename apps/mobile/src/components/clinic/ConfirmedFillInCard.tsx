@@ -16,6 +16,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 import { formatFillInRoleLabel, formatShiftPostMeta, formatShiftPostTimeDetail } from '@/lib/shiftPostDisplay';
 import { getClinicApplicationMessagesRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -64,6 +65,12 @@ export function ConfirmedFillInCard({
       padding: spacing.md,
       gap: spacing.sm,
     },
+    cardHeaderPressable: {
+      alignSelf: 'stretch',
+      borderRadius: 12,
+      ...webPointer(),
+    },
+    cardHeaderHovered: webListRowHoverStyles(colors),
     cardPressed: { opacity: 0.92 },
     expandedBody: {
       gap: spacing.md,
@@ -92,7 +99,11 @@ export function ConfirmedFillInCard({
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           toggleExpanded();
         }}
-        style={({ pressed }) => [pressed && styles.cardPressed]}>
+        style={({ pressed, hovered }) => [
+          styles.cardHeaderPressable,
+          webHover(hovered, pressed, styles.cardHeaderHovered),
+          pressed && styles.cardPressed,
+        ]}>
         <ApplicantPostHeader
           displayName={workerName}
           photoStoragePath={workerPhotoStoragePath}

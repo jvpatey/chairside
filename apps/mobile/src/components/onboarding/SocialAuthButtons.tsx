@@ -26,6 +26,10 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
       justifyContent: 'center' as const,
       paddingHorizontal: spacing.md,
       opacity: disabled ? 0.55 : 1,
+      // @ts-expect-error — cursor is web-only
+      cursor: disabled ? 'default' : 'pointer',
+      // @ts-expect-error — transitionDuration is web-only
+      transitionDuration: '140ms',
     },
     apple: {
       backgroundColor: isDark ? colors.surface : '#000000',
@@ -35,6 +39,13 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
     applePressed: {
       backgroundColor: isDark ? colors.surfaceElevated : '#1C1C1E',
     },
+    appleHovered: {
+      backgroundColor: isDark ? colors.surfaceElevated : '#1C1C1E',
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 4px 12px rgba(0, 0, 0, 0.35)'
+        : '0 4px 12px rgba(0, 0, 0, 0.18)',
+    },
     google: {
       backgroundColor: colors.surface,
       borderWidth: 1,
@@ -42,6 +53,10 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
     },
     googlePressed: {
       backgroundColor: colors.backgroundGrouped,
+    },
+    googleHovered: {
+      backgroundColor: colors.backgroundGrouped,
+      borderColor: colors.labelTertiary,
     },
     content: {
       flexDirection: 'row' as const,
@@ -64,17 +79,26 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
   }));
 
   const isApple = variant === 'apple';
+  const isWeb = Platform.OS === 'web';
 
   return (
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }) => [
         styles.button,
         isApple
-          ? [styles.apple, pressed && !disabled && styles.applePressed]
-          : [styles.google, pressed && !disabled && styles.googlePressed],
+          ? [
+              styles.apple,
+              isWeb && hovered && !pressed && !disabled && styles.appleHovered,
+              pressed && !disabled && styles.applePressed,
+            ]
+          : [
+              styles.google,
+              isWeb && hovered && !pressed && !disabled && styles.googleHovered,
+              pressed && !disabled && styles.googlePressed,
+            ],
       ]}>
       <View style={styles.content}>
         {isApple ? (

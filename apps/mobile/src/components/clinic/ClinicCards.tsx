@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Platform, Text, View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
@@ -19,6 +19,7 @@ import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
+import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
@@ -94,7 +95,7 @@ export function QuickActionTile({
   const iconWrapBackground =
     variant === 'primary' ? colors.primarySubtle : colors.fillSubtle;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     tile: {
       flex: 1,
       borderRadius: 16,
@@ -104,6 +105,18 @@ export function QuickActionTile({
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
+      // @ts-expect-error — cursor is web-only
+      cursor: 'pointer',
+      // @ts-expect-error — transitionDuration is web-only
+      transitionDuration: '140ms',
+    },
+    tileHovered: {
+      backgroundColor: colors.fillSubtle,
+      borderColor: colors.labelTertiary,
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 6px 18px rgba(0, 0, 0, 0.22)'
+        : '0 4px 14px rgba(0, 0, 0, 0.08)',
     },
     tilePressed: {
       opacity: 0.88,
@@ -135,13 +148,19 @@ export function QuickActionTile({
     onPress();
   };
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${label}. ${description}`}
       accessibilityHint="Opens this section of the app"
       onPress={handlePress}
-      style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}>
+      style={({ pressed, hovered }) => [
+        styles.tile,
+        isWeb && hovered && !pressed && styles.tileHovered,
+        pressed && styles.tilePressed,
+      ]}>
       <View style={styles.iconWrap}>
         <Ionicons name={icon} size={20} color={colors.primary} />
       </View>
@@ -188,7 +207,7 @@ export function StatGrid({
     },
   ];
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     grid: {
       flexDirection: 'row',
       gap: spacing.sm,
@@ -212,10 +231,29 @@ export function StatGrid({
       paddingHorizontal: spacing.sm,
       alignItems: 'center',
       gap: 2,
+      // @ts-expect-error — cursor is web-only
+      cursor: 'pointer',
+      // @ts-expect-error — transitionDuration is web-only
+      transitionDuration: '140ms',
     },
     cellSelected: {
       borderColor: colors.primary,
       backgroundColor: colors.surface,
+    },
+    cellHovered: {
+      backgroundColor: colors.surface,
+      borderColor: colors.labelTertiary,
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 4px 12px rgba(0, 0, 0, 0.2)'
+        : '0 4px 12px rgba(0, 0, 0, 0.07)',
+    },
+    cellSelectedHovered: {
+      borderColor: colors.primary,
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 4px 12px rgba(74, 154, 255, 0.16)'
+        : '0 4px 12px rgba(26, 111, 212, 0.12)',
     },
     value: {
       ...typography.title,
@@ -233,6 +271,8 @@ export function StatGrid({
       textAlign: 'center',
     },
   }));
+
+  const isWeb = Platform.OS === 'web';
 
   return (
     <View style={styles.grid}>
@@ -252,9 +292,10 @@ export function StatGrid({
                 stat.badgeCount > 0 ? `, ${stat.badgeCount} updates` : ''
               }`}
               onPress={() => onSelect(stat.key)}
-              style={({ pressed }) => [
+              style={({ pressed, hovered }) => [
                 styles.cell,
                 isSelected && styles.cellSelected,
+                isWeb && hovered && !pressed && (isSelected ? styles.cellSelectedHovered : styles.cellHovered),
                 pressed && { opacity: 0.85 },
               ]}>
               <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
@@ -311,14 +352,16 @@ function DashboardListCard({
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
+      ...webPointer(),
     },
+    cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: {
       opacity: 0.92,
     },
@@ -383,7 +426,11 @@ function DashboardListCard({
     <Pressable
       accessibilityRole="button"
       onPress={handlePress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      style={({ pressed, hovered }) => [
+        styles.card,
+        webHover(hovered, pressed, styles.cardHovered),
+        pressed && styles.cardPressed,
+      ]}>
       {content}
     </Pressable>
   );

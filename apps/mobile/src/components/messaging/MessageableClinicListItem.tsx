@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatMessageableClinicMeta } from '@/lib/conversationDisplay';
+import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type MessageableClinicListItemProps = {
@@ -19,7 +20,7 @@ export function MessageableClinicListItem({ clinic, onPress }: MessageableClinic
   const meta = formatMessageableClinicMeta(clinic);
   const hasExistingConversation = Boolean(clinic.existing_conversation_id);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -29,7 +30,9 @@ export function MessageableClinicListItem({ clinic, onPress }: MessageableClinic
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.lg,
+      ...webPointer(),
     },
+    cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: { opacity: 0.92 },
     textWrap: { flex: 1, gap: 2 },
     eyebrow: {
@@ -71,7 +74,11 @@ export function MessageableClinicListItem({ clinic, onPress }: MessageableClinic
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      style={({ pressed, hovered }) => [
+        styles.card,
+        webHover(hovered, pressed, styles.cardHovered),
+        pressed && styles.cardPressed,
+      ]}>
       <ClinicLogoAvatar clinicName={clinic.clinic_name} logoUri={logoUri} size={44} />
       <View style={styles.textWrap}>
         <Text style={styles.eyebrow}>Clinic</Text>

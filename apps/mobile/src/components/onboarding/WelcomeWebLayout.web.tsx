@@ -17,7 +17,7 @@ import { ONBOARDING_SUBTITLE } from '@/constants';
 import { BREAKPOINTS, CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { useTheme, useThemedStyles } from '@/theme';
 
-const HERO_HEADLINE = 'Staffing for dental clinics — streamlined.';
+const HERO_HEADLINE = 'Staffing for dental clinics, simplified.';
 
 const FEATURES = [
   {

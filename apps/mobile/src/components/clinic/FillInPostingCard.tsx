@@ -26,6 +26,7 @@ import {
   getEditShiftRoute,
   type FillInReturnTarget,
 } from '@/lib/routing';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -91,6 +92,12 @@ export function FillInPostingCard({
       padding: spacing.md,
       gap: spacing.sm,
     },
+    cardHeaderPressable: {
+      alignSelf: 'stretch',
+      borderRadius: 12,
+      ...webPointer(),
+    },
+    cardHeaderHovered: webListRowHoverStyles(colors),
     cardPressed: { opacity: 0.92 },
     footer: {
       flexDirection: 'row',
@@ -137,7 +144,11 @@ export function FillInPostingCard({
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           toggleExpanded();
         }}
-        style={({ pressed }) => [pressed && styles.cardPressed]}>
+        style={({ pressed, hovered }) => [
+          styles.cardHeaderPressable,
+          webHover(hovered, pressed, styles.cardHeaderHovered),
+          pressed && styles.cardPressed,
+        ]}>
         <ClinicPostHeader
           clinicName={clinicName}
           logoStoragePath={clinicProfile?.logo_storage_path}

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 
 type ProfileSettingsRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -24,7 +25,10 @@ export function ProfileSettingsRow({
       gap: spacing.md,
       paddingVertical: spacing.sm + 4,
       minHeight: subtitle ? 60 : 52,
+      borderRadius: 10,
+      ...webPointer(),
     },
+    rowHovered: webListRowHoverStyles(colors),
     rowPressed: {
       opacity: 0.65,
     },
@@ -57,7 +61,11 @@ export function ProfileSettingsRow({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+      style={({ pressed, hovered }) => [
+        styles.row,
+        webHover(hovered, pressed, styles.rowHovered),
+        pressed && styles.rowPressed,
+      ]}>
       <View style={styles.iconWrap}>
         <Ionicons name={icon} size={20} color={colors.primary} />
       </View>

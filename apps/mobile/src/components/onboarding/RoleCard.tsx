@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -20,7 +20,7 @@ export function RoleCard({
   onPress,
 }: RoleCardProps) {
   const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -31,10 +31,29 @@ export function RoleCard({
       borderColor: colors.separator,
       padding: spacing.lg,
       minHeight: 44,
+      // @ts-expect-error — cursor is web-only
+      cursor: 'pointer',
+      // @ts-expect-error — transitionDuration is web-only
+      transitionDuration: '140ms',
     },
     cardSelected: {
       backgroundColor: colors.primarySubtle,
       borderColor: colors.primary,
+    },
+    cardHovered: {
+      backgroundColor: colors.backgroundGrouped,
+      borderColor: colors.labelTertiary,
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 6px 18px rgba(0, 0, 0, 0.22)'
+        : '0 4px 14px rgba(0, 0, 0, 0.08)',
+    },
+    cardSelectedHovered: {
+      borderColor: colors.primary,
+      // @ts-expect-error — boxShadow is web-only
+      boxShadow: isDark
+        ? '0 6px 18px rgba(74, 154, 255, 0.18)'
+        : '0 4px 14px rgba(26, 111, 212, 0.14)',
     },
     iconWrap: {
       width: 40,
@@ -67,15 +86,18 @@ export function RoleCard({
     onPress();
   };
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={`${title}. ${description}`}
       onPress={handlePress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }) => [
         styles.card,
         selected && styles.cardSelected,
+        isWeb && hovered && !pressed && (selected ? styles.cardSelectedHovered : styles.cardHovered),
         pressed && { opacity: 0.85 },
       ]}>
       <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
