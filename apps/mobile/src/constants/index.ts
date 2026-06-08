@@ -1,5 +1,12 @@
 export const APP_NAME = 'Chairside';
 
+/** Set when the App Store listing is live, e.g. https://apps.apple.com/app/id… */
+export const APP_STORE_URL: string | null = null;
+
+export const APP_STORE_COMING_SOON_LABEL = 'iPhone app coming soon';
+export const APP_STORE_COMING_SOON_HINT =
+  'Fill-in alerts and faster notifications on the go.';
+
 export const ONBOARDING_SUBTITLE =
   'Hire staff, find work, and fill same-day shifts—all in one place.';
 

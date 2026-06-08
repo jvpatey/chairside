@@ -12,8 +12,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { ONBOARDING_SUBTITLE } from '@/constants';
+import {
+  APP_STORE_COMING_SOON_HINT,
+  APP_STORE_COMING_SOON_LABEL,
+  ONBOARDING_SUBTITLE,
+} from '@/constants';
 import { BREAKPOINTS, CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import {
   webChipHoverStyles,
@@ -143,72 +148,100 @@ export function WelcomeWebLayout() {
       bottom: 0,
       // @ts-expect-error — web-only gradient layers
       backgroundImage: isDark
-        ? `radial-gradient(ellipse 90% 70% at 50% -15%, rgba(74, 154, 255, 0.22) 0%, transparent 58%), radial-gradient(ellipse 45% 35% at 88% 18%, rgba(152, 150, 255, 0.1) 0%, transparent 52%), linear-gradient(180deg, #0c1018 0%, ${colors.background} 42%)`
-        : `radial-gradient(ellipse 90% 70% at 50% -15%, rgba(26, 111, 212, 0.14) 0%, transparent 58%), radial-gradient(ellipse 45% 35% at 12% 22%, rgba(88, 86, 214, 0.07) 0%, transparent 52%), linear-gradient(180deg, #f4f8fc 0%, ${colors.background} 38%)`,
+        ? isWide
+          ? `radial-gradient(ellipse 55% 60% at 18% 0%, rgba(74, 154, 255, 0.24) 0%, transparent 58%), radial-gradient(ellipse 50% 45% at 82% 20%, rgba(152, 150, 255, 0.12) 0%, transparent 55%), linear-gradient(180deg, #0c1018 0%, ${colors.background} 48%)`
+          : `radial-gradient(ellipse 90% 70% at 50% -15%, rgba(74, 154, 255, 0.22) 0%, transparent 58%), radial-gradient(ellipse 45% 35% at 88% 18%, rgba(152, 150, 255, 0.1) 0%, transparent 52%), linear-gradient(180deg, #0c1018 0%, ${colors.background} 42%)`
+        : isWide
+          ? `radial-gradient(ellipse 55% 60% at 18% 0%, rgba(26, 111, 212, 0.16) 0%, transparent 58%), radial-gradient(ellipse 50% 45% at 82% 20%, rgba(88, 86, 214, 0.08) 0%, transparent 55%), linear-gradient(180deg, #f4f8fc 0%, ${colors.background} 42%)`
+          : `radial-gradient(ellipse 90% 70% at 50% -15%, rgba(26, 111, 212, 0.14) 0%, transparent 58%), radial-gradient(ellipse 45% 35% at 12% 22%, rgba(88, 86, 214, 0.07) 0%, transparent 52%), linear-gradient(180deg, #f4f8fc 0%, ${colors.background} 38%)`,
     },
     hero: {
-      alignItems: 'center' as const,
       justifyContent: 'center' as const,
       paddingHorizontal: spacing.lg,
       paddingVertical: isWide ? spacing.xl * 2 : spacing.xl,
       // @ts-expect-error — minHeight vh is web-only
-      minHeight: '100vh',
-      maxWidth: 680,
+      minHeight: isWide ? '92vh' : '100vh',
+      maxWidth: isWide ? CONTENT_MAX_WIDTH.regular : 680,
       width: '100%',
       alignSelf: 'center' as const,
+    },
+    heroGrid: {
+      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      alignItems: isWide ? ('center' as const) : ('center' as const),
+      justifyContent: isWide ? ('space-between' as const) : ('center' as const),
+      gap: isWide ? spacing.xl * 2 : spacing.lg,
+      width: '100%',
+    },
+    heroLeft: {
+      flex: isWide ? 1 : undefined,
+      alignItems: isWide ? ('flex-start' as const) : ('center' as const),
+      justifyContent: 'center' as const,
       gap: spacing.lg,
+      maxWidth: isWide ? 520 : undefined,
+      width: isWide ? undefined : ('100%' as const),
+    },
+    heroRight: {
+      flex: isWide ? 1 : undefined,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      width: isWide ? undefined : ('100%' as const),
     },
     heroCopy: {
-      alignItems: 'center' as const,
+      alignItems: isWide ? ('flex-start' as const) : ('center' as const),
       gap: spacing.lg,
       width: '100%',
     },
     wordmarkWrap: {
       marginBottom: spacing.xs,
+      alignSelf: isWide ? ('flex-start' as const) : ('center' as const),
     },
     headline: {
       ...typography.subtitle,
-      fontSize: isWide ? 28 : 24,
-      lineHeight: isWide ? 36 : 32,
+      fontSize: isWide ? 34 : 24,
+      lineHeight: isWide ? 42 : 32,
       fontWeight: '600' as const,
-      textAlign: 'center' as const,
-      letterSpacing: -0.3,
+      textAlign: isWide ? ('left' as const) : ('center' as const),
+      letterSpacing: -0.4,
       color: colors.labelPrimary,
-      maxWidth: 480,
+      maxWidth: isWide ? 480 : 480,
+      alignSelf: isWide ? ('flex-start' as const) : ('center' as const),
     },
     subtitle: {
       ...typography.subtitle,
-      fontSize: isWide ? 17 : 16,
-      lineHeight: isWide ? 26 : 24,
-      textAlign: 'center' as const,
+      fontSize: isWide ? 18 : 16,
+      lineHeight: isWide ? 28 : 24,
+      textAlign: isWide ? ('left' as const) : ('center' as const),
       color: colors.labelSecondary,
-      maxWidth: 520,
+      maxWidth: isWide ? 480 : 520,
       marginTop: -spacing.xs,
+      alignSelf: isWide ? ('flex-start' as const) : ('center' as const),
     },
     ctaRow: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
+      alignItems: isWide ? ('flex-start' as const) : ('stretch' as const),
+      justifyContent: isWide ? ('flex-start' as const) : ('center' as const),
       gap: spacing.md,
-      width: '100%',
-      maxWidth: 420,
+      width: isWide ? undefined : ('100%' as const),
+      maxWidth: isWide ? 420 : 420,
+      alignSelf: isWide ? ('flex-start' as const) : ('stretch' as const),
     },
     ctaPrimary: {
-      flex: isWide ? 1 : undefined,
+      flex: isWide ? undefined : undefined,
       width: isWide ? undefined : ('100%' as const),
-      minWidth: isWide ? 160 : undefined,
+      minWidth: isWide ? 168 : undefined,
     },
     ctaSecondary: {
-      flex: isWide ? 1 : undefined,
+      flex: isWide ? undefined : undefined,
       width: isWide ? undefined : ('100%' as const),
       minWidth: isWide ? 140 : undefined,
     },
     roleBadges: {
-      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
       alignItems: 'center' as const,
-      justifyContent: 'center' as const,
+      justifyContent: isWide ? ('flex-start' as const) : ('center' as const),
       gap: spacing.sm,
+      alignSelf: isWide ? ('flex-start' as const) : ('center' as const),
     },
     roleBadge: {
       flexDirection: 'row' as const,
@@ -233,17 +266,35 @@ export function WelcomeWebLayout() {
       fontWeight: '500' as const,
       color: colors.labelPrimary,
     },
+    mobileAppPitch: {
+      alignItems: 'center' as const,
+      gap: spacing.xs,
+      paddingHorizontal: spacing.sm,
+    },
+    mobileAppPitchTitle: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+      textAlign: 'center' as const,
+    },
+    mobileAppPitchHint: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+      textAlign: 'center' as const,
+    },
     scrollHint: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       gap: spacing.xs,
-      marginTop: spacing.md,
+      marginTop: isWide ? 0 : spacing.md,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.backgroundGrouped,
+      alignSelf: isWide ? ('flex-start' as const) : ('center' as const),
       ...webPointer(),
     },
     scrollHintHovered: webChipHoverStyles(colors),
@@ -345,64 +396,81 @@ export function WelcomeWebLayout() {
       <View style={styles.heroWrapper}>
         <View style={styles.heroBackground} pointerEvents="none" />
         <View style={[styles.hero, { paddingTop: insets.top + (isWide ? 48 : 32) }]}>
-          <View style={styles.heroCopy}>
-            <WebPageEnter delayMs={0} style={styles.wordmarkWrap}>
-              <ChairsideWordmark variant="hero" align="center" />
-            </WebPageEnter>
-            <WebPageEnter delayMs={80}>
-              <Text style={styles.headline}>{HERO_HEADLINE}</Text>
-            </WebPageEnter>
-            <WebPageEnter delayMs={160}>
-              <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
-            </WebPageEnter>
+          <View style={styles.heroGrid}>
+            <View style={styles.heroLeft}>
+              <View style={styles.heroCopy}>
+                <WebPageEnter delayMs={0} style={styles.wordmarkWrap}>
+                  <ChairsideWordmark variant="hero" align={isWide ? 'left' : 'center'} />
+                </WebPageEnter>
+                <WebPageEnter delayMs={80}>
+                  <Text style={styles.headline}>{HERO_HEADLINE}</Text>
+                </WebPageEnter>
+                <WebPageEnter delayMs={160}>
+                  <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+                </WebPageEnter>
+              </View>
+
+              <WebPageEnter delayMs={240} style={styles.ctaRow}>
+                <OnboardingButton
+                  label="Get started"
+                  onPress={() => router.push('/(onboarding)/role')}
+                  style={styles.ctaPrimary}
+                />
+                <OnboardingButton
+                  label="Sign in"
+                  variant="ghost"
+                  onPress={() => router.push('/(onboarding)/sign-in')}
+                  style={styles.ctaSecondary}
+                />
+              </WebPageEnter>
+
+              <WebPageEnter delayMs={320} style={styles.roleBadges}>
+                {ROLE_BADGES.map(({ label, icon }) => (
+                  <Pressable
+                    key={label}
+                    accessibilityRole="button"
+                    onPress={() => router.push('/(onboarding)/role')}
+                    style={({ pressed, hovered }) => [
+                      styles.roleBadge,
+                      webHover(hovered, pressed, styles.roleBadgeHovered),
+                      pressed && styles.roleBadgePressed,
+                    ]}>
+                    <Ionicons name={icon} size={16} color={colors.primary} />
+                    <Text style={styles.roleBadgeText}>{label}</Text>
+                  </Pressable>
+                ))}
+              </WebPageEnter>
+
+              {!isWide ? (
+                <WebPageEnter delayMs={360} style={styles.mobileAppPitch}>
+                  <Text style={styles.mobileAppPitchTitle}>{APP_STORE_COMING_SOON_LABEL}</Text>
+                  <Text style={styles.mobileAppPitchHint}>{APP_STORE_COMING_SOON_HINT}</Text>
+                </WebPageEnter>
+              ) : null}
+
+              <WebPageEnter delayMs={400}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="See features"
+                  accessibilityHint="Scrolls to the features section"
+                  onPress={scrollToFeatures}
+                  style={({ pressed, hovered }) => [
+                    styles.scrollHint,
+                    webHover(hovered, pressed, styles.scrollHintHovered),
+                    pressed && styles.scrollHintPressed,
+                  ]}>
+                  <Text style={styles.scrollHintText}>See features</Text>
+                  <Ionicons name="chevron-down" size={14} color={colors.labelSecondary} />
+                </Pressable>
+              </WebPageEnter>
+            </View>
+
+            {isWide ? (
+              <WebPageEnter delayMs={280} style={styles.heroRight}>
+                <WelcomeHeroAppPanel />
+              </WebPageEnter>
+            ) : null}
           </View>
-
-          <WebPageEnter delayMs={240} style={styles.ctaRow}>
-            <OnboardingButton
-              label="Get started"
-              onPress={() => router.push('/(onboarding)/role')}
-              style={styles.ctaPrimary}
-            />
-            <OnboardingButton
-              label="Sign in"
-              variant="ghost"
-              onPress={() => router.push('/(onboarding)/sign-in')}
-              style={styles.ctaSecondary}
-            />
-          </WebPageEnter>
-
-          <WebPageEnter delayMs={320} style={styles.roleBadges}>
-            {ROLE_BADGES.map(({ label, icon }) => (
-              <Pressable
-                key={label}
-                accessibilityRole="button"
-                onPress={() => router.push('/(onboarding)/role')}
-                style={({ pressed, hovered }) => [
-                  styles.roleBadge,
-                  webHover(hovered, pressed, styles.roleBadgeHovered),
-                  pressed && styles.roleBadgePressed,
-                ]}>
-                <Ionicons name={icon} size={16} color={colors.primary} />
-                <Text style={styles.roleBadgeText}>{label}</Text>
-              </Pressable>
-            ))}
-          </WebPageEnter>
-
-          <WebPageEnter delayMs={400}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="See features"
-              accessibilityHint="Scrolls to the features section"
-              onPress={scrollToFeatures}
-              style={({ pressed, hovered }) => [
-                styles.scrollHint,
-                webHover(hovered, pressed, styles.scrollHintHovered),
-                pressed && styles.scrollHintPressed,
-              ]}>
-              <Text style={styles.scrollHintText}>See features</Text>
-              <Ionicons name="chevron-down" size={14} color={colors.labelSecondary} />
-            </Pressable>
-          </WebPageEnter>
         </View>
       </View>
 
