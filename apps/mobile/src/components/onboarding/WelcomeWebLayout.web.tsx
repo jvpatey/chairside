@@ -15,6 +15,12 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { ONBOARDING_SUBTITLE } from '@/constants';
 import { BREAKPOINTS, CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import {
+  webChipHoverStyles,
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const HERO_HEADLINE = 'Staffing for dental clinics, simplified.';
@@ -214,7 +220,9 @@ export function WelcomeWebLayout() {
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.backgroundGrouped,
+      ...webPointer(),
     },
+    roleBadgeHovered: webChipHoverStyles(colors),
     roleBadgePressed: {
       backgroundColor: colors.primarySubtle,
       borderColor: colors.primary,
@@ -236,7 +244,9 @@ export function WelcomeWebLayout() {
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.backgroundGrouped,
+      ...webPointer(),
     },
+    scrollHintHovered: webChipHoverStyles(colors),
     scrollHintPressed: {
       backgroundColor: colors.primarySubtle,
       borderColor: colors.primary,
@@ -301,6 +311,13 @@ export function WelcomeWebLayout() {
       color: colors.labelTertiary,
       lineHeight: 20,
     },
+    footerLinkPressable: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    footerLinkHovered: webTextLinkHoverStyles(colors),
     footerLink: {
       ...typography.body,
       fontSize: 13,
@@ -360,7 +377,11 @@ export function WelcomeWebLayout() {
                 key={label}
                 accessibilityRole="button"
                 onPress={() => router.push('/(onboarding)/role')}
-                style={({ pressed }) => [styles.roleBadge, pressed && styles.roleBadgePressed]}>
+                style={({ pressed, hovered }) => [
+                  styles.roleBadge,
+                  webHover(hovered, pressed, styles.roleBadgeHovered),
+                  pressed && styles.roleBadgePressed,
+                ]}>
                 <Ionicons name={icon} size={16} color={colors.primary} />
                 <Text style={styles.roleBadgeText}>{label}</Text>
               </Pressable>
@@ -373,7 +394,11 @@ export function WelcomeWebLayout() {
               accessibilityLabel="See features"
               accessibilityHint="Scrolls to the features section"
               onPress={scrollToFeatures}
-              style={({ pressed }) => [styles.scrollHint, pressed && styles.scrollHintPressed]}>
+              style={({ pressed, hovered }) => [
+                styles.scrollHint,
+                webHover(hovered, pressed, styles.scrollHintHovered),
+                pressed && styles.scrollHintPressed,
+              ]}>
               <Text style={styles.scrollHintText}>See features</Text>
               <Ionicons name="chevron-down" size={14} color={colors.labelSecondary} />
             </Pressable>
@@ -387,7 +412,9 @@ export function WelcomeWebLayout() {
           featuresOffsetY.current = event.nativeEvent.layout.y;
         }}>
         <WebPageEnter delayMs={480} style={styles.featuresHeader}>
-          <Text style={styles.featuresTitle}>Built for how dental teams work</Text>
+          <Text style={styles.featuresTitle}>
+            Staffing built for dental clinics and professionals
+          </Text>
           <Text style={styles.featuresSubtitle}>
             Everything clinics and professionals need to hire, apply, and coordinate—without
             the back-and-forth.
@@ -416,7 +443,11 @@ export function WelcomeWebLayout() {
             accessibilityRole="link"
             accessibilityHint="Opens the sign in screen"
             onPress={() => router.push('/(onboarding)/sign-in')}
-            style={({ pressed }) => pressed && { opacity: 0.7 }}>
+            style={({ pressed, hovered }) => [
+              styles.footerLinkPressable,
+              webHover(hovered, pressed, styles.footerLinkHovered),
+              pressed && { opacity: 0.75 },
+            ]}>
             {({ pressed }) => (
               <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Sign in</Text>
             )}

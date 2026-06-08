@@ -11,6 +11,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { useFormScroll } from '@/components/onboarding/OnboardingShell';
+import {
+  webHover,
+  webIconButtonHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type AuthFieldProps = {
@@ -117,7 +122,10 @@ export function AuthField({
       minHeight: 44,
       alignItems: 'center',
       justifyContent: 'center',
+      borderRadius: 8,
+      ...webPointer(),
     },
+    visibilityButtonHovered: webIconButtonHoverStyles(colors),
   }));
 
   const isSecure = Boolean(secureTextEntry) && !passwordVisible;
@@ -133,7 +141,11 @@ export function AuthField({
         accessibilityRole="button"
         accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
         hitSlop={8}
-        style={styles.visibilityButton}
+        style={({ pressed, hovered }) => [
+          styles.visibilityButton,
+          webHover(hovered, pressed, styles.visibilityButtonHovered),
+          pressed && { opacity: 0.75 },
+        ]}
         onPress={() => setPasswordVisible((visible) => !visible)}>
         <Ionicons
           name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}

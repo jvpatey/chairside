@@ -6,6 +6,11 @@ import { Pressable, Text, View } from 'react-native';
 import { NotificationsFeedModal } from '@/components/notifications/NotificationsFeedModal';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { getPingramClientId } from '@/lib/pingram';
+import {
+  webHover,
+  webIconButtonHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type NotificationBellProps = {
@@ -29,7 +34,9 @@ export function NotificationBell({ placement = 'header' }: NotificationBellProps
       justifyContent: 'center',
       marginRight: inHero ? 0 : spacing.sm,
       backgroundColor: colors.fillSubtle,
+      ...webPointer(),
     },
+    buttonHovered: webIconButtonHoverStyles(colors),
     buttonPressed: {
       backgroundColor: colors.separator,
       opacity: 0.9,
@@ -60,7 +67,11 @@ export function NotificationBell({ placement = 'header' }: NotificationBellProps
   return (
     <>
       <Pressable
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+        style={({ pressed, hovered }) => [
+          styles.button,
+          webHover(hovered, pressed, styles.buttonHovered, !isReady),
+          pressed && styles.buttonPressed,
+        ]}
         accessibilityRole="button"
         accessibilityLabel={
           unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'

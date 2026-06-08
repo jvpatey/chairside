@@ -2,6 +2,11 @@ import { type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { useThemedStyles } from '@/theme';
+import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 
 type AuthScreenHeaderProps = {
   title?: string;
@@ -27,10 +32,15 @@ export function AuthScreenHeader({
     back: {
       alignSelf: 'flex-start',
       paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
       marginBottom: spacing.xs,
+      marginLeft: -spacing.xs,
       minHeight: 44,
       justifyContent: 'center',
+      borderRadius: 8,
+      ...webPointer(),
     },
+    backHovered: webTextLinkHoverStyles(colors),
     backText: {
       fontSize: 16,
       fontWeight: '600',
@@ -63,7 +73,11 @@ export function AuthScreenHeader({
           accessibilityRole="button"
           accessibilityLabel="Go back"
           onPress={onBack}
-          style={styles.back}>
+          style={({ pressed, hovered }) => [
+            styles.back,
+            webHover(hovered, pressed, styles.backHovered),
+            pressed && { opacity: 0.75 },
+          ]}>
           <Text style={styles.backText}>{backLabel}</Text>
         </Pressable>
       ) : (

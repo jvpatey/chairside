@@ -2,6 +2,12 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { defaultStartTimeDate, formatTime24h, parseTime24h } from '@/lib/time';
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 const HOURS = Array.from({ length: 12 }, (_, index) => index + 1);
@@ -107,7 +113,9 @@ function TimeColumn<T extends string | number>({
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: spacing.sm,
+      ...webPointer(),
     },
+    rowHovered: webListRowHoverStyles(colors),
     rowSelected: {
       backgroundColor: colors.primarySubtle,
       borderRadius: 10,
@@ -150,9 +158,10 @@ function TimeColumn<T extends string | number>({
         accessibilityRole="button"
         accessibilityState={{ selected: active }}
         onPress={() => onSelect(item)}
-        style={({ pressed }) => [
+        style={({ pressed, hovered }) => [
           styles.row,
           active && styles.rowSelected,
+          !active && webHover(hovered, pressed, styles.rowHovered),
           pressed && styles.rowPressed,
         ]}>
         <Text style={[styles.rowText, active && styles.rowTextSelected]}>{formatValue(item)}</Text>
@@ -212,7 +221,10 @@ export function WebTimePickerPanel({ value, onChange, onDone }: WebTimePickerPan
     doneButton: {
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.sm,
+      borderRadius: 8,
+      ...webPointer(),
     },
+    doneButtonHovered: webTextLinkHoverStyles(colors),
     doneButtonPressed: {
       opacity: 0.75,
     },
@@ -278,7 +290,11 @@ export function WebTimePickerPanel({ value, onChange, onDone }: WebTimePickerPan
             onChange(toTime24(draft));
             onDone();
           }}
-          style={({ pressed }) => [styles.doneButton, pressed && styles.doneButtonPressed]}>
+          style={({ pressed, hovered }) => [
+            styles.doneButton,
+            webHover(hovered, pressed, styles.doneButtonHovered),
+            pressed && styles.doneButtonPressed,
+          ]}>
           <Text style={styles.doneText}>Done</Text>
         </Pressable>
       </View>

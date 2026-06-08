@@ -1,9 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
+import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ClinicMessagingPreferencesProps = {
@@ -53,8 +59,12 @@ export function ClinicMessagingPreferences({
       gap: spacing.xs,
       alignSelf: 'flex-start',
       flexShrink: 1,
+      borderRadius: 8,
+      ...webPointer(),
     },
+    labelPressableHovered: webListRowHoverStyles(colors),
     labelPressablePressed: { opacity: 0.65 },
+    switchWrap: {},
     rowTitle: compact
       ? {
           fontSize: 15,
@@ -98,8 +108,9 @@ export function ClinicMessagingPreferences({
               accessibilityLabel={title}
               accessibilityHint="Shows what general candidate messages means"
               onPress={showGeneralMessagesInfo}
-              style={({ pressed }) => [
+              style={({ pressed, hovered }) => [
                 styles.labelPressable,
+                webHover(hovered, pressed, styles.labelPressableHovered),
                 pressed && styles.labelPressablePressed,
               ]}>
               <Text style={styles.rowTitle}>{title}</Text>
@@ -119,17 +130,16 @@ export function ClinicMessagingPreferences({
             </>
           )}
         </View>
-        <Switch
-          value={acceptsGeneralMessages}
-          disabled={isSaving}
-          onValueChange={(value) => {
-            setAcceptsGeneralMessages(value);
-            void persistAcceptsGeneralMessages(value);
-          }}
-          trackColor={{ false: colors.fillSubtle, true: colors.primary }}
-          thumbColor={colors.surface}
-          ios_backgroundColor={colors.fillSubtle}
-        />
+        <View style={styles.switchWrap}>
+          <ThemedSwitch
+            value={acceptsGeneralMessages}
+            disabled={isSaving}
+            onValueChange={(value) => {
+              setAcceptsGeneralMessages(value);
+              void persistAcceptsGeneralMessages(value);
+            }}
+          />
+        </View>
       </View>
     </View>
   );

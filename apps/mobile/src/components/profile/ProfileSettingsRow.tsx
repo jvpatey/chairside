@@ -2,7 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
+import {
+  webFullBleedRowInsets,
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 
 type ProfileSettingsRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -26,6 +31,7 @@ export function ProfileSettingsRow({
       paddingVertical: spacing.sm + 4,
       minHeight: subtitle ? 60 : 52,
       borderRadius: 10,
+      ...webFullBleedRowInsets(spacing.lg),
       ...webPointer(),
     },
     rowHovered: webListRowHoverStyles(colors),

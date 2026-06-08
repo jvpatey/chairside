@@ -2,6 +2,7 @@ import { RATING_SCALE_OPTIONS, type RatingScaleValue } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
+import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type RatingQuestionCardProps = {
@@ -38,6 +39,11 @@ export function RatingQuestionCard({ prompt, value, onChange }: RatingQuestionCa
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.backgroundGrouped,
+      ...webPointer(),
+    },
+    segmentHovered: webChipHoverStyles(colors),
+    segmentPressed: {
+      opacity: 0.88,
     },
     segmentSelected: {
       backgroundColor: colors.primary,
@@ -78,7 +84,12 @@ export function RatingQuestionCard({ prompt, value, onChange }: RatingQuestionCa
           return (
             <Pressable
               key={option.value}
-              style={[styles.segment, selected && styles.segmentSelected]}
+              style={({ pressed, hovered }) => [
+                styles.segment,
+                selected && styles.segmentSelected,
+                !selected && webHover(hovered, pressed, styles.segmentHovered),
+                pressed && styles.segmentPressed,
+              ]}
               accessibilityRole="button"
               accessibilityLabel={`${option.label}, ${option.value}`}
               accessibilityState={{ selected }}

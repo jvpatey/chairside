@@ -8,11 +8,12 @@ import {
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, Switch, Text, UIManager, View } from 'react-native';
+import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'react-native';
 
 import { CustomScreeningQuestionSheet } from '@/components/clinic/CustomScreeningQuestionSheet';
 import { ScreeningQuestionPicker } from '@/components/clinic/ScreeningQuestionPicker';
 import { ScreeningWorkerPreviewModal } from '@/components/clinic/ScreeningWorkerPreviewModal';
+import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -145,10 +146,10 @@ export function ScreeningToggleSection({
             reviewing responses.
           </Text>
         </View>
-        <Switch
+        <ThemedSwitch
           value={enabled}
           onValueChange={handleToggle}
-          trackColor={{ false: colors.separator, true: colors.primary }}
+          trackColorFalse={colors.separator}
           accessibilityLabel="Enable screening questions"
         />
       </View>

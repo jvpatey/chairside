@@ -17,6 +17,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+  webPillButtonHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type ManageAction = {
@@ -118,6 +124,12 @@ export function JobPostManageSheet({
     },
     action: {
       paddingVertical: spacing.md,
+      borderRadius: 10,
+      ...webPointer(),
+    },
+    actionHovered: webListRowHoverStyles(colors),
+    actionPressed: {
+      opacity: 0.88,
     },
     actionDivider: {
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -137,6 +149,11 @@ export function JobPostManageSheet({
       paddingVertical: spacing.md,
       borderRadius: 12,
       backgroundColor: colors.fillSubtle,
+      ...webPointer(),
+    },
+    cancelHovered: webPillButtonHoverStyles(colors),
+    cancelPressed: {
+      opacity: 0.88,
     },
     cancelLabel: {
       fontSize: 17,
@@ -245,7 +262,12 @@ export function JobPostManageSheet({
                 key={action.label}
                 accessibilityRole="button"
                 onPress={() => runAction(action)}
-                style={[styles.action, index > 0 && styles.actionDivider]}
+                style={({ pressed, hovered }) => [
+                  styles.action,
+                  index > 0 && styles.actionDivider,
+                  webHover(hovered, pressed, styles.actionHovered),
+                  pressed && styles.actionPressed,
+                ]}
               >
                 <Text
                   style={[
@@ -262,7 +284,11 @@ export function JobPostManageSheet({
             accessibilityRole="button"
             accessibilityLabel="Cancel"
             onPress={onClose}
-            style={styles.cancel}
+            style={({ pressed, hovered }) => [
+              styles.cancel,
+              webHover(hovered, pressed, styles.cancelHovered),
+              pressed && styles.cancelPressed,
+            ]}
           >
             <Text style={styles.cancelLabel}>Cancel</Text>
           </Pressable>

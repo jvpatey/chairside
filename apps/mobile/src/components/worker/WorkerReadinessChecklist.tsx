@@ -5,6 +5,12 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { WORKER_SETUP_BASICS } from '@/lib/routing';
+import {
+  webFullBleedRowInsets,
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerReadinessChecklistProps = {
@@ -29,6 +35,13 @@ export function WorkerReadinessChecklist({ workerProfile }: WorkerReadinessCheck
       alignItems: 'flex-start',
       gap: spacing.md,
       paddingVertical: spacing.xs,
+      borderRadius: 10,
+      ...webFullBleedRowInsets(spacing.lg),
+      ...webPointer(),
+    },
+    itemHovered: webListRowHoverStyles(colors),
+    itemPressed: {
+      opacity: 0.88,
     },
     iconWrap: {
       width: 28,
@@ -51,7 +64,13 @@ export function WorkerReadinessChecklist({ workerProfile }: WorkerReadinessCheck
         <Text style={styles.title}>Get started</Text>
         <Text style={styles.subtitle}>Add your background to apply and receive fill-ins.</Text>
       </View>
-      <Pressable style={styles.item} onPress={() => router.push(WORKER_SETUP_BASICS)}>
+      <Pressable
+        style={({ pressed, hovered }) => [
+          styles.item,
+          webHover(hovered, pressed, styles.itemHovered),
+          pressed && styles.itemPressed,
+        ]}
+        onPress={() => router.push(WORKER_SETUP_BASICS)}>
         <View style={styles.iconWrap}>
           <Ionicons name="ellipse-outline" size={16} color={colors.labelSecondary} />
         </View>

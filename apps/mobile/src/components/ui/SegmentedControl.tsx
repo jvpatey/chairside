@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type SegmentedControlProps<T extends string> = {
@@ -28,6 +29,11 @@ export function SegmentedControl<T extends string>({
       borderRadius: 8,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
+      ...webPointer(),
+    },
+    segmentHovered: webListRowHoverStyles(colors),
+    segmentPressed: {
+      opacity: 0.88,
     },
     segmentSelected: {
       backgroundColor: colors.surface,
@@ -59,7 +65,12 @@ export function SegmentedControl<T extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
             onPress={() => onChange(option.value)}
-            style={[styles.segment, isSelected && styles.segmentSelected]}
+            style={({ pressed, hovered }) => [
+              styles.segment,
+              isSelected && styles.segmentSelected,
+              !isSelected && webHover(hovered, pressed, styles.segmentHovered),
+              pressed && styles.segmentPressed,
+            ]}
           >
             <Text style={[styles.label, isSelected && styles.labelSelected]}>{option.label}</Text>
           </Pressable>

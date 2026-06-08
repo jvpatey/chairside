@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
 import type { ApplicantFilterCounts, ApplicantListFilter } from '@/lib/applicationPipeline';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type ApplicantFilterBarProps = {
@@ -36,6 +37,11 @@ export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilt
       justifyContent: 'center',
       minHeight: 52,
       gap: 2,
+      ...webPointer(),
+    },
+    tabHovered: webListRowHoverStyles(colors),
+    tabPressed: {
+      opacity: 0.88,
     },
     tabSelected: {
       backgroundColor: colors.surface,
@@ -75,7 +81,12 @@ export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilt
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onChange(tab.value);
             }}
-            style={[styles.tab, isSelected && styles.tabSelected]}>
+            style={({ pressed, hovered }) => [
+              styles.tab,
+              isSelected && styles.tabSelected,
+              !isSelected && webHover(hovered, pressed, styles.tabHovered),
+              pressed && styles.tabPressed,
+            ]}>
             <Text
               style={[styles.label, isSelected && styles.labelSelected]}
               numberOfLines={1}

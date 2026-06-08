@@ -18,6 +18,11 @@ import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
+import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 export default function SignInScreen() {
@@ -44,9 +49,14 @@ export default function SignInScreen() {
     forgot: {
       alignSelf: 'flex-end',
       paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      marginRight: -spacing.xs,
       minHeight: 44,
       justifyContent: 'center',
+      borderRadius: 8,
+      ...webPointer(),
     },
+    forgotHovered: webTextLinkHoverStyles(colors),
     forgotText: {
       fontSize: 15,
       fontWeight: '600',
@@ -67,6 +77,13 @@ export default function SignInScreen() {
       fontSize: 15,
       color: colors.labelSecondary,
     },
+    switchLinkPressable: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    switchLinkHovered: webTextLinkHoverStyles(colors),
     switchLink: {
       fontSize: 15,
       fontWeight: '600',
@@ -154,7 +171,12 @@ export default function SignInScreen() {
             <Text style={styles.switchMuted}>New to Chairside?</Text>
             <Pressable
               accessibilityRole="link"
-              onPress={() => router.replace('/(onboarding)/role')}>
+              onPress={() => router.replace('/(onboarding)/role')}
+              style={({ pressed, hovered }) => [
+                styles.switchLinkPressable,
+                webHover(hovered, pressed, styles.switchLinkHovered),
+                pressed && { opacity: 0.75 },
+              ]}>
               <Text style={styles.switchLink}>Get started</Text>
             </Pressable>
           </View>
@@ -200,7 +222,11 @@ export default function SignInScreen() {
         <Pressable
           accessibilityRole="button"
           onPress={handleForgotPassword}
-          style={styles.forgot}>
+          style={({ pressed, hovered }) => [
+            styles.forgot,
+            webHover(hovered, pressed, styles.forgotHovered),
+            pressed && { opacity: 0.75 },
+          ]}>
           <Text style={styles.forgotText}>Forgot password?</Text>
         </Pressable>
       </View>

@@ -12,6 +12,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WORKER_SETUP_SKILLS } from '@/lib/routing';
 import { getMatchTierPalette, getMatchTierSummaryHint } from '@/lib/matchTierPalette';
+import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type MatchDetailModalProps = {
@@ -106,7 +111,15 @@ export function MatchDetailModal({
     headerText: { flex: 1, gap: 4 },
     title: { ...typography.body, fontWeight: '700', fontSize: 18 },
     subtitle: typography.subtitle,
+    donePressable: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      marginRight: -spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
     done: { color: colors.primary, fontWeight: '600', fontSize: 16 },
+    doneHovered: webTextLinkHoverStyles(colors),
     scroll: { paddingHorizontal: spacing.lg },
     tierHero: {
       alignItems: 'center',
@@ -149,6 +162,15 @@ export function MatchDetailModal({
       gap: spacing.sm,
     },
     hint: typography.subtitle,
+    profileLinkPressable: {
+      alignSelf: 'flex-start',
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      marginLeft: -spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    profileLinkHovered: webTextLinkHoverStyles(colors),
     profileLink: { color: colors.primary, fontWeight: '600' },
   }));
 
@@ -178,7 +200,11 @@ export function MatchDetailModal({
             <Pressable
               onPress={onClose}
               accessibilityRole="button"
-              accessibilityLabel="Done">
+              accessibilityLabel="Done"
+              style={({ pressed, hovered }) => [
+                styles.donePressable,
+                webHover(hovered, pressed, styles.doneHovered),
+              ]}>
               <Text style={styles.done}>Done</Text>
             </Pressable>
           </View>
@@ -222,7 +248,12 @@ export function MatchDetailModal({
               <Pressable
                 onPress={handleProfileLink}
                 accessibilityRole="button"
-                accessibilityLabel="Update profile">
+                accessibilityLabel="Update profile"
+                style={({ pressed, hovered }) => [
+                  styles.profileLinkPressable,
+                  webHover(hovered, pressed, styles.profileLinkHovered),
+                  pressed && { opacity: 0.75 },
+                ]}>
                 <Text style={styles.profileLink}>Update profile</Text>
               </Pressable>
             </View>

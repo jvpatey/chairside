@@ -3,6 +3,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { isSameDay, parseISODate, startOfDay, toISODate } from '@/lib/dates';
+import {
+  webHover,
+  webIconButtonHoverStyles,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
@@ -77,7 +83,9 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.fillSubtle,
+      ...webPointer(),
     },
+    navButtonHovered: webIconButtonHoverStyles(colors),
     navButtonPressed: {
       opacity: 0.75,
     },
@@ -121,6 +129,7 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
     dayButtonDisabled: {
       opacity: 0.35,
     },
+    dayButtonHovered: webListRowHoverStyles(colors),
     dayButtonPressed: {
       opacity: 0.85,
     },
@@ -155,7 +164,11 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
           onPress={() =>
             setViewMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))
           }
-          style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}>
+          style={({ pressed, hovered }) => [
+            styles.navButton,
+            webHover(hovered, pressed, styles.navButtonHovered),
+            pressed && styles.navButtonPressed,
+          ]}>
           <Ionicons name="chevron-back" size={18} color={colors.labelPrimary} />
         </Pressable>
         <Text style={styles.monthTitle}>{monthLabel}</Text>
@@ -165,7 +178,11 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
           onPress={() =>
             setViewMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))
           }
-          style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}>
+          style={({ pressed, hovered }) => [
+            styles.navButton,
+            webHover(hovered, pressed, styles.navButtonHovered),
+            pressed && styles.navButtonPressed,
+          ]}>
           <Ionicons name="chevron-forward" size={18} color={colors.labelPrimary} />
         </Pressable>
       </View>
@@ -198,11 +215,12 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
                   onChange(toISODate(date));
                   onClose?.();
                 }}
-                style={({ pressed }) => [
+                style={({ pressed, hovered }) => [
                   styles.dayButton,
                   selected && styles.dayButtonSelected,
                   !selected && isToday && styles.dayButtonToday,
                   disabled && styles.dayButtonDisabled,
+                  !selected && !disabled && webHover(hovered, pressed, styles.dayButtonHovered),
                   pressed && !disabled && styles.dayButtonPressed,
                 ]}>
                 <Text

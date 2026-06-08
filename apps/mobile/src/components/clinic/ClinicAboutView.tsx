@@ -2,6 +2,7 @@ import type { ClinicProfile } from '@chairside/api';
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 
 import { DetailProse, RowDivider } from '@/components/clinic/DetailCard';
+import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type ClinicAboutViewProps = {
@@ -31,6 +32,12 @@ function WebsiteRow({ url }: { url: string | null | undefined }) {
       lineHeight: 20,
       color: colors.labelSecondary,
     },
+    linkPressable: {
+      flex: 1,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    linkHovered: webTextLinkHoverStyles(colors),
     link: {
       flex: 1,
       fontSize: 15,
@@ -61,7 +68,14 @@ function WebsiteRow({ url }: { url: string | null | undefined }) {
     <View style={styles.row}>
       <Text style={styles.label}>Website</Text>
       {trimmed ? (
-        <Pressable accessibilityRole="link" onPress={handlePress} style={{ flex: 1 }}>
+        <Pressable
+          accessibilityRole="link"
+          onPress={handlePress}
+          style={({ pressed, hovered }) => [
+            styles.linkPressable,
+            webHover(hovered, pressed, styles.linkHovered),
+            pressed && { opacity: 0.75 },
+          ]}>
           <Text style={styles.link} numberOfLines={2}>
             {trimmed.replace(/^https?:\/\//i, '')}
           </Text>

@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ApplicantPipelineSectionHeaderProps = {
@@ -29,6 +30,12 @@ export function ApplicantPipelineSectionHeader({
       justifyContent: 'space-between',
       gap: spacing.sm,
       paddingVertical: spacing.xs,
+      borderRadius: 10,
+      ...webPointer(onToggle ? 'pointer' : 'default'),
+    },
+    wrapHovered: webListRowHoverStyles(colors),
+    wrapPressed: {
+      opacity: 0.88,
     },
     titleRow: {
       flexDirection: 'row',
@@ -78,7 +85,11 @@ export function ApplicantPipelineSectionHeader({
 
   return (
     <Pressable
-      style={styles.wrap}
+      style={({ pressed, hovered }) => [
+        styles.wrap,
+        webHover(hovered, pressed, styles.wrapHovered),
+        pressed && styles.wrapPressed,
+      ]}
       accessibilityRole="button"
       accessibilityState={{ expanded }}
       onPress={() => {

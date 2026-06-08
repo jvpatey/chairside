@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type DashboardCoverRequestsCardProps = {
@@ -21,7 +22,9 @@ export function DashboardCoverRequestsCard({
       borderWidth: 1,
       borderColor: colors.separator,
       overflow: 'hidden',
+      ...webPointer(),
     },
+    cardHovered: webListRowHoverStyles(colors),
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -47,7 +50,14 @@ export function DashboardCoverRequestsCard({
     pendingCount === 1 ? '1 cover request needs review' : `${pendingCount} cover requests need review`;
 
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.card}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed, hovered }) => [
+        styles.card,
+        webHover(hovered, pressed, styles.cardHovered),
+        pressed && { opacity: 0.92 },
+      ]}>
       <View style={styles.row}>
         <Ionicons name="calendar" size={18} color={colors.primary} />
         <Text style={styles.title}>{label}</Text>

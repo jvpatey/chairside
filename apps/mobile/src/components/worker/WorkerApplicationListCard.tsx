@@ -24,8 +24,13 @@ import {
 } from '@/lib/matchDisplay';
 import { getWorkerApplicationRoute, type WorkerApplicationReturnTarget } from '@/lib/routing';
 import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import {
+  webFullBleedRowInsets,
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
+import { spacing, useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -79,6 +84,9 @@ export function WorkerApplicationListCard({
     cardHeaderPressable: {
       alignSelf: 'stretch',
       borderRadius: 12,
+      ...webFullBleedRowInsets(spacing.lg),
+      marginTop: -spacing.lg,
+      paddingTop: spacing.lg,
       ...webPointer(),
     },
     cardHeaderHovered: webListRowHoverStyles(colors),
@@ -166,7 +174,13 @@ export function WorkerApplicationListCard({
         {content}
       </Pressable>
 
-      {!linkToDetail ? <CardExpandToggle expanded={expanded} onPress={toggleExpanded} /> : null}
+      {!linkToDetail ? (
+        <CardExpandToggle
+          expanded={expanded}
+          onPress={toggleExpanded}
+          bleedPadding={spacing.lg}
+        />
+      ) : null}
 
       {!linkToDetail && expanded ? (
         <View style={styles.expandedBody}>

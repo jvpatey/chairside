@@ -3,7 +3,12 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useTheme, useThemedStyles } from '@/theme';
+import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
+import { useThemedStyles } from '@/theme';
 
 type ProfileDetailScreenProps = {
   title: string;
@@ -24,7 +29,6 @@ export function ProfileDetailScreen({
   headerRight,
   children,
 }: ProfileDetailScreenProps) {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -43,7 +47,13 @@ export function ProfileDetailScreen({
       paddingVertical: spacing.xs,
       minHeight: 44,
       justifyContent: 'center',
+      alignSelf: 'flex-start',
+      paddingHorizontal: spacing.xs,
+      marginLeft: -spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
     },
+    backHovered: webTextLinkHoverStyles(colors),
     topRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -73,7 +83,11 @@ export function ProfileDetailScreen({
     action: {
       paddingTop: spacing.xs + 2,
       paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
     },
+    actionHovered: webTextLinkHoverStyles(colors),
     actionLabel: {
       fontSize: 15,
       fontWeight: '600',
@@ -98,7 +112,11 @@ export function ProfileDetailScreen({
               accessibilityRole="button"
               accessibilityLabel="Go back"
               onPress={onBack}
-              style={styles.back}>
+              style={({ pressed, hovered }) => [
+                styles.back,
+                webHover(hovered, pressed, styles.backHovered),
+                pressed && { opacity: 0.75 },
+              ]}>
               <Text style={styles.backText}>Back</Text>
             </Pressable>
             {headerRight}
@@ -112,7 +130,11 @@ export function ProfileDetailScreen({
               <Pressable
                 accessibilityRole="button"
                 hitSlop={8}
-                style={styles.action}
+                style={({ pressed, hovered }) => [
+                  styles.action,
+                  webHover(hovered, pressed, styles.actionHovered),
+                  pressed && { opacity: 0.75 },
+                ]}
                 onPress={onActionPress}>
                 <Text style={styles.actionLabel}>{actionLabel}</Text>
               </Pressable>

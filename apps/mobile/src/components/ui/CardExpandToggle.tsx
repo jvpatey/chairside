@@ -2,14 +2,21 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text } from 'react-native';
 
+import {
+  webFullBleedRowInsets,
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type CardExpandToggleProps = {
   expanded: boolean;
   onPress: () => void;
+  bleedPadding?: number;
 };
 
-export function CardExpandToggle({ expanded, onPress }: CardExpandToggleProps) {
+export function CardExpandToggle({ expanded, onPress, bleedPadding }: CardExpandToggleProps) {
   const { colors } = useTheme();
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -19,6 +26,14 @@ export function CardExpandToggle({ expanded, onPress }: CardExpandToggleProps) {
       justifyContent: 'center',
       gap: spacing.xs,
       paddingTop: spacing.xs,
+      paddingBottom: spacing.xs,
+      borderRadius: 10,
+      ...(bleedPadding != null ? webFullBleedRowInsets(bleedPadding) : null),
+      ...webPointer(),
+    },
+    toggleHovered: webListRowHoverStyles(colors),
+    togglePressed: {
+      opacity: 0.88,
     },
     toggleText: {
       fontSize: 14,
@@ -29,7 +44,11 @@ export function CardExpandToggle({ expanded, onPress }: CardExpandToggleProps) {
 
   return (
     <Pressable
-      style={styles.toggle}
+      style={({ pressed, hovered }) => [
+        styles.toggle,
+        webHover(hovered, pressed, styles.toggleHovered),
+        pressed && styles.togglePressed,
+      ]}
       accessibilityRole="button"
       accessibilityState={{ expanded }}
       onPress={() => {

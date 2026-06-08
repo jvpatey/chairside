@@ -3,6 +3,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { RowDivider } from '@/components/clinic/DetailCard';
+import {
+  webFullBleedRowInsets,
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type CollapsedSummaryTone = 'positive' | 'negative';
@@ -99,6 +106,13 @@ export function ScreenSection({
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
+      borderRadius: 10,
+      ...webFullBleedRowInsets(spacing.md),
+      ...webPointer(),
+    },
+    headerMainHovered: webListRowHoverStyles(colors),
+    headerMainPressed: {
+      opacity: 0.88,
     },
     headerMainCollapsed: {
       alignItems: 'flex-start',
@@ -146,6 +160,13 @@ export function ScreenSection({
       justifyContent: 'flex-end',
       paddingVertical: spacing.sm + 2,
       minHeight: 44,
+      borderRadius: 10,
+      ...webFullBleedRowInsets(spacing.md),
+      ...webPointer(),
+    },
+    actionRowHovered: webTextLinkHoverStyles(colors),
+    actionRowPressed: {
+      opacity: 0.88,
     },
     toggleHit: {
       minWidth: 28,
@@ -161,6 +182,9 @@ export function ScreenSection({
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
       minHeight: 44,
+      borderRadius: 10,
+      ...webFullBleedRowInsets(spacing.md),
+      ...webPointer(),
     },
     actionLabel: {
       fontSize: 15,
@@ -222,7 +246,12 @@ export function ScreenSection({
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ expanded }}
-                style={[styles.headerMain, !expanded && styles.headerMainCollapsed]}
+                style={({ pressed, hovered }) => [
+                  styles.headerMain,
+                  !expanded && styles.headerMainCollapsed,
+                  webHover(hovered, pressed, styles.headerMainHovered),
+                  pressed && styles.headerMainPressed,
+                ]}
                 onPress={toggle}>
                 <View style={styles.headerText}>
                   {expanded ? (
@@ -274,7 +303,11 @@ export function ScreenSection({
                   <RowDivider />
                   <Pressable
                     accessibilityRole="button"
-                    style={styles.collapsedActionRow}
+                    style={({ pressed, hovered }) => [
+                      styles.collapsedActionRow,
+                      webHover(hovered, pressed, styles.actionRowHovered),
+                      pressed && styles.actionRowPressed,
+                    ]}
                     onPress={onCollapsedActionPress}>
                     <Text style={styles.actionLabel}>{collapsedActionLabel}</Text>
                   </Pressable>
@@ -286,7 +319,11 @@ export function ScreenSection({
                 <RowDivider />
                 <Pressable
                   accessibilityRole="button"
-                  style={styles.actionRow}
+                  style={({ pressed, hovered }) => [
+                    styles.actionRow,
+                    webHover(hovered, pressed, styles.actionRowHovered),
+                    pressed && styles.actionRowPressed,
+                  ]}
                   onPress={onActionPress}>
                   <Text style={styles.actionLabel}>{actionLabel}</Text>
                   <Ionicons name="chevron-forward" size={16} color={colors.primary} />

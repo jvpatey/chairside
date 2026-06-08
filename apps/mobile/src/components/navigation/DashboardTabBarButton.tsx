@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 
+import { webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const CIRCLE_SIZE = 40;
@@ -38,10 +39,19 @@ export function DashboardTabIcon({ focused }: DashboardTabIconProps) {
 }
 
 export function DashboardTabBarButton(props: BottomTabBarButtonProps) {
+  const { colors } = useTheme();
+  const isWeb = Platform.OS === 'web';
+
   const styles = useThemedStyles(() => ({
     button: {
       justifyContent: 'center',
       alignItems: 'center',
+      borderRadius: 20,
+      ...webPointer(),
+    },
+    buttonHovered: webListRowHoverStyles(colors),
+    buttonPressed: {
+      opacity: 0.88,
     },
   }));
 
@@ -51,6 +61,8 @@ export function DashboardTabBarButton(props: BottomTabBarButtonProps) {
       style={(state) => [
         typeof props.style === 'function' ? props.style(state) : props.style,
         styles.button,
+        isWeb && state.hovered && !state.pressed && styles.buttonHovered,
+        state.pressed && styles.buttonPressed,
       ]}
     />
   );

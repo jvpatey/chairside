@@ -1,6 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View, type ViewProps } from 'react-native';
 
+import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ProfileSectionProps = ViewProps & {
@@ -37,7 +42,13 @@ export function ProfileSection({
       alignItems: 'center',
       gap: 2,
       paddingTop: 2,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      marginRight: -spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
     },
+    actionHovered: webTextLinkHoverStyles(colors),
     actionLabel: {
       fontSize: 15,
       fontWeight: '600',
@@ -56,7 +67,11 @@ export function ProfileSection({
           <Pressable
             accessibilityRole="button"
             hitSlop={8}
-            style={styles.action}
+            style={({ pressed, hovered }) => [
+              styles.action,
+              webHover(hovered, pressed, styles.actionHovered),
+              pressed && { opacity: 0.75 },
+            ]}
             onPress={onActionPress}>
             <Text style={styles.actionLabel}>{actionLabel}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />

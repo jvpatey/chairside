@@ -12,7 +12,7 @@ import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { getHideConversationMessage } from '@/lib/conversationHide';
 import { formatNotificationTime } from '@/lib/notificationDisplay';
-import { webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
+import { webHover, webIconButtonHoverStyles, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ConversationListItemProps = {
@@ -149,6 +149,7 @@ export function ConversationListItem({
       marginTop: 2,
       ...webPointer(),
     },
+    menuButtonHovered: webIconButtonHoverStyles(colors),
     menuButtonPressed: {
       opacity: 0.75,
     },
@@ -226,7 +227,11 @@ export function ConversationListItem({
                 event.stopPropagation?.();
                 openMenu();
               }}
-              style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+              style={({ pressed, hovered }) => [
+                styles.menuButton,
+                webHover(hovered, pressed, styles.menuButtonHovered),
+                pressed && styles.menuButtonPressed,
+              ]}>
               <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
             </Pressable>
           ) : (

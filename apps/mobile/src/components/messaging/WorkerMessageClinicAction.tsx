@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Alert, Pressable, Text, View } from 'react-native';
 
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const MESSAGE_CLINIC_INFO = {
@@ -44,7 +45,10 @@ export function WorkerMessageClinicAction({ onPress }: WorkerMessageClinicAction
       flex: 1,
       flexShrink: 1,
       paddingVertical: spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
     },
+    labelPressableHovered: webListRowHoverStyles(colors),
     labelPressablePressed: { opacity: 0.65 },
     title: {
       fontSize: 15,
@@ -55,7 +59,10 @@ export function WorkerMessageClinicAction({ onPress }: WorkerMessageClinicAction
     navigatePressable: {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
+      borderRadius: 8,
+      ...webPointer(),
     },
+    navigateHovered: webListRowHoverStyles(colors),
     navigatePressed: { opacity: 0.92 },
   }));
 
@@ -72,8 +79,9 @@ export function WorkerMessageClinicAction({ onPress }: WorkerMessageClinicAction
           accessibilityLabel="Message a clinic"
           accessibilityHint="Shows what messaging a clinic means"
           onPress={showMessageClinicInfo}
-          style={({ pressed }) => [
+          style={({ pressed, hovered }) => [
             styles.labelPressable,
+            webHover(hovered, pressed, styles.labelPressableHovered),
             pressed && styles.labelPressablePressed,
           ]}>
           <Text style={styles.title}>Message a clinic</Text>
@@ -83,7 +91,11 @@ export function WorkerMessageClinicAction({ onPress }: WorkerMessageClinicAction
           accessibilityRole="button"
           accessibilityLabel="Browse clinics to message"
           onPress={handleNavigate}
-          style={({ pressed }) => [styles.navigatePressable, pressed && styles.navigatePressed]}>
+          style={({ pressed, hovered }) => [
+            styles.navigatePressable,
+            webHover(hovered, pressed, styles.navigateHovered),
+            pressed && styles.navigatePressed,
+          ]}>
           <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
         </Pressable>
       </View>

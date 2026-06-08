@@ -4,6 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'react-native';
 
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -43,6 +48,12 @@ export function ScreeningQuestionPicker({
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingVertical: spacing.xs,
+      borderRadius: 10,
+      ...webPointer(),
+    },
+    headerHovered: webListRowHoverStyles(colors),
+    headerPressed: {
+      opacity: 0.88,
     },
     headerText: {
       ...typography.body,
@@ -62,6 +73,12 @@ export function ScreeningQuestionPicker({
       alignItems: 'flex-start',
       gap: spacing.sm,
       paddingVertical: spacing.xs,
+      borderRadius: 10,
+      ...webPointer(),
+    },
+    rowHovered: webListRowHoverStyles(colors),
+    rowPressed: {
+      opacity: 0.88,
     },
     checkbox: {
       width: 22,
@@ -102,7 +119,11 @@ export function ScreeningQuestionPicker({
   return (
     <View style={styles.wrap}>
       <Pressable
-        style={styles.header}
+        style={({ pressed, hovered }) => [
+          styles.header,
+          webHover(hovered, pressed, styles.headerHovered),
+          pressed && styles.headerPressed,
+        ]}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         onPress={toggleExpanded}>
@@ -126,7 +147,11 @@ export function ScreeningQuestionPicker({
             return (
               <Pressable
                 key={question.slug}
-                style={styles.row}
+                style={({ pressed, hovered }) => [
+                  styles.row,
+                  webHover(hovered, pressed, styles.rowHovered),
+                  pressed && styles.rowPressed,
+                ]}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: selected }}
                 onPress={() => toggleSlug(question.slug)}>

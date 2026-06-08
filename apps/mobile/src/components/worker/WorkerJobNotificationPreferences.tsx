@@ -1,35 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Alert, Switch, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
+import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
-import { useTheme, useThemedStyles } from '@/theme';
+import { spacing, useThemedStyles } from '@/theme';
 
 export function WorkerJobNotificationPreferences() {
-  const { colors } = useTheme();
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const [jobOptIn, setJobOptIn] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       overflow: 'hidden',
+      paddingHorizontal: spacing.md,
     },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: spacing.md,
-      gap: spacing.md,
-    },
-    rowText: { flex: 1, gap: 2 },
-    rowTitle: { ...typography.body, fontWeight: '600', color: colors.labelPrimary },
-    rowHint: { fontSize: 13, lineHeight: 18, color: colors.labelSecondary },
   }));
 
   useEffect(() => {
@@ -54,26 +45,17 @@ export function WorkerJobNotificationPreferences() {
 
   return (
     <View style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.rowText}>
-          <Text style={styles.rowTitle}>Job post alerts</Text>
-          <Text style={styles.rowHint}>
-            Get notified when a clinic posts a live role matching your position. Turn off push
-            separately above if you only want in-app alerts.
-          </Text>
-        </View>
-        <Switch
-          value={jobOptIn}
-          disabled={isSaving}
-          onValueChange={(value) => {
-            setJobOptIn(value);
-            void persistJobOptIn(value);
-          }}
-          trackColor={{ false: colors.fillSubtle, true: colors.primary }}
-          thumbColor={colors.surface}
-          ios_backgroundColor={colors.fillSubtle}
-        />
-      </View>
+      <SettingsToggleRow
+        title="Job post alerts"
+        hint="Get notified when a clinic posts a live role matching your position. Turn off push separately above if you only want in-app alerts."
+        value={jobOptIn}
+        disabled={isSaving}
+        bleedPadding={spacing.md}
+        onValueChange={(value) => {
+          setJobOptIn(value);
+          void persistJobOptIn(value);
+        }}
+      />
     </View>
   );
 }

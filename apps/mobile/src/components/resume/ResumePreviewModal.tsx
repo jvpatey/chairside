@@ -13,6 +13,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import {
+  webHover,
+  webIconButtonHoverStyles,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { ResumePdfViewer } from '@/components/resume/ResumePdfViewer';
 import { isNativePdfViewerAvailable } from '@/lib/nativePdfViewer';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -77,11 +83,27 @@ export function ResumePreviewModal({
       alignItems: 'center',
       gap: spacing.md,
     },
+    iconAction: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...webPointer(),
+    },
+    iconActionHovered: webIconButtonHoverStyles(colors),
+    textActionPressable: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
     textAction: {
       ...typography.body,
       color: colors.primary,
       fontWeight: '600',
     },
+    textActionHovered: webTextLinkHoverStyles(colors),
     body: {
       flex: 1,
     },
@@ -153,7 +175,12 @@ export function ResumePreviewModal({
               <Pressable
                 onPress={() => void handleShare()}
                 accessibilityRole="button"
-                accessibilityLabel={Platform.OS === 'web' ? 'Download resume' : 'Share resume'}>
+                accessibilityLabel={Platform.OS === 'web' ? 'Download resume' : 'Share resume'}
+                style={({ pressed, hovered }) => [
+                  styles.iconAction,
+                  webHover(hovered, pressed, styles.iconActionHovered),
+                  pressed && { opacity: 0.75 },
+                ]}>
                 <Ionicons
                   name={Platform.OS === 'web' ? 'download-outline' : 'share-outline'}
                   size={22}
@@ -161,7 +188,14 @@ export function ResumePreviewModal({
                 />
               </Pressable>
             ) : null}
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Done">
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Done"
+              style={({ pressed, hovered }) => [
+                styles.textActionPressable,
+                webHover(hovered, pressed, styles.textActionHovered),
+              ]}>
               <Text style={styles.textAction}>Done</Text>
             </Pressable>
           </View>
