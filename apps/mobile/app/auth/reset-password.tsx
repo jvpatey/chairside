@@ -2,7 +2,7 @@ import { getAuthErrorMessage, getSupabaseClient, updatePassword } from '@chairsi
 import type { User } from '@supabase/supabase-js';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
@@ -105,8 +105,11 @@ export default function ResetPasswordScreen() {
 
     setIsSubmitting(true);
     try {
-      await updatePassword(password);
-      await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
+        await updatePassword(password);
+        if (Platform.OS !== 'web') {
+          Alert.alert('Password updated', 'Your new password is ready to use.');
+        }
+        await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
     } catch (error) {
       Alert.alert('Could not update password', getAuthErrorMessage(error));
     } finally {

@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-import { getAuthStorage, isWebAuth } from './authStorage';
+import { getAuthStorage } from './authStorage';
 import type { Database } from './types';
 
 let supabaseClient: SupabaseClient<Database> | null = null;
@@ -30,7 +30,9 @@ export function createSupabaseClient(): SupabaseClient<Database> {
       storage: getAuthStorage(),
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: isWebAuth(),
+      // Session from email/OAuth links is established in /auth/callback so we can
+      // distinguish password recovery from a normal sign-in.
+      detectSessionInUrl: false,
     },
   });
 

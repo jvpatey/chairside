@@ -8,16 +8,18 @@ import {
 } from '@chairside/api';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
+import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
+import { PASSWORD_RESET_SENT_MESSAGE } from '@/lib/passwordResetCopy';
 import {
   webHover,
   webPointer,
@@ -31,6 +33,8 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetLinkSent, setResetLinkSent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -147,16 +151,25 @@ export default function SignInScreen() {
       return;
     }
 
+    setIsSendingReset(true);
+    setResetLinkSent(false);
+    setFormError(null);
     try {
       await resetPasswordForEmail(email);
-      Alert.alert(
-        'Check your email',
-        'If an account exists for that address, you will receive a password reset link.',
-      );
+      setResetLinkSent(true);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Check your email', PASSWORD_RESET_SENT_MESSAGE);
+      }
     } catch (error) {
-      Alert.alert('Reset failed', getAuthErrorMessage(error));
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      Alert.alert('Reset failed', message);
+    } finally {
+      setIsSendingReset(false);
     }
   };
+
+  const formBusy = isSubmitting || isSendingReset;
 
   return (
     <OnboardingShell
@@ -164,7 +177,7 @@ export default function SignInScreen() {
         <View style={styles.footer}>
           <OnboardingButton
             label={isSubmitting ? 'Signing in…' : 'Sign in'}
-            disabled={isSubmitting}
+            disabled={formBusy}
             onPress={handleSignIn}
           />
           <View style={styles.switchRow}>
@@ -188,12 +201,13 @@ export default function SignInScreen() {
         onBack={() => router.back()}
       />
       <SocialAuthButtons
-        disabled={isSubmitting}
+        disabled={formBusy}
         onApplePress={() => runSocialSignIn(signInWithApple)}
         onGooglePress={() => runSocialSignIn(signInWithGoogle)}
       />
       <View style={styles.form}>
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+        {resetLinkSent ? <FormSuccessBanner message={PASSWORD_RESET_SENT_MESSAGE} /> : null}
         <AuthField
           label="Email"
           placeholder="you@example.com"
@@ -202,9 +216,10 @@ export default function SignInScreen() {
           value={email}
           onChangeText={(text) => {
             setFormError(null);
+            setResetLinkSent(false);
             setEmail(text);
           }}
-          editable={!isSubmitting}
+          editable={!formBusy}
         />
         <AuthField
           label="Password"
@@ -217,17 +232,20 @@ export default function SignInScreen() {
             setFormError(null);
             setPassword(text);
           }}
-          editable={!isSubmitting}
+          editable={!formBusy}
         />
         <Pressable
           accessibilityRole="button"
+          disabled={formBusy}
           onPress={handleForgotPassword}
           style={({ pressed, hovered }) => [
             styles.forgot,
-            webHover(hovered, pressed, styles.forgotHovered),
-            pressed && { opacity: 0.75 },
+            webHover(hovered, pressed, styles.forgotHovered, formBusy),
+            pressed && !formBusy && { opacity: 0.75 },
           ]}>
-          <Text style={styles.forgotText}>Forgot password?</Text>
+          <Text style={styles.forgotText}>
+            {isSendingReset ? 'Sending reset link…' : 'Forgot password?'}
+          </Text>
         </Pressable>
       </View>
     </OnboardingShell>

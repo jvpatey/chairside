@@ -45,25 +45,18 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     let cancelled = false;
 
+    const supabase = getSupabaseClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (cancelled) return;
+      if (event === 'PASSWORD_RECOVERY') {
+        router.replace('/auth/reset-password');
+      }
+    });
+
     async function handleCallback() {
       try {
-        if (Platform.OS === 'web') {
-          const supabase = getSupabaseClient();
-          const {
-            data: { session: existingSession },
-          } = await supabase.auth.getSession();
-
-          if (existingSession?.user) {
-            if (cancelled) return;
-            await handleAuthSuccess(
-              refreshProfile,
-              completeOnboarding,
-              existingSession.user.id,
-            );
-            return;
-          }
-        }
-
         const url = await resolveCallbackUrl();
         if (!url) {
           throw new Error('No authentication callback URL found.');
@@ -91,6 +84,7 @@ export default function AuthCallbackScreen() {
 
     return () => {
       cancelled = true;
+      subscription.unsubscribe();
     };
   }, [completeOnboarding, refreshProfile]);
 
