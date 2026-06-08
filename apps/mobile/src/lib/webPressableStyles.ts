@@ -19,8 +19,9 @@ export function webHover(
   hovered: boolean,
   pressed: boolean,
   style: ViewStyle,
+  disabled = false,
 ): ViewStyle | false {
-  if (!IS_WEB || !hovered || pressed) return false;
+  if (!IS_WEB || disabled || !hovered || pressed) return false;
   return style;
 }
 
@@ -33,6 +34,8 @@ export function webTileHoverShadow(isDark: boolean): string {
 type HoverColors = {
   fillSubtle: string;
   labelTertiary: string;
+  separator?: string;
+  primarySubtle?: string;
 };
 
 /** Hover styles for bordered tile/card pressables. */
@@ -48,5 +51,52 @@ export function webTileHoverStyles(colors: HoverColors, isDark: boolean): ViewSt
 export function webListRowHoverStyles(colors: Pick<HoverColors, 'fillSubtle'>): ViewStyle {
   return {
     backgroundColor: colors.fillSubtle,
+  };
+}
+
+/** Hover styles for circular icon buttons (notification bell, sign out, etc.). */
+export function webIconButtonHoverStyles(
+  colors: Pick<HoverColors, 'separator'>,
+): ViewStyle {
+  return {
+    backgroundColor: colors.separator,
+  };
+}
+
+/** Hover styles for pill/chip controls when unselected. */
+export function webChipHoverStyles(colors: Pick<HoverColors, 'fillSubtle' | 'labelTertiary'>): ViewStyle {
+  return {
+    backgroundColor: colors.fillSubtle,
+    borderColor: colors.labelTertiary,
+  };
+}
+
+/** Hover styles for primary text links (Back, Edit, View all). */
+export function webTextLinkHoverStyles(colors: Pick<HoverColors, 'fillSubtle'>): ViewStyle {
+  return webOnlyStyle({
+    backgroundColor: colors.fillSubtle,
+    borderRadius: 8,
+  } as ViewStyle);
+}
+
+/** Hover styles for pill action buttons (Add photo, etc.). */
+export function webPillButtonHoverStyles(colors: Pick<HoverColors, 'separator'>): ViewStyle {
+  return {
+    backgroundColor: colors.separator,
+  };
+}
+
+/** Scales RN Switch to better match web UI proportions. */
+export function webSwitchStyle(): ViewStyle {
+  return webOnlyStyle({
+    transform: [{ scaleX: 0.82 }, { scaleY: 0.82 }],
+  } as ViewStyle);
+}
+
+/** Extends row hover/press area to edges of a padded card container. */
+export function webFullBleedRowInsets(padding: number): ViewStyle {
+  return {
+    marginHorizontal: -padding,
+    paddingHorizontal: padding,
   };
 }

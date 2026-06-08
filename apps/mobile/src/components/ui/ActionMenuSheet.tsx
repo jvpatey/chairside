@@ -7,6 +7,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 export type ActionMenuSheetItem = {
@@ -86,6 +92,11 @@ export function ActionMenuSheet({
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
       alignItems: 'center',
+      ...webPointer(),
+    },
+    actionHovered: webListRowHoverStyles(colors),
+    actionPressed: {
+      opacity: 0.88,
     },
     actionDivider: {
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -103,6 +114,12 @@ export function ActionMenuSheet({
       marginTop: spacing.sm,
       paddingVertical: spacing.md,
       alignItems: 'center',
+      borderRadius: 10,
+      ...webPointer(),
+    },
+    cancelHovered: webTextLinkHoverStyles(colors),
+    cancelPressed: {
+      opacity: 0.88,
     },
     cancelLabel: {
       fontSize: 17,
@@ -137,7 +154,12 @@ export function ActionMenuSheet({
                   onClose();
                   action.onPress();
                 }}
-                style={[styles.action, index > 0 && styles.actionDivider]}
+                style={({ pressed, hovered }) => [
+                  styles.action,
+                  index > 0 && styles.actionDivider,
+                  webHover(hovered, pressed, styles.actionHovered),
+                  pressed && styles.actionPressed,
+                ]}
               >
                 <Text
                   style={[
@@ -154,7 +176,11 @@ export function ActionMenuSheet({
             accessibilityRole="button"
             accessibilityLabel="Cancel"
             onPress={onClose}
-            style={styles.cancel}
+            style={({ pressed, hovered }) => [
+              styles.cancel,
+              webHover(hovered, pressed, styles.cancelHovered),
+              pressed && styles.cancelPressed,
+            ]}
           >
             <Text style={styles.cancelLabel}>Cancel</Text>
           </Pressable>

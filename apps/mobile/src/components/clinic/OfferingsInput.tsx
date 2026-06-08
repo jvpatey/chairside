@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import {
+  webHover,
+  webIconButtonHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type OfferingsInputProps = {
@@ -73,7 +78,10 @@ export function OfferingsInput({ onChange, initialValue }: OfferingsInputProps) 
     },
     removeButton: {
       padding: spacing.xs,
+      borderRadius: 999,
+      ...webPointer(),
     },
+    removeButtonHovered: webIconButtonHoverStyles(colors),
     composer: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -98,6 +106,10 @@ export function OfferingsInput({ onChange, initialValue }: OfferingsInputProps) 
       paddingVertical: 14,
       minHeight: 50,
       justifyContent: 'center',
+      ...webPointer('default'),
+    },
+    addButtonHovered: {
+      opacity: 0.92,
     },
     addButtonDisabled: {
       opacity: 0.45,
@@ -191,7 +203,11 @@ export function OfferingsInput({ onChange, initialValue }: OfferingsInputProps) 
                   accessibilityLabel={`Remove ${item}`}
                   hitSlop={8}
                   onPress={() => removeItem(index)}
-                  style={styles.removeButton}>
+                  style={({ pressed, hovered }) => [
+                    styles.removeButton,
+                    webHover(hovered, pressed, styles.removeButtonHovered),
+                    pressed && { opacity: 0.75 },
+                  ]}>
                   <Ionicons name="close-circle" size={20} color={colors.labelTertiary} />
                 </Pressable>
               </View>
@@ -222,7 +238,12 @@ export function OfferingsInput({ onChange, initialValue }: OfferingsInputProps) 
             accessibilityLabel="Add custom perk"
             disabled={!canAdd}
             onPress={addCustomItem}
-            style={[styles.addButton, !canAdd && styles.addButtonDisabled]}>
+            style={({ pressed, hovered }) => [
+              styles.addButton,
+              canAdd && webPointer(),
+              canAdd && webHover(hovered, pressed, styles.addButtonHovered),
+              !canAdd && styles.addButtonDisabled,
+            ]}>
             <Text style={styles.addButtonText}>Add</Text>
           </Pressable>
         </View>

@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
+import { webHover, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerProfileHeroProps = {
@@ -43,6 +44,13 @@ export function WorkerProfileHero({
       alignItems: 'center',
       gap: spacing.sm,
     },
+    avatarPressable: {
+      borderRadius: 999,
+      ...webPointer(),
+    },
+    avatarPressableHovered: {
+      opacity: 0.92,
+    },
     avatarWrap: {
       marginBottom: spacing.xs,
       position: 'relative' as const,
@@ -59,6 +67,9 @@ export function WorkerProfileHero({
       borderColor: colors.surface,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
+    },
+    editBadgeHovered: {
+      opacity: 0.9,
     },
     name: {
       ...typography.title,
@@ -104,6 +115,11 @@ export function WorkerProfileHero({
             accessibilityRole="button"
             accessibilityLabel="Change profile photo"
             disabled={isUploading}
+            style={({ pressed, hovered }) => [
+              styles.avatarPressable,
+              webHover(hovered, pressed, styles.avatarPressableHovered, isUploading),
+              pressed && { opacity: 0.85 },
+            ]}
             onPress={() => void pickPhoto()}>
             {avatar}
             <View style={styles.editBadge}>

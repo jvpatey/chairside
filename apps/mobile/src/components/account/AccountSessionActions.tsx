@@ -2,6 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { RowDivider } from '@/components/clinic/DetailCard';
+import {
+  webFullBleedRowInsets,
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type AccountSessionActionsProps = {
@@ -28,7 +34,8 @@ function AccountActionRow({
   disabled,
   destructive,
   onPress,
-}: AccountActionRowProps) {
+  bleedPadding,
+}: AccountActionRowProps & { bleedPadding?: number }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
@@ -37,7 +44,11 @@ function AccountActionRow({
       gap: spacing.md,
       paddingVertical: spacing.sm + 4,
       minHeight: 52,
+      borderRadius: 10,
+      ...(bleedPadding != null ? webFullBleedRowInsets(bleedPadding) : null),
+      ...webPointer(disabled || loading ? 'default' : 'pointer'),
     },
+    rowHovered: webListRowHoverStyles(colors),
     rowPressed: {
       opacity: 0.65,
     },
@@ -63,7 +74,11 @@ function AccountActionRow({
       accessibilityRole="button"
       disabled={disabled || loading}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && !disabled && styles.rowPressed]}>
+      style={({ pressed, hovered }) => [
+        styles.row,
+        webHover(hovered, pressed, styles.rowHovered, disabled || loading),
+        pressed && !disabled && !loading && styles.rowPressed,
+      ]}>
       <View style={styles.iconWrap}>
         {loading ? (
           <ActivityIndicator size="small" color={destructive ? colors.destructive : colors.primary} />
@@ -94,6 +109,7 @@ export function AccountSessionActions({
   onDeleteAccount,
   deleteDescription,
 }: AccountSessionActionsProps) {
+  const { spacing } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -128,6 +144,7 @@ export function AccountSessionActions({
         label={isSigningOut ? 'Signing out…' : 'Sign out'}
         loading={isSigningOut}
         disabled={busy}
+        bleedPadding={spacing.lg}
         onPress={onSignOut}
       />
       <RowDivider />
@@ -140,6 +157,7 @@ export function AccountSessionActions({
           loading={isDeleting}
           disabled={busy}
           destructive
+          bleedPadding={spacing.lg}
           onPress={onDeleteAccount}
         />
       </View>

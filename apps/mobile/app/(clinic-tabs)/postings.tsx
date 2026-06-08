@@ -26,6 +26,7 @@ import {
   type JobStatusFilter,
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function PostingListEmptyState({
@@ -123,7 +124,9 @@ export default function ClinicPostingsScreen() {
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
       gap: spacing.sm,
+      ...webPointer(),
     },
+    historyLinkHovered: webListRowHoverStyles(colors),
     historyLinkPressed: {
       opacity: 0.92,
     },
@@ -263,7 +266,11 @@ export default function ClinicPostingsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Role history"
                 onPress={() => router.push(getRoleHistoryRoute())}
-                style={({ pressed }) => [styles.historyLink, pressed && styles.historyLinkPressed]}
+                style={({ pressed, hovered }) => [
+                  styles.historyLink,
+                  webHover(hovered, pressed, styles.historyLinkHovered),
+                  pressed && styles.historyLinkPressed,
+                ]}
               >
                 <View>
                   <Text style={styles.historyTitle}>Role history</Text>

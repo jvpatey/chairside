@@ -3,17 +3,18 @@ import {
   normalizePhoneForStorage,
   type FillInNotificationMode,
 } from '@chairside/config';
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { RowDivider } from '@/components/clinic/DetailCard';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { SettingsRadioRow } from '@/components/ui/SettingsRadioRow';
+import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
-import { useTheme, useThemedStyles } from '@/theme';
+import { spacing, useThemedStyles } from '@/theme';
 
 type FillInModePanelProps = {
   showNotificationOptions?: boolean;
@@ -24,83 +25,10 @@ const NOTIFICATION_MODE_OPTIONS = FILL_IN_NOTIFICATION_MODE_OPTIONS.filter(
   (option) => option.value !== 'off',
 );
 
-type SettingsToggleRowProps = {
-  title: string;
-  hint: string;
-  value: boolean;
-  disabled?: boolean;
-  prominence?: 'primary' | 'secondary';
-  onValueChange: (value: boolean) => void;
-};
-
-function SettingsToggleRow({
-  title,
-  hint,
-  value,
-  disabled,
-  prominence = 'secondary',
-  onValueChange,
-}: SettingsToggleRowProps) {
-  const { colors } = useTheme();
-  const isPrimary = prominence === 'primary';
-
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.md,
-      minHeight: isPrimary ? 56 : 52,
-      paddingVertical: isPrimary ? spacing.sm + 2 : spacing.sm,
-    },
-    rowText: { flex: 1, gap: spacing.xs },
-    titlePrimary: {
-      ...typography.body,
-      fontSize: 17,
-      fontWeight: '700',
-      lineHeight: 22,
-    },
-    titleSecondary: {
-      ...typography.body,
-      fontSize: 16,
-      fontWeight: '600',
-      lineHeight: 21,
-    },
-    hint: {
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelSecondary,
-    },
-    switchWrap: {
-      paddingRight: isPrimary ? spacing.xs : 0,
-    },
-  }));
-
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowText}>
-        <Text style={isPrimary ? styles.titlePrimary : styles.titleSecondary}>{title}</Text>
-        <Text style={styles.hint}>{hint}</Text>
-      </View>
-      <View style={styles.switchWrap}>
-        <Switch
-          value={value}
-          disabled={disabled}
-          onValueChange={onValueChange}
-          trackColor={{ false: colors.fillSubtle, true: colors.primary }}
-          thumbColor={colors.surface}
-          ios_backgroundColor={colors.fillSubtle}
-        />
-      </View>
-    </View>
-  );
-}
-
 export function FillInModePanel({
   showNotificationOptions = true,
   variant = 'card',
 }: FillInModePanelProps) {
-  const { colors } = useTheme();
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const [shortNoticeAvailable, setShortNoticeAvailable] = useState(false);
@@ -145,18 +73,6 @@ export function FillInModePanel({
       textTransform: 'uppercase',
       color: colors.labelTertiary,
     },
-    modeRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.sm,
-      paddingVertical: spacing.sm,
-      minHeight: 44,
-    },
-    modeText: { flex: 1, gap: 2 },
-    modeLabel: { fontSize: 15, fontWeight: '500', lineHeight: 20 },
-    modeLabelSelected: { fontWeight: '600', color: colors.labelPrimary },
-    modeLabelUnselected: { color: colors.labelSecondary },
-    modeHint: { fontSize: 13, lineHeight: 18, color: colors.labelTertiary },
     phoneBlock: { gap: spacing.md, paddingTop: spacing.xs },
     divider: {
       height: StyleSheet.hairlineWidth,
@@ -307,30 +223,18 @@ export function FillInModePanel({
               const selected = notificationMode === option.value;
               return (
                 <View key={option.value}>
-                  <Pressable
+                  <SettingsRadioRow
+                    label={option.label}
+                    hint={
+                      option.value === 'available_days_only'
+                        ? 'Only when the shift overlaps your weekly schedule.'
+                        : undefined
+                    }
+                    selected={selected}
                     disabled={isSaving}
-                    style={styles.modeRow}
-                    onPress={() => handleModeChange(option.value)}>
-                    <Ionicons
-                      name={selected ? 'radio-button-on' : 'radio-button-off'}
-                      size={20}
-                      color={selected ? colors.primary : colors.labelTertiary}
-                    />
-                    <View style={styles.modeText}>
-                      <Text
-                        style={[
-                          styles.modeLabel,
-                          selected ? styles.modeLabelSelected : styles.modeLabelUnselected,
-                        ]}>
-                        {option.label}
-                      </Text>
-                      {option.value === 'available_days_only' ? (
-                        <Text style={styles.modeHint}>
-                          Only when the shift overlaps your weekly schedule.
-                        </Text>
-                      ) : null}
-                    </View>
-                  </Pressable>
+                    bleedPadding={spacing.md}
+                    onPress={() => handleModeChange(option.value)}
+                  />
                   {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
                     <View style={styles.divider} />
                   ) : null}

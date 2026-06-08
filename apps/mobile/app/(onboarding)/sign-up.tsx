@@ -21,6 +21,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
 import { getHomeRouteForRole } from '@/lib/routing';
+import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
 
@@ -59,6 +64,13 @@ export default function SignUpScreen() {
       fontSize: 15,
       color: colors.labelSecondary,
     },
+    switchLinkPressable: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    switchLinkHovered: webTextLinkHoverStyles(colors),
     switchLink: {
       fontSize: 15,
       fontWeight: '600',
@@ -181,7 +193,12 @@ export default function SignUpScreen() {
             <Text style={styles.switchMuted}>Already have an account?</Text>
             <Pressable
               accessibilityRole="link"
-              onPress={() => router.replace('/(onboarding)/sign-in')}>
+              onPress={() => router.replace('/(onboarding)/sign-in')}
+              style={({ pressed, hovered }) => [
+                styles.switchLinkPressable,
+                webHover(hovered, pressed, styles.switchLinkHovered),
+                pressed && { opacity: 0.75 },
+              ]}>
               <Text style={styles.switchLink}>Sign in</Text>
             </Pressable>
           </View>

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ApplicationScreeningSectionProps = {
@@ -52,6 +53,12 @@ export function ApplicationScreeningSection({
       justifyContent: 'space-between',
       gap: spacing.sm,
       paddingVertical: spacing.xs,
+      borderRadius: 10,
+      ...webPointer(),
+    },
+    toggleHovered: webListRowHoverStyles(colors),
+    togglePressed: {
+      opacity: 0.88,
     },
     toggleText: {
       ...typography.body,
@@ -122,7 +129,11 @@ export function ApplicationScreeningSection({
   return (
     <View style={styles.wrap}>
       <Pressable
-        style={styles.toggle}
+        style={({ pressed, hovered }) => [
+          styles.toggle,
+          webHover(hovered, pressed, styles.toggleHovered),
+          pressed && styles.togglePressed,
+        ]}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         onPress={() => setExpanded((current) => !current)}>

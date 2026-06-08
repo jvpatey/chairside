@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 export type PostingsTab = 'roles' | 'fill-ins';
@@ -40,6 +41,11 @@ export function PostingsTabBar({
       justifyContent: 'center',
       flexDirection: 'row',
       gap: spacing.xs,
+      ...webPointer(),
+    },
+    tabHovered: webListRowHoverStyles(colors),
+    tabPressed: {
+      opacity: 0.88,
     },
     tabSelected: {
       backgroundColor: colors.surface,
@@ -80,7 +86,12 @@ export function PostingsTabBar({
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onChange(tab.value);
             }}
-            style={[styles.tab, isSelected && styles.tabSelected]}>
+            style={({ pressed, hovered }) => [
+              styles.tab,
+              isSelected && styles.tabSelected,
+              !isSelected && webHover(hovered, pressed, styles.tabHovered),
+              pressed && styles.tabPressed,
+            ]}>
             <Text style={[styles.label, isSelected && styles.labelSelected]}>{tab.label}</Text>
             <Text style={[styles.count, isSelected && styles.countSelected]}>{tab.count}</Text>
           </Pressable>

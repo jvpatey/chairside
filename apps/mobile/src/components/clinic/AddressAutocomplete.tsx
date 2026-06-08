@@ -3,6 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type AddressFormValue = {
@@ -80,8 +86,22 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
       paddingVertical: spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.separator,
+      ...webPointer(),
+    },
+    suggestionHovered: webListRowHoverStyles(colors),
+    suggestionPressed: {
+      opacity: 0.88,
     },
     suggestionText: typography.body,
+    linkPressable: {
+      alignSelf: 'flex-start',
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      marginLeft: -spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    linkHovered: webTextLinkHoverStyles(colors),
     link: {
       ...typography.body,
       fontSize: 14,
@@ -184,14 +204,25 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
                 <Pressable
                   key={item.id}
                   accessibilityRole="button"
-                  style={styles.suggestion}
+                  style={({ pressed, hovered }) => [
+                    styles.suggestion,
+                    webHover(hovered, pressed, styles.suggestionHovered),
+                    pressed && styles.suggestionPressed,
+                  ]}
                   onPress={() => item.parsed && applyParsed(item.parsed)}>
                   <Text style={styles.suggestionText}>{item.label}</Text>
                 </Pressable>
               ))}
             </View>
           ) : null}
-          <Pressable accessibilityRole="button" onPress={() => setManualMode(true)}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setManualMode(true)}
+            style={({ pressed, hovered }) => [
+              styles.linkPressable,
+              webHover(hovered, pressed, styles.linkHovered),
+              pressed && { opacity: 0.75 },
+            ]}>
             <Text style={styles.link}>Enter address manually</Text>
           </Pressable>
         </>
@@ -222,7 +253,14 @@ export function AddressAutocomplete({ value, onChange }: AddressAutocompleteProp
             }
             autoCapitalize="characters"
           />
-          <Pressable accessibilityRole="button" onPress={() => setManualMode(false)}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setManualMode(false)}
+            style={({ pressed, hovered }) => [
+              styles.linkPressable,
+              webHover(hovered, pressed, styles.linkHovered),
+              pressed && { opacity: 0.75 },
+            ]}>
             <Text style={styles.link}>Search with autocomplete</Text>
           </Pressable>
         </>

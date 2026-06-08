@@ -9,6 +9,11 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { buildResumeFileName, openResumePreview } from '@/lib/openResumePreview';
 import { readFileAsBase64 } from '@/lib/readFileAsBase64';
+import {
+  webHover,
+  webPointer,
+  webPillButtonHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ResumeUploadProps = {
@@ -49,8 +54,13 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
       paddingHorizontal: spacing.md,
       borderRadius: 10,
       backgroundColor: colors.fillSubtle,
+      ...webPointer(),
     },
+    actionHovered: webPillButtonHoverStyles(colors),
     actionPrimary: { backgroundColor: colors.primary },
+    actionPrimaryHovered: {
+      opacity: 0.92,
+    },
     actionText: { fontSize: 14, fontWeight: '600', color: colors.primary },
     actionTextPrimary: { color: colors.primaryOnPrimary },
     empty: typography.subtitle,
@@ -157,12 +167,29 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
 
       <View style={styles.actions}>
         {hasResume ? (
-          <Pressable style={styles.action} disabled={isBusy} onPress={() => void handleView()}>
+          <Pressable
+            style={({ pressed, hovered }) => [
+              styles.action,
+              webHover(hovered, pressed, styles.actionHovered, isBusy),
+              pressed && { opacity: 0.85 },
+            ]}
+            disabled={isBusy}
+            onPress={() => void handleView()}>
             <Text style={styles.actionText}>{isViewing ? 'Opening…' : 'View'}</Text>
           </Pressable>
         ) : null}
         <Pressable
-          style={[styles.action, !hasResume && styles.actionPrimary]}
+          style={({ pressed, hovered }) => [
+            styles.action,
+            !hasResume && styles.actionPrimary,
+            webHover(
+              hovered,
+              pressed,
+              !hasResume ? styles.actionPrimaryHovered : styles.actionHovered,
+              isBusy,
+            ),
+            pressed && { opacity: 0.85 },
+          ]}
           disabled={isBusy}
           onPress={handlePick}>
           <Text style={[styles.actionText, !hasResume && styles.actionTextPrimary]}>
@@ -170,7 +197,14 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
           </Text>
         </Pressable>
         {hasResume ? (
-          <Pressable style={styles.action} disabled={isBusy} onPress={handleRemove}>
+          <Pressable
+            style={({ pressed, hovered }) => [
+              styles.action,
+              webHover(hovered, pressed, styles.actionHovered, isBusy),
+              pressed && { opacity: 0.85 },
+            ]}
+            disabled={isBusy}
+            onPress={handleRemove}>
             <Text style={styles.actionText}>Remove</Text>
           </Pressable>
         ) : null}

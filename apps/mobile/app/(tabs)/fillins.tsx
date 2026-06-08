@@ -40,6 +40,11 @@ import {
   WORKER_PAST_FILLINS,
   WORKER_SETUP_AVAILABILITY_SCHEDULE,
 } from '@/lib/routing';
+import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function navigateToEditSchedule() {
@@ -173,7 +178,10 @@ export default function FillInsScreen() {
       justifyContent: 'space-between',
       gap: spacing.sm,
       paddingVertical: spacing.sm,
+      borderRadius: 10,
+      ...webPointer(),
     },
+    viewAllRowHovered: webTextLinkHoverStyles(colors),
     viewAllLabel: {
       ...typography.body,
       fontSize: 15,
@@ -208,7 +216,13 @@ export default function FillInsScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 2,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      marginRight: -spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
     },
+    scheduleEditHovered: webTextLinkHoverStyles(colors),
     scheduleEditLabel: {
       fontSize: 15,
       fontWeight: '600',
@@ -252,7 +266,11 @@ export default function FillInsScreen() {
                 <Pressable
                   accessibilityRole="button"
                   hitSlop={8}
-                  style={styles.scheduleEdit}
+                  style={({ pressed, hovered }) => [
+                    styles.scheduleEdit,
+                    webHover(hovered, pressed, styles.scheduleEditHovered),
+                    pressed && { opacity: 0.75 },
+                  ]}
                   onPress={navigateToEditSchedule}
                 >
                   <Text style={styles.scheduleEditLabel}>Edit schedule</Text>
@@ -297,7 +315,11 @@ export default function FillInsScreen() {
                   {shifts.length > 0 ? (
                     <Pressable
                       accessibilityRole="button"
-                      style={styles.viewAllRow}
+                      style={({ pressed, hovered }) => [
+                        styles.viewAllRow,
+                        webHover(hovered, pressed, styles.viewAllRowHovered),
+                        pressed && { opacity: 0.75 },
+                      ]}
                       onPress={() => router.push(WORKER_OPEN_FILLINS)}
                     >
                       <Text style={styles.viewAllLabel}>
@@ -365,7 +387,11 @@ export default function FillInsScreen() {
                 {pastFillInCount > 0 ? (
                   <Pressable
                     accessibilityRole="button"
-                    style={styles.viewAllRow}
+                    style={({ pressed, hovered }) => [
+                      styles.viewAllRow,
+                      webHover(hovered, pressed, styles.viewAllRowHovered),
+                      pressed && { opacity: 0.75 },
+                    ]}
                     onPress={() => router.push(WORKER_PAST_FILLINS)}
                   >
                     <Text style={styles.viewAllLabel}>

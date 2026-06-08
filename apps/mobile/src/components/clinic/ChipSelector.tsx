@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type ChipSelectorProps<T extends string> = {
@@ -37,6 +38,11 @@ export function ChipSelector<T extends string>({
       backgroundColor: colors.surface,
       paddingHorizontal: compact ? spacing.sm : spacing.md,
       paddingVertical: compact ? 4 : spacing.sm,
+      ...webPointer(),
+    },
+    chipHovered: webChipHoverStyles(colors),
+    chipPressed: {
+      opacity: 0.88,
     },
     chipSelected: {
       borderColor: colors.primary,
@@ -82,7 +88,12 @@ export function ChipSelector<T extends string>({
         accessibilityRole="button"
         accessibilityState={{ selected: active }}
         onPress={() => handlePress(option.value)}
-        style={[styles.chip, active && styles.chipSelected]}
+        style={({ pressed, hovered }) => [
+          styles.chip,
+          active && styles.chipSelected,
+          !active && webHover(hovered, pressed, styles.chipHovered),
+          pressed && styles.chipPressed,
+        ]}
       >
         <Text style={[styles.label, active && styles.labelSelected]}>{option.label}</Text>
       </Pressable>

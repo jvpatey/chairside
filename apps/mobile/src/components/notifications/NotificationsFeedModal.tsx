@@ -25,6 +25,12 @@ import {
   getNotificationAccentColor,
   getNotificationDisplayMeta,
 } from '@/lib/notificationDisplay';
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type NotificationsFeedModalProps = {
@@ -54,7 +60,9 @@ function NotificationRow({
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.lg,
       minHeight: 72,
+      ...webPointer(),
     },
+    rowHovered: webListRowHoverStyles(colors),
     rowPressed: {
       backgroundColor: colors.fillSubtle,
     },
@@ -118,7 +126,11 @@ function NotificationRow({
       accessibilityRole="button"
       accessibilityLabel={`${item.title}${isUnread ? ', unread' : ''}`}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+      style={({ pressed, hovered }) => [
+        styles.row,
+        webHover(hovered, pressed, styles.rowHovered),
+        pressed && styles.rowPressed,
+      ]}>
       <View style={[styles.iconWrap, { backgroundColor: iconBackground }]}>
         <Ionicons name={meta.icon} size={22} color={accent} />
       </View>
@@ -198,11 +210,19 @@ export function NotificationsFeedModal({ visible, onClose }: NotificationsFeedMo
       letterSpacing: -0.4,
       color: colors.labelPrimary,
     },
+    textActionPressable: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      marginRight: -spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
     textAction: {
       fontSize: 17,
       fontWeight: '400',
       color: colors.primary,
     },
+    textActionHovered: webTextLinkHoverStyles(colors),
     toolbar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -214,11 +234,19 @@ export function NotificationsFeedModal({ visible, onClose }: NotificationsFeedMo
       fontSize: 13,
       color: colors.labelSecondary,
     },
+    markAllPressable: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      marginRight: -spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
     markAll: {
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
     },
+    markAllHovered: webTextLinkHoverStyles(colors),
     listCard: {
       marginHorizontal: spacing.lg,
       marginBottom: spacing.md,
@@ -332,7 +360,11 @@ export function NotificationsFeedModal({ visible, onClose }: NotificationsFeedMo
             <Pressable
               onPress={handleClose}
               accessibilityRole="button"
-              accessibilityLabel="Done">
+              accessibilityLabel="Done"
+              style={({ pressed, hovered }) => [
+                styles.textActionPressable,
+                webHover(hovered, pressed, styles.textActionHovered),
+              ]}>
               <Text style={styles.textAction}>Done</Text>
             </Pressable>
           </View>
@@ -345,7 +377,11 @@ export function NotificationsFeedModal({ visible, onClose }: NotificationsFeedMo
               <Pressable
                 onPress={handleMarkAll}
                 accessibilityRole="button"
-                accessibilityLabel="Mark all notifications as read">
+                accessibilityLabel="Mark all notifications as read"
+                style={({ pressed, hovered }) => [
+                  styles.markAllPressable,
+                  webHover(hovered, pressed, styles.markAllHovered),
+                ]}>
                 <Text style={styles.markAll}>Mark All Read</Text>
               </Pressable>
             </View>

@@ -3,6 +3,11 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
+import {
+  webHover,
+  webPillButtonHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ProfilePhotoUploadProps = {
@@ -33,8 +38,13 @@ export function ProfilePhotoUpload({ onUpdated }: ProfilePhotoUploadProps) {
       paddingHorizontal: spacing.md,
       borderRadius: 10,
       backgroundColor: colors.fillSubtle,
+      ...webPointer(),
     },
+    actionHovered: webPillButtonHoverStyles(colors),
     actionPrimary: { backgroundColor: colors.primary },
+    actionPrimaryHovered: {
+      opacity: 0.92,
+    },
     actionText: { fontSize: 14, fontWeight: '600', color: colors.primary },
     actionTextPrimary: { color: colors.primaryOnPrimary },
     empty: typography.subtitle,
@@ -69,7 +79,12 @@ export function ProfilePhotoUpload({ onUpdated }: ProfilePhotoUploadProps) {
 
       <View style={styles.actions}>
         <Pressable
-          style={[styles.action, !hasPhoto && styles.actionPrimary]}
+          style={({ pressed, hovered }) => [
+            styles.action,
+            !hasPhoto && styles.actionPrimary,
+            webHover(hovered, pressed, !hasPhoto ? styles.actionPrimaryHovered : styles.actionHovered, isUploading),
+            pressed && { opacity: 0.85 },
+          ]}
           disabled={isUploading}
           onPress={() => void handlePick()}>
           <Text style={[styles.actionText, !hasPhoto && styles.actionTextPrimary]}>
@@ -77,7 +92,14 @@ export function ProfilePhotoUpload({ onUpdated }: ProfilePhotoUploadProps) {
           </Text>
         </Pressable>
         {hasPhoto ? (
-          <Pressable style={styles.action} disabled={isUploading} onPress={removePhoto}>
+          <Pressable
+            style={({ pressed, hovered }) => [
+              styles.action,
+              webHover(hovered, pressed, styles.actionHovered, isUploading),
+              pressed && { opacity: 0.85 },
+            ]}
+            disabled={isUploading}
+            onPress={removePhoto}>
             <Text style={styles.actionText}>Remove</Text>
           </Pressable>
         ) : null}

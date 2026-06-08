@@ -1,7 +1,8 @@
 import type { AvailabilityBlock } from '@chairside/api';
 import { DAY_OF_WEEK_OPTIONS } from '@chairside/config';
 import { formatTime12h } from '@/lib/time';
-import { Text, View } from 'react-native';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
+import { Text, View, Pressable } from 'react-native';
 
 import { RowDivider } from '@/components/clinic/DetailCard';
 import { useThemedStyles } from '@/theme';
@@ -37,7 +38,10 @@ export function AvailabilityScheduleSummary({
       justifyContent: 'space-between',
       gap: spacing.md,
       paddingVertical: spacing.md,
+      borderRadius: 8,
+      ...webPointer('default'),
     },
+    groupedRowHovered: webListRowHoverStyles(colors),
     groupedEmpty: {
       paddingVertical: spacing.md,
     },
@@ -66,13 +70,17 @@ export function AvailabilityScheduleSummary({
       {enabledDays.map(({ label, block }, index) => (
         <View key={label}>
           {variant === 'grouped' && index > 0 ? <RowDivider /> : null}
-          <View style={variant === 'grouped' ? styles.groupedRow : styles.row}>
+          <Pressable
+            style={({ pressed, hovered }) => [
+              variant === 'grouped' ? styles.groupedRow : styles.row,
+              variant === 'grouped' && webHover(hovered, pressed, styles.groupedRowHovered),
+            ]}>
             <Text style={styles.day}>{label}</Text>
             <Text style={styles.time}>
               {formatTime12h(block!.start_time.slice(0, 5)) ?? block!.start_time} –{' '}
               {formatTime12h(block!.end_time.slice(0, 5)) ?? block!.end_time}
             </Text>
-          </View>
+          </Pressable>
         </View>
       ))}
     </View>

@@ -26,10 +26,16 @@ export async function createSessionFromUrl(url: string) {
     throw new Error(errorCode);
   }
 
+  if (params.code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(params.code);
+    if (error) throw error;
+    return { session: data.session, isPasswordRecovery };
+  }
+
   const { access_token, refresh_token } = params;
 
   if (!access_token) {
-    return { session: null, isPasswordRecovery: false };
+    return { session: null, isPasswordRecovery };
   }
 
   const { data, error } = await supabase.auth.setSession({

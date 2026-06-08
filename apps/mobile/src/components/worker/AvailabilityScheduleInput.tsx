@@ -1,10 +1,16 @@
 import type { AvailabilityBlockInput } from '@chairside/api';
 import { DAY_OF_WEEK_OPTIONS } from '@chairside/config';
-import { Switch, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
+import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { normalizeTime24h } from '@/lib/time';
-import { useTheme, useThemedStyles } from '@/theme';
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
+import { useThemedStyles } from '@/theme';
 
 export type DayAvailability = {
   day_of_week: number;
@@ -56,7 +62,6 @@ type AvailabilityScheduleInputProps = {
 };
 
 export function AvailabilityScheduleInput({ days, onChange }: AvailabilityScheduleInputProps) {
-  const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: { gap: spacing.md },
     row: {
@@ -66,7 +71,13 @@ export function AvailabilityScheduleInput({ days, onChange }: AvailabilitySchedu
       borderColor: colors.separator,
       padding: spacing.md,
       gap: spacing.md,
+      ...webPointer(),
     },
+    rowHovered: webListRowHoverStyles(colors),
+    rowPressed: {
+      opacity: 0.96,
+    },
+    switchWrap: {},
     rowHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -95,7 +106,14 @@ export function AvailabilityScheduleInput({ days, onChange }: AvailabilitySchedu
       {days.map((day) => {
         const label = DAY_OF_WEEK_OPTIONS.find((item) => item.value === day.day_of_week)?.label;
         return (
-          <View key={day.day_of_week} style={styles.row}>
+          <Pressable
+            key={day.day_of_week}
+            accessibilityRole="none"
+            style={({ pressed, hovered }) => [
+              styles.row,
+              webHover(hovered, pressed, styles.rowHovered),
+              pressed && styles.rowPressed,
+            ]}>
             <View style={styles.rowHeader}>
               <View style={styles.headerText}>
                 <Text style={styles.dayLabel}>{label}</Text>
@@ -103,13 +121,12 @@ export function AvailabilityScheduleInput({ days, onChange }: AvailabilitySchedu
                   {day.enabled ? 'Available' : 'Unavailable'}
                 </Text>
               </View>
-              <Switch
-                value={day.enabled}
-                onValueChange={(enabled) => updateDay(day.day_of_week, { enabled })}
-                trackColor={{ false: colors.fillSubtle, true: colors.primary }}
-                thumbColor={colors.surface}
-                ios_backgroundColor={colors.fillSubtle}
-              />
+              <View style={styles.switchWrap}>
+                <ThemedSwitch
+                  value={day.enabled}
+                  onValueChange={(enabled) => updateDay(day.day_of_week, { enabled })}
+                />
+              </View>
             </View>
             {day.enabled ? (
               <View style={styles.times}>
@@ -127,7 +144,7 @@ export function AvailabilityScheduleInput({ days, onChange }: AvailabilitySchedu
                 />
               </View>
             ) : null}
-          </View>
+          </Pressable>
         );
       })}
     </View>

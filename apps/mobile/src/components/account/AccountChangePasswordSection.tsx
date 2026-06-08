@@ -1,11 +1,13 @@
 import { getAuthErrorMessage, resetPasswordForEmail, updatePassword } from '@chairside/api';
 import type { User } from '@supabase/supabase-js';
 import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { userHasEmailPasswordLogin } from '@/lib/authProviders';
+import { PASSWORD_RESET_SENT_MESSAGE } from '@/lib/passwordResetCopy';
 import { useThemedStyles } from '@/theme';
 
 const MIN_PASSWORD_LENGTH = 6;
@@ -19,6 +21,8 @@ export function AccountChangePasswordSection({ user }: AccountChangePasswordSect
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetLinkSent, setResetLinkSent] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     section: { gap: spacing.md },
@@ -97,14 +101,18 @@ export function AccountChangePasswordSection({ user }: AccountChangePasswordSect
     }
 
     setIsSendingReset(true);
+    setResetLinkSent(false);
+    setResetError(null);
     try {
       await resetPasswordForEmail(email);
-      Alert.alert(
-        'Check your email',
-        'If an account exists for that address, you will receive a password reset link.',
-      );
+      setResetLinkSent(true);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Check your email', PASSWORD_RESET_SENT_MESSAGE);
+      }
     } catch (error) {
-      Alert.alert('Reset failed', getAuthErrorMessage(error));
+      const message = getAuthErrorMessage(error);
+      setResetError(message);
+      Alert.alert('Reset failed', message);
     } finally {
       setIsSendingReset(false);
     }
@@ -154,6 +162,8 @@ export function AccountChangePasswordSection({ user }: AccountChangePasswordSect
         Choose a new password while you are signed in, or send a reset link to your email if you
         do not remember your current one.
       </Text>
+      {resetError ? <Text style={styles.matchHintError}>{resetError}</Text> : null}
+      {resetLinkSent ? <FormSuccessBanner message={PASSWORD_RESET_SENT_MESSAGE} /> : null}
       <OnboardingButton
         label={isSendingReset ? 'Sending…' : 'Send password reset link'}
         variant="ghost"

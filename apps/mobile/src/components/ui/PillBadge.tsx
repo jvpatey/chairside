@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { spacing, useThemedStyles } from '@/theme';
+import { spacing, useTheme, useThemedStyles } from '@/theme';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 
 export const PILL_BADGE_MIN_HEIGHT = 26;
 
@@ -40,6 +41,7 @@ export function PillBadge({
   accessibilityLabel,
   style,
 }: PillBadgeProps) {
+  const { colors } = useTheme();
   const styles = usePillBadgeStyles();
 
   const badgeStyle = [styles.badge, { backgroundColor }, style];
@@ -62,7 +64,12 @@ export function PillBadge({
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
-      style={({ pressed }) => [badgeStyle, pressed && { opacity: 0.88 }]}>
+      style={({ pressed, hovered }) => [
+        badgeStyle,
+        webPointer(),
+        webHover(hovered, pressed, webListRowHoverStyles(colors)),
+        pressed && { opacity: 0.88 },
+      ]}>
       <Text style={[styles.label, { color }]} numberOfLines={1}>
         {label}
       </Text>

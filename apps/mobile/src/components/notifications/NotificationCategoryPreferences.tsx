@@ -1,9 +1,10 @@
 import type { NotificationPreferenceCategory } from '@chairside/config';
 import { NOTIFICATION_PREFERENCE_CATEGORY_LABELS } from '@chairside/config';
-import { Alert, Platform, Switch, Text, View } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 
+import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
-import { useTheme, useThemedStyles } from '@/theme';
+import { spacing, useThemedStyles } from '@/theme';
 
 type NotificationCategoryPreferencesProps = {
   categories: NotificationPreferenceCategory[];
@@ -12,31 +13,21 @@ type NotificationCategoryPreferencesProps = {
 export function NotificationCategoryPreferences({
   categories,
 }: NotificationCategoryPreferencesProps) {
-  const { colors } = useTheme();
   const { isPushEnabled, setPushEnabled, savingCategory, isLoading } = useNotificationPreferences();
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       overflow: 'hidden',
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: spacing.md,
-      gap: spacing.md,
+      paddingHorizontal: spacing.md,
     },
     rowBorder: {
       borderTopWidth: 1,
       borderTopColor: colors.separator,
     },
-    rowText: { flex: 1, gap: 2 },
-    rowTitle: { ...typography.body, fontWeight: '600', color: colors.labelPrimary },
-    rowHint: { fontSize: 13, lineHeight: 18, color: colors.labelSecondary },
   }));
 
   const persist = async (category: NotificationPreferenceCategory, value: boolean) => {
@@ -72,20 +63,16 @@ export function NotificationCategoryPreferences({
         const isSaving = savingCategory === category;
 
         return (
-          <View key={category} style={index > 0 ? [styles.row, styles.rowBorder] : styles.row}>
-            <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>{meta.title}</Text>
-              <Text style={styles.rowHint}>{meta.hint}</Text>
-            </View>
-            <Switch
+          <View key={category} style={index > 0 ? styles.rowBorder : undefined}>
+            <SettingsToggleRow
+              title={meta.title}
+              hint={meta.hint}
               value={enabled}
               disabled={isLoading || isSaving}
+              bleedPadding={spacing.md}
               onValueChange={(value) => {
                 void persist(category, value);
               }}
-              trackColor={{ false: colors.fillSubtle, true: colors.primary }}
-              thumbColor={colors.surface}
-              ios_backgroundColor={colors.fillSubtle}
             />
           </View>
         );

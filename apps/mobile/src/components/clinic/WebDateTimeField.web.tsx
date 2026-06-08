@@ -6,6 +6,11 @@ import { WebDatePickerPanel } from '@/components/clinic/WebDatePickerPanel.web';
 import { WebTimePickerPanel } from '@/components/clinic/WebTimePickerPanel.web';
 import { formatShiftDateLabel, parseISODate } from '@/lib/dates';
 import { formatTime12h } from '@/lib/time';
+import {
+  webHover,
+  webListRowHoverStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type WebDateFieldProps = {
@@ -45,7 +50,9 @@ function useWebPickerFieldStyles() {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
+      ...webPointer(),
     },
+    pickerButtonHovered: webListRowHoverStyles(colors),
     pickerButtonActive: {
       borderColor: colors.primary,
       backgroundColor: colors.primarySubtle,
@@ -132,9 +139,10 @@ export function WebDateField({
         accessibilityLabel={label ?? 'Date'}
         accessibilityHint={hint}
         onPress={toggleOpen}
-        style={({ pressed }) => [
+        style={({ pressed, hovered }) => [
           styles.pickerButton,
           open && styles.pickerButtonActive,
+          webHover(hovered, pressed, styles.pickerButtonHovered),
           pressed && styles.pickerButtonPressed,
         ]}>
         <View style={[styles.iconWrap, open && styles.iconWrapActive]}>
@@ -186,9 +194,10 @@ export function WebTimeField({
         accessibilityLabel={label ?? 'Time'}
         accessibilityHint={hint}
         onPress={toggleOpen}
-        style={({ pressed }) => [
+        style={({ pressed, hovered }) => [
           styles.pickerButton,
           open && styles.pickerButtonActive,
+          webHover(hovered, pressed, styles.pickerButtonHovered),
           pressed && styles.pickerButtonPressed,
         ]}>
         <View style={[styles.iconWrap, open && styles.iconWrapActive]}>

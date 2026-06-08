@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, TextInput, View } from 'react-native';
 
+import { webHover, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type MessageComposeBarProps = {
@@ -68,6 +69,10 @@ export function MessageComposeBar({
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primary,
+      ...webPointer('default'),
+    },
+    sendButtonHovered: {
+      opacity: 0.92,
     },
     sendButtonDisabled: {
       opacity: 0.45,
@@ -130,7 +135,12 @@ export function MessageComposeBar({
         onPress={() => {
           void handleSend();
         }}
-        style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}>
+        style={({ pressed, hovered }) => [
+          styles.sendButton,
+          canSend && webPointer(),
+          canSend && webHover(hovered, pressed, styles.sendButtonHovered),
+          !canSend && styles.sendButtonDisabled,
+        ]}>
         {sending ? (
           <ActivityIndicator color={colors.primaryOnPrimary} size="small" />
         ) : (

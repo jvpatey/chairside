@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
+import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type YesNoQuestionCardProps = {
@@ -37,6 +38,11 @@ export function YesNoQuestionCard({ prompt, value, onChange }: YesNoQuestionCard
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.backgroundGrouped,
+      ...webPointer(),
+    },
+    optionHovered: webChipHoverStyles(colors),
+    optionPressed: {
+      opacity: 0.88,
     },
     optionSelected: {
       backgroundColor: colors.primary,
@@ -62,14 +68,24 @@ export function YesNoQuestionCard({ prompt, value, onChange }: YesNoQuestionCard
       <Text style={styles.prompt}>{prompt}</Text>
       <View style={styles.options}>
         <Pressable
-          style={[styles.option, value === true && styles.optionSelected]}
+          style={({ pressed, hovered }) => [
+            styles.option,
+            value === true && styles.optionSelected,
+            value !== true && webHover(hovered, pressed, styles.optionHovered),
+            pressed && styles.optionPressed,
+          ]}
           accessibilityRole="button"
           accessibilityState={{ selected: value === true }}
           onPress={() => select(true)}>
           <Text style={[styles.optionText, value === true && styles.optionTextSelected]}>Yes</Text>
         </Pressable>
         <Pressable
-          style={[styles.option, value === false && styles.optionSelected]}
+          style={({ pressed, hovered }) => [
+            styles.option,
+            value === false && styles.optionSelected,
+            value !== false && webHover(hovered, pressed, styles.optionHovered),
+            pressed && styles.optionPressed,
+          ]}
           accessibilityRole="button"
           accessibilityState={{ selected: value === false }}
           onPress={() => select(false)}>
