@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import { renderWorkerTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
+import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -63,10 +64,12 @@ function WorkerTabNavigator() {
 
 export default function TabLayout() {
   return (
-    <MessageUnreadProvider role="worker">
-      <ApplicationTabBadgeProvider role="worker">
-        <WorkerTabNavigator />
-      </ApplicationTabBadgeProvider>
-    </MessageUnreadProvider>
+    <SidebarCollapseProvider>
+      <MessageUnreadProvider role="worker">
+        <ApplicationTabBadgeProvider role="worker">
+          <WorkerTabNavigator />
+        </ApplicationTabBadgeProvider>
+      </MessageUnreadProvider>
+    </SidebarCollapseProvider>
   );
 }

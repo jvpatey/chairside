@@ -1,13 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import { router, type Href } from 'expo-router';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
-import { webPointer } from '@/lib/webPressableStyles';
+import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
-const AVATAR_SIZE = 56;
+const DEFAULT_AVATAR_SIZE = 56;
 
 type SidebarProfileHeaderProps = {
   href: Href;
@@ -15,7 +15,23 @@ type SidebarProfileHeaderProps = {
   displayName?: string | null;
   photoUri?: string | null;
   subtitle?: string | null;
+  collapsed?: boolean;
+  avatarSize?: number;
 };
+
+function textRevealStyle(collapsed: boolean): ViewStyle {
+  return {
+    flex: collapsed ? 0 : 1,
+    opacity: collapsed ? 0 : 1,
+    maxWidth: collapsed ? 0 : 9999,
+    overflow: 'hidden',
+    ...webOnlyStyle({
+      transitionProperty: 'opacity, max-width',
+      transitionDuration: '220ms',
+      transitionTimingFunction: 'ease-out',
+    }),
+  } as ViewStyle;
+}
 
 export function SidebarProfileHeader({
   href,
@@ -23,6 +39,8 @@ export function SidebarProfileHeader({
   displayName,
   photoUri,
   subtitle,
+  collapsed = false,
+  avatarSize = DEFAULT_AVATAR_SIZE,
 }: SidebarProfileHeaderProps) {
   const name = displayName?.trim() || 'Your profile';
 
@@ -35,6 +53,16 @@ export function SidebarProfileHeader({
       paddingHorizontal: spacing.sm,
       borderRadius: 12,
       ...webPointer(),
+    },
+    pressableCollapsed: {
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xs,
+      gap: 0,
+      ...webOnlyStyle({
+        transitionProperty: 'padding-left, padding-right, gap',
+        transitionDuration: '220ms',
+        transitionTimingFunction: 'ease-out',
+      } as ViewStyle),
     },
     pressableHovered: {
       backgroundColor: colors.fillSubtle,
@@ -72,15 +100,19 @@ export function SidebarProfileHeader({
       }}
       style={({ pressed, hovered }) => [
         styles.pressable,
+        collapsed && styles.pressableCollapsed,
         isWeb && hovered && !pressed && styles.pressableHovered,
         pressed && styles.pressablePressed,
       ]}>
       {avatarKind === 'worker' ? (
-        <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={AVATAR_SIZE} />
+        <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={avatarSize} />
       ) : (
-        <ClinicLogoAvatar clinicName={displayName} logoUri={photoUri} size={AVATAR_SIZE} />
+        <ClinicLogoAvatar clinicName={displayName} logoUri={photoUri} size={avatarSize} />
       )}
-      <View style={styles.textBlock}>
+      <View
+        style={[styles.textBlock, textRevealStyle(collapsed)]}
+        accessibilityElementsHidden={collapsed}
+        importantForAccessibility={collapsed ? 'no' : 'auto'}>
         <Text style={styles.name} numberOfLines={2}>
           {name}
         </Text>
