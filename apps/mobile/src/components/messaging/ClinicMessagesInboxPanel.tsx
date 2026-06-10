@@ -90,6 +90,7 @@ export function ClinicMessagesInboxPanel({
         subtitle={CLINIC_MESSAGES_SUBTITLE}
         scroll={scroll ?? !compact}
         fillsContainer={fillsContainer}
+        animateEntry={false}
       />
     );
   }
@@ -100,7 +101,9 @@ export function ClinicMessagesInboxPanel({
       subtitle={CLINIC_MESSAGES_SUBTITLE}
       constrainWidth={!compact}
       scroll={scroll ?? !compact}
-      fillsContainer={fillsContainer}>
+      fillsContainer={fillsContainer}
+      animateEntry={false}
+    >
       <ConversationInboxList
         conversations={conversations}
         role="clinic"

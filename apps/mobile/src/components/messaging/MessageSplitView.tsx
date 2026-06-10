@@ -47,7 +47,6 @@ function renderDetailPane({
 
   return (
     <MessageThread
-      key={selectedId}
       embedded
       userId={userId}
       role={role}
@@ -184,7 +183,6 @@ export function MessageThreadSplitView({
       <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} />
     ) : (
       <MessageThread
-        key={selectedId}
         embedded
         userId={user.id}
         role={role}

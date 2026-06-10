@@ -3,7 +3,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useThemedStyles } from '@/theme';
 
 type MessageThreadLoadingShellProps = {
@@ -34,14 +33,14 @@ export function MessageThreadLoadingShell({
 
   return (
     <View style={styles.container}>
-      <WebPageEnter style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <View style={styles.header}>
           <AuthScreenHeader title={title} onBack={onBack} />
         </View>
         <View style={styles.body}>
           <PageLoadingDetail />
         </View>
-      </WebPageEnter>
+      </View>
     </View>
   );
 }

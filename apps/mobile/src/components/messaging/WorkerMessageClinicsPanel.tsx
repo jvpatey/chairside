@@ -260,7 +260,9 @@ export function WorkerMessageClinicsPanel({
         backLabel={backLabel}
         constrainWidth={false}
         scroll={scroll ?? true}
-        fillsContainer={fillsContainer}>
+        fillsContainer={fillsContainer}
+        animateEntry={false}
+      >
         {scrollableBody}
       </Screen>
     );

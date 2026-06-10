@@ -22,6 +22,7 @@ export function MessageThreadPlaceholder({
       justifyContent: 'center',
       paddingHorizontal: spacing.xl,
       gap: spacing.md,
+      backgroundColor: colors.background,
     },
     iconWrap: {
       width: 56,

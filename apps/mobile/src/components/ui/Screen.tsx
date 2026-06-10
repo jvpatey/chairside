@@ -26,6 +26,8 @@ type ScreenProps = {
   scroll?: boolean;
   /** Fills available height; use with scroll={false} in master/detail panes. */
   fillsContainer?: boolean;
+  /** When false, skip the web fade-in animation (split-view / tab surfaces). */
+  animateEntry?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
@@ -41,6 +43,7 @@ export function Screen({
   constrainWidth = true,
   scroll = true,
   fillsContainer = false,
+  animateEntry = true,
   contentContainerStyle,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
@@ -164,7 +167,9 @@ export function Screen({
   if (!scroll) {
     return (
       <View style={[styles.container, fillsContainer && { minHeight: 0 }]}>
-        <WebPageEnter style={fillsContainer ? { flex: 1, minHeight: 0 } : undefined}>
+        <WebPageEnter
+          animate={animateEntry}
+          style={fillsContainer ? { flex: 1, minHeight: 0 } : undefined}>
           <View
             style={[
               styles.content,
@@ -190,7 +195,7 @@ export function Screen({
         contentContainerStyle,
       ]}
     >
-      <WebPageEnter>
+      <WebPageEnter animate={animateEntry}>
         {headerBlock}
         {children}
       </WebPageEnter>
