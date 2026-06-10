@@ -5,8 +5,7 @@ import { Alert } from 'react-native';
 
 import { MessageThreadLoadingShell } from '@/components/messaging/MessageThreadLoadingShell';
 import { MessageThread } from '@/components/messaging/MessageThread';
-import { WorkerMessagesInboxPanel } from '@/components/messaging/WorkerMessagesInboxPanel';
-import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
+import { MessageThreadSplitView } from '@/components/messaging/MessageSplitView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -64,8 +63,27 @@ export default function WorkerConversationScreen() {
     return <MessageThreadLoadingShell onBack={goBack} />;
   }
 
+  if (isTablet) {
+    const threadTitle = routeTitle ?? (conversation ? formatConversationDisplay(conversation, 'worker').threadTitle : 'Messages');
+    const threadSubtitle =
+      routeSubtitle ?? (conversation ? formatConversationDisplay(conversation, 'worker').threadSubtitle : '');
+
+    if (!routeTitle && !conversation) {
+      return <MessageThreadLoadingShell onBack={goBack} />;
+    }
+
+    return (
+      <MessageThreadSplitView
+        role="worker"
+        conversationId={routeConversationId}
+        title={threadTitle}
+        subtitle={threadSubtitle}
+      />
+    );
+  }
+
   if (routeTitle) {
-    const thread = (
+    return (
       <MessageThread
         userId={user.id}
         role="worker"
@@ -76,25 +94,13 @@ export default function WorkerConversationScreen() {
         onConversationChange={setConversation}
       />
     );
-
-    if (isTablet) {
-      return (
-        <MasterDetailLayout
-          master={<WorkerMessagesInboxPanel compact />}
-          detail={thread}
-          showDetail
-        />
-      );
-    }
-
-    return thread;
   }
 
   if (!conversation) {
     return <MessageThreadLoadingShell onBack={goBack} />;
   }
 
-  const thread = (
+  return (
     <MessageThread
       userId={user.id}
       role="worker"
@@ -105,16 +111,4 @@ export default function WorkerConversationScreen() {
       onConversationChange={setConversation}
     />
   );
-
-  if (isTablet) {
-    return (
-      <MasterDetailLayout
-        master={<WorkerMessagesInboxPanel compact />}
-        detail={thread}
-        showDetail
-      />
-    );
-  }
-
-  return thread;
 }

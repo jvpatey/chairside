@@ -17,6 +17,7 @@ import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useMessageRealtime } from '@/hooks/useMessageRealtime';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
+import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useThemedStyles } from '@/theme';
 
 type MessageThreadProps = {
@@ -25,7 +26,9 @@ type MessageThreadProps = {
   conversationId: string;
   title: string;
   subtitle: string;
-  onBack: () => void;
+  /** When true, omits back navigation (split-view detail pane). */
+  embedded?: boolean;
+  onBack?: () => void;
   onConversationChange?: (conversation: Conversation) => void;
 };
 
@@ -53,6 +56,7 @@ export function MessageThread({
   conversationId,
   title,
   subtitle,
+  embedded = false,
   onBack,
   onConversationChange,
 }: MessageThreadProps) {
@@ -67,6 +71,9 @@ export function MessageThread({
   const containerRef = useRef<View>(null);
   const listRef = useRef<FlatList<Message>>(null);
   const seenMessageIds = useRef(new Set<string>());
+  const loadedConversationIdRef = useRef<string | null>(null);
+  const onConversationChangeRef = useRef(onConversationChange);
+  onConversationChangeRef.current = onConversationChange;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -75,7 +82,7 @@ export function MessageThread({
     },
     header: {
       paddingHorizontal: spacing.lg,
-      paddingTop: insets.top + spacing.sm,
+      paddingTop: embedded ? spacing.md : insets.top + spacing.sm,
     },
     list: {
       flex: 1,
@@ -156,7 +163,14 @@ export function MessageThread({
   );
 
   const load = useCallback(async () => {
-    setIsLoading(true);
+    const isNewConversation = loadedConversationIdRef.current !== conversationId;
+    if (isNewConversation) {
+      setIsLoading(true);
+      setConversation(null);
+      setMessages([]);
+      seenMessageIds.current = new Set();
+    }
+
     try {
       const [nextConversation, nextMessages] = await Promise.all([
         getConversation(userId, role, conversationId),
@@ -165,13 +179,14 @@ export function MessageThread({
 
       if (!nextConversation) {
         Alert.alert('Conversation not found', 'This thread may have been removed.');
-        onBack();
+        onBack?.();
         return;
       }
 
+      loadedConversationIdRef.current = conversationId;
       seenMessageIds.current = new Set(nextMessages.map((message) => message.id));
       setConversation(nextConversation);
-      onConversationChange?.(nextConversation);
+      onConversationChangeRef.current?.(nextConversation);
       setMessages(nextMessages);
       await markConversationRead(conversationId);
       await refreshUnread();
@@ -195,7 +210,7 @@ export function MessageThread({
     } finally {
       setIsLoading(false);
     }
-  }, [conversationId, onBack, onConversationChange, refreshUnread, role, userId]);
+  }, [conversationId, onBack, refreshUnread, role, userId]);
 
   useEffect(() => {
     void load();
@@ -234,16 +249,20 @@ export function MessageThread({
   const headerTitle = headerDisplay?.threadTitle ?? title;
   const headerSubtitle = headerDisplay?.threadSubtitle ?? subtitle;
 
-  return (
-    <View ref={containerRef} style={styles.container} collapsable={false}>
-      <WebPageEnter style={{ flex: 1 }}>
-        <View style={styles.header}>
-          <AuthScreenHeader title={headerTitle} subtitle={headerSubtitle} onBack={onBack} />
-        </View>
+  const threadBody = (
+    <>
+      <View style={styles.header}>
+        <AuthScreenHeader
+          title={headerTitle}
+          subtitle={headerSubtitle}
+          compact={embedded}
+          onBack={embedded ? undefined : onBack}
+        />
+      </View>
 
-        <FlatList
+      <FlatList
         ref={listRef}
-        style={styles.list}
+        style={[styles.list, webScrollbarStyles()]}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: composeHeight + keyboardLift + 8 },
@@ -289,7 +308,16 @@ export function MessageThread({
           onSend={handleSend}
         />
       </View>
-      </WebPageEnter>
+    </>
+  );
+
+  return (
+    <View ref={containerRef} style={styles.container} collapsable={false}>
+      {embedded ? (
+        threadBody
+      ) : (
+        <WebPageEnter style={{ flex: 1 }}>{threadBody}</WebPageEnter>
+      )}
     </View>
   );
 }

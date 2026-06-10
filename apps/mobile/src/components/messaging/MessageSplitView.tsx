@@ -1,0 +1,215 @@
+import type { Conversation } from '@chairside/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { ClinicMessagesInboxPanel } from '@/components/messaging/ClinicMessagesInboxPanel';
+import { MessageThread } from '@/components/messaging/MessageThread';
+import { MessageThreadPlaceholder } from '@/components/messaging/MessageThreadPlaceholder';
+import {
+  WorkerMessagesMasterPane,
+  type WorkerMessagesMasterView,
+} from '@/components/messaging/WorkerMessagesMasterPane';
+import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { getMessageThreadPreview } from '@/lib/conversationDisplay';
+
+const MASTER_WIDTH = 380;
+
+type MessageSplitViewProps = {
+  role: 'worker' | 'clinic';
+  /** Pre-select a conversation (e.g. from a deep link). */
+  initialConversationId?: string;
+  /** Worker split view: inbox list or clinic picker in the master pane. */
+  masterView?: WorkerMessagesMasterView;
+};
+
+function renderDetailPane({
+  role,
+  userId,
+  selectedId,
+  inboxFilteredEmpty,
+  preview,
+  onConversationChange,
+}: {
+  role: 'worker' | 'clinic';
+  userId: string | undefined;
+  selectedId: string | null;
+  inboxFilteredEmpty: boolean;
+  preview: ReturnType<typeof getMessageThreadPreview> | null;
+  onConversationChange?: (conversation: Conversation) => void;
+}) {
+  if (!userId || inboxFilteredEmpty) {
+    return <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} />;
+  }
+
+  if (!selectedId) {
+    return <MessageThreadPlaceholder role={role} />;
+  }
+
+  return (
+    <MessageThread
+      key={selectedId}
+      embedded
+      userId={userId}
+      role={role}
+      conversationId={selectedId}
+      title={preview?.title ?? 'Messages'}
+      subtitle={preview?.subtitle ?? ''}
+      onConversationChange={onConversationChange}
+    />
+  );
+}
+
+export function MessageSplitView({
+  role,
+  initialConversationId,
+  masterView = 'inbox',
+}: MessageSplitViewProps) {
+  const { user } = useAuth();
+  const [selectedId, setSelectedId] = useState<string | null>(initialConversationId ?? null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
+
+  useEffect(() => {
+    if (initialConversationId) {
+      setSelectedId(initialConversationId);
+    }
+  }, [initialConversationId]);
+
+  const handleConversationsChange = useCallback(
+    (rows: Conversation[]) => {
+      setConversations(rows);
+      setSelectedId((current) => {
+        if (current && rows.some((row) => row.id === current)) {
+          return current;
+        }
+        if (initialConversationId && rows.some((row) => row.id === initialConversationId)) {
+          return initialConversationId;
+        }
+        return rows[0]?.id ?? null;
+      });
+    },
+    [initialConversationId],
+  );
+
+  const handleInboxVisibilityChange = useCallback((state: { isFilteredEmpty: boolean }) => {
+    setInboxFilteredEmpty(state.isFilteredEmpty);
+  }, []);
+
+  const handleConversationChange = useCallback((conversation: Conversation) => {
+    setConversations((current) =>
+      current.map((row) => (row.id === conversation.id ? conversation : row)),
+    );
+  }, []);
+
+  const selectedConversation = conversations.find((row) => row.id === selectedId) ?? null;
+  const preview = selectedConversation
+    ? getMessageThreadPreview(selectedConversation, role)
+    : null;
+
+  const inboxProps = useMemo(
+    () => ({
+      compact: true as const,
+      scroll: false as const,
+      fillsContainer: true as const,
+      selectedConversationId: selectedId,
+      onConversationSelect: setSelectedId,
+      onConversationsChange: handleConversationsChange,
+      onInboxVisibilityChange: handleInboxVisibilityChange,
+    }),
+    [
+      selectedId,
+      handleConversationsChange,
+      handleInboxVisibilityChange,
+    ],
+  );
+
+  return (
+    <MasterDetailLayout
+      masterWidth={MASTER_WIDTH}
+      showDetail
+      master={
+        role === 'worker' ? (
+          <WorkerMessagesMasterPane
+            masterView={masterView}
+            inboxProps={inboxProps}
+            onConversationStarted={setSelectedId}
+          />
+        ) : (
+          <ClinicMessagesInboxPanel {...inboxProps} />
+        )
+      }
+      detail={renderDetailPane({
+        role,
+        userId: user?.id,
+        selectedId,
+        inboxFilteredEmpty: masterView === 'inbox' && inboxFilteredEmpty,
+        preview,
+        onConversationChange: handleConversationChange,
+      })}
+    />
+  );
+}
+
+/** Renders inbox + thread split view with a pre-selected conversation. */
+export function MessageThreadSplitView({
+  role,
+  conversationId,
+  title,
+  subtitle,
+}: {
+  role: 'worker' | 'clinic';
+  conversationId: string;
+  title: string;
+  subtitle: string;
+}) {
+  const { user } = useAuth();
+  const [selectedId, setSelectedId] = useState(conversationId);
+  const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
+
+  const handleInboxVisibilityChange = useCallback((state: { isFilteredEmpty: boolean }) => {
+    setInboxFilteredEmpty(state.isFilteredEmpty);
+  }, []);
+
+  const inboxProps = {
+    compact: true as const,
+    scroll: false as const,
+    fillsContainer: true as const,
+    selectedConversationId: selectedId,
+    onConversationSelect: setSelectedId,
+    onInboxVisibilityChange: handleInboxVisibilityChange,
+  };
+
+  const detail =
+    !user?.id || inboxFilteredEmpty ? (
+      <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} />
+    ) : (
+      <MessageThread
+        key={selectedId}
+        embedded
+        userId={user.id}
+        role={role}
+        conversationId={selectedId}
+        title={title}
+        subtitle={subtitle}
+      />
+    );
+
+  return (
+    <MasterDetailLayout
+      masterWidth={MASTER_WIDTH}
+      showDetail
+      master={
+        role === 'worker' ? (
+          <WorkerMessagesMasterPane
+            masterView="inbox"
+            inboxProps={inboxProps}
+            onConversationStarted={setSelectedId}
+          />
+        ) : (
+          <ClinicMessagesInboxPanel {...inboxProps} />
+        )
+      }
+      detail={detail}
+    />
+  );
+}

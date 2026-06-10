@@ -40,10 +40,12 @@ export function MasterDetailLayout({
       flexShrink: 0,
       borderRightWidth: 0.5,
       borderRightColor: colors.separator,
+      backgroundColor: colors.backgroundGrouped,
     },
     detail: {
       flex: 1,
       minWidth: 0,
+      backgroundColor: colors.background,
     },
   }));
 

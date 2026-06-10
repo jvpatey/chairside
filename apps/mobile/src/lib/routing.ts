@@ -227,7 +227,13 @@ export function getClinicApplicationMessagesRoute(
   } as unknown as Href;
 }
 
-export function getWorkerMessagesRoute(): Href {
+export function getWorkerMessagesRoute(conversationId?: string): Href {
+  if (conversationId) {
+    return {
+      pathname: '/(tabs)/messages',
+      params: { conversationId },
+    } as unknown as Href;
+  }
   return '/(tabs)/messages' as Href;
 }
 

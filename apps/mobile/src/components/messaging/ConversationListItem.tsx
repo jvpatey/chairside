@@ -12,7 +12,13 @@ import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { getHideConversationMessage } from '@/lib/conversationHide';
 import { formatNotificationTime } from '@/lib/notificationDisplay';
-import { webHover, webIconButtonHoverStyles, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
+import {
+  webHover,
+  webIconButtonHoverStyles,
+  webListRowHoverStyles,
+  webListRowSelectedStyles,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ConversationListItemProps = {
@@ -22,14 +28,20 @@ type ConversationListItemProps = {
   onPress: () => void;
   onDelete?: () => void;
   isLast?: boolean;
+  /** Split-view selection (web/tablet). */
+  selected?: boolean;
+  /** Tighter row spacing for compact inbox panes. */
+  compact?: boolean;
 };
 
 function ConversationAvatar({
   conversation,
   avatarKind,
+  size,
 }: {
   conversation: Conversation;
   avatarKind: 'clinic' | 'worker';
+  size: number;
 }) {
   const clinicLogoUri = useClinicLogoUri(
     avatarKind === 'clinic' ? conversation.counterpart_logo_storage_path : null,
@@ -43,7 +55,7 @@ function ConversationAvatar({
       <ClinicLogoAvatar
         clinicName={conversation.counterpart_name}
         logoUri={clinicLogoUri}
-        size={40}
+        size={size}
       />
     );
   }
@@ -52,7 +64,7 @@ function ConversationAvatar({
     <WorkerProfileAvatar
       displayName={conversation.counterpart_name}
       photoUri={workerPhotoUri}
-      size={40}
+      size={size}
     />
   );
 }
@@ -64,6 +76,8 @@ export function ConversationListItem({
   onPress,
   onDelete,
   isLast = false,
+  selected = false,
+  compact = false,
 }: ConversationListItemProps) {
   const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -73,15 +87,28 @@ export function ConversationListItem({
   const timestamp = formatNotificationTime(conversation.last_message_at ?? undefined);
   const display = formatConversationDisplay(conversation, role);
 
+  const avatarSize = compact ? 36 : 40;
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.sm,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
+      paddingVertical: compact ? spacing.sm + 2 : spacing.md,
+      paddingHorizontal: compact ? spacing.sm : spacing.md,
+      position: 'relative' as const,
     },
     rowHovered: webListRowHoverStyles(colors),
+    rowSelected: webListRowSelectedStyles(colors),
+    selectedAccent: {
+      position: 'absolute' as const,
+      left: 0,
+      top: spacing.xs,
+      bottom: spacing.xs,
+      width: 3,
+      borderRadius: 2,
+      backgroundColor: colors.primary,
+    },
     rowSeparator: {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.separator,
@@ -177,13 +204,23 @@ export function ConversationListItem({
     }
   };
 
+  const accessibilityLabel = [
+    display.cardName,
+    display.cardMeta,
+    conversation.unread ? 'Unread' : null,
+    conversation.last_message_preview,
+  ]
+    .filter(Boolean)
+    .join('. ');
+
   return (
     <>
       <View
         style={[
           styles.row,
           !isLast && styles.rowSeparator,
-          isWeb && rowHovered && styles.rowHovered,
+          selected && styles.rowSelected,
+          isWeb && rowHovered && !selected && styles.rowHovered,
         ]}
         {...(isWeb
           ? {
@@ -191,11 +228,14 @@ export function ConversationListItem({
               onMouseLeave: () => setRowHovered(false),
             }
           : {})}>
+        {selected ? <View style={styles.selectedAccent} /> : null}
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+          accessibilityState={{ selected }}
           onPress={onPress}
           style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
-          <ConversationAvatar conversation={conversation} avatarKind={avatarKind} />
+          <ConversationAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
           <View style={styles.textWrap}>
             <View style={styles.titleRow}>
               <Text style={styles.roleEyebrow} numberOfLines={1}>
@@ -203,14 +243,14 @@ export function ConversationListItem({
               </Text>
               {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
             </View>
-            <Text style={styles.name} numberOfLines={2}>
+            <Text style={styles.name} numberOfLines={1}>
               {display.cardName}
             </Text>
-            <Text style={styles.meta} numberOfLines={2}>
+            <Text style={styles.meta} numberOfLines={1}>
               {display.cardMeta}
             </Text>
             <View style={styles.titleRow}>
-              <Text style={styles.preview} numberOfLines={2}>
+              <Text style={styles.preview} numberOfLines={1}>
                 {conversation.last_message_preview ?? 'No messages yet'}
               </Text>
               {conversation.unread ? <View style={styles.unreadDot} /> : null}
