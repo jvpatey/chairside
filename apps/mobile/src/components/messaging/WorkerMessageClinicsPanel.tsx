@@ -12,6 +12,7 @@ import { MessageableClinicListItem } from '@/components/messaging/MessageableCli
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { Screen } from '@/components/ui/Screen';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -71,7 +72,6 @@ export function WorkerMessageClinicsPanel({
       color: colors.labelPrimary,
       padding: 0,
     },
-    list: { gap: spacing.md },
     emptyCard: {
       alignItems: 'center',
       gap: spacing.md,
@@ -220,17 +220,18 @@ export function WorkerMessageClinicsPanel({
               </Text>
             </View>
           ) : (
-            <View style={styles.list}>
+            <BrowseListGroup>
               {filteredClinics.map((clinic) => (
                 <MessageableClinicListItem
                   key={clinic.id}
                   clinic={clinic}
+                  compact={embedded}
                   onPress={() => {
                     void handleClinicPress(clinic);
                   }}
                 />
               ))}
-            </View>
+            </BrowseListGroup>
           )}
         </>
       )}

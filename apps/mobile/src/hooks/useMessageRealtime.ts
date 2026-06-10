@@ -1,10 +1,13 @@
 import { getSupabaseClient, type Message } from '@chairside/api';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export function useMessageRealtime(
   conversationId: string | null,
   onMessage: (message: Message) => void,
 ) {
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
+
   useEffect(() => {
     if (!conversationId) return;
 
@@ -20,7 +23,7 @@ export function useMessageRealtime(
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          onMessage(payload.new as Message);
+          onMessageRef.current(payload.new as Message);
         },
       )
       .subscribe();
@@ -28,5 +31,5 @@ export function useMessageRealtime(
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [conversationId, onMessage]);
+  }, [conversationId]);
 }
