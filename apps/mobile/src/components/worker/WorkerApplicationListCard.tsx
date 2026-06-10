@@ -9,6 +9,7 @@ import {
   UIManager,
   View,
 } from 'react-native';
+import { useState } from 'react';
 
 import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
@@ -25,10 +26,10 @@ import {
 import { getWorkerApplicationRoute, type WorkerApplicationReturnTarget } from '@/lib/routing';
 import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 import {
+  IS_WEB,
   webFullBleedRowInsets,
-  webHover,
-  webListRowHoverStyles,
   webPointer,
+  webTileHoverStyles,
 } from '@/lib/webPressableStyles';
 import { spacing, useThemedStyles } from '@/theme';
 
@@ -59,6 +60,7 @@ export function WorkerApplicationListCard({
   onViewPosting,
   linkToDetail = false,
 }: WorkerApplicationListCardProps) {
+  const [cardHovered, setCardHovered] = useState(false);
   const { isApplicationHighlighted, getApplicationHighlightLabel, markApplicationSeen } =
     useApplicationTabBadge();
   const isJob = application.post_type === 'job';
@@ -72,7 +74,7 @@ export function WorkerApplicationListCard({
   const hasApplicationUpdate = isApplicationHighlighted(application);
   const applicationUpdateLabel = getApplicationHighlightLabel(application);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     card: {
       backgroundColor: isConfirmedShift ? `${colors.success}10` : colors.surface,
       borderRadius: 16,
@@ -81,6 +83,7 @@ export function WorkerApplicationListCard({
       padding: spacing.lg,
       gap: spacing.md,
     },
+    cardHovered: webTileHoverStyles(colors, isDark),
     cardHeaderPressable: {
       alignSelf: 'stretch',
       borderRadius: 12,
@@ -89,7 +92,6 @@ export function WorkerApplicationListCard({
       paddingTop: spacing.lg,
       ...webPointer(),
     },
-    cardHeaderHovered: webListRowHoverStyles(colors),
     cardPressed: { opacity: 0.92 },
     expandedBody: {
       gap: spacing.sm,
@@ -160,15 +162,23 @@ export function WorkerApplicationListCard({
     />
   );
 
+  const cardHoverProps = IS_WEB
+    ? {
+        onMouseEnter: () => setCardHovered(true),
+        onMouseLeave: () => setCardHovered(false),
+      }
+    : {};
+
   return (
-    <View style={styles.card}>
+    <View
+      style={[styles.card, IS_WEB && cardHovered && styles.cardHovered]}
+      {...cardHoverProps}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: linkToDetail ? undefined : expanded }}
         onPress={handlePress}
-        style={({ pressed, hovered }) => [
+        style={({ pressed }) => [
           styles.cardHeaderPressable,
-          webHover(hovered, pressed, styles.cardHeaderHovered),
           pressed && styles.cardPressed,
         ]}>
         {content}
@@ -179,6 +189,7 @@ export function WorkerApplicationListCard({
           expanded={expanded}
           onPress={toggleExpanded}
           bleedPadding={spacing.lg}
+          suppressHover
         />
       ) : null}
 

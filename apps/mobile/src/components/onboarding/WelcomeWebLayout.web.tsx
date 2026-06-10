@@ -400,7 +400,11 @@ export function WelcomeWebLayout() {
             <View style={styles.heroLeft}>
               <View style={styles.heroCopy}>
                 <WebPageEnter delayMs={0} style={styles.wordmarkWrap}>
-                  <ChairsideWordmark variant="hero" align={isWide ? 'left' : 'center'} />
+                  <ChairsideWordmark
+                    variant="hero"
+                    align={isWide ? 'left' : 'center'}
+                    animateSideOnHover
+                  />
                 </WebPageEnter>
                 <WebPageEnter delayMs={80}>
                   <Text style={styles.headline}>{HERO_HEADLINE}</Text>

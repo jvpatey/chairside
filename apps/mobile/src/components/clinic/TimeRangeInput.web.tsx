@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { WebTimeField } from '@/components/clinic/WebDateTimeField.web';
@@ -15,6 +16,7 @@ type TimeRangeInputProps = {
   schedule: TimeRange;
   onChange: (schedule: TimeRange) => void;
   showPreview?: boolean;
+  onPickerOpenChange?: (open: boolean) => void;
 };
 
 export function TimeRangeInput({
@@ -23,7 +25,14 @@ export function TimeRangeInput({
   schedule,
   onChange,
   showPreview = false,
+  onPickerOpenChange,
 }: TimeRangeInputProps) {
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
+
+  useEffect(() => {
+    onPickerOpenChange?.(startOpen || endOpen);
+  }, [startOpen, endOpen, onPickerOpenChange]);
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: { gap: spacing.sm },
     sectionLabel: {
@@ -76,6 +85,7 @@ export function TimeRangeInput({
             value={schedule.startTime}
             onChange={(startTime) => onChange({ ...schedule, startTime })}
             hint="Tap to select start time"
+            onOpenChange={setStartOpen}
           />
         </View>
         <Text style={styles.dash}>–</Text>
@@ -85,6 +95,7 @@ export function TimeRangeInput({
             value={schedule.endTime}
             onChange={(endTime) => onChange({ ...schedule, endTime })}
             hint="Tap to select end time"
+            onOpenChange={setEndOpen}
           />
         </View>
       </View>
