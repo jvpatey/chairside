@@ -1,4 +1,5 @@
 import type { LiveJobPost, WorkerProfile } from '@chairside/api';
+import { getWorkerRoleTypes } from '@chairside/api';
 import { travelRadiusRangeToMaxKm } from '@chairside/config';
 import { calculateJobMatch, type JobMatchBreakdown, type JobMatchContext } from '@chairside/core';
 
@@ -26,9 +27,12 @@ export function computeJobMatchBreakdown(
 ): JobMatchBreakdown | null {
   if (!workerProfile) return null;
 
+  const workerRoleTypes = getWorkerRoleTypes(workerProfile);
+
   return calculateJobMatch({
     postRoleType: job.role_type,
-    workerRoleType: workerProfile.role_type,
+    workerRoleTypes,
+    workerRoleType: workerRoleTypes[0] ?? null,
     postEmploymentType: job.employment_type,
     workerPreferredEmploymentTypes: workerProfile.preferred_employment_types,
     postSoftware: job.software_used,
@@ -49,9 +53,12 @@ export function buildLiveJobMatchContext(
   workerProfile: WorkerProfile,
   job: LiveJobPost,
 ): JobMatchContext {
+  const workerRoleTypes = getWorkerRoleTypes(workerProfile);
+
   return {
     postRoleType: job.role_type,
-    workerRoleType: workerProfile.role_type,
+    workerRoleTypes,
+    workerRoleType: workerRoleTypes[0] ?? null,
     postEmploymentType: job.employment_type,
     workerPreferredEmploymentTypes: workerProfile.preferred_employment_types,
     postSoftware: job.software_used,

@@ -1,4 +1,5 @@
 import type { WorkerProfile } from '@chairside/api';
+import { getWorkerRoleTypes } from '@chairside/api';
 import {
   formatWorkerEducation,
   getProvinceLabel,
@@ -8,26 +9,73 @@ import {
 } from '@chairside/config';
 import { Text, View } from 'react-native';
 
+import { DetailProse } from '@/components/clinic/DetailCard';
 import {
-  DetailProse,
-  DetailRow,
-  DetailSection,
-  DetailSectionDivider,
-  RowDivider,
-} from '@/components/clinic/DetailCard';
+  FieldBlock,
+  FieldDivider,
+  FieldValue,
+  ProfileDetailStack,
+  ProfileEmptyState,
+  ProfileSummaryBanner,
+  SectionPanel,
+  SummaryStat,
+  SummaryStatRow,
+} from '@/components/profile/ProfileDetailBlocks';
 import { useThemedStyles } from '@/theme';
 
 type WorkerProfessionalViewProps = {
   profile: WorkerProfile | null;
 };
 
-function ProfileTagRow({ tags }: { tags: string[] }) {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+function RolePills({ roles }: { roles: string[] }) {
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: spacing.xs,
-      paddingBottom: spacing.xs,
+    },
+    pill: {
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.xs + 1,
+      backgroundColor: colors.primarySubtle,
+      borderWidth: 1,
+      borderColor: `${colors.primary}22`,
+    },
+    pillText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    empty: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.labelTertiary,
+      fontStyle: 'italic',
+    },
+  }));
+
+  if (roles.length === 0) {
+    return <Text style={styles.empty}>No roles selected yet</Text>;
+  }
+
+  return (
+    <View style={styles.wrap}>
+      {roles.map((role) => (
+        <View key={role} style={styles.pill}>
+          <Text style={styles.pillText}>{getRoleTypeLabel(role)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function TagRow({ tags }: { tags: string[] }) {
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    wrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
     },
     tag: {
       borderRadius: 999,
@@ -43,15 +91,15 @@ function ProfileTagRow({ tags }: { tags: string[] }) {
       color: colors.labelPrimary,
     },
     empty: {
-      ...typography.subtitle,
       fontSize: 15,
+      lineHeight: 22,
       color: colors.labelTertiary,
-      paddingBottom: spacing.xs,
+      fontStyle: 'italic',
     },
   }));
 
   if (tags.length === 0) {
-    return <Text style={styles.empty}>—</Text>;
+    return <Text style={styles.empty}>Not added yet</Text>;
   }
 
   return (
@@ -65,71 +113,18 @@ function ProfileTagRow({ tags }: { tags: string[] }) {
   );
 }
 
-function TagField({ label, tags }: { label: string; tags: string[] }) {
-  const styles = useThemedStyles(({ spacing, colors }) => ({
-    field: { gap: spacing.xs, paddingVertical: spacing.sm + 2 },
-    label: {
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-  }));
-
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <ProfileTagRow tags={tags} />
-    </View>
-  );
-}
-
 export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      gap: spacing.lg,
-    },
-    emptyCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-    },
-    emptyText: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.labelSecondary,
-      textAlign: 'center',
-    },
-    bioField: { gap: spacing.xs, paddingVertical: spacing.sm + 2 },
-    bioLabel: {
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-    bioEmpty: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.labelTertiary,
-    },
-  }));
-
   if (!profile) {
     return (
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyText}>
-          Add your role, experience, and location so clinics can match you to opportunities.
-        </Text>
-      </View>
+      <ProfileEmptyState
+        icon="briefcase-outline"
+        title="Build your professional background"
+        description="Add your roles, experience, and location so clinics can match you to the right opportunities."
+      />
     );
   }
 
+  const roles = getWorkerRoleTypes(profile);
   const address = [
     profile.address_line1,
     profile.city,
@@ -138,55 +133,73 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
   ]
     .filter(Boolean)
     .join(', ');
-
+  const locationSummary = [profile.city, profile.province ? getProvinceLabel(profile.province) : null]
+    .filter(Boolean)
+    .join(', ');
+  const experienceSummary =
+    profile.years_of_experience != null ? `${profile.years_of_experience} years` : 'Not added yet';
+  const education = formatWorkerEducation(profile);
   const softwareTags = profile.software_used;
   const specialtyTags = profile.practice_types.map(getSpecialtyLabel);
+  const travelLabel = getTravelRadiusRangeLabel(profile.travel_radius_range);
 
   return (
-    <View style={styles.card}>
-      <DetailSection title="Role & experience">
-        <DetailRow
-          label="Role"
-          value={profile.role_type ? getRoleTypeLabel(profile.role_type) : null}
-        />
-        <RowDivider />
-        <DetailRow
-          label="Experience"
-          value={
-            profile.years_of_experience != null ? `${profile.years_of_experience} years` : null
-          }
-        />
-        <RowDivider />
-        <DetailRow label="Education" value={formatWorkerEducation(profile)} />
-      </DetailSection>
-
-      <DetailSectionDivider>
-        <DetailSection title="Location & travel">
-          <DetailRow label="Address" value={address || null} layout="stacked" />
-          <RowDivider />
-          <DetailRow
-            label="Travel distance"
-            value={getTravelRadiusRangeLabel(profile.travel_radius_range)}
+    <ProfileDetailStack>
+      <ProfileSummaryBanner icon="briefcase-outline" title="At a glance">
+        <RolePills roles={roles} />
+        <SummaryStatRow>
+          <SummaryStat icon="time-outline" label="Experience" value={experienceSummary} />
+          <SummaryStat
+            icon="location-outline"
+            label="Location"
+            value={locationSummary || 'Not added yet'}
           />
-        </DetailSection>
-      </DetailSectionDivider>
+        </SummaryStatRow>
+      </ProfileSummaryBanner>
 
-      <DetailSectionDivider>
-        <DetailSection title="Skills & bio">
-          <TagField label="Software" tags={softwareTags} />
-          <RowDivider />
-          <TagField label="Practice types" tags={specialtyTags} />
-          <RowDivider />
-          <View style={styles.bioField}>
-            <Text style={styles.bioLabel}>Bio</Text>
-            {profile.bio?.trim() ? (
-              <DetailProse text={profile.bio.trim()} />
-            ) : (
-              <Text style={styles.bioEmpty}>—</Text>
-            )}
-          </View>
-        </DetailSection>
-      </DetailSectionDivider>
-    </View>
+      <SectionPanel icon="school-outline" title="Experience & education">
+        <FieldBlock label="Years of experience">
+          <FieldValue
+            value={
+              profile.years_of_experience != null
+                ? `${profile.years_of_experience} years`
+                : null
+            }
+          />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Education">
+          <FieldValue value={education || null} />
+        </FieldBlock>
+      </SectionPanel>
+
+      <SectionPanel icon="navigate-outline" title="Location & travel">
+        <FieldBlock label="Address">
+          <FieldValue value={address || null} />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Travel distance">
+          <FieldValue value={travelLabel || null} />
+        </FieldBlock>
+      </SectionPanel>
+
+      <SectionPanel icon="sparkles-outline" title="Skills & bio">
+        <FieldBlock label="Software">
+          <TagRow tags={softwareTags} />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Practice types">
+          <TagRow tags={specialtyTags} />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Bio">
+          {profile.bio?.trim() ? (
+            <DetailProse text={profile.bio.trim()} />
+          ) : (
+            <FieldValue value={null} />
+          )}
+        </FieldBlock>
+      </SectionPanel>
+    </ProfileDetailStack>
   );
 }

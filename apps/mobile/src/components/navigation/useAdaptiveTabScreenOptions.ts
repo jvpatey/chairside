@@ -48,13 +48,16 @@ export function useAdaptiveTabScreenOptions() {
   return {
     ...shared,
     tabBarStyle: {
-      backgroundColor: colors.surface,
-      borderTopColor: colors.separator,
-      ...(Platform.OS === 'ios' ? { borderTopWidth: 0.5 } : {}),
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'transparent',
+      borderTopWidth: 0,
+      elevation: 0,
+      shadowOpacity: 0,
     },
-    tabBarLabelStyle: {
-      fontSize: 10,
-      fontWeight: '500' as const,
-    },
+    tabBarShowLabel: false,
+    tabBarBackground: () => null,
   };
 }

@@ -14,7 +14,7 @@ export default function WorkerProfileApplicationKitScreen() {
     <ProfileDetailScreen
       title="Application kit"
       subtitle="Photo, resume, and default note sent with applications."
-      actionLabel="Edit setup"
+      actionLabel="Edit"
       onActionPress={() => router.push(WORKER_SETUP_APPLICATION)}
       onBack={() => router.back()}>
       <WorkerApplicationKitView profile={workerProfile} />

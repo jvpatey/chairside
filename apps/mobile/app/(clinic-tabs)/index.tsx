@@ -24,14 +24,15 @@ import { Alert, View } from 'react-native';
 import {
   DashboardHero,
   DashboardOverviewPanel,
-  QuickActionTile,
-  SectionHeader,
-  StatGrid,
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
 import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
 import { DashboardCoverRequestsCard } from '@/components/clinic/DashboardCoverRequestsCard';
 import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
+import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
+import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
+import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
+import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { Screen } from '@/components/ui/Screen';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
@@ -80,14 +81,8 @@ export default function ClinicDashboardScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [confirmedFillIns, setConfirmedFillIns] = useState<ConfirmedFillInSummary[]>([]);
 
-  const styles = useThemedStyles(({ spacing }) => ({
-    content: {
-      gap: spacing.xl,
-    },
-    row: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
+  const styles = useThemedStyles((theme) => ({
+    ...getDashboardLayoutStyles(theme),
   }));
 
   const loadDashboard = useCallback(async () => {
@@ -204,17 +199,17 @@ export default function ClinicDashboardScreen() {
         ) : null}
 
         {isTablet ? (
-          <View>
+          <View style={styles.section}>
             <DashboardTabletSectionHeader title="Quick actions" />
-            <View style={styles.row}>
-              <QuickActionTile
+            <View style={styles.quickActionRow}>
+              <DashboardQuickActionTile
                 label="Post a role"
                 description="Full-time or part-time hire"
                 icon="briefcase-outline"
                 variant="primary"
                 onPress={() => guardPosting(CLINIC_POST_JOB)}
               />
-              <QuickActionTile
+              <DashboardQuickActionTile
                 label="Post fill-in"
                 description="Temp or urgent shift"
                 icon="calendar-outline"
@@ -254,17 +249,17 @@ export default function ClinicDashboardScreen() {
         />
 
         {!isTablet ? (
-          <View>
-            <SectionHeader title="Quick actions" />
-            <View style={styles.row}>
-              <QuickActionTile
+          <View style={styles.section}>
+            <DashboardSectionHeader title="Quick actions" />
+            <View style={styles.quickActionRow}>
+              <DashboardQuickActionTile
                 label="Post a role"
                 description="Full-time or part-time hire"
                 icon="briefcase-outline"
                 variant="primary"
                 onPress={() => guardPosting(CLINIC_POST_JOB)}
               />
-              <QuickActionTile
+              <DashboardQuickActionTile
                 label="Post fill-in"
                 description="Temp or urgent shift"
                 icon="calendar-outline"
@@ -275,16 +270,26 @@ export default function ClinicDashboardScreen() {
           </View>
         ) : null}
 
-        <View>
-          <SectionHeader title="Overview" />
-          <StatGrid
-            openRoles={counts.openRoles}
-            fillInsPosted={counts.fillInsPosted}
-            totalApplications={counts.totalApplications}
-            applicationUpdateCount={applicationUpdateCount}
-            fillInUpdateCount={fillInUpdateCount}
+        <View style={styles.overviewSection}>
+          <DashboardSectionHeader title="Overview" />
+          <DashboardStatGrid
             selected={selectedOverview}
             onSelect={setSelectedOverview}
+            stats={[
+              { key: 'roles', label: 'Open roles', value: counts.openRoles },
+              {
+                key: 'fill-ins',
+                label: 'Fill-ins',
+                value: counts.fillInsPosted,
+                badgeCount: fillInUpdateCount,
+              },
+              {
+                key: 'applications',
+                label: 'Applications',
+                value: counts.totalApplications,
+                badgeCount: applicationUpdateCount,
+              },
+            ]}
           />
         </View>
 

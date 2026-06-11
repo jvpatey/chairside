@@ -20,7 +20,9 @@ export type JobMatchBreakdown = {
 
 export type JobMatchContext = {
   postRoleType: string;
+  /** @deprecated Prefer workerRoleTypes. Kept for legacy stored match snapshots. */
   workerRoleType?: string | null;
+  workerRoleTypes?: string[] | null;
   postEmploymentType: string;
   workerPreferredEmploymentTypes?: string[] | null;
   postSoftware?: string[] | null;
@@ -80,10 +82,18 @@ export function getMatchTierRank(tier: MatchTier): number {
 
 function scoreRoleMatch(
   postRoleType: string,
+  workerRoleTypes?: string[] | null,
   workerRoleType?: string | null,
 ): MatchLevel {
-  if (!workerRoleType) return 'missing';
-  if (workerRoleType === postRoleType) return 'strong';
+  const roles =
+    workerRoleTypes && workerRoleTypes.length > 0
+      ? workerRoleTypes
+      : workerRoleType
+        ? [workerRoleType]
+        : [];
+
+  if (roles.length === 0) return 'missing';
+  if (roles.includes(postRoleType)) return 'strong';
   return 'missing';
 }
 
@@ -135,7 +145,11 @@ export function calculateJobMatch(input: JobMatchContext): JobMatchBreakdown {
   const postHasMatchableSoftware =
     matchableSoftwareTokens(input.postSoftware).length > 0;
 
-  const roleFit = scoreRoleMatch(input.postRoleType, input.workerRoleType);
+  const roleFit = scoreRoleMatch(
+    input.postRoleType,
+    input.workerRoleTypes,
+    input.workerRoleType,
+  );
   const software = scoreSoftwareMatch(input.postSoftware, input.workerSoftware);
   const location = scoreLocationMatch(input.distanceKm, input.workerTravelRadiusKm);
   const employmentType = scoreEmploymentMatch(
@@ -191,16 +205,28 @@ export function getMatchCriterionDetails(
   context: Partial<JobMatchContext> & {
     postRoleLabel?: string;
     workerRoleLabel?: string;
+    workerRoleLabels?: string[];
     postEmploymentLabel?: string;
     workerEmploymentLabels?: string[];
   },
   audience: MatchDetailAudience = 'worker',
 ): MatchCriterionDetail[] {
   const postRole = context.postRoleLabel ?? context.postRoleType ?? 'This role';
+  const workerRoles =
+    context.workerRoleTypes && context.workerRoleTypes.length > 0
+      ? context.workerRoleTypes
+      : context.workerRoleType
+        ? [context.workerRoleType]
+        : [];
   const workerRole =
     context.workerRoleLabel ??
-    context.workerRoleType ??
-    (audience === 'clinic' ? "the applicant's stated role" : 'your profile');
+    (context.workerRoleLabels?.length
+      ? formatList(context.workerRoleLabels)
+      : workerRoles.length > 0
+        ? formatList(workerRoles)
+        : audience === 'clinic'
+          ? "the applicant's stated role"
+          : 'your profile');
   const postEmployment =
     context.postEmploymentLabel ?? context.postEmploymentType ?? 'This role';
   const workerEmployment =

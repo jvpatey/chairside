@@ -42,21 +42,20 @@ export function DashboardHeroCard({
     },
     identity: {
       flex: 1,
-      gap: 2,
+      gap: spacing.xs,
       minWidth: 0,
       paddingTop: 2,
     },
     greeting: {
       ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 18,
+      fontSize: 15,
+      lineHeight: 20,
     },
     name: {
       ...typography.title,
       fontSize: 32,
       lineHeight: 38,
       minHeight: 38,
-      marginTop: spacing.xs,
     },
     nameHidden: {
       opacity: 0,

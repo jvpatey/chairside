@@ -1,10 +1,11 @@
 import { submitRequestedApplicationKit } from '@chairside/api';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { EditPillButton } from '@/components/ui/EditPillButton';
 import { ApplicationPackageFields } from '@/components/worker/ApplicationPackageFields';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -64,7 +65,6 @@ export function WorkerApplicationKitSubmission({
       textTransform: 'uppercase',
       color: colors.primary,
     },
-    editLink: { color: colors.primary, fontWeight: '600' },
   }));
 
   const handleSubmit = async () => {
@@ -104,9 +104,10 @@ export function WorkerApplicationKitSubmission({
             showDefaultNote
           />
         ) : null}
-        <Pressable onPress={() => router.push(WORKER_SETUP_APPLICATION)}>
-          <Text style={styles.editLink}>Edit application kit</Text>
-        </Pressable>
+        <EditPillButton
+          label="Edit application kit"
+          onPress={() => router.push(WORKER_SETUP_APPLICATION)}
+        />
       </View>
 
       <AuthField

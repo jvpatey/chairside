@@ -1,6 +1,6 @@
 import type { WorkerProfile } from '@chairside/api';
-import { isWorkerProfileComplete } from '@chairside/api';
-import { getProvinceLabel, getRoleTypeLabel } from '@chairside/config';
+import { getProvinceLabel, formatRoleTypesLabel } from '@chairside/config';
+import { getWorkerRoleTypes } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
@@ -23,8 +23,9 @@ export function WorkerProfileHero({
   const { colors } = useTheme();
   const { photoUri, isUploading, pickPhoto } = useProfilePhoto();
   const name = displayName?.trim() || 'Your profile';
-  const ready = isWorkerProfileComplete(profile);
-  const roleLabel = profile?.role_type ? getRoleTypeLabel(profile.role_type) : null;
+  const roleLabel = profile
+    ? formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null
+    : null;
   const location = [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
     .filter(Boolean)
     .join(', ');
@@ -84,18 +85,6 @@ export function WorkerProfileHero({
       textAlign: 'center',
       marginTop: spacing.xs,
     },
-    badge: {
-      marginTop: spacing.sm,
-      borderRadius: 999,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs + 2,
-      backgroundColor: colors.primarySubtle,
-    },
-    badgeText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
-    },
   }));
 
   const avatar = (
@@ -134,11 +123,6 @@ export function WorkerProfileHero({
         {name}
       </Text>
       <Text style={styles.meta}>{metaLine}</Text>
-      {ready ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Ready to apply</Text>
-        </View>
-      ) : null}
     </View>
   );
 }

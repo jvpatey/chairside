@@ -1,8 +1,8 @@
-import { completeWorkerSetup, getMissingWorkerProfileFields } from '@chairside/api';
+import { completeWorkerSetup, getMissingWorkerProfileFields, getWorkerRoleTypes } from '@chairside/api';
 import {
   formatWorkerEducation,
   getProvinceLabel,
-  getRoleTypeLabel,
+  formatRoleTypesLabel,
   getTravelRadiusRangeLabel,
 } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
@@ -110,8 +110,8 @@ export default function WorkerReviewScreen() {
       />
       <View style={styles.card}>
         <ReviewRow
-          label="Role"
-          value={workerProfile?.role_type ? getRoleTypeLabel(workerProfile.role_type) : ''}
+          label="Roles"
+          value={formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))}
         />
         <ReviewRow
           label="Experience"

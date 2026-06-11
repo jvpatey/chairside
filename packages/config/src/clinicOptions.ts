@@ -142,6 +142,45 @@ export function getRoleTypeLabel(value: string): string {
   return ROLE_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? formatDisplayLabel(value);
 }
 
+export function formatRoleTypesLabel(
+  values: string[] | null | undefined,
+  separator = ' · ',
+): string {
+  return (values ?? [])
+    .map(getRoleTypeLabel)
+    .filter(Boolean)
+    .join(separator);
+}
+
+/** Resolved role list from multi-value or legacy single-value profile fields. */
+export function resolveWorkerRoleTypes(profile: {
+  role_types?: string[] | null;
+  role_type?: string | null;
+}): RoleType[] {
+  if (profile.role_types?.length) {
+    return profile.role_types.filter((value): value is RoleType =>
+      ROLE_TYPE_OPTIONS.some((option) => option.value === value),
+    );
+  }
+
+  if (
+    profile.role_type &&
+    ROLE_TYPE_OPTIONS.some((option) => option.value === profile.role_type)
+  ) {
+    return [profile.role_type as RoleType];
+  }
+
+  return [];
+}
+
+export function workerMatchesPostRole(
+  profile: { role_types?: string[] | null; role_type?: string | null },
+  postRoleType: string,
+): boolean {
+  const roles = resolveWorkerRoleTypes(profile);
+  return roles.includes(postRoleType as RoleType);
+}
+
 export function getEmploymentTypeLabel(value: string): string {
   return (
     EMPLOYMENT_TYPE_OPTIONS.find((option) => option.value === value)?.label ??

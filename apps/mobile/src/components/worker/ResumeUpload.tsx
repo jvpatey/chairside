@@ -18,9 +18,10 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 type ResumeUploadProps = {
   onUploaded?: () => void;
+  embedded?: boolean;
 };
 
-export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
+export function ResumeUpload({ onUploaded, embedded = false }: ResumeUploadProps) {
   const { user } = useAuth();
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { colors } = useTheme();
@@ -28,14 +29,16 @@ export function ResumeUpload({ onUploaded }: ResumeUploadProps) {
   const [isViewing, setIsViewing] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
+    card: embedded
+      ? { gap: spacing.sm }
+      : {
+          backgroundColor: colors.surface,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.separator,
+          padding: spacing.md,
+          gap: spacing.sm,
+        },
     row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     iconWrap: {
       width: 40,

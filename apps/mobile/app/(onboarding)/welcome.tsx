@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { WelcomeHero } from '@/components/onboarding/WelcomeHero';
+import { WelcomeHeroGlow } from '@/components/onboarding/WelcomeHeroGlow';
 import { useThemedStyles } from '@/theme';
 
 export default function WelcomeScreen() {
@@ -20,6 +21,7 @@ export default function WelcomeScreen() {
 
   return (
     <OnboardingShell
+      backgroundAccessory={<WelcomeHeroGlow />}
       footer={
         <View style={styles.actions}>
           <OnboardingButton

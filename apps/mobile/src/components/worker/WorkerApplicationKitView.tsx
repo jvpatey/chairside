@@ -1,12 +1,20 @@
 import type { WorkerProfile } from '@chairside/api';
-import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { isWorkerProfileComplete } from '@chairside/api';
+import { Text, View } from 'react-native';
 
+import { DetailProse } from '@/components/clinic/DetailCard';
+import {
+  FieldBlock,
+  FieldValue,
+  ProfileDetailStack,
+  ProfileEmptyState,
+  SectionPanel,
+} from '@/components/profile/ProfileDetailBlocks';
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { ResumeUpload } from '@/components/worker/ResumeUpload';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useThemedStyles } from '@/theme';
 
 type WorkerApplicationKitViewProps = {
   profile: WorkerProfile | null;
@@ -17,52 +25,77 @@ export function WorkerApplicationKitView({
   profile,
   displayPreview = true,
 }: WorkerApplicationKitViewProps) {
-  const { colors } = useTheme();
-  const [previewOpen, setPreviewOpen] = useState(false);
-
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    wrap: { gap: spacing.md },
-    previewToggle: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: colors.surface,
-      borderRadius: 12,
+  const { refreshWorkerProfile } = useWorkerProfile();
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    hint: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
+    badge: {
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: spacing.xs + 1,
+      backgroundColor: colors.fillSubtle,
       borderWidth: 1,
       borderColor: colors.separator,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 4,
     },
-    previewToggleText: {
-      ...typography.body,
-      fontSize: 15,
+    badgeText: {
+      fontSize: 12,
       fontWeight: '600',
-      color: colors.labelPrimary,
+      color: colors.labelSecondary,
     },
   }));
 
+  if (!profile) {
+    return (
+      <ProfileEmptyState
+        icon="folder-open-outline"
+        title="Set up your application kit"
+        description="Add a photo, resume, and default note so clinics receive a polished application when you apply."
+      />
+    );
+  }
+
+  const hasNote = Boolean(profile.default_cover_message?.trim());
+  const backgroundComplete = isWorkerProfileComplete(profile);
+
   return (
-    <View style={styles.wrap}>
-      <ProfilePhotoUpload />
-      <ResumeUpload />
+    <ProfileDetailStack>
+      {!backgroundComplete ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>Finish your professional background first</Text>
+        </View>
+      ) : null}
+
+      <SectionPanel icon="camera-outline" title="Profile photo">
+        <Text style={styles.hint}>
+          Optional — included with role and fill-in applications.
+        </Text>
+        <ProfilePhotoUpload embedded onUpdated={() => void refreshWorkerProfile()} />
+      </SectionPanel>
+
+      <SectionPanel icon="document-text-outline" title="Resume">
+        <Text style={styles.hint}>Optional PDF attached to role applications.</Text>
+        <ResumeUpload embedded onUploaded={() => void refreshWorkerProfile()} />
+      </SectionPanel>
+
+      <SectionPanel icon="chatbox-ellipses-outline" title="Default cover note">
+        <FieldBlock label="Saved note">
+          {hasNote ? (
+            <DetailProse text={profile.default_cover_message!.trim()} />
+          ) : (
+            <FieldValue value={null} />
+          )}
+        </FieldBlock>
+      </SectionPanel>
 
       {displayPreview ? (
-        <>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: previewOpen }}
-            style={styles.previewToggle}
-            onPress={() => setPreviewOpen((open) => !open)}>
-            <Text style={styles.previewToggleText}>Preview what clinics see</Text>
-            <Ionicons
-              name={previewOpen ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={colors.labelSecondary}
-            />
-          </Pressable>
-          {previewOpen ? <ApplicationKitPreview profile={profile} /> : null}
-        </>
+        <SectionPanel icon="eye-outline" title="Clinic preview">
+          <ApplicationKitPreview profile={profile} embedded />
+        </SectionPanel>
       ) : null}
-    </View>
+    </ProfileDetailStack>
   );
 }

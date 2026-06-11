@@ -3,12 +3,12 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { RowDivider } from '@/components/clinic/DetailCard';
+import { EditPillButton } from '@/components/ui/EditPillButton';
 import {
   webFullBleedRowInsets,
   webHover,
   webListRowHoverStyles,
   webPointer,
-  webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -158,15 +158,8 @@ export function ScreenSection({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'flex-end',
+      paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
-      minHeight: 44,
-      borderRadius: 10,
-      ...webFullBleedRowInsets(spacing.md),
-      ...webPointer(),
-    },
-    actionRowHovered: webTextLinkHoverStyles(colors),
-    actionRowPressed: {
-      opacity: 0.88,
     },
     toggleHit: {
       minWidth: 28,
@@ -177,19 +170,9 @@ export function ScreenSection({
     actionRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
+      justifyContent: 'flex-end',
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
-      minHeight: 44,
-      borderRadius: 10,
-      ...webFullBleedRowInsets(spacing.md),
-      ...webPointer(),
-    },
-    actionLabel: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.primary,
     },
     body: {
       gap: spacing.md,
@@ -301,33 +284,21 @@ export function ScreenSection({
               {!expanded && collapsedActionLabel && onCollapsedActionPress ? (
                 <>
                   <RowDivider />
-                  <Pressable
-                    accessibilityRole="button"
-                    style={({ pressed, hovered }) => [
-                      styles.collapsedActionRow,
-                      webHover(hovered, pressed, styles.actionRowHovered),
-                      pressed && styles.actionRowPressed,
-                    ]}
-                    onPress={onCollapsedActionPress}>
-                    <Text style={styles.actionLabel}>{collapsedActionLabel}</Text>
-                  </Pressable>
+                  <View style={styles.collapsedActionRow}>
+                    <EditPillButton
+                      label={collapsedActionLabel}
+                      onPress={onCollapsedActionPress}
+                    />
+                  </View>
                 </>
               ) : null}
             </View>
             {expanded && actionLabel && onActionPress ? (
               <>
                 <RowDivider />
-                <Pressable
-                  accessibilityRole="button"
-                  style={({ pressed, hovered }) => [
-                    styles.actionRow,
-                    webHover(hovered, pressed, styles.actionRowHovered),
-                    pressed && styles.actionRowPressed,
-                  ]}
-                  onPress={onActionPress}>
-                  <Text style={styles.actionLabel}>{actionLabel}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                </Pressable>
+                <View style={styles.actionRow}>
+                  <EditPillButton label={actionLabel} onPress={onActionPress} />
+                </View>
               </>
             ) : null}
           </>

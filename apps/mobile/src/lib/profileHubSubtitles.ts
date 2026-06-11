@@ -1,13 +1,13 @@
 import type { ClinicProfile, WorkerProfile } from '@chairside/api';
-import { isClinicProfileComplete, isWorkerProfileComplete } from '@chairside/api';
-import { getProvinceLabel, getRoleTypeLabel, getSpecialtyLabel } from '@chairside/config';
+import { getWorkerRoleTypes, isClinicProfileComplete, isWorkerProfileComplete } from '@chairside/api';
+import { getProvinceLabel, formatRoleTypesLabel, getSpecialtyLabel } from '@chairside/config';
 
 export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null): string {
   if (!profile || !isWorkerProfileComplete(profile)) {
     return 'Incomplete';
   }
 
-  const roleLabel = profile.role_type ? getRoleTypeLabel(profile.role_type) : null;
+  const roleLabel = formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null;
   const location = [profile.city, profile.province ? getProvinceLabel(profile.province) : null]
     .filter(Boolean)
     .join(', ');

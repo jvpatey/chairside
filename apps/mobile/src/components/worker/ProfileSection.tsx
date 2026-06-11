@@ -1,12 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View, type ViewProps } from 'react-native';
+import { Text, View, type ViewProps } from 'react-native';
 
-import {
-  webHover,
-  webPointer,
-  webTextLinkHoverStyles,
-} from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { EditPillButton } from '@/components/ui/EditPillButton';
+import { useThemedStyles } from '@/theme';
 
 type ProfileSectionProps = ViewProps & {
   title: string;
@@ -25,7 +20,6 @@ export function ProfileSection({
   style,
   ...rest
 }: ProfileSectionProps) {
-  const { colors } = useTheme();
   const styles = useThemedStyles(({ spacing, typography }) => ({
     wrap: { gap: spacing.md },
     header: {
@@ -34,25 +28,11 @@ export function ProfileSection({
       justifyContent: 'space-between',
       gap: spacing.md,
     },
-    headerText: { flex: 1, gap: spacing.xs },
+    headerText: { flex: 1, gap: spacing.xs, minWidth: 0 },
     title: { ...typography.body, fontWeight: '700', fontSize: 17 },
     subtitle: { ...typography.subtitle, fontSize: 14, lineHeight: 20 },
-    action: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-      paddingTop: 2,
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      marginRight: -spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    actionHovered: webTextLinkHoverStyles(colors),
-    actionLabel: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.primary,
+    titleAction: {
+      marginTop: 1,
     },
   }));
 
@@ -64,18 +44,11 @@ export function ProfileSection({
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
         {actionLabel && onActionPress ? (
-          <Pressable
-            accessibilityRole="button"
-            hitSlop={8}
-            style={({ pressed, hovered }) => [
-              styles.action,
-              webHover(hovered, pressed, styles.actionHovered),
-              pressed && { opacity: 0.75 },
-            ]}
-            onPress={onActionPress}>
-            <Text style={styles.actionLabel}>{actionLabel}</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-          </Pressable>
+          <EditPillButton
+            label={actionLabel}
+            onPress={onActionPress}
+            style={styles.titleAction}
+          />
         ) : null}
       </View>
       {children}

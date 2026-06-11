@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   View,
   type StyleProp,
   type ViewStyle,
@@ -36,13 +37,20 @@ type OnboardingShellProps = {
   children: ReactNode;
   footer?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Renders behind scroll content (e.g. welcome screen top glow). */
+  backgroundAccessory?: ReactNode;
 };
 
 const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;
 const SCROLL_INTO_VIEW_DELAYS_MS = [50, 150, 300, 500];
 const SCROLL_INTO_VIEW_MARGIN = 32;
 
-export function OnboardingShell({ children, footer, contentStyle }: OnboardingShellProps) {
+export function OnboardingShell({
+  children,
+  footer,
+  contentStyle,
+  backgroundAccessory,
+}: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
@@ -62,6 +70,15 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
     },
     scroll: {
       flex: 1,
+      backgroundColor: 'transparent',
+    },
+    backgroundLayer: {
+      ...StyleSheet.absoluteFillObject,
+      pointerEvents: 'none',
+    },
+    shellInner: {
+      flex: 1,
+      backgroundColor: 'transparent',
     },
     content: {
       flexGrow: 1,
@@ -216,7 +233,7 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
 
   const shell = footer ? (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.shellInner}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {scrollView}
       <View
@@ -230,16 +247,21 @@ export function OnboardingShell({ children, footer, contentStyle }: OnboardingSh
       </View>
     </KeyboardAvoidingView>
   ) : Platform.OS === 'android' ? (
-    <KeyboardAvoidingView style={styles.container} behavior="height">
+    <KeyboardAvoidingView style={styles.shellInner} behavior="height">
       {scrollView}
     </KeyboardAvoidingView>
   ) : (
-    <View style={styles.container}>{scrollView}</View>
+    <View style={styles.shellInner}>{scrollView}</View>
   );
 
   return (
     <FormScrollContext.Provider value={{ scrollWrapIntoView: scheduleScrollIntoView }}>
-      {shell}
+      <View style={styles.container}>
+        {backgroundAccessory ? (
+          <View style={styles.backgroundLayer}>{backgroundAccessory}</View>
+        ) : null}
+        {shell}
+      </View>
     </FormScrollContext.Provider>
   );
 }

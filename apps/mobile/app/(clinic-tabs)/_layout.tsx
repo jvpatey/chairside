@@ -25,16 +25,20 @@ function ClinicTabNavigator() {
           name="postings"
           options={{
             title: 'Postings',
-            tabBarIcon: ({ color }) => <Ionicons name="briefcase" size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} size={22} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="applications"
           options={{
-            title: 'Applications',
+            title: 'Apps',
             tabBarAccessibilityLabel: 'Applications',
             tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
-            tabBarIcon: ({ color }) => <Ionicons name="people" size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'people' : 'people-outline'} size={22} color={color} />
+            ),
           }}
         />
         <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
@@ -43,7 +47,9 @@ function ClinicTabNavigator() {
           options={{
             title: 'Fill-ins',
             tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
-            tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={22} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
@@ -51,8 +57,12 @@ function ClinicTabNavigator() {
           options={{
             title: 'Messages',
             tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="chatbubbles-outline" size={22} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
+                size={22}
+                color={color}
+              />
             ),
           }}
         />

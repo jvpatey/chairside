@@ -22,9 +22,9 @@ export function DashboardTabletSectionHeader({ title }: DashboardTabletSectionHe
     title: {
       flex: 1,
       ...typography.body,
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.6,
       textTransform: 'uppercase',
       color: typography.subtitle.color,
     },

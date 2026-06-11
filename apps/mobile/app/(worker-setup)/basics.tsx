@@ -1,5 +1,5 @@
 import { ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
-import { updateProfileDisplayName } from '@chairside/api';
+import { getWorkerRoleTypes, updateProfileDisplayName } from '@chairside/api';
 import { router } from 'expo-router';
 import { WORKER_HOME, WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
@@ -20,7 +20,7 @@ export default function WorkerBasicsScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const [displayName, setDisplayName] = useState('');
-  const [roleType, setRoleType] = useState<RoleType | null>(null);
+  const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
@@ -37,7 +37,7 @@ export default function WorkerBasicsScreen() {
 
   useEffect(() => {
     if (!workerProfile) return;
-    setRoleType((workerProfile.role_type as RoleType) ?? null);
+    setRoleTypes(getWorkerRoleTypes(workerProfile));
   }, [workerProfile]);
 
   const handleContinue = async () => {
@@ -45,8 +45,8 @@ export default function WorkerBasicsScreen() {
       Alert.alert('Missing information', 'Enter your name to continue.');
       return;
     }
-    if (!roleType) {
-      Alert.alert('Missing information', 'Select the role you are qualified for.');
+    if (roleTypes.length === 0) {
+      Alert.alert('Missing information', 'Select at least one role you are qualified for.');
       return;
     }
 
@@ -56,7 +56,7 @@ export default function WorkerBasicsScreen() {
         await updateProfileDisplayName(user.id, displayName.trim());
         await refreshProfile();
       }
-      await save({ role_type: roleType });
+      await save({ role_types: roleTypes });
       router.push(WORKER_SETUP_EXPERIENCE);
     } catch (error) {
       Alert.alert(
@@ -83,7 +83,7 @@ export default function WorkerBasicsScreen() {
       }>
       <AuthScreenHeader
         title="Professional background · Basics"
-        subtitle="Tell clinics who you are and what role you are qualified for."
+        subtitle="Tell clinics who you are and which roles you are qualified for."
         onBack={() => router.replace(WORKER_HOME)}
       />
       <View style={styles.form}>
@@ -95,11 +95,12 @@ export default function WorkerBasicsScreen() {
           autoCapitalize="words"
         />
         <View style={styles.section}>
-          <Text style={styles.label}>Role</Text>
+          <Text style={styles.label}>Roles</Text>
           <ChipSelector
             options={[...ROLE_TYPE_OPTIONS]}
-            selected={roleType}
-            onChange={(value) => setRoleType(value as RoleType)}
+            selected={roleTypes}
+            multiple
+            onChange={(value) => setRoleTypes(value as RoleType[])}
           />
         </View>
       </View>

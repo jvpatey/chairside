@@ -17,7 +17,8 @@ import {
   canClinicHideApplication,
   isAwaitingApplicationKit,
   isScreeningStageStatus,
-  getRoleTypeLabel,
+  formatRoleTypesLabel,
+  resolveWorkerRoleTypes,
   getSpecialtyLabel,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
@@ -147,8 +148,12 @@ export function ClinicApplicationCard({
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
   const [cardHovered, setCardHovered] = useState(false);
-  const { refreshPending: refreshApplicationTabBadge, isApplicationHighlighted, getApplicationHighlightLabel } =
-    useApplicationTabBadge();
+  const {
+    refreshPending: refreshApplicationTabBadge,
+    markApplicationSeen,
+    isApplicationHighlighted,
+    getApplicationHighlightLabel,
+  } = useApplicationTabBadge();
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const [expanded, setExpanded] = useState(false);
@@ -367,6 +372,9 @@ export function ClinicApplicationCard({
 
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (!expanded && hasNewApplication) {
+      void markApplicationSeen(application.id);
+    }
     setExpanded((current) => !current);
   };
 
@@ -561,10 +569,10 @@ export function ClinicApplicationCard({
               value={formatApplicationEducation(application.education)}
             />
           ) : null}
-          {hasKitSubmitted && application.role_type ? (
+          {hasKitSubmitted && resolveWorkerRoleTypes(application).length > 0 ? (
             <ApplicationPreviewField
-              label="Role"
-              value={getRoleTypeLabel(application.role_type)}
+              label="Roles"
+              value={formatRoleTypesLabel(resolveWorkerRoleTypes(application))}
             />
           ) : null}
           {hasKitSubmitted && (application.software_used ?? []).length > 0 ? (

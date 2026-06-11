@@ -64,19 +64,21 @@ export function formatJobApplicationSummaryMeta(summary: {
   applicant_count: number;
   screening_count?: number;
   pending_count: number;
+  unseen_count?: number;
   shortlisted_count?: number;
   interview_count?: number;
 }): string | undefined {
   if (summary.applicant_count === 0) return undefined;
 
   const parts: string[] = [];
+  const unseenCount = summary.unseen_count ?? summary.pending_count;
 
   if ((summary.screening_count ?? 0) > 0) {
     const count = summary.screening_count ?? 0;
     parts.push(count === 1 ? '1 screening' : `${count} screening`);
   }
-  if (summary.pending_count > 0) {
-    parts.push(summary.pending_count === 1 ? '1 new' : `${summary.pending_count} new`);
+  if (unseenCount > 0) {
+    parts.push(unseenCount === 1 ? '1 new' : `${unseenCount} new`);
   }
   if ((summary.shortlisted_count ?? 0) > 0) {
     const count = summary.shortlisted_count ?? 0;

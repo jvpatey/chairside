@@ -4,14 +4,18 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Pressable, Platform, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
+import {
+  DashboardStatGrid,
+  type DashboardOverviewStat,
+} from '@/components/dashboard/DashboardStatGrid';
+import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
-import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
@@ -19,7 +23,7 @@ import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
-import { webHover, webOnlyStyle, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
@@ -50,117 +54,13 @@ export function DashboardHero({
   );
 }
 
-type SectionHeaderProps = {
-  title: string;
-};
+/** @deprecated Use `DashboardSectionHeader` from `@/components/dashboard/DashboardSectionHeader`. */
+export { DashboardSectionHeader as SectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 
-export function SectionHeader({ title }: SectionHeaderProps) {
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    header: {
-      marginBottom: spacing.sm,
-    },
-    title: {
-      ...typography.body,
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: typography.subtitle.color,
-    },
-  }));
+/** @deprecated Use `DashboardQuickActionTile` from `@/components/dashboard/DashboardQuickActionTile`. */
+export { DashboardQuickActionTile as QuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 
-  return (
-    <View style={styles.header}>
-      <Text style={styles.title}>{title}</Text>
-    </View>
-  );
-}
-
-type QuickActionTileProps = {
-  label: string;
-  description: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  variant?: 'primary' | 'secondary';
-  onPress: () => void;
-};
-
-export function QuickActionTile({
-  label,
-  description,
-  icon,
-  variant = 'primary',
-  onPress,
-}: QuickActionTileProps) {
-  const { colors } = useTheme();
-  const iconWrapBackground =
-    variant === 'primary' ? colors.primarySubtle : colors.fillSubtle;
-
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
-    tile: {
-      flex: 1,
-      borderRadius: 16,
-      padding: spacing.md,
-      gap: spacing.sm,
-      minHeight: 112,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      backgroundColor: colors.surface,
-      ...webPointer(),
-    },
-    tileHovered: webTileHoverStyles(colors, isDark),
-    tilePressed: {
-      opacity: 0.88,
-      backgroundColor: colors.fillSubtle,
-    },
-    iconWrap: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: iconWrapBackground,
-    },
-    label: {
-      ...typography.body,
-      fontWeight: '600',
-      fontSize: 15,
-      color: colors.labelPrimary,
-    },
-    description: {
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.labelSecondary,
-    },
-  }));
-
-  const handlePress = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onPress();
-  };
-
-  const isWeb = Platform.OS === 'web';
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}. ${description}`}
-      accessibilityHint="Opens this section of the app"
-      onPress={handlePress}
-      style={({ pressed, hovered }) => [
-        styles.tile,
-        isWeb && hovered && !pressed && styles.tileHovered,
-        pressed && styles.tilePressed,
-      ]}>
-      <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={20} color={colors.primary} />
-      </View>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.description}>{description}</Text>
-    </Pressable>
-  );
-}
-
-export type OverviewStat = 'roles' | 'fill-ins' | 'applications';
+export type OverviewStat = DashboardOverviewStat;
 
 type StatGridProps = {
   openRoles: number;
@@ -181,109 +81,21 @@ export function StatGrid({
   selected,
   onSelect,
 }: StatGridProps) {
-  const stats: {
-    key: OverviewStat;
-    label: string;
-    value: number;
-    badgeCount: number;
-  }[] = [
-    { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
-    { key: 'fill-ins', label: 'Fill-ins', value: fillInsPosted, badgeCount: fillInUpdateCount },
-    {
-      key: 'applications',
-      label: 'Applications',
-      value: totalApplications,
-      badgeCount: applicationUpdateCount,
-    },
-  ];
-
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
-    grid: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-    cellWrap: {
-      flex: 1,
-      position: 'relative',
-    },
-    badgeAnchor: {
-      position: 'absolute',
-      top: -4,
-      right: -2,
-      zIndex: 1,
-    },
-    cell: {
-      backgroundColor: colors.backgroundGrouped,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.sm,
-      alignItems: 'center',
-      gap: 2,
-      ...webPointer(),
-    },
-    cellSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.surface,
-    },
-    cellHovered: webTileHoverStyles(colors, isDark),
-    cellSelectedHovered: webOnlyStyle({
-      borderColor: colors.primary,
-      boxShadow: isDark
-        ? '0 4px 12px rgba(74, 154, 255, 0.16)'
-        : '0 4px 12px rgba(26, 111, 212, 0.12)',
-    } as ViewStyle),
-    value: {
-      ...typography.title,
-      fontSize: 20,
-      lineHeight: 24,
-      color: colors.labelPrimary,
-    },
-    valueSelected: {
-      color: colors.primary,
-    },
-    label: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-      textAlign: 'center',
-    },
-  }));
-
-  const isWeb = Platform.OS === 'web';
-
   return (
-    <View style={styles.grid}>
-      {stats.map((stat) => {
-        const isSelected = selected === stat.key;
-        return (
-          <View key={stat.key} style={styles.cellWrap}>
-            {stat.badgeCount > 0 ? (
-              <View style={styles.badgeAnchor}>
-                <NotificationCountBadge count={stat.badgeCount} />
-              </View>
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={`${stat.label}: ${stat.value}${
-                stat.badgeCount > 0 ? `, ${stat.badgeCount} updates` : ''
-              }`}
-              onPress={() => onSelect(stat.key)}
-              style={({ pressed, hovered }) => [
-                styles.cell,
-                isSelected && styles.cellSelected,
-                isWeb && hovered && !pressed && (isSelected ? styles.cellSelectedHovered : styles.cellHovered),
-                pressed && { opacity: 0.85 },
-              ]}>
-              <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
-              <Text style={styles.label}>{stat.label}</Text>
-            </Pressable>
-          </View>
-        );
-      })}
-    </View>
+    <DashboardStatGrid
+      selected={selected}
+      onSelect={onSelect}
+      stats={[
+        { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
+        { key: 'fill-ins', label: 'Fill-ins', value: fillInsPosted, badgeCount: fillInUpdateCount },
+        {
+          key: 'applications',
+          label: 'Applications',
+          value: totalApplications,
+          badgeCount: applicationUpdateCount,
+        },
+      ]}
+    />
   );
 }
 
@@ -476,10 +288,10 @@ export function DashboardOverviewPanel({
   const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
   const styles = useThemedStyles(({ spacing, colors }) => ({
     list: {
-      gap: spacing.md,
+      gap: spacing.sm,
     },
     subsection: {
-      gap: spacing.md,
+      gap: spacing.sm,
     },
     subsectionTitle: {
       fontSize: 13,
@@ -497,7 +309,7 @@ export function DashboardOverviewPanel({
 
   return (
     <View>
-      <SectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
+      <DashboardSectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
       {selected === 'roles' ? (
         roleJobs.length === 0 ? (
           <DashboardEmptyState message="No active role postings yet. Post a role to get started." />
@@ -586,16 +398,16 @@ export function DashboardOverviewPanel({
         ) : (
           <View style={styles.list}>
             {jobApplicationSummaries.map((summary) => {
-              const hasNewApplicants = summary.pending_count > 0;
+              const hasNewApplicants = summary.unseen_count > 0;
               return (
                 <DashboardListCard
                   key={summary.job_post_id}
                   title={summary.post_title}
                   subtitle={
                     hasNewApplicants
-                      ? summary.pending_count === 1
+                      ? summary.unseen_count === 1
                         ? '1 new applicant'
-                        : `${summary.pending_count} new applicants`
+                        : `${summary.unseen_count} new applicants`
                       : summary.applicant_count === 1
                         ? '1 applicant'
                         : `${summary.applicant_count} applicants`

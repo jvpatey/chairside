@@ -91,6 +91,7 @@ export type ApplicationRow = {
   years_of_experience: number | null;
   education: string | null;
   role_type: string | null;
+  role_types: string[];
   license_type: string | null;
   resume_storage_path: string | null;
   worker_display_name: string | null;
@@ -111,6 +112,16 @@ export type ApplicationRow = {
   clinic_logo_storage_path: string | null;
   worker_account_deleted_at: string | null;
   clinic_account_deleted_at: string | null;
+  application_kit_requested_at: string | null;
+  application_kit_submitted_at: string | null;
+  interview_proposed_at: string | null;
+  interview_proposed_duration_minutes: number | null;
+  interview_proposed_details: string | null;
+  interview_proposed_by: string | null;
+  worker_attention_at: string;
+  worker_last_seen_at: string | null;
+  clinic_attention_at: string;
+  clinic_last_seen_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -118,6 +129,7 @@ export type ApplicationRow = {
 export type WorkerProfileRow = {
   id: string;
   role_type: string | null;
+  role_types: string[];
   license_type: string | null;
   years_of_experience: number | null;
   education: string | null;
@@ -247,8 +259,9 @@ export type Database = {
         Insert: {
           id: string;
           role_type?: string | null;
-          license_type?: string | null;
+          role_types?: string[];
           years_of_experience?: number | null;
+          license_type?: string | null;
           education?: string | null;
           education_graduation_year?: number | null;
           education_degree_type?: string | null;
@@ -284,6 +297,24 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['worker_profiles']['Insert']>;
+        Relationships: [];
+      };
+      worker_shift_post_views: {
+        Row: {
+          worker_id: string;
+          shift_post_id: string;
+          seen_at: string;
+        };
+        Insert: {
+          worker_id: string;
+          shift_post_id: string;
+          seen_at?: string;
+        };
+        Update: {
+          worker_id?: string;
+          shift_post_id?: string;
+          seen_at?: string;
+        };
         Relationships: [];
       };
       availability_blocks: {
@@ -390,6 +421,22 @@ export type Database = {
       hide_clinic_application: {
         Args: { application_id: string };
         Returns: ApplicationRow;
+      };
+      mark_application_seen_by_worker: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      mark_application_seen_by_clinic: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      mark_applications_seen_by_worker: {
+        Args: { application_ids: string[] };
+        Returns: undefined;
+      };
+      mark_shift_posts_seen_by_worker: {
+        Args: { shift_post_ids: string[] };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

@@ -17,14 +17,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
+import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
+import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
+import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
+import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { Screen } from '@/components/ui/Screen';
 import {
-  QuickActionTile,
   WorkerDashboardHero,
   WorkerOverviewPanel,
-  WorkerSectionHeader,
-  WorkerStatGrid,
   type WorkerOverviewStat,
 } from '@/components/worker/WorkerCards';
 import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
@@ -65,9 +66,8 @@ export default function WorkerDashboardScreen() {
   const [shiftApplications, setShiftApplications] = useState<WorkerApplication[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  const styles = useThemedStyles(({ spacing }) => ({
-    content: { gap: spacing.xl },
-    row: { flexDirection: 'row', gap: spacing.sm },
+  const styles = useThemedStyles((theme) => ({
+    ...getDashboardLayoutStyles(theme),
   }));
 
   const loadDashboard = useCallback(async () => {
@@ -141,17 +141,17 @@ export default function WorkerDashboardScreen() {
         ) : null}
 
         {isTablet ? (
-          <View>
+          <View style={styles.section}>
             <DashboardTabletSectionHeader title="Quick actions" />
-            <View style={styles.row}>
-              <QuickActionTile
+            <View style={styles.quickActionRow}>
+              <DashboardQuickActionTile
                 label="Find jobs"
                 description="Browse open roles nearby"
                 icon="briefcase-outline"
                 variant="primary"
                 onPress={() => router.push(WORKER_BROWSE)}
               />
-              <QuickActionTile
+              <DashboardQuickActionTile
                 label="Find fill-ins"
                 description="Browse temp shifts nearby"
                 icon="calendar-outline"
@@ -186,17 +186,17 @@ export default function WorkerDashboardScreen() {
         />
 
         {!isTablet ? (
-          <View>
-            <WorkerSectionHeader title="Quick actions" />
-            <View style={styles.row}>
-              <QuickActionTile
+          <View style={styles.section}>
+            <DashboardSectionHeader title="Quick actions" />
+            <View style={styles.quickActionRow}>
+              <DashboardQuickActionTile
                 label="Find jobs"
                 description="Browse open roles nearby"
                 icon="briefcase-outline"
                 variant="primary"
                 onPress={() => router.push(WORKER_BROWSE)}
               />
-              <QuickActionTile
+              <DashboardQuickActionTile
                 label="Find fill-ins"
                 description="Browse temp shifts nearby"
                 icon="calendar-outline"
@@ -207,16 +207,26 @@ export default function WorkerDashboardScreen() {
           </View>
         ) : null}
 
-        <View>
-          <WorkerSectionHeader title="Overview" />
-          <WorkerStatGrid
-            openRoles={counts.openRolesInProvince}
-            openFillIns={counts.openFillInsInProvince}
-            pendingApplications={counts.pendingApplications}
-            applicationUpdateCount={applicationUpdateCount}
-            fillInUpdateCount={fillInPendingCount}
+        <View style={styles.overviewSection}>
+          <DashboardSectionHeader title="Overview" />
+          <DashboardStatGrid
             selected={selectedOverview}
             onSelect={setSelectedOverview}
+            stats={[
+              { key: 'roles', label: 'Open roles', value: counts.openRolesInProvince },
+              {
+                key: 'fill-ins',
+                label: 'Fill-ins',
+                value: counts.openFillInsInProvince,
+                badgeCount: fillInPendingCount,
+              },
+              {
+                key: 'applications',
+                label: 'Applications',
+                value: counts.pendingApplications,
+                badgeCount: applicationUpdateCount,
+              },
+            ]}
           />
         </View>
 

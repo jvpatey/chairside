@@ -80,7 +80,7 @@ export default function WorkerApplicationDetailScreen() {
       }
       setApplication(row);
       setFormError(null);
-      await markApplicationSeen(row.id, row.updated_at);
+      await markApplicationSeen(row.id);
       setHasUnreadMessages(Boolean(unreadMap[applicationId]));
 
       if (row.post_type === 'shift' && row.status === 'hired' && row.shift_post_id) {

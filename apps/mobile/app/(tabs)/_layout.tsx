@@ -21,15 +21,24 @@ function WorkerTabNavigator() {
         name="browse"
         options={{
           title: 'Roles',
-          tabBarIcon: ({ color }) => <Ionicons name="briefcase-outline" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="applications"
         options={{
-          title: 'Applications',
+          title: 'Apps',
+          tabBarAccessibilityLabel: 'Applications',
           tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
-          tabBarIcon: ({ color }) => <Ionicons name="document-text" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'document-text' : 'document-text-outline'}
+              size={22}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
@@ -38,7 +47,9 @@ function WorkerTabNavigator() {
         options={{
           title: 'Fill-ins',
           tabBarBadge: fillInPendingCount > 0 ? fillInPendingCount : undefined,
-          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -46,7 +57,13 @@ function WorkerTabNavigator() {
         options={{
           title: 'Messages',
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarIcon: ({ color }) => <Ionicons name="chatbubbles-outline" size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
+              size={22}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen name="profile" options={{ href: null }} />

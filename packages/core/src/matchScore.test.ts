@@ -111,6 +111,38 @@ describe('calculateJobMatch', () => {
     expect(result.tier).toBe('none');
     expect(result.roleFit).toBe('missing');
   });
+
+  it('matches when any worker role overlaps the post role', () => {
+    const result = calculateJobMatch({
+      postRoleType: 'hygienist',
+      workerRoleTypes: ['assistant', 'hygienist'],
+      postEmploymentType: 'permanent',
+      workerPreferredEmploymentTypes: ['permanent'],
+      postSoftware: ['Dentrix'],
+      workerSoftware: ['Dentrix'],
+      distanceKm: 8,
+      workerTravelRadiusKm: 25,
+    });
+
+    expect(result.tier).toBe('strong');
+    expect(result.roleFit).toBe('strong');
+  });
+
+  it('returns missing role fit when worker has no roles selected', () => {
+    const result = calculateJobMatch({
+      postRoleType: 'hygienist',
+      workerRoleTypes: [],
+      postEmploymentType: 'permanent',
+      workerPreferredEmploymentTypes: ['permanent'],
+      postSoftware: ['Dentrix'],
+      workerSoftware: ['Dentrix'],
+      distanceKm: 8,
+      workerTravelRadiusKm: 25,
+    });
+
+    expect(result.roleFit).toBe('missing');
+    expect(result.tier).toBe('none');
+  });
 });
 
 describe('getMatchCriterionDetails', () => {

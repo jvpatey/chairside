@@ -599,22 +599,50 @@ function shiftWeekday(shiftDate: string): number {
   return date.getDay();
 }
 
-/** Live shifts matching worker role and availability weekdays (mirrors notify fill-in recipient logic). */
+/** Live shifts matching any worker role and availability weekdays (mirrors notify fill-in recipient logic). */
 export async function getMatchingLiveShiftPosts(
   province: string,
-  roleType: string | null,
+  roleTypes: string[] | null,
   availabilityDaySet: number[],
 ): Promise<LiveShiftPost[]> {
-  if (!roleType || availabilityDaySet.length === 0) {
+  if (!roleTypes?.length || availabilityDaySet.length === 0) {
     return [];
   }
 
+  const roleSet = new Set(roleTypes);
   const daySet = new Set(availabilityDaySet);
   const liveShifts = await listLiveShiftPosts(province);
   return liveShifts.filter((shift) => {
-    if (shift.role_type !== roleType) return false;
+    if (!roleSet.has(shift.role_type)) return false;
     return daySet.has(shiftWeekday(shift.shift_date));
   });
+}
+
+export async function getWorkerSeenShiftPostIds(workerId: string): Promise<Set<string>> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('worker_shift_post_views')
+    .select('shift_post_id')
+    .eq('worker_id', workerId);
+
+  if (error) throw error;
+
+  return new Set(
+    (data ?? [])
+      .map((row) => row.shift_post_id)
+      .filter((id): id is string => typeof id === 'string'),
+  );
+}
+
+export async function markShiftPostsSeenByWorker(shiftPostIds: string[]): Promise<void> {
+  if (shiftPostIds.length === 0) return;
+
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc('mark_shift_posts_seen_by_worker', {
+    shift_post_ids: shiftPostIds,
+  });
+
+  if (error) throw error;
 }
 
 export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null> {
