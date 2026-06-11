@@ -1,6 +1,7 @@
 import type { WorkerProfile } from '@chairside/api';
 import { isWorkerProfileComplete } from '@chairside/api';
-import { getProvinceLabel, getRoleTypeLabel } from '@chairside/config';
+import { getProvinceLabel, formatRoleTypesLabel } from '@chairside/config';
+import { getWorkerRoleTypes } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
@@ -24,7 +25,9 @@ export function WorkerProfileHero({
   const { photoUri, isUploading, pickPhoto } = useProfilePhoto();
   const name = displayName?.trim() || 'Your profile';
   const ready = isWorkerProfileComplete(profile);
-  const roleLabel = profile?.role_type ? getRoleTypeLabel(profile.role_type) : null;
+  const roleLabel = profile
+    ? formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null
+    : null;
   const location = [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
     .filter(Boolean)
     .join(', ');

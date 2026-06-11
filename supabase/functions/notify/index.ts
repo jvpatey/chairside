@@ -860,7 +860,7 @@ async function listFillInRecipients(
   const { data: workers, error } = await supabase
     .from('worker_profiles')
     .select(
-      'id, role_type, fill_in_notification_mode, short_notice_available, fill_in_sms_opt_in, phone, setup_completed_at',
+      'id, role_type, role_types, fill_in_notification_mode, short_notice_available, fill_in_sms_opt_in, phone, setup_completed_at',
     )
     .eq('short_notice_available', true)
     .neq('fill_in_notification_mode', 'off')
@@ -872,7 +872,15 @@ async function listFillInRecipients(
   const eligibleWorkers = await filterWorkerNotificationRecipients(supabase, workers, [clinicId]);
   if (!eligibleWorkers.length) return [];
 
-  const roleMatched = eligibleWorkers.filter((w) => w.role_type && w.role_type === shift.role_type);
+  const roleMatched = eligibleWorkers.filter((worker) => {
+    const roleTypes =
+      Array.isArray(worker.role_types) && worker.role_types.length > 0
+        ? worker.role_types
+        : worker.role_type
+          ? [worker.role_type]
+          : [];
+    return roleTypes.includes(shift.role_type);
+  });
 
   const availableDaysOnly = roleMatched.filter(
     (w) => w.fill_in_notification_mode === 'available_days_only',
@@ -1003,7 +1011,7 @@ async function handleJobPostLive(
     .from('worker_profiles')
     .select('id')
     .eq('job_notification_opt_in', true)
-    .eq('role_type', roleType)
+    .or(`role_type.eq.${roleType},role_types.cs.{${roleType}}`)
     .not('setup_completed_at', 'is', null);
 
   if (error) throw error;

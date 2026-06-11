@@ -3,6 +3,17 @@ import { formatWorkerEducation } from '@chairside/config';
 import { getProfile, setProfileRole } from './profile';
 import { getSupabaseClient } from './client';
 import type { Database } from './types';
+import {
+  getMissingWorkerProfileFields,
+  getWorkerRoleTypes,
+  isWorkerProfileComplete,
+} from './workerProfileValidation';
+
+export {
+  getMissingWorkerProfileFields,
+  getWorkerRoleTypes,
+  isWorkerProfileComplete,
+} from './workerProfileValidation';
 
 export type WorkerProfile = Database['public']['Tables']['worker_profiles']['Row'];
 export type WorkerProfileUpdate = Partial<
@@ -38,28 +49,20 @@ function normalizeRoleType(value: string | null | undefined): RoleType | null {
   return null;
 }
 
-export function isWorkerProfileComplete(profile: WorkerProfile | null): boolean {
-  if (!profile) return false;
+function normalizeRoleTypes(values: string[] | null | undefined): RoleType[] {
+  if (!values?.length) return [];
 
-  return (
-    Boolean(profile.role_type?.trim()) &&
-    Boolean(profile.address_line1?.trim()) &&
-    Boolean(profile.city?.trim()) &&
-    Boolean(profile.postal_code?.trim())
-  );
-}
-
-export function getMissingWorkerProfileFields(profile: WorkerProfile | null): string[] {
-  if (!profile) {
-    return ['Role type', 'Street address', 'City', 'Postal code'];
+  const seen = new Set<RoleType>();
+  for (const value of values) {
+    const role = normalizeRoleType(value);
+    if (role) seen.add(role);
   }
 
-  const missing: string[] = [];
-  if (!profile.role_type?.trim()) missing.push('Role type');
-  if (!profile.address_line1?.trim()) missing.push('Street address');
-  if (!profile.city?.trim()) missing.push('City');
-  if (!profile.postal_code?.trim()) missing.push('Postal code');
-  return missing;
+  return VALID_ROLE_TYPES.filter((role) => seen.has(role));
+}
+
+export function hasWorkerRole(profile: WorkerProfile | null, roleType: RoleType): boolean {
+  return getWorkerRoleTypes(profile).includes(roleType);
 }
 
 async function ensureWorkerRoleForProfile(userId: string): Promise<void> {
@@ -105,7 +108,16 @@ export async function upsertWorkerProfile(
     updated_at: now,
   };
 
-  if (partial.role_type !== undefined) payload.role_type = normalizeRoleType(partial.role_type);
+  if (partial.role_types !== undefined) {
+    const roleTypes = normalizeRoleTypes(partial.role_types);
+    payload.role_types = roleTypes;
+    payload.role_type = roleTypes[0] ?? null;
+  }
+  if (partial.role_type !== undefined && partial.role_types === undefined) {
+    const roleType = normalizeRoleType(partial.role_type);
+    payload.role_type = roleType;
+    payload.role_types = roleType ? [roleType] : [];
+  }
   if (partial.license_type !== undefined) payload.license_type = partial.license_type;
   if (partial.years_of_experience !== undefined) {
     payload.years_of_experience = partial.years_of_experience;
@@ -241,13 +253,14 @@ export async function upsertAvailabilityBlocks(
 }
 
 const CLINIC_WORKER_PROFILE_COLUMNS =
-  'id, role_type, years_of_experience, education, education_graduation_year, education_degree_type, education_field, education_institution, software_used, practice_types, preferred_employment_types, city, province, travel_radius_km, travel_radius_range, bio, short_notice_available, fill_in_notification_mode, resume_storage_path, resume_file_name, resume_uploaded_at, photo_storage_path, photo_uploaded_at, default_cover_message, setup_completed_at, created_at, updated_at';
+  'id, role_type, role_types, years_of_experience, education, education_graduation_year, education_degree_type, education_field, education_institution, software_used, practice_types, preferred_employment_types, city, province, travel_radius_km, travel_radius_range, bio, short_notice_available, fill_in_notification_mode, resume_storage_path, resume_file_name, resume_uploaded_at, photo_storage_path, photo_uploaded_at, default_cover_message, setup_completed_at, created_at, updated_at';
 
 /** Worker profile fields exposed to clinics (excludes address, phone, and notification prefs). */
 export type ClinicWorkerProfile = Pick<
   WorkerProfile,
   | 'id'
   | 'role_type'
+  | 'role_types'
   | 'years_of_experience'
   | 'education'
   | 'education_graduation_year'

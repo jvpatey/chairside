@@ -2,7 +2,8 @@ import type { WorkerApplication } from '@chairside/api';
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
-  getRoleTypeLabel,
+  formatRoleTypesLabel,
+  resolveWorkerRoleTypes,
   getSpecialtyLabel,
 } from '@chairside/config';
 import { View } from 'react-native';
@@ -67,8 +68,8 @@ export function ApplicationSubmittedFields({ application }: ApplicationSubmitted
       </View>
 
       <ApplicationPreviewField
-        label="Role"
-        value={application.role_type ? getRoleTypeLabel(application.role_type) : null}
+        label="Roles"
+        value={formatRoleTypesLabel(resolveWorkerRoleTypes(application)) || null}
       />
       <ApplicationPreviewField label="Experience" value={experienceLabel} />
       <ApplicationPreviewField

@@ -83,6 +83,7 @@ export {
   getMissingWorkerProfileFields,
   getWorkerProfile,
   getWorkerProfileForClinic,
+  getWorkerRoleTypes,
   isWorkerProfileComplete,
   getWorkerEducationSummary,
   listAvailabilityBlocks,

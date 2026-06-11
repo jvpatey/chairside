@@ -20,6 +20,7 @@ import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationPackageFields } from '@/components/worker/ApplicationPackageFields';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -83,7 +84,6 @@ export default function ApplyScreen() {
       color: colors.primary,
     },
     hint: { ...typography.subtitle, fontSize: 13 },
-    editLink: { color: colors.primary, fontWeight: '600' },
     screeningNote: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -330,9 +330,10 @@ export default function ApplyScreen() {
                   showDefaultNote
                 />
               ) : null}
-              <Pressable onPress={() => router.push(WORKER_SETUP_APPLICATION)}>
-                <Text style={styles.editLink}>Edit application kit</Text>
-              </Pressable>
+              <EditPillButton
+                label="Edit application kit"
+                onPress={() => router.push(WORKER_SETUP_APPLICATION)}
+              />
             </View>
 
             <AuthField

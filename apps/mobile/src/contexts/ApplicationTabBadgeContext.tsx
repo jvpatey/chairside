@@ -13,6 +13,7 @@ import {
   getMatchingLiveShiftPosts,
   getWorkerApplicationUpdateCount,
   getWorkerShiftApplicationUpdateCount,
+  getWorkerRoleTypes,
   isClinicNewApplication,
   isWorkerApplicationUpdateUnseen,
   isWorkerFillInApplicationUpdateCountable,
@@ -135,13 +136,13 @@ export function ApplicationTabBadgeProvider({
       setSeenMapReady(true);
 
       const province = workerProfile?.province ?? 'NS';
-      const roleType = workerProfile?.role_type ?? null;
+      const roleTypes = getWorkerRoleTypes(workerProfile);
       const availabilityDaySet = availabilityBlocks.map((block) => block.day_of_week);
 
       const [jobCount, shiftCount, matchingShifts, seenShiftPostIds] = await Promise.all([
         getWorkerApplicationUpdateCount(user.id, nextSeenMap),
         getWorkerShiftApplicationUpdateCount(user.id, nextSeenMap),
-        getMatchingLiveShiftPosts(province, roleType, availabilityDaySet),
+        getMatchingLiveShiftPosts(province, roleTypes, availabilityDaySet),
         getSeenShiftPostIds(),
       ]);
 
@@ -155,7 +156,7 @@ export function ApplicationTabBadgeProvider({
       setPendingCount(0);
       setFillInPendingCount(0);
     }
-  }, [availabilityBlocks, role, user?.id, workerProfile?.province, workerProfile?.role_type]);
+  }, [availabilityBlocks, role, user?.id, workerProfile]);
 
   const markApplicationSeen = useCallback(
     async (applicationId: string, updatedAt: string) => {

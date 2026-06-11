@@ -1,9 +1,10 @@
 import type { WorkerProfile } from '@chairside/api';
+import { getWorkerRoleTypes } from '@chairside/api';
 import {
   formatWorkerEducation,
   getFillInNotificationModeLabel,
   getProvinceLabel,
-  getRoleTypeLabel,
+  formatRoleTypesLabel,
   getSpecialtyLabel,
   getTravelRadiusRangeLabel,
 } from '@chairside/config';
@@ -68,8 +69,8 @@ export function WorkerProfileView({ profile, displayName }: WorkerProfileViewPro
     <View style={styles.card}>
       {displayName ? <ProfileRow label="Name" value={displayName} /> : null}
       <ProfileRow
-        label="Role"
-        value={profile.role_type ? getRoleTypeLabel(profile.role_type) : ''}
+        label="Roles"
+        value={formatRoleTypesLabel(getWorkerRoleTypes(profile))}
       />
       <ProfileRow
         label="Experience"

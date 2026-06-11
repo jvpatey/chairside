@@ -11,6 +11,7 @@ type ApplicationKitPreviewProps = {
   displayName?: string | null;
   photoStoragePath?: string | null;
   showDefaultNote?: boolean;
+  embedded?: boolean;
 };
 
 export function ApplicationKitPreview({
@@ -18,6 +19,7 @@ export function ApplicationKitPreview({
   displayName: displayNameProp,
   photoStoragePath,
   showDefaultNote = true,
+  embedded = false,
 }: ApplicationKitPreviewProps) {
   const { profile: authProfile } = useAuth();
   const displayName = displayNameProp ?? authProfile?.display_name;
@@ -25,14 +27,16 @@ export function ApplicationKitPreview({
   const photoUri = useWorkerPhotoUri(resolvedPhotoPath);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    preview: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
+    preview: embedded
+      ? { gap: spacing.sm }
+      : {
+          backgroundColor: colors.surface,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.separator,
+          padding: spacing.md,
+          gap: spacing.sm,
+        },
     previewLabel: {
       fontSize: 12,
       fontWeight: '600',
@@ -46,7 +50,7 @@ export function ApplicationKitPreview({
   if (!profile) {
     return (
       <View style={styles.preview}>
-        <Text style={styles.previewLabel}>Clinics will see</Text>
+        {!embedded ? <Text style={styles.previewLabel}>Clinics will see</Text> : null}
         <Text style={styles.empty}>Complete your professional background first.</Text>
       </View>
     );
@@ -54,7 +58,7 @@ export function ApplicationKitPreview({
 
   return (
     <View style={styles.preview}>
-      <Text style={styles.previewLabel}>Clinics will see</Text>
+      {!embedded ? <Text style={styles.previewLabel}>Clinics will see</Text> : null}
       <ApplicationPackageFields
         profile={profile}
         displayName={displayName}

@@ -1,8 +1,9 @@
 import type { WorkerProfile } from '@chairside/api';
+import { getWorkerRoleTypes } from '@chairside/api';
 import {
   formatWorkerAddress,
   formatWorkerEducation,
-  getRoleTypeLabel,
+  formatRoleTypesLabel,
   getSpecialtyLabel,
 } from '@chairside/config';
 import { Text, View } from 'react-native';
@@ -96,8 +97,8 @@ export function ApplicationPackageFields({
       </View>
 
       <ApplicationPreviewField
-        label="Role"
-        value={profile.role_type ? getRoleTypeLabel(profile.role_type) : null}
+        label="Roles"
+        value={formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null}
       />
       <ApplicationPreviewField
         label="Experience"

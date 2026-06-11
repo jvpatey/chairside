@@ -12,22 +12,25 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 type ProfilePhotoUploadProps = {
   onUpdated?: () => void;
+  embedded?: boolean;
 };
 
-export function ProfilePhotoUpload({ onUpdated }: ProfilePhotoUploadProps) {
+export function ProfilePhotoUpload({ onUpdated, embedded = false }: ProfilePhotoUploadProps) {
   const { profile } = useAuth();
   const { colors } = useTheme();
   const { photoUri, hasPhoto, isUploading, pickPhoto, removePhoto } = useProfilePhoto();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
+    card: embedded
+      ? { gap: spacing.sm }
+      : {
+          backgroundColor: colors.surface,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.separator,
+          padding: spacing.md,
+          gap: spacing.sm,
+        },
     row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     textBlock: { flex: 1, gap: 2 },
     title: { ...typography.body, fontWeight: '600' },

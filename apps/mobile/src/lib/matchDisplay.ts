@@ -1,5 +1,5 @@
 import type { Application } from '@chairside/api';
-import { getEmploymentTypeLabel, getRoleTypeLabel } from '@chairside/config';
+import { getEmploymentTypeLabel, getRoleTypeLabel, formatRoleTypesLabel, resolveWorkerRoleTypes } from '@chairside/config';
 import type {
   JobMatchBreakdown,
   JobMatchContext,
@@ -19,6 +19,9 @@ export function parseStoredMatchContext(
   return {
     postRoleType: typeof context.postRoleType === 'string' ? context.postRoleType : undefined,
     workerRoleType: typeof context.workerRoleType === 'string' ? context.workerRoleType : null,
+    workerRoleTypes: Array.isArray(context.workerRoleTypes)
+      ? context.workerRoleTypes.filter((value) => typeof value === 'string')
+      : undefined,
     postEmploymentType:
       typeof context.postEmploymentType === 'string' ? context.postEmploymentType : undefined,
     workerPreferredEmploymentTypes: Array.isArray(context.workerPreferredEmploymentTypes)
@@ -44,10 +47,16 @@ export function buildMatchDisplayContext(
   postEmploymentLabel?: string;
   workerEmploymentLabels?: string[];
 } {
+  const workerRoles = resolveWorkerRoleTypes({
+    role_types: context.workerRoleTypes,
+    role_type: context.workerRoleType,
+  });
+
   return {
     ...context,
     postRoleLabel: context.postRoleType ? getRoleTypeLabel(context.postRoleType) : undefined,
-    workerRoleLabel: context.workerRoleType ? getRoleTypeLabel(context.workerRoleType) : undefined,
+    workerRoleLabel: workerRoles.length ? formatRoleTypesLabel(workerRoles) : undefined,
+    workerRoleLabels: workerRoles.map(getRoleTypeLabel),
     postEmploymentLabel: context.postEmploymentType
       ? getEmploymentTypeLabel(context.postEmploymentType)
       : undefined,
@@ -69,14 +78,16 @@ export function parseApplicationJobMatch(
 export function getApplicationMatchDisplayContext(
   application: Pick<
     Application,
-    'match_breakdown' | 'role_type' | 'software_used' | 'preferred_employment_types'
+    'match_breakdown' | 'role_type' | 'role_types' | 'software_used' | 'preferred_employment_types'
   >,
 ): ReturnType<typeof buildMatchDisplayContext> {
   const storedContext = parseStoredMatchContext(application.match_breakdown?.context);
+  const snapshotRoles = resolveWorkerRoleTypes(application);
 
   return buildMatchDisplayContext({
     ...storedContext,
-    workerRoleType: storedContext.workerRoleType ?? application.role_type,
+    workerRoleTypes: storedContext.workerRoleTypes ?? snapshotRoles,
+    workerRoleType: storedContext.workerRoleType ?? snapshotRoles[0] ?? application.role_type,
     workerSoftware: storedContext.workerSoftware ?? application.software_used,
     workerPreferredEmploymentTypes:
       storedContext.workerPreferredEmploymentTypes ?? application.preferred_employment_types,

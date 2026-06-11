@@ -91,6 +91,7 @@ export type ApplicationRow = {
   years_of_experience: number | null;
   education: string | null;
   role_type: string | null;
+  role_types: string[];
   license_type: string | null;
   resume_storage_path: string | null;
   worker_display_name: string | null;
@@ -118,6 +119,7 @@ export type ApplicationRow = {
 export type WorkerProfileRow = {
   id: string;
   role_type: string | null;
+  role_types: string[];
   license_type: string | null;
   years_of_experience: number | null;
   education: string | null;
@@ -247,8 +249,8 @@ export type Database = {
         Insert: {
           id: string;
           role_type?: string | null;
+          role_types?: string[];
           license_type?: string | null;
-          years_of_experience?: number | null;
           education?: string | null;
           education_graduation_year?: number | null;
           education_degree_type?: string | null;

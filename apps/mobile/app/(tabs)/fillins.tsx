@@ -16,6 +16,7 @@ import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilitySch
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
+import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { WorkerSectionHeader } from '@/components/worker/WorkerCards';
@@ -212,22 +213,6 @@ export default function FillInsScreen() {
       color: colors.labelSecondary,
       flex: 1,
     },
-    scheduleEdit: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      marginRight: -spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    scheduleEditHovered: webTextLinkHoverStyles(colors),
-    scheduleEditLabel: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.primary,
-    },
     scheduleHint: {
       ...typography.subtitle,
       fontSize: 13,
@@ -263,19 +248,7 @@ export default function FillInsScreen() {
             >
               <View style={styles.scheduleHeader}>
                 <Text style={styles.scheduleLabel}>Weekly schedule</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  style={({ pressed, hovered }) => [
-                    styles.scheduleEdit,
-                    webHover(hovered, pressed, styles.scheduleEditHovered),
-                    pressed && { opacity: 0.75 },
-                  ]}
-                  onPress={navigateToEditSchedule}
-                >
-                  <Text style={styles.scheduleEditLabel}>Edit schedule</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                </Pressable>
+                <EditPillButton label="Edit schedule" onPress={navigateToEditSchedule} />
               </View>
               {!fillInsAvailable ? (
                 <Text style={styles.scheduleHint}>

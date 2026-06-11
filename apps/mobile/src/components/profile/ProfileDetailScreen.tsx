@@ -2,12 +2,9 @@ import { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EditPillButton } from '@/components/ui/EditPillButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import {
-  webHover,
-  webPointer,
-  webTextLinkHoverStyles,
-} from '@/lib/webPressableStyles';
+import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type ProfileDetailScreenProps = {
@@ -74,24 +71,15 @@ export function ProfileDetailScreen({
     titleBlock: {
       flex: 1,
       gap: spacing.sm,
+      minWidth: 0,
     },
     title: {
       ...typography.title,
       fontSize: 28,
     },
     subtitle: typography.subtitle,
-    action: {
-      paddingTop: spacing.xs + 2,
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    actionHovered: webTextLinkHoverStyles(colors),
-    actionLabel: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.primary,
+    titleAction: {
+      marginTop: 2,
     },
     body: {
       gap: spacing.lg,
@@ -127,17 +115,11 @@ export function ProfileDetailScreen({
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
             {actionLabel && onActionPress ? (
-              <Pressable
-                accessibilityRole="button"
-                hitSlop={8}
-                style={({ pressed, hovered }) => [
-                  styles.action,
-                  webHover(hovered, pressed, styles.actionHovered),
-                  pressed && { opacity: 0.75 },
-                ]}
-                onPress={onActionPress}>
-                <Text style={styles.actionLabel}>{actionLabel}</Text>
-              </Pressable>
+              <EditPillButton
+                label={actionLabel}
+                onPress={onActionPress}
+                style={styles.titleAction}
+              />
             ) : null}
           </View>
         </View>

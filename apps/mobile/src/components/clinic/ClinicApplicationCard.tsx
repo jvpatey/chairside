@@ -17,7 +17,8 @@ import {
   canClinicHideApplication,
   isAwaitingApplicationKit,
   isScreeningStageStatus,
-  getRoleTypeLabel,
+  formatRoleTypesLabel,
+  resolveWorkerRoleTypes,
   getSpecialtyLabel,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
@@ -561,10 +562,10 @@ export function ClinicApplicationCard({
               value={formatApplicationEducation(application.education)}
             />
           ) : null}
-          {hasKitSubmitted && application.role_type ? (
+          {hasKitSubmitted && resolveWorkerRoleTypes(application).length > 0 ? (
             <ApplicationPreviewField
-              label="Role"
-              value={getRoleTypeLabel(application.role_type)}
+              label="Roles"
+              value={formatRoleTypesLabel(resolveWorkerRoleTypes(application))}
             />
           ) : null}
           {hasKitSubmitted && (application.software_used ?? []).length > 0 ? (

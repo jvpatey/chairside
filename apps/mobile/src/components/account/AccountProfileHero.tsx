@@ -1,7 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 type AccountProfileHeroProps = {
   displayName?: string | null;
@@ -14,7 +13,6 @@ export function AccountProfileHero({
   email,
   accountTypeLabel,
 }: AccountProfileHeroProps) {
-  const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -24,15 +22,6 @@ export function AccountProfileHero({
       padding: spacing.lg,
       alignItems: 'center',
       gap: spacing.sm,
-    },
-    iconWrap: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      backgroundColor: colors.primarySubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.xs,
     },
     name: {
       ...typography.title,
@@ -71,9 +60,6 @@ export function AccountProfileHero({
 
   return (
     <View style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Ionicons name="person" size={32} color={colors.primary} />
-      </View>
       {trimmedName ? (
         <Text style={styles.name} numberOfLines={2}>
           {trimmedName}
