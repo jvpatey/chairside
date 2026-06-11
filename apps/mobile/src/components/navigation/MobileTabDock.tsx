@@ -6,8 +6,9 @@ import { useContext } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
 import { MOBILE_TAB_ORDER } from '@/components/navigation/tabOrder';
-import { webHover, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { webPointer } from '@/lib/webPressableStyles';
+import { getGlassTokens, useTheme, useThemedStyles } from '@/theme';
 
 type MobileTabDockProps = BottomTabBarProps & {
   role: 'worker' | 'clinic';
@@ -58,22 +59,8 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing.xs,
-      borderRadius: 28,
-      borderWidth: Platform.OS === 'ios' ? 0.5 : 1,
-      borderColor: colors.separator,
-      backgroundColor: colors.surfaceElevated,
       paddingHorizontal: spacing.xs,
       paddingVertical: spacing.xs,
-      ...webOnlyStyle({
-        boxShadow: isDark
-          ? '0 8px 24px rgba(0, 0, 0, 0.35)'
-          : '0 8px 24px rgba(0, 0, 0, 0.08)',
-      } as const),
-      ...(Platform.OS === 'android'
-        ? {
-            elevation: 8,
-          }
-        : {}),
     },
     item: {
       flex: 1,
@@ -122,7 +109,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       justifyContent: 'center',
       backgroundColor: colors.destructive,
       borderWidth: 1.5,
-      borderColor: colors.surfaceElevated,
+      borderColor: getGlassTokens(isDark).fallbackBackground,
     },
     badgeText: {
       fontSize: 9,
@@ -136,7 +123,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       style={styles.outer}
       pointerEvents="box-none"
       onLayout={(event) => onHeightChange?.(event.nativeEvent.layout.height)}>
-      <View style={styles.dock}>
+      <LiquidGlassSurface borderRadius={28} style={styles.dock}>
         {visibleRoutes.map((route) => {
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((item) => item.key === route.key);
@@ -206,7 +193,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
             </Pressable>
           );
         })}
-      </View>
+      </LiquidGlassSurface>
     </View>
   );
 }
