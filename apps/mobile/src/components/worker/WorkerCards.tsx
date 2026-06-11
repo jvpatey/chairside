@@ -1,18 +1,21 @@
 import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
-import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
+import {
+  DashboardStatGrid,
+  type DashboardOverviewStat,
+} from '@/components/dashboard/DashboardStatGrid';
+import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { webOnlyStyle, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerSetupBannerProps = {
@@ -90,29 +93,13 @@ export function WorkerDashboardHero({
   );
 }
 
-export function WorkerSectionHeader({ title }: { title: string }) {
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    header: { marginBottom: spacing.sm },
-    title: {
-      ...typography.body,
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: typography.subtitle.color,
-    },
-  }));
+/** @deprecated Use `DashboardSectionHeader` from `@/components/dashboard/DashboardSectionHeader`. */
+export { DashboardSectionHeader as WorkerSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 
-  return (
-    <View style={styles.header}>
-      <Text style={styles.title}>{title}</Text>
-    </View>
-  );
-}
+/** @deprecated Use `DashboardQuickActionTile` from `@/components/dashboard/DashboardQuickActionTile`. */
+export { DashboardQuickActionTile as QuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 
-export { QuickActionTile } from '@/components/clinic/ClinicCards';
-
-export type WorkerOverviewStat = 'roles' | 'fill-ins' | 'applications';
+export type WorkerOverviewStat = DashboardOverviewStat;
 
 type WorkerStatGridProps = {
   openRoles: number;
@@ -133,104 +120,21 @@ export function WorkerStatGrid({
   selected,
   onSelect,
 }: WorkerStatGridProps) {
-  const stats: {
-    key: WorkerOverviewStat;
-    label: string;
-    value: number;
-    badgeCount: number;
-  }[] = [
-    { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
-    { key: 'fill-ins', label: 'Fill-ins', value: openFillIns, badgeCount: fillInUpdateCount },
-    {
-      key: 'applications',
-      label: 'Applications',
-      value: pendingApplications,
-      badgeCount: applicationUpdateCount,
-    },
-  ];
-
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
-    grid: { flexDirection: 'row', gap: spacing.sm },
-    cellWrap: {
-      flex: 1,
-      position: 'relative',
-    },
-    badgeAnchor: {
-      position: 'absolute',
-      top: -4,
-      right: -2,
-      zIndex: 1,
-    },
-    cell: {
-      backgroundColor: colors.backgroundGrouped,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.sm,
-      alignItems: 'center',
-      gap: 2,
-      ...webPointer(),
-    },
-    cellSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.surface,
-    },
-    cellHovered: webTileHoverStyles(colors, isDark),
-    cellSelectedHovered: webOnlyStyle({
-      borderColor: colors.primary,
-      boxShadow: isDark
-        ? '0 4px 12px rgba(74, 154, 255, 0.16)'
-        : '0 4px 12px rgba(26, 111, 212, 0.12)',
-    } as ViewStyle),
-    value: {
-      ...typography.title,
-      fontSize: 20,
-      lineHeight: 24,
-      color: colors.labelPrimary,
-    },
-    valueSelected: { color: colors.primary },
-    label: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-      textAlign: 'center',
-    },
-  }));
-
-  const isWeb = Platform.OS === 'web';
-
   return (
-    <View style={styles.grid}>
-      {stats.map((stat) => {
-        const isSelected = selected === stat.key;
-        return (
-          <View key={stat.key} style={styles.cellWrap}>
-            {stat.badgeCount > 0 ? (
-              <View style={styles.badgeAnchor}>
-                <NotificationCountBadge count={stat.badgeCount} />
-              </View>
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={`${stat.label}: ${stat.value}${
-                stat.badgeCount > 0 ? `, ${stat.badgeCount} updates` : ''
-              }`}
-              onPress={() => onSelect(stat.key)}
-              style={({ pressed, hovered }) => [
-                styles.cell,
-                isSelected && styles.cellSelected,
-                isWeb && hovered && !pressed && (isSelected ? styles.cellSelectedHovered : styles.cellHovered),
-                pressed && { opacity: 0.85 },
-              ]}>
-              <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
-              <Text style={styles.label}>{stat.label}</Text>
-            </Pressable>
-          </View>
-        );
-      })}
-    </View>
+    <DashboardStatGrid
+      selected={selected}
+      onSelect={onSelect}
+      stats={[
+        { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
+        { key: 'fill-ins', label: 'Fill-ins', value: openFillIns, badgeCount: fillInUpdateCount },
+        {
+          key: 'applications',
+          label: 'Applications',
+          value: pendingApplications,
+          badgeCount: applicationUpdateCount,
+        },
+      ]}
+    />
   );
 }
 
@@ -308,7 +212,7 @@ export function WorkerOverviewPanel({
 
   return (
     <View>
-      <WorkerSectionHeader title={OVERVIEW_TITLES[selected]} />
+      <DashboardSectionHeader title={OVERVIEW_TITLES[selected]} />
       {selected === 'roles' ? (
         jobs.length === 0 ? (
           <View style={styles.empty}>
@@ -339,7 +243,7 @@ export function WorkerOverviewPanel({
           <View style={styles.list}>
             {shifts.length > 0 ? (
               <View style={styles.group}>
-                <WorkerSectionHeader title="Open" />
+                <DashboardSectionHeader title="Open" compact />
                 {shifts.slice(0, 5).map((shift) => (
                   <FillInListingCard
                     key={shift.id}
@@ -351,7 +255,7 @@ export function WorkerOverviewPanel({
             ) : null}
             {confirmedShiftApplications.length > 0 ? (
               <View style={styles.group}>
-                <WorkerSectionHeader title="Upcoming confirmed" />
+                <DashboardSectionHeader title="Upcoming confirmed" compact />
                 {confirmedShiftApplications.map((application) => (
                   <WorkerApplicationListCard
                     key={application.id}
@@ -370,7 +274,7 @@ export function WorkerOverviewPanel({
             ) : null}
             {activeShiftApplications.length > 0 ? (
               <View style={styles.group}>
-                <WorkerSectionHeader title="In progress" />
+                <DashboardSectionHeader title="In progress" compact />
                 {activeShiftApplications.map((application) => (
                   <WorkerApplicationListCard
                     key={application.id}
