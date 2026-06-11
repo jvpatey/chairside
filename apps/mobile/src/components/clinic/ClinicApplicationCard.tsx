@@ -148,8 +148,12 @@ export function ClinicApplicationCard({
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
   const [cardHovered, setCardHovered] = useState(false);
-  const { refreshPending: refreshApplicationTabBadge, isApplicationHighlighted, getApplicationHighlightLabel } =
-    useApplicationTabBadge();
+  const {
+    refreshPending: refreshApplicationTabBadge,
+    markApplicationSeen,
+    isApplicationHighlighted,
+    getApplicationHighlightLabel,
+  } = useApplicationTabBadge();
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const [expanded, setExpanded] = useState(false);
@@ -368,6 +372,9 @@ export function ClinicApplicationCard({
 
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (!expanded && hasNewApplication) {
+      void markApplicationSeen(application.id);
+    }
     setExpanded((current) => !current);
   };
 

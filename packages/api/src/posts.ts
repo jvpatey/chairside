@@ -618,6 +618,33 @@ export async function getMatchingLiveShiftPosts(
   });
 }
 
+export async function getWorkerSeenShiftPostIds(workerId: string): Promise<Set<string>> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('worker_shift_post_views')
+    .select('shift_post_id')
+    .eq('worker_id', workerId);
+
+  if (error) throw error;
+
+  return new Set(
+    (data ?? [])
+      .map((row) => row.shift_post_id)
+      .filter((id): id is string => typeof id === 'string'),
+  );
+}
+
+export async function markShiftPostsSeenByWorker(shiftPostIds: string[]): Promise<void> {
+  if (shiftPostIds.length === 0) return;
+
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc('mark_shift_posts_seen_by_worker', {
+    shift_post_ids: shiftPostIds,
+  });
+
+  if (error) throw error;
+}
+
 export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase

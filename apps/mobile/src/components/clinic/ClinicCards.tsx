@@ -398,16 +398,16 @@ export function DashboardOverviewPanel({
         ) : (
           <View style={styles.list}>
             {jobApplicationSummaries.map((summary) => {
-              const hasNewApplicants = summary.pending_count > 0;
+              const hasNewApplicants = summary.unseen_count > 0;
               return (
                 <DashboardListCard
                   key={summary.job_post_id}
                   title={summary.post_title}
                   subtitle={
                     hasNewApplicants
-                      ? summary.pending_count === 1
+                      ? summary.unseen_count === 1
                         ? '1 new applicant'
-                        : `${summary.pending_count} new applicants`
+                        : `${summary.unseen_count} new applicants`
                       : summary.applicant_count === 1
                         ? '1 applicant'
                         : `${summary.applicant_count} applicants`

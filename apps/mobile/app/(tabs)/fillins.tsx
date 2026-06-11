@@ -132,12 +132,7 @@ export default function FillInsScreen() {
 
       const pastShiftApplications = applicationRows.filter(isPastWorkerFillInApplication);
       if (pastShiftApplications.length > 0) {
-        await markApplicationsSeen(
-          pastShiftApplications.map((application) => ({
-            id: application.id,
-            updated_at: application.updated_at,
-          })),
-        );
+        await markApplicationsSeen(pastShiftApplications.map((application) => application.id));
       }
 
       await checkApplications(toShiftCelebrationCandidates(applicationRows));

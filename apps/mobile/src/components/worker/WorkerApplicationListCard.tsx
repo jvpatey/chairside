@@ -102,7 +102,7 @@ export function WorkerApplicationListCard({
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!expanded && hasApplicationUpdate) {
-      void markApplicationSeen(application.id, application.updated_at);
+      void markApplicationSeen(application.id);
     }
     onExpandChange?.(!expanded);
   };
@@ -110,7 +110,7 @@ export function WorkerApplicationListCard({
   const handlePress = () => {
     if (linkToDetail) {
       if (hasApplicationUpdate) {
-        void markApplicationSeen(application.id, application.updated_at);
+        void markApplicationSeen(application.id);
       }
       router.push(getWorkerApplicationRoute(application.id, returnTo));
       return;

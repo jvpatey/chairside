@@ -30,7 +30,7 @@ function RoleApplicationSummaryRow({
   const applicantLabel =
     summary.applicant_count === 1 ? '1 applicant' : `${summary.applicant_count} applicants`;
   const reviewMeta = formatJobApplicationSummaryMeta(summary);
-  const hasNewApplicants = summary.pending_count > 0;
+  const hasNewApplicants = summary.unseen_count > 0;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     statPill: {
@@ -67,9 +67,9 @@ function RoleApplicationSummaryRow({
         <View style={[styles.statPill, hasNewApplicants && styles.statPillNew]}>
           <Text style={[styles.statText, hasNewApplicants && styles.statTextNew]}>
             {hasNewApplicants
-              ? summary.pending_count === 1
+              ? summary.unseen_count === 1
                 ? '1 new applicant'
-                : `${summary.pending_count} new applicants`
+                : `${summary.unseen_count} new applicants`
               : applicantLabel}
           </Text>
         </View>

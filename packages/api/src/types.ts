@@ -112,6 +112,16 @@ export type ApplicationRow = {
   clinic_logo_storage_path: string | null;
   worker_account_deleted_at: string | null;
   clinic_account_deleted_at: string | null;
+  application_kit_requested_at: string | null;
+  application_kit_submitted_at: string | null;
+  interview_proposed_at: string | null;
+  interview_proposed_duration_minutes: number | null;
+  interview_proposed_details: string | null;
+  interview_proposed_by: string | null;
+  worker_attention_at: string;
+  worker_last_seen_at: string | null;
+  clinic_attention_at: string;
+  clinic_last_seen_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -288,6 +298,24 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['worker_profiles']['Insert']>;
         Relationships: [];
       };
+      worker_shift_post_views: {
+        Row: {
+          worker_id: string;
+          shift_post_id: string;
+          seen_at: string;
+        };
+        Insert: {
+          worker_id: string;
+          shift_post_id: string;
+          seen_at?: string;
+        };
+        Update: {
+          worker_id?: string;
+          shift_post_id?: string;
+          seen_at?: string;
+        };
+        Relationships: [];
+      };
       availability_blocks: {
         Row: AvailabilityBlockRow;
         Insert: {
@@ -392,6 +420,22 @@ export type Database = {
       hide_clinic_application: {
         Args: { application_id: string };
         Returns: ApplicationRow;
+      };
+      mark_application_seen_by_worker: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      mark_application_seen_by_clinic: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      mark_applications_seen_by_worker: {
+        Args: { application_ids: string[] };
+        Returns: undefined;
+      };
+      mark_shift_posts_seen_by_worker: {
+        Args: { shift_post_ids: string[] };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

@@ -1,6 +1,27 @@
 import { getSupabaseClient } from './client';
 import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
 import {
+  APPLICATION_UPDATE_GRACE_MS,
+  FILL_IN_PENDING_STATUSES,
+  hasWorkerApplicationClinicUpdate,
+  isClinicApplicationUnseen,
+  isClinicNewApplication,
+  isClinicNewFillInRequest,
+  isWorkerApplicationUpdateHighlighted,
+  isWorkerApplicationUpdateUnseen,
+} from './applicationNotificationPredicates';
+
+export {
+  APPLICATION_UPDATE_GRACE_MS,
+  FILL_IN_PENDING_STATUSES,
+  hasWorkerApplicationClinicUpdate,
+  isClinicApplicationUnseen,
+  isClinicNewApplication,
+  isClinicNewFillInRequest,
+  isWorkerApplicationUpdateHighlighted,
+  isWorkerApplicationUpdateUnseen,
+};
+import {
   getApplicationScreening,
   getApplicationScreeningMap,
   insertApplicationScreening,
@@ -76,6 +97,10 @@ export type Application = {
   clinic_account_deleted_at: string | null;
   application_kit_requested_at: string | null;
   application_kit_submitted_at: string | null;
+  worker_attention_at: string;
+  worker_last_seen_at: string | null;
+  clinic_attention_at: string;
+  clinic_last_seen_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -205,17 +230,11 @@ export type JobApplicationSummary = {
   applicant_count: number;
   screening_count: number;
   pending_count: number;
+  /** Unseen applicants still needing clinic attention (applied or screening_submitted). */
+  unseen_count: number;
   shortlisted_count: number;
   interview_count: number;
 };
-
-export const FILL_IN_PENDING_STATUSES: ApplicationStatus[] = [
-  'applied',
-  'reviewed',
-  'in_progress',
-  'interview_offered',
-  'interview_scheduled',
-];
 
 export const SCREENING_STAGE_STATUSES: ApplicationStatus[] = ['screening_submitted'];
 
@@ -600,71 +619,8 @@ export async function listWorkerShiftApplications(workerId: string): Promise<Wor
 }
 
 export async function getClinicNewApplicationCount(clinicId: string): Promise<number> {
-  const supabase = getSupabaseClient();
-
-  const { data: jobs, error: jobsError } = await supabase
-    .from('job_posts')
-    .select('id')
-    .eq('clinic_id', clinicId);
-
-  if (jobsError) throw jobsError;
-
-  const jobIds = (jobs ?? []).map((job) => job.id);
-  if (jobIds.length === 0) return 0;
-
-  const { count, error } = await supabase
-    .from('applications')
-    .select('*', { count: 'exact', head: true })
-    .in('job_post_id', jobIds)
-    .is('clinic_hidden_at', null)
-    .in('status', ['applied', 'screening_submitted']);
-
-  if (error) throw error;
-  return count ?? 0;
-}
-
-export const APPLICATION_UPDATE_GRACE_MS = 2_000;
-
-export function hasWorkerApplicationClinicUpdate(
-  application: Pick<Application, 'created_at' | 'updated_at' | 'worker_hidden_at'>,
-): boolean {
-  if (application.worker_hidden_at) return false;
-
-  const updatedMs = new Date(application.updated_at).getTime();
-  const createdMs = new Date(application.created_at).getTime();
-  return updatedMs - createdMs >= APPLICATION_UPDATE_GRACE_MS;
-}
-
-export function isClinicNewApplication(
-  application: Pick<Application, 'post_type' | 'status' | 'clinic_hidden_at'>,
-): boolean {
-  return (
-    application.post_type === 'job' &&
-    !application.clinic_hidden_at &&
-    (application.status === 'applied' || application.status === 'screening_submitted')
-  );
-}
-
-export function isClinicNewFillInRequest(
-  application: Pick<Application, 'post_type' | 'status' | 'clinic_hidden_at'>,
-): boolean {
-  return (
-    application.post_type === 'shift' &&
-    !application.clinic_hidden_at &&
-    FILL_IN_PENDING_STATUSES.includes(application.status)
-  );
-}
-
-export function isWorkerApplicationUpdateUnseen(
-  application: Pick<Application, 'id' | 'created_at' | 'updated_at' | 'worker_hidden_at'>,
-  seenUpdatedAtById: Record<string, string> = {},
-): boolean {
-  if (!hasWorkerApplicationClinicUpdate(application)) return false;
-
-  const seenAt = seenUpdatedAtById[application.id];
-  if (!seenAt) return true;
-
-  return new Date(application.updated_at).getTime() > new Date(seenAt).getTime();
+  const applications = await listClinicApplications(clinicId);
+  return applications.filter((application) => isClinicNewApplication(application)).length;
 }
 
 function todayISO(): string {
@@ -684,48 +640,62 @@ export function isPastWorkerFillInApplication(
 export function isWorkerFillInApplicationUpdateCountable(
   application: Pick<
     Application,
-    'id' | 'post_type' | 'status' | 'created_at' | 'updated_at' | 'worker_hidden_at'
+    | 'post_type'
+    | 'status'
+    | 'created_at'
+    | 'worker_hidden_at'
+    | 'worker_attention_at'
+    | 'worker_last_seen_at'
   > & { shift_date?: string | null },
-  seenUpdatedAtById: Record<string, string> = {},
 ): boolean {
   if (application.post_type !== 'shift') return false;
   if (isPastWorkerFillInApplication(application)) return false;
-  return isWorkerApplicationUpdateUnseen(application, seenUpdatedAtById);
-}
-
-/** Card/list highlight — only after the worker has previously opened this application. */
-export function isWorkerApplicationUpdateHighlighted(
-  application: Pick<Application, 'id' | 'created_at' | 'updated_at' | 'worker_hidden_at'>,
-  seenUpdatedAtById: Record<string, string> = {},
-): boolean {
-  if (!hasWorkerApplicationClinicUpdate(application)) return false;
-
-  const seenAt = seenUpdatedAtById[application.id];
-  if (!seenAt) return false;
-
-  return new Date(application.updated_at).getTime() > new Date(seenAt).getTime();
+  return isWorkerApplicationUpdateUnseen(application);
 }
 
 /** Count job applications with clinic-side updates the worker has not opened since. */
-export async function getWorkerApplicationUpdateCount(
-  workerId: string,
-  seenUpdatedAtById: Record<string, string> = {},
-): Promise<number> {
+export async function getWorkerApplicationUpdateCount(workerId: string): Promise<number> {
   const applications = await listWorkerJobApplications(workerId, 'active');
-  return applications.filter((application) =>
-    isWorkerApplicationUpdateUnseen(application, seenUpdatedAtById),
-  ).length;
+  return applications.filter((application) => isWorkerApplicationUpdateUnseen(application)).length;
 }
 
 /** Count fill-in applications with clinic-side updates the worker has not opened since. */
-export async function getWorkerShiftApplicationUpdateCount(
-  workerId: string,
-  seenUpdatedAtById: Record<string, string> = {},
-): Promise<number> {
+export async function getWorkerShiftApplicationUpdateCount(workerId: string): Promise<number> {
   const applications = await listWorkerShiftApplications(workerId);
   return applications.filter((application) =>
-    isWorkerFillInApplicationUpdateCountable(application, seenUpdatedAtById),
+    isWorkerFillInApplicationUpdateCountable(application),
   ).length;
+}
+
+export async function markApplicationSeenByWorker(applicationId: string): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('mark_application_seen_by_worker', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  return data as Application;
+}
+
+export async function markApplicationSeenByClinic(applicationId: string): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('mark_application_seen_by_clinic', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  return data as Application;
+}
+
+export async function markApplicationsSeenByWorker(applicationIds: string[]): Promise<void> {
+  if (applicationIds.length === 0) return;
+
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc('mark_applications_seen_by_worker', {
+    application_ids: applicationIds,
+  });
+
+  if (error) throw error;
 }
 
 export async function listWorkerAppliedJobPostIds(workerId: string): Promise<string[]> {
@@ -789,6 +759,9 @@ export async function listJobApplicationSummaries(
       if (application.status === 'applied') {
         existing.pending_count += 1;
       }
+      if (isClinicNewApplication(application)) {
+        existing.unseen_count += 1;
+      }
       if (application.status === 'in_progress') {
         existing.shortlisted_count += 1;
       }
@@ -805,6 +778,7 @@ export async function listJobApplicationSummaries(
         applicant_count: 1,
         screening_count: application.status === 'screening_submitted' ? 1 : 0,
         pending_count: application.status === 'applied' ? 1 : 0,
+        unseen_count: isClinicNewApplication(application) ? 1 : 0,
         shortlisted_count: application.status === 'in_progress' ? 1 : 0,
         interview_count:
           application.status === 'interview_offered' || application.status === 'interview_scheduled'
@@ -815,8 +789,8 @@ export async function listJobApplicationSummaries(
   }
 
   return [...summaries.values()].sort((a, b) => {
-    if (b.pending_count !== a.pending_count) {
-      return b.pending_count - a.pending_count;
+    if (b.unseen_count !== a.unseen_count) {
+      return b.unseen_count - a.unseen_count;
     }
     return b.applicant_count - a.applicant_count;
   });
@@ -1302,7 +1276,7 @@ export async function listFillInCoverRequests(clinicId: string): Promise<FillInC
 
 export async function getFillInPendingCount(clinicId: string): Promise<number> {
   const requests = await listFillInCoverRequests(clinicId);
-  return requests.length;
+  return requests.filter((request) => isClinicNewFillInRequest(request)).length;
 }
 
 export async function getShiftPostPendingApplicationCountsMap(
@@ -1311,7 +1285,7 @@ export async function getShiftPostPendingApplicationCountsMap(
   const requests = await listFillInCoverRequests(clinicId);
   const counts: Record<string, number> = {};
   for (const request of requests) {
-    if (!request.shift_post_id) continue;
+    if (!request.shift_post_id || !isClinicNewFillInRequest(request)) continue;
     counts[request.shift_post_id] = (counts[request.shift_post_id] ?? 0) + 1;
   }
   return counts;

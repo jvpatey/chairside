@@ -17,6 +17,11 @@ import {
   isClinicNewApplication,
   isWorkerApplicationUpdateUnseen,
   isWorkerFillInApplicationUpdateCountable,
+  markApplicationSeenByClinic,
+  markApplicationSeenByWorker,
+  markApplicationsSeenByWorker,
+  getWorkerSeenShiftPostIds,
+  markShiftPostsSeenByWorker,
   type Application,
 } from '@chairside/api';
 
@@ -24,53 +29,41 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
-import {
-  getApplicationBadgeSeenMap,
-  markApplicationBadgeSeen,
-  markApplicationBadgesSeen,
-  seedApplicationBadgeBaselines,
-} from '@/lib/applicationBadgeStorage';
-import {
-  getSeenShiftPostIds,
-  markShiftPostsSeen as persistShiftPostsSeen,
-} from '@/lib/shiftPostSeenStorage';
-
 type ApplicationTabBadgeContextValue = {
   /** Unseen role application updates — Applications tab. */
   pendingCount: number;
   /** Unseen fill-in application updates + new matching shift postings — Fill-ins tab (worker only). */
   fillInPendingCount: number;
   refreshPending: () => Promise<void>;
-  markApplicationSeen: (applicationId: string, updatedAt: string) => Promise<void>;
-  markApplicationsSeen: (
-    applications: { id: string; updated_at: string }[],
-  ) => Promise<void>;
-  seedApplicationBaselines: (
-    applications: { id: string; updated_at: string }[],
-  ) => Promise<void>;
+  markApplicationSeen: (applicationId: string) => Promise<void>;
+  markApplicationsSeen: (applicationIds: string[]) => Promise<void>;
   markShiftPostsSeen: (shiftPostIds: string[]) => Promise<void>;
   isApplicationHighlighted: (
     application: Pick<
       Application,
-      | 'id'
       | 'post_type'
       | 'status'
       | 'created_at'
-      | 'updated_at'
       | 'worker_hidden_at'
       | 'clinic_hidden_at'
+      | 'worker_attention_at'
+      | 'worker_last_seen_at'
+      | 'clinic_attention_at'
+      | 'clinic_last_seen_at'
     >,
   ) => boolean;
   getApplicationHighlightLabel: (
     application: Pick<
       Application,
-      | 'id'
       | 'post_type'
       | 'status'
       | 'created_at'
-      | 'updated_at'
       | 'worker_hidden_at'
       | 'clinic_hidden_at'
+      | 'worker_attention_at'
+      | 'worker_last_seen_at'
+      | 'clinic_attention_at'
+      | 'clinic_last_seen_at'
     >,
   ) => string | null;
 };
@@ -90,36 +83,11 @@ export function ApplicationTabBadgeProvider({
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const [pendingCount, setPendingCount] = useState(0);
   const [fillInPendingCount, setFillInPendingCount] = useState(0);
-  const [seenMap, setSeenMap] = useState<Record<string, string>>({});
-  const [seenMapReady, setSeenMapReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void getApplicationBadgeSeenMap()
-      .then((map) => {
-        if (!cancelled) {
-          setSeenMap(map);
-          setSeenMapReady(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSeenMapReady(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const refreshPending = useCallback(async () => {
     if (!user?.id) {
       setPendingCount(0);
       setFillInPendingCount(0);
-      setSeenMap({});
-      setSeenMapReady(false);
       return;
     }
 
@@ -131,19 +99,15 @@ export function ApplicationTabBadgeProvider({
         return;
       }
 
-      const nextSeenMap = await getApplicationBadgeSeenMap();
-      setSeenMap(nextSeenMap);
-      setSeenMapReady(true);
-
       const province = workerProfile?.province ?? 'NS';
       const roleTypes = getWorkerRoleTypes(workerProfile);
       const availabilityDaySet = availabilityBlocks.map((block) => block.day_of_week);
 
       const [jobCount, shiftCount, matchingShifts, seenShiftPostIds] = await Promise.all([
-        getWorkerApplicationUpdateCount(user.id, nextSeenMap),
-        getWorkerShiftApplicationUpdateCount(user.id, nextSeenMap),
+        getWorkerApplicationUpdateCount(user.id),
+        getWorkerShiftApplicationUpdateCount(user.id),
         getMatchingLiveShiftPosts(province, roleTypes, availabilityDaySet),
-        getSeenShiftPostIds(),
+        getWorkerSeenShiftPostIds(user.id),
       ]);
 
       const newShiftPostingCount = matchingShifts.filter(
@@ -159,78 +123,79 @@ export function ApplicationTabBadgeProvider({
   }, [availabilityBlocks, role, user?.id, workerProfile]);
 
   const markApplicationSeen = useCallback(
-    async (applicationId: string, updatedAt: string) => {
-      const nextSeenMap = await markApplicationBadgeSeen(applicationId, updatedAt);
-      setSeenMap(nextSeenMap);
+    async (applicationId: string) => {
+      if (role === 'clinic') {
+        await markApplicationSeenByClinic(applicationId);
+      } else {
+        await markApplicationSeenByWorker(applicationId);
+      }
       await refreshPending();
     },
-    [refreshPending],
+    [refreshPending, role],
   );
 
   const markApplicationsSeen = useCallback(
-    async (applications: { id: string; updated_at: string }[]) => {
-      const nextSeenMap = await markApplicationBadgesSeen(applications);
-      setSeenMap(nextSeenMap);
-      setSeenMapReady(true);
-      await refreshPending();
-    },
-    [refreshPending],
-  );
+    async (applicationIds: string[]) => {
+      if (applicationIds.length === 0) return;
 
-  const seedApplicationBaselines = useCallback(
-    async (applications: { id: string; updated_at: string }[]) => {
-      const nextSeenMap = await seedApplicationBadgeBaselines(applications);
-      setSeenMap(nextSeenMap);
-      setSeenMapReady(true);
+      if (role === 'clinic') {
+        await Promise.all(applicationIds.map((id) => markApplicationSeenByClinic(id)));
+      } else {
+        await markApplicationsSeenByWorker(applicationIds);
+      }
       await refreshPending();
     },
-    [refreshPending],
+    [refreshPending, role],
   );
 
   const markShiftPostsSeen = useCallback(
     async (shiftPostIds: string[]) => {
-      await persistShiftPostsSeen(shiftPostIds);
+      if (!user?.id || shiftPostIds.length === 0) return;
+      await markShiftPostsSeenByWorker(shiftPostIds);
       await refreshPending();
     },
-    [refreshPending],
+    [refreshPending, user?.id],
   );
 
   const isApplicationHighlighted = useCallback(
     (
       application: Pick<
         Application,
-        | 'id'
         | 'post_type'
         | 'status'
         | 'created_at'
-        | 'updated_at'
         | 'worker_hidden_at'
         | 'clinic_hidden_at'
+        | 'worker_attention_at'
+        | 'worker_last_seen_at'
+        | 'clinic_attention_at'
+        | 'clinic_last_seen_at'
       >,
     ) => {
       if (role === 'clinic') {
         return isClinicNewApplication(application);
       }
-      if (!seenMapReady) return false;
       if (application.post_type === 'shift') {
-        return isWorkerFillInApplicationUpdateCountable(application, seenMap);
+        return isWorkerFillInApplicationUpdateCountable(application);
       }
-      return isWorkerApplicationUpdateUnseen(application, seenMap);
+      return isWorkerApplicationUpdateUnseen(application);
     },
-    [role, seenMap, seenMapReady],
+    [role],
   );
 
   const getApplicationHighlightLabel = useCallback(
     (
       application: Pick<
         Application,
-        | 'id'
         | 'post_type'
         | 'status'
         | 'created_at'
-        | 'updated_at'
         | 'worker_hidden_at'
         | 'clinic_hidden_at'
+        | 'worker_attention_at'
+        | 'worker_last_seen_at'
+        | 'clinic_attention_at'
+        | 'clinic_last_seen_at'
       >,
     ) => {
       if (!isApplicationHighlighted(application)) return null;
@@ -253,7 +218,6 @@ export function ApplicationTabBadgeProvider({
       refreshPending,
       markApplicationSeen,
       markApplicationsSeen,
-      seedApplicationBaselines,
       markShiftPostsSeen,
       isApplicationHighlighted,
       getApplicationHighlightLabel,
@@ -267,7 +231,6 @@ export function ApplicationTabBadgeProvider({
       markShiftPostsSeen,
       pendingCount,
       refreshPending,
-      seedApplicationBaselines,
     ],
   );
 
@@ -287,7 +250,6 @@ export function useApplicationTabBadge() {
       refreshPending: async () => {},
       markApplicationSeen: async () => {},
       markApplicationsSeen: async () => {},
-      seedApplicationBaselines: async () => {},
       markShiftPostsSeen: async () => {},
       isApplicationHighlighted: () => false,
       getApplicationHighlightLabel: () => null,

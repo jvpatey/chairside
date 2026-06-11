@@ -8,7 +8,7 @@ import {
 import { getRoleTypeLabel } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
@@ -16,6 +16,7 @@ import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationS
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
@@ -65,11 +66,18 @@ export function FillInApplicantCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { refreshPending, isCoverRequestHighlighted, getCoverRequestHighlightLabel } =
     useFillInPending();
+  const { markApplicationSeen } = useApplicationTabBadge();
   const workerName = getApplicantDisplayName(application);
   const workerDeleted = application.worker_account_deleted;
   const pending = isPending(application) && !workerDeleted;
   const hasNewCoverRequest = isCoverRequestHighlighted(application);
   const newCoverRequestLabel = getCoverRequestHighlightLabel(application);
+
+  useEffect(() => {
+    if (hasNewCoverRequest) {
+      void markApplicationSeen(application.id);
+    }
+  }, [application.id, hasNewCoverRequest, markApplicationSeen]);
   const messagesReturnTo =
     returnTo === 'fill-ins-tab' || returnTo === 'postings-fill-ins' || returnTo === 'dashboard-fill-ins'
       ? 'messages-tab'
