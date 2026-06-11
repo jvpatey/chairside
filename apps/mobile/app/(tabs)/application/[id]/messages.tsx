@@ -8,13 +8,16 @@ import { Alert } from 'react-native';
 
 import { ApplicationMessageThread } from '@/components/messaging/ApplicationMessageThread';
 import { MessageThreadLoadingShell } from '@/components/messaging/MessageThreadLoadingShell';
+import { MessageThreadSplitView } from '@/components/messaging/MessageSplitView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { navigateAfterMessageThread } from '@/lib/routing';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
 
 export default function WorkerApplicationMessagesScreen() {
   const { user } = useAuth();
+  const { isTablet } = useResponsiveLayout();
   const { id, conversationId, title, subtitle } = useLocalSearchParams<{
     id?: string;
     conversationId?: string;
@@ -57,6 +60,25 @@ export default function WorkerApplicationMessagesScreen() {
 
   if (!user?.id) {
     return <MessageThreadLoadingShell onBack={goBack} />;
+  }
+
+  const resolvedConversationId = routeConversationId ?? conversation?.id;
+  const threadTitle =
+    routeTitle ??
+    (conversation ? formatConversationDisplay(conversation, 'worker').threadTitle : 'Messages');
+  const threadSubtitle =
+    routeSubtitle ??
+    (conversation ? formatConversationDisplay(conversation, 'worker').threadSubtitle : '');
+
+  if (isTablet && resolvedConversationId) {
+    return (
+      <MessageThreadSplitView
+        role="worker"
+        conversationId={resolvedConversationId}
+        title={threadTitle}
+        subtitle={threadSubtitle}
+      />
+    );
   }
 
   if (routeConversationId) {

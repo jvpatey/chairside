@@ -1,6 +1,6 @@
 import type { Conversation } from '@chairside/api';
-import { useMemo, useState, type ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { ConversationInboxFilters } from '@/components/messaging/ConversationInboxFilters';
@@ -12,6 +12,7 @@ import {
   getConversationInboxEmptyMessage,
   type ConversationInboxFilter,
 } from '@/lib/conversationInbox';
+import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useThemedStyles } from '@/theme';
 
 type ConversationInboxListProps = {
@@ -21,6 +22,9 @@ type ConversationInboxListProps = {
   avatarKind: 'clinic' | 'worker';
   header?: ReactNode;
   filterBesideHeader?: boolean;
+  selectedConversationId?: string | null;
+  compact?: boolean;
+  onInboxVisibilityChange?: (state: { isFilteredEmpty: boolean }) => void;
   onConversationPress: (conversation: Conversation) => void;
   onConversationHidden: () => void;
 };
@@ -32,13 +36,27 @@ export function ConversationInboxList({
   avatarKind,
   header,
   filterBesideHeader = false,
+  selectedConversationId,
+  compact = false,
+  onInboxVisibilityChange,
   onConversationPress,
   onConversationHidden,
 }: ConversationInboxListProps) {
   const [filter, setFilter] = useState<ConversationInboxFilter>('all');
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
-    content: { gap: spacing.md },
+    content: {
+      gap: compact ? spacing.sm : spacing.md,
+      flex: compact ? 1 : undefined,
+      minHeight: compact ? 0 : undefined,
+    },
+    scrollContent: {
+      gap: compact ? spacing.sm : spacing.md,
+      paddingBottom: spacing.md,
+    },
+    scroll: {
+      flex: 1,
+    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -71,8 +89,37 @@ export function ConversationInboxList({
       <ConversationInboxFilters selected={filter} counts={filterCounts} onChange={setFilter} />
     ) : null;
 
-  return (
-    <View style={styles.content}>
+  const isFilteredEmpty = conversations.length > 0 && filteredConversations.length === 0;
+
+  useEffect(() => {
+    onInboxVisibilityChange?.({ isFilteredEmpty });
+  }, [isFilteredEmpty, onInboxVisibilityChange]);
+
+  const listBody =
+    filteredConversations.length === 0 ? (
+      <Text style={styles.empty}>{emptyMessage}</Text>
+    ) : (
+      <BrowseListGroup>
+        {filteredConversations.map((conversation) => (
+          <ConversationListItem
+            key={conversation.id}
+            conversation={conversation}
+            avatarKind={avatarKind}
+            role={role}
+            compact={compact}
+            selected={conversation.id === selectedConversationId}
+            onPress={() => onConversationPress(conversation)}
+            onDelete={async () => {
+              await hideConversation(conversation, role, userId);
+              onConversationHidden();
+            }}
+          />
+        ))}
+      </BrowseListGroup>
+    );
+
+  const headerContent = (
+    <>
       {header && filterBesideHeader ? (
         <View style={styles.headerRow}>
           <View style={styles.headerContent}>{header}</View>
@@ -85,26 +132,28 @@ export function ConversationInboxList({
       {filterButton && !filterBesideHeader ? (
         <View style={styles.filterRow}>{filterButton}</View>
       ) : null}
+    </>
+  );
 
-      {filteredConversations.length === 0 ? (
-        <Text style={styles.empty}>{emptyMessage}</Text>
-      ) : (
-        <BrowseListGroup>
-          {filteredConversations.map((conversation) => (
-            <ConversationListItem
-              key={conversation.id}
-              conversation={conversation}
-              avatarKind={avatarKind}
-              role={role}
-              onPress={() => onConversationPress(conversation)}
-              onDelete={async () => {
-                await hideConversation(conversation, role, userId);
-                onConversationHidden();
-              }}
-            />
-          ))}
-        </BrowseListGroup>
-      )}
+  if (compact) {
+    return (
+      <View style={styles.content}>
+        {headerContent}
+        <ScrollView
+          style={[styles.scroll, webScrollbarStyles()]}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator>
+          {listBody}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.content}>
+      {headerContent}
+      {listBody}
     </View>
   );
 }

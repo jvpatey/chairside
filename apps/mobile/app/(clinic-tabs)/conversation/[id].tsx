@@ -5,8 +5,7 @@ import { Alert } from 'react-native';
 
 import { MessageThreadLoadingShell } from '@/components/messaging/MessageThreadLoadingShell';
 import { MessageThread } from '@/components/messaging/MessageThread';
-import { ClinicMessagesInboxPanel } from '@/components/messaging/ClinicMessagesInboxPanel';
-import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
+import { MessageThreadSplitView } from '@/components/messaging/MessageSplitView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -64,8 +63,27 @@ export default function ClinicConversationScreen() {
     return <MessageThreadLoadingShell onBack={goBack} />;
   }
 
+  if (isTablet) {
+    const threadTitle = routeTitle ?? (conversation ? formatConversationDisplay(conversation, 'clinic').threadTitle : 'Messages');
+    const threadSubtitle =
+      routeSubtitle ?? (conversation ? formatConversationDisplay(conversation, 'clinic').threadSubtitle : '');
+
+    if (!routeTitle && !conversation) {
+      return <MessageThreadLoadingShell onBack={goBack} />;
+    }
+
+    return (
+      <MessageThreadSplitView
+        role="clinic"
+        conversationId={routeConversationId}
+        title={threadTitle}
+        subtitle={threadSubtitle}
+      />
+    );
+  }
+
   if (routeTitle) {
-    const thread = (
+    return (
       <MessageThread
         userId={user.id}
         role="clinic"
@@ -76,25 +94,13 @@ export default function ClinicConversationScreen() {
         onConversationChange={setConversation}
       />
     );
-
-    if (isTablet) {
-      return (
-        <MasterDetailLayout
-          master={<ClinicMessagesInboxPanel compact />}
-          detail={thread}
-          showDetail
-        />
-      );
-    }
-
-    return thread;
   }
 
   if (!conversation) {
     return <MessageThreadLoadingShell onBack={goBack} />;
   }
 
-  const thread = (
+  return (
     <MessageThread
       userId={user.id}
       role="clinic"
@@ -105,16 +111,4 @@ export default function ClinicConversationScreen() {
       onConversationChange={setConversation}
     />
   );
-
-  if (isTablet) {
-    return (
-      <MasterDetailLayout
-        master={<ClinicMessagesInboxPanel compact />}
-        detail={thread}
-        showDetail
-      />
-    );
-  }
-
-  return thread;
 }

@@ -4,26 +4,29 @@ import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CommonActions } from '@react-navigation/native';
 import { router, usePathname } from 'expo-router';
-import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
 import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
-import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
+import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
-export const TABLET_SIDEBAR_WIDTH = 240;
+export { TABLET_SIDEBAR_COLLAPSED_WIDTH, TABLET_SIDEBAR_WIDTH } from '@/components/navigation/sidebarDimensions';
 
 const SIDEBAR_TAB_ORDER: Record<'worker' | 'clinic', string[]> = {
   worker: ['index', 'browse', 'applications', 'fillins', 'messages'],
   clinic: ['index', 'postings', 'applications', 'fill-ins', 'messages'],
 };
+
+const COLLAPSED_AVATAR_SIZE = 40;
 
 function getSidebarRoutes(
   state: BottomTabBarProps['state'],
@@ -48,10 +51,25 @@ type TabletSidebarProps = BottomTabBarProps & {
   role: 'worker' | 'clinic';
 };
 
+function labelRevealStyle(collapsed: boolean): TextStyle {
+  return {
+    flex: collapsed ? 0 : 1,
+    opacity: collapsed ? 0 : 1,
+    maxWidth: collapsed ? 0 : 9999,
+    overflow: 'hidden',
+    ...webOnlyStyle({
+      transitionProperty: 'opacity, max-width',
+      transitionDuration: '220ms',
+      transitionTimingFunction: 'ease-out',
+    } as ViewStyle),
+  } as TextStyle;
+}
+
 export function TabletSidebar({ state, descriptors, navigation, role }: TabletSidebarProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { colors, spacing } = useTheme();
+  const { isCollapsed, toggleCollapsed } = useSidebarCollapse();
   const { profile } = useAuth();
   const { photoUri } = useProfilePhoto();
   const { logoUri } = useClinicLogo();
@@ -63,16 +81,45 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       flex: 1,
       width: '100%',
       backgroundColor: colors.surface,
-      paddingHorizontal: spacing.md,
     },
+    profileRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    profileRowExpanded: {
+      minHeight: TABLET_PROFILE_ROW_HEIGHT,
+    },
+    profileHeaderWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    toggleButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      ...webPointer(),
+    },
+    collapsedToggleWrap: {
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    toggleHovered: webListRowHoverStyles(colors),
+    togglePressed: { opacity: 0.85 },
     profileSection: {
       flexShrink: 0,
-      minHeight: TABLET_PROFILE_ROW_HEIGHT,
       justifyContent: 'center',
       paddingBottom: spacing.sm,
       marginBottom: spacing.sm,
       borderBottomWidth: 0.5,
       borderBottomColor: colors.separator,
+    },
+    profileSectionCollapsed: {
+      alignItems: 'center',
+      paddingBottom: spacing.sm,
     },
     nav: {
       flex: 1,
@@ -96,6 +143,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       borderRadius: 10,
       ...webPointer(),
     },
+    itemCollapsed: {
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xs,
+      gap: 0,
+    },
     itemActive: {
       backgroundColor: colors.primarySubtle,
     },
@@ -110,6 +162,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     } as ViewStyle),
     itemPressed: {
       opacity: 0.85,
+    },
+    iconWrap: {
+      position: 'relative',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     label: {
       flex: 1,
@@ -130,10 +187,22 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       justifyContent: 'center',
       backgroundColor: colors.destructive,
     },
+    badgeCollapsed: {
+      position: 'absolute',
+      top: -4,
+      right: -8,
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      paddingHorizontal: 4,
+    },
     badgeText: {
       fontSize: 11,
       fontWeight: '700',
       color: colors.primaryOnPrimary,
+    },
+    badgeTextCollapsed: {
+      fontSize: 9,
     },
   }));
 
@@ -154,24 +223,65 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const isWeb = Platform.OS === 'web';
 
+  const handleToggleCollapse = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toggleCollapsed();
+  };
+
+  const collapseToggle = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      onPress={handleToggleCollapse}
+      style={({ pressed, hovered }) => [
+        styles.toggleButton,
+        webHover(hovered, pressed, styles.toggleHovered),
+        pressed && styles.togglePressed,
+      ]}>
+      <Ionicons
+        name={isCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'}
+        size={16}
+        color={colors.labelSecondary}
+      />
+    </Pressable>
+  );
+
   return (
     <View
       style={[
         styles.sidebar,
         {
+          paddingHorizontal: isCollapsed ? spacing.xs : spacing.md,
           paddingTop: insets.top + TABLET_TOP_INSET_EXTRA,
           paddingBottom: Math.max(insets.bottom, spacing.md),
-          ...(Platform.OS === 'web' ? { minHeight: 0 } : {}),
+          ...(Platform.OS === 'web'
+            ? {
+                minHeight: 0,
+                ...webOnlyStyle({
+                  transitionProperty: 'padding-left, padding-right',
+                  transitionDuration: '220ms',
+                  transitionTimingFunction: 'ease-out',
+                } as ViewStyle),
+              }
+            : {}),
         },
       ]}>
-      <View style={styles.profileSection}>
-        <SidebarProfileHeader
-          href={profileHref}
-          avatarKind={role === 'worker' ? 'worker' : 'clinic'}
-          displayName={profileName}
-          photoUri={role === 'worker' ? photoUri : logoUri}
-          subtitle={profileSubtitle}
-        />
+      <View style={[styles.profileSection, isCollapsed && styles.profileSectionCollapsed]}>
+        {isCollapsed ? <View style={styles.collapsedToggleWrap}>{collapseToggle}</View> : null}
+        <View style={[styles.profileRow, !isCollapsed && styles.profileRowExpanded]}>
+          <View style={styles.profileHeaderWrap}>
+            <SidebarProfileHeader
+              href={profileHref}
+              avatarKind={role === 'worker' ? 'worker' : 'clinic'}
+              displayName={profileName}
+              photoUri={role === 'worker' ? photoUri : logoUri}
+              subtitle={profileSubtitle}
+              collapsed={isCollapsed}
+              avatarSize={isCollapsed ? COLLAPSED_AVATAR_SIZE : undefined}
+            />
+          </View>
+          {!isCollapsed ? collapseToggle : null}
+        </View>
       </View>
 
       <View style={styles.nav}>
@@ -206,6 +316,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           };
 
           const badge = options.tabBarBadge;
+          const hasBadge = badge != null && badge !== 0;
 
           return (
             <Pressable
@@ -217,15 +328,27 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
               onLongPress={onLongPress}
               style={({ pressed, hovered }) => [
                 styles.item,
+                isCollapsed && styles.itemCollapsed,
                 isFocused && styles.itemActive,
                 isWeb && hovered && !pressed && (isFocused ? styles.itemActiveHovered : styles.itemHovered),
                 pressed && styles.itemPressed,
               ]}>
-              {options.tabBarIcon?.({ focused: isFocused, color, size: 22 })}
-              <Text style={[styles.label, isFocused && styles.labelActive]} numberOfLines={1}>
+              <View style={styles.iconWrap}>
+                {options.tabBarIcon?.({ focused: isFocused, color, size: 22 })}
+                {hasBadge && isCollapsed ? (
+                  <View style={[styles.badge, styles.badgeCollapsed]}>
+                    <Text style={[styles.badgeText, styles.badgeTextCollapsed]}>{badge}</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text
+                style={[styles.label, isFocused && styles.labelActive, labelRevealStyle(isCollapsed)]}
+                numberOfLines={1}
+                accessibilityElementsHidden={isCollapsed}
+                importantForAccessibility={isCollapsed ? 'no' : 'auto'}>
                 {options.title ?? route.name}
               </Text>
-              {badge != null && badge !== 0 ? (
+              {hasBadge && !isCollapsed ? (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{badge}</Text>
                 </View>
@@ -246,6 +369,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           }}
           style={({ pressed, hovered }) => [
             styles.item,
+            isCollapsed && styles.itemCollapsed,
             isProfileActive && styles.itemActive,
             isWeb && hovered && !pressed && (isProfileActive ? styles.itemActiveHovered : styles.itemHovered),
             pressed && styles.itemPressed,
@@ -255,7 +379,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             size={22}
             color={isProfileActive ? colors.primary : colors.tabInactive}
           />
-          <Text style={[styles.label, isProfileActive && styles.labelActive]}>Settings</Text>
+          <Text
+            style={[styles.label, isProfileActive && styles.labelActive, labelRevealStyle(isCollapsed)]}
+            accessibilityElementsHidden={isCollapsed}
+            importantForAccessibility={isCollapsed ? 'no' : 'auto'}>
+            Settings
+          </Text>
         </Pressable>
       </View>
     </View>

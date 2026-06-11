@@ -5,6 +5,7 @@ import { JobPostManageMenuHost } from '@/components/clinic/JobPostManageMenuHost
 import { renderClinicTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
+import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
@@ -74,12 +75,14 @@ function ClinicTabNavigator() {
 
 export default function ClinicTabLayout() {
   return (
-    <MessageUnreadProvider role="clinic">
-      <FillInPendingProvider>
-        <ApplicationTabBadgeProvider role="clinic">
-          <ClinicTabNavigator />
-        </ApplicationTabBadgeProvider>
-      </FillInPendingProvider>
-    </MessageUnreadProvider>
+    <SidebarCollapseProvider>
+      <MessageUnreadProvider role="clinic">
+        <FillInPendingProvider>
+          <ApplicationTabBadgeProvider role="clinic">
+            <ClinicTabNavigator />
+          </ApplicationTabBadgeProvider>
+        </FillInPendingProvider>
+      </MessageUnreadProvider>
+    </SidebarCollapseProvider>
   );
 }

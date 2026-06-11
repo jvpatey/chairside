@@ -5,6 +5,8 @@ type WebPageEnterProps = {
   children: ReactNode;
   delayMs?: number;
   style?: StyleProp<ViewStyle>;
+  /** When false, skip the fade/slide-in (e.g. split-view panes). */
+  animate?: boolean;
 };
 
 /** Native passthrough — web animation lives in WebPageEnter.web.tsx */

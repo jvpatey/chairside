@@ -70,6 +70,7 @@ import {
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { useTheme, useThemedStyles } from '@/theme';
 import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
+import { IS_WEB, webTileHoverStyles } from '@/lib/webPressableStyles';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -145,6 +146,7 @@ export function ClinicApplicationCard({
   onDecided,
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
+  const [cardHovered, setCardHovered] = useState(false);
   const { refreshPending: refreshApplicationTabBadge, isApplicationHighlighted, getApplicationHighlightLabel } =
     useApplicationTabBadge();
   const { clinicProfile } = useClinicProfile();
@@ -169,7 +171,7 @@ export function ClinicApplicationCard({
   const hasNewApplication = isApplicationHighlighted(application);
   const newApplicationLabel = getApplicationHighlightLabel(application);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -178,6 +180,7 @@ export function ClinicApplicationCard({
       padding: spacing.md,
       gap: spacing.sm,
     },
+    cardHovered: webTileHoverStyles(colors, isDark),
     preview: {
       ...typography.subtitle,
       fontStyle: 'italic',
@@ -422,8 +425,15 @@ export function ClinicApplicationCard({
     router.push(getClinicApplicationMessagesRoute(application.id, returnTo));
   };
 
+  const cardHoverProps = IS_WEB
+    ? {
+        onMouseEnter: () => setCardHovered(true),
+        onMouseLeave: () => setCardHovered(false),
+      }
+    : {};
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, IS_WEB && cardHovered && styles.cardHovered]} {...cardHoverProps}>
       <ApplicantPostHeader
         displayName={applicantName}
         photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
@@ -532,7 +542,7 @@ export function ClinicApplicationCard({
         </Text>
       ) : null}
 
-      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} />
+      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} suppressHover />
 
       {expanded ? (
         <View style={styles.details}>

@@ -14,9 +14,16 @@ type CardExpandToggleProps = {
   expanded: boolean;
   onPress: () => void;
   bleedPadding?: number;
+  /** When true, skip row hover styling (parent card owns hover). */
+  suppressHover?: boolean;
 };
 
-export function CardExpandToggle({ expanded, onPress, bleedPadding }: CardExpandToggleProps) {
+export function CardExpandToggle({
+  expanded,
+  onPress,
+  bleedPadding,
+  suppressHover = false,
+}: CardExpandToggleProps) {
   const { colors } = useTheme();
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -46,7 +53,7 @@ export function CardExpandToggle({ expanded, onPress, bleedPadding }: CardExpand
     <Pressable
       style={({ pressed, hovered }) => [
         styles.toggle,
-        webHover(hovered, pressed, styles.toggleHovered),
+        !suppressHover && webHover(hovered, pressed, styles.toggleHovered),
         pressed && styles.togglePressed,
       ]}
       accessibilityRole="button"

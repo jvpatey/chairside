@@ -1,3 +1,4 @@
+import type { Conversation } from '@chairside/api';
 import { listConversationsForClinic } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -12,11 +13,28 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { getConversationMessagesRoute } from '@/lib/routing';
 
+const CLINIC_MESSAGES_SUBTITLE =
+  'Conversations with applicants about roles, fill-ins, and general inquiries.';
+
 type ClinicMessagesInboxPanelProps = {
   compact?: boolean;
+  scroll?: boolean;
+  fillsContainer?: boolean;
+  selectedConversationId?: string | null;
+  onConversationSelect?: (conversationId: string) => void;
+  onConversationsChange?: (conversations: Conversation[]) => void;
+  onInboxVisibilityChange?: (state: { isFilteredEmpty: boolean }) => void;
 };
 
-export function ClinicMessagesInboxPanel({ compact = false }: ClinicMessagesInboxPanelProps) {
+export function ClinicMessagesInboxPanel({
+  compact = false,
+  scroll,
+  fillsContainer = false,
+  selectedConversationId,
+  onConversationSelect,
+  onConversationsChange,
+  onInboxVisibilityChange,
+}: ClinicMessagesInboxPanelProps) {
   const { user } = useAuth();
   const { refreshClinicProfile } = useClinicProfile();
   const { refreshUnread } = useMessageUnread();
@@ -27,6 +45,7 @@ export function ClinicMessagesInboxPanel({ compact = false }: ClinicMessagesInbo
   const load = useCallback(async () => {
     if (!user?.id) {
       setConversations([]);
+      onConversationsChange?.([]);
       return;
     }
 
@@ -34,59 +53,68 @@ export function ClinicMessagesInboxPanel({ compact = false }: ClinicMessagesInbo
       await refreshClinicProfile();
       const rows = await listConversationsForClinic(user.id);
       setConversations(rows);
+      onConversationsChange?.(rows);
       await refreshUnread();
     } catch {
       setConversations([]);
+      onConversationsChange?.([]);
     }
-  }, [refreshClinicProfile, refreshUnread, user?.id]);
+  }, [onConversationsChange, refreshClinicProfile, refreshUnread, user?.id]);
 
   useRefreshOnFocus(load);
+
+  const handleConversationPress = (conversation: Conversation) => {
+    if (onConversationSelect) {
+      onConversationSelect(conversation.id);
+      return;
+    }
+
+    const preview = getMessageThreadPreview(conversation, 'clinic');
+    router.push(
+      getConversationMessagesRoute(
+        conversation,
+        'clinic',
+        {
+          conversationId: conversation.id,
+          ...preview,
+        },
+        'messages-tab',
+      ),
+    );
+  };
 
   if (!user?.id) {
     return (
       <Screen
-        title={compact ? undefined : 'Messages'}
-        subtitle={
-          compact
-            ? undefined
-            : 'Conversations with applicants about roles, fill-ins, and general inquiries.'
-        }
-        showHeader={!compact}
+        title="Messages"
+        subtitle={CLINIC_MESSAGES_SUBTITLE}
+        scroll={scroll ?? !compact}
+        fillsContainer={fillsContainer}
+        animateEntry={false}
       />
     );
   }
 
   return (
     <Screen
-      title={compact ? undefined : 'Messages'}
-      subtitle={
-        compact
-          ? undefined
-          : 'Conversations with applicants about roles, fill-ins, and general inquiries.'
-      }
-      showHeader={!compact}
-      constrainWidth={!compact}>
+      title="Messages"
+      subtitle={CLINIC_MESSAGES_SUBTITLE}
+      constrainWidth={!compact}
+      scroll={scroll ?? !compact}
+      fillsContainer={fillsContainer}
+      animateEntry={false}
+    >
       <ConversationInboxList
         conversations={conversations}
         role="clinic"
         userId={user.id}
         avatarKind="worker"
-        header={compact ? undefined : <ClinicMessagingPreferences variant="compact" />}
-        filterBesideHeader={!compact}
-        onConversationPress={(conversation) => {
-          const preview = getMessageThreadPreview(conversation, 'clinic');
-          router.push(
-            getConversationMessagesRoute(
-              conversation,
-              'clinic',
-              {
-                conversationId: conversation.id,
-                ...preview,
-              },
-              'messages-tab',
-            ),
-          );
-        }}
+        compact={compact}
+        selectedConversationId={selectedConversationId}
+        header={<ClinicMessagingPreferences variant="compact" />}
+        filterBesideHeader
+        onInboxVisibilityChange={onInboxVisibilityChange}
+        onConversationPress={handleConversationPress}
         onConversationHidden={load}
       />
     </Screen>

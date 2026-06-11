@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -25,6 +25,7 @@ import {
   webHover,
   webPointer,
   webTextLinkHoverStyles,
+  webTileHoverStyles,
 } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -64,6 +65,7 @@ type FeatureCardProps = {
 
 function FeatureCard({ icon, title, body, enterDelayMs = 0 }: FeatureCardProps) {
   const { colors } = useTheme();
+  const [cardHovered, setCardHovered] = useState(false);
   const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
       flex: 1,
@@ -78,6 +80,15 @@ function FeatureCard({ icon, title, body, enterDelayMs = 0 }: FeatureCardProps) 
       boxShadow: isDark
         ? '0 8px 24px rgba(0, 0, 0, 0.25)'
         : '0 4px 16px rgba(0, 0, 0, 0.06)',
+      // @ts-expect-error — transition is web-only
+      transitionProperty: 'background-color, border-color, box-shadow, transform',
+      transitionDuration: '160ms',
+      transitionTimingFunction: 'ease',
+    },
+    cardHovered: {
+      ...webTileHoverStyles(colors, isDark),
+      // @ts-expect-error — transform is web-only
+      transform: [{ translateY: -2 }],
     },
     iconWrap: {
       width: 44,
@@ -103,7 +114,10 @@ function FeatureCard({ icon, title, body, enterDelayMs = 0 }: FeatureCardProps) 
 
   return (
     <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1, minWidth: 240 }}>
-      <View style={styles.card}>
+      <View
+        style={[styles.card, cardHovered && styles.cardHovered]}
+        onMouseEnter={() => setCardHovered(true)}
+        onMouseLeave={() => setCardHovered(false)}>
         <View style={styles.iconWrap}>
           <Ionicons name={icon} size={22} color={colors.primary} />
         </View>
@@ -400,7 +414,11 @@ export function WelcomeWebLayout() {
             <View style={styles.heroLeft}>
               <View style={styles.heroCopy}>
                 <WebPageEnter delayMs={0} style={styles.wordmarkWrap}>
-                  <ChairsideWordmark variant="hero" align={isWide ? 'left' : 'center'} />
+                  <ChairsideWordmark
+                    variant="hero"
+                    align={isWide ? 'left' : 'center'}
+                    animateSideOnHover
+                  />
                 </WebPageEnter>
                 <WebPageEnter delayMs={80}>
                   <Text style={styles.headline}>{HERO_HEADLINE}</Text>

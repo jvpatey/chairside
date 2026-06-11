@@ -12,7 +12,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 const APP_HIGHLIGHTS = [
   { icon: 'notifications-outline' as const, label: 'Fill-in alerts' },
-  { icon: 'briefcase-outline' as const, label: 'Apply with your kit' },
+  { icon: 'briefcase-outline' as const, label: 'Apply to open roles' },
   { icon: 'chatbubble-outline' as const, label: 'Message clinics' },
 ] as const;
 

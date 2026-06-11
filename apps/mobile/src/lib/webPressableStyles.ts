@@ -54,6 +54,15 @@ export function webListRowHoverStyles(colors: Pick<HoverColors, 'fillSubtle'>): 
   };
 }
 
+/** Persistent selected state for split-view inbox rows (web/tablet). */
+export function webListRowSelectedStyles(
+  colors: Pick<HoverColors, 'primarySubtle' | 'fillSubtle'>,
+): ViewStyle {
+  return {
+    backgroundColor: colors.primarySubtle ?? colors.fillSubtle,
+  };
+}
+
 /** Hover styles for circular icon buttons (notification bell, sign out, etc.). */
 export function webIconButtonHoverStyles(
   colors: Pick<HoverColors, 'separator'>,

@@ -25,6 +25,7 @@ type TimeRangeInputProps = {
   schedule: TimeRange;
   onChange: (schedule: TimeRange) => void;
   showPreview?: boolean;
+  onPickerOpenChange?: (open: boolean) => void;
 };
 
 function displayTime(time: string): string {

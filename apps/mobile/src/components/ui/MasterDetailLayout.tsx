@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useThemedStyles } from '@/theme';
 
 const DEFAULT_MASTER_WIDTH = 340;
@@ -30,6 +29,11 @@ export function MasterDetailLayout({
 }: MasterDetailLayoutProps) {
   const { isTablet } = useResponsiveLayout();
   const styles = useThemedStyles(({ colors }) => ({
+    root: {
+      flex: 1,
+      minHeight: 0,
+      backgroundColor: colors.backgroundGrouped,
+    },
     row: {
       flex: 1,
       flexDirection: 'row',
@@ -40,27 +44,25 @@ export function MasterDetailLayout({
       flexShrink: 0,
       borderRightWidth: 0.5,
       borderRightColor: colors.separator,
+      backgroundColor: colors.backgroundGrouped,
     },
     detail: {
       flex: 1,
       minWidth: 0,
+      backgroundColor: colors.background,
     },
   }));
 
   if (!isTablet || !showDetail) {
-    return (
-      <View style={[{ flex: 1, minHeight: 0 }, style]}>
-        <WebPageEnter style={{ flex: 1, minHeight: 0 }}>{master}</WebPageEnter>
-      </View>
-    );
+    return <View style={[styles.root, style]}>{master}</View>;
   }
 
   return (
-    <WebPageEnter style={[{ flex: 1, minHeight: 0 }, style]}>
+    <View style={[styles.root, style]}>
       <View style={styles.row}>
         <View style={styles.master}>{master}</View>
         <View style={styles.detail}>{detail}</View>
       </View>
-    </WebPageEnter>
+    </View>
   );
 }

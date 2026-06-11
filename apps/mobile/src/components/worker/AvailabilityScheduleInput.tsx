@@ -1,5 +1,6 @@
 import type { AvailabilityBlockInput } from '@chairside/api';
 import { DAY_OF_WEEK_OPTIONS } from '@chairside/config';
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
@@ -62,6 +63,8 @@ type AvailabilityScheduleInputProps = {
 };
 
 export function AvailabilityScheduleInput({ days, onChange }: AvailabilityScheduleInputProps) {
+  const [pickerOpenDay, setPickerOpenDay] = useState<number | null>(null);
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: { gap: spacing.md },
     row: {
@@ -105,13 +108,14 @@ export function AvailabilityScheduleInput({ days, onChange }: AvailabilitySchedu
     <View style={styles.wrap}>
       {days.map((day) => {
         const label = DAY_OF_WEEK_OPTIONS.find((item) => item.value === day.day_of_week)?.label;
+        const isPickerOpen = pickerOpenDay === day.day_of_week;
         return (
           <Pressable
             key={day.day_of_week}
             accessibilityRole="none"
             style={({ pressed, hovered }) => [
               styles.row,
-              webHover(hovered, pressed, styles.rowHovered),
+              !isPickerOpen && webHover(hovered, pressed, styles.rowHovered),
               pressed && styles.rowPressed,
             ]}>
             <View style={styles.rowHeader}>
@@ -141,6 +145,12 @@ export function AvailabilityScheduleInput({ days, onChange }: AvailabilitySchedu
                       end_time: schedule.endTime,
                     })
                   }
+                  onPickerOpenChange={(open) => {
+                    setPickerOpenDay((current) => {
+                      if (open) return day.day_of_week;
+                      return current === day.day_of_week ? null : current;
+                    });
+                  }}
                 />
               </View>
             ) : null}

@@ -13,6 +13,8 @@ type AuthScreenHeaderProps = {
   subtitle?: string;
   onBack?: () => void;
   backLabel?: string;
+  /** Smaller title for split-view detail headers. */
+  compact?: boolean;
   /** Renders beside the title block (e.g. filter control). */
   accessory?: ReactNode;
 };
@@ -22,6 +24,7 @@ export function AuthScreenHeader({
   subtitle,
   onBack,
   backLabel = 'Back',
+  compact = false,
   accessory,
 }: AuthScreenHeaderProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -58,12 +61,9 @@ export function AuthScreenHeader({
     },
     title: {
       ...typography.title,
-      fontSize: 28,
+      fontSize: compact ? 22 : 28,
     },
     subtitle: typography.subtitle,
-    placeholder: {
-      height: 44,
-    },
   }));
 
   return (
@@ -80,9 +80,7 @@ export function AuthScreenHeader({
           ]}>
           <Text style={styles.backText}>{backLabel}</Text>
         </Pressable>
-      ) : (
-        <View style={styles.placeholder} />
-      )}
+      ) : null}
       {title || subtitle || accessory ? (
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
 
 import { WebDatePickerPanel } from '@/components/clinic/WebDatePickerPanel.web';
@@ -30,6 +30,7 @@ type WebTimeFieldProps = {
   hint?: string;
   placeholder?: string;
   style?: ViewStyle;
+  onOpenChange?: (open: boolean) => void;
 };
 
 function useWebPickerFieldStyles() {
@@ -142,7 +143,7 @@ export function WebDateField({
         style={({ pressed, hovered }) => [
           styles.pickerButton,
           open && styles.pickerButtonActive,
-          webHover(hovered, pressed, styles.pickerButtonHovered),
+          !open && webHover(hovered, pressed, styles.pickerButtonHovered),
           pressed && styles.pickerButtonPressed,
         ]}>
         <View style={[styles.iconWrap, open && styles.iconWrapActive]}>
@@ -170,11 +171,16 @@ export function WebTimeField({
   hint = 'Tap to change time',
   placeholder = 'Select time',
   style,
+  onOpenChange,
 }: WebTimeFieldProps) {
   const { colors } = useTheme();
   const styles = useWebPickerFieldStyles();
   const [open, setOpen] = useState(false);
   const normalizedValue = useMemo(() => normalizeTimeValue(value), [value]);
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   const displayValue = useMemo(() => {
     if (!normalizedValue) return null;
@@ -197,7 +203,7 @@ export function WebTimeField({
         style={({ pressed, hovered }) => [
           styles.pickerButton,
           open && styles.pickerButtonActive,
-          webHover(hovered, pressed, styles.pickerButtonHovered),
+          !open && webHover(hovered, pressed, styles.pickerButtonHovered),
           pressed && styles.pickerButtonPressed,
         ]}>
         <View style={[styles.iconWrap, open && styles.iconWrapActive]}>
