@@ -619,8 +619,36 @@ export async function listWorkerShiftApplications(workerId: string): Promise<Wor
 }
 
 export async function getClinicNewApplicationCount(clinicId: string): Promise<number> {
-  const applications = await listClinicApplications(clinicId);
-  return applications.filter((application) => isClinicNewApplication(application)).length;
+  const supabase = getSupabaseClient();
+
+  const { data: jobs, error: jobsError } = await supabase
+    .from('job_posts')
+    .select('id')
+    .eq('clinic_id', clinicId);
+
+  if (jobsError) throw jobsError;
+
+  const jobIds = (jobs ?? []).map((job) => job.id);
+  if (jobIds.length === 0) return 0;
+
+  const { data, error } = await supabase
+    .from('applications')
+    .select('status, clinic_attention_at, clinic_last_seen_at')
+    .in('job_post_id', jobIds)
+    .is('clinic_hidden_at', null)
+    .in('status', ['applied', 'screening_submitted']);
+
+  if (error) throw error;
+
+  return (data ?? []).filter((application) =>
+    isClinicNewApplication({
+      post_type: 'job',
+      status: application.status,
+      clinic_hidden_at: null,
+      clinic_attention_at: application.clinic_attention_at,
+      clinic_last_seen_at: application.clinic_last_seen_at,
+    }),
+  ).length;
 }
 
 function todayISO(): string {

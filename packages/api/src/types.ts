@@ -260,6 +260,7 @@ export type Database = {
           id: string;
           role_type?: string | null;
           role_types?: string[];
+          years_of_experience?: number | null;
           license_type?: string | null;
           education?: string | null;
           education_graduation_year?: number | null;

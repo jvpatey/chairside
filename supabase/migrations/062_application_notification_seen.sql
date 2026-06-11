@@ -39,6 +39,7 @@ declare
   v_clinic_id uuid;
   v_display_name text;
   v_job_match jsonb;
+  v_role_types text[];
 begin
   select * into v_worker from public.worker_profiles where id = new.worker_id;
 
@@ -47,12 +48,15 @@ begin
     from public.profiles
     where id = new.worker_id;
 
+    v_role_types := public.worker_role_types_resolved(v_worker.role_type, v_worker.role_types);
+
     if new.status = 'screening_submitted' then
       new.worker_display_name := nullif(trim(v_display_name), '');
     else
       new.years_of_experience := v_worker.years_of_experience;
       new.education := public.format_worker_education(v_worker);
-      new.role_type := v_worker.role_type;
+      new.role_type := v_role_types[1];
+      new.role_types := v_role_types;
       new.license_type := null;
       new.resume_storage_path := v_worker.resume_storage_path;
       new.software_used := coalesce(v_worker.software_used, '{}');
