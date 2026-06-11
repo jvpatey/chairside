@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MOBILE_TAB_DOCK_SCROLL_INSET } from '@/components/navigation/MobileTabDock';
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
@@ -50,6 +50,7 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const { spacing } = useTheme();
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
+  const tabDockInset = useMobileTabDockInset();
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
   const topPadding =
     isTablet && !showHeader ? insets.top + TABLET_TOP_INSET_EXTRA : insets.top + 16;
@@ -118,11 +119,9 @@ export function Screen({
     },
   }));
 
-  const tabDockInset = isTablet ? 0 : MOBILE_TAB_DOCK_SCROLL_INSET;
   const paddingStyle = {
     paddingTop: topPadding,
-    paddingBottom:
-      insets.bottom + (fillsContainer ? spacing.md : 24) + tabDockInset,
+    paddingBottom: (fillsContainer ? spacing.md : 24) + tabDockInset,
   };
 
   const headerBlock = (

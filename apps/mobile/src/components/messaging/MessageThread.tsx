@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MessageBubble } from '@/components/messaging/MessageBubble';
 import { MessageComposeBar } from '@/components/messaging/MessageComposeBar';
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
@@ -61,6 +62,7 @@ export function MessageThread({
   onConversationChange,
 }: MessageThreadProps) {
   const insets = useSafeAreaInsets();
+  const tabDockInset = useMobileTabDockInset({ enabled: !embedded });
   const { refreshUnread } = useMessageUnread();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -249,6 +251,9 @@ export function MessageThread({
   const headerTitle = headerDisplay?.threadTitle ?? title;
   const headerSubtitle = headerDisplay?.threadSubtitle ?? subtitle;
 
+  const composeBottom = keyboardLift > 0 ? keyboardLift : tabDockInset;
+  const listBottomPadding = composeHeight + composeBottom + 8;
+
   const threadBody = (
     <>
       <View style={styles.header}>
@@ -265,7 +270,7 @@ export function MessageThread({
         style={[styles.list, webScrollbarStyles()]}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: composeHeight + keyboardLift + 8 },
+          { paddingBottom: listBottomPadding },
         ]}
         data={messages}
         keyExtractor={(item) => item.id}
@@ -291,13 +296,13 @@ export function MessageThread({
       />
 
       {!canSend ? (
-        <View style={[styles.closedBanner, { marginBottom: composeHeight + keyboardLift }]}>
+        <View style={[styles.closedBanner, { marginBottom: composeHeight + composeBottom }]}>
           <Text style={styles.closedText}>{getClosedBannerMessage(conversation)}</Text>
         </View>
       ) : null}
 
       <View
-        style={[styles.composeWrap, { bottom: keyboardLift }]}
+        style={[styles.composeWrap, { bottom: composeBottom }]}
         onLayout={(event) => {
           setComposeHeight(event.nativeEvent.layout.height);
         }}>

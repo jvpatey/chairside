@@ -14,9 +14,6 @@ type MobileTabDockProps = BottomTabBarProps & {
   role: 'worker' | 'clinic';
 };
 
-/** Scroll padding on phones so list content clears the floating dock (safe area handled separately). */
-export const MOBILE_TAB_DOCK_SCROLL_INSET = 72;
-
 function getVisibleRoutes(
   state: BottomTabBarProps['state'],
   descriptors: BottomTabBarProps['descriptors'],

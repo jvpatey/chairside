@@ -52,7 +52,7 @@ export const lightColors: Colors = {
 };
 
 export const darkColors: Colors = {
-  background: '#000000',
+  background: '#0C0C0E',
   backgroundGrouped: '#0C0C0E',
   surface: '#1C1C1E',
   surfaceElevated: '#2C2C2E',
