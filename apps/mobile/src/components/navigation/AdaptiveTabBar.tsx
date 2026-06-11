@@ -1,7 +1,7 @@
-import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Platform, View, type ViewStyle } from 'react-native';
 
+import { MobileTabDock } from '@/components/navigation/MobileTabDock';
 import { TabletSidebar } from '@/components/navigation/TabletSidebar';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -44,7 +44,19 @@ function AdaptiveTabBar({ role, ...props }: AdaptiveTabBarProps) {
     );
   }
 
-  return <BottomTabBar {...props} />;
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+      }}>
+      <MobileTabDock {...props} role={role} />
+    </View>
+  );
 }
 
 /** Render-prop wrapper — React Navigation calls tabBar as a function, not a component. */

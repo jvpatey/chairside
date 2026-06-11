@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { MOBILE_TAB_DOCK_SCROLL_INSET } from '@/components/navigation/MobileTabDock';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
@@ -117,9 +118,11 @@ export function Screen({
     },
   }));
 
+  const tabDockInset = isTablet ? 0 : MOBILE_TAB_DOCK_SCROLL_INSET;
   const paddingStyle = {
     paddingTop: topPadding,
-    paddingBottom: insets.bottom + (fillsContainer ? spacing.md : 24),
+    paddingBottom:
+      insets.bottom + (fillsContainer ? spacing.md : 24) + tabDockInset,
   };
 
   const headerBlock = (

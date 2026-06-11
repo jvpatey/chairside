@@ -8,8 +8,10 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { getColors } from '@/theme/colors';
 
 import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
@@ -59,8 +61,11 @@ export default function RootLayout() {
     return null;
   }
 
+  const rootBackground = getColors(colorScheme).backgroundGrouped;
+
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1, backgroundColor: rootBackground }}>
+      <View style={{ flex: 1, backgroundColor: rootBackground }}>
       <AuthProvider>
         <ClinicProfileProvider>
           <WorkerProfileProvider>
@@ -88,6 +93,7 @@ export default function RootLayout() {
           </WorkerProfileProvider>
         </ClinicProfileProvider>
       </AuthProvider>
+      </View>
     </SafeAreaProvider>
   );
 }

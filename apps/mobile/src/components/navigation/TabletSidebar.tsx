@@ -15,16 +15,12 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
+import { TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export { TABLET_SIDEBAR_COLLAPSED_WIDTH, TABLET_SIDEBAR_WIDTH } from '@/components/navigation/sidebarDimensions';
-
-const SIDEBAR_TAB_ORDER: Record<'worker' | 'clinic', string[]> = {
-  worker: ['index', 'browse', 'applications', 'fillins', 'messages'],
-  clinic: ['index', 'postings', 'applications', 'fill-ins', 'messages'],
-};
 
 const COLLAPSED_AVATAR_SIZE = 40;
 
@@ -33,7 +29,7 @@ function getSidebarRoutes(
   descriptors: BottomTabBarProps['descriptors'],
   role: 'worker' | 'clinic',
 ) {
-  const order = SIDEBAR_TAB_ORDER[role];
+  const order = TABLET_SIDEBAR_TAB_ORDER[role];
 
   return state.routes
     .filter((route) => typeof descriptors[route.key]?.options?.tabBarIcon === 'function')
