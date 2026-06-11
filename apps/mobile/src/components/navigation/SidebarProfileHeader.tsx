@@ -29,7 +29,7 @@ function textRevealStyle(collapsed: boolean): ViewStyle {
       transitionProperty: 'opacity, max-width',
       transitionDuration: '220ms',
       transitionTimingFunction: 'ease-out',
-    }),
+    } as ViewStyle),
   } as ViewStyle;
 }
 

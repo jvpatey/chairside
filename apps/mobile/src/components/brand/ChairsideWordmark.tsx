@@ -1,4 +1,4 @@
-import { Platform, Pressable, Text, useWindowDimensions, View, type TextStyle } from 'react-native';
+import { Platform, Pressable, Text, useWindowDimensions, View, type TextStyle, type ViewStyle } from 'react-native';
 
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { fontWordmark } from '@/theme/fonts';
@@ -73,7 +73,7 @@ export function ChairsideWordmark({
                     transitionProperty: 'transform',
                     transitionDuration: '280ms',
                     transitionTimingFunction: 'ease-out',
-                  }),
+                  } as ViewStyle),
                 } as TextStyle
               }>
               side

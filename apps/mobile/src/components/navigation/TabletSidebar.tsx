@@ -61,7 +61,7 @@ function labelRevealStyle(collapsed: boolean): TextStyle {
       transitionProperty: 'opacity, max-width',
       transitionDuration: '220ms',
       transitionTimingFunction: 'ease-out',
-    }),
+    } as ViewStyle),
   } as TextStyle;
 }
 
