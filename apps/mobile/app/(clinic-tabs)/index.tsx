@@ -203,6 +203,7 @@ export default function ClinicDashboardScreen() {
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
+  const hasUnreadMessagePreviews = conversations.some((conversation) => conversation.unread);
 
   return (
     <DashboardScreen>
@@ -224,7 +225,7 @@ export default function ClinicDashboardScreen() {
 
           {isTablet ? (
             <FadeInSection delayMs={40}>
-              <View style={styles.section}>
+              <View style={styles.quickActionSection}>
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
                     label="Post a role"
@@ -251,32 +252,34 @@ export default function ClinicDashboardScreen() {
             </FadeInSection>
           ) : null}
 
-          <FadeInSection delayMs={120}>
-            <DashboardUnreadMessagesCard
-              conversations={conversations}
-              avatarKind="worker"
-              role="clinic"
-              onConversationPress={(conversation) => {
-                const preview = getMessageThreadPreview(conversation, 'clinic');
-                router.push(
-                  getConversationMessagesRoute(
-                    conversation,
-                    'clinic',
-                    {
-                      conversationId: conversation.id,
-                      ...preview,
-                    },
-                    'messages-tab',
-                  ),
-                );
-              }}
-              onViewAllPress={() => router.push(getClinicMessagesRoute())}
-            />
-          </FadeInSection>
+          {hasUnreadMessagePreviews ? (
+            <FadeInSection delayMs={120}>
+              <DashboardUnreadMessagesCard
+                conversations={conversations}
+                avatarKind="worker"
+                role="clinic"
+                onConversationPress={(conversation) => {
+                  const preview = getMessageThreadPreview(conversation, 'clinic');
+                  router.push(
+                    getConversationMessagesRoute(
+                      conversation,
+                      'clinic',
+                      {
+                        conversationId: conversation.id,
+                        ...preview,
+                      },
+                      'messages-tab',
+                    ),
+                  );
+                }}
+                onViewAllPress={() => router.push(getClinicMessagesRoute())}
+              />
+            </FadeInSection>
+          ) : null}
 
           {!isTablet ? (
             <FadeInSection delayMs={160}>
-              <View style={styles.section}>
+              <View style={styles.quickActionSection}>
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
                     label="Post a role"
@@ -307,7 +310,7 @@ export default function ClinicDashboardScreen() {
           ) : null}
 
           <FadeInSection delayMs={200}>
-            <View style={styles.overviewSection}>
+            <View style={styles.overviewBlock}>
               <DashboardStatGrid
                 selected={selectedOverview}
                 onSelect={setSelectedOverview}
@@ -327,30 +330,27 @@ export default function ClinicDashboardScreen() {
                   },
                 ]}
               />
+              <DashboardOverviewPanel
+                selected={selectedOverview}
+                jobs={jobs}
+                shifts={shifts}
+                confirmedFillIns={confirmedFillIns}
+                jobApplicationSummaries={jobApplicationSummaries}
+                applicantCounts={applicantCounts}
+                shiftPendingCounts={shiftPendingCounts}
+                shiftApplicationCounts={shiftApplicationCounts}
+                clinicId={user?.id}
+                fillInReturnTo="dashboard-fill-ins"
+                onJobUpdated={handleJobUpdated}
+                onJobDeleted={handleJobDeleted}
+                onShiftUpdated={handleShiftUpdated}
+                onShiftDeleted={handleShiftDeleted}
+                onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
+                onJobApplicationsPress={(jobId) =>
+                  router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
+                }
+              />
             </View>
-          </FadeInSection>
-
-          <FadeInSection delayMs={240}>
-            <DashboardOverviewPanel
-              selected={selectedOverview}
-              jobs={jobs}
-              shifts={shifts}
-              confirmedFillIns={confirmedFillIns}
-              jobApplicationSummaries={jobApplicationSummaries}
-              applicantCounts={applicantCounts}
-              shiftPendingCounts={shiftPendingCounts}
-              shiftApplicationCounts={shiftApplicationCounts}
-              clinicId={user?.id}
-              fillInReturnTo="dashboard-fill-ins"
-              onJobUpdated={handleJobUpdated}
-              onJobDeleted={handleJobDeleted}
-              onShiftUpdated={handleShiftUpdated}
-              onShiftDeleted={handleShiftDeleted}
-              onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
-              onJobApplicationsPress={(jobId) =>
-                router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
-              }
-            />
           </FadeInSection>
         </View>
       )}

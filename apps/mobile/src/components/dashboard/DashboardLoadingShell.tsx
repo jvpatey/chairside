@@ -75,25 +75,25 @@ export function DashboardLoadingShell() {
         <SkeletonBlock pulse={pulse} height={14} width="28%" borderRadius={6} />
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.quickActionSection}>
         <View style={styles.quickActionRow}>
           <Animated.View style={[styles.tile, { opacity: pulse }]} />
           <Animated.View style={[styles.tile, { opacity: pulse }]} />
         </View>
       </View>
 
-      <View style={styles.overviewSection}>
+      <View style={styles.overviewBlock}>
         <View style={styles.statRow}>
           <Animated.View style={[styles.statCell, { opacity: pulse }]} />
           <Animated.View style={[styles.statCell, { opacity: pulse }]} />
           <Animated.View style={[styles.statCell, { opacity: pulse }]} />
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <DashboardSectionHeader title="Open roles near you" />
-        <Animated.View style={[styles.listCard, { opacity: pulse }]} />
-        <Animated.View style={[styles.listCard, { opacity: pulse }]} />
+        <View style={styles.section}>
+          <DashboardSectionHeader title="Open roles near you" />
+          <Animated.View style={[styles.listCard, { opacity: pulse }]} />
+          <Animated.View style={[styles.listCard, { opacity: pulse }]} />
+        </View>
       </View>
     </View>
   );

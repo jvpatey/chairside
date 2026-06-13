@@ -147,6 +147,8 @@ export default function WorkerDashboardScreen() {
     return map;
   }, [conversations]);
 
+  const hasUnreadMessagePreviews = conversations.some((conversation) => conversation.unread);
+
   return (
     <DashboardScreen>
       {isLoading && !hasLoadedOnce.current ? (
@@ -170,7 +172,7 @@ export default function WorkerDashboardScreen() {
 
           {isTablet ? (
             <FadeInSection delayMs={40}>
-              <View style={styles.section}>
+              <View style={styles.quickActionSection}>
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
                     label="Find jobs"
@@ -197,32 +199,34 @@ export default function WorkerDashboardScreen() {
             </FadeInSection>
           ) : null}
 
-          <FadeInSection delayMs={120}>
-            <DashboardUnreadMessagesCard
-              conversations={conversations}
-              avatarKind="clinic"
-              role="worker"
-              onConversationPress={(conversation) => {
-                const preview = getMessageThreadPreview(conversation, 'worker');
-                router.push(
-                  getConversationMessagesRoute(
-                    conversation,
-                    'worker',
-                    {
-                      conversationId: conversation.id,
-                      ...preview,
-                    },
-                    'dashboard-applications',
-                  ),
-                );
-              }}
-              onViewAllPress={() => router.push(getWorkerMessagesRoute())}
-            />
-          </FadeInSection>
+          {hasUnreadMessagePreviews ? (
+            <FadeInSection delayMs={120}>
+              <DashboardUnreadMessagesCard
+                conversations={conversations}
+                avatarKind="clinic"
+                role="worker"
+                onConversationPress={(conversation) => {
+                  const preview = getMessageThreadPreview(conversation, 'worker');
+                  router.push(
+                    getConversationMessagesRoute(
+                      conversation,
+                      'worker',
+                      {
+                        conversationId: conversation.id,
+                        ...preview,
+                      },
+                      'dashboard-applications',
+                    ),
+                  );
+                }}
+                onViewAllPress={() => router.push(getWorkerMessagesRoute())}
+              />
+            </FadeInSection>
+          ) : null}
 
           {!isTablet ? (
             <FadeInSection delayMs={160}>
-              <View style={styles.section}>
+              <View style={styles.quickActionSection}>
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
                     label="Find jobs"
@@ -244,7 +248,7 @@ export default function WorkerDashboardScreen() {
           ) : null}
 
           <FadeInSection delayMs={200}>
-            <View style={styles.overviewSection}>
+            <View style={styles.overviewBlock}>
               <DashboardStatGrid
                 selected={selectedOverview}
                 onSelect={setSelectedOverview}
@@ -264,24 +268,21 @@ export default function WorkerDashboardScreen() {
                   },
                 ]}
               />
+              <WorkerOverviewPanel
+                selected={selectedOverview}
+                jobs={jobs}
+                shifts={shifts}
+                jobApplications={jobApplications}
+                shiftApplications={shiftApplications}
+                appliedJobIds={appliedJobIds}
+                unreadMap={unreadMap}
+                onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
+                onShiftPress={(shiftId) =>
+                  router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
+                }
+                onApplicationUpdated={() => void loadDashboard()}
+              />
             </View>
-          </FadeInSection>
-
-          <FadeInSection delayMs={240}>
-            <WorkerOverviewPanel
-              selected={selectedOverview}
-              jobs={jobs}
-              shifts={shifts}
-              jobApplications={jobApplications}
-              shiftApplications={shiftApplications}
-              appliedJobIds={appliedJobIds}
-              unreadMap={unreadMap}
-              onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
-              onShiftPress={(shiftId) =>
-                router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
-              }
-              onApplicationUpdated={() => void loadDashboard()}
-            />
           </FadeInSection>
         </View>
       )}
