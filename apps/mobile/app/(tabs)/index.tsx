@@ -1,6 +1,5 @@
 import {
   getWorkerDashboardCounts,
-  isWorkerProfileComplete,
   listConversationsForWorker,
   listLiveJobPosts,
   listLiveShiftPosts,
@@ -163,8 +162,7 @@ export default function WorkerDashboardScreen() {
             <FadeInSection delayMs={0}>
               <WorkerDashboardHero
                 displayName={profile?.display_name}
-                province={province}
-                showProvinceBadge={isWorkerProfileComplete(workerProfile)}
+                workerProfile={workerProfile}
               />
             </FadeInSection>
           ) : null}
@@ -172,7 +170,6 @@ export default function WorkerDashboardScreen() {
           {isTablet ? (
             <FadeInSection delayMs={40}>
               <View style={styles.section}>
-                <DashboardTabletSectionHeader title="Quick actions" />
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
                     label="Find jobs"
@@ -223,7 +220,6 @@ export default function WorkerDashboardScreen() {
           {!isTablet ? (
             <FadeInSection delayMs={160}>
               <View style={styles.section}>
-                <DashboardSectionHeader title="Quick actions" />
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
                     label="Find jobs"
@@ -246,7 +242,6 @@ export default function WorkerDashboardScreen() {
 
           <FadeInSection delayMs={200}>
             <View style={styles.overviewSection}>
-              <DashboardSectionHeader title="Overview" />
               <DashboardStatGrid
                 selected={selectedOverview}
                 onSelect={setSelectedOverview}

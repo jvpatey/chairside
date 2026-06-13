@@ -29,16 +29,12 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
   clinicName?: string | null;
-  province?: string;
-  showLocationBadge?: boolean;
 };
 
 const CLINIC_NAME_PLACEHOLDER = 'Your practice';
 
 export function DashboardHero({
   clinicName,
-  province = 'NS',
-  showLocationBadge = false,
 }: DashboardHeroProps) {
   const { logoUri } = useClinicLogo();
 
@@ -49,8 +45,7 @@ export function DashboardHero({
       displayName={clinicName}
       photoUri={logoUri}
       namePlaceholder={CLINIC_NAME_PLACEHOLDER}
-      province={province}
-      showProvinceBadge={showLocationBadge}
+      subtitle="Dental Clinic"
     />
   );
 }
@@ -271,7 +266,7 @@ export function DashboardOverviewPanel({
 
   return (
     <View>
-      <DashboardSectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
+      <DashboardSectionHeader title={OVERVIEW_SECTION_TITLES[selected]} accent />
       {selected === 'roles' ? (
         roleJobs.length === 0 ? (
           <DashboardEmptyState

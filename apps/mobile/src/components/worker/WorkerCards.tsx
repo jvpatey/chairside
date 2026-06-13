@@ -1,4 +1,6 @@
-import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
+import type { LiveJobPost, LiveShiftPost, WorkerApplication, WorkerProfile } from '@chairside/api';
+import { getWorkerRoleTypes } from '@chairside/api';
+import { formatRoleTypesLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
@@ -70,16 +72,14 @@ export function WorkerSetupBanner({ onPress }: WorkerSetupBannerProps) {
 
 type WorkerDashboardHeroProps = {
   displayName?: string | null;
-  province?: string;
-  showProvinceBadge?: boolean;
+  workerProfile?: WorkerProfile | null;
 };
 
-export function WorkerDashboardHero({
-  displayName,
-  province = 'NS',
-  showProvinceBadge = false,
-}: WorkerDashboardHeroProps) {
+export function WorkerDashboardHero({ displayName, workerProfile }: WorkerDashboardHeroProps) {
   const { photoUri } = useProfilePhoto();
+  const subtitle =
+    (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
+    'Dental professional';
 
   return (
     <DashboardHeroCard
@@ -88,8 +88,7 @@ export function WorkerDashboardHero({
       displayName={displayName}
       photoUri={photoUri}
       namePlaceholder="Your profile"
-      province={province}
-      showProvinceBadge={showProvinceBadge}
+      subtitle={subtitle}
     />
   );
 }
@@ -204,7 +203,7 @@ export function WorkerOverviewPanel({
 
   return (
     <View>
-      <DashboardSectionHeader title={OVERVIEW_TITLES[selected]} />
+      <DashboardSectionHeader title={OVERVIEW_TITLES[selected]} accent />
       {selected === 'roles' ? (
         jobs.length === 0 ? (
           <DashboardEmptyState

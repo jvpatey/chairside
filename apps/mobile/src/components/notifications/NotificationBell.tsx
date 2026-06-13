@@ -16,9 +16,14 @@ import { useTheme, useThemedStyles } from '@/theme';
 type NotificationBellProps = {
   /** `hero` — top-right inside dashboard hero card; `header` — screen title row */
   placement?: 'header' | 'hero';
+  /** Transparent button when nested inside a glass hero cluster */
+  embedded?: boolean;
 };
 
-export function NotificationBell({ placement = 'header' }: NotificationBellProps) {
+export function NotificationBell({
+  placement = 'header',
+  embedded = false,
+}: NotificationBellProps) {
   const { colors } = useTheme();
   const clientId = getPingramClientId();
   const { unreadCount, isReady } = useNotifications();
@@ -33,7 +38,7 @@ export function NotificationBell({ placement = 'header' }: NotificationBellProps
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: inHero ? 0 : spacing.sm,
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: embedded ? 'transparent' : colors.fillSubtle,
       ...webPointer(),
     },
     buttonHovered: webIconButtonHoverStyles(colors),
@@ -53,7 +58,7 @@ export function NotificationBell({ placement = 'header' }: NotificationBellProps
       justifyContent: 'center',
       paddingHorizontal: 5,
       borderWidth: 2,
-      borderColor: colors.backgroundGrouped,
+      borderColor: embedded ? colors.surface : colors.backgroundGrouped,
     },
     badgeText: {
       color: colors.primaryOnPrimary,

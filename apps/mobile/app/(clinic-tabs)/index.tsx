@@ -202,7 +202,6 @@ export default function ClinicDashboardScreen() {
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
-  const province = clinicProfile?.province ?? 'NS';
 
   return (
     <DashboardScreen>
@@ -218,18 +217,13 @@ export default function ClinicDashboardScreen() {
 
           {!isTablet ? (
             <FadeInSection delayMs={0}>
-              <DashboardHero
-                clinicName={clinicName}
-                province={province}
-                showLocationBadge={isProfileComplete}
-              />
+              <DashboardHero clinicName={clinicName} />
             </FadeInSection>
           ) : null}
 
           {isTablet ? (
             <FadeInSection delayMs={40}>
               <View style={styles.section}>
-                <DashboardTabletSectionHeader title="Quick actions" />
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
                     label="Post a role"
@@ -287,7 +281,6 @@ export default function ClinicDashboardScreen() {
           {!isTablet ? (
             <FadeInSection delayMs={200}>
               <View style={styles.section}>
-                <DashboardSectionHeader title="Quick actions" />
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
                     label="Post a role"
@@ -310,7 +303,6 @@ export default function ClinicDashboardScreen() {
 
           <FadeInSection delayMs={240}>
             <View style={styles.overviewSection}>
-              <DashboardSectionHeader title="Overview" />
               <DashboardStatGrid
                 selected={selectedOverview}
                 onSelect={setSelectedOverview}

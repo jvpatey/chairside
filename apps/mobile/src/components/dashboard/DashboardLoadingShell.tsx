@@ -1,7 +1,7 @@
 import { Animated, View } from 'react-native';
 
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
+import { getDashboardLayoutStyles, dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
 import { usePulseOpacity } from '@/lib/motion';
 import { useThemedStyles } from '@/theme';
 
@@ -43,19 +43,22 @@ export function DashboardLoadingShell() {
     },
     tile: {
       flex: 1,
-      height: 116,
-      borderRadius: theme.radii.xl,
+      height: 82,
+      borderRadius: dashboardControlRadii.quickAction,
       backgroundColor: theme.colors.fillSubtle,
     },
     statRow: {
       flexDirection: 'row' as const,
-      gap: theme.spacing.sm,
+      gap: 3,
+      padding: 3,
+      borderRadius: dashboardControlRadii.statBar,
+      backgroundColor: theme.colors.fillSubtle,
     },
     statCell: {
       flex: 1,
-      height: 84,
-      borderRadius: theme.radii.lg,
-      backgroundColor: theme.colors.fillSubtle,
+      height: 72,
+      borderRadius: dashboardControlRadii.statSegment,
+      backgroundColor: theme.colors.surface,
     },
     listCard: {
       height: 132,
@@ -73,7 +76,6 @@ export function DashboardLoadingShell() {
       </View>
 
       <View style={styles.section}>
-        <DashboardSectionHeader title="Quick actions" />
         <View style={styles.quickActionRow}>
           <Animated.View style={[styles.tile, { opacity: pulse }]} />
           <Animated.View style={[styles.tile, { opacity: pulse }]} />
@@ -81,7 +83,6 @@ export function DashboardLoadingShell() {
       </View>
 
       <View style={styles.overviewSection}>
-        <DashboardSectionHeader title="Overview" />
         <View style={styles.statRow}>
           <Animated.View style={[styles.statCell, { opacity: pulse }]} />
           <Animated.View style={[styles.statCell, { opacity: pulse }]} />
@@ -90,7 +91,7 @@ export function DashboardLoadingShell() {
       </View>
 
       <View style={styles.section}>
-        <DashboardSectionHeader title="Open roles near you" />
+        <DashboardSectionHeader title="Open roles near you" accent />
         <Animated.View style={[styles.listCard, { opacity: pulse }]} />
         <Animated.View style={[styles.listCard, { opacity: pulse }]} />
       </View>

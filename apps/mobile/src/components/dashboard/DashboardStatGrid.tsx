@@ -1,16 +1,18 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
+import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
 import {
   fontBold,
   fontSemibold,
+  colorWithAlpha,
   getStatSelectedGradient,
   useTheme,
   useThemedStyles,
 } from '@/theme';
-import { webOnlyStyle, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 
 export type DashboardOverviewStat = 'roles' | 'fill-ins' | 'applications';
 
@@ -33,10 +35,16 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
   onSelect,
 }: DashboardStatGridProps<T>) {
   const { colors, isDark } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, radii, elevation, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     grid: {
       flexDirection: 'row',
-      gap: spacing.sm,
+      borderRadius: dashboardControlRadii.statBar,
+      padding: 3,
+      backgroundColor: isDark ? colorWithAlpha(colors.surfaceElevated, 0.68) : colors.fillSubtle,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      overflow: 'hidden',
+      ...elevation('none'),
     },
     cellWrap: {
       flex: 1,
@@ -44,31 +52,39 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
     },
     badgeAnchor: {
       position: 'absolute',
-      top: -6,
-      right: 0,
+      top: 3,
+      right: 8,
       zIndex: 1,
     },
+    divider: {
+      position: 'absolute',
+      top: 14,
+      right: 0,
+      bottom: 14,
+      width: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+      opacity: isDark ? 0.7 : 0.55,
+    },
     cell: {
-      borderRadius: radii.lg,
-      borderWidth: 1,
+      borderRadius: dashboardControlRadii.statSegment,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: 'transparent',
-      paddingVertical: spacing.md,
+      paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.sm,
       alignItems: 'center',
-      gap: 6,
-      backgroundColor: colors.surface,
-      minHeight: 84,
+      gap: 4,
+      minHeight: 72,
       overflow: 'hidden',
-      ...elevation('subtle'),
+      ...elevation('none'),
       ...webPointer(),
     },
     cellUnselected: {
-      borderColor: colors.separator,
-      backgroundColor: isDark ? colors.surface : colors.surfaceElevated,
+      backgroundColor: 'transparent',
     },
     cellSelected: {
-      borderColor: isDark ? `${colors.primary}88` : `${colors.primary}66`,
-      ...elevation('raised'),
+      borderColor: isDark ? `${colors.primary}77` : `${colors.primary}55`,
+      backgroundColor: isDark ? colorWithAlpha(colors.primary, 0.16) : colors.surfaceElevated,
+      ...elevation('none'),
     },
     gradient: {
       position: 'absolute',
@@ -77,16 +93,15 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       right: 0,
       bottom: 0,
     },
-    cellHovered: webTileHoverStyles(colors, isDark),
+    cellHovered: webOnlyStyle({
+      backgroundColor: isDark ? colorWithAlpha(colors.surfaceElevated, 0.7) : colors.surfaceElevated,
+    } as ViewStyle),
     cellSelectedHovered: webOnlyStyle({
       borderColor: colors.primary,
-      boxShadow: isDark
-        ? '0 4px 14px rgba(74, 154, 255, 0.18)'
-        : '0 4px 14px rgba(26, 111, 212, 0.14)',
     } as ViewStyle),
     value: {
-      fontSize: 28,
-      lineHeight: 32,
+      fontSize: 22,
+      lineHeight: 26,
       fontFamily: fontBold,
       fontWeight: '700',
       color: colors.labelPrimary,
@@ -96,7 +111,8 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       color: colors.primary,
     },
     label: {
-      fontSize: 12,
+      fontSize: 10.5,
+      lineHeight: 14,
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelSecondary,
@@ -116,8 +132,9 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
 
   return (
     <View style={styles.grid}>
-      {stats.map((stat) => {
+      {stats.map((stat, index) => {
         const isSelected = selected === stat.key;
+        const isNextSelected = selected === stats[index + 1]?.key;
         const badgeCount = stat.badgeCount ?? 0;
 
         return (
@@ -153,6 +170,9 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
               <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
               <Text style={[styles.label, isSelected && styles.labelSelected]}>{stat.label}</Text>
             </Pressable>
+            {index < stats.length - 1 && !isSelected && !isNextSelected ? (
+              <View style={styles.divider} />
+            ) : null}
           </View>
         );
       })}
