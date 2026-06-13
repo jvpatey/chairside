@@ -223,7 +223,7 @@ export default function ClinicRoleApplicationsScreen() {
 
   return (
     <>
-      <OnboardingShell clearTabDock>
+      <OnboardingShell>
       <AuthScreenHeader
         eyebrow="Applications for"
         title={postTitle || 'Role'}

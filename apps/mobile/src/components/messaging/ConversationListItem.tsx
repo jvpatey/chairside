@@ -90,8 +90,7 @@ export function ConversationListItem({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.sm,
+      alignItems: 'stretch',
       paddingVertical: compact ? spacing.sm + 2 : spacing.md,
       paddingHorizontal: compact ? spacing.sm : spacing.md,
       position: 'relative' as const,
@@ -110,7 +109,7 @@ export function ConversationListItem({
     mainPressable: {
       flex: 1,
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: spacing.md,
       minWidth: 0,
       ...webPointer(),
@@ -118,12 +117,15 @@ export function ConversationListItem({
     mainPressed: {
       opacity: 0.92,
     },
-    textWrap: { flex: 1, gap: 2, minWidth: 0 },
+    textWrap: { flex: 1, gap: 2, minWidth: 0, paddingRight: spacing.xs },
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing.sm,
+    },
+    titleRowWithMenu: {
+      paddingRight: 36,
     },
     roleEyebrow: {
       fontSize: 11,
@@ -163,22 +165,25 @@ export function ConversationListItem({
       backgroundColor: colors.primary,
     },
     menuButton: {
+      position: 'absolute' as const,
+      top: compact ? spacing.xs : spacing.sm,
+      right: compact ? spacing.sm : spacing.md,
+      zIndex: 2,
       width: 32,
       height: 32,
       borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 2,
       ...webPointer(),
     },
     menuButtonHovered: webIconButtonHoverStyles(colors),
     menuButtonPressed: {
       opacity: 0.75,
     },
-    trailing: {
-      alignSelf: 'stretch',
-      justifyContent: 'center',
-      paddingTop: 2,
+    chevronWrap: {
+      flexShrink: 0,
+      alignSelf: 'center',
+      marginLeft: spacing.xs,
     },
   }));
 
@@ -223,6 +228,23 @@ export function ConversationListItem({
             }
           : {})}>
         {selected ? <View style={styles.selectedAccent} /> : null}
+        {onDelete ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Conversation options"
+            hitSlop={8}
+            onPress={(event) => {
+              event.stopPropagation?.();
+              openMenu();
+            }}
+            style={({ pressed, hovered }) => [
+              styles.menuButton,
+              webHover(hovered, pressed, styles.menuButtonHovered),
+              pressed && styles.menuButtonPressed,
+            ]}>
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
@@ -231,7 +253,7 @@ export function ConversationListItem({
           style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
           <ConversationAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
           <View style={styles.textWrap}>
-            <View style={styles.titleRow}>
+            <View style={[styles.titleRow, onDelete ? styles.titleRowWithMenu : null]}>
               <Text style={styles.roleEyebrow} numberOfLines={1}>
                 {display.cardTitle}
               </Text>
@@ -250,28 +272,10 @@ export function ConversationListItem({
               {conversation.unread ? <View style={styles.unreadDot} /> : null}
             </View>
           </View>
-        </Pressable>
-        <View style={styles.trailing}>
-          {onDelete ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Conversation options"
-              hitSlop={8}
-              onPress={(event) => {
-                event.stopPropagation?.();
-                openMenu();
-              }}
-              style={({ pressed, hovered }) => [
-                styles.menuButton,
-                webHover(hovered, pressed, styles.menuButtonHovered),
-                pressed && styles.menuButtonPressed,
-              ]}>
-              <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
-            </Pressable>
-          ) : (
+          <View style={styles.chevronWrap}>
             <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
-          )}
-        </View>
+          </View>
+        </Pressable>
       </View>
 
       <ActionMenuSheet

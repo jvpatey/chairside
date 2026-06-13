@@ -40,8 +40,6 @@ type OnboardingShellProps = {
   contentStyle?: StyleProp<ViewStyle>;
   /** Renders behind scroll content (e.g. welcome screen top glow). */
   backgroundAccessory?: ReactNode;
-  /** Extra bottom padding so scroll content clears the floating phone tab dock. */
-  clearTabDock?: boolean;
 };
 
 const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;
@@ -53,10 +51,9 @@ export function OnboardingShell({
   footer,
   contentStyle,
   backgroundAccessory,
-  clearTabDock = false,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
-  const tabDockInset = useMobileTabDockInset({ enabled: clearTabDock });
+  const tabDockInset = useMobileTabDockInset();
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const scrollYRef = useRef(0);
@@ -200,7 +197,15 @@ export function OnboardingShell({
     scheduleDelayedRuns(() => performScroll(pendingScrollRef.current));
   }, [footerHeight, performScroll, scheduleDelayedRuns]);
 
-  const footerPaddingBottom = footer ? spacing.md : insets.bottom + spacing.md;
+  const footerPaddingBottom = footer
+    ? spacing.md + tabDockInset
+    : insets.bottom + spacing.md;
+
+  const scrollBottomInset = footer
+    ? 0
+    : tabDockInset > 0
+      ? tabDockInset
+      : insets.bottom;
 
   const scrollView = (
     <ScrollView
@@ -219,9 +224,8 @@ export function OnboardingShell({
           paddingTop: insets.top + 16,
           paddingBottom:
             spacing.lg +
-            insets.bottom +
+            scrollBottomInset +
             footerScrollClearance +
-            tabDockInset +
             // iOS without a footer uses automaticallyAdjustKeyboardInsets; with a
             // footer, KeyboardAvoidingView handles the inset — avoid double padding.
             (Platform.OS === 'android' && !footer ? keyboardHeight : 0),

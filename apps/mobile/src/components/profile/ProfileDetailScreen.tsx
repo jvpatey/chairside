@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
@@ -28,6 +29,7 @@ export function ProfileDetailScreen({
   children,
 }: ProfileDetailScreenProps) {
   const insets = useSafeAreaInsets();
+  const tabDockInset = useMobileTabDockInset();
   const { colors } = useTheme();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -96,7 +98,11 @@ export function ProfileDetailScreen({
         style={{ flex: 1, backgroundColor: 'transparent' }}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
+          {
+            paddingTop: insets.top + 16,
+            paddingBottom:
+              24 + (tabDockInset > 0 ? tabDockInset : insets.bottom),
+          },
         ]}>
         <WebPageEnter>
           <View style={styles.header}>

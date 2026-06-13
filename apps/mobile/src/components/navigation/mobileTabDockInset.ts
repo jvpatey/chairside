@@ -23,11 +23,13 @@ export function useMobileTabDockInset(options: UseMobileTabDockInsetOptions = {}
   const { enabled = true } = options;
   const { isTablet } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
-  const measuredTabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
+  const tabBarHeight = useContext(BottomTabBarHeightContext);
 
   if (!enabled || isTablet) return 0;
+  // Outside a tab navigator the context is unset; do not reserve dock space.
+  if (tabBarHeight == null) return 0;
 
   const minimum = getMobileTabDockMinimumInset(insets.bottom);
-  if (measuredTabBarHeight <= 0) return minimum;
-  return Math.max(measuredTabBarHeight, minimum);
+  if (tabBarHeight <= 0) return minimum;
+  return Math.max(tabBarHeight, minimum);
 }
