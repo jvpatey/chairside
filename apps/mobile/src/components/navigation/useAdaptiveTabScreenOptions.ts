@@ -24,8 +24,11 @@ export function useAdaptiveTabScreenOptions() {
   };
 
   if (isTablet) {
+    const isWebTablet = Platform.OS === 'web';
     return {
       ...shared,
+      sceneStyle: { backgroundColor: 'transparent' },
+      sceneContainerStyle: { backgroundColor: 'transparent' },
       tabBarPosition: 'left' as const,
       safeAreaInsets: { top: 0, bottom: 0, left: 0, right: 0 },
       tabBarStyle: {
@@ -34,13 +37,15 @@ export function useAdaptiveTabScreenOptions() {
         flexGrow: 0,
         flexShrink: 0,
         alignSelf: 'stretch',
-        backgroundColor: colors.surface,
-        borderRightWidth: Platform.OS === 'ios' ? 0.5 : 1,
-        borderRightColor: colors.separator,
+        backgroundColor: 'transparent',
+        borderRightWidth: isWebTablet ? 0 : Platform.OS === 'ios' ? 0.5 : 1,
+        borderRightColor: isWebTablet ? 'transparent' : colors.separator,
         paddingTop: 0,
         paddingBottom: 0,
-        ...(Platform.OS === 'web'
+        ...(isWebTablet
           ? {
+              elevation: 0,
+              shadowOpacity: 0,
               transitionProperty: 'width, max-width',
               transitionDuration: '220ms',
               transitionTimingFunction: 'ease-out',

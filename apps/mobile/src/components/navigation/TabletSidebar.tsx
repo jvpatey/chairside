@@ -8,6 +8,7 @@ import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
 import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,7 +21,7 @@ import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
 import { TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, colorWithAlpha } from '@/theme';
 
 export { TABLET_SIDEBAR_COLLAPSED_WIDTH, TABLET_SIDEBAR_WIDTH } from '@/components/navigation/sidebarDimensions';
 
@@ -66,7 +67,7 @@ function labelRevealStyle(collapsed: boolean): TextStyle {
 export function TabletSidebar({ state, descriptors, navigation, role }: TabletSidebarProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
   const { isCollapsed, toggleCollapsed } = useSidebarCollapse();
   const { profile } = useAuth();
   const { photoUri } = useProfilePhoto();
@@ -75,15 +76,30 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { workerProfile } = useWorkerProfile();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    sidebar: {
+    outerWeb: {
       flex: 1,
       width: '100%',
-      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
+      backgroundColor: 'transparent',
+      minHeight: 0,
+    },
+    glassPanel: {
+      flex: 1,
+      minHeight: 0,
+    },
+    sidebarWebInner: {
+      flex: 1,
+      width: '100%',
+      backgroundColor: 'transparent',
     },
     profileRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+    },
+    profileRowCollapsed: {
+      justifyContent: 'center',
     },
     profileRowExpanded: {
       minHeight: TABLET_PROFILE_ROW_HEIGHT,
@@ -91,6 +107,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     profileHeaderWrap: {
       flex: 1,
       minWidth: 0,
+    },
+    profileHeaderWrapCollapsed: {
+      flex: 0,
+      alignSelf: 'center',
     },
     toggleButton: {
       width: 32,
@@ -260,30 +280,34 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     </Pressable>
   );
 
-  return (
-    <View
-      style={[
-        styles.sidebar,
-        {
-          paddingHorizontal: isCollapsed ? spacing.xs : spacing.md,
-          paddingTop: insets.top + TABLET_TOP_INSET_EXTRA,
-          paddingBottom: Math.max(insets.bottom, spacing.md),
-          ...(Platform.OS === 'web'
-            ? {
-                minHeight: 0,
-                ...webOnlyStyle({
-                  transitionProperty: 'padding-left, padding-right',
-                  transitionDuration: '220ms',
-                  transitionTimingFunction: 'ease-out',
-                } as ViewStyle),
-              }
-            : {}),
-        },
-      ]}>
+  const panelPadding = {
+    paddingHorizontal: isCollapsed ? spacing.sm : spacing.md,
+    paddingTop: insets.top + TABLET_TOP_INSET_EXTRA,
+    paddingBottom: Math.max(insets.bottom, spacing.md),
+    ...(isWeb
+      ? webOnlyStyle({
+          transitionProperty: 'padding-left, padding-right',
+          transitionDuration: '220ms',
+          transitionTimingFunction: 'ease-out',
+        } as ViewStyle)
+      : {}),
+  };
+
+  const sidebarContent = (
+    <>
       <View style={[styles.profileSection, isCollapsed && styles.profileSectionCollapsed]}>
         {isCollapsed ? <View style={styles.collapsedToggleWrap}>{collapseToggle}</View> : null}
-        <View style={[styles.profileRow, !isCollapsed && styles.profileRowExpanded]}>
-          <View style={styles.profileHeaderWrap}>
+        <View
+          style={[
+            styles.profileRow,
+            isCollapsed && styles.profileRowCollapsed,
+            !isCollapsed && styles.profileRowExpanded,
+          ]}>
+          <View
+            style={[
+              styles.profileHeaderWrap,
+              isCollapsed && styles.profileHeaderWrapCollapsed,
+            ]}>
             <SidebarProfileHeader
               href={profileHref}
               avatarKind={role === 'worker' ? 'worker' : 'clinic'}
@@ -408,6 +432,28 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           </Text>
         </Pressable>
       </View>
+    </>
+  );
+
+  if (isWeb) {
+    return (
+      <View style={styles.outerWeb}>
+        <LiquidGlassSurface
+          borderRadius={28}
+          style={styles.glassPanel}
+          overlayColor={colorWithAlpha(colors.surfaceElevated, isDark ? 0.72 : 0.78)}
+          backdropBlur>
+          <View style={[styles.sidebarWebInner, panelPadding]}>
+            {sidebarContent}
+          </View>
+        </LiquidGlassSurface>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[panelPadding, { flex: 1, minHeight: 0, backgroundColor: 'transparent' }]}>
+      {sidebarContent}
     </View>
   );
 }

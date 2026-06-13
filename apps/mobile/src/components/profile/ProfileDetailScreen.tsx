@@ -3,7 +3,6 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
-import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
@@ -92,8 +91,7 @@ export function ProfileDetailScreen({
   }));
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.backgroundGrouped }]}>
-      <AppAtmosphere intensity="subtle" />
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       <ScrollView
         style={{ flex: 1, backgroundColor: 'transparent' }}
         contentContainerStyle={[

@@ -4,6 +4,7 @@ import {
   PlusJakartaSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -12,6 +13,7 @@ import { useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { getColors } from '@/theme/colors';
+import { getAppNavigationTheme } from '@/theme/navigationTheme';
 
 import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
@@ -62,10 +64,12 @@ export default function RootLayout() {
   }
 
   const rootBackground = getColors(colorScheme).backgroundGrouped;
+  const navigationTheme = getAppNavigationTheme(colorScheme);
 
   return (
     <SafeAreaProvider style={{ flex: 1, backgroundColor: rootBackground }}>
       <View style={{ flex: 1, backgroundColor: rootBackground }}>
+      <ThemeProvider value={navigationTheme}>
       <AuthProvider>
         <ClinicProfileProvider>
           <WorkerProfileProvider>
@@ -77,7 +81,10 @@ export default function RootLayout() {
                   <ConfirmActionSheetHost />
                   <VercelAnalytics />
                   <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-                  <Stack>
+                  <Stack
+                    screenOptions={{
+                      contentStyle: { backgroundColor: rootBackground },
+                    }}>
                   <Stack.Screen name="index" options={{ headerShown: false }} />
                   <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -93,6 +100,7 @@ export default function RootLayout() {
           </WorkerProfileProvider>
         </ClinicProfileProvider>
       </AuthProvider>
+      </ThemeProvider>
       </View>
     </SafeAreaProvider>
   );

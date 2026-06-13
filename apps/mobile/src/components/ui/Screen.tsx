@@ -3,7 +3,6 @@ import { Pressable, ScrollView, Text, View, type StyleProp, type ViewStyle } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
-import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere } from '@/contexts/TabAtmosphereContext';
@@ -59,7 +58,7 @@ export function Screen({
   const tabAtmosphere = useTabAtmosphere();
   const showAtmosphere = tabAtmosphere !== 'none';
   const containerBackground =
-    transparentBackground && !showAtmosphere ? 'transparent' : colors.backgroundGrouped;
+    showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
   const topPadding =
     isTablet && !showHeader ? insets.top + TABLET_TOP_INSET_EXTRA : insets.top + 16;
@@ -133,9 +132,6 @@ export function Screen({
     paddingBottom: (fillsContainer ? spacing.md : 24) + tabDockInset,
   };
 
-  const atmosphereLayer =
-    showAtmosphere ? <AppAtmosphere intensity={tabAtmosphere} /> : null;
-
   const headerBlock = (
     <View
       style={[
@@ -186,7 +182,6 @@ export function Screen({
           { backgroundColor: containerBackground },
           fillsContainer && { minHeight: 0 },
         ]}>
-        {atmosphereLayer}
         <WebPageEnter
           animate={animateEntry}
           style={fillsContainer ? { flex: 1, minHeight: 0 } : { flex: 1 }}>
@@ -208,7 +203,6 @@ export function Screen({
 
   return (
     <View style={[styles.container, { backgroundColor: containerBackground }]}>
-      {atmosphereLayer}
       <ScrollView
         style={[
           { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },

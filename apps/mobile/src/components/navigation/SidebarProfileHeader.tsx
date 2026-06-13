@@ -56,7 +56,8 @@ export function SidebarProfileHeader({
     },
     pressableCollapsed: {
       justifyContent: 'center',
-      paddingHorizontal: spacing.xs,
+      alignSelf: 'center',
+      paddingHorizontal: 0,
       gap: 0,
       ...webOnlyStyle({
         transitionProperty: 'padding-left, padding-right, gap',

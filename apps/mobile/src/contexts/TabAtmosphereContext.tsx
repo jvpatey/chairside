@@ -1,11 +1,14 @@
 import { createContext, useContext, type ReactNode } from 'react';
+import { View } from 'react-native';
 import { usePathname, useSegments } from 'expo-router';
 
+import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import {
   getTabAtmosphereIntensityFromPathname,
   type TabAtmosphereIntensity,
   type TabAtmosphereRole,
 } from '@/lib/tabAtmosphereRoutes';
+import { useTheme } from '@/theme';
 
 const TabAtmosphereContext = createContext<TabAtmosphereIntensity>('none');
 
@@ -22,6 +25,7 @@ type TabAtmosphereShellProps = {
 export function TabAtmosphereShell({ role, children }: TabAtmosphereShellProps) {
   const pathname = usePathname();
   const segments = useSegments();
+  const { colors } = useTheme();
   let intensity = getTabAtmosphereIntensityFromPathname(pathname, role);
 
   if (intensity === 'none' && segments.includes('profile')) {
@@ -29,6 +33,11 @@ export function TabAtmosphereShell({ role, children }: TabAtmosphereShellProps) 
   }
 
   return (
-    <TabAtmosphereContext.Provider value={intensity}>{children}</TabAtmosphereContext.Provider>
+    <TabAtmosphereContext.Provider value={intensity}>
+      <View style={{ flex: 1, backgroundColor: colors.backgroundGrouped }}>
+        {intensity !== 'none' ? <AppAtmosphere intensity={intensity} /> : null}
+        <View style={{ flex: 1 }}>{children}</View>
+      </View>
+    </TabAtmosphereContext.Provider>
   );
 }
