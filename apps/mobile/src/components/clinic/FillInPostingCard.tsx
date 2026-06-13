@@ -1,10 +1,8 @@
 import type { ShiftPost } from '@chairside/api';
-import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import {
   LayoutAnimation,
   Platform,
-  Pressable,
   Text,
   UIManager,
   View,
@@ -14,7 +12,8 @@ import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
 import { ShiftPostManageMenu } from '@/components/clinic/ShiftPostManageMenu';
 import { ShiftPostStatusBadge } from '@/components/clinic/ShiftPostStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
+import { CountBadge, formatRequestCountLabel } from '@/components/ui/CountBadge';
+import { ExpandableSurfaceCard } from '@/components/ui/ExpandableSurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import {
@@ -26,7 +25,6 @@ import {
   getEditShiftRoute,
   type FillInReturnTarget,
 } from '@/lib/routing';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -45,29 +43,6 @@ type FillInPostingCardProps = {
   onShiftDeleted?: () => void;
 };
 
-function RequestCountPill({ count }: { count: number }) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    pill: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-    },
-    text: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-  }));
-
-  return (
-    <View style={styles.pill}>
-      <Text style={styles.text}>{count === 1 ? '1 request' : `${count} requests`}</Text>
-    </View>
-  );
-}
-
 export function FillInPostingCard({
   shift,
   pendingRequestCount = 0,
@@ -84,21 +59,6 @@ export function FillInPostingCard({
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-    cardHeaderPressable: {
-      alignSelf: 'stretch',
-      borderRadius: 12,
-      ...webPointer(),
-    },
-    cardHeaderHovered: webListRowHoverStyles(colors),
-    cardPressed: { opacity: 0.92 },
     footer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -109,10 +69,6 @@ export function FillInPostingCard({
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
-    },
-    expandedBody: {
-      gap: spacing.md,
-      paddingTop: spacing.xs,
     },
     actions: {
       gap: spacing.sm,
@@ -135,74 +91,63 @@ export function FillInPostingCard({
   const reviewLabel =
     applicationCount === 1 ? 'Review applicant' : `Review ${applicationCount} applicants`;
 
-  return (
-    <View style={styles.card}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        onPress={() => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          toggleExpanded();
-        }}
-        style={({ pressed, hovered }) => [
-          styles.cardHeaderPressable,
-          webHover(hovered, pressed, styles.cardHeaderHovered),
-          pressed && styles.cardPressed,
-        ]}>
+  const header = (
         <ClinicPostHeader
+          layout="split"
           clinicName={clinicName}
-          logoStoragePath={clinicProfile?.logo_storage_path}
-          title={formatShiftPostRoleTitle(shift.role_type)}
-          location={location || null}
-          detail={formatShiftPostMeta(shift)}
-          avatarSize={44}
-          accessory={<ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />}
-          textFooter={pendingRequestCount > 0 ? <RequestCountPill count={pendingRequestCount} /> : null}
-          footer={
-            shift.compensation ? (
-              <View style={styles.footer}>
-                <Text style={styles.compensation}>{shift.compensation}</Text>
-              </View>
-            ) : null
-          }
-        />
-      </Pressable>
-
-      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} />
-
-      {expanded ? (
-        <View style={styles.expandedBody}>
-          <ShiftPostDetailView shift={shift} variant="embedded" showStatusBadge={false} />
-          <View style={styles.actions}>
-            {applicationCount > 0 ? (
-              <OnboardingButton
-                label={reviewLabel}
-                onPress={() =>
-                  router.push(getClinicShiftApplicantsRoute(shift.id, returnTo))
-                }
-              />
-            ) : null}
-            <View style={styles.actionsRow}>
-              <OnboardingButton
-                style={styles.actionButton}
-                label="Edit fill-in"
-                variant={applicationCount > 0 ? 'secondary' : 'primary'}
-                onPress={() => router.push(getEditShiftRoute(shift.id, returnTo))}
-              />
-              {clinicId ? (
-                <ShiftPostManageMenu
-                  trigger={applicationCount > 0 ? 'icon' : 'button'}
-                  style={applicationCount > 0 ? undefined : styles.actionButton}
-                  clinicId={clinicId}
-                  shift={shift}
-                  onUpdated={onShiftUpdated ?? (() => undefined)}
-                  onDeleted={onShiftDeleted ?? (() => undefined)}
-                />
-              ) : null}
-            </View>
+      logoStoragePath={clinicProfile?.logo_storage_path}
+      title={formatShiftPostRoleTitle(shift.role_type)}
+      location={location || null}
+      detail={formatShiftPostMeta(shift)}
+      avatarSize={44}
+      accessory={<ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />}
+      textFooter={
+        pendingRequestCount > 0 ? (
+          <CountBadge label={formatRequestCountLabel(pendingRequestCount)} />
+        ) : null
+      }
+      footer={
+        shift.compensation ? (
+          <View style={styles.footer}>
+            <Text style={styles.compensation}>{shift.compensation}</Text>
           </View>
+        ) : null
+      }
+    />
+  );
+
+  return (
+    <ExpandableSurfaceCard
+      header={header}
+      expanded={expanded}
+      onToggleExpand={toggleExpanded}>
+      <ShiftPostDetailView shift={shift} variant="embedded" showStatusBadge={false} />
+      <View style={styles.actions}>
+        {applicationCount > 0 ? (
+          <OnboardingButton
+            label={reviewLabel}
+            onPress={() => router.push(getClinicShiftApplicantsRoute(shift.id, returnTo))}
+          />
+        ) : null}
+        <View style={styles.actionsRow}>
+          <OnboardingButton
+            style={styles.actionButton}
+            label="Edit fill-in"
+            variant={applicationCount > 0 ? 'secondary' : 'primary'}
+            onPress={() => router.push(getEditShiftRoute(shift.id, returnTo))}
+          />
+          {clinicId ? (
+            <ShiftPostManageMenu
+              trigger={applicationCount > 0 ? 'icon' : 'button'}
+              style={applicationCount > 0 ? undefined : styles.actionButton}
+              clinicId={clinicId}
+              shift={shift}
+              onUpdated={onShiftUpdated ?? (() => undefined)}
+              onDeleted={onShiftDeleted ?? (() => undefined)}
+            />
+          ) : null}
         </View>
-      ) : null}
-    </View>
+      </View>
+    </ExpandableSurfaceCard>
   );
 }

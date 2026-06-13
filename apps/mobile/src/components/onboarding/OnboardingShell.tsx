@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { useThemedStyles, spacing } from '@/theme';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 
@@ -39,6 +40,8 @@ type OnboardingShellProps = {
   contentStyle?: StyleProp<ViewStyle>;
   /** Renders behind scroll content (e.g. welcome screen top glow). */
   backgroundAccessory?: ReactNode;
+  /** Extra bottom padding so scroll content clears the floating phone tab dock. */
+  clearTabDock?: boolean;
 };
 
 const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;
@@ -50,8 +53,10 @@ export function OnboardingShell({
   footer,
   contentStyle,
   backgroundAccessory,
+  clearTabDock = false,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
+  const tabDockInset = useMobileTabDockInset({ enabled: clearTabDock });
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const scrollYRef = useRef(0);
@@ -216,6 +221,7 @@ export function OnboardingShell({
             spacing.lg +
             insets.bottom +
             footerScrollClearance +
+            tabDockInset +
             // iOS without a footer uses automaticallyAdjustKeyboardInsets; with a
             // footer, KeyboardAvoidingView handles the inset — avoid double padding.
             (Platform.OS === 'android' && !footer ? keyboardHeight : 0),

@@ -11,6 +11,7 @@ import {
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
+  formatApplicationDate,
   formatInterviewDateTime,
   hasApplicationKitSubmitted,
   hasPendingInterviewProposal,
@@ -21,7 +22,6 @@ import {
   resolveWorkerRoleTypes,
   getSpecialtyLabel,
 } from '@chairside/config';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import {
@@ -52,6 +52,9 @@ import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewSc
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import { CardDetailSection } from '@/components/ui/CardDetailSection';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
@@ -69,9 +72,8 @@ import {
   type ClinicApplicationReturnTarget,
 } from '@/lib/routing';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
-import { IS_WEB, webTileHoverStyles } from '@/lib/webPressableStyles';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -146,13 +148,10 @@ export function ClinicApplicationCard({
   onRemoved,
   onDecided,
 }: ClinicApplicationCardProps) {
-  const { colors } = useTheme();
-  const [cardHovered, setCardHovered] = useState(false);
   const {
     refreshPending: refreshApplicationTabBadge,
     markApplicationSeen,
     isApplicationHighlighted,
-    getApplicationHighlightLabel,
   } = useApplicationTabBadge();
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
@@ -174,71 +173,18 @@ export function ClinicApplicationCard({
   const clinicProposedChange =
     pendingProposal && application.interview_proposed_by === 'clinic';
   const hasNewApplication = isApplicationHighlighted(application);
-  const newApplicationLabel = getApplicationHighlightLabel(application);
 
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-    cardHovered: webTileHoverStyles(colors, isDark),
+  const styles = useThemedStyles(({ spacing, typography }) => ({
     preview: {
       ...typography.subtitle,
       fontStyle: 'italic',
     },
-    interviewRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.sm,
-      backgroundColor: colors.backgroundGrouped,
-      borderRadius: 10,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    interviewText: {
-      ...typography.subtitle,
-      flex: 1,
-      fontSize: 14,
-    },
-    details: {
+    quickActions: {
       gap: spacing.sm,
     },
     actions: {
       gap: spacing.sm,
       marginTop: spacing.xs,
-    },
-    actionsRow: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-      alignSelf: 'stretch',
-    },
-    action: {
-      flex: 1,
-      minWidth: 0,
-    },
-    deletedBanner: {
-      backgroundColor: colors.backgroundGrouped,
-      borderRadius: 10,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    deletedText: {
-      ...typography.subtitle,
-      fontSize: 14,
-    },
-    pendingKitBanner: {
-      backgroundColor: colors.backgroundGrouped,
-      borderRadius: 10,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    pendingKitText: {
-      ...typography.subtitle,
-      fontSize: 14,
     },
   }));
 
@@ -426,6 +372,15 @@ export function ClinicApplicationCard({
 
   const applicantName = getApplicantDisplayName(application);
   const workerDeleted = application.worker_account_deleted;
+  const workerRoleLabel = formatRoleTypesLabel(resolveWorkerRoleTypes(application));
+  const experienceLabel =
+    application.years_of_experience != null
+      ? `${application.years_of_experience} ${
+          application.years_of_experience === 1 ? 'year' : 'years'
+        } experience`
+      : null;
+  const appliedDateLabel = formatApplicationDate(application.created_at);
+  const appliedLabel = appliedDateLabel ? `Applied ${appliedDateLabel}` : null;
 
   const canRemoveFromList = Boolean(clinicId) && canClinicHideApplication(application);
 
@@ -433,116 +388,113 @@ export function ClinicApplicationCard({
     router.push(getClinicApplicationMessagesRoute(application.id, returnTo));
   };
 
-  const cardHoverProps = IS_WEB
-    ? {
-        onMouseEnter: () => setCardHovered(true),
-        onMouseLeave: () => setCardHovered(false),
+  const titleHeader = (
+    <ApplicantPostHeader
+      layout="split"
+      displayName={applicantName}
+      photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
+      eyebrow={workerRoleLabel}
+      title={applicantName}
+      location={workerDeleted ? null : application.worker_address}
+      detail={experienceLabel}
+      postedLabel={appliedLabel}
+      avatarSize={44}
+      accessory={
+        <View style={{ alignItems: 'flex-end', gap: 8 }}>
+          {hasNewApplication ? <ApplicationCardBadge /> : null}
+          <ClinicApplicationStatusBadge
+            status={application.status}
+            postType={application.post_type}
+            applicationKitRequestedAt={application.application_kit_requested_at}
+            applicationKitSubmittedAt={application.application_kit_submitted_at}
+          />
+        </View>
       }
-    : {};
+      textFooter={
+        jobMatch && matchContext ? (
+          <BadgeRow>
+            <MatchTierBadge
+              breakdown={jobMatch}
+              context={matchContext}
+              subtitle={application.post_title}
+              audience="clinic"
+            />
+          </BadgeRow>
+        ) : null
+      }
+    />
+  );
 
   return (
-    <View style={[styles.card, IS_WEB && cardHovered && styles.cardHovered]} {...cardHoverProps}>
-      <ApplicantPostHeader
-        displayName={applicantName}
-        photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
-        title={application.post_title}
-        detail={
-          workerDeleted
-            ? null
-            : [application.worker_address, newApplicationLabel].filter(Boolean).join(' · ') || null
-        }
-        avatarSize={44}
-        accessory={
-          <View style={{ alignItems: 'flex-end', gap: 8 }}>
-            {hasNewApplication ? <ApplicationCardBadge /> : null}
-            <ClinicApplicationStatusBadge
-              status={application.status}
-              postType={application.post_type}
-              applicationKitRequestedAt={application.application_kit_requested_at}
-              applicationKitSubmittedAt={application.application_kit_submitted_at}
-            />
-          </View>
-        }
-        textFooter={
-          jobMatch && matchContext ? (
-            <BadgeRow>
-              <MatchTierBadge
-                breakdown={jobMatch}
-                context={matchContext}
-                subtitle={application.post_title}
-                audience="clinic"
-              />
-            </BadgeRow>
-          ) : null
-        }
-      />
+    <SurfaceCard padding="md" gap>
+      {titleHeader}
 
       {hasInterviewDetails ? (
-        <View style={styles.interviewRow}>
-          <Ionicons
-            name="calendar-outline"
-            size={16}
-            color={application.status === 'interview_offered' ? colors.warning : colors.info}
-          />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.interviewText}>{interviewSummary}</Text>
-            {application.status === 'interview_offered' ? (
-              <Text style={[styles.interviewText, { fontSize: 13 }]}>
-                Awaiting candidate response
-              </Text>
-            ) : null}
-            {application.status === 'interview_scheduled' && clinicProposedChange ? (
-              <Text style={[styles.interviewText, { fontSize: 13 }]}>
-                Awaiting candidate response to new time
-                {proposedSummary ? ` · ${proposedSummary}` : ''}
-              </Text>
-            ) : null}
-            {application.status === 'interview_scheduled' && workerProposedChange && proposedSummary ? (
-              <Text style={[styles.interviewText, { fontSize: 13 }]}>
-                Proposed new time · {proposedSummary}
-              </Text>
-            ) : null}
-          </View>
-        </View>
+        <CardInfoPanel
+          variant={application.status === 'interview_offered' ? 'warning' : 'info'}
+          icon="calendar-outline"
+          title={
+            application.status === 'interview_offered'
+              ? 'Interview invitation'
+              : 'Interview scheduled'
+          }>
+          <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
+          {application.status === 'interview_offered' ? (
+            <CardInfoPanelText>Awaiting candidate response</CardInfoPanelText>
+          ) : null}
+          {application.status === 'interview_scheduled' && clinicProposedChange ? (
+            <CardInfoPanelText>
+              Awaiting candidate response to new time
+              {proposedSummary ? ` · ${proposedSummary}` : ''}
+            </CardInfoPanelText>
+          ) : null}
+          {application.status === 'interview_scheduled' &&
+          workerProposedChange &&
+          proposedSummary ? (
+            <CardInfoPanelText>Proposed new time · {proposedSummary}</CardInfoPanelText>
+          ) : null}
+        </CardInfoPanel>
       ) : null}
 
       {awaitingKit ? (
-        <View style={styles.pendingKitBanner}>
-          <Text style={styles.pendingKitText}>
+        <CardInfoPanel variant="default" icon="document-text-outline" title="Application kit">
+          <CardInfoPanelText>
             Application kit requested. Waiting for the candidate to submit.
-          </Text>
-        </View>
+          </CardInfoPanelText>
+        </CardInfoPanel>
       ) : null}
 
       {workerDeleted ? (
-        <View style={styles.deletedBanner}>
-          <Text style={styles.deletedText}>
+        <CardInfoPanel variant="default">
+          <CardInfoPanelText>
             This candidate is no longer signed up for Chairside.
-          </Text>
-        </View>
+          </CardInfoPanelText>
+        </CardInfoPanel>
       ) : null}
 
-      <OnboardingButton
-        label={
-          workerDeleted
-            ? 'View messages'
-            : hasUnreadMessages
-              ? 'Message applicant · New'
-              : 'Message applicant'
-        }
-        variant="secondary"
-        onPress={handleMessage}
-      />
-
-      {canRemoveFromList && clinicId ? (
+      <View style={styles.quickActions}>
         <OnboardingButton
-          label="Remove from list"
-          variant="secondary"
-          onPress={() =>
-            confirmHideClinicApplication(clinicId, application, () => onRemoved?.())
+          label={
+            workerDeleted
+              ? 'View messages'
+              : hasUnreadMessages
+                ? 'Message applicant · New'
+                : 'Message applicant'
           }
+          variant="secondary"
+          onPress={handleMessage}
         />
-      ) : null}
+
+        {canRemoveFromList && clinicId ? (
+          <OnboardingButton
+            label="Remove from list"
+            variant="secondary"
+            onPress={() =>
+              confirmHideClinicApplication(clinicId, application, () => onRemoved?.())
+            }
+          />
+        ) : null}
+      </View>
 
       {!expanded && application.cover_message ? (
         <Text style={styles.preview} numberOfLines={2}>
@@ -553,72 +505,79 @@ export function ClinicApplicationCard({
       <CardExpandToggle expanded={expanded} onPress={toggleExpanded} suppressHover />
 
       {expanded ? (
-        <View style={styles.details}>
+        <View style={styles.actions}>
           {application.post_type === 'job' && application.screening ? (
-            <ApplicationScreeningSection screening={application.screening} />
+            <CardDetailSection title="Screening responses" divided>
+              <ApplicationScreeningSection screening={application.screening} />
+            </CardDetailSection>
           ) : null}
-          {hasKitSubmitted && application.years_of_experience != null ? (
-            <ApplicationPreviewField
-              label="Experience"
-              value={`${application.years_of_experience} years`}
-            />
-          ) : null}
-          {hasKitSubmitted && formatApplicationEducation(application.education) ? (
-            <ApplicationPreviewField
-              label="Education"
-              value={formatApplicationEducation(application.education)}
-            />
-          ) : null}
-          {hasKitSubmitted && resolveWorkerRoleTypes(application).length > 0 ? (
-            <ApplicationPreviewField
-              label="Roles"
-              value={formatRoleTypesLabel(resolveWorkerRoleTypes(application))}
-            />
-          ) : null}
-          {hasKitSubmitted && (application.software_used ?? []).length > 0 ? (
-            <ApplicationPreviewField
-              label="Software"
-              value={(application.software_used ?? []).join(', ')}
-            />
-          ) : null}
-          {hasKitSubmitted && (application.practice_types ?? []).length > 0 ? (
-            <ApplicationPreviewField
-              label="Specialties"
-              value={(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
-            />
-          ) : null}
-          {hasKitSubmitted && application.cover_message ? (
-            <ApplicationPreviewField label="Cover message" value={application.cover_message} />
-          ) : null}
-          {isScreeningStage && !hasKitSubmitted ? (
-            <ApplicationPreviewField
-              label="Application kit"
-              value="Not submitted yet"
-            />
-          ) : null}
-          {application.interview_details ? (
-            <ApplicationPreviewField
-              label="Interview details"
-              value={application.interview_details}
-            />
-          ) : null}
-          {hasKitSubmitted ? (
-            <>
-              <ApplicationPreviewField
-                label="Resume"
-                value={formatApplicationResumeStatus(application.resume_storage_path)}
-              />
-              {application.resume_storage_path ? (
-                <ResumeViewButton
-                  storagePath={application.resume_storage_path}
-                  fileName={resumeFileName}
+
+          {(hasKitSubmitted ||
+            isScreeningStage ||
+            application.interview_details ||
+            application.resume_storage_path) ? (
+            <CardDetailSection title="Application details" divided>
+              {hasKitSubmitted && application.years_of_experience != null ? (
+                <ApplicationPreviewField
+                  label="Experience"
+                  value={`${application.years_of_experience} years`}
                 />
               ) : null}
-            </>
+              {hasKitSubmitted && formatApplicationEducation(application.education) ? (
+                <ApplicationPreviewField
+                  label="Education"
+                  value={formatApplicationEducation(application.education)}
+                />
+              ) : null}
+              {hasKitSubmitted && resolveWorkerRoleTypes(application).length > 0 ? (
+                <ApplicationPreviewField
+                  label="Roles"
+                  value={formatRoleTypesLabel(resolveWorkerRoleTypes(application))}
+                />
+              ) : null}
+              {hasKitSubmitted && (application.software_used ?? []).length > 0 ? (
+                <ApplicationPreviewField
+                  label="Software"
+                  value={(application.software_used ?? []).join(', ')}
+                />
+              ) : null}
+              {hasKitSubmitted && (application.practice_types ?? []).length > 0 ? (
+                <ApplicationPreviewField
+                  label="Specialties"
+                  value={(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
+                />
+              ) : null}
+              {hasKitSubmitted && application.cover_message ? (
+                <ApplicationPreviewField label="Cover message" value={application.cover_message} />
+              ) : null}
+              {isScreeningStage && !hasKitSubmitted ? (
+                <ApplicationPreviewField label="Application kit" value="Not submitted yet" />
+              ) : null}
+              {application.interview_details ? (
+                <ApplicationPreviewField
+                  label="Interview details"
+                  value={application.interview_details}
+                />
+              ) : null}
+              {hasKitSubmitted ? (
+                <>
+                  <ApplicationPreviewField
+                    label="Resume"
+                    value={formatApplicationResumeStatus(application.resume_storage_path)}
+                  />
+                  {application.resume_storage_path ? (
+                    <ResumeViewButton
+                      storagePath={application.resume_storage_path}
+                      fileName={resumeFileName}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </CardDetailSection>
           ) : null}
 
           {hasActions ? (
-            <View style={styles.actions}>
+            <CardDetailSection title="Actions" divided>
               {isScreeningStage && !awaitingKit ? (
                 <ApplicationActionRow>
                   <OnboardingButton
@@ -751,10 +710,10 @@ export function ClinicApplicationCard({
                   />
                 </ApplicationActionRow>
               ) : null}
-            </View>
+            </CardDetailSection>
           ) : null}
         </View>
       ) : null}
-    </View>
+    </SurfaceCard>
   );
 }

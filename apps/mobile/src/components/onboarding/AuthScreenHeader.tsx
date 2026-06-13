@@ -10,6 +10,8 @@ import {
 
 type AuthScreenHeaderProps = {
   title?: string;
+  /** Small label above the title (e.g. "Applications for"). */
+  eyebrow?: string;
   subtitle?: string;
   onBack?: () => void;
   backLabel?: string;
@@ -21,6 +23,7 @@ type AuthScreenHeaderProps = {
 
 export function AuthScreenHeader({
   title,
+  eyebrow,
   subtitle,
   onBack,
   backLabel = 'Back',
@@ -57,7 +60,14 @@ export function AuthScreenHeader({
     },
     titleBlock: {
       flex: 1,
-      gap: spacing.sm,
+      gap: spacing.xs,
+    },
+    eyebrow: {
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+      color: colors.labelTertiary,
     },
     title: {
       ...typography.title,
@@ -81,9 +91,10 @@ export function AuthScreenHeader({
           <Text style={styles.backText}>{backLabel}</Text>
         </Pressable>
       ) : null}
-      {title || subtitle || accessory ? (
+      {eyebrow || title || subtitle || accessory ? (
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>
+            {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
             {title ? <Text style={styles.title}>{title}</Text> : null}
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>

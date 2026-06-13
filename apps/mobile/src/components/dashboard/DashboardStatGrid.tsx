@@ -23,18 +23,33 @@ export type DashboardStatItem<T extends string = DashboardOverviewStat> = {
   badgeCount?: number;
 };
 
+type DashboardStatGridVariant = 'stat' | 'label';
+type DashboardStatGridDensity = 'default' | 'compact';
+
 type DashboardStatGridProps<T extends string = DashboardOverviewStat> = {
   stats: DashboardStatItem<T>[];
   selected: T;
   onSelect: (stat: T) => void;
+  /** `stat` shows count + label (dashboard). `label` shows label only (mode switches). */
+  variant?: DashboardStatGridVariant;
+  /** `compact` fits more segments (e.g. applicant pipeline filters). */
+  density?: DashboardStatGridDensity;
+  accessibilityRole?: 'button' | 'tab';
 };
 
 export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
   stats,
   selected,
   onSelect,
+  variant = 'stat',
+  density = 'default',
+  accessibilityRole = 'button',
 }: DashboardStatGridProps<T>) {
   const { colors, isDark } = useTheme();
+  const isLabelOnly = variant === 'label';
+  const isCompact = density === 'compact';
+  const manySegments = stats.length >= 5;
+
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     grid: {
       flexDirection: 'row',
@@ -58,9 +73,9 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
     },
     divider: {
       position: 'absolute',
-      top: 14,
+      top: isCompact ? 10 : 14,
       right: 0,
-      bottom: 14,
+      bottom: isCompact ? 10 : 14,
       width: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
       opacity: isDark ? 0.7 : 0.55,
@@ -69,11 +84,20 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       borderRadius: dashboardControlRadii.statSegment,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: 'transparent',
-      paddingVertical: spacing.sm + 2,
-      paddingHorizontal: spacing.sm,
+      paddingVertical: isLabelOnly ? spacing.sm : spacing.sm + 2,
+      paddingHorizontal: isCompact ? spacing.xs : spacing.sm,
       alignItems: 'center',
-      gap: 4,
-      minHeight: 72,
+      justifyContent: 'center',
+      gap: isLabelOnly ? 0 : 4,
+      minHeight: isLabelOnly
+        ? isCompact
+          ? 40
+          : 44
+        : manySegments
+          ? 64
+          : isCompact
+            ? 56
+            : 72,
       overflow: 'hidden',
       ...elevation('none'),
       ...webPointer(),
@@ -100,8 +124,8 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       borderColor: colors.primary,
     } as ViewStyle),
     value: {
-      fontSize: 22,
-      lineHeight: 26,
+      fontSize: isCompact ? 18 : manySegments ? 20 : 22,
+      lineHeight: isCompact ? 22 : manySegments ? 24 : 26,
       fontFamily: fontBold,
       fontWeight: '700',
       color: colors.labelPrimary,
@@ -111,15 +135,15 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       color: colors.primary,
     },
     label: {
-      fontSize: 10.5,
-      lineHeight: 14,
+      fontSize: isLabelOnly ? 14 : manySegments ? 11 : isCompact ? 11 : 10.5,
+      lineHeight: isLabelOnly ? 18 : manySegments ? 14 : isCompact ? 14 : 14,
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelSecondary,
       textAlign: 'center',
     },
     labelSelected: {
-      color: colors.labelPrimary,
+      color: isLabelOnly ? colors.primary : colors.labelPrimary,
     },
   }));
 
@@ -137,6 +161,10 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
         const isNextSelected = selected === stats[index + 1]?.key;
         const badgeCount = stat.badgeCount ?? 0;
 
+        const accessibilityLabel = isLabelOnly
+          ? stat.label
+          : `${stat.label}: ${stat.value}${badgeCount > 0 ? `, ${badgeCount} updates` : ''}`;
+
         return (
           <View key={stat.key} style={styles.cellWrap}>
             {badgeCount > 0 ? (
@@ -145,11 +173,9 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
               </View>
             ) : null}
             <Pressable
-              accessibilityRole="button"
+              accessibilityRole={accessibilityRole}
               accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={`${stat.label}: ${stat.value}${
-                badgeCount > 0 ? `, ${badgeCount} updates` : ''
-              }`}
+              accessibilityLabel={accessibilityLabel}
               onPress={() => handleSelect(stat.key)}
               style={({ pressed, hovered }) => [
                 styles.cell,
@@ -167,8 +193,16 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
                   style={styles.gradient}
                 />
               ) : null}
-              <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
-              <Text style={[styles.label, isSelected && styles.labelSelected]}>{stat.label}</Text>
+              {!isLabelOnly ? (
+                <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
+              ) : null}
+              <Text
+                style={[styles.label, isSelected && styles.labelSelected]}
+                numberOfLines={1}
+                adjustsFontSizeToFit={isCompact && !manySegments}
+                minimumFontScale={0.85}>
+                {stat.label}
+              </Text>
             </Pressable>
             {index < stats.length - 1 && !isSelected && !isNextSelected ? (
               <View style={styles.divider} />

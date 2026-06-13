@@ -1,9 +1,5 @@
-import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
-
+import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import type { ApplicantFilterCounts, ApplicantListFilter } from '@/lib/applicationPipeline';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
 
 type ApplicantFilterBarProps = {
   selected: ApplicantListFilter;
@@ -20,86 +16,16 @@ const FILTER_TABS: { value: ApplicantListFilter; label: string }[] = [
 ];
 
 export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilterBarProps) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    wrap: {
-      backgroundColor: colors.fillSubtle,
-      borderRadius: 12,
-      padding: spacing.xs,
-      flexDirection: 'row',
-      gap: spacing.xs,
-    },
-    tab: {
-      flex: 1,
-      borderRadius: 10,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.xs,
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: 52,
-      gap: 2,
-      ...webPointer(),
-    },
-    tabHovered: webListRowHoverStyles(colors),
-    tabPressed: {
-      opacity: 0.88,
-    },
-    tabSelected: {
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-    },
-    label: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-      textAlign: 'center',
-    },
-    labelSelected: {
-      color: colors.labelPrimary,
-    },
-    count: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.labelTertiary,
-      textAlign: 'center',
-    },
-    countSelected: {
-      color: colors.primary,
-    },
-  }));
-
   return (
-    <View style={styles.wrap}>
-      {FILTER_TABS.map((tab) => {
-        const isSelected = selected === tab.value;
-        return (
-          <Pressable
-            key={tab.value}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isSelected }}
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onChange(tab.value);
-            }}
-            style={({ pressed, hovered }) => [
-              styles.tab,
-              isSelected && styles.tabSelected,
-              !isSelected && webHover(hovered, pressed, styles.tabHovered),
-              pressed && styles.tabPressed,
-            ]}>
-            <Text
-              style={[styles.label, isSelected && styles.labelSelected]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}>
-              {tab.label}
-            </Text>
-            <Text style={[styles.count, isSelected && styles.countSelected]}>
-              {counts[tab.value]}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+    <DashboardStatGrid
+      stats={FILTER_TABS.map((tab) => ({
+        key: tab.value,
+        label: tab.label,
+        value: counts[tab.value],
+      }))}
+      selected={selected}
+      onSelect={onChange}
+      accessibilityRole="tab"
+    />
   );
 }

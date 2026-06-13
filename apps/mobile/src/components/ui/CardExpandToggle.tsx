@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import { GradientHairline } from '@/components/ui/GradientHairline';
 import {
   webFullBleedRowInsets,
   webHover,
@@ -26,7 +27,11 @@ export function CardExpandToggle({
 }: CardExpandToggleProps) {
   const { colors } = useTheme();
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ spacing, colors }) => ({
+    toggleWrap: {
+      marginTop: spacing.xs,
+      gap: spacing.xs,
+    },
     toggle: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -50,24 +55,27 @@ export function CardExpandToggle({
   }));
 
   return (
-    <Pressable
-      style={({ pressed, hovered }) => [
-        styles.toggle,
-        !suppressHover && webHover(hovered, pressed, styles.toggleHovered),
-        pressed && styles.togglePressed,
-      ]}
-      accessibilityRole="button"
-      accessibilityState={{ expanded }}
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}>
-      <Text style={styles.toggleText}>{expanded ? 'Hide details' : 'View details'}</Text>
-      <Ionicons
-        name={expanded ? 'chevron-up' : 'chevron-down'}
-        size={18}
-        color={colors.primary}
-      />
-    </Pressable>
+    <View style={styles.toggleWrap}>
+      <GradientHairline />
+      <Pressable
+        style={({ pressed, hovered }) => [
+          styles.toggle,
+          !suppressHover && webHover(hovered, pressed, styles.toggleHovered),
+          pressed && styles.togglePressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}>
+        <Text style={styles.toggleText}>{expanded ? 'Hide details' : 'View details'}</Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.primary}
+        />
+      </Pressable>
+    </View>
   );
 }

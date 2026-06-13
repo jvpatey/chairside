@@ -2,12 +2,16 @@ import { listJobApplicationSummaries, type JobApplicationSummary } from '@chairs
 import { formatJobApplicationSummaryMeta } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import {
+  CountBadge,
+  formatApplicantCountLabelWithNew,
+} from '@/components/ui/CountBadge';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -27,33 +31,8 @@ function RoleApplicationSummaryRow({
   const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
-  const applicantLabel =
-    summary.applicant_count === 1 ? '1 applicant' : `${summary.applicant_count} applicants`;
   const reviewMeta = formatJobApplicationSummaryMeta(summary);
   const hasNewApplicants = summary.unseen_count > 0;
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    statPill: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-    },
-    statPillNew: {
-      backgroundColor: colors.primary,
-    },
-    statText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    statTextNew: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primaryOnPrimary,
-    },
-  }));
 
   return (
     <BrowseListRow
@@ -64,15 +43,10 @@ function RoleApplicationSummaryRow({
       detail={reviewMeta}
       topTrailing={hasNewApplicants ? <ApplicationCardBadge /> : undefined}
       footer={
-        <View style={[styles.statPill, hasNewApplicants && styles.statPillNew]}>
-          <Text style={[styles.statText, hasNewApplicants && styles.statTextNew]}>
-            {hasNewApplicants
-              ? summary.unseen_count === 1
-                ? '1 new applicant'
-                : `${summary.unseen_count} new applicants`
-              : applicantLabel}
-          </Text>
-        </View>
+        <CountBadge
+          label={formatApplicantCountLabelWithNew(summary.applicant_count, summary.unseen_count)}
+          highlighted={hasNewApplicants}
+        />
       }
       onPress={onPress}
     />

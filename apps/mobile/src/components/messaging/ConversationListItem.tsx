@@ -2,7 +2,7 @@ import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
@@ -27,7 +27,6 @@ type ConversationListItemProps = {
   role: 'worker' | 'clinic';
   onPress: () => void;
   onDelete?: () => void;
-  isLast?: boolean;
   /** Split-view selection (web/tablet). */
   selected?: boolean;
   /** Tighter row spacing for compact inbox panes. */
@@ -75,7 +74,6 @@ export function ConversationListItem({
   role,
   onPress,
   onDelete,
-  isLast = false,
   selected = false,
   compact = false,
 }: ConversationListItemProps) {
@@ -109,10 +107,6 @@ export function ConversationListItem({
       borderRadius: 2,
       backgroundColor: colors.primary,
     },
-    rowSeparator: {
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.separator,
-    },
     mainPressable: {
       flex: 1,
       flexDirection: 'row',
@@ -134,16 +128,17 @@ export function ConversationListItem({
     roleEyebrow: {
       fontSize: 11,
       fontWeight: '600',
-      letterSpacing: 0.4,
+      letterSpacing: 0.45,
       textTransform: 'uppercase',
       color: colors.labelSecondary,
       flex: 1,
     },
     name: {
       ...typography.body,
-      fontSize: 16,
-      lineHeight: 21,
+      fontSize: 17,
+      lineHeight: 22,
       fontWeight: '600',
+      letterSpacing: -0.2,
       color: colors.labelPrimary,
     },
     meta: {
@@ -218,7 +213,6 @@ export function ConversationListItem({
       <View
         style={[
           styles.row,
-          !isLast && styles.rowSeparator,
           selected && styles.rowSelected,
           isWeb && rowHovered && !selected && styles.rowHovered,
         ]}

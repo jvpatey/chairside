@@ -1,10 +1,8 @@
 import type { ConfirmedFillInSummary, JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
 import { formatJobApplicationSummaryMeta } from '@chairside/config';
-import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
@@ -17,6 +15,11 @@ import {
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import {
+  CountBadge,
+  formatApplicantCountLabelWithNew,
+} from '@/components/ui/CountBadge';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
@@ -24,8 +27,7 @@ import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
-import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
   clinicName?: string | null;
@@ -124,13 +126,17 @@ function DashboardListCard({
   title,
   subtitle,
   meta,
+  unseenCount = 0,
+  applicantCount = 0,
   statusBadge,
   highlighted = false,
   onPress,
 }: {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   meta?: string;
+  unseenCount?: number;
+  applicantCount?: number;
   statusBadge?: ReactNode;
   highlighted?: boolean;
   onPress?: () => void;
@@ -138,49 +144,15 @@ function DashboardListCard({
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
-
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      ...webPointer(),
-    },
-    cardHovered: webTileHoverStyles(colors, isDark),
-    cardPressed: {
-      opacity: 0.92,
-    },
-    statPill: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-    },
-    statPillHighlighted: {
-      backgroundColor: colors.primary,
-    },
-    statText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    statTextHighlighted: {
-      color: colors.primaryOnPrimary,
-    },
-    meta: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-  }));
+  const countLabel =
+    subtitle ??
+    formatApplicantCountLabelWithNew(applicantCount, unseenCount);
 
   const accessory = highlighted ? (statusBadge ?? <ApplicationCardBadge />) : statusBadge;
 
-  const content = (
+  const header = (
     <ClinicPostHeader
+      layout="split"
       clinicName={clinicName}
       logoStoragePath={clinicProfile?.logo_storage_path}
       title={title}
@@ -189,37 +161,17 @@ function DashboardListCard({
       avatarSize={44}
       accessory={accessory}
       textFooter={
-        subtitle ? (
-          <View style={[styles.statPill, highlighted && styles.statPillHighlighted]}>
-            <Text style={[styles.statText, highlighted && styles.statTextHighlighted]}>
-              {subtitle}
-            </Text>
-          </View>
+        countLabel ? (
+          <CountBadge label={countLabel} highlighted={highlighted} />
         ) : null
       }
     />
   );
 
-  if (!onPress) {
-    return <View style={styles.card}>{content}</View>;
-  }
-
-  const handlePress = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onPress();
-  };
-
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={handlePress}
-      style={({ pressed, hovered }) => [
-        styles.card,
-        webHover(hovered, pressed, styles.cardHovered),
-        pressed && styles.cardPressed,
-      ]}>
-      {content}
-    </Pressable>
+    <SurfaceCard onPress={onPress}>
+      {header}
+    </SurfaceCard>
   );
 }
 
@@ -249,13 +201,6 @@ export function DashboardOverviewPanel({
     },
     subsection: {
       gap: spacing.sm,
-    },
-    subsectionTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.3,
-      textTransform: 'uppercase',
-      color: colors.labelSecondary,
     },
   }));
 
@@ -313,7 +258,7 @@ export function DashboardOverviewPanel({
           <View style={styles.list}>
                 {confirmedFillIns.length > 0 ? (
               <View style={styles.subsection}>
-                <Text style={styles.subsectionTitle}>Upcoming confirmed</Text>
+                <DashboardSectionHeader title="Upcoming confirmed" compact />
                 {confirmedFillIns.map((row) => (
                   <ConfirmedFillInCard
                     key={row.applicationId}
@@ -335,7 +280,7 @@ export function DashboardOverviewPanel({
             {liveShifts.length > 0 ? (
               <View style={styles.subsection}>
                 {confirmedFillIns.length > 0 ? (
-                  <Text style={styles.subsectionTitle}>Open fill-ins</Text>
+                  <DashboardSectionHeader title="Open fill-ins" compact />
                 ) : null}
                 {liveShifts.map((shift) => (
                   <FillInPostingCard
@@ -372,15 +317,8 @@ export function DashboardOverviewPanel({
                 <DashboardListCard
                   key={summary.job_post_id}
                   title={summary.post_title}
-                  subtitle={
-                    hasNewApplicants
-                      ? summary.unseen_count === 1
-                        ? '1 new applicant'
-                        : `${summary.unseen_count} new applicants`
-                      : summary.applicant_count === 1
-                        ? '1 applicant'
-                        : `${summary.applicant_count} applicants`
-                  }
+                  applicantCount={summary.applicant_count}
+                  unseenCount={summary.unseen_count}
                   meta={formatJobApplicationSummaryMeta(summary)}
                   highlighted={hasNewApplicants}
                   onPress={

@@ -9,10 +9,9 @@ import {
   UIManager,
   View,
 } from 'react-native';
-import { useState } from 'react';
-
 import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
@@ -26,10 +25,10 @@ import {
 import { getWorkerApplicationRoute, type WorkerApplicationReturnTarget } from '@/lib/routing';
 import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 import {
-  IS_WEB,
   webFullBleedRowInsets,
+  webHover,
+  webListRowHoverStyles,
   webPointer,
-  webTileHoverStyles,
 } from '@/lib/webPressableStyles';
 import { spacing, useThemedStyles } from '@/theme';
 
@@ -60,9 +59,11 @@ export function WorkerApplicationListCard({
   onViewPosting,
   linkToDetail = false,
 }: WorkerApplicationListCardProps) {
-  const [cardHovered, setCardHovered] = useState(false);
-  const { isApplicationHighlighted, getApplicationHighlightLabel, markApplicationSeen } =
-    useApplicationTabBadge();
+  const {
+    isApplicationHighlighted,
+    getApplicationHighlightLabel,
+    markApplicationSeen,
+  } = useApplicationTabBadge();
   const isJob = application.post_type === 'job';
   const isShift = application.post_type === 'shift';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
@@ -74,24 +75,19 @@ export function WorkerApplicationListCard({
   const hasApplicationUpdate = isApplicationHighlighted(application);
   const applicationUpdateLabel = getApplicationHighlightLabel(application);
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    card: {
-      backgroundColor: isConfirmedShift ? `${colors.success}10` : colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: isConfirmedShift ? `${colors.success}40` : colors.separator,
-      padding: spacing.lg,
-      gap: spacing.md,
-    },
-    cardHovered: webTileHoverStyles(colors, isDark),
+  const paddingTier = 'lg';
+  const bleed = spacing.lg;
+
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     cardHeaderPressable: {
       alignSelf: 'stretch',
       borderRadius: 12,
-      ...webFullBleedRowInsets(spacing.lg),
-      marginTop: -spacing.lg,
-      paddingTop: spacing.lg,
+      ...webFullBleedRowInsets(bleed),
+      marginTop: -bleed,
+      paddingTop: bleed,
       ...webPointer(),
     },
+    cardHeaderHovered: webListRowHoverStyles(colors),
     cardPressed: { opacity: 0.92 },
     expandedBody: {
       gap: spacing.sm,
@@ -118,8 +114,9 @@ export function WorkerApplicationListCard({
     toggleExpanded();
   };
 
-  const content = (
+  const header = (
     <ClinicPostHeader
+      layout="split"
       clinicName={application.clinic_name}
       logoStoragePath={application.clinic_logo_storage_path}
       title={shiftDisplay?.title ?? application.post_title}
@@ -162,33 +159,28 @@ export function WorkerApplicationListCard({
     />
   );
 
-  const cardHoverProps = IS_WEB
-    ? {
-        onMouseEnter: () => setCardHovered(true),
-        onMouseLeave: () => setCardHovered(false),
-      }
-    : {};
-
   return (
-    <View
-      style={[styles.card, IS_WEB && cardHovered && styles.cardHovered]}
-      {...cardHoverProps}>
+    <SurfaceCard
+      variant={isConfirmedShift ? 'success' : 'default'}
+      padding={paddingTier}
+      gap>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: linkToDetail ? undefined : expanded }}
         onPress={handlePress}
-        style={({ pressed }) => [
+        style={({ pressed, hovered }) => [
           styles.cardHeaderPressable,
+          webHover(hovered, pressed, styles.cardHeaderHovered),
           pressed && styles.cardPressed,
         ]}>
-        {content}
+        {header}
       </Pressable>
 
       {!linkToDetail ? (
         <CardExpandToggle
           expanded={expanded}
           onPress={toggleExpanded}
-          bleedPadding={spacing.lg}
+          bleedPadding={bleed}
           suppressHover
         />
       ) : null}
@@ -207,6 +199,6 @@ export function WorkerApplicationListCard({
           />
         </View>
       ) : null}
-    </View>
+    </SurfaceCard>
   );
 }

@@ -4,7 +4,6 @@ import {
   listClinicApplicationsForJob,
   type ClinicApplication,
 } from '@chairside/api';
-import { formatRoleApplicantPipelineSubtitle } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -29,6 +28,7 @@ import {
   type ApplicantPipelineSectionId,
 } from '@/lib/applicationPipeline';
 import { navigateAfterRoleApplicants } from '@/lib/routing';
+import { formatPostedDateLabel } from '@/lib/dates';
 import { useThemedStyles } from '@/theme';
 
 function formatClinicAddress(profile: {
@@ -69,6 +69,7 @@ export default function ClinicRoleApplicationsScreen() {
     navigateAfterRoleApplicants(router, resolvedReturnTo);
   }, [resolvedReturnTo]);
   const [postTitle, setPostTitle] = useState('');
+  const [postPostedLabel, setPostPostedLabel] = useState('');
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [archivedApplications, setArchivedApplications] = useState<ClinicApplication[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
@@ -113,6 +114,7 @@ export default function ClinicRoleApplicationsScreen() {
         getUnreadConversationMap(user.id, 'clinic'),
       ]);
       setPostTitle(job?.title ?? 'Role applicants');
+      setPostPostedLabel(formatPostedDateLabel(job?.created_at));
       setApplications(rows);
       setArchivedApplications(archived);
       setUnreadMap(unread);
@@ -142,11 +144,6 @@ export default function ClinicRoleApplicationsScreen() {
     () => filterApplicationsByView(applications, listFilter),
     [applications, listFilter],
   );
-
-  const subtitle = useMemo(() => {
-    if (isLoading) return undefined;
-    return formatRoleApplicantPipelineSubtitle(applications);
-  }, [applications, isLoading]);
 
   const defaultLocation = formatClinicAddress(clinicProfile);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
@@ -226,10 +223,11 @@ export default function ClinicRoleApplicationsScreen() {
 
   return (
     <>
-      <OnboardingShell>
+      <OnboardingShell clearTabDock>
       <AuthScreenHeader
-        title={postTitle || 'Role applicants'}
-        subtitle={subtitle}
+        eyebrow="Applications for"
+        title={postTitle || 'Role'}
+        subtitle={postPostedLabel || undefined}
         onBack={goBack}
       />
       <View style={styles.content}>
