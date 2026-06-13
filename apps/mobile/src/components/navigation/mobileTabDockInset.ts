@@ -1,4 +1,5 @@
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { useContext } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -22,10 +23,11 @@ export function useMobileTabDockInset(options: UseMobileTabDockInsetOptions = {}
   const { enabled = true } = options;
   const { isTablet } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
-  const measuredTabBarHeight = useBottomTabBarHeight();
+  const measuredTabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
 
   if (!enabled || isTablet) return 0;
 
   const minimum = getMobileTabDockMinimumInset(insets.bottom);
+  if (measuredTabBarHeight <= 0) return minimum;
   return Math.max(measuredTabBarHeight, minimum);
 }

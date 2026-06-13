@@ -4,11 +4,11 @@ import { formatJobPostCardMeta } from '@chairside/config';
 import { Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
-import { AppliedPillBadge } from '@/components/matching/ApplicationStatusBadge';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { RoleListingPostedMeta } from '@/components/worker/RoleListingPostedMeta';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { formatPostedDateLabel } from '@/lib/dates';
@@ -34,7 +34,10 @@ export function RoleListingCard({
   const logoUri = useClinicLogoUri(job.clinic.logo_storage_path);
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
   const detail = formatJobPostCardMeta(job);
-  const postedLabel = formatPostedDateLabel(job.created_at);
+  const postedLabel =
+    formatPostedDateLabel(job.created_at) || hasApplied
+      ? <RoleListingPostedMeta postedAt={job.created_at} hasApplied={hasApplied} />
+      : null;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     footer: {
@@ -75,9 +78,8 @@ export function RoleListingCard({
         title={job.title}
         meta={location || null}
         detail={detail || null}
-        postedLabel={postedLabel || null}
+        postedLabel={postedLabel}
         topTrailing={matchBadge ?? undefined}
-        statusFooter={hasApplied ? <AppliedPillBadge /> : undefined}
         footer={job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
         onPress={onPress}
       />
@@ -93,7 +95,7 @@ export function RoleListingCard({
         title={job.title}
         location={location || null}
         detail={detail || null}
-        postedLabel={postedLabel || null}
+        postedLabel={postedLabel}
         avatarSize={44}
         accessory={matchBadge}
         footer={
@@ -103,7 +105,6 @@ export function RoleListingCard({
             </View>
           ) : null
         }
-        statusFooter={hasApplied ? <AppliedPillBadge /> : null}
       />
     </SurfaceCard>
   );

@@ -1,5 +1,6 @@
 import {
   getWorkerDashboardCounts,
+  isWorkerProfileComplete,
   listConversationsForWorker,
   listLiveJobPosts,
   listLiveShiftPosts,
@@ -190,9 +191,11 @@ export default function WorkerDashboardScreen() {
             </FadeInSection>
           ) : null}
 
-          <FadeInSection delayMs={80}>
-            <WorkerReadinessChecklist workerProfile={workerProfile} />
-          </FadeInSection>
+          {!isWorkerProfileComplete(workerProfile) ? (
+            <FadeInSection delayMs={80}>
+              <WorkerReadinessChecklist workerProfile={workerProfile} />
+            </FadeInSection>
+          ) : null}
 
           <FadeInSection delayMs={120}>
             <DashboardUnreadMessagesCard

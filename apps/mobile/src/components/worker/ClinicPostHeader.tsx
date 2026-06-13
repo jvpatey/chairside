@@ -1,10 +1,26 @@
 import type { ReactNode } from 'react';
+import type { TextStyle } from 'react-native';
 import { Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { CardContentSection, CardSectionDivider } from '@/components/ui/CardTitleSection';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+
+function renderPostedLabel(
+  label: string | ReactNode,
+  style: TextStyle | TextStyle[],
+  numberOfLines = 1,
+) {
+  if (typeof label === 'string') {
+    return (
+      <Text style={style} numberOfLines={numberOfLines}>
+        {label}
+      </Text>
+    );
+  }
+  return label;
+}
 
 type ClinicPostHeaderProps = {
   clinicName: string;
@@ -13,7 +29,11 @@ type ClinicPostHeaderProps = {
   title?: string;
   location?: string | null;
   detail?: string | null;
-  postedLabel?: string | null;
+  postedLabel?: string | ReactNode | null;
+  /** Split content: first line in tinted band (e.g. status label). */
+  contentHeader?: ReactNode;
+  /** Split content: right side of the location row (e.g. applied date). */
+  locationTrailing?: ReactNode;
   /** Renders on its own line at the bottom of the card. */
   statusFooter?: ReactNode;
   accessory?: ReactNode;
@@ -45,6 +65,8 @@ export function ClinicPostHeader({
   location,
   detail,
   postedLabel,
+  contentHeader,
+  locationTrailing,
   statusFooter,
   accessory,
   textFooter,
@@ -217,16 +239,8 @@ export function ClinicPostHeader({
                 {detail}
               </Text>
             ) : null}
-            {!isSplit && postedLabel ? (
-              <Text style={styles.posted} numberOfLines={1}>
-                {postedLabel}
-              </Text>
-            ) : null}
-            {headerOnlySplit && postedLabel ? (
-              <Text style={styles.posted} numberOfLines={1}>
-                {postedLabel}
-              </Text>
-            ) : null}
+            {!isSplit && postedLabel ? renderPostedLabel(postedLabel, styles.posted) : null}
+            {headerOnlySplit && postedLabel ? renderPostedLabel(postedLabel, styles.posted) : null}
             {headerOnlySplit && footer ? <View style={styles.footer}>{footer}</View> : null}
           </View>
           {accessory ? (
@@ -242,10 +256,20 @@ export function ClinicPostHeader({
 
   const detailsColumnContent = (
     <>
-      {!headerOnlySplit && location ? (
-        <Text style={styles.location} numberOfLines={2}>
-          {location}
-        </Text>
+      {contentHeader ? <View>{contentHeader}</View> : null}
+      {!headerOnlySplit && (location || locationTrailing) ? (
+        <View style={styles.metaFooterRow}>
+          {location ? (
+            <Text style={[styles.location, styles.metaFooterLabel]} numberOfLines={1}>
+              {location}
+            </Text>
+          ) : (
+            <View style={styles.metaFooterLabel} />
+          )}
+          {locationTrailing ? (
+            <View style={styles.metaFooterAccessory}>{locationTrailing}</View>
+          ) : null}
+        </View>
       ) : null}
       {!headerOnlySplit && detail ? (
         <Text style={styles.meta} numberOfLines={2}>
@@ -254,15 +278,11 @@ export function ClinicPostHeader({
       ) : null}
       {!headerOnlySplit && postedLabel && textFooter && !detailAccessory ? (
         <View style={styles.metaFooterRow}>
-          <Text style={[styles.posted, styles.metaFooterLabel]} numberOfLines={1}>
-            {postedLabel}
-          </Text>
+          {renderPostedLabel(postedLabel, [styles.posted, styles.metaFooterLabel])}
           <View style={styles.metaFooterAccessory}>{textFooter}</View>
         </View>
       ) : !headerOnlySplit && postedLabel ? (
-        <Text style={styles.posted} numberOfLines={1}>
-          {postedLabel}
-        </Text>
+        renderPostedLabel(postedLabel, styles.posted)
       ) : !headerOnlySplit && textFooter && !detailAccessory ? (
         <View style={styles.textFooter}>{textFooter}</View>
       ) : null}
@@ -274,13 +294,15 @@ export function ClinicPostHeader({
   const hasDetails = headerOnlySplit
     ? Boolean(detailAccessory || textFooter || statusFooter)
     : Boolean(
+        contentHeader ||
         location ||
-          detail ||
-          postedLabel ||
-          textFooter ||
-          footer ||
-          statusFooter ||
-          detailAccessory,
+        locationTrailing ||
+        detail ||
+        postedLabel ||
+        textFooter ||
+        footer ||
+        statusFooter ||
+        detailAccessory,
       );
 
   const detailsContent = hasDetails ? (
@@ -314,9 +336,7 @@ export function ClinicPostHeader({
   return (
     <View style={styles.wrap}>
       {identityBlock}
-      {footer ? (
-        <View style={[styles.footer, { paddingLeft: footerInset }]}>{footer}</View>
-      ) : null}
+      {footer ? <View style={[styles.footer, { paddingLeft: footerInset }]}>{footer}</View> : null}
       {statusFooter ? (
         <View style={[styles.statusFooter, { paddingLeft: footerInset }]}>{statusFooter}</View>
       ) : null}

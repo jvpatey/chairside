@@ -27,7 +27,6 @@ import { useState } from 'react';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import {
   DetailProse,
-  RowDivider,
 } from '@/components/clinic/DetailCard';
 import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
@@ -36,7 +35,8 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationSubmittedFields } from '@/components/worker/ApplicationSubmittedFields';
-import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
+import { ApplicationScreeningPreview } from '@/components/clinic/ApplicationScreeningSection';
+import { ApplicationPreviewGroup } from '@/components/worker/ApplicationPreviewGroup';
 import { WorkerApplicationKitSubmission } from '@/components/worker/WorkerApplicationKitSubmission';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
@@ -119,6 +119,9 @@ export function WorkerApplicationDetailCard({
     },
     bodyEmbedded: {
       gap: spacing.lg,
+    },
+    submittedWrap: {
+      gap: spacing.sm,
     },
     actionsGrid: {
       gap: spacing.sm,
@@ -494,22 +497,35 @@ export function WorkerApplicationDetailCard({
               : 'What you submitted'
           }
           divided={variant === 'embedded'}>
-          {application.post_type === 'job' && application.screening ? (
-            <ApplicationScreeningSection screening={application.screening} audience="worker" />
-          ) : null}
-          {hasKitSubmitted ? <ApplicationSubmittedFields application={application} /> : null}
-          {isScreeningStage && !hasKitSubmitted && !application.screening ? (
-            <Text style={styles.mutedText}>Screening responses submitted.</Text>
-          ) : null}
-
-          {hasKitSubmitted && application.cover_message ? (
-            <>
-              <RowDivider />
-              <CardDetailSection title="Cover message">
+          <View style={styles.submittedWrap}>
+            {hasKitSubmitted ? (
+              <ApplicationSubmittedFields
+                application={application}
+                screening={
+                  application.post_type === 'job' ? application.screening : undefined
+                }
+              />
+            ) : null}
+            {!hasKitSubmitted &&
+            application.post_type === 'job' &&
+            application.screening ? (
+              <ApplicationScreeningPreview
+                screening={application.screening}
+                audience="worker"
+                defaultExpanded={false}
+              />
+            ) : null}
+            {isScreeningStage && !hasKitSubmitted && !application.screening ? (
+              <ApplicationPreviewGroup>
+                <Text style={styles.mutedText}>Screening responses submitted.</Text>
+              </ApplicationPreviewGroup>
+            ) : null}
+            {hasKitSubmitted && application.cover_message ? (
+              <ApplicationPreviewGroup title="Cover message">
                 <DetailProse text={application.cover_message} />
-              </CardDetailSection>
-            </>
-          ) : null}
+              </ApplicationPreviewGroup>
+            ) : null}
+          </View>
         </CardDetailSection>
 
         {hasActions ? (

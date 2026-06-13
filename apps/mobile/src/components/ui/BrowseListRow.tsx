@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { TextStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
@@ -9,13 +10,28 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 export type ListingLayout = 'tile' | 'list';
 
+function renderPostedLabel(
+  label: string | ReactNode,
+  style: TextStyle | TextStyle[],
+  numberOfLines = 1,
+) {
+  if (typeof label === 'string') {
+    return (
+      <Text style={style} numberOfLines={numberOfLines}>
+        {label}
+      </Text>
+    );
+  }
+  return label;
+}
+
 type BrowseListRowProps = {
   avatar: ReactNode;
   eyebrow?: string | null;
   title: string;
   meta?: string | null;
   detail?: string | null;
-  postedLabel?: string | null;
+  postedLabel?: string | ReactNode | null;
   /** Where `postedLabel` appears in split layout. Default `content` (tinted band). */
   postedLabelPlacement?: 'header' | 'content';
   /** Split header: secondary line below location (e.g. role type). */
@@ -69,12 +85,12 @@ export function BrowseListRow({
     isSplit &&
     Boolean(
       detail ||
-        postedInContent ||
-        textFooter ||
-        footer ||
-        statusFooter ||
-        trailing ||
-        contentAccessory,
+      postedInContent ||
+      textFooter ||
+      footer ||
+      statusFooter ||
+      trailing ||
+      contentAccessory,
     );
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -244,11 +260,7 @@ export function BrowseListRow({
           {detail}
         </Text>
       ) : null}
-      {postedLabel ? (
-        <Text style={styles.meta} numberOfLines={1}>
-          {postedLabel}
-        </Text>
-      ) : null}
+      {postedLabel ? renderPostedLabel(postedLabel, styles.meta) : null}
       {footer ? <View style={styles.footer}>{footer}</View> : null}
       {textFooter ? <View style={styles.textFooter}>{textFooter}</View> : null}
     </View>
@@ -275,11 +287,7 @@ export function BrowseListRow({
             {headerDetail}
           </Text>
         ) : null}
-        {postedInHeader ? (
-          <Text style={styles.posted} numberOfLines={1}>
-            {postedLabel}
-          </Text>
-        ) : null}
+        {postedInHeader ? renderPostedLabel(postedLabel, styles.posted) : null}
         {headerAccent ? (
           <Text style={styles.accent} numberOfLines={1}>
             {headerAccent}
@@ -299,15 +307,11 @@ export function BrowseListRow({
       ) : null}
       {postedInContent && trailing && !contentAccessory ? (
         <View style={styles.metaFooterRow}>
-          <Text style={[styles.posted, styles.metaFooterLabel]} numberOfLines={1}>
-            {postedLabel}
-          </Text>
+          {renderPostedLabel(postedLabel, [styles.posted, styles.metaFooterLabel])}
           <View style={styles.metaFooterAccessory}>{trailing}</View>
         </View>
       ) : postedInContent ? (
-        <Text style={styles.posted} numberOfLines={1}>
-          {postedLabel}
-        </Text>
+        renderPostedLabel(postedLabel, styles.posted)
       ) : trailing && !contentAccessory ? (
         <View style={styles.metaFooterAccessory}>{trailing}</View>
       ) : null}
@@ -354,9 +358,7 @@ export function BrowseListRow({
         <View style={styles.headerBody}>{splitHeader}</View>
         {splitTrailingColumn}
       </View>
-      {hasContentSection ? (
-        <View style={styles.contentBand}>{splitContentSection}</View>
-      ) : null}
+      {hasContentSection ? <View style={styles.contentBand}>{splitContentSection}</View> : null}
       {action ? <View style={styles.rowAction}>{action}</View> : null}
     </>
   );
@@ -370,11 +372,9 @@ export function BrowseListRow({
   );
 
   const content = (
-  <>
+    <>
       {isSplit ? splitLayout : stackedLayout}
-      {!isSplit && statusFooter ? (
-        <View style={styles.statusFooterRow}>{statusFooter}</View>
-      ) : null}
+      {!isSplit && statusFooter ? <View style={styles.statusFooterRow}>{statusFooter}</View> : null}
     </>
   );
 
@@ -393,7 +393,8 @@ export function BrowseListRow({
         styles.container,
         webHover(hovered, pressed, styles.rowHovered),
         pressed && styles.rowPressed,
-      ]}>
+      ]}
+    >
       {content}
     </Pressable>
   );

@@ -15,12 +15,15 @@ type ApplicationPreviewFieldProps = {
   label: string;
   value?: string | null;
   emptyLabel?: string;
+  /** When true, question-style labels keep normal casing instead of uppercase. */
+  preserveLabelCase?: boolean;
 };
 
 export function ApplicationPreviewField({
   label,
   value,
   emptyLabel = 'Not set',
+  preserveLabelCase = false,
 }: ApplicationPreviewFieldProps) {
   const trimmed = value?.trim();
   const isEmpty = !trimmed;
@@ -31,7 +34,7 @@ export function ApplicationPreviewField({
       fontSize: 12,
       fontWeight: '600',
       letterSpacing: 0.3,
-      textTransform: 'uppercase',
+      textTransform: preserveLabelCase ? 'none' : 'uppercase',
       color: colors.labelSecondary,
     },
     value: {

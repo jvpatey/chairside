@@ -6,6 +6,7 @@ import {
   LayoutAnimation,
   Platform,
   Pressable,
+  Text,
   UIManager,
   View,
 } from 'react-native';
@@ -13,7 +14,7 @@ import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 
-import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { WorkerApplicationStatusLabel } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
@@ -92,7 +93,17 @@ export function WorkerApplicationListCard({
     expandedBody: {
       gap: spacing.sm,
     },
+    appliedOn: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelTertiary,
+    },
   }));
+
+  const location = shiftDisplay?.location ?? application.clinic_city;
+  const appliedOnLabel = appliedLabel
+    ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}`
+    : null;
 
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -120,20 +131,26 @@ export function WorkerApplicationListCard({
       clinicName={application.clinic_name}
       logoStoragePath={application.clinic_logo_storage_path}
       title={shiftDisplay?.title ?? application.post_title}
-      location={shiftDisplay?.location ?? application.clinic_city}
+      location={location}
       detail={
         [
           shiftDisplay?.shiftSchedule ?? null,
-          !shiftDisplay && appliedLabel
-            ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}`
-            : shiftDisplay && appliedLabel && application.status !== 'hired'
-              ? `Requested ${appliedLabel}`
-              : null,
           hasUnreadMessages ? 'New message' : null,
           applicationUpdateLabel,
         ]
           .filter(Boolean)
           .join(' · ') || null
+      }
+      contentHeader={
+        <WorkerApplicationStatusLabel
+          status={application.status}
+          postType={application.post_type}
+        />
+      }
+      locationTrailing={
+        appliedOnLabel ? (
+          <Text style={styles.appliedOn} numberOfLines={1}>{appliedOnLabel}</Text>
+        ) : null
       }
       avatarSize={44}
       accessory={
@@ -149,12 +166,6 @@ export function WorkerApplicationListCard({
             ) : null}
           </View>
         ) : null
-      }
-      textFooter={
-        <WorkerApplicationStatusBadge
-          status={application.status}
-          postType={application.post_type}
-        />
       }
     />
   );

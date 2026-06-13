@@ -2,6 +2,7 @@ import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
   getMissingClinicProfileFields,
+  isClinicProfileComplete,
   getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
   listConversationsForClinic,
@@ -244,16 +245,11 @@ export default function ClinicDashboardScreen() {
             </FadeInSection>
           ) : null}
 
-          <FadeInSection delayMs={80}>
-            <ClinicReadinessChecklist clinicProfile={clinicProfile} />
-          </FadeInSection>
-
-          <FadeInSection delayMs={100}>
-            <DashboardCoverRequestsCard
-              pendingCount={fillInUpdateCount}
-              onPress={() => router.push(CLINIC_FILL_INS)}
-            />
-          </FadeInSection>
+          {!isClinicProfileComplete(clinicProfile) ? (
+            <FadeInSection delayMs={80}>
+              <ClinicReadinessChecklist clinicProfile={clinicProfile} />
+            </FadeInSection>
+          ) : null}
 
           <FadeInSection delayMs={120}>
             <DashboardUnreadMessagesCard
@@ -298,6 +294,15 @@ export default function ClinicDashboardScreen() {
                   />
                 </View>
               </View>
+            </FadeInSection>
+          ) : null}
+
+          {fillInUpdateCount > 0 ? (
+            <FadeInSection delayMs={180}>
+              <DashboardCoverRequestsCard
+                pendingCount={fillInUpdateCount}
+                onPress={() => router.push(CLINIC_FILL_INS)}
+              />
             </FadeInSection>
           ) : null}
 
