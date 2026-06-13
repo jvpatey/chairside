@@ -8,6 +8,8 @@ import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
+import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
@@ -121,6 +123,15 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       flex: 1,
       gap: spacing.xs,
       paddingTop: spacing.xs,
+      position: 'relative',
+    },
+    navIndicator: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: spacing.xs,
+      borderRadius: 10,
+      backgroundColor: colors.primarySubtle,
     },
     footer: {
       flexShrink: 0,
@@ -203,6 +214,13 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   }));
 
   const visibleRoutes = getSidebarRoutes(state, descriptors, role);
+  const focusedVisibleIndex = visibleRoutes.findIndex(
+    (route) => state.routes.findIndex((r) => r.key === route.key) === state.index,
+  );
+  const { animatedStyle: navIndicatorStyle, onSegmentLayout } = useSlidingSegmentIndicator(
+    focusedVisibleIndex >= 0 ? focusedVisibleIndex : 0,
+    'vertical',
+  );
   const profileHref = role === 'worker' ? WORKER_PROFILE : CLINIC_PROFILE;
   const isProfileActive = pathname.includes('/profile');
 
@@ -281,7 +299,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       </View>
 
       <View style={styles.nav}>
-        {visibleRoutes.map((route) => {
+        {!isCollapsed ? (
+          <SlidingSegmentIndicator animatedStyle={navIndicatorStyle} style={styles.navIndicator} />
+        ) : null}
+        {visibleRoutes.map((route, index) => {
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((r) => r.key === route.key);
           const isFocused = state.index === routeIndex;
@@ -317,6 +338,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           return (
             <Pressable
               key={route.key}
+              onLayout={(event) => {
+                if (isCollapsed) return;
+                const { x, y, width, height } = event.nativeEvent.layout;
+                onSegmentLayout(index, { x, y, width, height });
+              }}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={label}
@@ -325,8 +351,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
               style={({ pressed, hovered }) => [
                 styles.item,
                 isCollapsed && styles.itemCollapsed,
-                isFocused && styles.itemActive,
-                isWeb && hovered && !pressed && (isFocused ? styles.itemActiveHovered : styles.itemHovered),
+                isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
                 pressed && styles.itemPressed,
               ]}>
               <View style={styles.iconWrap}>

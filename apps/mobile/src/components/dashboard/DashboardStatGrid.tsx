@@ -3,7 +3,9 @@ import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
+import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
 import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
+import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import {
   fontBold,
   fontSemibold,
@@ -105,23 +107,21 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
     cellUnselected: {
       backgroundColor: 'transparent',
     },
-    cellSelected: {
+    indicator: {
+      position: 'absolute',
+      top: 3,
+      left: 0,
+      borderRadius: dashboardControlRadii.statSegment,
+      overflow: 'hidden',
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: isDark ? `${colors.primary}77` : `${colors.primary}55`,
       backgroundColor: isDark ? colorWithAlpha(colors.primary, 0.16) : colors.surfaceElevated,
-      ...elevation('none'),
     },
     gradient: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      flex: 1,
     },
     cellHovered: webOnlyStyle({
       backgroundColor: isDark ? colorWithAlpha(colors.surfaceElevated, 0.7) : colors.surfaceElevated,
-    } as ViewStyle),
-    cellSelectedHovered: webOnlyStyle({
-      borderColor: colors.primary,
     } as ViewStyle),
     value: {
       fontSize: isCompact ? 18 : manySegments ? 20 : 22,
@@ -148,6 +148,10 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
   }));
 
   const isWeb = Platform.OS === 'web';
+  const selectedIndex = stats.findIndex((stat) => stat.key === selected);
+  const { animatedStyle: indicatorStyle, onSegmentLayout } = useSlidingSegmentIndicator(
+    selectedIndex >= 0 ? selectedIndex : 0,
+  );
 
   const handleSelect = (key: T) => {
     void Haptics.selectionAsync();
@@ -156,6 +160,12 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
 
   return (
     <View style={styles.grid}>
+      <SlidingSegmentIndicator animatedStyle={indicatorStyle} style={styles.indicator}>
+        <LinearGradient
+          colors={getStatSelectedGradient(colors, isDark)}
+          style={styles.gradient}
+        />
+      </SlidingSegmentIndicator>
       {stats.map((stat, index) => {
         const isSelected = selected === stat.key;
         const isNextSelected = selected === stats[index + 1]?.key;
@@ -166,7 +176,13 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
           : `${stat.label}: ${stat.value}${badgeCount > 0 ? `, ${badgeCount} updates` : ''}`;
 
         return (
-          <View key={stat.key} style={styles.cellWrap}>
+          <View
+            key={stat.key}
+            style={styles.cellWrap}
+            onLayout={(event) => {
+              const { x, y, width, height } = event.nativeEvent.layout;
+              onSegmentLayout(index, { x, y, width, height });
+            }}>
             {badgeCount > 0 ? (
               <View style={styles.badgeAnchor}>
                 <NotificationCountBadge count={badgeCount} />
@@ -180,19 +196,13 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
               style={({ pressed, hovered }) => [
                 styles.cell,
                 !isSelected && styles.cellUnselected,
-                isSelected && styles.cellSelected,
                 isWeb &&
                   hovered &&
                   !pressed &&
-                  (isSelected ? styles.cellSelectedHovered : styles.cellHovered),
-                pressed && { opacity: 0.88, transform: [{ scale: 0.98 }] },
+                  !isSelected &&
+                  styles.cellHovered,
+                pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
               ]}>
-              {isSelected ? (
-                <LinearGradient
-                  colors={getStatSelectedGradient(colors, isDark)}
-                  style={styles.gradient}
-                />
-              ) : null}
               {!isLabelOnly ? (
                 <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
               ) : null}
