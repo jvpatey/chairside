@@ -9,14 +9,16 @@ import {
   getRoleHistoryRoute,
 } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
+import { PostingCardActionButton } from '@/components/clinic/PostingCardActionButton';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
+import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -26,7 +28,6 @@ import {
   type JobStatusFilter,
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function PostingListEmptyState({
@@ -109,35 +110,9 @@ export default function ClinicPostingsScreen() {
   const historyCounts = useMemo(() => countHistoryJobs(jobs), [jobs]);
   const hasRoleHistory = historyCounts.archived > 0 || historyCounts.filled > 0;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     wrap: {
       gap: spacing.lg,
-    },
-    historyLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
-      gap: spacing.sm,
-      ...webPointer(),
-    },
-    historyLinkHovered: webListRowHoverStyles(colors),
-    historyLinkPressed: {
-      opacity: 0.92,
-    },
-    historyTitle: {
-      ...typography.body,
-      fontWeight: '600',
-      fontSize: 15,
-    },
-    historyMeta: {
-      ...typography.subtitle,
-      fontSize: 13,
     },
   }));
 
@@ -262,28 +237,34 @@ export default function ClinicPostingsScreen() {
             )}
 
             {hasRoleHistory ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Role history"
-                onPress={() => router.push(getRoleHistoryRoute())}
-                style={({ pressed, hovered }) => [
-                  styles.historyLink,
-                  webHover(hovered, pressed, styles.historyLinkHovered),
-                  pressed && styles.historyLinkPressed,
-                ]}
-              >
-                <View>
-                  <Text style={styles.historyTitle}>Role history</Text>
-                  <Text style={styles.historyMeta}>
-                    {historyCounts.archived === 1
-                      ? '1 archived'
-                      : `${historyCounts.archived} archived`}
-                    {' · '}
-                    {historyCounts.filled === 1 ? '1 filled' : `${historyCounts.filled} filled`}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.labelTertiary} />
-              </Pressable>
+              <BrowseListGroup>
+                <BrowseListRow
+                  avatar={
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: colors.fillSubtle,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      <Ionicons name="time-outline" size={20} color={colors.labelSecondary} />
+                    </View>
+                  }
+                  title="Role history"
+                  headerDetail={`${historyCounts.archived === 1 ? '1 archived' : `${historyCounts.archived} archived`} · ${historyCounts.filled === 1 ? '1 filled' : `${historyCounts.filled} filled`}`}
+                  showChevron={false}
+                  action={
+                    <PostingCardActionButton
+                      label="View role history"
+                      variant="primary"
+                      fullWidth
+                      onPress={() => router.push(getRoleHistoryRoute())}
+                    />
+                  }
+                />
+              </BrowseListGroup>
             ) : null}
           </>
         )}

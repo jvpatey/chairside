@@ -15,8 +15,8 @@ import {
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
 import {
-  CountBadge,
   formatApplicantCountLabelWithNew,
 } from '@/components/ui/CountBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
@@ -24,6 +24,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
+import { formatPostedDateLabel } from '@/lib/dates';
 
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
@@ -124,8 +125,8 @@ type DashboardOverviewPanelProps = {
 
 function DashboardListCard({
   title,
-  subtitle,
   meta,
+  postedAt,
   unseenCount = 0,
   applicantCount = 0,
   statusBadge,
@@ -133,8 +134,8 @@ function DashboardListCard({
   onPress,
 }: {
   title: string;
-  subtitle?: string;
   meta?: string;
+  postedAt?: string | null;
   unseenCount?: number;
   applicantCount?: number;
   statusBadge?: ReactNode;
@@ -144,11 +145,27 @@ function DashboardListCard({
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
-  const countLabel =
-    subtitle ??
-    formatApplicantCountLabelWithNew(applicantCount, unseenCount);
+  const countLabel = formatApplicantCountLabelWithNew(applicantCount, unseenCount);
+  const postedLabel = formatPostedDateLabel(postedAt);
+  const hasApplicants = applicantCount > 0;
 
   const accessory = highlighted ? (statusBadge ?? <ApplicationCardBadge />) : statusBadge;
+
+  const applicantControl =
+    hasApplicants && onPress
+      ? (
+          <ApplicantCountButton
+            label={countLabel}
+            highlighted={highlighted}
+            onPress={onPress}
+            accessibilityLabel={`Review ${applicantCount} applicants`}
+          />
+        )
+      : hasApplicants
+        ? (
+            <ApplicantCountButton label={countLabel} highlighted={highlighted} showChevron={false} />
+          )
+        : null;
 
   const header = (
     <ClinicPostHeader
@@ -158,13 +175,10 @@ function DashboardListCard({
       title={title}
       location={location || null}
       detail={meta ?? null}
+      postedLabel={postedLabel || null}
       avatarSize={44}
       accessory={accessory}
-      textFooter={
-        countLabel ? (
-          <CountBadge label={countLabel} highlighted={highlighted} />
-        ) : null
-      }
+      detailAccessory={applicantControl}
     />
   );
 
@@ -211,7 +225,7 @@ export function DashboardOverviewPanel({
 
   return (
     <View>
-      <DashboardSectionHeader title={OVERVIEW_SECTION_TITLES[selected]} accent />
+      <DashboardSectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
       {selected === 'roles' ? (
         roleJobs.length === 0 ? (
           <DashboardEmptyState
@@ -319,6 +333,7 @@ export function DashboardOverviewPanel({
                   title={summary.post_title}
                   applicantCount={summary.applicant_count}
                   unseenCount={summary.unseen_count}
+                  postedAt={summary.post_created_at}
                   meta={formatJobApplicationSummaryMeta(summary)}
                   highlighted={hasNewApplicants}
                   onPress={

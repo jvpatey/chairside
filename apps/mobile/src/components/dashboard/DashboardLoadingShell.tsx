@@ -91,7 +91,7 @@ export function DashboardLoadingShell() {
       </View>
 
       <View style={styles.section}>
-        <DashboardSectionHeader title="Open roles near you" accent />
+        <DashboardSectionHeader title="Open roles near you" />
         <Animated.View style={[styles.listCard, { opacity: pulse }]} />
         <Animated.View style={[styles.listCard, { opacity: pulse }]} />
       </View>

@@ -93,11 +93,6 @@ export function formatJobApplicationSummaryMeta(summary: {
     return parts.join(' · ');
   }
 
-  const viewedCount = summary.applicant_count - summary.pending_count;
-  if (viewedCount > 0) {
-    return viewedCount === 1 ? '1 viewed' : `${viewedCount} viewed`;
-  }
-
   return undefined;
 }
 

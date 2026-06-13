@@ -5,34 +5,37 @@ import { useCallback, useState } from 'react';
 import { Text } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import {
+  formatViewApplicantsLabel,
+  PostingCardActionButton,
+} from '@/components/clinic/PostingCardActionButton';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
-import {
-  CountBadge,
-  formatApplicantCountLabelWithNew,
-} from '@/components/ui/CountBadge';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { formatPostedDateLabel } from '@/lib/dates';
 import { getClinicRoleApplicationsRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 function RoleApplicationSummaryRow({
   summary,
-  onPress,
+  onViewPress,
 }: {
   summary: JobApplicationSummary;
-  onPress: () => void;
+  onViewPress: () => void;
 }) {
   const { clinicProfile } = useClinicProfile();
   const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
-  const reviewMeta = formatJobApplicationSummaryMeta(summary);
+  const pipelineMeta = formatJobApplicationSummaryMeta(summary);
   const hasNewApplicants = summary.unseen_count > 0;
+  const postedLabel = formatPostedDateLabel(summary.post_created_at);
+  const viewLabel = formatViewApplicantsLabel(summary.applicant_count);
 
   return (
     <BrowseListRow
@@ -40,15 +43,20 @@ function RoleApplicationSummaryRow({
       eyebrow={clinicName}
       title={summary.post_title}
       meta={location || null}
-      detail={reviewMeta}
+      postedLabel={postedLabel || null}
+      postedLabelPlacement="header"
+      detail={pipelineMeta}
       topTrailing={hasNewApplicants ? <ApplicationCardBadge /> : undefined}
-      footer={
-        <CountBadge
-          label={formatApplicantCountLabelWithNew(summary.applicant_count, summary.unseen_count)}
+      showChevron={false}
+      action={
+        <PostingCardActionButton
+          label={viewLabel}
+          variant="primary"
           highlighted={hasNewApplicants}
+          fullWidth
+          onPress={onViewPress}
         />
       }
-      onPress={onPress}
     />
   );
 }
@@ -89,7 +97,7 @@ export default function ClinicApplicationsScreen() {
             <RoleApplicationSummaryRow
               key={summary.job_post_id}
               summary={summary}
-              onPress={() =>
+              onViewPress={() =>
                 router.push(getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'))
               }
             />

@@ -22,6 +22,13 @@ type ClinicPostHeaderProps = {
   /** Renders on the right of the split details block, vertically centered. */
   detailAccessory?: ReactNode;
   footer?: ReactNode;
+  /** Split layout: renders below header/details, outside the tinted content band. */
+  action?: ReactNode;
+  /**
+   * Split layout: keep location, detail, posted, and footer in the header block
+   * instead of the divided details section (for compact list/tile cards).
+   */
+  headerOnly?: boolean;
   avatarSize?: number;
   stackedAccessory?: boolean;
   /**
@@ -43,6 +50,8 @@ export function ClinicPostHeader({
   textFooter,
   detailAccessory,
   footer,
+  action,
+  headerOnly = false,
   avatarSize = 48,
   stackedAccessory = false,
   layout = 'stacked',
@@ -52,6 +61,7 @@ export function ClinicPostHeader({
   const footerInset = avatarSize + spacing.md;
   const showClinicAsTitle = !title?.trim();
   const isSplit = layout === 'split';
+  const headerOnlySplit = isSplit && headerOnly;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -161,6 +171,10 @@ export function ClinicPostHeader({
     detailsBlock: {
       gap: spacing.xs,
     },
+    rowAction: {
+      marginTop: spacing.sm,
+      alignSelf: 'stretch',
+    },
   }));
 
   const identityBlock = (
@@ -188,7 +202,17 @@ export function ClinicPostHeader({
                 {location}
               </Text>
             ) : null}
+            {headerOnlySplit && location ? (
+              <Text style={styles.location} numberOfLines={2}>
+                {location}
+              </Text>
+            ) : null}
             {!isSplit && detail ? (
+              <Text style={styles.meta} numberOfLines={2}>
+                {detail}
+              </Text>
+            ) : null}
+            {headerOnlySplit && detail ? (
               <Text style={styles.meta} numberOfLines={2}>
                 {detail}
               </Text>
@@ -198,6 +222,12 @@ export function ClinicPostHeader({
                 {postedLabel}
               </Text>
             ) : null}
+            {headerOnlySplit && postedLabel ? (
+              <Text style={styles.posted} numberOfLines={1}>
+                {postedLabel}
+              </Text>
+            ) : null}
+            {headerOnlySplit && footer ? <View style={styles.footer}>{footer}</View> : null}
           </View>
           {accessory ? (
             <View style={[styles.accessory, stackedAccessory && styles.accessoryStack]}>
@@ -212,37 +242,46 @@ export function ClinicPostHeader({
 
   const detailsColumnContent = (
     <>
-      {location ? (
+      {!headerOnlySplit && location ? (
         <Text style={styles.location} numberOfLines={2}>
           {location}
         </Text>
       ) : null}
-      {detail ? (
+      {!headerOnlySplit && detail ? (
         <Text style={styles.meta} numberOfLines={2}>
           {detail}
         </Text>
       ) : null}
-      {postedLabel && textFooter && !detailAccessory ? (
+      {!headerOnlySplit && postedLabel && textFooter && !detailAccessory ? (
         <View style={styles.metaFooterRow}>
           <Text style={[styles.posted, styles.metaFooterLabel]} numberOfLines={1}>
             {postedLabel}
           </Text>
           <View style={styles.metaFooterAccessory}>{textFooter}</View>
         </View>
-      ) : postedLabel ? (
+      ) : !headerOnlySplit && postedLabel ? (
         <Text style={styles.posted} numberOfLines={1}>
           {postedLabel}
         </Text>
-      ) : textFooter && !detailAccessory ? (
+      ) : !headerOnlySplit && textFooter && !detailAccessory ? (
         <View style={styles.textFooter}>{textFooter}</View>
       ) : null}
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
+      {footer && !headerOnlySplit ? <View style={styles.footer}>{footer}</View> : null}
       {statusFooter ? <View style={styles.statusFooter}>{statusFooter}</View> : null}
     </>
   );
 
-  const hasDetails =
-    location || detail || postedLabel || textFooter || footer || statusFooter || detailAccessory;
+  const hasDetails = headerOnlySplit
+    ? Boolean(detailAccessory || textFooter || statusFooter)
+    : Boolean(
+        location ||
+          detail ||
+          postedLabel ||
+          textFooter ||
+          footer ||
+          statusFooter ||
+          detailAccessory,
+      );
 
   const detailsContent = hasDetails ? (
     <CardContentSection style={detailAccessory ? undefined : styles.detailsBlock}>
@@ -267,6 +306,7 @@ export function ClinicPostHeader({
             {detailsContent}
           </>
         ) : null}
+        {action ? <View style={styles.rowAction}>{action}</View> : null}
       </View>
     );
   }

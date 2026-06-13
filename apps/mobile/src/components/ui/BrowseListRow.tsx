@@ -16,6 +16,12 @@ type BrowseListRowProps = {
   meta?: string | null;
   detail?: string | null;
   postedLabel?: string | null;
+  /** Where `postedLabel` appears in split layout. Default `content` (tinted band). */
+  postedLabelPlacement?: 'header' | 'content';
+  /** Split header: secondary line below location (e.g. role type). */
+  headerDetail?: string | null;
+  /** Split header: accent line (e.g. wage). */
+  headerAccent?: string | null;
   /** Renders below the text block, aligned with the title column. */
   textFooter?: ReactNode;
   /** Renders on its own line at the bottom of the card content. */
@@ -26,6 +32,8 @@ type BrowseListRowProps = {
   /** Renders on the right of the split content block, vertically centered. */
   contentAccessory?: ReactNode;
   footer?: ReactNode;
+  /** Split layout: renders below the header, outside the tinted content band. */
+  action?: ReactNode;
   onPress?: () => void;
   showChevron?: boolean;
   /** `split` — header above a tinted content band (matches tile cards). */
@@ -39,23 +47,29 @@ export function BrowseListRow({
   meta,
   detail,
   postedLabel,
+  postedLabelPlacement = 'content',
+  headerDetail,
+  headerAccent,
   textFooter,
   statusFooter,
   topTrailing,
   trailing,
   contentAccessory,
   footer,
+  action,
   onPress,
   showChevron = true,
   layout = 'split',
 }: BrowseListRowProps) {
   const { colors } = useTheme();
   const isSplit = layout === 'split';
+  const postedInHeader = isSplit && postedLabelPlacement === 'header' && postedLabel;
+  const postedInContent = postedLabel && !postedInHeader;
   const hasContentSection =
     isSplit &&
     Boolean(
       detail ||
-        postedLabel ||
+        postedInContent ||
         textFooter ||
         footer ||
         statusFooter ||
@@ -124,6 +138,12 @@ export function BrowseListRow({
       fontSize: 13,
       lineHeight: 18,
       color: colors.labelTertiary,
+    },
+    accent: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600',
+      color: colors.primary,
     },
     footer: {
       flexDirection: 'row',
@@ -198,6 +218,10 @@ export function BrowseListRow({
       paddingTop: spacing.xs,
       alignSelf: 'stretch',
     },
+    rowAction: {
+      marginTop: spacing.sm,
+      alignSelf: 'stretch',
+    },
   }));
 
   const stackedTextBlock = (
@@ -246,6 +270,21 @@ export function BrowseListRow({
             {meta}
           </Text>
         ) : null}
+        {headerDetail ? (
+          <Text style={styles.meta} numberOfLines={2}>
+            {headerDetail}
+          </Text>
+        ) : null}
+        {postedInHeader ? (
+          <Text style={styles.posted} numberOfLines={1}>
+            {postedLabel}
+          </Text>
+        ) : null}
+        {headerAccent ? (
+          <Text style={styles.accent} numberOfLines={1}>
+            {headerAccent}
+          </Text>
+        ) : null}
       </View>
       {topTrailing ? <View style={styles.headerTrailing}>{topTrailing}</View> : null}
     </View>
@@ -258,14 +297,14 @@ export function BrowseListRow({
           {detail}
         </Text>
       ) : null}
-      {postedLabel && trailing && !contentAccessory ? (
+      {postedInContent && trailing && !contentAccessory ? (
         <View style={styles.metaFooterRow}>
           <Text style={[styles.posted, styles.metaFooterLabel]} numberOfLines={1}>
             {postedLabel}
           </Text>
           <View style={styles.metaFooterAccessory}>{trailing}</View>
         </View>
-      ) : postedLabel ? (
+      ) : postedInContent ? (
         <Text style={styles.posted} numberOfLines={1}>
           {postedLabel}
         </Text>
@@ -318,6 +357,7 @@ export function BrowseListRow({
       {hasContentSection ? (
         <View style={styles.contentBand}>{splitContentSection}</View>
       ) : null}
+      {action ? <View style={styles.rowAction}>{action}</View> : null}
     </>
   );
 

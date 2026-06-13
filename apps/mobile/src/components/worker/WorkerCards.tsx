@@ -203,7 +203,7 @@ export function WorkerOverviewPanel({
 
   return (
     <View>
-      <DashboardSectionHeader title={OVERVIEW_TITLES[selected]} accent />
+      <DashboardSectionHeader title={OVERVIEW_TITLES[selected]} />
       {selected === 'roles' ? (
         jobs.length === 0 ? (
           <DashboardEmptyState

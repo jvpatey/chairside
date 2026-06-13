@@ -6,7 +6,8 @@ export type FillInReturnTarget = 'postings-fill-ins' | 'dashboard-fill-ins' | 'f
 export type ApplicantReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
-  | 'postings-tab';
+  | 'postings-tab'
+  | 'role-history';
 export type WorkerApplicationReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
@@ -389,6 +390,10 @@ export function navigateAfterRoleApplicants(
   }
   if (returnTo === 'postings-tab') {
     router.replace(CLINIC_POSTINGS);
+    return;
+  }
+  if (returnTo === 'role-history') {
+    router.replace(getRoleHistoryRoute());
     return;
   }
   router.replace(CLINIC_APPLICATIONS);

@@ -17,6 +17,8 @@ type ApplicantPostHeaderProps = {
   postedLabel?: string | null;
   accessory?: ReactNode;
   textFooter?: ReactNode;
+  /** Renders on the right of the split details block, vertically centered. */
+  detailAccessory?: ReactNode;
   footer?: ReactNode;
   avatarSize?: number;
   stackedAccessory?: boolean;
@@ -33,6 +35,7 @@ export function ApplicantPostHeader({
   postedLabel,
   accessory,
   textFooter,
+  detailAccessory,
   footer,
   avatarSize = 44,
   stackedAccessory = false,
@@ -133,6 +136,22 @@ export function ApplicantPostHeader({
     detailsBlock: {
       gap: spacing.xs,
     },
+    detailsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      minWidth: 0,
+    },
+    detailsColumn: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.xs,
+    },
+    detailAccessoryCol: {
+      flexShrink: 0,
+      alignSelf: 'center',
+      alignItems: 'flex-end',
+    },
   }));
 
   const identityBlock = (
@@ -176,31 +195,45 @@ export function ApplicantPostHeader({
     </View>
   );
 
-  const detailsContent =
-    detail || postedLabel || textFooter || footer ? (
-      <CardContentSection style={styles.detailsBlock}>
-        {detail ? (
-          <Text style={styles.meta} numberOfLines={3}>
-            {detail}
-          </Text>
-        ) : null}
-        {postedLabel && textFooter ? (
-          <View style={styles.metaFooterRow}>
-            <Text style={[styles.posted, styles.metaFooterLabel]} numberOfLines={1}>
-              {postedLabel}
-            </Text>
-            <View style={styles.metaFooterAccessory}>{textFooter}</View>
-          </View>
-        ) : postedLabel ? (
-          <Text style={styles.posted} numberOfLines={1}>
+  const detailsColumnContent = (
+    <>
+      {detail ? (
+        <Text style={styles.meta} numberOfLines={3}>
+          {detail}
+        </Text>
+      ) : null}
+      {postedLabel && textFooter && !detailAccessory ? (
+        <View style={styles.metaFooterRow}>
+          <Text style={[styles.posted, styles.metaFooterLabel]} numberOfLines={1}>
             {postedLabel}
           </Text>
-        ) : textFooter ? (
-          <View style={styles.textFooter}>{textFooter}</View>
-        ) : null}
-        {footer ? <View style={styles.footer}>{footer}</View> : null}
-      </CardContentSection>
-    ) : null;
+          <View style={styles.metaFooterAccessory}>{textFooter}</View>
+        </View>
+      ) : postedLabel ? (
+        <Text style={styles.posted} numberOfLines={1}>
+          {postedLabel}
+        </Text>
+      ) : textFooter && !detailAccessory ? (
+        <View style={styles.textFooter}>{textFooter}</View>
+      ) : null}
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
+    </>
+  );
+
+  const hasDetails = detail || postedLabel || textFooter || footer || detailAccessory;
+
+  const detailsContent = hasDetails ? (
+    <CardContentSection style={detailAccessory ? undefined : styles.detailsBlock}>
+      {detailAccessory ? (
+        <View style={styles.detailsRow}>
+          <View style={styles.detailsColumn}>{detailsColumnContent}</View>
+          <View style={styles.detailAccessoryCol}>{detailAccessory}</View>
+        </View>
+      ) : (
+        <View style={styles.detailsBlock}>{detailsColumnContent}</View>
+      )}
+    </CardContentSection>
+  ) : null;
 
   if (isSplit) {
     return (

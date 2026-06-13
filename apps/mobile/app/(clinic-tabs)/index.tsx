@@ -248,14 +248,14 @@ export default function ClinicDashboardScreen() {
             <ClinicReadinessChecklist clinicProfile={clinicProfile} />
           </FadeInSection>
 
-          <FadeInSection delayMs={120}>
+          <FadeInSection delayMs={100}>
             <DashboardCoverRequestsCard
               pendingCount={fillInUpdateCount}
               onPress={() => router.push(CLINIC_FILL_INS)}
             />
           </FadeInSection>
 
-          <FadeInSection delayMs={160}>
+          <FadeInSection delayMs={120}>
             <DashboardUnreadMessagesCard
               conversations={conversations}
               avatarKind="worker"
@@ -279,7 +279,7 @@ export default function ClinicDashboardScreen() {
           </FadeInSection>
 
           {!isTablet ? (
-            <FadeInSection delayMs={200}>
+            <FadeInSection delayMs={160}>
               <View style={styles.section}>
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
@@ -301,7 +301,7 @@ export default function ClinicDashboardScreen() {
             </FadeInSection>
           ) : null}
 
-          <FadeInSection delayMs={240}>
+          <FadeInSection delayMs={200}>
             <View style={styles.overviewSection}>
               <DashboardStatGrid
                 selected={selectedOverview}
@@ -325,7 +325,7 @@ export default function ClinicDashboardScreen() {
             </View>
           </FadeInSection>
 
-          <FadeInSection delayMs={280}>
+          <FadeInSection delayMs={240}>
             <DashboardOverviewPanel
               selected={selectedOverview}
               jobs={jobs}

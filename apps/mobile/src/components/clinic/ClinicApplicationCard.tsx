@@ -48,6 +48,7 @@ import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
+import { ApplicationPreviewGroup } from '@/components/worker/ApplicationPreviewGroup';
 import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
@@ -57,6 +58,7 @@ import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel'
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { BadgeRow } from '@/components/ui/BadgeRow';
+import { GradientHairline } from '@/components/ui/GradientHairline';
 import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
 import {
   getApplicationMatchDisplayContext,
@@ -410,7 +412,7 @@ export function ClinicApplicationCard({
           />
         </View>
       }
-      textFooter={
+      detailAccessory={
         jobMatch && matchContext ? (
           <BadgeRow>
             <MatchTierBadge
@@ -517,50 +519,60 @@ export function ClinicApplicationCard({
             application.interview_details ||
             application.resume_storage_path) ? (
             <CardDetailSection title="Application details" divided>
-              {hasKitSubmitted && application.years_of_experience != null ? (
-                <ApplicationPreviewField
-                  label="Experience"
-                  value={`${application.years_of_experience} years`}
-                />
-              ) : null}
-              {hasKitSubmitted && formatApplicationEducation(application.education) ? (
-                <ApplicationPreviewField
-                  label="Education"
-                  value={formatApplicationEducation(application.education)}
-                />
-              ) : null}
-              {hasKitSubmitted && resolveWorkerRoleTypes(application).length > 0 ? (
-                <ApplicationPreviewField
-                  label="Roles"
-                  value={formatRoleTypesLabel(resolveWorkerRoleTypes(application))}
-                />
-              ) : null}
-              {hasKitSubmitted && (application.software_used ?? []).length > 0 ? (
-                <ApplicationPreviewField
-                  label="Software"
-                  value={(application.software_used ?? []).join(', ')}
-                />
-              ) : null}
-              {hasKitSubmitted && (application.practice_types ?? []).length > 0 ? (
-                <ApplicationPreviewField
-                  label="Specialties"
-                  value={(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
-                />
+              {hasKitSubmitted ? (
+                <ApplicationPreviewGroup title="Qualifications">
+                  {application.years_of_experience != null ? (
+                    <ApplicationPreviewField
+                      label="Experience"
+                      value={`${application.years_of_experience} years`}
+                    />
+                  ) : null}
+                  {formatApplicationEducation(application.education) ? (
+                    <ApplicationPreviewField
+                      label="Education"
+                      value={formatApplicationEducation(application.education)}
+                    />
+                  ) : null}
+                  {resolveWorkerRoleTypes(application).length > 0 ? (
+                    <ApplicationPreviewField
+                      label="Roles"
+                      value={formatRoleTypesLabel(resolveWorkerRoleTypes(application))}
+                    />
+                  ) : null}
+                  {(application.software_used ?? []).length > 0 ? (
+                    <ApplicationPreviewField
+                      label="Software"
+                      value={(application.software_used ?? []).join(', ')}
+                    />
+                  ) : null}
+                  {(application.practice_types ?? []).length > 0 ? (
+                    <ApplicationPreviewField
+                      label="Specialties"
+                      value={(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
+                    />
+                  ) : null}
+                </ApplicationPreviewGroup>
               ) : null}
               {hasKitSubmitted && application.cover_message ? (
-                <ApplicationPreviewField label="Cover message" value={application.cover_message} />
+                <ApplicationPreviewGroup title="Cover message">
+                  <ApplicationPreviewField label="Message" value={application.cover_message} />
+                </ApplicationPreviewGroup>
               ) : null}
               {isScreeningStage && !hasKitSubmitted ? (
-                <ApplicationPreviewField label="Application kit" value="Not submitted yet" />
+                <ApplicationPreviewGroup>
+                  <ApplicationPreviewField label="Application kit" value="Not submitted yet" />
+                </ApplicationPreviewGroup>
               ) : null}
               {application.interview_details ? (
-                <ApplicationPreviewField
-                  label="Interview details"
-                  value={application.interview_details}
-                />
+                <ApplicationPreviewGroup title="Interview">
+                  <ApplicationPreviewField
+                    label="Details"
+                    value={application.interview_details}
+                  />
+                </ApplicationPreviewGroup>
               ) : null}
               {hasKitSubmitted ? (
-                <>
+                <ApplicationPreviewGroup title="Documents">
                   <ApplicationPreviewField
                     label="Resume"
                     value={formatApplicationResumeStatus(application.resume_storage_path)}
@@ -571,13 +583,14 @@ export function ClinicApplicationCard({
                       fileName={resumeFileName}
                     />
                   ) : null}
-                </>
+                </ApplicationPreviewGroup>
               ) : null}
             </CardDetailSection>
           ) : null}
 
           {hasActions ? (
-            <CardDetailSection title="Actions" divided>
+            <View style={styles.actions}>
+              <GradientHairline />
               {isScreeningStage && !awaitingKit ? (
                 <ApplicationActionRow>
                   <OnboardingButton
@@ -710,7 +723,7 @@ export function ClinicApplicationCard({
                   />
                 </ApplicationActionRow>
               ) : null}
-            </CardDetailSection>
+            </View>
           ) : null}
         </View>
       ) : null}

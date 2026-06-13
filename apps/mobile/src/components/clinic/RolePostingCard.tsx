@@ -7,11 +7,8 @@ import { Pressable, Text, View } from 'react-native';
 import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { PostingCardActionRow } from '@/components/clinic/PostingCardActionButton';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
-import {
-  CountBadge,
-  formatApplicantCountLabel,
-} from '@/components/ui/CountBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -37,7 +34,7 @@ type RolePostingCardProps = {
 
 export function RolePostingCard({
   job,
-  applicantCount,
+  applicantCount = 0,
   layout = 'tile',
   onPress,
   onApplicantsPress,
@@ -46,10 +43,10 @@ export function RolePostingCard({
   const { colors } = useTheme();
   const { clinicProfile } = useClinicProfile();
   const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
-  const hasApplicants = applicantCount != null && applicantCount > 0;
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
   const postedLabel = formatPostedDateLabel(job.created_at);
+  const roleMeta = formatJobPostRoleMeta(job);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     menuButton: {
@@ -61,34 +58,15 @@ export function RolePostingCard({
     menuButtonPressed: {
       opacity: 0.6,
     },
-    footer: {
+    headerActions: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
     wage: {
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
-    },
-    listWage: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    applicantsPressable: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    applicantsPressablePressed: {
-      opacity: 0.75,
-    },
-    headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
     },
   }));
 
@@ -126,28 +104,17 @@ export function RolePostingCard({
     </View>
   );
 
-  const applicantFooter =
-    applicantCount != null && applicantCount > 0 ? (
-      hasApplicants && onApplicantsPress ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Review ${applicantCount} applicants`}
-          onPress={(event) => {
-            event.stopPropagation?.();
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onApplicantsPress();
-          }}
-          style={({ pressed }) => [
-            styles.applicantsPressable,
-            pressed && styles.applicantsPressablePressed,
-          ]}>
-          <CountBadge label={formatApplicantCountLabel(applicantCount)} />
-          <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
-        </Pressable>
-      ) : (
-        <CountBadge label={formatApplicantCountLabel(applicantCount)} />
-      )
-    ) : null;
+  const actionRow = (
+    <PostingCardActionRow
+      onViewPost={onPress}
+      onViewApplicants={onApplicantsPress}
+      applicantCount={applicantCount}
+    />
+  );
+
+  const wageFooter = job.wage_range ? (
+    <Text style={styles.wage}>{job.wage_range}</Text>
+  ) : null;
 
   if (layout === 'list') {
     return (
@@ -156,39 +123,32 @@ export function RolePostingCard({
         eyebrow={clinicName}
         title={job.title}
         meta={location || null}
-        detail={formatJobPostRoleMeta(job)}
         postedLabel={postedLabel || null}
-        contentAccessory={applicantFooter}
+        postedLabelPlacement="header"
+        headerDetail={roleMeta}
+        headerAccent={job.wage_range || null}
         topTrailing={headerActions}
-        showChevron={!applicantFooter}
-        footer={
-          job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null
-        }
-        onPress={onPress}
+        showChevron={false}
+        action={actionRow}
       />
     );
   }
 
   return (
-    <SurfaceCard onPress={onPress}>
+    <SurfaceCard>
       <ClinicPostHeader
         layout="split"
+        headerOnly
         clinicName={clinicName}
         logoStoragePath={clinicProfile?.logo_storage_path}
         title={job.title}
         location={location || null}
-        detail={formatJobPostRoleMeta(job)}
+        detail={roleMeta}
         postedLabel={postedLabel || null}
         avatarSize={44}
         accessory={headerActions}
-        detailAccessory={applicantFooter}
-        footer={
-          job.wage_range ? (
-            <View style={styles.footer}>
-              <Text style={styles.wage}>{job.wage_range}</Text>
-            </View>
-          ) : null
-        }
+        footer={wageFooter}
+        action={actionRow}
       />
     </SurfaceCard>
   );
