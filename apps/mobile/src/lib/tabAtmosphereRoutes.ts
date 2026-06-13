@@ -8,7 +8,6 @@ const CLINIC_MAIN_TABS = new Set(['postings', 'applications', 'fill-ins', 'messa
 const WORKER_STACK_FRAGMENTS = [
   '/job/',
   '/shift/',
-  '/profile',
   '/application/',
   '/conversation/',
   '/apply',
@@ -19,7 +18,6 @@ const WORKER_STACK_FRAGMENTS = [
 const CLINIC_STACK_FRAGMENTS = [
   '/job/',
   '/shift/',
-  '/profile',
   '/application/',
   '/conversation/',
   '/post-job',
@@ -62,6 +60,10 @@ function isHomePath(relativePath: string): boolean {
   return relativePath === '/' || relativePath === '/index';
 }
 
+function isProfilePath(relativePath: string): boolean {
+  return relativePath === '/profile' || relativePath.startsWith('/profile/');
+}
+
 function getMainTabFromRelativePath(
   relativePath: string,
   role: TabAtmosphereRole,
@@ -101,6 +103,10 @@ export function getTabAtmosphereIntensityFromPathname(
 
   if (isHomePath(relative)) {
     return 'prominent';
+  }
+
+  if (isProfilePath(relative)) {
+    return 'subtle';
   }
 
   if (getMainTabFromRelativePath(relative, role)) {

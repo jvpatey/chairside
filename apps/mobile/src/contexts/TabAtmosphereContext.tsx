@@ -1,14 +1,11 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import { usePathname } from 'expo-router';
-import { View } from 'react-native';
+import { usePathname, useSegments } from 'expo-router';
 
-import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import {
   getTabAtmosphereIntensityFromPathname,
   type TabAtmosphereIntensity,
   type TabAtmosphereRole,
 } from '@/lib/tabAtmosphereRoutes';
-import { useTheme } from '@/theme';
 
 const TabAtmosphereContext = createContext<TabAtmosphereIntensity>('none');
 
@@ -21,18 +18,17 @@ type TabAtmosphereShellProps = {
   children: ReactNode;
 };
 
-/** Fixed brand wash behind main tab surfaces; hidden on stack/detail routes. */
+/** Provides route-aware atmosphere intensity for tab screens. */
 export function TabAtmosphereShell({ role, children }: TabAtmosphereShellProps) {
   const pathname = usePathname();
-  const { colors } = useTheme();
-  const intensity = getTabAtmosphereIntensityFromPathname(pathname, role);
+  const segments = useSegments();
+  let intensity = getTabAtmosphereIntensityFromPathname(pathname, role);
+
+  if (intensity === 'none' && segments.includes('profile')) {
+    intensity = 'subtle';
+  }
 
   return (
-    <TabAtmosphereContext.Provider value={intensity}>
-      <View style={{ flex: 1, backgroundColor: colors.backgroundGrouped }}>
-        {intensity !== 'none' ? <AppAtmosphere intensity={intensity} /> : null}
-        <View style={{ flex: 1, backgroundColor: 'transparent' }}>{children}</View>
-      </View>
-    </TabAtmosphereContext.Provider>
+    <TabAtmosphereContext.Provider value={intensity}>{children}</TabAtmosphereContext.Provider>
   );
 }

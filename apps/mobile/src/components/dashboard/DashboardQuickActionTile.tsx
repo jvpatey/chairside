@@ -85,9 +85,9 @@ export function DashboardQuickActionTile({
       backgroundColor: colors.primary,
     },
     iconWrapSecondary: {
-      backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
+      backgroundColor: colors.secondarySubtle,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: isDark ? `${colors.secondary}55` : `${colors.secondary}33`,
     },
     label: {
       fontSize: 16,
@@ -135,7 +135,7 @@ export function DashboardQuickActionTile({
           <Ionicons
             name={icon}
             size={22}
-            color={isPrimary ? colors.primaryOnPrimary : colors.primary}
+            color={isPrimary ? colors.primaryOnPrimary : colors.secondary}
           />
         </View>
         <View>

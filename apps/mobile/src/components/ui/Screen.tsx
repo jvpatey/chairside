@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View, type StyleProp, type ViewStyle } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
+import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere } from '@/contexts/TabAtmosphereContext';
@@ -56,8 +57,9 @@ export function Screen({
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
-  const usesTransparentBackground = transparentBackground || tabAtmosphere !== 'none';
-  const containerBackground = usesTransparentBackground ? 'transparent' : colors.backgroundGrouped;
+  const showAtmosphere = tabAtmosphere !== 'none';
+  const containerBackground =
+    transparentBackground && !showAtmosphere ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
   const topPadding =
     isTablet && !showHeader ? insets.top + TABLET_TOP_INSET_EXTRA : insets.top + 16;
@@ -65,6 +67,7 @@ export function Screen({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       flex: 1,
+      overflow: 'hidden',
     },
     content: {
       flexGrow: fillsContainer ? 1 : undefined,
@@ -124,9 +127,14 @@ export function Screen({
       color: colors.primary,
     },
   }));
+
+  const paddingStyle = {
     paddingTop: topPadding,
     paddingBottom: (fillsContainer ? spacing.md : 24) + tabDockInset,
   };
+
+  const atmosphereLayer =
+    showAtmosphere ? <AppAtmosphere intensity={tabAtmosphere} /> : null;
 
   const headerBlock = (
     <View
@@ -178,9 +186,10 @@ export function Screen({
           { backgroundColor: containerBackground },
           fillsContainer && { minHeight: 0 },
         ]}>
+        {atmosphereLayer}
         <WebPageEnter
           animate={animateEntry}
-          style={fillsContainer ? { flex: 1, minHeight: 0 } : undefined}>
+          style={fillsContainer ? { flex: 1, minHeight: 0 } : { flex: 1 }}>
           <View
             style={[
               styles.content,
@@ -198,18 +207,20 @@ export function Screen({
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: containerBackground }, webScrollbarStyles()]}
-      contentContainerStyle={[
-        styles.content,
-        paddingStyle,
-        contentContainerStyle,
-      ]}
-    >
-      <WebPageEnter animate={animateEntry}>
-        {headerBlock}
-        {children}
-      </WebPageEnter>
-    </ScrollView>
+    <View style={[styles.container, { backgroundColor: containerBackground }]}>
+      {atmosphereLayer}
+      <ScrollView
+        style={[
+          { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
+          webScrollbarStyles(),
+        ]}
+        contentContainerStyle={[styles.content, paddingStyle, contentContainerStyle]}
+      >
+        <WebPageEnter animate={animateEntry}>
+          {headerBlock}
+          {children}
+        </WebPageEnter>
+      </ScrollView>
+    </View>
   );
 }

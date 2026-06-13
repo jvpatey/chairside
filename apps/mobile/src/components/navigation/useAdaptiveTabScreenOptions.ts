@@ -13,12 +13,14 @@ export function useAdaptiveTabScreenOptions() {
     tabBarActiveTintColor: colors.primary,
     tabBarInactiveTintColor: colors.tabInactive,
     headerShown: false,
+    // Opaque scenes prevent inactive tab screens from stacking on web.
     sceneStyle: {
-      backgroundColor: 'transparent',
+      backgroundColor: colors.backgroundGrouped,
     },
     sceneContainerStyle: {
-      backgroundColor: 'transparent',
+      backgroundColor: colors.backgroundGrouped,
     },
+    ...(Platform.OS === 'web' ? { detachInactiveScreens: true } : {}),
   };
 
   if (isTablet) {
