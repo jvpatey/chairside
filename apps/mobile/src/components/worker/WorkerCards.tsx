@@ -12,6 +12,7 @@ import {
   DashboardStatGrid,
   type DashboardOverviewStat,
 } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
@@ -170,18 +171,9 @@ export function WorkerOverviewPanel({
   onApplicationUpdated,
 }: WorkerOverviewPanelProps) {
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     list: { gap: spacing.sm },
     group: { gap: spacing.sm },
-    empty: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.xl,
-      alignItems: 'center',
-    },
-    emptyText: { ...typography.subtitle, fontSize: 14, textAlign: 'center' },
   }));
 
   const previewJobApplications = useMemo(() => {
@@ -215,9 +207,11 @@ export function WorkerOverviewPanel({
       <DashboardSectionHeader title={OVERVIEW_TITLES[selected]} />
       {selected === 'roles' ? (
         jobs.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No open roles in your province yet.</Text>
-          </View>
+          <DashboardEmptyState
+            icon="briefcase-outline"
+            title="No open roles yet"
+            message="New roles in your province will appear here when clinics post them."
+          />
         ) : (
           <View style={styles.list}>
             {jobs.slice(0, 5).map((job) => (
@@ -236,9 +230,11 @@ export function WorkerOverviewPanel({
         shifts.length === 0 &&
         confirmedShiftApplications.length === 0 &&
         activeShiftApplications.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No fill-in shifts in your province yet.</Text>
-          </View>
+          <DashboardEmptyState
+            icon="calendar-outline"
+            title="No fill-in shifts yet"
+            message="Temporary and urgent shifts in your province will show up here."
+          />
         ) : (
           <View style={styles.list}>
             {shifts.length > 0 ? (
@@ -297,9 +293,11 @@ export function WorkerOverviewPanel({
 
       {selected === 'applications' ? (
         jobApplications.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>You have not applied to any roles yet.</Text>
-          </View>
+          <DashboardEmptyState
+            icon="document-text-outline"
+            title="No applications yet"
+            message="When you apply to roles, your application status will appear here."
+          />
         ) : (
           <View style={styles.list}>
             {previewJobApplications.map((application) => (

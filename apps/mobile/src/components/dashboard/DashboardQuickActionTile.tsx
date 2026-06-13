@@ -1,9 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import {
+  getPrimaryTileGradient,
+  getSecondaryTileGradient,
+  fontBold,
+  fontRegular,
+  useTheme,
+  useThemedStyles,
+} from '@/theme';
 import { webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
 
 export type DashboardQuickActionVariant = 'primary' | 'secondary';
 
@@ -22,36 +30,54 @@ export function DashboardQuickActionTile({
   variant = 'primary',
   onPress,
 }: DashboardQuickActionTileProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const isPrimary = variant === 'primary';
+  const gradientColors = isPrimary
+    ? getPrimaryTileGradient(colors, isDark)
+    : getSecondaryTileGradient(colors, isDark);
 
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii, elevation, isDark }) => ({
     tile: {
       flex: 1,
-      borderRadius: 18,
+      borderRadius: radii.xl,
       padding: spacing.md,
-      gap: spacing.xs,
-      minHeight: 108,
+      gap: spacing.sm,
+      minHeight: 116,
+      overflow: 'hidden',
       borderWidth: 1,
+      borderColor: isPrimary
+        ? isDark
+          ? `${colors.primary}66`
+          : `${colors.primary}44`
+        : isDark
+          ? `${colors.separator}`
+          : `${colors.separator}`,
+      ...elevation(isPrimary ? 'raised' : 'subtle'),
       ...webPointer(),
     },
-    tilePrimary: {
-      borderColor: isDark ? `${colors.primary}55` : `${colors.primary}33`,
-      backgroundColor: colors.primarySubtle,
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
     },
-    tileSecondary: {
-      borderColor: colors.separator,
-      backgroundColor: colors.surface,
+    decorIcon: {
+      position: 'absolute',
+      right: -6,
+      bottom: -10,
+      opacity: isPrimary ? 0.14 : 0.08,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'space-between',
+      gap: spacing.sm,
     },
     tileHovered: webTileHoverStyles(colors, isDark),
     tilePressed: {
-      opacity: 0.88,
+      opacity: 0.9,
       transform: [{ scale: 0.985 }],
     },
     iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
+      width: 44,
+      height: 44,
+      borderRadius: 14,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -59,17 +85,22 @@ export function DashboardQuickActionTile({
       backgroundColor: colors.primary,
     },
     iconWrapSecondary: {
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
+      borderWidth: 1,
+      borderColor: colors.separator,
     },
     label: {
-      ...typography.body,
-      fontWeight: '700',
       fontSize: 16,
+      lineHeight: 22,
+      fontFamily: fontBold,
+      fontWeight: '700',
       color: colors.labelPrimary,
+      letterSpacing: -0.2,
     },
     description: {
       fontSize: 13,
       lineHeight: 18,
+      fontFamily: fontRegular,
       color: colors.labelSecondary,
     },
   }));
@@ -89,19 +120,29 @@ export function DashboardQuickActionTile({
       onPress={handlePress}
       style={({ pressed, hovered }) => [
         styles.tile,
-        isPrimary ? styles.tilePrimary : styles.tileSecondary,
         isWeb && hovered && !pressed && styles.tileHovered,
         pressed && styles.tilePressed,
       ]}>
-      <View style={[styles.iconWrap, isPrimary ? styles.iconWrapPrimary : styles.iconWrapSecondary]}>
-        <Ionicons
-          name={icon}
-          size={22}
-          color={isPrimary ? colors.primaryOnPrimary : colors.primary}
-        />
+      <LinearGradient colors={gradientColors} style={styles.gradient} />
+      <Ionicons
+        name={icon}
+        size={72}
+        color={isPrimary ? colors.primary : colors.secondary}
+        style={styles.decorIcon}
+      />
+      <View style={styles.content}>
+        <View style={[styles.iconWrap, isPrimary ? styles.iconWrapPrimary : styles.iconWrapSecondary]}>
+          <Ionicons
+            name={icon}
+            size={22}
+            color={isPrimary ? colors.primaryOnPrimary : colors.primary}
+          />
+        </View>
+        <View>
+          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.description}>{description}</Text>
+        </View>
       </View>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.description}>{description}</Text>
     </Pressable>
   );
 }

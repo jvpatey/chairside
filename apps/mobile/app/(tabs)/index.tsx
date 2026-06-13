@@ -13,16 +13,18 @@ import {
   type WorkerDashboardCounts,
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
+import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
+import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
+import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
 import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
-import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
-import { Screen } from '@/components/ui/Screen';
+import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
 import {
   WorkerDashboardHero,
   WorkerOverviewPanel,
@@ -44,6 +46,8 @@ import {
   getWorkerMessagesRoute,
   getWorkerShiftDetailRoute,
 } from '@/lib/routing';
+import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
+
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerDashboardScreen() {
@@ -65,6 +69,9 @@ export default function WorkerDashboardScreen() {
   const [jobApplications, setJobApplications] = useState<WorkerApplication[]>([]);
   const [shiftApplications, setShiftApplications] = useState<WorkerApplication[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const hasLoadedOnce = useRef(false);
 
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
@@ -72,6 +79,11 @@ export default function WorkerDashboardScreen() {
 
   const loadDashboard = useCallback(async () => {
     if (!user?.id) return;
+
+    if (!hasLoadedOnce.current) {
+      setIsLoading(true);
+    }
+    setLoadError(false);
 
     try {
       const [nextCounts, jobPosts, shiftPosts, jobApplicationRows, shiftApplicationRows, conversationRows] =
@@ -91,13 +103,19 @@ export default function WorkerDashboardScreen() {
       setShiftApplications(shiftApplicationRows);
       setConversations(conversationRows);
       await refreshUnread();
+      hasLoadedOnce.current = true;
     } catch {
-      setCounts({ openRolesInProvince: 0, openFillInsInProvince: 0, pendingApplications: 0 });
-      setJobs([]);
-      setShifts([]);
-      setJobApplications([]);
-      setShiftApplications([]);
-      setConversations([]);
+      setLoadError(true);
+      if (!hasLoadedOnce.current) {
+        setCounts({ openRolesInProvince: 0, openFillInsInProvince: 0, pendingApplications: 0 });
+        setJobs([]);
+        setShifts([]);
+        setJobApplications([]);
+        setShiftApplications([]);
+        setConversations([]);
+      }
+    } finally {
+      setIsLoading(false);
     }
   }, [province, refreshUnread, user?.id]);
 
@@ -130,119 +148,145 @@ export default function WorkerDashboardScreen() {
   }, [conversations]);
 
   return (
-    <Screen showHeader={false} showNotifications={false}>
-      <View style={styles.content}>
-        {!isTablet ? (
-          <WorkerDashboardHero
-            displayName={profile?.display_name}
-            province={province}
-            showProvinceBadge={isWorkerProfileComplete(workerProfile)}
-          />
-        ) : null}
+    <DashboardScreen>
+      {isLoading && !hasLoadedOnce.current ? (
+        <DashboardLoadingShell />
+      ) : (
+        <View style={styles.content}>
+          {loadError ? (
+            <FadeInSection>
+              <DashboardErrorBanner onRetry={() => void loadDashboard()} />
+            </FadeInSection>
+          ) : null}
 
-        {isTablet ? (
-          <View style={styles.section}>
-            <DashboardTabletSectionHeader title="Quick actions" />
-            <View style={styles.quickActionRow}>
-              <DashboardQuickActionTile
-                label="Find jobs"
-                description="Browse open roles nearby"
-                icon="briefcase-outline"
-                variant="primary"
-                onPress={() => router.push(WORKER_BROWSE)}
+          {!isTablet ? (
+            <FadeInSection delayMs={0}>
+              <WorkerDashboardHero
+                displayName={profile?.display_name}
+                province={province}
+                showProvinceBadge={isWorkerProfileComplete(workerProfile)}
               />
-              <DashboardQuickActionTile
-                label="Find fill-ins"
-                description="Browse temp shifts nearby"
-                icon="calendar-outline"
-                variant="secondary"
-                onPress={() => router.push(WORKER_FILLINS)}
+            </FadeInSection>
+          ) : null}
+
+          {isTablet ? (
+            <FadeInSection delayMs={40}>
+              <View style={styles.section}>
+                <DashboardTabletSectionHeader title="Quick actions" />
+                <View style={styles.quickActionRow}>
+                  <DashboardQuickActionTile
+                    label="Find jobs"
+                    description="Browse open roles nearby"
+                    icon="briefcase-outline"
+                    variant="primary"
+                    onPress={() => router.push(WORKER_BROWSE)}
+                  />
+                  <DashboardQuickActionTile
+                    label="Find fill-ins"
+                    description="Browse temp shifts nearby"
+                    icon="calendar-outline"
+                    variant="secondary"
+                    onPress={() => router.push(WORKER_FILLINS)}
+                  />
+                </View>
+              </View>
+            </FadeInSection>
+          ) : null}
+
+          <FadeInSection delayMs={80}>
+            <WorkerReadinessChecklist workerProfile={workerProfile} />
+          </FadeInSection>
+
+          <FadeInSection delayMs={120}>
+            <DashboardUnreadMessagesCard
+              conversations={conversations}
+              avatarKind="clinic"
+              role="worker"
+              onConversationPress={(conversation) => {
+                const preview = getMessageThreadPreview(conversation, 'worker');
+                router.push(
+                  getConversationMessagesRoute(
+                    conversation,
+                    'worker',
+                    {
+                      conversationId: conversation.id,
+                      ...preview,
+                    },
+                    'dashboard-applications',
+                  ),
+                );
+              }}
+              onViewAllPress={() => router.push(getWorkerMessagesRoute())}
+            />
+          </FadeInSection>
+
+          {!isTablet ? (
+            <FadeInSection delayMs={160}>
+              <View style={styles.section}>
+                <DashboardSectionHeader title="Quick actions" />
+                <View style={styles.quickActionRow}>
+                  <DashboardQuickActionTile
+                    label="Find jobs"
+                    description="Browse open roles nearby"
+                    icon="briefcase-outline"
+                    variant="primary"
+                    onPress={() => router.push(WORKER_BROWSE)}
+                  />
+                  <DashboardQuickActionTile
+                    label="Find fill-ins"
+                    description="Browse temp shifts nearby"
+                    icon="calendar-outline"
+                    variant="secondary"
+                    onPress={() => router.push(WORKER_FILLINS)}
+                  />
+                </View>
+              </View>
+            </FadeInSection>
+          ) : null}
+
+          <FadeInSection delayMs={200}>
+            <View style={styles.overviewSection}>
+              <DashboardSectionHeader title="Overview" />
+              <DashboardStatGrid
+                selected={selectedOverview}
+                onSelect={setSelectedOverview}
+                stats={[
+                  { key: 'roles', label: 'Open roles', value: counts.openRolesInProvince },
+                  {
+                    key: 'fill-ins',
+                    label: 'Fill-ins',
+                    value: counts.openFillInsInProvince,
+                    badgeCount: fillInPendingCount,
+                  },
+                  {
+                    key: 'applications',
+                    label: 'Applications',
+                    value: counts.pendingApplications,
+                    badgeCount: applicationUpdateCount,
+                  },
+                ]}
               />
             </View>
-          </View>
-        ) : null}
+          </FadeInSection>
 
-        <WorkerReadinessChecklist workerProfile={workerProfile} />
-
-        <DashboardUnreadMessagesCard
-          conversations={conversations}
-          avatarKind="clinic"
-          role="worker"
-          onConversationPress={(conversation) => {
-            const preview = getMessageThreadPreview(conversation, 'worker');
-            router.push(
-              getConversationMessagesRoute(
-                conversation,
-                'worker',
-                {
-                  conversationId: conversation.id,
-                  ...preview,
-                },
-                'dashboard-applications',
-              ),
-            );
-          }}
-          onViewAllPress={() => router.push(getWorkerMessagesRoute())}
-        />
-
-        {!isTablet ? (
-          <View style={styles.section}>
-            <DashboardSectionHeader title="Quick actions" />
-            <View style={styles.quickActionRow}>
-              <DashboardQuickActionTile
-                label="Find jobs"
-                description="Browse open roles nearby"
-                icon="briefcase-outline"
-                variant="primary"
-                onPress={() => router.push(WORKER_BROWSE)}
-              />
-              <DashboardQuickActionTile
-                label="Find fill-ins"
-                description="Browse temp shifts nearby"
-                icon="calendar-outline"
-                variant="secondary"
-                onPress={() => router.push(WORKER_FILLINS)}
-              />
-            </View>
-          </View>
-        ) : null}
-
-        <View style={styles.overviewSection}>
-          <DashboardSectionHeader title="Overview" />
-          <DashboardStatGrid
-            selected={selectedOverview}
-            onSelect={setSelectedOverview}
-            stats={[
-              { key: 'roles', label: 'Open roles', value: counts.openRolesInProvince },
-              {
-                key: 'fill-ins',
-                label: 'Fill-ins',
-                value: counts.openFillInsInProvince,
-                badgeCount: fillInPendingCount,
-              },
-              {
-                key: 'applications',
-                label: 'Applications',
-                value: counts.pendingApplications,
-                badgeCount: applicationUpdateCount,
-              },
-            ]}
-          />
+          <FadeInSection delayMs={240}>
+            <WorkerOverviewPanel
+              selected={selectedOverview}
+              jobs={jobs}
+              shifts={shifts}
+              jobApplications={jobApplications}
+              shiftApplications={shiftApplications}
+              appliedJobIds={appliedJobIds}
+              unreadMap={unreadMap}
+              onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
+              onShiftPress={(shiftId) =>
+                router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
+              }
+              onApplicationUpdated={() => void loadDashboard()}
+            />
+          </FadeInSection>
         </View>
-
-        <WorkerOverviewPanel
-          selected={selectedOverview}
-          jobs={jobs}
-          shifts={shifts}
-          jobApplications={jobApplications}
-          shiftApplications={shiftApplications}
-          appliedJobIds={appliedJobIds}
-          unreadMap={unreadMap}
-          onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
-          onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))}
-          onApplicationUpdated={() => void loadDashboard()}
-        />
-      </View>
-    </Screen>
+      )}
+    </DashboardScreen>
   );
 }

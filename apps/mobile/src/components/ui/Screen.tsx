@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
+import { useTabAtmosphere } from '@/contexts/TabAtmosphereContext';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
@@ -29,6 +30,8 @@ type ScreenProps = {
   fillsContainer?: boolean;
   /** When false, skip the web fade-in animation (split-view / tab surfaces). */
   animateEntry?: boolean;
+  /** When true, the screen background is transparent (for layered dashboard atmosphere). */
+  transparentBackground?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
@@ -45,12 +48,16 @@ export function Screen({
   scroll = true,
   fillsContainer = false,
   animateEntry = true,
+  transparentBackground = false,
   contentContainerStyle,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
-  const { spacing } = useTheme();
+  const { colors, spacing } = useTheme();
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
   const tabDockInset = useMobileTabDockInset();
+  const tabAtmosphere = useTabAtmosphere();
+  const usesTransparentBackground = transparentBackground || tabAtmosphere !== 'none';
+  const containerBackground = usesTransparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
   const topPadding =
     isTablet && !showHeader ? insets.top + TABLET_TOP_INSET_EXTRA : insets.top + 16;
@@ -58,7 +65,6 @@ export function Screen({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       flex: 1,
-      backgroundColor: colors.backgroundGrouped,
     },
     content: {
       flexGrow: fillsContainer ? 1 : undefined,
@@ -118,8 +124,6 @@ export function Screen({
       color: colors.primary,
     },
   }));
-
-  const paddingStyle = {
     paddingTop: topPadding,
     paddingBottom: (fillsContainer ? spacing.md : 24) + tabDockInset,
   };
@@ -168,7 +172,12 @@ export function Screen({
 
   if (!scroll) {
     return (
-      <View style={[styles.container, fillsContainer && { minHeight: 0 }]}>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: containerBackground },
+          fillsContainer && { minHeight: 0 },
+        ]}>
         <WebPageEnter
           animate={animateEntry}
           style={fillsContainer ? { flex: 1, minHeight: 0 } : undefined}>
@@ -190,7 +199,7 @@ export function Screen({
 
   return (
     <ScrollView
-      style={[styles.container, webScrollbarStyles()]}
+      style={[styles.container, { backgroundColor: containerBackground }, webScrollbarStyles()]}
       contentContainerStyle={[
         styles.content,
         paddingStyle,

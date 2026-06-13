@@ -6,7 +6,7 @@ import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton
 import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { getTimeOfDayGreeting } from '@/lib/greeting';
-import { useThemedStyles } from '@/theme';
+import { fontBold, fontRegular, fontSemibold, useThemedStyles } from '@/theme';
 
 type DashboardHeroCardProps = {
   profileHref: Href;
@@ -31,9 +31,9 @@ export function DashboardHeroCard({
   const greeting = getTimeOfDayGreeting();
   const showSignOut = Platform.OS === 'web';
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii, elevation }) => ({
     hero: {
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
     },
     headerRow: {
       flexDirection: 'row',
@@ -42,28 +42,34 @@ export function DashboardHeroCard({
     },
     identity: {
       flex: 1,
-      gap: spacing.xs,
+      gap: 4,
       minWidth: 0,
-      paddingTop: 2,
+      paddingTop: 4,
     },
     greeting: {
-      ...typography.subtitle,
       fontSize: 15,
       lineHeight: 20,
+      fontFamily: fontRegular,
+      color: colors.labelSecondary,
     },
     name: {
-      ...typography.title,
-      fontSize: 32,
-      lineHeight: 38,
-      minHeight: 38,
+      fontSize: 34,
+      lineHeight: 40,
+      fontFamily: fontBold,
+      fontWeight: '700',
+      color: colors.labelPrimary,
+      letterSpacing: -0.6,
+      minHeight: 40,
     },
     nameHidden: {
       opacity: 0,
     },
     location: {
-      ...typography.subtitle,
       fontSize: 14,
       lineHeight: 18,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelSecondary,
       marginTop: spacing.xs,
     },
     actions: {
@@ -71,6 +77,13 @@ export function DashboardHeroCard({
       alignItems: 'center',
       gap: spacing.sm,
       flexShrink: 0,
+      paddingTop: 2,
+    },
+    avatarRing: {
+      borderRadius: radii.pill,
+      padding: 2,
+      backgroundColor: colors.primarySubtle,
+      ...elevation('subtle'),
     },
   }));
 
@@ -91,13 +104,15 @@ export function DashboardHeroCard({
           ) : null}
         </View>
         <View style={styles.actions}>
-          <ProfileHeaderButton
-            href={profileHref}
-            placement="hero"
-            avatarKind={avatarKind}
-            displayName={name}
-            photoUri={photoUri}
-          />
+          <View style={styles.avatarRing}>
+            <ProfileHeaderButton
+              href={profileHref}
+              placement="hero"
+              avatarKind={avatarKind}
+              displayName={name}
+              photoUri={photoUri}
+            />
+          </View>
           <NotificationBell placement="hero" />
           {showSignOut ? <SignOutHeaderButton /> : null}
         </View>

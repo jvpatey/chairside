@@ -9,6 +9,7 @@ import { Pressable, Text, View } from 'react-native';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import {
   DashboardStatGrid,
@@ -227,45 +228,6 @@ function DashboardListCard({
   );
 }
 
-function DashboardEmptyState({ message }: { message: string }) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.xl,
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    iconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.fillSubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.xs,
-    },
-    body: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      textAlign: 'center',
-    },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Ionicons name="document-text-outline" size={24} color={colors.labelSecondary} />
-      </View>
-      <Text style={styles.body}>{message}</Text>
-    </View>
-  );
-}
-
 export function DashboardOverviewPanel({
   selected,
   jobs,
@@ -312,7 +274,11 @@ export function DashboardOverviewPanel({
       <DashboardSectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
       {selected === 'roles' ? (
         roleJobs.length === 0 ? (
-          <DashboardEmptyState message="No active role postings yet. Post a role to get started." />
+          <DashboardEmptyState
+            icon="briefcase-outline"
+            title="No active roles yet"
+            message="Post a role to start receiving applications from dental professionals."
+          />
         ) : (
           <View style={styles.list}>
             {roleJobs.map((job) => (
@@ -343,7 +309,11 @@ export function DashboardOverviewPanel({
 
       {selected === 'fill-ins' ? (
         liveShifts.length === 0 && confirmedFillIns.length === 0 ? (
-          <DashboardEmptyState message="No live fill-in shifts yet. Post a fill-in to get started." />
+          <DashboardEmptyState
+            icon="calendar-outline"
+            title="No fill-in shifts yet"
+            message="Post a fill-in shift when you need temporary coverage."
+          />
         ) : (
           <View style={styles.list}>
                 {confirmedFillIns.length > 0 ? (
@@ -394,7 +364,11 @@ export function DashboardOverviewPanel({
 
       {selected === 'applications' ? (
         jobApplicationSummaries.length === 0 ? (
-          <DashboardEmptyState message="No applications yet. They will appear when workers apply to your postings." />
+          <DashboardEmptyState
+            icon="people-outline"
+            title="No applications yet"
+            message="Applications will appear here when workers apply to your postings."
+          />
         ) : (
           <View style={styles.list}>
             {jobApplicationSummaries.map((summary) => {

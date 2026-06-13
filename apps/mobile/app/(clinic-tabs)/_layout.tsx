@@ -6,6 +6,7 @@ import { renderClinicTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
+import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
@@ -89,7 +90,9 @@ export default function ClinicTabLayout() {
       <MessageUnreadProvider role="clinic">
         <FillInPendingProvider>
           <ApplicationTabBadgeProvider role="clinic">
-            <ClinicTabNavigator />
+            <TabAtmosphereShell role="clinic">
+              <ClinicTabNavigator />
+            </TabAtmosphereShell>
           </ApplicationTabBadgeProvider>
         </FillInPendingProvider>
       </MessageUnreadProvider>

@@ -14,7 +14,10 @@ export function useAdaptiveTabScreenOptions() {
     tabBarInactiveTintColor: colors.tabInactive,
     headerShown: false,
     sceneStyle: {
-      backgroundColor: colors.backgroundGrouped,
+      backgroundColor: 'transparent',
+    },
+    sceneContainerStyle: {
+      backgroundColor: 'transparent',
     },
   };
 
