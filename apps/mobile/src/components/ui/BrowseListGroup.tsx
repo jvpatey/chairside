@@ -9,7 +9,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { ListGroupItemSeparator } from '@/components/ui/ListGroupItemSeparator';
 import { cardShellRadii } from '@/components/ui/cardLayout';
-import { colorWithAlpha, useThemedStyles } from '@/theme';
+import { browseListRowTextInset } from '@/components/ui/listLayout';
+import { colorWithAlpha, spacing, useThemedStyles } from '@/theme';
 
 type BrowseListGroupProps = {
   children: ReactNode;
@@ -38,7 +39,9 @@ export function BrowseListGroup({ children }: BrowseListGroupProps) {
           key={isValidElement(child) && child.key != null ? child.key : index}
           style={styles.item}>
           {isValidElement(child) ? child : child}
-          {index < items.length - 1 ? <ListGroupItemSeparator /> : null}
+          {index < items.length - 1 ? (
+            <ListGroupItemSeparator inset={browseListRowTextInset(spacing.md)} />
+          ) : null}
         </View>
       ))}
     </View>

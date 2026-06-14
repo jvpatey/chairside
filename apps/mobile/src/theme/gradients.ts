@@ -47,3 +47,21 @@ export function getStatSelectedGradient(colors: Colors, isDark: boolean): readon
     ? [colorWithAlpha(colors.primary, 0.34), colorWithAlpha(colors.primary, 0.12)]
     : [colorWithAlpha(colors.primary, 0.16), colorWithAlpha(colors.primarySubtle, 0.9)];
 }
+
+/** Soft left-edge wash for already-applied browse list rows. */
+export function getAppliedRowGradient(
+  colors: Colors,
+  isDark: boolean,
+): readonly [string, string, string] {
+  return isDark
+    ? [
+        colorWithAlpha(colors.primary, 0.22),
+        colorWithAlpha(colors.primary, 0.07),
+        'transparent',
+      ]
+    : [
+        colorWithAlpha(colors.primary, 0.14),
+        colorWithAlpha(colors.primary, 0.05),
+        'transparent',
+      ];
+}

@@ -6,6 +6,7 @@ import { Text, View } from 'react-native';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
+import { BrowseCollapsibleSection } from '@/components/ui/BrowseCollapsibleSection';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
@@ -60,6 +61,26 @@ function BrowseEmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.g
   );
 }
 
+function renderRoleListingCards(
+  jobs: LiveJobPost[],
+  appliedJobIds: Set<string>,
+  workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
+) {
+  return jobs.map((job) => (
+    <RoleListingCard
+      key={job.id}
+      job={job}
+      layout="list"
+      hasApplied={appliedJobIds.has(job.id)}
+      jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
+      matchContext={
+        workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
+      }
+      onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
+    />
+  ));
+}
+
 export default function BrowseScreen() {
   const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
@@ -97,11 +118,51 @@ export default function BrowseScreen() {
     return sortJobsByPostedDate(byRole, postedSort);
   }, [jobs, postedSort, roleTypeFilter]);
 
+  const { openJobs, appliedJobs } = useMemo(() => {
+    const open: LiveJobPost[] = [];
+    const applied: LiveJobPost[] = [];
+
+    for (const job of filteredJobs) {
+      if (appliedJobIds.has(job.id)) {
+        applied.push(job);
+      } else {
+        open.push(job);
+      }
+    }
+
+    return { openJobs: open, appliedJobs: applied };
+  }, [appliedJobIds, filteredJobs]);
+
+  const hasBothSections = openJobs.length > 0 && appliedJobs.length > 0;
+
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
+    sections: { gap: spacing.lg },
   }));
 
   const showRoleFilters = !isLoading && jobs.length > 0;
+
+  const roleListContent = hasBothSections ? (
+    <View style={styles.sections}>
+      <BrowseCollapsibleSection title="Open roles" count={openJobs.length} defaultExpanded>
+        <BrowseListGroup>
+          {renderRoleListingCards(openJobs, appliedJobIds, workerProfile)}
+        </BrowseListGroup>
+      </BrowseCollapsibleSection>
+      <BrowseCollapsibleSection
+        title="Already applied"
+        count={appliedJobs.length}
+        defaultExpanded={false}>
+        <BrowseListGroup>
+          {renderRoleListingCards(appliedJobs, appliedJobIds, workerProfile)}
+        </BrowseListGroup>
+      </BrowseCollapsibleSection>
+    </View>
+  ) : (
+    <BrowseListGroup>
+      {renderRoleListingCards(filteredJobs, appliedJobIds, workerProfile)}
+    </BrowseListGroup>
+  );
 
   return (
     <Screen
@@ -133,21 +194,7 @@ export default function BrowseScreen() {
             body="Try a different filter or check back soon for new opportunities."
           />
         ) : (
-          <BrowseListGroup>
-            {filteredJobs.map((job) => (
-              <RoleListingCard
-                key={job.id}
-                job={job}
-                layout="list"
-                hasApplied={appliedJobIds.has(job.id)}
-                jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
-                matchContext={
-                  workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
-                }
-                onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
-              />
-            ))}
-          </BrowseListGroup>
+          roleListContent
         )}
       </View>
     </Screen>

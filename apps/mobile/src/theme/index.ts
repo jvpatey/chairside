@@ -15,6 +15,7 @@ export {
   getPrimaryTileGradient,
   getSecondaryTileGradient,
   getStatSelectedGradient,
+  getAppliedRowGradient,
 } from './gradients';
 export {
   BREAKPOINTS,

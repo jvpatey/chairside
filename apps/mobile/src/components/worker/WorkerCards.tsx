@@ -150,7 +150,6 @@ type WorkerOverviewPanelProps = {
   shifts: LiveShiftPost[];
   jobApplications: WorkerApplication[];
   shiftApplications: WorkerApplication[];
-  appliedJobIds?: Set<string>;
   unreadMap?: Record<string, boolean>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
@@ -163,7 +162,6 @@ export function WorkerOverviewPanel({
   shifts,
   jobApplications,
   shiftApplications,
-  appliedJobIds,
   unreadMap,
   onJobPress,
   onShiftPress,
@@ -217,7 +215,6 @@ export function WorkerOverviewPanel({
               <RoleListingCard
                 key={job.id}
                 job={job}
-                hasApplied={appliedJobIds?.has(job.id)}
                 onPress={onJobPress ? () => onJobPress(job.id) : undefined}
               />
             ))}

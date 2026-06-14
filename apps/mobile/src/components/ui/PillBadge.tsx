@@ -39,6 +39,7 @@ type PillBadgeProps = {
   label: string;
   color: string;
   backgroundColor: string;
+  borderColor?: string;
   onPress?: () => void;
   accessibilityLabel?: string;
   size?: PillBadgeSize;
@@ -49,6 +50,7 @@ export function PillBadge({
   label,
   color,
   backgroundColor,
+  borderColor,
   onPress,
   accessibilityLabel,
   size = 'md',
@@ -57,7 +59,11 @@ export function PillBadge({
   const { colors } = useTheme();
   const styles = usePillBadgeStyles(size);
 
-  const badgeStyle = [styles.badge, { backgroundColor }, style];
+  const badgeStyle = [
+    styles.badge,
+    { backgroundColor, borderColor: borderColor ?? 'transparent' },
+    style,
+  ];
 
   if (!onPress) {
     return (

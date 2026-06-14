@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { PillBadge } from '@/components/ui/PillBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
@@ -12,7 +13,7 @@ import { RoleListingPostedMeta } from '@/components/worker/RoleListingPostedMeta
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { formatPostedDateLabel } from '@/lib/dates';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
   job: LiveJobPost;
@@ -31,13 +32,16 @@ export function RoleListingCard({
   layout = 'tile',
   onPress,
 }: RoleListingCardProps) {
+  const { colors } = useTheme();
   const logoUri = useClinicLogoUri(job.clinic.logo_storage_path);
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
   const detail = formatJobPostCardMeta(job);
   const postedLabel =
-    formatPostedDateLabel(job.created_at) || hasApplied
-      ? <RoleListingPostedMeta postedAt={job.created_at} hasApplied={hasApplied} />
-      : null;
+    layout === 'list'
+      ? formatPostedDateLabel(job.created_at) || null
+      : formatPostedDateLabel(job.created_at) || hasApplied
+        ? <RoleListingPostedMeta postedAt={job.created_at} hasApplied={hasApplied} />
+        : null;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     footer: {
@@ -51,10 +55,9 @@ export function RoleListingCard({
       fontWeight: '600',
       color: colors.primary,
     },
-    listWage: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
+    headerTrailing: {
+      alignItems: 'flex-end',
+      gap: spacing.xs,
     },
   }));
 
@@ -68,6 +71,23 @@ export function RoleListingCard({
       />
     ) : null;
 
+  const appliedBadge = hasApplied ? (
+    <PillBadge
+      label="Applied"
+      color={colors.primary}
+      backgroundColor={colors.primarySubtle}
+      accessibilityLabel="Already applied"
+    />
+  ) : null;
+
+  const listTopTrailing =
+    matchBadge || appliedBadge ? (
+      <View style={styles.headerTrailing}>
+        {matchBadge}
+        {appliedBadge}
+      </View>
+    ) : undefined;
+
   if (layout === 'list') {
     return (
       <BrowseListRow
@@ -77,10 +97,12 @@ export function RoleListingCard({
         eyebrow={job.clinic.clinic_name}
         title={job.title}
         meta={location || null}
-        detail={detail || null}
         postedLabel={postedLabel}
-        topTrailing={matchBadge ?? undefined}
-        footer={job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
+        postedLabelPlacement="header"
+        headerDetail={detail || null}
+        headerAccent={job.wage_range || null}
+        topTrailing={listTopTrailing}
+        tone={hasApplied ? 'applied' : 'default'}
         onPress={onPress}
       />
     );

@@ -2,11 +2,12 @@ import type { ReactNode } from 'react';
 import type { TextStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { cardShellRadii } from '@/components/ui/cardLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { getAppliedRowGradient, useTheme, useThemedStyles } from '@/theme';
 
 export type ListingLayout = 'tile' | 'list';
 
@@ -54,6 +55,8 @@ type BrowseListRowProps = {
   showChevron?: boolean;
   /** `split` — header above a tinted content band (matches tile cards). */
   layout?: 'stacked' | 'split';
+  /** Visual emphasis for secondary states such as already-applied roles. */
+  tone?: 'default' | 'applied';
 };
 
 export function BrowseListRow({
@@ -76,8 +79,10 @@ export function BrowseListRow({
   onPress,
   showChevron = true,
   layout = 'split',
+  tone = 'default',
 }: BrowseListRowProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const isAppliedTone = tone === 'applied';
   const isSplit = layout === 'split';
   const postedInHeader = isSplit && postedLabelPlacement === 'header' && postedLabel;
   const postedInContent = postedLabel && !postedInHeader;
@@ -98,6 +103,11 @@ export function BrowseListRow({
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
       gap: spacing.xs,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    appliedGradient: {
+      ...StyleSheet.absoluteFillObject,
     },
     rowHovered: webListRowHoverStyles(colors),
     rowPressed: {
@@ -112,6 +122,7 @@ export function BrowseListRow({
     headerBody: {
       flex: 1,
       minWidth: 0,
+      gap: spacing.xs,
     },
     headerContentRow: {
       flexDirection: 'row',
@@ -216,7 +227,7 @@ export function BrowseListRow({
     },
     metaFooterAccessory: {
       flexShrink: 0,
-      alignItems: 'center',
+      alignItems: 'flex-end',
     },
     trailingCol: {
       flexShrink: 0,
@@ -266,7 +277,7 @@ export function BrowseListRow({
     </View>
   );
 
-  const splitHeader = (
+  const splitHeaderPrimary = (
     <View style={styles.headerContentRow}>
       <View style={styles.textColumn}>
         {eyebrow ? (
@@ -287,16 +298,33 @@ export function BrowseListRow({
             {headerDetail}
           </Text>
         ) : null}
-        {postedInHeader ? renderPostedLabel(postedLabel, styles.posted) : null}
-        {headerAccent ? (
-          <Text style={styles.accent} numberOfLines={1}>
-            {headerAccent}
-          </Text>
-        ) : null}
       </View>
       {topTrailing ? <View style={styles.headerTrailing}>{topTrailing}</View> : null}
     </View>
   );
+
+  const splitHeaderFooter =
+    postedInHeader && headerAccent ? (
+      <View style={styles.metaFooterRow}>
+        {renderPostedLabel(postedLabel, [styles.posted, styles.metaFooterLabel])}
+        <View style={styles.metaFooterAccessory}>
+          <Text style={styles.accent} numberOfLines={1}>
+            {headerAccent}
+          </Text>
+        </View>
+      </View>
+    ) : postedInHeader ? (
+      renderPostedLabel(postedLabel, styles.posted)
+    ) : headerAccent ? (
+      <View style={styles.metaFooterRow}>
+        <View style={styles.metaFooterLabel} />
+        <View style={styles.metaFooterAccessory}>
+          <Text style={styles.accent} numberOfLines={1}>
+            {headerAccent}
+          </Text>
+        </View>
+      </View>
+    ) : null;
 
   const splitDetails = (
     <>
@@ -355,7 +383,10 @@ export function BrowseListRow({
     <>
       <View style={styles.headerRow}>
         {avatar}
-        <View style={styles.headerBody}>{splitHeader}</View>
+        <View style={styles.headerBody}>
+          {splitHeaderPrimary}
+          {splitHeaderFooter}
+        </View>
         {splitTrailingColumn}
       </View>
       {hasContentSection ? <View style={styles.contentBand}>{splitContentSection}</View> : null}
@@ -378,8 +409,26 @@ export function BrowseListRow({
     </>
   );
 
+  const appliedGradient = isAppliedTone ? getAppliedRowGradient(colors, isDark) : null;
+
+  const rowBody = (
+    <>
+      {appliedGradient ? (
+        <LinearGradient
+          colors={appliedGradient}
+          locations={[0, 0.55, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.appliedGradient}
+          pointerEvents="none"
+        />
+      ) : null}
+      {content}
+    </>
+  );
+
   if (!onPress) {
-    return <View style={styles.container}>{content}</View>;
+    return <View style={styles.container}>{rowBody}</View>;
   }
 
   return (
@@ -395,7 +444,7 @@ export function BrowseListRow({
         pressed && styles.rowPressed,
       ]}
     >
-      {content}
+      {rowBody}
     </Pressable>
   );
 }
