@@ -24,7 +24,6 @@ import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickA
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
 import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
-import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
 import {
   WorkerDashboardHero,
   WorkerOverviewPanel,
@@ -150,7 +149,9 @@ export default function WorkerDashboardScreen() {
   const hasUnreadMessagePreviews = conversations.some((conversation) => conversation.unread);
 
   return (
-    <DashboardScreen>
+    <DashboardScreen
+      tabletTitle="Dashboard"
+      tabletSubtitle="Roles, fill-ins, and applications at a glance.">
       {isLoading && !hasLoadedOnce.current ? (
         <DashboardLoadingShell />
       ) : (

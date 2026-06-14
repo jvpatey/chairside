@@ -33,7 +33,6 @@ import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanne
 import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
-import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
@@ -206,7 +205,9 @@ export default function ClinicDashboardScreen() {
   const hasUnreadMessagePreviews = conversations.some((conversation) => conversation.unread);
 
   return (
-    <DashboardScreen>
+    <DashboardScreen
+      tabletTitle="Dashboard"
+      tabletSubtitle="Postings, fill-ins, and applicants at your clinic.">
       {isLoading && !hasLoadedOnce.current ? (
         <DashboardLoadingShell />
       ) : (

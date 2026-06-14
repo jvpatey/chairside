@@ -1,4 +1,5 @@
-import { getProvinceLabel } from '@chairside/config';
+import { getWorkerRoleTypes } from '@chairside/api';
+import { formatRoleTypesLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -83,6 +84,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingVertical: spacing.sm,
       backgroundColor: 'transparent',
       minHeight: 0,
+      position: 'relative',
     },
     glassPanel: {
       flex: 1,
@@ -92,6 +94,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       flex: 1,
       width: '100%',
       backgroundColor: 'transparent',
+    },
+    sidebarShell: {
+      flex: 1,
+      minHeight: 0,
+      position: 'relative',
     },
     profileRow: {
       flexDirection: 'row',
@@ -113,17 +120,13 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       alignSelf: 'center',
     },
     toggleButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
+      width: 24,
+      height: 24,
+      borderRadius: 6,
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
       ...webPointer(),
-    },
-    collapsedToggleWrap: {
-      alignItems: 'center',
-      marginBottom: spacing.xs,
     },
     toggleHovered: webListRowHoverStyles(colors),
     togglePressed: { opacity: 0.85 },
@@ -138,6 +141,16 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     profileSectionCollapsed: {
       alignItems: 'center',
       paddingBottom: spacing.sm,
+    },
+    sidebarToggleAnchor: {
+      position: 'absolute',
+      right: spacing.md,
+      top: 0,
+      bottom: 0,
+      width: 28,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 3,
     },
     nav: {
       flex: 1,
@@ -248,12 +261,9 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     role === 'worker' ? profile?.display_name : clinicProfile?.clinic_name?.trim() || null;
   const profileSubtitle =
     role === 'worker'
-      ? workerProfile?.province
-        ? getProvinceLabel(workerProfile.province)
-        : 'View profile'
-      : clinicProfile?.province
-        ? getProvinceLabel(clinicProfile.province)
-        : 'View profile';
+      ? (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
+        'Dental professional'
+      : 'Dental Clinic';
 
   const isWeb = Platform.OS === 'web';
 
@@ -274,7 +284,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       ]}>
       <Ionicons
         name={isCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'}
-        size={16}
+        size={12}
         color={colors.labelSecondary}
       />
     </Pressable>
@@ -295,8 +305,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const sidebarContent = (
     <>
-      <View style={[styles.profileSection, isCollapsed && styles.profileSectionCollapsed]}>
-        {isCollapsed ? <View style={styles.collapsedToggleWrap}>{collapseToggle}</View> : null}
+      <View
+        style={[
+          styles.profileSection,
+          isCollapsed && styles.profileSectionCollapsed,
+        ]}>
         <View
           style={[
             styles.profileRow,
@@ -318,7 +331,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
               avatarSize={isCollapsed ? COLLAPSED_AVATAR_SIZE : undefined}
             />
           </View>
-          {!isCollapsed ? collapseToggle : null}
         </View>
       </View>
 
@@ -447,13 +459,19 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             {sidebarContent}
           </View>
         </LiquidGlassSurface>
+        <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
+          {collapseToggle}
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={[panelPadding, { flex: 1, minHeight: 0, backgroundColor: 'transparent' }]}>
+    <View style={[panelPadding, styles.sidebarShell, { backgroundColor: 'transparent' }]}>
       {sidebarContent}
+      <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
+        {collapseToggle}
+      </View>
     </View>
   );
 }

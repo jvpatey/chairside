@@ -27,8 +27,14 @@ export function useAdaptiveTabScreenOptions() {
     const isWebTablet = Platform.OS === 'web';
     return {
       ...shared,
-      sceneStyle: { backgroundColor: 'transparent' },
-      sceneContainerStyle: { backgroundColor: 'transparent' },
+      // Native tablet: transparent scenes show the shell atmosphere. Web must keep
+      // opaque scenes — without react-native-screens, inactive tabs stack underneath.
+      ...(isWebTablet
+        ? {}
+        : {
+            sceneStyle: { backgroundColor: 'transparent' },
+            sceneContainerStyle: { backgroundColor: 'transparent' },
+          }),
       tabBarPosition: 'left' as const,
       safeAreaInsets: { top: 0, bottom: 0, left: 0, right: 0 },
       tabBarStyle: {
