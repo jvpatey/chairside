@@ -36,6 +36,7 @@ export function FillInModePanel({
   const [smsOptIn, setSmsOptIn] = useState(false);
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const isGrouped = variant === 'grouped';
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -45,14 +46,27 @@ export function FillInModePanel({
       borderColor: colors.separator,
       overflow: 'hidden',
     },
-    grouped: {},
-    primaryBlock: {
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.md,
+    grouped: {
+      overflow: 'hidden',
     },
-    primaryBlockExpanded: {
-      paddingBottom: 0,
+    section: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      gap: spacing.sm,
+    },
+    sectionCompact: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.md,
+      gap: spacing.xs,
+    },
+    groupLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      color: colors.labelTertiary,
+      paddingBottom: spacing.xs,
     },
     nestedGroupWrap: {
       marginHorizontal: spacing.md,
@@ -66,14 +80,13 @@ export function FillInModePanel({
       gap: spacing.md,
       overflow: 'visible',
     },
-    groupLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
+    phoneBlock: { gap: spacing.sm, paddingTop: spacing.xs },
+    phoneHelper: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
       color: colors.labelTertiary,
     },
-    phoneBlock: { gap: spacing.md, paddingTop: spacing.xs },
     divider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
@@ -99,11 +112,12 @@ export function FillInModePanel({
 
   const savedPhone = workerProfile?.phone?.trim() || null;
   const hasPhone = Boolean(savedPhone);
-  const showPhoneField = smsOptIn || !hasPhone;
+  const showPhoneField = smsOptIn || !hasPhone || Boolean(phone.trim());
   const showExpandedSettings = showNotificationOptions && shortNoticeAvailable;
   const pendingPhone = normalizePhoneForStorage(phone);
   const phoneNeedsSave = Boolean(phone.trim()) && pendingPhone !== savedPhone;
   const phoneIsSaved = Boolean(savedPhone) && pendingPhone === savedPhone;
+  const phoneSaveLabel = hasPhone ? 'Update number' : 'Save number';
 
   const persist = async (
     available: boolean,
@@ -122,7 +136,7 @@ export function FillInModePanel({
       await save({
         short_notice_available: available,
         fill_in_notification_mode: available ? mode : 'off',
-        fill_in_sms_opt_in: available && sms && Boolean(storedPhone),
+        fill_in_sms_opt_in: available && sms && Boolean(storedPhone) && !phoneNeedsSave,
         ...(savePhone ? { phone: storedPhone } : {}),
       });
       await refreshWorkerProfile();
@@ -153,6 +167,16 @@ export function FillInModePanel({
   };
 
   const handleSmsToggle = async (value: boolean) => {
+    if (value) {
+      if (!savedPhone || phoneNeedsSave) {
+        Alert.alert(
+          'Save your number',
+          'Enter and save your mobile number before enabling text alerts.',
+        );
+        return;
+      }
+    }
+
     setSmsOptIn(value);
     if (!value) {
       if (shortNoticeAvailable) {
@@ -160,9 +184,6 @@ export function FillInModePanel({
       }
       return;
     }
-
-    const storedPhone = resolveStoredPhone();
-    if (!storedPhone) return;
 
     if (shortNoticeAvailable) {
       await persist(true, notificationMode, true);
@@ -197,28 +218,13 @@ export function FillInModePanel({
     }
   };
 
-  return (
-    <View style={variant === 'grouped' ? styles.grouped : styles.card}>
-      <View
-        style={[styles.primaryBlock, showExpandedSettings && styles.primaryBlockExpanded]}>
-        <SettingsToggleRow
-          prominence="primary"
-          title="Available for fill-ins"
-          hint={
-            shortNoticeAvailable
-              ? 'You are open to urgent shifts — clinics can reach you.'
-              : 'Turn on when you are open to short-notice temp work.'
-          }
-          value={shortNoticeAvailable}
-          disabled={isSaving}
-          onValueChange={handleToggle}
-        />
-      </View>
-
-      {showExpandedSettings ? (
-        <View style={styles.nestedGroupWrap}>
-          <View style={styles.nestedGroup}>
-            <Text style={styles.groupLabel}>Notification preferences</Text>
+  const notificationSection = showExpandedSettings ? (
+    <>
+      <RowDivider />
+      <View style={isGrouped ? styles.sectionCompact : styles.nestedGroupWrap}>
+        {isGrouped ? (
+          <>
+            <Text style={styles.groupLabel}>Alerts</Text>
             {NOTIFICATION_MODE_OPTIONS.map((option, index) => {
               const selected = notificationMode === option.value;
               return (
@@ -227,7 +233,7 @@ export function FillInModePanel({
                     label={option.label}
                     hint={
                       option.value === 'available_days_only'
-                        ? 'Only when the shift overlaps your weekly schedule.'
+                        ? 'When the shift matches your schedule.'
                         : undefined
                     }
                     selected={selected}
@@ -241,21 +247,46 @@ export function FillInModePanel({
                 </View>
               );
             })}
-
-            <RowDivider />
-
+          </>
+        ) : (
+          <View style={styles.nestedGroup}>
+            <Text style={styles.groupLabel}>Alerts</Text>
+            {NOTIFICATION_MODE_OPTIONS.map((option, index) => {
+              const selected = notificationMode === option.value;
+              return (
+                <View key={option.value}>
+                  <SettingsRadioRow
+                    label={option.label}
+                    hint={
+                      option.value === 'available_days_only'
+                        ? 'When the shift matches your schedule.'
+                        : undefined
+                    }
+                    selected={selected}
+                    disabled={isSaving}
+                    bleedPadding={spacing.md}
+                    onPress={() => handleModeChange(option.value)}
+                  />
+                  {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
+                    <View style={styles.divider} />
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+      <RowDivider />
+      <View style={isGrouped ? styles.section : styles.nestedGroupWrap}>
+        {isGrouped ? (
+          <>
             <SettingsToggleRow
               title="Text me for fill-ins"
-              hint={
-                hasPhone
-                  ? 'Optional SMS when a matching fill-in is posted.'
-                  : 'Add your mobile number below to enable SMS alerts.'
-              }
+              hint={hasPhone && phoneIsSaved ? 'SMS when a matching shift is posted.' : 'Add and save your mobile number.'}
               value={smsOptIn}
-              disabled={isSaving}
+              disabled={isSaving || phoneNeedsSave}
               onValueChange={handleSmsToggle}
             />
-
             {showPhoneField ? (
               <View style={styles.phoneBlock}>
                 <AuthField
@@ -265,20 +296,80 @@ export function FillInModePanel({
                   keyboardType="phone-pad"
                   placeholder={PHONE_NUMBER_PLACEHOLDER}
                   editable={!isSaving}
-                  validated={phoneIsSaved}
+                  validated={phoneIsSaved && !phoneNeedsSave}
                 />
                 {phoneNeedsSave ? (
-                  <OnboardingButton
-                    label="Save number"
-                    disabled={isSaving || !pendingPhone}
-                    onPress={() => void handleSavePhone()}
-                  />
+                  <>
+                    <Text style={styles.phoneHelper}>
+                      {hasPhone
+                        ? 'Tap update to confirm your new number.'
+                        : 'Tap save to confirm your number before enabling texts.'}
+                    </Text>
+                    <OnboardingButton
+                      label={phoneSaveLabel}
+                      disabled={isSaving || !pendingPhone}
+                      onPress={() => void handleSavePhone()}
+                    />
+                  </>
+                ) : null}
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.nestedGroup}>
+            <SettingsToggleRow
+              title="Text me for fill-ins"
+              hint={hasPhone && phoneIsSaved ? 'SMS when a matching shift is posted.' : 'Add and save your mobile number.'}
+              value={smsOptIn}
+              disabled={isSaving || phoneNeedsSave}
+              onValueChange={handleSmsToggle}
+            />
+            {showPhoneField ? (
+              <View style={styles.phoneBlock}>
+                <AuthField
+                  label="Mobile phone"
+                  value={phone}
+                  onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+                  keyboardType="phone-pad"
+                  placeholder={PHONE_NUMBER_PLACEHOLDER}
+                  editable={!isSaving}
+                  validated={phoneIsSaved && !phoneNeedsSave}
+                />
+                {phoneNeedsSave ? (
+                  <>
+                    <Text style={styles.phoneHelper}>
+                      {hasPhone
+                        ? 'Tap update to confirm your new number.'
+                        : 'Tap save to confirm your number before enabling texts.'}
+                    </Text>
+                    <OnboardingButton
+                      label={phoneSaveLabel}
+                      disabled={isSaving || !pendingPhone}
+                      onPress={() => void handleSavePhone()}
+                    />
+                  </>
                 ) : null}
               </View>
             ) : null}
           </View>
-        </View>
-      ) : null}
+        )}
+      </View>
+    </>
+  ) : null;
+
+  return (
+    <View style={isGrouped ? styles.grouped : styles.card}>
+      <View style={styles.section}>
+        <SettingsToggleRow
+          prominence="primary"
+          title="Available for fill-ins"
+          hint={shortNoticeAvailable ? 'Open to short-notice shifts.' : 'Turn on when you can cover urgent shifts.'}
+          value={shortNoticeAvailable}
+          disabled={isSaving}
+          onValueChange={handleToggle}
+        />
+      </View>
+      {notificationSection}
     </View>
   );
 }

@@ -104,3 +104,11 @@ export const FILL_INS_LIST_MODE_OPTIONS: { value: FillInsListMode; label: string
   { value: 'active', label: 'Active' },
   { value: 'history', label: 'History' },
 ];
+
+export type FillInsTabMode = 'open' | 'confirmed' | 'availability';
+
+export const FILL_INS_TAB_MODE_OPTIONS: { value: FillInsTabMode; label: string }[] = [
+  { value: 'open', label: 'Open' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'availability', label: 'Availability' },
+];

@@ -34,14 +34,6 @@ export function DashboardEmptyState({ icon, title, message }: DashboardEmptyStat
       borderWidth: 1,
       borderColor: isDark ? `${colors.primary}55` : `${colors.primary}33`,
     },
-    ring: {
-      position: 'absolute',
-      width: 88,
-      height: 88,
-      borderRadius: 44,
-      borderWidth: 1,
-      borderColor: isDark ? `${colors.primary}33` : `${colors.primary}22`,
-    },
     title: {
       fontSize: 17,
       lineHeight: 22,
@@ -62,11 +54,8 @@ export function DashboardEmptyState({ icon, title, message }: DashboardEmptyStat
 
   return (
     <View style={styles.card}>
-      <View>
-        <View style={styles.ring} />
-        <View style={styles.motif}>
-          <Ionicons name={icon} size={32} color={colors.primary} />
-        </View>
+      <View style={styles.motif}>
+        <Ionicons name={icon} size={32} color={colors.primary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>

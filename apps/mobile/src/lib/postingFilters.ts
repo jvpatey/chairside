@@ -216,3 +216,10 @@ export function filterShiftPosts(
       return b.created_at.localeCompare(a.created_at);
     });
 }
+
+export type RolesBrowseMode = 'open' | 'applied';
+
+export const ROLES_BROWSE_MODE_OPTIONS: { value: RolesBrowseMode; label: string }[] = [
+  { value: 'open', label: 'Open' },
+  { value: 'applied', label: 'Applied' },
+];

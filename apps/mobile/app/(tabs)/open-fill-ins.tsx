@@ -90,11 +90,7 @@ export default function OpenFillInsScreen() {
     <OnboardingShell>
       <AuthScreenHeader
         title="Open fill-ins"
-        subtitle={
-          isLoading
-            ? undefined
-            : `${shifts.length} open in ${getProvinceLabel(province)}`
-        }
+        subtitle={isLoading ? undefined : `${shifts.length} open in ${getProvinceLabel(province)}`}
         onBack={() => router.replace(WORKER_FILLINS)}
       />
       <View style={styles.content}>

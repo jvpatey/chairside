@@ -6,26 +6,34 @@ import { Text, View } from 'react-native';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
-import { BrowseCollapsibleSection } from '@/components/ui/BrowseCollapsibleSection';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
+  ROLES_BROWSE_MODE_OPTIONS,
   sortJobsByPostedDate,
   type JobPostedSort,
   type RoleTypeFilter,
+  type RolesBrowseMode,
 } from '@/lib/postingFilters';
-import {
-  buildLiveJobMatchDisplayContext,
-  computeJobMatchBreakdown,
-} from '@/lib/workerMatch';
+import { buildLiveJobMatchDisplayContext, computeJobMatchBreakdown } from '@/lib/workerMatch';
 import { getWorkerJobDetailRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
-function BrowseEmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }) {
+function BrowseEmptyState({
+  icon,
+  title,
+  body,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  body: string;
+}) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -73,9 +81,7 @@ function renderRoleListingCards(
       layout="list"
       hasApplied={appliedJobIds.has(job.id)}
       jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
-      matchContext={
-        workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
-      }
+      matchContext={workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined}
       onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
     />
   ));
@@ -85,6 +91,7 @@ export default function BrowseScreen() {
   const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
+  const [selectedMode, setSelectedMode] = useState<RolesBrowseMode>('open');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
@@ -112,9 +119,7 @@ export default function BrowseScreen() {
 
   const filteredJobs = useMemo(() => {
     const byRole =
-      roleTypeFilter === 'all'
-        ? jobs
-        : jobs.filter((job) => job.role_type === roleTypeFilter);
+      roleTypeFilter === 'all' ? jobs : jobs.filter((job) => job.role_type === roleTypeFilter);
     return sortJobsByPostedDate(byRole, postedSort);
   }, [jobs, postedSort, roleTypeFilter]);
 
@@ -134,29 +139,42 @@ export default function BrowseScreen() {
   }, [appliedJobIds, filteredJobs]);
 
   const hasBothSections = openJobs.length > 0 && appliedJobs.length > 0;
+  const segmentJobs = selectedMode === 'open' ? openJobs : appliedJobs;
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
-    sections: { gap: spacing.lg },
+    panel: { gap: spacing.md },
   }));
 
   const showRoleFilters = !isLoading && jobs.length > 0;
 
   const roleListContent = hasBothSections ? (
-    <View style={styles.sections}>
-      <BrowseCollapsibleSection title="Open roles" count={openJobs.length} defaultExpanded>
+    <View style={styles.panel}>
+      <SegmentedControl
+        options={ROLES_BROWSE_MODE_OPTIONS}
+        selected={selectedMode}
+        onChange={setSelectedMode}
+        density="compact"
+      />
+      {segmentJobs.length === 0 ? (
+        <DashboardEmptyState
+          icon={selectedMode === 'open' ? 'briefcase-outline' : 'checkmark-circle-outline'}
+          title={
+            selectedMode === 'open'
+              ? 'No open roles in this filter'
+              : 'No applied roles in this filter'
+          }
+          message={
+            selectedMode === 'open'
+              ? 'Try a different filter or check the Applied tab.'
+              : 'Roles you apply to will appear here while they are still posted.'
+          }
+        />
+      ) : (
         <BrowseListGroup>
-          {renderRoleListingCards(openJobs, appliedJobIds, workerProfile)}
+          {renderRoleListingCards(segmentJobs, appliedJobIds, workerProfile)}
         </BrowseListGroup>
-      </BrowseCollapsibleSection>
-      <BrowseCollapsibleSection
-        title="Already applied"
-        count={appliedJobs.length}
-        defaultExpanded={false}>
-        <BrowseListGroup>
-          {renderRoleListingCards(appliedJobs, appliedJobIds, workerProfile)}
-        </BrowseListGroup>
-      </BrowseCollapsibleSection>
+      )}
     </View>
   ) : (
     <BrowseListGroup>
@@ -167,7 +185,7 @@ export default function BrowseScreen() {
   return (
     <Screen
       title="Roles"
-      subtitle="Open roles at clinics in your province."
+      subtitle="Open roles in your province."
       headerAccessory={
         showRoleFilters ? (
           <WorkerRoleBrowseFilters
@@ -177,7 +195,8 @@ export default function BrowseScreen() {
             onPostedSortChange={setPostedSort}
           />
         ) : undefined
-      }>
+      }
+    >
       <View style={styles.wrap}>
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
