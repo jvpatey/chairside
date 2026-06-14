@@ -30,9 +30,6 @@ export function DashboardHeroCard({
   const showSignOut = Platform.OS === 'web';
 
   const styles = useThemedStyles(({ colors, spacing, radii, typography }) => ({
-    hero: {
-      marginBottom: spacing.xs,
-    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -89,7 +86,7 @@ export function DashboardHeroCard({
   }));
 
   return (
-    <View style={styles.hero}>
+    <View>
       <View style={styles.headerRow}>
         <View style={styles.identity}>
           <Text style={styles.greeting}>{greeting}</Text>

@@ -35,7 +35,6 @@ export function DashboardLoadingShell() {
     ...getDashboardLayoutStyles(theme),
     heroBlock: {
       gap: theme.spacing.sm,
-      paddingTop: 4,
     },
     quickActionRow: {
       flexDirection: 'row' as const,

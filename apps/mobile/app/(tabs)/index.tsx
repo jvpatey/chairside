@@ -150,6 +150,7 @@ export default function WorkerDashboardScreen() {
 
   return (
     <DashboardScreen
+      showBrandHeader
       tabletTitle="Dashboard"
       tabletSubtitle="Roles, fill-ins, and applications at a glance.">
       {isLoading && !hasLoadedOnce.current ? (

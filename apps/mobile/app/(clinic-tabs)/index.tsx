@@ -206,6 +206,7 @@ export default function ClinicDashboardScreen() {
 
   return (
     <DashboardScreen
+      showBrandHeader
       tabletTitle="Dashboard"
       tabletSubtitle="Postings, fill-ins, and applicants at your clinic.">
       {isLoading && !hasLoadedOnce.current ? (

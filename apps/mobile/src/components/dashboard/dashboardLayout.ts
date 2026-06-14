@@ -9,11 +9,22 @@ export const dashboardControlRadii = {
   statSegment: 16,
 } as const;
 
+/** Vertical gap between major dashboard sections (hero, actions, overview, etc.). */
+export function dashboardSectionGap(spacing: Pick<Theme, 'spacing'>['spacing']) {
+  return spacing.lg;
+}
+
 /** Shared spacing rhythm for dashboard screens on phone and tablet. */
 export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
+  const sectionGap = dashboardSectionGap(spacing);
+
   return {
+    /** Wraps brand header + dashboard body so spacing matches section rhythm. */
+    flow: {
+      gap: sectionGap,
+    },
     content: {
-      gap: spacing.md,
+      gap: sectionGap,
       ...(Platform.OS === 'web' ? { paddingTop: spacing.sm } : null),
     },
     section: {
@@ -28,7 +39,7 @@ export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
     },
     /** Stat bar + overview list share one vertical rhythm block. */
     overviewBlock: {
-      gap: spacing.md,
+      gap: sectionGap,
     },
   };
 }

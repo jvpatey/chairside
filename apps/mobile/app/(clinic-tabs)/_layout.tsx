@@ -34,7 +34,7 @@ function ClinicTabNavigator() {
         <Tabs.Screen
           name="applications"
           options={{
-            title: 'Apps',
+            title: 'Applications',
             tabBarAccessibilityLabel: 'Applications',
             tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
             tabBarIcon: ({ color, focused }) => (
