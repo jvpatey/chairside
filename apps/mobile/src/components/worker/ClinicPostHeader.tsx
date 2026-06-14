@@ -193,6 +193,9 @@ export function ClinicPostHeader({
     detailsBlock: {
       gap: spacing.xs,
     },
+    headerOnlyDetailsBlock: {
+      paddingTop: 0,
+    },
     rowAction: {
       marginTop: spacing.sm,
       alignSelf: 'stretch',
@@ -292,7 +295,7 @@ export function ClinicPostHeader({
   );
 
   const hasDetails = headerOnlySplit
-    ? Boolean(detailAccessory || textFooter || statusFooter)
+    ? Boolean(contentHeader || detailAccessory || textFooter || statusFooter)
     : Boolean(
         contentHeader ||
         location ||
@@ -306,7 +309,11 @@ export function ClinicPostHeader({
       );
 
   const detailsContent = hasDetails ? (
-    <CardContentSection style={detailAccessory ? undefined : styles.detailsBlock}>
+    <CardContentSection
+      style={[
+        !detailAccessory && styles.detailsBlock,
+        headerOnlySplit && styles.headerOnlyDetailsBlock,
+      ]}>
       {detailAccessory ? (
         <View style={styles.detailsRow}>
           <View style={styles.detailsColumn}>{detailsColumnContent}</View>

@@ -9,32 +9,27 @@ export function useAdaptiveTabScreenOptions() {
   const { isTablet } = useResponsiveLayout();
   const { sidebarWidth } = useSidebarCollapse();
 
+  const isWeb = Platform.OS === 'web';
+
   const shared = {
     tabBarActiveTintColor: colors.primary,
     tabBarInactiveTintColor: colors.tabInactive,
     headerShown: false,
-    // Opaque scenes prevent inactive tab screens from stacking on web.
+    // Web tab scenes stay opaque so inactive screens do not stack underneath.
+    // Native scenes are transparent so TabAtmosphereShell's gradient shows through.
     sceneStyle: {
-      backgroundColor: colors.backgroundGrouped,
+      backgroundColor: isWeb ? colors.backgroundGrouped : 'transparent',
     },
     sceneContainerStyle: {
-      backgroundColor: colors.backgroundGrouped,
+      backgroundColor: isWeb ? colors.backgroundGrouped : 'transparent',
     },
-    ...(Platform.OS === 'web' ? { detachInactiveScreens: true } : {}),
+    ...(isWeb ? { detachInactiveScreens: true } : {}),
   };
 
   if (isTablet) {
     const isWebTablet = Platform.OS === 'web';
     return {
       ...shared,
-      // Native tablet: transparent scenes show the shell atmosphere. Web must keep
-      // opaque scenes — without react-native-screens, inactive tabs stack underneath.
-      ...(isWebTablet
-        ? {}
-        : {
-            sceneStyle: { backgroundColor: 'transparent' },
-            sceneContainerStyle: { backgroundColor: 'transparent' },
-          }),
       tabBarPosition: 'left' as const,
       safeAreaInsets: { top: 0, bottom: 0, left: 0, right: 0 },
       tabBarStyle: {
