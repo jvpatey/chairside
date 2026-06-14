@@ -9,7 +9,7 @@ import {
 } from '@/lib/webPressableStyles';
 
 type AuthScreenHeaderProps = {
-  title?: string;
+  title?: string | ReactNode;
   /** Small label above the title (e.g. "Applications for"). */
   eyebrow?: string;
   subtitle?: string;
@@ -20,6 +20,23 @@ type AuthScreenHeaderProps = {
   /** Renders beside the title block (e.g. filter control). */
   accessory?: ReactNode;
 };
+
+export function AuthScreenTitle({
+  children,
+  compact = false,
+}: {
+  children: ReactNode;
+  compact?: boolean;
+}) {
+  const styles = useThemedStyles(({ typography }) => ({
+    title: {
+      ...typography.title,
+      fontSize: compact ? 22 : 28,
+    },
+  }));
+
+  return <Text style={styles.title}>{children}</Text>;
+}
 
 export function AuthScreenHeader({
   title,
@@ -95,7 +112,13 @@ export function AuthScreenHeader({
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>
             {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-            {title ? <Text style={styles.title}>{title}</Text> : null}
+            {title != null ? (
+              typeof title === 'string' ? (
+                <Text style={styles.title}>{title}</Text>
+              ) : (
+                title
+              )
+            ) : null}
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
           {accessory}

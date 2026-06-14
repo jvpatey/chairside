@@ -35,16 +35,19 @@ const FEATURES = [
   {
     icon: 'calendar-outline' as const,
     title: 'Fill chairs, same day',
+    titleHighlight: 'same day',
     body: 'Post a fill-in shift and get qualified applicants instantly. Built-in screening questions filter candidates before you even open a message.',
   },
   {
     icon: 'flash-outline' as const,
-    title: 'Let clinics know you\'re free',
-    body: 'Turn on fill-in mode and let nearby clinics know you\'re available right now. No job board, no waiting—just work.',
+    title: "Let clinics know you're free",
+    titleHighlight: "you're free",
+    body: "Turn on fill-in mode and let nearby clinics know you're available right now. No job board, no waiting—just work.",
   },
   {
     icon: 'checkmark-circle-outline' as const,
     title: 'The hiring process — streamlined',
+    titleHighlight: 'streamlined',
     body: 'Messaging, interviews, and offers stay in one place. No email threads, no phone tag.',
   },
 ] as const;
@@ -59,11 +62,46 @@ const FOOTER_YEAR = new Date().getFullYear();
 type FeatureCardProps = {
   icon: (typeof FEATURES)[number]['icon'];
   title: string;
+  titleHighlight?: string;
   body: string;
   enterDelayMs?: number;
 };
 
-function FeatureCard({ icon, title, body, enterDelayMs = 0 }: FeatureCardProps) {
+function FeatureTitle({ title, highlight }: { title: string; highlight?: string }) {
+  const styles = useThemedStyles(({ colors, typography }) => ({
+    title: {
+      ...typography.body,
+      fontSize: 17,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+    },
+    highlight: {
+      color: colors.primary,
+    },
+  }));
+
+  if (!highlight) {
+    return <Text style={styles.title}>{title}</Text>;
+  }
+
+  const highlightIndex = title.indexOf(highlight);
+  if (highlightIndex < 0) {
+    return <Text style={styles.title}>{title}</Text>;
+  }
+
+  const before = title.slice(0, highlightIndex);
+  const after = title.slice(highlightIndex + highlight.length);
+
+  return (
+    <Text style={styles.title}>
+      {before}
+      <Text style={styles.highlight}>{highlight}</Text>
+      {after}
+    </Text>
+  );
+}
+
+function FeatureCard({ icon, title, titleHighlight, body, enterDelayMs = 0 }: FeatureCardProps) {
   const { colors } = useTheme();
   const [cardHovered, setCardHovered] = useState(false);
   const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
@@ -98,12 +136,6 @@ function FeatureCard({ icon, title, body, enterDelayMs = 0 }: FeatureCardProps) 
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
-    title: {
-      ...typography.body,
-      fontSize: 17,
-      fontWeight: '600' as const,
-      color: colors.labelPrimary,
-    },
     body: {
       ...typography.subtitle,
       fontSize: 15,
@@ -121,7 +153,7 @@ function FeatureCard({ icon, title, body, enterDelayMs = 0 }: FeatureCardProps) 
         <View style={styles.iconWrap}>
           <Ionicons name={icon} size={22} color={colors.primary} />
         </View>
-        <Text style={styles.title}>{title}</Text>
+        <FeatureTitle title={title} highlight={titleHighlight} />
         <Text style={styles.body}>{body}</Text>
       </View>
     </WebPageEnter>
@@ -512,6 +544,7 @@ export function WelcomeWebLayout() {
               key={feature.title}
               icon={feature.icon}
               title={feature.title}
+              titleHighlight={feature.titleHighlight}
               body={feature.body}
               enterDelayMs={560 + index * 80}
             />

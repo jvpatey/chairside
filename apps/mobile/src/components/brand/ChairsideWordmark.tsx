@@ -15,6 +15,33 @@ const COMPACT = { fontSize: 28, letterSpacing: -0.6 } as const;
 const SMALL = { fontSize: 20, letterSpacing: -0.45 } as const;
 const SIDE_SLIDE_PX = 10;
 
+type ChairsideBrandTextProps = {
+  /** Inherit surrounding title/body size, or use a fixed wordmark size. */
+  variant?: 'inherit' | 'compact' | 'small';
+};
+
+/** Inline two-tone "chairside" for titles and sentences. */
+export function ChairsideBrandText({ variant = 'inherit' }: ChairsideBrandTextProps) {
+  const { colors } = useTheme();
+  const sizing =
+    variant === 'compact' ? COMPACT : variant === 'small' ? SMALL : null;
+
+  const baseStyle = {
+    fontFamily: fontWordmark,
+    textTransform: 'lowercase' as const,
+    ...(sizing
+      ? { fontSize: sizing.fontSize, letterSpacing: sizing.letterSpacing }
+      : { letterSpacing: COMPACT.letterSpacing }),
+  };
+
+  return (
+    <Text style={baseStyle}>
+      <Text style={{ color: colors.labelPrimary }}>chair</Text>
+      <Text style={{ color: colors.primary }}>side</Text>
+    </Text>
+  );
+}
+
 function heroSize(screenWidth: number) {
   return Math.round(Math.max(52, Math.min(screenWidth * 0.14, 56)));
 }
@@ -47,12 +74,25 @@ export function ChairsideWordmark({
     textTransform: 'lowercase' as const,
   };
 
-  const staticWordmark = (
-    <Text style={baseTextStyle}>
-      <Text style={{ color: colors.labelPrimary }}>chair</Text>
-      <Text style={{ color: colors.primary }}>side</Text>
-    </Text>
-  );
+  const staticWordmark = <ChairsideBrandText variant={variant === 'small' ? 'small' : 'compact'} />;
+
+  if (variant === 'hero') {
+    const heroTextStyle = {
+      fontFamily: fontWordmark,
+      fontSize,
+      letterSpacing,
+      textTransform: 'lowercase' as const,
+    };
+
+    return (
+      <View accessibilityRole="header" accessibilityLabel="chairside" style={alignStyle}>
+        <Text style={heroTextStyle}>
+          <Text style={{ color: colors.labelPrimary }}>chair</Text>
+          <Text style={{ color: colors.primary }}>side</Text>
+        </Text>
+      </View>
+    );
+  }
 
   if (animateSideOnHover && Platform.OS === 'web') {
     return (
