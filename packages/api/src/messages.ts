@@ -1,16 +1,17 @@
 import { getSupabaseClient } from './client';
-import {
-  DELETED_CANDIDATE_LABEL,
-  DELETED_CLINIC_LABEL,
-} from '@chairside/config';
+import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
 import type { ApplicationStatus } from './applications';
 
-export type ConversationType = 'application' | 'general';
+export type ConversationType = 'application' | 'general' | 'outreach';
 
 export type ConversationRow = {
   id: string;
   application_id: string | null;
   conversation_type: ConversationType;
+  outreach_role_type: string | null;
+  outreach_shift_date: string | null;
+  outreach_start_time: string | null;
+  outreach_end_time: string | null;
   worker_id: string;
   clinic_id: string;
   worker_last_read_at: string | null;
@@ -133,6 +134,14 @@ function canSendGeneralMessages(
   return clinicAcceptsGeneral;
 }
 
+function canSendOutreachMessages(
+  messagingClosedAt: string | null,
+  conversation: Pick<ConversationRow, 'worker_account_deleted_at' | 'clinic_account_deleted_at'>,
+): boolean {
+  if (messagingClosedAt) return false;
+  return !conversation.worker_account_deleted_at && !conversation.clinic_account_deleted_at;
+}
+
 async function enrichWorkerConversations(
   rows: ConversationRow[],
   workerId: string,
@@ -142,6 +151,7 @@ async function enrichWorkerConversations(
   const supabase = getSupabaseClient();
   const applicationRows = rows.filter((row) => row.conversation_type === 'application');
   const generalRows = rows.filter((row) => row.conversation_type === 'general');
+  const outreachRows = rows.filter((row) => row.conversation_type === 'outreach');
   const conversations: Conversation[] = [];
 
   if (applicationRows.length > 0) {
@@ -218,10 +228,8 @@ async function enrichWorkerConversations(
           shift_end_time: null,
           counterpart_name: clinicDeleted
             ? DELETED_CLINIC_LABEL
-            : clinic?.clinic_name ?? 'Clinic',
-          counterpart_logo_storage_path: clinicDeleted
-            ? null
-            : clinic?.logo_storage_path ?? null,
+            : (clinic?.clinic_name ?? 'Clinic'),
+          counterpart_logo_storage_path: clinicDeleted ? null : (clinic?.logo_storage_path ?? null),
           counterpart_account_deleted: clinicDeleted,
           unread: isUnreadForRole(row, 'worker', workerId),
           can_send: canSendApplicationMessages(status, row.messaging_closed_at, row),
@@ -241,10 +249,8 @@ async function enrichWorkerConversations(
           shift_end_time: shift.end_time,
           counterpart_name: clinicDeleted
             ? DELETED_CLINIC_LABEL
-            : clinic?.clinic_name ?? 'Clinic',
-          counterpart_logo_storage_path: clinicDeleted
-            ? null
-            : clinic?.logo_storage_path ?? null,
+            : (clinic?.clinic_name ?? 'Clinic'),
+          counterpart_logo_storage_path: clinicDeleted ? null : (clinic?.logo_storage_path ?? null),
           counterpart_account_deleted: clinicDeleted,
           unread: isUnreadForRole(row, 'worker', workerId),
           can_send: canSendApplicationMessages(status, row.messaging_closed_at, row),
@@ -275,6 +281,43 @@ async function enrichWorkerConversations(
         shift_date: null,
         shift_start_time: null,
         shift_end_time: null,
+        counterpart_name: clinicDeleted ? DELETED_CLINIC_LABEL : (clinic?.clinic_name ?? 'Clinic'),
+        counterpart_logo_storage_path: clinicDeleted ? null : (clinic?.logo_storage_path ?? null),
+        counterpart_account_deleted: clinicDeleted,
+        unread: isUnreadForRole(row, 'worker', workerId),
+        can_send: canSendGeneralMessages(
+          row.messaging_closed_at,
+          clinic?.accepts_general_candidate_messages ?? false,
+          row,
+        ),
+      });
+    }
+  }
+
+  if (outreachRows.length > 0) {
+    const clinicIds = [...new Set(outreachRows.map((row) => row.clinic_id))];
+    const { data: clinics, error: clinicsError } = await supabase
+      .from('clinic_profiles')
+      .select('id, clinic_name, logo_storage_path')
+      .in('id', clinicIds);
+
+    if (clinicsError) throw clinicsError;
+    const clinicMap = new Map((clinics ?? []).map((clinic) => [clinic.id, clinic]));
+
+    for (const row of outreachRows) {
+      const clinic = clinicMap.get(row.clinic_id);
+      const clinicDeleted = isConversationCounterpartDeleted(row, 'worker');
+      conversations.push({
+        ...row,
+        application_status: null,
+        post_title: row.outreach_shift_date
+          ? `Fill-in inquiry · ${row.outreach_shift_date}`
+          : 'Fill-in outreach',
+        post_type: 'shift',
+        post_role_type: row.outreach_role_type,
+        shift_date: row.outreach_shift_date,
+        shift_start_time: row.outreach_start_time,
+        shift_end_time: row.outreach_end_time,
         counterpart_name: clinicDeleted
           ? DELETED_CLINIC_LABEL
           : clinic?.clinic_name ?? 'Clinic',
@@ -283,11 +326,7 @@ async function enrichWorkerConversations(
           : clinic?.logo_storage_path ?? null,
         counterpart_account_deleted: clinicDeleted,
         unread: isUnreadForRole(row, 'worker', workerId),
-        can_send: canSendGeneralMessages(
-          row.messaging_closed_at,
-          clinic?.accepts_general_candidate_messages ?? false,
-          row,
-        ),
+        can_send: canSendOutreachMessages(row.messaging_closed_at, row),
       });
     }
   }
@@ -308,6 +347,7 @@ async function enrichClinicConversations(
   const supabase = getSupabaseClient();
   const applicationRows = rows.filter((row) => row.conversation_type === 'application');
   const generalRows = rows.filter((row) => row.conversation_type === 'general');
+  const outreachRows = rows.filter((row) => row.conversation_type === 'outreach');
   const conversations: Conversation[] = [];
 
   const { data: clinicProfile, error: clinicError } = await supabase
@@ -326,12 +366,11 @@ async function enrichClinicConversations(
     const [applicationsResult, workersResult] = await Promise.all([
       supabase
         .from('applications')
-        .select('id, status, job_post_id, shift_post_id, worker_display_name, worker_account_deleted_at')
+        .select(
+          'id, status, job_post_id, shift_post_id, worker_display_name, worker_account_deleted_at',
+        )
         .in('id', applicationIds),
-      supabase
-        .from('worker_profiles')
-        .select('id, photo_storage_path')
-        .in('id', workerIds),
+      supabase.from('worker_profiles').select('id, photo_storage_path').in('id', workerIds),
     ]);
 
     if (applicationsResult.error) throw applicationsResult.error;
@@ -392,7 +431,7 @@ async function enrichClinicConversations(
           counterpart_name: counterpartName,
           counterpart_logo_storage_path: workerDeleted
             ? null
-            : worker?.photo_storage_path ?? null,
+            : (worker?.photo_storage_path ?? null),
           counterpart_account_deleted: workerDeleted,
           unread: isUnreadForRole(row, 'clinic', clinicId),
           can_send: canSendApplicationMessages(status, row.messaging_closed_at, row),
@@ -411,7 +450,7 @@ async function enrichClinicConversations(
           counterpart_name: counterpartName,
           counterpart_logo_storage_path: workerDeleted
             ? null
-            : worker?.photo_storage_path ?? null,
+            : (worker?.photo_storage_path ?? null),
           counterpart_account_deleted: workerDeleted,
           unread: isUnreadForRole(row, 'clinic', clinicId),
           can_send: canSendApplicationMessages(status, row.messaging_closed_at, row),
@@ -455,12 +494,56 @@ async function enrichClinicConversations(
         counterpart_name: workerDeleted
           ? DELETED_CANDIDATE_LABEL
           : profile?.display_name?.trim() || 'Applicant',
+        counterpart_logo_storage_path: workerDeleted ? null : (worker?.photo_storage_path ?? null),
+        counterpart_account_deleted: workerDeleted,
+        unread: isUnreadForRole(row, 'clinic', clinicId),
+        can_send: canSendGeneralMessages(row.messaging_closed_at, clinicAcceptsGeneral, row),
+      });
+    }
+  }
+
+  if (outreachRows.length > 0) {
+    const workerIds = [...new Set(outreachRows.map((row) => row.worker_id))];
+    const { data: workers, error: workersError } = await supabase
+      .from('worker_profiles')
+      .select('id, photo_storage_path')
+      .in('id', workerIds);
+
+    if (workersError) throw workersError;
+    const workerMap = new Map((workers ?? []).map((worker) => [worker.id, worker]));
+
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', workerIds);
+
+    if (profilesError) throw profilesError;
+    const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+
+    for (const row of outreachRows) {
+      const worker = workerMap.get(row.worker_id);
+      const profile = profileMap.get(row.worker_id);
+      const workerDeleted = isConversationCounterpartDeleted(row, 'clinic');
+      conversations.push({
+        ...row,
+        application_status: null,
+        post_title: row.outreach_shift_date
+          ? `Fill-in inquiry · ${row.outreach_shift_date}`
+          : 'Fill-in outreach',
+        post_type: 'shift',
+        post_role_type: row.outreach_role_type,
+        shift_date: row.outreach_shift_date,
+        shift_start_time: row.outreach_start_time,
+        shift_end_time: row.outreach_end_time,
+        counterpart_name: workerDeleted
+          ? DELETED_CANDIDATE_LABEL
+          : profile?.display_name?.trim() || 'Candidate',
         counterpart_logo_storage_path: workerDeleted
           ? null
           : worker?.photo_storage_path ?? null,
         counterpart_account_deleted: workerDeleted,
         unread: isUnreadForRole(row, 'clinic', clinicId),
-        can_send: canSendGeneralMessages(row.messaging_closed_at, clinicAcceptsGeneral, row),
+        can_send: canSendOutreachMessages(row.messaging_closed_at, row),
       });
     }
   }

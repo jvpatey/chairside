@@ -3,9 +3,10 @@ import { hideClinicConversation, hideWorkerConversation } from '@chairside/api';
 import * as Haptics from 'expo-haptics';
 
 export function getHideConversationMessage(conversation: Conversation): string {
-  const isGeneral = conversation.conversation_type === 'general';
+  const isStandaloneThread =
+    conversation.conversation_type === 'general' || conversation.conversation_type === 'outreach';
 
-  return isGeneral
+  return isStandaloneThread
     ? 'This removes the conversation from your inbox. If they message you again, it will reappear.'
     : 'This removes the conversation from your inbox. You can still open it from the application. New messages will bring it back.';
 }

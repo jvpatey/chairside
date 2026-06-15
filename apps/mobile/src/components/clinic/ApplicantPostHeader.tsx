@@ -21,6 +21,8 @@ type ApplicantPostHeaderProps = {
   detailAccessory?: ReactNode;
   footer?: ReactNode;
   avatarSize?: number;
+  /** Vertical alignment of avatar beside the text block. */
+  avatarAlign?: 'top' | 'center';
   stackedAccessory?: boolean;
   layout?: 'stacked' | 'split';
 };
@@ -38,6 +40,7 @@ export function ApplicantPostHeader({
   detailAccessory,
   footer,
   avatarSize = 44,
+  avatarAlign = 'top',
   stackedAccessory = false,
   layout = 'stacked',
 }: ApplicantPostHeaderProps) {
@@ -155,7 +158,12 @@ export function ApplicantPostHeader({
   }));
 
   const identityBlock = (
-    <View style={styles.mainRow}>
+    <View
+      style={[
+        styles.mainRow,
+        avatarAlign === 'center' ? { alignItems: 'center' as const } : null,
+      ]}
+    >
       <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={avatarSize} />
       <View style={styles.textBlock}>
         <View style={styles.titleRow}>
@@ -252,9 +260,7 @@ export function ApplicantPostHeader({
   return (
     <View style={styles.wrap}>
       {identityBlock}
-      {footer ? (
-        <View style={[styles.footer, { paddingLeft: footerInset }]}>{footer}</View>
-      ) : null}
+      {footer ? <View style={[styles.footer, { paddingLeft: footerInset }]}>{footer}</View> : null}
     </View>
   );
 }

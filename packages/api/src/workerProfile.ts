@@ -160,6 +160,12 @@ export async function upsertWorkerProfile(
   if (partial.fill_in_sms_opt_in !== undefined) {
     payload.fill_in_sms_opt_in = partial.fill_in_sms_opt_in;
   }
+  if (partial.accepts_clinic_fill_in_outreach !== undefined) {
+    payload.accepts_clinic_fill_in_outreach = partial.accepts_clinic_fill_in_outreach;
+  }
+  if (partial.accepts_clinic_fill_in_outreach !== undefined) {
+    payload.accepts_clinic_fill_in_outreach = partial.accepts_clinic_fill_in_outreach;
+  }
   if (partial.job_notification_opt_in !== undefined) {
     payload.job_notification_opt_in = partial.job_notification_opt_in;
   }
@@ -277,6 +283,8 @@ export type ClinicWorkerProfile = Pick<
   | 'bio'
   | 'short_notice_available'
   | 'fill_in_notification_mode'
+  | 'accepts_clinic_fill_in_outreach'
+  | 'accepts_clinic_fill_in_outreach'
   | 'resume_storage_path'
   | 'resume_file_name'
   | 'resume_uploaded_at'

@@ -40,10 +40,7 @@ import {
   type ShiftDateFilter,
   type ShiftStatusFilter,
 } from '@/lib/postingFilters';
-import {
-  CLINIC_SETUP_BASICS,
-  getPostShiftRoute,
-} from '@/lib/routing';
+import { CLINIC_SETUP_BASICS, getFindAvailableWorkersRoute, getPostShiftRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function SectionHeader({ title }: { title: string }) {
@@ -66,7 +63,15 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function EmptyCard({ icon, title, body }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }) {
+function EmptyCard({
+  icon,
+  title,
+  body,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  body: string;
+}) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -117,12 +122,8 @@ export default function ClinicFillInsScreen() {
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('past');
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
-  const {
-    celebrationVisible,
-    celebrationPayload,
-    showCelebration,
-    closeCelebration,
-  } = useHiringCelebration();
+  const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
+    useHiringCelebration();
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.xl },
@@ -231,6 +232,12 @@ export default function ClinicFillInsScreen() {
             disabled={!isProfileComplete}
             onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
           />
+          <OnboardingButton
+            label="Find available workers"
+            variant="secondary"
+            disabled={!isProfileComplete}
+            onPress={() => guardPosting(getFindAvailableWorkersRoute('fill-ins-tab'))}
+          />
 
           <View style={styles.section}>
             <SectionHeader title="Needs response" />
@@ -301,7 +308,9 @@ export default function ClinicFillInsScreen() {
                   </View>
                   <ShiftPostingFilters
                     statusOptions={
-                      fillInsListMode === 'history' ? HISTORY_SHIFT_STATUS_FILTER_OPTIONS : undefined
+                      fillInsListMode === 'history'
+                        ? HISTORY_SHIFT_STATUS_FILTER_OPTIONS
+                        : undefined
                     }
                     includeStatusInSheet={fillInsListMode === 'history'}
                     includeDateInSheet={fillInsListMode === 'history'}
@@ -329,7 +338,9 @@ export default function ClinicFillInsScreen() {
                 {filteredShifts.length === 0 ? (
                   <EmptyCard
                     icon="filter-outline"
-                    title={fillInsListMode === 'history' ? 'No past fill-ins' : 'No active fill-ins'}
+                    title={
+                      fillInsListMode === 'history' ? 'No past fill-ins' : 'No active fill-ins'
+                    }
                     body={
                       fillInsListMode === 'history'
                         ? 'Past, filled, and closed fill-ins will appear here.'

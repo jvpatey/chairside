@@ -691,11 +691,13 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
 
 export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost | null> {
   const supabase = getSupabaseClient();
+  const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from('shift_posts')
     .select('*')
     .eq('id', shiftId)
     .eq('status', 'live')
+    .gte('shift_date', today)
     .maybeSingle();
 
   if (error) throw error;

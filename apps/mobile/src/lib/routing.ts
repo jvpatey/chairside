@@ -58,6 +58,7 @@ export const CLINIC_POST_JOB: Href = '/(clinic-tabs)/post-job' as Href;
 export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;
 export const CLINIC_POSTINGS: Href = '/(clinic-tabs)/postings' as Href;
 export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
+export const CLINIC_FIND_AVAILABLE_WORKERS: Href = '/(clinic-tabs)/find-available-workers' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
@@ -82,6 +83,32 @@ export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
     return CLINIC_FILL_INS;
   }
   return CLINIC_POSTINGS;
+}
+
+export function getFindAvailableWorkersRoute(returnTo: FillInReturnTarget = 'fill-ins-tab'): Href {
+  return {
+    pathname: '/(clinic-tabs)/find-available-workers',
+    params: { returnTo },
+  } as Href;
+}
+
+export function getClinicOutreachComposeRoute(params: {
+  workerId: string;
+  workerName: string;
+  roleType?: string;
+  smsOptIn?: boolean;
+  returnTo?: FillInReturnTarget;
+}): Href {
+  return {
+    pathname: '/(clinic-tabs)/outreach-compose',
+    params: {
+      returnTo: params.returnTo ?? 'fill-ins-tab',
+      workerId: params.workerId,
+      workerName: params.workerName,
+      ...(params.roleType ? { roleType: params.roleType } : {}),
+      smsOptIn: params.smsOptIn ? '1' : '0',
+    },
+  } as Href;
 }
 
 export function getClinicFillInsRoute(): Href {
@@ -295,7 +322,11 @@ export function getConversationMessagesRoute(
     subtitle: '',
   };
 
-  if (conversation.conversation_type === 'general' || !conversation.application_id) {
+  if (
+    conversation.conversation_type === 'general' ||
+    conversation.conversation_type === 'outreach' ||
+    !conversation.application_id
+  ) {
     return role === 'worker'
       ? getWorkerConversationRoute(conversation.id, threadPreview)
       : getClinicConversationRoute(conversation.id, threadPreview);
@@ -328,7 +359,10 @@ export function getClinicShiftApplicantsRoute(
   } as Href;
 }
 
-export function navigateAfterMessageThread(router: { replace: (href: Href) => void }, role: 'worker' | 'clinic') {
+export function navigateAfterMessageThread(
+  router: { replace: (href: Href) => void },
+  role: 'worker' | 'clinic',
+) {
   router.replace(role === 'clinic' ? getClinicMessagesRoute() : getWorkerMessagesRoute());
 }
 

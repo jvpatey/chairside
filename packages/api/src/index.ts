@@ -1,4 +1,14 @@
 export { createSupabaseClient, getSupabaseClient } from './client';
+export { getErrorMessage, throwWithMessage } from './errors';
+export {
+  listFillInOutreachWorkersForClinic,
+  listAvailableFillInWorkersForClinic,
+  startClinicFillInOutreach,
+  type FillInOutreachWorker,
+  type AvailableFillInWorker,
+  type ListFillInOutreachWorkersInput,
+  type StartClinicFillInOutreachInput,
+} from './fillInOutreach';
 export {
   createSessionFromUrl,
   getAuthErrorMessage,

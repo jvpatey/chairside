@@ -9,7 +9,10 @@ import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
-import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
+import {
+  ApplicationTabBadgeProvider,
+  useApplicationTabBadge,
+} from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 function ClinicTabNavigator() {
@@ -27,7 +30,11 @@ function ClinicTabNavigator() {
           options={{
             title: 'Postings',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} size={22} color={color} />
+              <Ionicons
+                name={focused ? 'briefcase' : 'briefcase-outline'}
+                size={22}
+                color={color}
+              />
             ),
           }}
         />
@@ -73,6 +80,8 @@ function ClinicTabNavigator() {
         <Tabs.Screen name="conversation/[id]" options={{ href: null }} />
         <Tabs.Screen name="post-job" options={{ href: null }} />
         <Tabs.Screen name="post-shift" options={{ href: null }} />
+        <Tabs.Screen name="find-available-workers" options={{ href: null }} />
+        <Tabs.Screen name="outreach-compose" options={{ href: null }} />
         <Tabs.Screen name="job/[id]" options={{ href: null }} />
         <Tabs.Screen name="shift/[id]" options={{ href: null }} />
         <Tabs.Screen name="role-applicants/[jobId]" options={{ href: null }} />
