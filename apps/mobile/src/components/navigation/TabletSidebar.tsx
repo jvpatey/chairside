@@ -106,7 +106,9 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       gap: spacing.xs,
     },
     profileRowCollapsed: {
-      justifyContent: 'center',
+      flexDirection: 'column',
+      alignItems: 'center',
+      width: '100%',
     },
     profileRowExpanded: {
       minHeight: TABLET_PROFILE_ROW_HEIGHT,
@@ -117,7 +119,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     profileHeaderWrapCollapsed: {
       flex: 0,
-      alignSelf: 'center',
+      width: '100%',
+      alignItems: 'center',
     },
     toggleButton: {
       width: 24,
@@ -158,6 +161,9 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingTop: spacing.xs,
       position: 'relative',
     },
+    navCollapsed: {
+      alignItems: 'center',
+    },
     navIndicator: {
       position: 'absolute',
       left: 0,
@@ -174,6 +180,9 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingBottom: spacing.sm,
       marginTop: spacing.sm,
     },
+    footerCollapsed: {
+      alignItems: 'center',
+    },
     item: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -185,7 +194,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     itemCollapsed: {
       justifyContent: 'center',
-      paddingHorizontal: spacing.xs,
+      alignSelf: 'center',
+      width: 44,
+      paddingHorizontal: 0,
+      paddingVertical: 11,
       gap: 0,
     },
     itemActive: {
@@ -291,7 +303,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   );
 
   const panelPadding = {
-    paddingHorizontal: isCollapsed ? spacing.sm : spacing.md,
+    paddingHorizontal: isCollapsed ? spacing.xs : spacing.md,
     paddingTop: insets.top + TABLET_TOP_INSET_EXTRA,
     paddingBottom: Math.max(insets.bottom, spacing.md),
     ...(isWeb
@@ -334,7 +346,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         </View>
       </View>
 
-      <View style={styles.nav}>
+      <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
         {!isCollapsed ? (
           <SlidingSegmentIndicator animatedStyle={navIndicatorStyle} style={styles.navIndicator} />
         ) : null}
@@ -398,13 +410,15 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
                   </View>
                 ) : null}
               </View>
-              <Text
-                style={[styles.label, isFocused && styles.labelActive, labelRevealStyle(isCollapsed)]}
-                numberOfLines={1}
-                accessibilityElementsHidden={isCollapsed}
-                importantForAccessibility={isCollapsed ? 'no' : 'auto'}>
-                {options.title ?? route.name}
-              </Text>
+              {!isCollapsed ? (
+                <Text
+                  style={[styles.label, isFocused && styles.labelActive, labelRevealStyle(isCollapsed)]}
+                  numberOfLines={1}
+                  accessibilityElementsHidden={isCollapsed}
+                  importantForAccessibility={isCollapsed ? 'no' : 'auto'}>
+                  {options.title ?? route.name}
+                </Text>
+              ) : null}
               {hasBadge && !isCollapsed ? (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{badge}</Text>
@@ -415,7 +429,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         })}
       </View>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, isCollapsed && styles.footerCollapsed]}>
         <Pressable
           accessibilityRole="button"
           accessibilityState={isProfileActive ? { selected: true } : {}}
@@ -427,21 +441,28 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           style={({ pressed, hovered }) => [
             styles.item,
             isCollapsed && styles.itemCollapsed,
-            isProfileActive && styles.itemActive,
-            isWeb && hovered && !pressed && (isProfileActive ? styles.itemActiveHovered : styles.itemHovered),
+            !isCollapsed && isProfileActive && styles.itemActive,
+            isWeb &&
+              hovered &&
+              !pressed &&
+              (isCollapsed ? styles.itemHovered : isProfileActive ? styles.itemActiveHovered : styles.itemHovered),
             pressed && styles.itemPressed,
           ]}>
-          <Ionicons
-            name={isProfileActive ? 'settings' : 'settings-outline'}
-            size={22}
-            color={isProfileActive ? colors.primary : colors.tabInactive}
-          />
-          <Text
-            style={[styles.label, isProfileActive && styles.labelActive, labelRevealStyle(isCollapsed)]}
-            accessibilityElementsHidden={isCollapsed}
-            importantForAccessibility={isCollapsed ? 'no' : 'auto'}>
-            Settings
-          </Text>
+          <View style={styles.iconWrap}>
+            <Ionicons
+              name={isProfileActive ? 'settings' : 'settings-outline'}
+              size={22}
+              color={isProfileActive ? colors.primary : colors.tabInactive}
+            />
+          </View>
+          {!isCollapsed ? (
+            <Text
+              style={[styles.label, isProfileActive && styles.labelActive, labelRevealStyle(isCollapsed)]}
+              accessibilityElementsHidden={isCollapsed}
+              importantForAccessibility={isCollapsed ? 'no' : 'auto'}>
+              Settings
+            </Text>
+          ) : null}
         </Pressable>
       </View>
     </>
@@ -449,7 +470,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   if (isWeb) {
     return (
-      <View style={styles.outerWeb}>
+      <View style={[styles.outerWeb, isCollapsed && { paddingHorizontal: spacing.xs }]}>
         <LiquidGlassSurface
           borderRadius={28}
           style={styles.glassPanel}
