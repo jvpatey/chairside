@@ -45,10 +45,6 @@ export default function ClinicShiftApplicationsScreen() {
   }));
 
   const goBack = useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
     navigateAfterFillInSave(router, resolvedReturnTo);
   }, [resolvedReturnTo]);
 

@@ -8,7 +8,7 @@ import {
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 const HOURS = Array.from({ length: 12 }, (_, index) => index + 1);
 const MINUTES = Array.from({ length: 60 }, (_, index) => index);
@@ -27,6 +27,7 @@ type WebTimePickerPanelProps = {
   value: string;
   onChange: (time: string) => void;
   onDone: () => void;
+  accent?: GradientAccent;
 };
 
 function parseTimeParts(value: string): TimeParts {
@@ -64,6 +65,8 @@ type TimeColumnProps<T extends string | number> = {
   formatValue: (value: T) => string;
   listRef?: RefObject<ScrollView | null>;
   compact?: boolean;
+  brandColor: string;
+  brandSubtle: string;
 };
 
 function TimeColumn<T extends string | number>({
@@ -74,6 +77,8 @@ function TimeColumn<T extends string | number>({
   formatValue,
   listRef,
   compact = false,
+  brandColor,
+  brandSubtle,
 }: TimeColumnProps<T>) {
   const selectedIndex = values.indexOf(selected);
   const listHeight = ROW_HEIGHT * 5;
@@ -117,7 +122,7 @@ function TimeColumn<T extends string | number>({
     },
     rowHovered: webListRowHoverStyles(colors),
     rowSelected: {
-      backgroundColor: colors.primarySubtle,
+      backgroundColor: brandSubtle,
       borderRadius: 10,
       marginHorizontal: spacing.xs,
     },
@@ -130,7 +135,7 @@ function TimeColumn<T extends string | number>({
       color: colors.labelPrimary,
     },
     rowTextSelected: {
-      color: colors.primary,
+      color: brandColor,
       fontWeight: '700',
     },
   }));
@@ -189,7 +194,15 @@ function TimeColumn<T extends string | number>({
   );
 }
 
-export function WebTimePickerPanel({ value, onChange, onDone }: WebTimePickerPanelProps) {
+export function WebTimePickerPanel({
+  value,
+  onChange,
+  onDone,
+  accent = 'primary',
+}: WebTimePickerPanelProps) {
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const [draft, setDraft] = useState<TimeParts>(() => parseTimeParts(value));
   const hourRef = useRef<ScrollView>(null);
   const minuteRef = useRef<ScrollView>(null);
@@ -232,7 +245,7 @@ export function WebTimePickerPanel({ value, onChange, onDone }: WebTimePickerPan
       ...typography.body,
       fontSize: 15,
       fontWeight: '700',
-      color: colors.primary,
+      color: brandColor,
     },
     preview: {
       textAlign: 'center',
@@ -263,6 +276,8 @@ export function WebTimePickerPanel({ value, onChange, onDone }: WebTimePickerPan
           onSelect={(hour12) => setDraft((current) => ({ ...current, hour12 }))}
           formatValue={(hour) => String(hour)}
           listRef={hourRef}
+          brandColor={brandColor}
+          brandSubtle={brandSubtle}
         />
         <TimeColumn
           label="Min"
@@ -271,6 +286,8 @@ export function WebTimePickerPanel({ value, onChange, onDone }: WebTimePickerPan
           onSelect={(minute) => setDraft((current) => ({ ...current, minute }))}
           formatValue={padMinute}
           listRef={minuteRef}
+          brandColor={brandColor}
+          brandSubtle={brandSubtle}
         />
         <TimeColumn
           label="Period"
@@ -279,6 +296,8 @@ export function WebTimePickerPanel({ value, onChange, onDone }: WebTimePickerPan
           selected={draft.period}
           onSelect={(period) => setDraft((current) => ({ ...current, period }))}
           formatValue={(period) => period}
+          brandColor={brandColor}
+          brandSubtle={brandSubtle}
         />
       </View>
 

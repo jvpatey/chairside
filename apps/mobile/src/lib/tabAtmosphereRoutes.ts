@@ -2,6 +2,8 @@ export type TabAtmosphereRole = 'worker' | 'clinic';
 
 export type TabAtmosphereIntensity = 'none' | 'subtle' | 'prominent';
 
+export type TabAtmosphereAccent = 'primary' | 'secondary';
+
 const WORKER_MAIN_TABS = new Set(['browse', 'applications', 'fillins', 'messages']);
 const CLINIC_MAIN_TABS = new Set(['postings', 'applications', 'fill-ins', 'messages']);
 
@@ -114,6 +116,22 @@ export function getTabAtmosphereIntensityFromPathname(
   }
 
   return 'none';
+}
+
+/** Fill-in tabs use the secondary (purple) brand accent for atmosphere and controls. */
+export function getTabAtmosphereAccentFromPathname(
+  pathname: string,
+  role: TabAtmosphereRole,
+): TabAtmosphereAccent {
+  const normalized = normalizePath(pathname);
+  const relative = stripTabGroupPrefix(normalized, role);
+  const mainTab = getMainTabFromRelativePath(relative, role);
+
+  if (mainTab === 'fillins' || mainTab === 'fill-ins') {
+    return 'secondary';
+  }
+
+  return 'primary';
 }
 
 /** @deprecated Prefer `getTabAtmosphereIntensityFromPathname`. */

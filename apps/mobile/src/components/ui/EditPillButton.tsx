@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 
+import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type EditPillButtonProps = {
   label: string;
@@ -10,6 +11,7 @@ type EditPillButtonProps = {
   showIcon?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
+  accent?: GradientAccent;
 };
 
 export function EditPillButton({
@@ -18,8 +20,13 @@ export function EditPillButton({
   showIcon = true,
   style,
   accessibilityLabel,
+  accent,
 }: EditPillButtonProps) {
   const { colors } = useTheme();
+  const tabAccent = useTabAtmosphereAccent();
+  const resolvedAccent = accent ?? tabAccent;
+  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = resolvedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const styles = useThemedStyles(({ colors, spacing }) => ({
     button: {
       flexDirection: 'row',
@@ -41,13 +48,13 @@ export function EditPillButton({
     },
     hovered: {
       ...webChipHoverStyles(colors),
-      backgroundColor: colors.primarySubtle,
-      borderColor: colors.primary,
+      backgroundColor: brandSubtle,
+      borderColor: brandColor,
     },
     label: {
       fontSize: 14,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
       letterSpacing: 0.1,
     },
   }));
@@ -64,7 +71,7 @@ export function EditPillButton({
         webHover(hovered, pressed, styles.hovered),
         pressed && styles.pressed,
       ]}>
-      {showIcon ? <Ionicons name="create-outline" size={15} color={colors.primary} /> : null}
+      {showIcon ? <Ionicons name="create-outline" size={15} color={brandColor} /> : null}
       <Text style={styles.label}>{label}</Text>
     </Pressable>
   );

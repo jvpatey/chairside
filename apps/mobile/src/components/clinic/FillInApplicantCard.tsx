@@ -25,7 +25,7 @@ import {
   type FillInReturnTarget,
 } from '@/lib/routing';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type FillInApplicantApplication = ClinicApplication | FillInCoverRequest;
 
@@ -36,6 +36,7 @@ type FillInApplicantCardProps = {
   hasUnreadMessages?: boolean;
   onUpdated?: () => void;
   onConfirmed?: (payload: HiringCelebrationPayload) => void;
+  accent?: GradientAccent;
 };
 
 function isPending(application: FillInApplicantApplication): boolean {
@@ -62,7 +63,10 @@ export function FillInApplicantCard({
   hasUnreadMessages = false,
   onUpdated,
   onConfirmed,
+  accent = 'secondary',
 }: FillInApplicantCardProps) {
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { refreshPending, isCoverRequestHighlighted, getCoverRequestHighlightLabel } =
     useFillInPending();
@@ -102,7 +106,7 @@ export function FillInApplicantCard({
     unread: {
       fontSize: 13,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
     },
     actions: { gap: spacing.sm },
     row: {
@@ -219,6 +223,7 @@ export function FillInApplicantCard({
           <OnboardingButton
             label={isSubmitting ? 'Accepting…' : 'Accept'}
             disabled={isSubmitting}
+            accent={accent}
             onPress={handleAccept}
           />
           <View style={styles.row}>

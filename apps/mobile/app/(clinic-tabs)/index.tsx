@@ -36,7 +36,7 @@ import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardStatGrid, getDashboardOverviewAccent } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -316,6 +316,7 @@ export default function ClinicDashboardScreen() {
               <DashboardStatGrid
                 selected={selectedOverview}
                 onSelect={setSelectedOverview}
+                accent={getDashboardOverviewAccent(selectedOverview)}
                 stats={[
                   { key: 'roles', label: 'Open roles', value: counts.openRoles },
                   {

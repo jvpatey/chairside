@@ -13,10 +13,18 @@ import {
   getStatSelectedGradient,
   useTheme,
   useThemedStyles,
+  type GradientAccent,
 } from '@/theme';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 
 export type DashboardOverviewStat = 'roles' | 'fill-ins' | 'applications';
+
+/** Purple accent when the dashboard overview pill is on Fill-ins. */
+export function getDashboardOverviewAccent(
+  selected: DashboardOverviewStat,
+): GradientAccent {
+  return selected === 'fill-ins' ? 'secondary' : 'primary';
+}
 
 export type DashboardStatItem<T extends string = DashboardOverviewStat> = {
   key: T;
@@ -36,6 +44,7 @@ type DashboardStatGridProps<T extends string = DashboardOverviewStat> = {
   variant?: DashboardStatGridVariant;
   /** `compact` fits more segments (e.g. applicant pipeline filters). */
   density?: DashboardStatGridDensity;
+  accent?: GradientAccent;
   accessibilityRole?: 'button' | 'tab';
 };
 
@@ -45,12 +54,14 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
   onSelect,
   variant = 'stat',
   density = 'default',
+  accent = 'primary',
   accessibilityRole = 'button',
 }: DashboardStatGridProps<T>) {
   const { colors, isDark } = useTheme();
   const isLabelOnly = variant === 'label';
   const isCompact = density === 'compact';
   const manySegments = stats.length >= 5;
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     grid: {
@@ -114,8 +125,6 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       borderRadius: dashboardControlRadii.statSegment,
       overflow: 'hidden',
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: isDark ? `${colors.primary}77` : `${colors.primary}55`,
-      backgroundColor: isDark ? colorWithAlpha(colors.primary, 0.16) : colors.surfaceElevated,
     },
     gradient: {
       flex: 1,
@@ -131,9 +140,6 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       color: colors.labelPrimary,
       letterSpacing: -0.5,
     },
-    valueSelected: {
-      color: colors.primary,
-    },
     label: {
       fontSize: isLabelOnly ? 14 : manySegments ? 11 : isCompact ? 11 : 10.5,
       lineHeight: isLabelOnly ? 18 : manySegments ? 14 : isCompact ? 14 : 14,
@@ -142,10 +148,16 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       color: colors.labelSecondary,
       textAlign: 'center',
     },
-    labelSelected: {
-      color: isLabelOnly ? colors.primary : colors.labelPrimary,
+    labelSelectedPrimary: {
+      color: colors.labelPrimary,
     },
   }));
+
+  const indicatorAccentStyle = {
+    borderColor: isDark ? `${brandColor}77` : `${brandColor}55`,
+    backgroundColor: isDark ? colorWithAlpha(brandColor, 0.16) : colors.surfaceElevated,
+  };
+  const selectedTextColor = { color: brandColor };
 
   const isWeb = Platform.OS === 'web';
   const selectedIndex = stats.findIndex((stat) => stat.key === selected);
@@ -160,9 +172,12 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
 
   return (
     <View style={styles.grid}>
-      <SlidingSegmentIndicator animatedStyle={indicatorStyle} style={styles.indicator}>
+      <SlidingSegmentIndicator
+        animatedStyle={indicatorStyle}
+        style={[styles.indicator, indicatorAccentStyle]}
+      >
         <LinearGradient
-          colors={getStatSelectedGradient(colors, isDark)}
+          colors={getStatSelectedGradient(colors, isDark, accent)}
           style={styles.gradient}
         />
       </SlidingSegmentIndicator>
@@ -204,10 +219,13 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
                 pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
               ]}>
               {!isLabelOnly ? (
-                <Text style={[styles.value, isSelected && styles.valueSelected]}>{stat.value}</Text>
+                <Text style={[styles.value, isSelected && selectedTextColor]}>{stat.value}</Text>
               ) : null}
               <Text
-                style={[styles.label, isSelected && styles.labelSelected]}
+                style={[
+                  styles.label,
+                  isSelected && (isLabelOnly ? selectedTextColor : styles.labelSelectedPrimary),
+                ]}
                 numberOfLines={1}
                 adjustsFontSizeToFit={isCompact && !manySegments}
                 minimumFontScale={0.85}>

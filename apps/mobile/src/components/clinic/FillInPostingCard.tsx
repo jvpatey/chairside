@@ -25,7 +25,7 @@ import {
   getEditShiftRoute,
   type FillInReturnTarget,
 } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -41,6 +41,7 @@ type FillInPostingCardProps = {
   returnTo?: FillInReturnTarget;
   onShiftUpdated?: (shift: ShiftPost) => void;
   onShiftDeleted?: () => void;
+  accent?: GradientAccent;
 };
 
 export function FillInPostingCard({
@@ -53,12 +54,15 @@ export function FillInPostingCard({
   returnTo = 'fill-ins-tab',
   onShiftUpdated,
   onShiftDeleted,
+  accent = 'secondary',
 }: FillInPostingCardProps) {
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     footer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -68,7 +72,7 @@ export function FillInPostingCard({
     compensation: {
       fontSize: 15,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
     },
     actions: {
       gap: spacing.sm,
@@ -120,12 +124,14 @@ export function FillInPostingCard({
     <ExpandableSurfaceCard
       header={header}
       expanded={expanded}
-      onToggleExpand={toggleExpanded}>
-      <ShiftPostDetailView shift={shift} variant="embedded" showStatusBadge={false} />
+      onToggleExpand={toggleExpanded}
+      accent={accent}>
+      <ShiftPostDetailView shift={shift} variant="embedded" showStatusBadge={false} accent={accent} />
       <View style={styles.actions}>
         {applicationCount > 0 ? (
           <OnboardingButton
             label={reviewLabel}
+            accent={accent}
             onPress={() => router.push(getClinicShiftApplicantsRoute(shift.id, returnTo))}
           />
         ) : null}
@@ -134,6 +140,7 @@ export function FillInPostingCard({
             style={styles.actionButton}
             label="Edit fill-in"
             variant={applicationCount > 0 ? 'secondary' : 'primary'}
+            accent={applicationCount > 0 ? 'primary' : accent}
             onPress={() => router.push(getEditShiftRoute(shift.id, returnTo))}
           />
           {clinicId ? (

@@ -1,17 +1,28 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
-import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { fontRegular, fontSemibold, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type DashboardEmptyStateProps = {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   message: string;
+  accent?: GradientAccent;
 };
 
 /** Branded empty state for dashboard overview panels. */
-export function DashboardEmptyState({ icon, title, message }: DashboardEmptyStateProps) {
-  const { colors } = useTheme();
+export function DashboardEmptyState({
+  icon,
+  title,
+  message,
+  accent,
+}: DashboardEmptyStateProps) {
+  const { colors, isDark } = useTheme();
+  const tabAccent = useTabAtmosphereAccent();
+  const resolvedAccent = accent ?? tabAccent;
+  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = resolvedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
 
   const styles = useThemedStyles(({ colors, spacing, radii, elevation, isDark }) => ({
     card: {
@@ -30,9 +41,6 @@ export function DashboardEmptyState({ icon, title, message }: DashboardEmptyStat
       borderRadius: radii.xxl,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.primarySubtle,
-      borderWidth: 1,
-      borderColor: isDark ? `${colors.primary}55` : `${colors.primary}33`,
     },
     title: {
       fontSize: 17,
@@ -52,10 +60,16 @@ export function DashboardEmptyState({ icon, title, message }: DashboardEmptyStat
     },
   }));
 
+  const motifAccentStyle = {
+    backgroundColor: brandSubtle,
+    borderWidth: 1,
+    borderColor: isDark ? `${brandColor}55` : `${brandColor}33`,
+  };
+
   return (
     <View style={styles.card}>
-      <View style={styles.motif}>
-        <Ionicons name={icon} size={32} color={colors.primary} />
+      <View style={[styles.motif, motifAccentStyle]}>
+        <Ionicons name={icon} size={32} color={brandColor} />
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>

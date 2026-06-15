@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { FilterSheet, FilterSheetSection } from '@/components/ui/FilterSheet';
 import { FilterTriggerButton } from '@/components/ui/FilterTriggerButton';
+import type { GradientAccent } from '@/theme';
 import {
   JOB_POSTED_SORT_OPTIONS,
   JOB_STATUS_FILTER_OPTIONS,
@@ -190,6 +191,7 @@ type ShiftPostingFiltersProps = {
   statusOptions?: { value: ShiftStatusFilter; label: string }[];
   includeStatusInSheet?: boolean;
   includeDateInSheet?: boolean;
+  accent?: GradientAccent;
 };
 
 function countShiftPostingFilterChanges(
@@ -216,6 +218,7 @@ export function ShiftPostingFilters({
   statusOptions = SHIFT_STATUS_FILTER_OPTIONS,
   includeStatusInSheet = true,
   includeDateInSheet = true,
+  accent = 'secondary',
 }: ShiftPostingFiltersProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const resolvedDefaults: Required<ShiftPostingFilterDefaults> = {
@@ -242,12 +245,14 @@ export function ShiftPostingFilters({
         activeCount={activeCount}
         onPress={() => setSheetOpen(true)}
         accessibilityLabel="Filter fill-ins"
+        accent={accent}
       />
       <FilterSheet
         visible={sheetOpen}
         title="Filter fill-ins"
         onClose={() => setSheetOpen(false)}
         onReset={handleReset}
+        accent={accent}
       >
         {includeStatusInSheet ? (
           <FilterSheetSection
@@ -255,6 +260,7 @@ export function ShiftPostingFilters({
             options={statusOptions}
             selected={statusFilter}
             onChange={onStatusChange}
+            accent={accent}
           />
         ) : null}
         <FilterSheetSection
@@ -262,6 +268,7 @@ export function ShiftPostingFilters({
           options={ROLE_TYPE_FILTER_OPTIONS}
           selected={roleTypeFilter}
           onChange={onRoleTypeChange}
+          accent={accent}
         />
         {includeDateInSheet ? (
           <FilterSheetSection
@@ -269,6 +276,7 @@ export function ShiftPostingFilters({
             options={SHIFT_DATE_FILTER_OPTIONS}
             selected={shiftDateFilter}
             onChange={onShiftDateChange}
+            accent={accent}
           />
         ) : null}
       </FilterSheet>

@@ -11,7 +11,7 @@ import {
   toISODate,
   todayISO,
 } from '@/lib/dates';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 const SHIFT_DATE_OPTIONS = [
   { value: 'today' as const, label: 'Today' },
@@ -24,6 +24,7 @@ export type ShiftDateMode = (typeof SHIFT_DATE_OPTIONS)[number]['value'];
 type ShiftDateInputProps = {
   value: string;
   onChange: (isoDate: string) => void;
+  accent?: GradientAccent;
 };
 
 function resolveMode(value: string): ShiftDateMode {
@@ -32,7 +33,10 @@ function resolveMode(value: string): ShiftDateMode {
   return 'custom';
 }
 
-export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
+export function ShiftDateInput({ value, onChange, accent = 'primary' }: ShiftDateInputProps) {
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const today = useMemo(() => startOfDay(new Date()), []);
   const [mode, setMode] = useState<ShiftDateMode>(() => resolveMode(value || todayISO()));
   const [showPicker, setShowPicker] = useState(false);
@@ -55,11 +59,6 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
       padding: spacing.md,
       gap: spacing.xs,
     },
-    dateDisplayActive: {
-      borderWidth: 1,
-      borderColor: colors.primary,
-      backgroundColor: colors.primarySubtle,
-    },
     dateDisplayLabel: {
       fontSize: 13,
       fontWeight: '600',
@@ -72,7 +71,6 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
     changeDateText: {
       ...typography.subtitle,
       fontSize: 14,
-      color: colors.primary,
       fontWeight: '600',
     },
     pickerWrap: {
@@ -83,12 +81,19 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.sm,
     },
-    doneText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.primary,
-    },
   }));
+
+  const dateDisplayActiveStyle = {
+    borderWidth: 1,
+    borderColor: brandColor,
+    backgroundColor: brandSubtle,
+  };
+  const changeDateTextStyle = { color: brandColor };
+  const doneTextStyle = {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: brandColor,
+  };
 
   const handleModeChange = (nextMode: ShiftDateMode) => {
     setMode(nextMode);
@@ -144,10 +149,14 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
         options={[...SHIFT_DATE_OPTIONS]}
         selected={mode}
         onChange={(next) => handleModeChange(next as ShiftDateMode)}
+        accent={accent}
       />
 
       <Pressable
-        style={[styles.dateDisplay, isCustom && showPicker && styles.dateDisplayActive]}
+        style={[
+          styles.dateDisplay,
+          isCustom && showPicker && dateDisplayActiveStyle,
+        ]}
         onPress={handleDateDisplayPress}
         disabled={!isCustom}
         accessibilityRole={isCustom ? 'button' : 'text'}
@@ -156,7 +165,7 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
         <Text style={styles.dateDisplayLabel}>Selected date</Text>
         <Text style={styles.dateDisplayText}>{formatShiftDateLabel(selectedDate)}</Text>
         {isCustom && !showPicker ? (
-          <Text style={styles.changeDateText}>Tap to select date</Text>
+          <Text style={[styles.changeDateText, changeDateTextStyle]}>Tap to select date</Text>
         ) : null}
       </Pressable>
 
@@ -176,7 +185,7 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
               accessibilityRole="button"
               accessibilityLabel="Done selecting date"
             >
-              <Text style={styles.doneText}>Done</Text>
+              <Text style={doneTextStyle}>Done</Text>
             </Pressable>
           ) : null}
         </View>

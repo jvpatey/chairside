@@ -11,13 +11,16 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { CLINIC_FILL_INS, getClinicHomeRoute, getClinicShiftApplicantsRoute, getEditShiftRoute, type FillInReturnTarget } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
+import { getClinicShiftApplicantsRoute, getEditShiftRoute, navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
+import { useThemedStyles, type GradientAccent } from '@/theme';
+
+const FILL_IN_ACCENT: GradientAccent = 'secondary';
 
 export default function ShiftDetailScreen() {
   const { user } = useAuth();
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: FillInReturnTarget }>();
   const shiftId = typeof id === 'string' ? id : '';
+  const resolvedReturnTo = (typeof returnTo === 'string' ? returnTo : 'fill-ins-tab') as FillInReturnTarget;
   const [shift, setShift] = useState<ShiftPost | null>(null);
   const [applicationCount, setApplicationCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +42,10 @@ export default function ShiftDetailScreen() {
     },
   }));
 
+  const handleBack = useCallback(() => {
+    navigateAfterFillInSave(router, resolvedReturnTo);
+  }, [resolvedReturnTo]);
+
   const reviewApplicantsLabel =
     applicationCount === 1 ? 'Review applicant' : `Review ${applicationCount} applicants`;
 
@@ -57,7 +64,7 @@ export default function ShiftDetailScreen() {
       ]);
       if (!nextShift) {
         Alert.alert('Fill-in not found', 'This shift may have been removed.');
-        router.back();
+        handleBack();
         return;
       }
       setShift(nextShift);
@@ -67,11 +74,11 @@ export default function ShiftDetailScreen() {
         'Could not load fill-in',
         error instanceof Error ? error.message : 'Please try again.',
       );
-      router.back();
+      handleBack();
     } finally {
       setIsLoading(false);
     }
-  }, [shiftId, user?.id]);
+  }, [handleBack, shiftId, user?.id]);
 
   useRefreshOnFocus(loadShift);
 
@@ -81,7 +88,8 @@ export default function ShiftDetailScreen() {
         <AuthScreenHeader
           title="Fill-in details"
           subtitle={isLoading ? undefined : 'Fill-in not found.'}
-          onBack={() => router.back()}
+          accent={FILL_IN_ACCENT}
+          onBack={handleBack}
         />
         {isLoading ? <PageLoadingDetail /> : null}
       </OnboardingShell>
@@ -95,6 +103,7 @@ export default function ShiftDetailScreen() {
           {applicationCount > 0 ? (
             <OnboardingButton
               label={reviewApplicantsLabel}
+              accent={FILL_IN_ACCENT}
               onPress={() =>
                 router.push(getClinicShiftApplicantsRoute(shift.id, returnTo ?? 'fill-ins-tab'))
               }
@@ -105,6 +114,7 @@ export default function ShiftDetailScreen() {
               style={styles.footerRowButton}
               label="Edit fill-in"
               variant={applicationCount > 0 ? 'secondary' : 'primary'}
+              accent={applicationCount > 0 ? 'primary' : FILL_IN_ACCENT}
               onPress={() =>
                 router.push(getEditShiftRoute(shift.id, returnTo ?? 'fill-ins-tab'))
               }
@@ -116,13 +126,7 @@ export default function ShiftDetailScreen() {
                 clinicId={user.id}
                 shift={shift}
                 onUpdated={setShift}
-                onDeleted={() =>
-                  router.replace(
-                    returnTo === 'dashboard-fill-ins'
-                      ? getClinicHomeRoute('fill-ins')
-                      : CLINIC_FILL_INS,
-                  )
-                }
+                onDeleted={() => navigateAfterFillInSave(router, resolvedReturnTo)}
               />
             ) : null}
           </View>
@@ -130,8 +134,8 @@ export default function ShiftDetailScreen() {
       }
     >
       <View style={styles.content}>
-        <AuthScreenHeader onBack={() => router.back()} />
-        <ShiftPostDetailView shift={shift} />
+        <AuthScreenHeader accent={FILL_IN_ACCENT} onBack={handleBack} />
+        <ShiftPostDetailView shift={shift} accent={FILL_IN_ACCENT} />
       </View>
     </OnboardingShell>
   );

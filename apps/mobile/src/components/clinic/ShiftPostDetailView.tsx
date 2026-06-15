@@ -12,7 +12,7 @@ import {
 import { ShiftPostStatusBadge } from '@/components/clinic/ShiftPostStatusBadge';
 import { formatShiftPostDateLabel, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { formatTimeRangePreview } from '@/lib/time';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type ShiftPostDetailViewProps = {
   shift: ShiftPost;
@@ -20,6 +20,7 @@ type ShiftPostDetailViewProps = {
   showStatusBadge?: boolean;
   /** Compact labeled rows for inline expandable cards (no hero). */
   variant?: 'full' | 'embedded';
+  accent?: GradientAccent;
 };
 
 export function ShiftPostDetailView({
@@ -27,7 +28,10 @@ export function ShiftPostDetailView({
   softwareUsed,
   showStatusBadge = true,
   variant = 'full',
+  accent = 'primary',
 }: ShiftPostDetailViewProps) {
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const dateLabel = formatShiftPostDateLabel(shift.shift_date);
   const hoursLabel = formatTimeRangePreview(shift.start_time, shift.end_time);
   const description = shift.description?.trim() || null;
@@ -57,7 +61,7 @@ export function ShiftPostDetailView({
       fontWeight: '600',
       letterSpacing: 0.6,
       textTransform: 'uppercase',
-      color: colors.primary,
+      color: brandColor,
     },
     title: {
       ...typography.title,

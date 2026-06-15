@@ -443,19 +443,18 @@ export function getEditShiftRoute(
   } as Href;
 }
 
+export function getFillInReturnRoute(returnTo?: string): Href {
+  if (returnTo === 'dashboard-fill-ins') {
+    return getClinicHomeRoute('fill-ins');
+  }
+  return CLINIC_FILL_INS;
+}
+
 export function navigateAfterFillInSave(
   router: { replace: (href: Href) => void },
   returnTo?: string,
 ) {
-  if (returnTo === 'dashboard-fill-ins') {
-    router.replace(getClinicHomeRoute('fill-ins'));
-    return;
-  }
-  if (returnTo === 'postings-fill-ins') {
-    router.replace(CLINIC_FILL_INS);
-    return;
-  }
-  router.replace(CLINIC_FILL_INS);
+  router.replace(getFillInReturnRoute(returnTo));
 }
 
 export function getHomeRouteForRole(role: UserRole): Href {

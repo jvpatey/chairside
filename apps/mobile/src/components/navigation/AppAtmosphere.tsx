@@ -1,15 +1,16 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, useWindowDimensions } from 'react-native';
 
-import { getAtmosphereGradient, useTheme } from '@/theme';
+import { getAtmosphereGradient, useTheme, type GradientAccent } from '@/theme';
 import type { TabAtmosphereIntensity } from '@/lib/tabAtmosphereRoutes';
 
 type AppAtmosphereProps = {
   intensity?: Exclude<TabAtmosphereIntensity, 'none'>;
+  accent?: GradientAccent;
 };
 
 /** Soft brand wash fixed to the top of tab and hero surfaces. */
-export function AppAtmosphere({ intensity = 'prominent' }: AppAtmosphereProps) {
+export function AppAtmosphere({ intensity = 'prominent', accent = 'primary' }: AppAtmosphereProps) {
   const { colors, isDark } = useTheme();
   const { height } = useWindowDimensions();
   const glowHeight =
@@ -19,7 +20,7 @@ export function AppAtmosphere({ intensity = 'prominent' }: AppAtmosphereProps) {
 
   return (
     <LinearGradient
-      colors={getAtmosphereGradient(colors, isDark, intensity)}
+      colors={getAtmosphereGradient(colors, isDark, intensity, accent)}
       locations={[0, 0.32, 0.62, 1]}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}

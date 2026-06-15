@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
+import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import {
   webFullBleedRowInsets,
   webHover,
   webListRowHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type SettingsRadioRowProps = {
   label: string;
@@ -16,6 +17,7 @@ type SettingsRadioRowProps = {
   disabled?: boolean;
   onPress: () => void;
   bleedPadding?: number;
+  accent?: GradientAccent;
 };
 
 export function SettingsRadioRow({
@@ -25,8 +27,12 @@ export function SettingsRadioRow({
   disabled = false,
   onPress,
   bleedPadding,
+  accent,
 }: SettingsRadioRowProps) {
   const { colors } = useTheme();
+  const tabAccent = useTabAtmosphereAccent();
+  const resolvedAccent = accent ?? tabAccent;
+  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
 
   const styles = useThemedStyles(({ spacing }) => ({
     row: {
@@ -64,7 +70,7 @@ export function SettingsRadioRow({
       <Ionicons
         name={selected ? 'radio-button-on' : 'radio-button-off'}
         size={20}
-        color={selected ? colors.primary : colors.labelTertiary}
+        color={selected ? brandColor : colors.labelTertiary}
       />
       <View style={styles.text}>
         <Text style={[styles.label, selected ? styles.labelSelected : styles.labelUnselected]}>

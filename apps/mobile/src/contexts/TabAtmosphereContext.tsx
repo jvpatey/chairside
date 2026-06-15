@@ -4,16 +4,32 @@ import { usePathname, useSegments } from 'expo-router';
 
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import {
+  getTabAtmosphereAccentFromPathname,
   getTabAtmosphereIntensityFromPathname,
+  type TabAtmosphereAccent,
   type TabAtmosphereIntensity,
   type TabAtmosphereRole,
 } from '@/lib/tabAtmosphereRoutes';
 import { useTheme } from '@/theme';
 
-const TabAtmosphereContext = createContext<TabAtmosphereIntensity>('none');
+type TabAtmosphereState = {
+  intensity: TabAtmosphereIntensity;
+  accent: TabAtmosphereAccent;
+};
+
+const defaultTabAtmosphere: TabAtmosphereState = {
+  intensity: 'none',
+  accent: 'primary',
+};
+
+const TabAtmosphereContext = createContext<TabAtmosphereState>(defaultTabAtmosphere);
 
 export function useTabAtmosphere(): TabAtmosphereIntensity {
-  return useContext(TabAtmosphereContext);
+  return useContext(TabAtmosphereContext).intensity;
+}
+
+export function useTabAtmosphereAccent(): TabAtmosphereAccent {
+  return useContext(TabAtmosphereContext).accent;
 }
 
 type TabAtmosphereShellProps = {
@@ -27,15 +43,16 @@ export function TabAtmosphereShell({ role, children }: TabAtmosphereShellProps) 
   const segments = useSegments();
   const { colors } = useTheme();
   let intensity = getTabAtmosphereIntensityFromPathname(pathname, role);
+  const accent = getTabAtmosphereAccentFromPathname(pathname, role);
 
   if (intensity === 'none' && segments.includes('profile')) {
     intensity = 'subtle';
   }
 
   return (
-    <TabAtmosphereContext.Provider value={intensity}>
+    <TabAtmosphereContext.Provider value={{ intensity, accent }}>
       <View style={{ flex: 1, backgroundColor: colors.backgroundGrouped }}>
-        {intensity !== 'none' ? <AppAtmosphere intensity={intensity} /> : null}
+        {intensity !== 'none' ? <AppAtmosphere intensity={intensity} accent={accent} /> : null}
         <View style={{ flex: 1 }}>{children}</View>
       </View>
     </TabAtmosphereContext.Provider>

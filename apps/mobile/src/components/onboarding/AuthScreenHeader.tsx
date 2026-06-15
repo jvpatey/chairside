@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 import {
   webHover,
   webPointer,
@@ -19,6 +19,7 @@ type AuthScreenHeaderProps = {
   compact?: boolean;
   /** Renders beside the title block (e.g. filter control). */
   accessory?: ReactNode;
+  accent?: GradientAccent;
 };
 
 export function AuthScreenTitle({
@@ -46,7 +47,10 @@ export function AuthScreenHeader({
   backLabel = 'Back',
   compact = false,
   accessory,
+  accent = 'primary',
 }: AuthScreenHeaderProps) {
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.sm,
@@ -67,7 +71,7 @@ export function AuthScreenHeader({
     backText: {
       fontSize: 16,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
     },
     titleRow: {
       flexDirection: 'row',

@@ -16,6 +16,8 @@ export {
   getSecondaryTileGradient,
   getStatSelectedGradient,
   getAppliedRowGradient,
+  getFillInHeroGradient,
+  type GradientAccent,
 } from './gradients';
 export {
   BREAKPOINTS,

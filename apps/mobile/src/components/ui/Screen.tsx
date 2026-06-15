@@ -6,7 +6,7 @@ import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInse
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useTabAtmosphere } from '@/contexts/TabAtmosphereContext';
+import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
@@ -57,11 +57,12 @@ export function Screen({
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
+  const tabAtmosphereAccent = useTabAtmosphereAccent();
   const showAtmosphere = tabAtmosphere !== 'none';
   // Web tab scenes are opaque (see useAdaptiveTabScreenOptions); paint atmosphere per screen.
   const atmosphereLayer =
     showAtmosphere && Platform.OS === 'web'
-      ? <AppAtmosphere intensity={tabAtmosphere} />
+      ? <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
       : null;
   const containerBackground =
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;

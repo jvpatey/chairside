@@ -1,5 +1,15 @@
 import type { Colors } from './colors';
 
+export type GradientAccent = 'primary' | 'secondary';
+
+function resolveAccentColor(colors: Colors, accent: GradientAccent): string {
+  return accent === 'secondary' ? colors.secondary : colors.primary;
+}
+
+function resolveAccentSubtle(colors: Colors, accent: GradientAccent): string {
+  return accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+}
+
 export function colorWithAlpha(hex: string, alpha: number): string {
   const normalized = hex.replace('#', '');
   const r = parseInt(normalized.slice(0, 2), 16);
@@ -13,17 +23,20 @@ export function getAtmosphereGradient(
   colors: Colors,
   isDark: boolean,
   intensity: 'subtle' | 'prominent' = 'prominent',
+  accent: GradientAccent = 'primary',
 ): readonly [string, string, string, string] {
+  const brand = resolveAccentColor(colors, accent);
+
   if (intensity === 'subtle') {
-    const strong = colorWithAlpha(colors.primary, isDark ? 0.16 : 0.11);
-    const mid = colorWithAlpha(colors.primary, isDark ? 0.07 : 0.05);
-    const soft = colorWithAlpha(colors.primary, isDark ? 0.03 : 0.02);
+    const strong = colorWithAlpha(brand, isDark ? 0.16 : 0.11);
+    const mid = colorWithAlpha(brand, isDark ? 0.07 : 0.05);
+    const soft = colorWithAlpha(brand, isDark ? 0.03 : 0.02);
     return [strong, mid, soft, 'transparent'];
   }
 
-  const strong = colorWithAlpha(colors.primary, isDark ? 0.22 : 0.14);
-  const mid = colorWithAlpha(colors.primary, isDark ? 0.1 : 0.06);
-  const soft = colorWithAlpha(colors.primary, isDark ? 0.04 : 0.025);
+  const strong = colorWithAlpha(brand, isDark ? 0.22 : 0.14);
+  const mid = colorWithAlpha(brand, isDark ? 0.1 : 0.06);
+  const soft = colorWithAlpha(brand, isDark ? 0.04 : 0.025);
   return [strong, mid, soft, 'transparent'];
 }
 
@@ -42,10 +55,17 @@ export function getSecondaryTileGradient(colors: Colors, isDark: boolean): reado
 }
 
 /** Selected stat cell accent gradient. */
-export function getStatSelectedGradient(colors: Colors, isDark: boolean): readonly [string, string] {
+export function getStatSelectedGradient(
+  colors: Colors,
+  isDark: boolean,
+  accent: GradientAccent = 'primary',
+): readonly [string, string] {
+  const brand = resolveAccentColor(colors, accent);
+  const subtle = resolveAccentSubtle(colors, accent);
+
   return isDark
-    ? [colorWithAlpha(colors.primary, 0.34), colorWithAlpha(colors.primary, 0.12)]
-    : [colorWithAlpha(colors.primary, 0.16), colorWithAlpha(colors.primarySubtle, 0.9)];
+    ? [colorWithAlpha(brand, 0.34), colorWithAlpha(brand, 0.12)]
+    : [colorWithAlpha(brand, 0.16), colorWithAlpha(subtle, 0.9)];
 }
 
 /** Soft left-edge wash for already-applied browse list rows. */
@@ -62,6 +82,24 @@ export function getAppliedRowGradient(
     : [
         colorWithAlpha(colors.primary, 0.14),
         colorWithAlpha(colors.primary, 0.05),
+        'transparent',
+      ];
+}
+
+/** Fill-in availability hero wash (matches dashboard fill-in accent). */
+export function getFillInHeroGradient(
+  colors: Colors,
+  isDark: boolean,
+): readonly [string, string, string] {
+  return isDark
+    ? [
+        colorWithAlpha(colors.secondary, 0.26),
+        colorWithAlpha(colors.secondary, 0.08),
+        'transparent',
+      ]
+    : [
+        colorWithAlpha(colors.secondary, 0.16),
+        colorWithAlpha(colors.secondary, 0.06),
         'transparent',
       ];
 }

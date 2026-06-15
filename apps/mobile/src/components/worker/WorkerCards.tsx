@@ -12,6 +12,7 @@ import { WorkerApplicationListCard } from '@/components/worker/WorkerApplication
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import {
   DashboardStatGrid,
+  getDashboardOverviewAccent,
   type DashboardOverviewStat,
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
@@ -124,6 +125,7 @@ export function WorkerStatGrid({
     <DashboardStatGrid
       selected={selected}
       onSelect={onSelect}
+      accent={getDashboardOverviewAccent(selected)}
       stats={[
         { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
         { key: 'fill-ins', label: 'Fill-ins', value: openFillIns, badgeCount: fillInUpdateCount },
@@ -230,6 +232,7 @@ export function WorkerOverviewPanel({
             icon="calendar-outline"
             title="No fill-in shifts yet"
             message="Temporary and urgent shifts in your province will show up here."
+            accent="secondary"
           />
         ) : (
           <View style={styles.list}>
@@ -240,6 +243,7 @@ export function WorkerOverviewPanel({
                   <FillInListingCard
                     key={shift.id}
                     shift={shift}
+                    accent="secondary"
                     onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
                   />
                 ))}

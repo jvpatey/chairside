@@ -1,7 +1,7 @@
 import { Platform, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type OnboardingButtonProps = {
   label: string;
@@ -9,6 +9,7 @@ type OnboardingButtonProps = {
   disabled?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
+  accent?: GradientAccent;
 };
 
 export function OnboardingButton({
@@ -17,8 +18,14 @@ export function OnboardingButton({
   disabled,
   onPress,
   style,
+  accent = 'primary',
 }: OnboardingButtonProps) {
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
+  const { colors, isDark } = useTheme();
+  const brandBg = accent === 'secondary' ? colors.secondary : colors.primary;
+  const brandPressed = accent === 'secondary' ? colors.secondaryPressed : colors.primaryPressed;
+  const brandOn = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
+
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     base: {
       alignSelf: 'stretch',
       borderRadius: 12,
@@ -37,19 +44,6 @@ export function OnboardingButton({
       lineHeight: 20,
       textAlign: 'center' as const,
     },
-    primary: {
-      backgroundColor: colors.primary,
-    },
-    primaryPressed: {
-      backgroundColor: colors.primaryPressed,
-    },
-    primaryHovered: webOnlyStyle({
-      backgroundColor: colors.primaryPressed,
-      transform: [{ translateY: -1 }],
-      boxShadow: isDark
-        ? '0 6px 16px rgba(74, 154, 255, 0.28)'
-        : '0 4px 12px rgba(26, 111, 212, 0.28)',
-    } as ViewStyle),
     primaryDisabled: {
       backgroundColor: colors.fillSubtle,
     },
@@ -85,9 +79,6 @@ export function OnboardingButton({
       backgroundColor: `${colors.destructive}0D`,
       borderColor: colors.destructive,
     },
-    labelPrimary: {
-      color: colors.primaryOnPrimary,
-    },
     labelPrimaryDisabled: {
       color: colors.labelTertiary,
     },
@@ -104,6 +95,20 @@ export function OnboardingButton({
 
   const isPrimary = variant === 'primary';
   const isWeb = Platform.OS === 'web';
+  const primaryBg = { backgroundColor: brandBg };
+  const primaryPressedStyle = { backgroundColor: brandPressed };
+  const primaryHoveredStyle = webOnlyStyle({
+    backgroundColor: brandPressed,
+    transform: [{ translateY: -1 }],
+    boxShadow: isDark
+      ? accent === 'secondary'
+        ? '0 6px 16px rgba(88, 86, 214, 0.28)'
+        : '0 6px 16px rgba(74, 154, 255, 0.28)'
+      : accent === 'secondary'
+        ? '0 4px 12px rgba(88, 86, 214, 0.28)'
+        : '0 4px 12px rgba(26, 111, 212, 0.28)',
+  } as ViewStyle);
+  const labelPrimaryStyle = { color: brandOn };
 
   return (
     <Pressable
@@ -117,9 +122,9 @@ export function OnboardingButton({
           (disabled
             ? styles.primaryDisabled
             : [
-                styles.primary,
-                isWeb && hovered && !pressed && styles.primaryHovered,
-                pressed && styles.primaryPressed,
+                primaryBg,
+                isWeb && hovered && !pressed && primaryHoveredStyle,
+                pressed && primaryPressedStyle,
               ]),
         variant === 'secondary' && [
           styles.secondary,
@@ -146,7 +151,7 @@ export function OnboardingButton({
             : variant === 'destructive'
               ? styles.labelDestructive
               : isPrimary
-                ? [styles.labelPrimary, disabled && styles.labelPrimaryDisabled]
+                ? [labelPrimaryStyle, disabled && styles.labelPrimaryDisabled]
                 : styles.labelSecondary,
         ]}
         numberOfLines={2}

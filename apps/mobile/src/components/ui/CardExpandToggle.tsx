@@ -9,7 +9,8 @@ import {
   webListRowHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type CardExpandToggleProps = {
   expanded: boolean;
@@ -17,6 +18,7 @@ type CardExpandToggleProps = {
   bleedPadding?: number;
   /** When true, skip row hover styling (parent card owns hover). */
   suppressHover?: boolean;
+  accent?: GradientAccent;
 };
 
 export function CardExpandToggle({
@@ -24,8 +26,12 @@ export function CardExpandToggle({
   onPress,
   bleedPadding,
   suppressHover = false,
+  accent,
 }: CardExpandToggleProps) {
   const { colors } = useTheme();
+  const tabAccent = useTabAtmosphereAccent();
+  const resolvedAccent = accent ?? tabAccent;
+  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
 
   const styles = useThemedStyles(({ spacing, colors }) => ({
     toggleWrap: {
@@ -50,7 +56,7 @@ export function CardExpandToggle({
     toggleText: {
       fontSize: 14,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
     },
   }));
 
@@ -73,7 +79,7 @@ export function CardExpandToggle({
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={colors.primary}
+          color={brandColor}
         />
       </Pressable>
     </View>

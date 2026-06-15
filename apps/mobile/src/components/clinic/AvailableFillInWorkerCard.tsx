@@ -4,11 +4,12 @@ import { Text, View } from 'react-native';
 
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { useThemedStyles } from '@/theme';
+import { useThemedStyles, type GradientAccent } from '@/theme';
 
 type AvailableFillInWorkerCardProps = {
   worker: FillInOutreachWorker;
   onMessage: () => void;
+  accent?: GradientAccent;
 };
 
 function formatRoleLabels(roleTypes: string[]): string {
@@ -25,7 +26,11 @@ function formatScheduleLines(summary: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-export function AvailableFillInWorkerCard({ worker, onMessage }: AvailableFillInWorkerCardProps) {
+export function AvailableFillInWorkerCard({
+  worker,
+  onMessage,
+  accent = 'secondary',
+}: AvailableFillInWorkerCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -96,6 +101,7 @@ export function AvailableFillInWorkerCard({ worker, onMessage }: AvailableFillIn
 
       <OnboardingButton
         label={worker.existingConversationId ? 'Continue conversation' : 'Message'}
+        accent={accent}
         onPress={onMessage}
       />
     </View>

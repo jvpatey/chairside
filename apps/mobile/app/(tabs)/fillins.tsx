@@ -13,7 +13,6 @@ import { Alert, Pressable, Text, View } from 'react-native';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
-import { RowDivider } from '@/components/clinic/DetailCard';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
@@ -45,11 +44,7 @@ import {
   WORKER_PAST_FILLINS,
   WORKER_SETUP_AVAILABILITY_SCHEDULE,
 } from '@/lib/routing';
-import {
-  webHover,
-  webPointer,
-  webTextLinkHoverStyles,
-} from '@/lib/webPressableStyles';
+import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function navigateToEditSchedule() {
@@ -141,34 +136,30 @@ export default function FillInsScreen() {
       fontWeight: '600',
       color: colors.primary,
     },
-    scheduleSection: {
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.md,
-      gap: spacing.sm,
-    },
-    scheduleSectionMuted: {
+    daysCardMuted: {
       opacity: 0.55,
     },
     scheduleHeader: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: spacing.md,
     },
-    scheduleLabel: {
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: colors.labelSecondary,
+    scheduleHeaderText: {
       flex: 1,
+      gap: spacing.xs,
     },
-    scheduleHint: {
+    scheduleTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      letterSpacing: -0.2,
+      color: colors.labelPrimary,
+    },
+    scheduleSubtitle: {
       ...typography.subtitle,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelTertiary,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
     },
   }));
 
@@ -198,6 +189,7 @@ export default function FillInsScreen() {
                 onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
                 horizontal
                 compact
+                accent="secondary"
               />
               {isLoading ? (
                 <PageLoadingList rowCount={4} />
@@ -297,24 +289,24 @@ export default function FillInsScreen() {
             <View style={styles.panel}>
               <SurfaceCard padding="none">
                 <FillInModePanel variant="grouped" />
-                <RowDivider />
-                <View
-                  style={[
-                    styles.scheduleSection,
-                    !fillInsAvailable && styles.scheduleSectionMuted,
-                  ]}
-                >
-                  <View style={styles.scheduleHeader}>
-                    <Text style={styles.scheduleLabel}>Weekly schedule</Text>
-                    <EditPillButton label="Edit schedule" onPress={navigateToEditSchedule} />
-                  </View>
-                  {!fillInsAvailable ? (
-                    <Text style={styles.scheduleHint}>
-                      Turn on fill-ins to match alerts to your schedule.
+              </SurfaceCard>
+              <SurfaceCard
+                padding="md"
+                gap
+                style={!fillInsAvailable ? styles.daysCardMuted : undefined}
+              >
+                <View style={styles.scheduleHeader}>
+                  <View style={styles.scheduleHeaderText}>
+                    <Text style={styles.scheduleTitle}>Available days</Text>
+                    <Text style={styles.scheduleSubtitle}>
+                      {fillInsAvailable
+                        ? 'The days and hours you can cover fill-in shifts. Used to filter alerts when you choose matching days only.'
+                        : 'Turn on fill-ins above, then choose which days and hours you can cover temp shifts.'}
                     </Text>
-                  ) : null}
-                  <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
+                  </View>
+                  <EditPillButton label="Edit days" onPress={navigateToEditSchedule} />
                 </View>
+                <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
               </SurfaceCard>
             </View>
           ) : null}

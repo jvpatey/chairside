@@ -95,7 +95,8 @@ export function ConfirmedFillInCard({
       header={header}
       expanded={expanded}
       onToggleExpand={toggleExpanded}
-      variant="success">
+      variant="success"
+      accent="secondary">
       <CardDetailSection title="Shift details">
         <View style={styles.detailsCard}>
           <DetailRow label="Name" value={workerName} />

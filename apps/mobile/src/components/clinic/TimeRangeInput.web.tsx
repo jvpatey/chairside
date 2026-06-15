@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 
 import { WebTimeField } from '@/components/clinic/WebDateTimeField.web';
 import { formatTimeRangePreview } from '@/lib/time';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 export type TimeRange = {
   startTime: string;
@@ -17,6 +17,7 @@ type TimeRangeInputProps = {
   onChange: (schedule: TimeRange) => void;
   showPreview?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
+  accent?: GradientAccent;
 };
 
 export function TimeRangeInput({
@@ -26,6 +27,7 @@ export function TimeRangeInput({
   onChange,
   showPreview = false,
   onPickerOpenChange,
+  accent = 'primary',
 }: TimeRangeInputProps) {
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
@@ -86,6 +88,7 @@ export function TimeRangeInput({
             onChange={(startTime) => onChange({ ...schedule, startTime })}
             hint="Tap to select start time"
             onOpenChange={setStartOpen}
+            accent={accent}
           />
         </View>
         <Text style={styles.dash}>–</Text>
@@ -96,6 +99,7 @@ export function TimeRangeInput({
             onChange={(endTime) => onChange({ ...schedule, endTime })}
             hint="Tap to select end time"
             onOpenChange={setEndOpen}
+            accent={accent}
           />
         </View>
       </View>

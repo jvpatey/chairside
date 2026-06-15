@@ -7,6 +7,7 @@ type ThemedSwitchProps = {
   disabled?: boolean;
   onValueChange: (value: boolean) => void;
   trackColorFalse?: string;
+  trackColorTrue?: string;
   accessibilityLabel?: string;
 };
 
@@ -16,10 +17,12 @@ export function ThemedSwitch({
   disabled,
   onValueChange,
   trackColorFalse,
+  trackColorTrue,
   accessibilityLabel,
 }: ThemedSwitchProps) {
   const { colors } = useTheme();
   const offTrack = trackColorFalse ?? colors.fillSubtle;
+  const onTrack = trackColorTrue ?? colors.primary;
 
   return (
     <Switch
@@ -27,7 +30,7 @@ export function ThemedSwitch({
       disabled={disabled}
       onValueChange={onValueChange}
       accessibilityLabel={accessibilityLabel}
-      trackColor={{ false: offTrack, true: colors.primary }}
+      trackColor={{ false: offTrack, true: onTrack }}
       thumbColor={colors.primaryOnPrimary}
       ios_backgroundColor={offTrack}
     />

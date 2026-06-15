@@ -230,6 +230,7 @@ export default function ClinicFillInsScreen() {
           <OnboardingButton
             label="Post fill-in"
             disabled={!isProfileComplete}
+            accent="secondary"
             onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
           />
           <OnboardingButton
@@ -304,6 +305,7 @@ export default function ClinicFillInsScreen() {
                       options={FILL_INS_LIST_MODE_OPTIONS}
                       selected={fillInsListMode}
                       onChange={handleFillInsListModeChange}
+                      accent="secondary"
                     />
                   </View>
                   <ShiftPostingFilters

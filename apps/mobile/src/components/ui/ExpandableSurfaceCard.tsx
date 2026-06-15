@@ -8,7 +8,7 @@ import {
   webListRowHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { spacing, useThemedStyles } from '@/theme';
+import { spacing, useThemedStyles, type GradientAccent } from '@/theme';
 
 import { CardExpandToggle } from './CardExpandToggle';
 import { SurfaceCard, type SurfaceCardVariant } from './SurfaceCard';
@@ -22,6 +22,7 @@ type ExpandableSurfaceCardProps = {
   padding?: 'md' | 'lg';
   bleedPadding?: number;
   style?: StyleProp<ViewStyle>;
+  accent?: GradientAccent;
 };
 
 /**
@@ -36,6 +37,7 @@ export function ExpandableSurfaceCard({
   padding = 'md',
   bleedPadding,
   style,
+  accent,
 }: ExpandableSurfaceCardProps) {
   const bleed = bleedPadding ?? (padding === 'lg' ? spacing.lg : spacing.md);
 
@@ -78,6 +80,7 @@ export function ExpandableSurfaceCard({
         onPress={onToggleExpand}
         bleedPadding={bleed}
         suppressHover
+        accent={accent}
       />
 
       {expanded && children ? <View style={styles.expandedBody}>{children}</View> : null}

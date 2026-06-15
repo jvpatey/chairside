@@ -10,7 +10,7 @@ import {
   formatTimeRangePreview,
   parseTime24h,
 } from '@/lib/time';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 export type TimeRange = {
   startTime: string;
@@ -26,6 +26,7 @@ type TimeRangeInputProps = {
   onChange: (schedule: TimeRange) => void;
   showPreview?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
+  accent?: GradientAccent;
 };
 
 function displayTime(time: string): string {
@@ -46,7 +47,12 @@ export function TimeRangeInput({
   schedule,
   onChange,
   showPreview = false,
+  onPickerOpenChange,
+  accent = 'primary',
 }: TimeRangeInputProps) {
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const [activeField, setActiveField] = useState<ActiveField>(null);
   const [pickerDate, setPickerDate] = useState(() => defaultStartTimeDate());
 
@@ -88,10 +94,6 @@ export function TimeRangeInput({
       paddingVertical: 10,
       alignItems: 'center',
     },
-    timeButtonActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primarySubtle,
-    },
     timeButtonText: {
       fontSize: typography.body.fontSize,
       color: colors.labelPrimary,
@@ -109,11 +111,6 @@ export function TimeRangeInput({
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.sm,
     },
-    doneText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.primary,
-    },
     preview: {
       backgroundColor: colors.fillSubtle,
       borderRadius: 12,
@@ -127,6 +124,16 @@ export function TimeRangeInput({
     },
     previewText: typography.body,
   }));
+
+  const timeButtonActiveStyle = {
+    borderColor: brandColor,
+    backgroundColor: brandSubtle,
+  };
+  const doneTextStyle = {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: brandColor,
+  };
 
   const preview = formatTimeRangePreview(schedule.startTime, schedule.endTime);
 
@@ -182,7 +189,10 @@ export function TimeRangeInput({
         <View style={styles.fieldBlock}>
           <Text style={styles.fieldLabel}>Start</Text>
           <Pressable
-            style={[styles.timeButton, activeField === 'start' && styles.timeButtonActive]}
+            style={[
+              styles.timeButton,
+              activeField === 'start' && timeButtonActiveStyle,
+            ]}
             onPress={() => handleFieldPress('start')}
             accessibilityRole="button"
             accessibilityLabel="Start time"
@@ -196,7 +206,10 @@ export function TimeRangeInput({
         <View style={styles.fieldBlock}>
           <Text style={styles.fieldLabel}>End</Text>
           <Pressable
-            style={[styles.timeButton, activeField === 'end' && styles.timeButtonActive]}
+            style={[
+              styles.timeButton,
+              activeField === 'end' && timeButtonActiveStyle,
+            ]}
             onPress={() => handleFieldPress('end')}
             accessibilityRole="button"
             accessibilityLabel="End time"
@@ -222,7 +235,7 @@ export function TimeRangeInput({
               accessibilityRole="button"
               accessibilityLabel="Done selecting time"
             >
-              <Text style={styles.doneText}>Done</Text>
+              <Text style={doneTextStyle}>Done</Text>
             </Pressable>
           ) : null}
         </View>

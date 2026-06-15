@@ -7,6 +7,8 @@ import {
 } from '@chairside/api';
 import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { useCallback, useEffect, useState } from 'react';
@@ -25,7 +27,25 @@ import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { todayISO } from '@/lib/dates';
 import { isValidTimeRange, normalizeTime24h, parseTime24h } from '@/lib/time';
-import { useTheme, useThemedStyles } from '@/theme';
+import { getFillInHeroGradient, useTheme, useThemedStyles } from '@/theme';
+
+const FILL_IN_ACCENT = 'secondary' as const;
+
+function PostShiftHeroGlow() {
+  const { colors, isDark } = useTheme();
+  const gradient = getFillInHeroGradient(colors, isDark);
+
+  return (
+    <LinearGradient
+      colors={gradient}
+      locations={[0, 0.55, 1]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+    />
+  );
+}
 
 function applyShiftToForm(shift: ShiftPost) {
   return {
@@ -41,9 +61,16 @@ function applyShiftToForm(shift: ShiftPost) {
 export default function PostShiftScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const brandColor = colors.secondary;
+  const brandSubtle = colors.secondarySubtle;
   const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: FillInReturnTarget }>();
   const shiftId = typeof id === 'string' ? id : undefined;
   const isEditing = Boolean(shiftId);
+  const resolvedReturnTo = (typeof returnTo === 'string' ? returnTo : 'fill-ins-tab') as FillInReturnTarget;
+
+  const handleBack = useCallback(() => {
+    navigateAfterFillInSave(router, resolvedReturnTo);
+  }, [resolvedReturnTo]);
 
   const [roleType, setRoleType] = useState<RoleType>('hygienist');
   const [shiftDate, setShiftDate] = useState(todayISO());
@@ -69,7 +96,7 @@ export default function PostShiftScreen() {
     },
     loading: typography.subtitle,
     notice: {
-      backgroundColor: colors.primarySubtle,
+      backgroundColor: brandSubtle,
       borderRadius: 16,
       padding: spacing.lg,
       gap: spacing.sm,
@@ -83,7 +110,7 @@ export default function PostShiftScreen() {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: colors.primary,
+      backgroundColor: brandColor,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -118,7 +145,7 @@ export default function PostShiftScreen() {
         if (Platform.OS !== 'web') {
           Alert.alert('Fill-in not found', message);
         }
-        router.back();
+        handleBack();
         return;
       }
 
@@ -136,11 +163,11 @@ export default function PostShiftScreen() {
       if (Platform.OS !== 'web') {
         Alert.alert('Could not load fill-in', message);
       }
-      router.back();
+      handleBack();
     } finally {
       setIsLoading(false);
     }
-  }, [shiftId, user?.id]);
+  }, [handleBack, shiftId, user?.id]);
 
   useEffect(() => {
     void loadShift();
@@ -209,10 +236,11 @@ export default function PostShiftScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell>
+      <OnboardingShell backgroundAccessory={<PostShiftHeroGlow />}>
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
-          onBack={() => router.back()}
+          accent={FILL_IN_ACCENT}
+          onBack={handleBack}
         />
         <PageLoadingDetail />
       </OnboardingShell>
@@ -220,7 +248,7 @@ export default function PostShiftScreen() {
   }
 
   return (
-    <OnboardingShell>
+    <OnboardingShell backgroundAccessory={<PostShiftHeroGlow />}>
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
@@ -229,7 +257,8 @@ export default function PostShiftScreen() {
               ? 'Update your fill-in shift details.'
               : 'Publish a short-notice or temp shift.'
           }
-          onBack={() => router.back()}
+          accent={FILL_IN_ACCENT}
+          onBack={handleBack}
         />
 
         <FormErrorBanner message={formError} />
@@ -240,10 +269,16 @@ export default function PostShiftScreen() {
             options={ROLE_TYPE_OPTIONS}
             selected={roleType}
             onChange={(value) => setRoleType(value as RoleType)}
+            accent={FILL_IN_ACCENT}
           />
         </View>
 
-        <ShiftDateInput key={`date-${formKey}`} value={shiftDate} onChange={setShiftDate} />
+        <ShiftDateInput
+          key={`date-${formKey}`}
+          value={shiftDate}
+          onChange={setShiftDate}
+          accent={FILL_IN_ACCENT}
+        />
 
         <TimeRangeInput
           sectionLabel="Shift hours"
@@ -253,6 +288,7 @@ export default function PostShiftScreen() {
             setEndTime(nextEnd);
           }}
           showPreview
+          accent={FILL_IN_ACCENT}
         />
 
         <CompensationInput
@@ -274,7 +310,7 @@ export default function PostShiftScreen() {
           <View style={styles.notice}>
             <View style={styles.noticeRow}>
               <View style={styles.noticeIconWrap}>
-                <Ionicons name="notifications" size={18} color={colors.primaryOnPrimary} />
+                <Ionicons name="notifications" size={18} color={colors.secondaryOnSecondary} />
               </View>
               <View style={styles.noticeTextBlock}>
                 <Text style={styles.noticeTitle}>Publishing notifies available workers</Text>
@@ -298,6 +334,7 @@ export default function PostShiftScreen() {
                 : 'Publish fill-in'
           }
           disabled={isSubmitting}
+          accent={FILL_IN_ACCENT}
           onPress={handleSubmit}
         />
       </View>

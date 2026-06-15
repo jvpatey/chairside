@@ -11,7 +11,7 @@ import {
   webListRowHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 export type DayAvailability = {
   day_of_week: number;
@@ -60,9 +60,16 @@ export function dayAvailabilityToBlocks(days: DayAvailability[]): AvailabilityBl
 type AvailabilityScheduleInputProps = {
   days: DayAvailability[];
   onChange: (days: DayAvailability[]) => void;
+  accent?: GradientAccent;
 };
 
-export function AvailabilityScheduleInput({ days, onChange }: AvailabilityScheduleInputProps) {
+export function AvailabilityScheduleInput({
+  days,
+  onChange,
+  accent = 'secondary',
+}: AvailabilityScheduleInputProps) {
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const [pickerOpenDay, setPickerOpenDay] = useState<number | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -121,13 +128,18 @@ export function AvailabilityScheduleInput({ days, onChange }: AvailabilitySchedu
             <View style={styles.rowHeader}>
               <View style={styles.headerText}>
                 <Text style={styles.dayLabel}>{label}</Text>
-                <Text style={styles.statusLabel}>
+                <Text
+                  style={[
+                    styles.statusLabel,
+                    day.enabled && { color: brandColor, fontWeight: '600' },
+                  ]}>
                   {day.enabled ? 'Available' : 'Unavailable'}
                 </Text>
               </View>
               <View style={styles.switchWrap}>
                 <ThemedSwitch
                   value={day.enabled}
+                  trackColorTrue={brandColor}
                   onValueChange={(enabled) => updateDay(day.day_of_week, { enabled })}
                 />
               </View>
@@ -135,6 +147,7 @@ export function AvailabilityScheduleInput({ days, onChange }: AvailabilitySchedu
             {day.enabled ? (
               <View style={styles.times}>
                 <TimeRangeInput
+                  accent={accent}
                   schedule={{
                     startTime: day.start_time,
                     endTime: day.end_time,

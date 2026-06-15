@@ -11,6 +11,7 @@ import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import {
   DashboardStatGrid,
+  getDashboardOverviewAccent,
   type DashboardOverviewStat,
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
@@ -84,6 +85,7 @@ export function StatGrid({
     <DashboardStatGrid
       selected={selected}
       onSelect={onSelect}
+      accent={getDashboardOverviewAccent(selected)}
       stats={[
         { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
         { key: 'fill-ins', label: 'Fill-ins', value: fillInsPosted, badgeCount: fillInUpdateCount },
@@ -267,6 +269,7 @@ export function DashboardOverviewPanel({
             icon="calendar-outline"
             title="No fill-in shifts yet"
             message="Post a fill-in shift when you need temporary coverage."
+            accent="secondary"
           />
         ) : (
           <View style={styles.list}>
@@ -304,6 +307,7 @@ export function DashboardOverviewPanel({
                     applicationCount={shiftApplicationCounts[shift.id] ?? 0}
                     clinicId={clinicId}
                     returnTo={fillInReturnTo}
+                    accent="secondary"
                     expanded={expandedShiftId === shift.id}
                     onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
                     onShiftUpdated={onShiftUpdated}

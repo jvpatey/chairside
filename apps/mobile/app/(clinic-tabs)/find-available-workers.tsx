@@ -4,9 +4,10 @@ import {
   type RoleType,
 } from '@chairside/api';
 import { getRoleTypeLabel, ROLE_TYPE_OPTIONS } from '@chairside/config';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWorkerCard';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
@@ -21,9 +22,28 @@ import {
   CLINIC_SETUP_BASICS,
   getClinicConversationRoute,
   getClinicOutreachComposeRoute,
+  navigateAfterFillInSave,
   type FillInReturnTarget,
 } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
+import { getFillInHeroGradient, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+
+const FILL_IN_ACCENT: GradientAccent = 'secondary';
+
+function FindWorkersHeroGlow() {
+  const { colors, isDark } = useTheme();
+  const gradient = getFillInHeroGradient(colors, isDark);
+
+  return (
+    <LinearGradient
+      colors={gradient}
+      locations={[0, 0.55, 1]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+    />
+  );
+}
 
 type RoleFilter = 'all' | RoleType;
 
@@ -45,6 +65,8 @@ export default function FindAvailableWorkersScreen() {
   const [workers, setWorkers] = useState<FillInOutreachWorker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const { colors } = useTheme();
+  const brandSubtle = colors.secondarySubtle;
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     form: { gap: spacing.lg },
@@ -60,7 +82,7 @@ export default function FindAvailableWorkersScreen() {
       paddingVertical: spacing.lg,
     },
     notice: {
-      backgroundColor: colors.primarySubtle,
+      backgroundColor: brandSubtle,
       borderRadius: 16,
       padding: spacing.lg,
       gap: spacing.xs,
@@ -109,6 +131,10 @@ export default function FindAvailableWorkersScreen() {
 
   useRefreshOnFocus(loadWorkers);
 
+  const handleBack = () => {
+    navigateAfterFillInSave(router, resolvedReturnTo);
+  };
+
   const guardProfile = () => {
     Alert.alert(
       'Complete your clinic profile',
@@ -143,12 +169,13 @@ export default function FindAvailableWorkersScreen() {
   };
 
   return (
-    <OnboardingShell>
+    <OnboardingShell backgroundAccessory={<FindWorkersHeroGlow />}>
       <View style={styles.form}>
         <AuthScreenHeader
           title="Find available workers"
           subtitle="Browse candidates who opted into fill-in outreach and message them directly."
-          onBack={() => router.back()}
+          accent={FILL_IN_ACCENT}
+          onBack={handleBack}
         />
 
         <View style={styles.notice}>
@@ -165,6 +192,7 @@ export default function FindAvailableWorkersScreen() {
             options={ROLE_FILTER_OPTIONS}
             selected={roleFilter}
             onChange={(value) => setRoleFilter(value as RoleFilter)}
+            accent={FILL_IN_ACCENT}
           />
         </View>
 

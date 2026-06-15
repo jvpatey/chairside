@@ -14,7 +14,7 @@ import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
-import { getAppliedRowGradient, radii, spacing, useTheme, useThemedStyles } from '@/theme';
+import { getFillInHeroGradient, radii, spacing, useTheme, useThemedStyles } from '@/theme';
 
 type FillInModePanelProps = {
   showNotificationOptions?: boolean;
@@ -30,7 +30,7 @@ function SettingsSection({
   children,
   nested = false,
 }: {
-  title: string;
+  title?: string;
   children: ReactNode;
   nested?: boolean;
 }) {
@@ -81,7 +81,7 @@ function SettingsSection({
   return (
     <View style={styles.wrap}>
       <View style={styles.panel}>
-        <Text style={styles.title}>{title}</Text>
+        {title ? <Text style={styles.title}>{title}</Text> : null}
         <View style={styles.body}>{children}</View>
       </View>
     </View>
@@ -172,7 +172,7 @@ export function FillInModePanel({
   const phoneNeedsSave = Boolean(phone.trim()) && pendingPhone !== savedPhone;
   const phoneIsSaved = Boolean(savedPhone) && pendingPhone === savedPhone;
   const phoneSaveLabel = hasPhone ? 'Update number' : 'Save number';
-  const primaryGradient = getAppliedRowGradient(colors, isDark);
+  const fillInHeroGradient = getFillInHeroGradient(colors, isDark);
 
   const persist = async (
     available: boolean,
@@ -198,10 +198,7 @@ export function FillInModePanel({
       });
       await refreshWorkerProfile();
     } catch (error) {
-      Alert.alert(
-        'Could not save',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      Alert.alert('Could not save', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -216,7 +213,13 @@ export function FillInModePanel({
       setSmsOptIn(false);
       setAcceptsClinicOutreach(false);
     }
-    await persist(value, value ? mode : 'off', value ? smsOptIn : false, false, value ? acceptsClinicOutreach : false);
+    await persist(
+      value,
+      value ? mode : 'off',
+      value ? smsOptIn : false,
+      false,
+      value ? acceptsClinicOutreach : false,
+    );
   };
 
   const handleOutreachToggle = async (value: boolean) => {
@@ -316,13 +319,14 @@ export function FillInModePanel({
   const clinicOutreachSection = showExpandedSettings ? (
     <>
       <View style={styles.sectionDivider} />
-      <SettingsSection title="Clinic outreach" nested={useNestedSections}>
+      <SettingsSection nested={useNestedSections}>
         <SettingsToggleRow
           title="Let clinics reach out"
           hint="Clinics in your province can find you and message you about fill-ins."
           value={acceptsClinicOutreach}
           disabled={isSaving}
           bleedPadding={useNestedSections ? spacing.md : undefined}
+          accentColor={colors.secondary}
           onValueChange={handleOutreachToggle}
         />
         <View style={styles.radioDivider} />
@@ -336,6 +340,7 @@ export function FillInModePanel({
           value={smsOptIn}
           disabled={isSaving || phoneNeedsSave}
           bleedPadding={useNestedSections ? spacing.md : undefined}
+          accentColor={colors.secondary}
           onValueChange={handleSmsToggle}
         />
         {phoneField}
@@ -361,6 +366,7 @@ export function FillInModePanel({
                 selected={selected}
                 disabled={isSaving}
                 bleedPadding={useNestedSections ? spacing.md : undefined}
+                accent="secondary"
                 onPress={() => handleModeChange(option.value)}
               />
               {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
@@ -377,7 +383,7 @@ export function FillInModePanel({
     <View style={isGrouped ? styles.grouped : styles.card}>
       <View style={styles.primaryHero}>
         <LinearGradient
-          colors={primaryGradient}
+          colors={fillInHeroGradient}
           locations={[0, 0.55, 1]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
@@ -394,6 +400,7 @@ export function FillInModePanel({
           }
           value={shortNoticeAvailable}
           disabled={isSaving}
+          accentColor={colors.secondary}
           onValueChange={handleToggle}
         />
       </View>

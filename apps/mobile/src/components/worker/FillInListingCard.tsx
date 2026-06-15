@@ -9,24 +9,31 @@ import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
-import { useThemedStyles } from '@/theme';
+import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type FillInListingCardProps = {
   shift: LiveShiftPost;
   layout?: ListingLayout;
   onPress?: () => void;
+  accent?: GradientAccent;
 };
 
 export function FillInListingCard({
   shift,
   layout = 'tile',
   onPress,
+  accent,
 }: FillInListingCardProps) {
+  const { colors } = useTheme();
+  const tabAccent = useTabAtmosphereAccent();
+  const resolvedAccent = accent ?? tabAccent;
+  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
   const logoUri = useClinicLogoUri(shift.clinic.logo_storage_path);
   const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
   const roleTitle = formatShiftPostRoleTitle(shift.role_type);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     footer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -36,12 +43,12 @@ export function FillInListingCard({
     compensation: {
       fontSize: 15,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
     },
     listCompensation: {
       fontSize: 13,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
     },
   }));
 
