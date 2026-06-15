@@ -28,6 +28,7 @@ type NotificationContextValue = {
   refreshNotifications: () => Promise<void>;
   markAllRead: () => Promise<void>;
   markRead: (ids: string[]) => Promise<void>;
+  markReadByDeepLink: (deepLink: string) => Promise<void>;
 };
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
@@ -69,6 +70,49 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.warn('Could not mark notifications read', error);
     }
   }, []);
+
+  const markReadByDeepLink = useCallback(
+    async (deepLink: string) => {
+      const client = clientRef.current;
+      if (!client) return;
+
+      const resolvedPath = resolveNotificationDeepLink(deepLink) ?? deepLink;
+      const normalizedPath = resolvedPath.startsWith('/') ? resolvedPath : `/${resolvedPath}`;
+      const chairsideUrl = `chairside://${normalizedPath.replace(/^\//, '')}`;
+
+      const findMatchingIds = (items: InAppNotification[]) =>
+        items
+          .filter((notification) => {
+            if (notification.seen) return false;
+            const redirect =
+              notification.redirectURL ?? notification.template?.instant?.redirectURL ?? '';
+            if (!redirect) return false;
+            const resolvedRedirect = resolveNotificationDeepLink(redirect) ?? redirect;
+            return (
+              redirect === chairsideUrl ||
+              redirect === normalizedPath ||
+              resolvedRedirect === normalizedPath
+            );
+          })
+          .map((notification) => notification.id);
+
+      let matchingIds = findMatchingIds(notifications);
+      if (matchingIds.length === 0) {
+        try {
+          const items = await fetchInAppNotifications(client, { maxCount: 50 });
+          setNotifications(sortNotifications(items));
+          matchingIds = findMatchingIds(items);
+        } catch (error) {
+          console.warn('Could not refresh notifications for push read state', error);
+        }
+      }
+
+      if (matchingIds.length > 0) {
+        await markRead(matchingIds);
+      }
+    },
+    [markRead, notifications],
+  );
 
   const markAllRead = useCallback(async () => {
     const unreadIds = notifications.filter((n) => !n.seen).map((n) => n.id);
@@ -147,8 +191,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       refreshNotifications,
       markAllRead,
       markRead,
+      markReadByDeepLink,
     }),
-    [notifications, unreadCount, isReady, refreshNotifications, markAllRead, markRead],
+    [notifications, unreadCount, isReady, refreshNotifications, markAllRead, markRead, markReadByDeepLink],
   );
 
   return (

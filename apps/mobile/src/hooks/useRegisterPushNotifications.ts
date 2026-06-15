@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { getPingramClientId, resolveNotificationDeepLink } from '@/lib/pingram';
@@ -37,6 +38,7 @@ function getNotificationResponseKey(response: Notifications.NotificationResponse
  */
 export function useRegisterPushNotifications() {
   const { user, profile, isAuthReady } = useAuth();
+  const { markReadByDeepLink } = useNotifications();
   const { workerProfile, isProfileComplete: workerComplete } = useWorkerProfile();
   const { clinicProfile, isProfileComplete: clinicComplete } = useClinicProfile();
   const registeredForUserRef = useRef<string | null>(null);
@@ -72,6 +74,8 @@ export function useRegisterPushNotifications() {
       const path = resolveNotificationDeepLink(getPushDeepLink(data));
       if (!path) return;
 
+      void markReadByDeepLink(path);
+
       if (!canNavigate) {
         pendingRouteRef.current = path;
         return;
@@ -79,7 +83,7 @@ export function useRegisterPushNotifications() {
 
       navigateToPushTarget(path);
     },
-    [canNavigate, navigateToPushTarget],
+    [canNavigate, markReadByDeepLink, navigateToPushTarget],
   );
 
   useEffect(() => {

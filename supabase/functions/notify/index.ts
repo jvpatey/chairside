@@ -220,6 +220,22 @@ function resolveMessageRecipient(
   return null;
 }
 
+function buildSmsOnlyBody(input: {
+  type: string;
+  userId: string;
+  phone: string;
+  smsMessage: string;
+  secondaryId: string;
+}): PingramSendBody {
+  return {
+    type: input.type,
+    to: { id: input.userId, number: input.phone },
+    sms: { message: input.smsMessage },
+    forceChannels: ['SMS'],
+    secondaryId: input.secondaryId,
+  };
+}
+
 function buildSendBody(input: {
   type: string;
   userId: string;
@@ -264,6 +280,7 @@ function buildSendBody(input: {
       push: {
         customData: {
           url: input.deepLink,
+          secondaryId: input.secondaryId,
           ...(input.pushCustomData ?? {}),
         },
       },
@@ -336,6 +353,9 @@ async function handleMessageInsert(
   const senderId = record.sender_id as string;
   const body = (record.body as string | undefined)?.trim() ?? '';
   const triggerSmsAlert = record.trigger_sms_alert === true;
+  const suppressNotification = record.suppress_notification === true;
+
+  if (suppressNotification) return;
 
   const { data: conversation, error: conversationError } = await supabase
     .from('conversations')
@@ -457,26 +477,15 @@ async function handleMessageInsert(
       roleType: conversation.outreach_role_type as string | null,
     });
 
-    const includeSmsPush = await isPushEnabledForUser(
-      supabase,
-      conversation.worker_id,
-      NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
-    );
-
     await pingramSend(
       pingramKey,
       pingramBase,
-      buildSendBody({
+      buildSmsOnlyBody({
         type: PINGRAM_TYPES.fillInOutreachSms,
         userId: conversation.worker_id,
-        title: `Fill-in request from ${clinicName}`,
-        message: smsMessage,
-        deepLink: `chairside:///(tabs)/conversation/${conversation.id}`,
-        secondaryId: smsKey,
-        includePush: includeSmsPush,
-        includeSms: true,
         phone: e164,
         smsMessage,
+        secondaryId: smsKey,
       }),
     );
   }

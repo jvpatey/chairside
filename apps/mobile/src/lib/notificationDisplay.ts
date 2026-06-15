@@ -104,6 +104,11 @@ const TYPE_META: Record<string, NotificationDisplayMeta> = {
     accent: 'primary',
     subtitle: 'New message',
   },
+  fill_in_outreach_sms: {
+    icon: 'chatbubble-ellipses-outline',
+    accent: 'urgent',
+    subtitle: 'Fill-in text alert',
+  },
 };
 
 const DEFAULT_META: NotificationDisplayMeta = {
