@@ -21,6 +21,7 @@ import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
 import { TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
+import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, colorWithAlpha } from '@/theme';
 
@@ -170,7 +171,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       right: 0,
       top: spacing.xs,
       borderRadius: 10,
-      backgroundColor: colors.primarySubtle,
     },
     footer: {
       flexShrink: 0,
@@ -227,7 +227,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       color: colors.labelPrimary,
     },
     labelActive: {
-      color: colors.primary,
       fontWeight: '600',
     },
     badge: {
@@ -266,6 +265,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     focusedVisibleIndex >= 0 ? focusedVisibleIndex : 0,
     'vertical',
   );
+  const focusedRoute = visibleRoutes[focusedVisibleIndex];
+  const focusedAccent = focusedRoute ? getTabAccentForName(focusedRoute.name) : 'primary';
+  const focusedIndicatorColor =
+    focusedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const profileHref = role === 'worker' ? WORKER_PROFILE : CLINIC_PROFILE;
   const isProfileActive = pathname.includes('/profile');
 
@@ -348,13 +351,18 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
       <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
         {!isCollapsed ? (
-          <SlidingSegmentIndicator animatedStyle={navIndicatorStyle} style={styles.navIndicator} />
+          <SlidingSegmentIndicator
+            animatedStyle={navIndicatorStyle}
+            style={[styles.navIndicator, { backgroundColor: focusedIndicatorColor }]}
+          />
         ) : null}
         {visibleRoutes.map((route, index) => {
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((r) => r.key === route.key);
           const isFocused = state.index === routeIndex;
-          const color = isFocused ? colors.primary : colors.tabInactive;
+          const tabAccent = getTabAccentForName(route.name);
+          const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
+          const color = isFocused ? activeColor : colors.tabInactive;
           const label = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
 
           const onPress = () => {
@@ -412,7 +420,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
               </View>
               {!isCollapsed ? (
                 <Text
-                  style={[styles.label, isFocused && styles.labelActive, labelRevealStyle(isCollapsed)]}
+                  style={[
+                    styles.label,
+                    isFocused && [styles.labelActive, { color: activeColor }],
+                    labelRevealStyle(isCollapsed),
+                  ]}
                   numberOfLines={1}
                   accessibilityElementsHidden={isCollapsed}
                   importantForAccessibility={isCollapsed ? 'no' : 'auto'}>

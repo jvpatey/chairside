@@ -23,7 +23,7 @@ import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { DashboardStatGrid, getDashboardOverviewAccent } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardStatGrid, DASHBOARD_OVERVIEW_SEGMENT_ACCENTS, getDashboardOverviewAccent } from '@/components/dashboard/DashboardStatGrid';
 import {
   WorkerDashboardHeaderActions,
   WorkerDashboardHeaderName,
@@ -274,6 +274,7 @@ export default function WorkerDashboardScreen() {
                 selected={selectedOverview}
                 onSelect={setSelectedOverview}
                 accent={getDashboardOverviewAccent(selectedOverview)}
+                segmentAccents={DASHBOARD_OVERVIEW_SEGMENT_ACCENTS}
                 stats={[
                   { key: 'roles', label: 'Open roles', value: openJobs.length },
                   {

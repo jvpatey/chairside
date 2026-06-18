@@ -37,11 +37,11 @@ export const lightColors: Colors = {
   // Brand blue — distinct from system `info`; meets contrast for white label on fills
   primary: '#1A6FD4',
   primaryPressed: '#155EB8',
-  primarySubtle: '#E9F2FC',
+  primarySubtle: '#D6E8FA',
   primaryOnPrimary: '#FFFFFF',
   secondary: '#5856D6',
   secondaryPressed: '#4A48B8',
-  secondarySubtle: '#F0EFFF',
+  secondarySubtle: '#E6E4FF',
   secondaryOnSecondary: '#FFFFFF',
   success: '#248A3D',
   warning: '#C93400',

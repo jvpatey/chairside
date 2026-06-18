@@ -18,6 +18,7 @@ import {
 } from '@/components/dashboard/DashboardHeroIdentity';
 import {
   DashboardStatGrid,
+  DASHBOARD_OVERVIEW_SEGMENT_ACCENTS,
   getDashboardOverviewAccent,
   type DashboardOverviewStat,
 } from '@/components/dashboard/DashboardStatGrid';
@@ -194,6 +195,7 @@ export function WorkerStatGrid({
       selected={selected}
       onSelect={onSelect}
       accent={getDashboardOverviewAccent(selected)}
+      segmentAccents={DASHBOARD_OVERVIEW_SEGMENT_ACCENTS}
       stats={[
         { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
         { key: 'fill-ins', label: 'Fill-ins', value: openFillIns, badgeCount: fillInUpdateCount },

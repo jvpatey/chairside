@@ -50,12 +50,8 @@ export function DashboardQuickActionTile({
       overflow: 'hidden',
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: isPrimary
-        ? isDark
-          ? `${colors.primary}66`
-          : `${colors.primary}44`
-        : isDark
-          ? `${colors.secondary}44`
-          : `${colors.secondary}30`,
+        ? colorWithAlpha(colors.primary, isDark ? 0.4 : 0.34)
+        : colorWithAlpha(colors.secondary, isDark ? 0.27 : 0.3),
       ...elevation('subtle'),
       ...webPointer(),
     },
@@ -88,12 +84,12 @@ export function DashboardQuickActionTile({
       borderWidth: StyleSheet.hairlineWidth,
     },
     iconHaloPrimary: {
-      backgroundColor: colorWithAlpha(colors.primary, isDark ? 0.22 : 0.12),
-      borderColor: colorWithAlpha(colors.primary, isDark ? 0.28 : 0.16),
+      backgroundColor: colorWithAlpha(colors.primary, isDark ? 0.22 : 0.18),
+      borderColor: colorWithAlpha(colors.primary, isDark ? 0.28 : 0.26),
     },
     iconHaloSecondary: {
-      backgroundColor: colorWithAlpha(colors.secondary, isDark ? 0.22 : 0.12),
-      borderColor: colorWithAlpha(colors.secondary, isDark ? 0.28 : 0.16),
+      backgroundColor: colorWithAlpha(colors.secondary, isDark ? 0.22 : 0.18),
+      borderColor: colorWithAlpha(colors.secondary, isDark ? 0.28 : 0.26),
     },
     label: {
       fontSize: 15,

@@ -118,7 +118,10 @@ export function getTabAtmosphereIntensityFromPathname(
   return 'none';
 }
 
-/** Fill-in tabs use the secondary (purple) brand accent for atmosphere and controls. */
+export function getTabAccentForName(tabName: string): TabAtmosphereAccent {
+  return tabName === 'fillins' || tabName === 'fill-ins' ? 'secondary' : 'primary';
+}
+
 export function getTabAtmosphereAccentFromPathname(
   pathname: string,
   role: TabAtmosphereRole,
@@ -127,11 +130,11 @@ export function getTabAtmosphereAccentFromPathname(
   const relative = stripTabGroupPrefix(normalized, role);
   const mainTab = getMainTabFromRelativePath(relative, role);
 
-  if (mainTab === 'fillins' || mainTab === 'fill-ins') {
-    return 'secondary';
+  if (!mainTab) {
+    return 'primary';
   }
 
-  return 'primary';
+  return getTabAccentForName(mainTab);
 }
 
 /** @deprecated Prefer `getTabAtmosphereIntensityFromPathname`. */
