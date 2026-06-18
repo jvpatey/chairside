@@ -33,6 +33,10 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# Supabase local CLI state
+supabase/.temp/
+apps/mobile/supabase/.temp/
+
 # macOS
 .DS_Store
 *.pem

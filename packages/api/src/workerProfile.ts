@@ -163,9 +163,6 @@ export async function upsertWorkerProfile(
   if (partial.accepts_clinic_fill_in_outreach !== undefined) {
     payload.accepts_clinic_fill_in_outreach = partial.accepts_clinic_fill_in_outreach;
   }
-  if (partial.accepts_clinic_fill_in_outreach !== undefined) {
-    payload.accepts_clinic_fill_in_outreach = partial.accepts_clinic_fill_in_outreach;
-  }
   if (partial.job_notification_opt_in !== undefined) {
     payload.job_notification_opt_in = partial.job_notification_opt_in;
   }
@@ -259,7 +256,7 @@ export async function upsertAvailabilityBlocks(
 }
 
 const CLINIC_WORKER_PROFILE_COLUMNS =
-  'id, role_type, role_types, years_of_experience, education, education_graduation_year, education_degree_type, education_field, education_institution, software_used, practice_types, preferred_employment_types, city, province, travel_radius_km, travel_radius_range, bio, short_notice_available, fill_in_notification_mode, resume_storage_path, resume_file_name, resume_uploaded_at, photo_storage_path, photo_uploaded_at, default_cover_message, setup_completed_at, created_at, updated_at';
+  'id, role_type, role_types, years_of_experience, education, education_graduation_year, education_degree_type, education_field, education_institution, software_used, practice_types, preferred_employment_types, city, province, travel_radius_km, travel_radius_range, bio, short_notice_available, fill_in_notification_mode, accepts_clinic_fill_in_outreach, resume_storage_path, resume_file_name, resume_uploaded_at, photo_storage_path, photo_uploaded_at, default_cover_message, setup_completed_at, created_at, updated_at';
 
 /** Worker profile fields exposed to clinics (excludes address, phone, and notification prefs). */
 export type ClinicWorkerProfile = Pick<
@@ -283,7 +280,6 @@ export type ClinicWorkerProfile = Pick<
   | 'bio'
   | 'short_notice_available'
   | 'fill_in_notification_mode'
-  | 'accepts_clinic_fill_in_outreach'
   | 'accepts_clinic_fill_in_outreach'
   | 'resume_storage_path'
   | 'resume_file_name'
