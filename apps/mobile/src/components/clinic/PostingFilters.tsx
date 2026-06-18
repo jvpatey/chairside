@@ -4,16 +4,26 @@ import { FilterSheet, FilterSheetSection } from '@/components/ui/FilterSheet';
 import { FilterTriggerButton } from '@/components/ui/FilterTriggerButton';
 import type { GradientAccent } from '@/theme';
 import {
-  JOB_POSTED_SORT_OPTIONS,
   JOB_STATUS_FILTER_OPTIONS,
+  PAY_LISTED_FILTER_OPTIONS,
   ROLE_TYPE_FILTER_OPTIONS,
   SHIFT_DATE_FILTER_OPTIONS,
   SHIFT_STATUS_FILTER_OPTIONS,
-  type JobPostedSort,
+  WORKER_AVAILABILITY_FILTER_OPTIONS,
+  WORKER_BROWSE_SORT_OPTIONS,
+  WORKER_DISTANCE_FILTER_OPTIONS,
+  WORKER_MATCH_TIER_FILTER_OPTIONS,
+  WORKER_SOFTWARE_FILTER_OPTIONS,
   type JobStatusFilter,
+  type PayListedFilter,
   type RoleTypeFilter,
   type ShiftDateFilter,
   type ShiftStatusFilter,
+  type WorkerAvailabilityFilter,
+  type WorkerBrowseSort,
+  type WorkerDistanceFilter,
+  type WorkerMatchTierFilter,
+  type WorkerSoftwareFilter,
 } from '@/lib/postingFilters';
 
 type RolePostingFiltersProps = {
@@ -77,26 +87,57 @@ export function RoleTypeFilters({
 
 type WorkerRoleBrowseFiltersProps = {
   roleTypeFilter: RoleTypeFilter;
-  postedSort: JobPostedSort;
+  sort: WorkerBrowseSort;
+  distanceFilter: WorkerDistanceFilter;
+  softwareFilter: WorkerSoftwareFilter;
+  payListedFilter: PayListedFilter;
+  matchTierFilter: WorkerMatchTierFilter;
   onRoleTypeChange: (value: RoleTypeFilter) => void;
-  onPostedSortChange: (value: JobPostedSort) => void;
+  onSortChange: (value: WorkerBrowseSort) => void;
+  onDistanceFilterChange: (value: WorkerDistanceFilter) => void;
+  onSoftwareFilterChange: (value: WorkerSoftwareFilter) => void;
+  onPayListedFilterChange: (value: PayListedFilter) => void;
+  onMatchTierFilterChange: (value: WorkerMatchTierFilter) => void;
 };
 
 export function WorkerRoleBrowseFilters({
   roleTypeFilter,
-  postedSort,
+  sort,
+  distanceFilter,
+  softwareFilter,
+  payListedFilter,
+  matchTierFilter,
   onRoleTypeChange,
-  onPostedSortChange,
+  onSortChange,
+  onDistanceFilterChange,
+  onSoftwareFilterChange,
+  onPayListedFilterChange,
+  onMatchTierFilterChange,
 }: WorkerRoleBrowseFiltersProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const defaults = { roleTypeFilter: 'all' as RoleTypeFilter, postedSort: 'newest' as JobPostedSort };
+  const defaults = {
+    roleTypeFilter: 'all' as RoleTypeFilter,
+    sort: 'recommended' as WorkerBrowseSort,
+    distanceFilter: 'all' as WorkerDistanceFilter,
+    softwareFilter: 'all' as WorkerSoftwareFilter,
+    payListedFilter: 'all' as PayListedFilter,
+    matchTierFilter: 'all' as WorkerMatchTierFilter,
+  };
   const activeCount =
     (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
-    (postedSort === defaults.postedSort ? 0 : 1);
+    (sort === defaults.sort ? 0 : 1) +
+    (distanceFilter === defaults.distanceFilter ? 0 : 1) +
+    (softwareFilter === defaults.softwareFilter ? 0 : 1) +
+    (payListedFilter === defaults.payListedFilter ? 0 : 1) +
+    (matchTierFilter === defaults.matchTierFilter ? 0 : 1);
 
   const handleReset = () => {
     onRoleTypeChange(defaults.roleTypeFilter);
-    onPostedSortChange(defaults.postedSort);
+    onSortChange(defaults.sort);
+    onDistanceFilterChange(defaults.distanceFilter);
+    onSoftwareFilterChange(defaults.softwareFilter);
+    onPayListedFilterChange(defaults.payListedFilter);
+    onMatchTierFilterChange(defaults.matchTierFilter);
   };
 
   return (
@@ -113,16 +154,159 @@ export function WorkerRoleBrowseFilters({
         onReset={handleReset}
       >
         <FilterSheetSection
+          label="Sort by"
+          options={WORKER_BROWSE_SORT_OPTIONS}
+          selected={sort}
+          onChange={onSortChange}
+        />
+        <FilterSheetSection
+          label="Distance"
+          options={WORKER_DISTANCE_FILTER_OPTIONS}
+          selected={distanceFilter}
+          onChange={onDistanceFilterChange}
+        />
+        <FilterSheetSection
           label="Role type"
           options={ROLE_TYPE_FILTER_OPTIONS}
           selected={roleTypeFilter}
           onChange={onRoleTypeChange}
         />
         <FilterSheetSection
-          label="Date posted"
-          options={JOB_POSTED_SORT_OPTIONS}
-          selected={postedSort}
-          onChange={onPostedSortChange}
+          label="Match tier"
+          options={WORKER_MATCH_TIER_FILTER_OPTIONS}
+          selected={matchTierFilter}
+          onChange={onMatchTierFilterChange}
+        />
+        <FilterSheetSection
+          label="Software"
+          options={WORKER_SOFTWARE_FILTER_OPTIONS}
+          selected={softwareFilter}
+          onChange={onSoftwareFilterChange}
+        />
+        <FilterSheetSection
+          label="Pay"
+          options={PAY_LISTED_FILTER_OPTIONS}
+          selected={payListedFilter}
+          onChange={onPayListedFilterChange}
+        />
+      </FilterSheet>
+    </>
+  );
+}
+
+type WorkerFillInBrowseFiltersProps = {
+  roleTypeFilter: RoleTypeFilter;
+  sort: WorkerBrowseSort;
+  distanceFilter: WorkerDistanceFilter;
+  softwareFilter: WorkerSoftwareFilter;
+  payListedFilter: PayListedFilter;
+  availabilityFilter: WorkerAvailabilityFilter;
+  onRoleTypeChange: (value: RoleTypeFilter) => void;
+  onSortChange: (value: WorkerBrowseSort) => void;
+  onDistanceFilterChange: (value: WorkerDistanceFilter) => void;
+  onSoftwareFilterChange: (value: WorkerSoftwareFilter) => void;
+  onPayListedFilterChange: (value: PayListedFilter) => void;
+  onAvailabilityFilterChange: (value: WorkerAvailabilityFilter) => void;
+  accent?: GradientAccent;
+};
+
+export function WorkerFillInBrowseFilters({
+  roleTypeFilter,
+  sort,
+  distanceFilter,
+  softwareFilter,
+  payListedFilter,
+  availabilityFilter,
+  onRoleTypeChange,
+  onSortChange,
+  onDistanceFilterChange,
+  onSoftwareFilterChange,
+  onPayListedFilterChange,
+  onAvailabilityFilterChange,
+  accent = 'secondary',
+}: WorkerFillInBrowseFiltersProps) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const defaults = {
+    roleTypeFilter: 'all' as RoleTypeFilter,
+    sort: 'recommended' as WorkerBrowseSort,
+    distanceFilter: 'all' as WorkerDistanceFilter,
+    softwareFilter: 'all' as WorkerSoftwareFilter,
+    payListedFilter: 'all' as PayListedFilter,
+    availabilityFilter: 'all' as WorkerAvailabilityFilter,
+  };
+  const activeCount =
+    (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
+    (sort === defaults.sort ? 0 : 1) +
+    (distanceFilter === defaults.distanceFilter ? 0 : 1) +
+    (softwareFilter === defaults.softwareFilter ? 0 : 1) +
+    (payListedFilter === defaults.payListedFilter ? 0 : 1) +
+    (availabilityFilter === defaults.availabilityFilter ? 0 : 1);
+
+  const handleReset = () => {
+    onRoleTypeChange(defaults.roleTypeFilter);
+    onSortChange(defaults.sort);
+    onDistanceFilterChange(defaults.distanceFilter);
+    onSoftwareFilterChange(defaults.softwareFilter);
+    onPayListedFilterChange(defaults.payListedFilter);
+    onAvailabilityFilterChange(defaults.availabilityFilter);
+  };
+
+  return (
+    <>
+      <FilterTriggerButton
+        activeCount={activeCount}
+        onPress={() => setSheetOpen(true)}
+        accessibilityLabel="Filter fill-ins"
+        accent={accent}
+      />
+      <FilterSheet
+        visible={sheetOpen}
+        title="Filter fill-ins"
+        onClose={() => setSheetOpen(false)}
+        onReset={handleReset}
+        accent={accent}
+      >
+        <FilterSheetSection
+          label="Sort by"
+          options={WORKER_BROWSE_SORT_OPTIONS}
+          selected={sort}
+          onChange={onSortChange}
+          accent={accent}
+        />
+        <FilterSheetSection
+          label="Distance"
+          options={WORKER_DISTANCE_FILTER_OPTIONS}
+          selected={distanceFilter}
+          onChange={onDistanceFilterChange}
+          accent={accent}
+        />
+        <FilterSheetSection
+          label="Role type"
+          options={ROLE_TYPE_FILTER_OPTIONS}
+          selected={roleTypeFilter}
+          onChange={onRoleTypeChange}
+          accent={accent}
+        />
+        <FilterSheetSection
+          label="Availability"
+          options={WORKER_AVAILABILITY_FILTER_OPTIONS}
+          selected={availabilityFilter}
+          onChange={onAvailabilityFilterChange}
+          accent={accent}
+        />
+        <FilterSheetSection
+          label="Software"
+          options={WORKER_SOFTWARE_FILTER_OPTIONS}
+          selected={softwareFilter}
+          onChange={onSoftwareFilterChange}
+          accent={accent}
+        />
+        <FilterSheetSection
+          label="Pay"
+          options={PAY_LISTED_FILTER_OPTIONS}
+          selected={payListedFilter}
+          onChange={onPayListedFilterChange}
+          accent={accent}
         />
       </FilterSheet>
     </>

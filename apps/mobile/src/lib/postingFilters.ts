@@ -1,6 +1,7 @@
 import type { JobPost, ShiftPost } from '@chairside/api';
 import type { RoleType } from '@chairside/config';
-import { ROLE_TYPE_OPTIONS, formatDisplayLabel } from '@chairside/config';
+import { ROLE_TYPE_OPTIONS, SOFTWARE_OPTIONS, formatDisplayLabel } from '@chairside/config';
+import type { MatchTier } from '@chairside/core';
 
 import { parseISODate, startOfDay, todayISO } from '@/lib/dates';
 
@@ -17,6 +18,60 @@ export type JobPostedSort = 'newest' | 'oldest';
 export const JOB_POSTED_SORT_OPTIONS: { value: JobPostedSort; label: string }[] = [
   { value: 'newest', label: 'Newest' },
   { value: 'oldest', label: 'Oldest' },
+];
+
+export type WorkerBrowseSort = 'recommended' | 'distance' | 'newest' | 'oldest';
+
+export const WORKER_BROWSE_SORT_OPTIONS: { value: WorkerBrowseSort; label: string }[] = [
+  { value: 'recommended', label: 'Recommended' },
+  { value: 'distance', label: 'Nearest' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+];
+
+export type WorkerDistanceFilter = 'all' | 'near_me' | 'distance_available';
+
+export const WORKER_DISTANCE_FILTER_OPTIONS: { value: WorkerDistanceFilter; label: string }[] = [
+  { value: 'all', label: 'Any distance' },
+  { value: 'near_me', label: 'Near me' },
+  { value: 'distance_available', label: 'Has distance' },
+];
+
+export type WorkerMatchTierFilter = 'all' | MatchTier;
+
+export const WORKER_MATCH_TIER_FILTER_OPTIONS: { value: WorkerMatchTierFilter; label: string }[] = [
+  { value: 'all', label: 'All matches' },
+  { value: 'strong', label: 'Strong' },
+  { value: 'good', label: 'Good' },
+  { value: 'partial', label: 'Partial' },
+  { value: 'none', label: 'Not a match' },
+];
+
+export type PayListedFilter = 'all' | 'listed_only';
+
+export const PAY_LISTED_FILTER_OPTIONS: { value: PayListedFilter; label: string }[] = [
+  { value: 'all', label: 'Any pay' },
+  { value: 'listed_only', label: 'Pay listed' },
+];
+
+export type WorkerSoftwareFilter = 'all' | (typeof SOFTWARE_OPTIONS)[number];
+
+export const WORKER_SOFTWARE_FILTER_OPTIONS: { value: WorkerSoftwareFilter; label: string }[] = [
+  { value: 'all', label: 'Any software' },
+  ...SOFTWARE_OPTIONS.filter((option) => option !== 'None' && option !== 'Other').map((option) => ({
+    value: option as WorkerSoftwareFilter,
+    label: option,
+  })),
+];
+
+export type WorkerAvailabilityFilter = 'all' | 'my_available_days';
+
+export const WORKER_AVAILABILITY_FILTER_OPTIONS: {
+  value: WorkerAvailabilityFilter;
+  label: string;
+}[] = [
+  { value: 'all', label: 'Any day' },
+  { value: 'my_available_days', label: 'My available days' },
 ];
 
 export function sortJobsByPostedDate<T extends { created_at: string }>(

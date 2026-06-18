@@ -11,17 +11,17 @@ import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
+import { ROLES_BROWSE_MODE_OPTIONS, type RolesBrowseMode } from '@/lib/postingFilters';
 import {
-  ROLES_BROWSE_MODE_OPTIONS,
-  sortJobsByPostedDate,
-  type JobPostedSort,
-  type RoleTypeFilter,
-  type RolesBrowseMode,
-} from '@/lib/postingFilters';
+  DEFAULT_WORKER_ROLE_BROWSE_FILTERS,
+  filterAndSortLiveJobs,
+  type EnrichedLiveJobPost,
+} from '@/lib/workerBrowseFilters';
 import { buildLiveJobMatchDisplayContext, computeJobMatchBreakdown } from '@/lib/workerMatch';
 import { getWorkerJobDetailRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -71,7 +71,7 @@ function BrowseEmptyState({
 }
 
 function renderRoleListingCards(
-  jobs: LiveJobPost[],
+  jobs: EnrichedLiveJobPost[],
   appliedJobIds: Set<string>,
   workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
 ) {
@@ -81,6 +81,7 @@ function renderRoleListingCards(
       job={job}
       layout="list"
       hasApplied={appliedJobIds.has(job.id)}
+      distanceLabel={job.distanceLabel}
       jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
       matchContext={workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined}
       onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
@@ -96,8 +97,23 @@ export default function BrowseScreen() {
   const [selectedMode, setSelectedMode] = useState<RolesBrowseMode>('open');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
-  const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
-  const [postedSort, setPostedSort] = useState<JobPostedSort>('newest');
+  const [searchQuery, setSearchQuery] = useState(DEFAULT_WORKER_ROLE_BROWSE_FILTERS.searchQuery);
+  const [roleTypeFilter, setRoleTypeFilter] = useState(
+    DEFAULT_WORKER_ROLE_BROWSE_FILTERS.roleTypeFilter,
+  );
+  const [sort, setSort] = useState(DEFAULT_WORKER_ROLE_BROWSE_FILTERS.sort);
+  const [distanceFilter, setDistanceFilter] = useState(
+    DEFAULT_WORKER_ROLE_BROWSE_FILTERS.distanceFilter,
+  );
+  const [softwareFilter, setSoftwareFilter] = useState(
+    DEFAULT_WORKER_ROLE_BROWSE_FILTERS.softwareFilter,
+  );
+  const [payListedFilter, setPayListedFilter] = useState(
+    DEFAULT_WORKER_ROLE_BROWSE_FILTERS.payListedFilter,
+  );
+  const [matchTierFilter, setMatchTierFilter] = useState(
+    DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter,
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -119,15 +135,33 @@ export default function BrowseScreen() {
 
   useRefreshOnFocus(load);
 
-  const filteredJobs = useMemo(() => {
-    const byRole =
-      roleTypeFilter === 'all' ? jobs : jobs.filter((job) => job.role_type === roleTypeFilter);
-    return sortJobsByPostedDate(byRole, postedSort);
-  }, [jobs, postedSort, roleTypeFilter]);
+  const filteredJobs = useMemo(
+    () =>
+      filterAndSortLiveJobs(jobs, workerProfile, {
+        searchQuery,
+        roleTypeFilter,
+        sort,
+        distanceFilter,
+        softwareFilter,
+        payListedFilter,
+        matchTierFilter,
+      }),
+    [
+      distanceFilter,
+      jobs,
+      matchTierFilter,
+      payListedFilter,
+      roleTypeFilter,
+      searchQuery,
+      softwareFilter,
+      sort,
+      workerProfile,
+    ],
+  );
 
   const { openJobs, appliedJobs } = useMemo(() => {
-    const open: LiveJobPost[] = [];
-    const applied: LiveJobPost[] = [];
+    const open: EnrichedLiveJobPost[] = [];
+    const applied: EnrichedLiveJobPost[] = [];
 
     for (const job of filteredJobs) {
       if (appliedJobIds.has(job.id)) {
@@ -142,63 +176,57 @@ export default function BrowseScreen() {
 
   const hasBothSections = openJobs.length > 0 && appliedJobs.length > 0;
   const segmentJobs = selectedMode === 'open' ? openJobs : appliedJobs;
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 ||
+    roleTypeFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.roleTypeFilter ||
+    sort !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.sort ||
+    distanceFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.distanceFilter ||
+    softwareFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.softwareFilter ||
+    payListedFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.payListedFilter ||
+    matchTierFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter;
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
-    panel: { gap: spacing.md },
+    panel: { gap: spacing.lg },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    searchField: { flex: 1, minWidth: 0 },
   }));
 
-  const showRoleFilters = !isLoading && jobs.length > 0;
+  const showBrowseControls = !isLoading && jobs.length > 0;
 
-  const roleListContent = hasBothSections ? (
-    <View style={styles.panel}>
-      <SegmentedControl
-        options={ROLES_BROWSE_MODE_OPTIONS}
-        selected={selectedMode}
-        onChange={setSelectedMode}
-        density="compact"
-      />
-      {segmentJobs.length === 0 ? (
-        <DashboardEmptyState
-          icon={selectedMode === 'open' ? 'briefcase-outline' : 'checkmark-circle-outline'}
-          title={
-            selectedMode === 'open'
-              ? 'No open roles in this filter'
-              : 'No applied roles in this filter'
-          }
-          message={
-            selectedMode === 'open'
-              ? 'Try a different filter or check the Applied tab.'
-              : 'Roles you apply to will appear here while they are still posted.'
-          }
+  const browseControls = showBrowseControls ? (
+    <View style={styles.searchRow}>
+      <View style={styles.searchField}>
+        <WorkerBrowseSearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search roles, clinics, cities, or pay"
+          accessibilityLabel="Search roles"
         />
-      ) : (
-        <BrowseListGroup>
-          {renderRoleListingCards(segmentJobs, appliedJobIds, workerProfile)}
-        </BrowseListGroup>
-      )}
+      </View>
+      <WorkerRoleBrowseFilters
+        roleTypeFilter={roleTypeFilter}
+        sort={sort}
+        distanceFilter={distanceFilter}
+        softwareFilter={softwareFilter}
+        payListedFilter={payListedFilter}
+        matchTierFilter={matchTierFilter}
+        onRoleTypeChange={setRoleTypeFilter}
+        onSortChange={setSort}
+        onDistanceFilterChange={setDistanceFilter}
+        onSoftwareFilterChange={setSoftwareFilter}
+        onPayListedFilterChange={setPayListedFilter}
+        onMatchTierFilterChange={setMatchTierFilter}
+      />
     </View>
-  ) : (
-    <BrowseListGroup>
-      {renderRoleListingCards(filteredJobs, appliedJobIds, workerProfile)}
-    </BrowseListGroup>
-  );
+  ) : null;
 
   return (
-    <Screen
-      title="Roles"
-      subtitle="Open roles in your province."
-      headerAccessory={
-        showRoleFilters ? (
-          <WorkerRoleBrowseFilters
-            roleTypeFilter={roleTypeFilter}
-            postedSort={postedSort}
-            onRoleTypeChange={setRoleTypeFilter}
-            onPostedSortChange={setPostedSort}
-          />
-        ) : undefined
-      }
-    >
+    <Screen title="Roles" subtitle="Open roles in your province.">
       <View style={styles.wrap}>
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
@@ -208,14 +236,53 @@ export default function BrowseScreen() {
             title="No open roles"
             body="Check back soon for new opportunities in your province."
           />
-        ) : filteredJobs.length === 0 ? (
-          <BrowseEmptyState
-            icon="filter-outline"
-            title="No roles in this filter"
-            body="Try a different filter or check back soon for new opportunities."
-          />
         ) : (
-          roleListContent
+          <View style={styles.panel}>
+            {hasBothSections ? (
+              <SegmentedControl
+                options={ROLES_BROWSE_MODE_OPTIONS}
+                selected={selectedMode}
+                onChange={setSelectedMode}
+                density="compact"
+              />
+            ) : null}
+            {browseControls}
+            {filteredJobs.length === 0 ? (
+              <BrowseEmptyState
+                icon="filter-outline"
+                title="No roles match your search"
+                body={
+                  hasActiveFilters
+                    ? 'Try a different search term or adjust your filters.'
+                    : 'Check back soon for new opportunities.'
+                }
+              />
+            ) : hasBothSections ? (
+              segmentJobs.length === 0 ? (
+                <DashboardEmptyState
+                  icon={selectedMode === 'open' ? 'briefcase-outline' : 'checkmark-circle-outline'}
+                  title={
+                    selectedMode === 'open'
+                      ? 'No open roles in this filter'
+                      : 'No applied roles in this filter'
+                  }
+                  message={
+                    selectedMode === 'open'
+                      ? 'Try a different search or filter, or check the Applied tab.'
+                      : 'Roles you apply to will appear here while they are still posted.'
+                  }
+                />
+              ) : (
+                <BrowseListGroup>
+                  {renderRoleListingCards(segmentJobs, appliedJobIds, workerProfile)}
+                </BrowseListGroup>
+              )
+            ) : (
+              <BrowseListGroup>
+                {renderRoleListingCards(filteredJobs, appliedJobIds, workerProfile)}
+              </BrowseListGroup>
+            )}
+          </View>
         )}
       </View>
     </Screen>

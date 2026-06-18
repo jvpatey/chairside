@@ -15,6 +15,7 @@ import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 type FillInListingCardProps = {
   shift: LiveShiftPost;
   layout?: ListingLayout;
+  distanceLabel?: string | null;
   onPress?: () => void;
   accent?: GradientAccent;
 };
@@ -22,6 +23,7 @@ type FillInListingCardProps = {
 export function FillInListingCard({
   shift,
   layout = 'tile',
+  distanceLabel,
   onPress,
   accent,
 }: FillInListingCardProps) {
@@ -30,7 +32,12 @@ export function FillInListingCard({
   const resolvedAccent = accent ?? tabAccent;
   const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
   const logoUri = useClinicLogoUri(shift.clinic.logo_storage_path);
-  const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
+  const locationBase = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
+  const location = distanceLabel
+    ? locationBase
+      ? `${locationBase} • ${distanceLabel}`
+      : distanceLabel
+    : locationBase;
   const roleTitle = formatShiftPostRoleTitle(shift.role_type);
 
   const styles = useThemedStyles(({ spacing }) => ({
