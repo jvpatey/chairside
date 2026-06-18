@@ -1,5 +1,7 @@
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Text, View } from 'react-native';
 
+import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { useEnterAnimation, usePulseOpacity } from '@/lib/motion';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type PageLoadingSpinnerProps = {
@@ -11,25 +13,75 @@ type PageLoadingListProps = {
   rowCount?: number;
 };
 
-/** Full-screen centered spinner for route gates and auth transitions. */
+function LoadingDots({ pulse }: { pulse: Animated.Value }) {
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.primary,
+    },
+  }));
+
+  return (
+    <View style={styles.row}>
+      {[0, 1, 2].map((index) => (
+        <Animated.View
+          key={index}
+          style={[
+            styles.dot,
+            {
+              opacity: pulse.interpolate({
+                inputRange: [0.45, 1],
+                outputRange: [0.35 + index * 0.15, 1 - index * 0.1],
+              }),
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** Full-screen branded loader for route gates and auth transitions. */
 export function PageLoadingSpinner({ message }: PageLoadingSpinnerProps) {
-  const { colors } = useTheme();
+  const pulse = usePulseOpacity();
+  const { opacity, translateY } = useEnterAnimation();
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.background,
-      gap: spacing.md,
+      backgroundColor: colors.backgroundGrouped,
+      gap: spacing.lg,
     },
-    message: typography.subtitle,
+    wordmarkWrap: {
+      alignItems: 'center',
+    },
+    message: {
+      ...typography.subtitle,
+      textAlign: 'center',
+    },
   }));
 
   return (
-    <View style={styles.container}>
-      <ActivityIndicator color={colors.primary} size="large" />
+    <Animated.View
+      style={[styles.container, { opacity, transform: [{ translateY }] }]}
+      accessibilityRole="progressbar"
+      accessibilityLabel={message ?? 'Loading'}
+    >
+      <Animated.View style={[styles.wordmarkWrap, { opacity: pulse }]}>
+        <ChairsideWordmark variant="hero" />
+      </Animated.View>
+      <LoadingDots pulse={pulse} />
       {message ? <Text style={styles.message}>{message}</Text> : null}
-    </View>
+    </Animated.View>
   );
 }
 

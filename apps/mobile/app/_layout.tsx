@@ -18,8 +18,8 @@ import { getAppNavigationTheme } from '@/theme/navigationTheme';
 import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
-import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { OnboardingProvider } from '@/contexts/OnboardingContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ClinicProfileProvider } from '@/contexts/ClinicProfileContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ResumePreviewProvider } from '@/contexts/ResumePreviewContext';
@@ -36,19 +36,6 @@ export const unstable_settings = {
   initialRouteName: 'index',
 };
 
-function SplashScreenController({ fontsReady }: { fontsReady: boolean }) {
-  const { isHydrated } = useOnboarding();
-  const { isAuthReady } = useAuth();
-
-  useEffect(() => {
-    if (fontsReady && isHydrated && isAuthReady) {
-      void SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsReady, isHydrated, isAuthReady]);
-
-  return null;
-}
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts({
@@ -58,6 +45,12 @@ export default function RootLayout() {
   });
 
   const fontsReady = fontsLoaded || !!fontError;
+
+  useEffect(() => {
+    if (fontsReady) {
+      void SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsReady]);
 
   if (!fontsReady) {
     return null;
@@ -76,7 +69,6 @@ export default function RootLayout() {
             <NotificationProvider>
               <ResumePreviewProvider>
                 <OnboardingProvider>
-                  <SplashScreenController fontsReady={fontsReady} />
                   <PushRegistration />
                   <ConfirmActionSheetHost />
                   <VercelAnalytics />
