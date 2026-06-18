@@ -5,19 +5,19 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
-import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
-import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { WorkerFillInBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
@@ -39,7 +39,11 @@ import {
   type FillInsTabMode,
 } from '@/lib/fillInFilters';
 import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
-import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
+import { type RoleTypeFilter } from '@/lib/postingFilters';
+import {
+  DEFAULT_WORKER_FILLIN_BROWSE_FILTERS,
+  filterAndSortLiveShifts,
+} from '@/lib/workerBrowseFilters';
 import {
   getWorkerShiftDetailRoute,
   WORKER_PAST_FILLINS,
@@ -59,7 +63,23 @@ export default function FillInsScreen() {
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('open');
-  const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
+  const [searchQuery, setSearchQuery] = useState(DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.searchQuery);
+  const [roleTypeFilter, setRoleTypeFilter] = useState(
+    DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.roleTypeFilter,
+  );
+  const [sort, setSort] = useState(DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.sort);
+  const [distanceFilter, setDistanceFilter] = useState(
+    DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.distanceFilter,
+  );
+  const [softwareFilter, setSoftwareFilter] = useState(
+    DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.softwareFilter,
+  );
+  const [payListedFilter, setPayListedFilter] = useState(
+    DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.payListedFilter,
+  );
+  const [availabilityFilter, setAvailabilityFilter] = useState(
+    DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter,
+  );
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
@@ -98,10 +118,39 @@ export default function FillInsScreen() {
   useRefreshOnFocus(load);
   useRefreshOnForeground(load);
 
-  const filteredShifts = useMemo(() => {
-    if (roleTypeFilter === 'all') return shifts;
-    return shifts.filter((shift) => shift.role_type === roleTypeFilter);
-  }, [shifts, roleTypeFilter]);
+  const filteredShifts = useMemo(
+    () =>
+      filterAndSortLiveShifts(shifts, workerProfile, availabilityBlocks, {
+        searchQuery,
+        roleTypeFilter,
+        sort,
+        distanceFilter,
+        softwareFilter,
+        payListedFilter,
+        availabilityFilter,
+      }),
+    [
+      availabilityBlocks,
+      availabilityFilter,
+      distanceFilter,
+      payListedFilter,
+      roleTypeFilter,
+      searchQuery,
+      shifts,
+      softwareFilter,
+      sort,
+      workerProfile,
+    ],
+  );
+
+  const hasActiveFillInFilters =
+    searchQuery.trim().length > 0 ||
+    roleTypeFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.roleTypeFilter ||
+    sort !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.sort ||
+    distanceFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.distanceFilter ||
+    softwareFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.softwareFilter ||
+    payListedFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.payListedFilter ||
+    availabilityFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter;
 
   const { upcomingConfirmed, pastConfirmed, pastInProgress, upcomingInProgress } = useMemo(
     () => partitionWorkerShiftApplications(applications),
@@ -112,15 +161,15 @@ export default function FillInsScreen() {
 
   const fillInsAvailable = workerProfile?.short_notice_available ?? false;
 
-  const styles = useThemedStyles(({ spacing, colors, typography }) => ({
+  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     content: { gap: spacing.lg },
-    panel: { gap: spacing.md },
-    panelMeta: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
+    panel: { gap: spacing.lg },
+    browseControlsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
     },
+    searchField: { flex: 1, minWidth: 0 },
     applicationGroup: { gap: spacing.sm },
     viewAllRow: {
       flexDirection: 'row',
@@ -178,28 +227,43 @@ export default function FillInsScreen() {
 
           {selectedMode === 'open' ? (
             <View style={styles.panel}>
-              {!isLoading ? (
-                <Text style={styles.panelMeta}>
-                  {shifts.length === 0
-                    ? `No open shifts in ${getProvinceLabel(province)}`
-                    : `${shifts.length} open in ${getProvinceLabel(province)}`}
-                </Text>
+              {!isLoading && shifts.length > 0 ? (
+                <View style={styles.browseControlsRow}>
+                  <View style={styles.searchField}>
+                    <WorkerBrowseSearchBar
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      placeholder="Search fill-ins, clinics, cities, or pay"
+                      accessibilityLabel="Search fill-ins"
+                    />
+                  </View>
+                  <WorkerFillInBrowseFilters
+                    roleTypeFilter={roleTypeFilter}
+                    sort={sort}
+                    distanceFilter={distanceFilter}
+                    softwareFilter={softwareFilter}
+                    payListedFilter={payListedFilter}
+                    availabilityFilter={availabilityFilter}
+                    onRoleTypeChange={setRoleTypeFilter}
+                    onSortChange={setSort}
+                    onDistanceFilterChange={setDistanceFilter}
+                    onSoftwareFilterChange={setSoftwareFilter}
+                    onPayListedFilterChange={setPayListedFilter}
+                    onAvailabilityFilterChange={setAvailabilityFilter}
+                  />
+                </View>
               ) : null}
-              <ChipSelector
-                options={COMPACT_ROLE_TYPE_FILTER_OPTIONS}
-                selected={roleTypeFilter}
-                onChange={(value) => setRoleTypeFilter(value as RoleTypeFilter)}
-                horizontal
-                compact
-                accent="secondary"
-              />
               {isLoading ? (
                 <PageLoadingList rowCount={4} />
               ) : filteredShifts.length === 0 ? (
                 <DashboardEmptyState
                   icon="calendar-outline"
-                  title="No open fill-ins"
-                  message="New temp shifts in your province will appear here."
+                  title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'}
+                  message={
+                    hasActiveFillInFilters
+                      ? 'Try a different search term or adjust your filters.'
+                      : 'New temp shifts in your province will appear here.'
+                  }
                 />
               ) : (
                 <BrowseListGroup>
@@ -208,6 +272,7 @@ export default function FillInsScreen() {
                       key={shift.id}
                       shift={shift}
                       layout="list"
+                      distanceLabel={shift.distanceLabel}
                       onPress={() =>
                         router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))
                       }

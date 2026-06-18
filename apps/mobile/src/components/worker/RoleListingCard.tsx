@@ -21,6 +21,7 @@ type RoleListingCardProps = {
   matchContext?: Partial<JobMatchContext>;
   hasApplied?: boolean;
   layout?: ListingLayout;
+  distanceLabel?: string | null;
   onPress?: () => void;
 };
 
@@ -30,11 +31,17 @@ export function RoleListingCard({
   matchContext,
   hasApplied,
   layout = 'tile',
+  distanceLabel,
   onPress,
 }: RoleListingCardProps) {
   const { colors } = useTheme();
   const logoUri = useClinicLogoUri(job.clinic.logo_storage_path);
-  const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+  const locationBase = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+  const location = distanceLabel
+    ? locationBase
+      ? `${locationBase} • ${distanceLabel}`
+      : distanceLabel
+    : locationBase;
   const detail = formatJobPostCardMeta(job);
   const postedLabel =
     layout === 'list'
