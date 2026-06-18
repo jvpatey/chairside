@@ -1,8 +1,11 @@
 import { Text, View } from 'react-native';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
-import { ONBOARDING_SUBTITLE } from '@/constants';
 import { useThemedStyles } from '@/theme';
+
+const MOBILE_HEADLINE = 'Dental shifts, simplified.';
+const MOBILE_SUBTITLE =
+  'Find trusted professionals, fill open shifts, and manage hiring in one place.';
 
 export function WelcomeHero() {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -58,14 +61,14 @@ export function WelcomeHero() {
       <View style={styles.wordmarkWrap}>
         <ChairsideWordmark variant="hero" />
       </View>
-      <Text style={styles.headline}>Dental staffing, simplified.</Text>
-      <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+      <Text style={styles.headline}>{MOBILE_HEADLINE}</Text>
+      <Text style={styles.subtitle}>{MOBILE_SUBTITLE}</Text>
       <View style={styles.audienceRow}>
         <View style={styles.audiencePill}>
           <Text style={styles.audienceText}>For clinics</Text>
         </View>
         <View style={styles.audiencePill}>
-          <Text style={styles.audienceText}>For dental pros</Text>
+          <Text style={styles.audienceText}>For professionals</Text>
         </View>
       </View>
     </View>
