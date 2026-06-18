@@ -38,7 +38,11 @@ import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { DashboardStatGrid, DASHBOARD_OVERVIEW_SEGMENT_ACCENTS, getDashboardOverviewAccent } from '@/components/dashboard/DashboardStatGrid';
+import {
+  DashboardStatGrid,
+  DASHBOARD_OVERVIEW_SEGMENT_ACCENTS,
+  getDashboardOverviewAccent,
+} from '@/components/dashboard/DashboardStatGrid';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -102,8 +106,16 @@ export default function ClinicDashboardScreen() {
     setLoadError(false);
 
     try {
-      const [nextCounts, jobPosts, shiftPosts, summaries, counts, pendingShiftCounts, conversationRows, confirmed] =
-        await Promise.all([
+      const [
+        nextCounts,
+        jobPosts,
+        shiftPosts,
+        summaries,
+        counts,
+        pendingShiftCounts,
+        conversationRows,
+        confirmed,
+      ] = await Promise.all([
         getClinicDashboardCounts(user.id),
         listJobPosts(user.id),
         listShiftPosts(user.id),
@@ -168,15 +180,18 @@ export default function ClinicDashboardScreen() {
     [loadDashboard],
   );
 
-  const handleJobDeleted = useCallback((jobId: string) => {
-    setJobs((prev) => prev.filter((job) => job.id !== jobId));
-    setApplicantCounts((prev) => {
-      const next = { ...prev };
-      delete next[jobId];
-      return next;
-    });
-    void loadDashboard();
-  }, [loadDashboard]);
+  const handleJobDeleted = useCallback(
+    (jobId: string) => {
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+      setApplicantCounts((prev) => {
+        const next = { ...prev };
+        delete next[jobId];
+        return next;
+      });
+      void loadDashboard();
+    },
+    [loadDashboard],
+  );
 
   useEffect(() => {
     if (overview === 'roles' || overview === 'fill-ins' || overview === 'applications') {
@@ -212,20 +227,15 @@ export default function ClinicDashboardScreen() {
       showBrandHeader
       brandHeaderLeading={showMobileHeaderIdentity ? <ClinicDashboardGreeting /> : undefined}
       brandHeaderName={
-        showMobileHeaderIdentity ? (
-          <ClinicDashboardHeaderName clinicName={clinicName} />
-        ) : undefined
+        showMobileHeaderIdentity ? <ClinicDashboardHeaderName clinicName={clinicName} /> : undefined
       }
-      brandHeaderSubtitle={
-        showMobileHeaderIdentity ? <ClinicDashboardHeaderSubtitle /> : undefined
-      }
+      brandHeaderSubtitle={showMobileHeaderIdentity ? <ClinicDashboardHeaderSubtitle /> : undefined}
       brandHeaderTrailing={
-        !isTablet ? (
-          <ClinicDashboardHeaderActions clinicName={clinicName} />
-        ) : undefined
+        !isTablet ? <ClinicDashboardHeaderActions clinicName={clinicName} /> : undefined
       }
       tabletTitle="Dashboard"
-      tabletSubtitle="Postings, fill-ins, and applicants at your clinic.">
+      tabletSubtitle="Postings, fill-ins, and applicants at your clinic."
+    >
       {isLoading && !hasLoadedOnce.current ? (
         <DashboardLoadingShell />
       ) : (
