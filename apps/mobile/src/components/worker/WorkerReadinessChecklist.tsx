@@ -1,84 +1,115 @@
 import type { WorkerProfile } from '@chairside/api';
 import { isWorkerProfileComplete } from '@chairside/api';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { useMemo } from 'react';
 
-import { WORKER_SETUP_BASICS } from '@/lib/routing';
+import { GetStartedChecklistCard } from '@/components/dashboard/GetStartedChecklistCard';
+import { useDismissedGetStartedChecklist } from '@/hooks/useDismissedGetStartedChecklist';
+import { useGetStartedBrowseProgress } from '@/hooks/useGetStartedBrowseProgress';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  webFullBleedRowInsets,
-  webHover,
-  webListRowHoverStyles,
-  webPointer,
-} from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+  areAllGetStartedItemsComplete,
+  isWorkerApplicationKitStarted,
+  isWorkerFillInsStepComplete,
+  isWorkerRolesStepComplete,
+  type GetStartedChecklistItem,
+} from '@/lib/getStartedChecklist';
+import {
+  WORKER_BROWSE,
+  WORKER_FILLINS,
+  WORKER_SETUP_APPLICATION,
+  WORKER_SETUP_BASICS,
+} from '@/lib/routing';
 
 type WorkerReadinessChecklistProps = {
   workerProfile: WorkerProfile | null;
+  jobApplicationCount: number;
+  shiftApplicationCount: number;
 };
 
-export function WorkerReadinessChecklist({ workerProfile }: WorkerReadinessChecklistProps) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.md,
-    },
-    title: { ...typography.body, fontWeight: '700', fontSize: 17 },
-    subtitle: typography.subtitle,
-    item: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
-      paddingVertical: spacing.xs,
-      borderRadius: 10,
-      ...webFullBleedRowInsets(spacing.lg),
-      ...webPointer(),
-    },
-    itemHovered: webListRowHoverStyles(colors),
-    itemPressed: {
-      opacity: 0.88,
-    },
-    iconWrap: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.fillSubtle,
-    },
-    textBlock: { flex: 1, gap: 2 },
-    itemTitle: { ...typography.body, fontWeight: '600' },
-    itemBody: { ...typography.subtitle, fontSize: 13, lineHeight: 18 },
-  }));
+export function WorkerReadinessChecklist({
+  workerProfile,
+  jobApplicationCount,
+  shiftApplicationCount,
+}: WorkerReadinessChecklistProps) {
+  const { isHydrated, isDismissed, dismiss } = useDismissedGetStartedChecklist('worker');
+  const {
+    visitedRoles,
+    visitedFillIns,
+    isHydrated: isBrowseHydrated,
+    refresh: refreshBrowseProgress,
+  } = useGetStartedBrowseProgress();
 
-  if (isWorkerProfileComplete(workerProfile)) return null;
+  useRefreshOnFocus(refreshBrowseProgress);
+
+  const rolesComplete = isWorkerRolesStepComplete({ jobApplicationCount, visitedRoles });
+  const fillInsComplete = isWorkerFillInsStepComplete({ shiftApplicationCount, visitedFillIns });
+
+  const items = useMemo<GetStartedChecklistItem[]>(
+    () => [
+      {
+        id: 'profile',
+        title: isWorkerProfileComplete(workerProfile)
+          ? 'Profile complete'
+          : 'Complete your profile to apply',
+        body: isWorkerProfileComplete(workerProfile)
+          ? 'Your role, experience, and location are set.'
+          : 'Clinics need your role, experience, and location before you can apply or receive fill-ins.',
+        complete: isWorkerProfileComplete(workerProfile),
+        primary: !isWorkerProfileComplete(workerProfile),
+        onPress: () => router.push(WORKER_SETUP_BASICS),
+      },
+      {
+        id: 'application-kit',
+        title: isWorkerApplicationKitStarted(workerProfile)
+          ? 'Application kit added'
+          : 'Add your application kit',
+        body: isWorkerApplicationKitStarted(workerProfile)
+          ? 'Photo, resume, or note ready for clinics.'
+          : 'Add a photo, resume, or default note for polished applications.',
+        complete: isWorkerApplicationKitStarted(workerProfile),
+        onPress: () => router.push(WORKER_SETUP_APPLICATION),
+      },
+      {
+        id: 'browse-roles',
+        title: rolesComplete ? 'Explored open roles' : 'Browse open roles',
+        body: rolesComplete
+          ? jobApplicationCount > 0
+            ? 'You have submitted at least one role application.'
+            : 'You have browsed open roles near you.'
+          : 'Find full-time and part-time positions near you.',
+        complete: rolesComplete,
+        onPress: () => router.push(WORKER_BROWSE),
+      },
+      {
+        id: 'browse-fill-ins',
+        title: fillInsComplete ? 'Explored fill-in shifts' : 'Browse fill-in shifts',
+        body: fillInsComplete
+          ? shiftApplicationCount > 0
+            ? 'You have submitted at least one fill-in application.'
+            : 'You have browsed temporary shifts near you.'
+          : 'Temporary shifts are a fast way to get chairside experience.',
+        complete: fillInsComplete,
+        onPress: () => router.push(WORKER_FILLINS),
+      },
+    ],
+    [fillInsComplete, jobApplicationCount, rolesComplete, shiftApplicationCount, workerProfile],
+  );
+
+  if (
+    !isHydrated ||
+    !isBrowseHydrated ||
+    isDismissed ||
+    areAllGetStartedItemsComplete(items)
+  ) {
+    return null;
+  }
 
   return (
-    <View style={styles.card}>
-      <View>
-        <Text style={styles.title}>Get started</Text>
-        <Text style={styles.subtitle}>Add your background to apply and receive fill-ins.</Text>
-      </View>
-      <Pressable
-        style={({ pressed, hovered }) => [
-          styles.item,
-          webHover(hovered, pressed, styles.itemHovered),
-          pressed && styles.itemPressed,
-        ]}
-        onPress={() => router.push(WORKER_SETUP_BASICS)}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="ellipse-outline" size={16} color={colors.labelSecondary} />
-        </View>
-        <View style={styles.textBlock}>
-          <Text style={styles.itemTitle}>Add your background</Text>
-          <Text style={styles.itemBody}>Role, experience, and location.</Text>
-        </View>
-      </Pressable>
-    </View>
+    <GetStartedChecklistCard
+      subtitle="Finish these steps to get the most out of Chairside."
+      items={items}
+      onDismiss={() => void dismiss()}
+    />
   );
 }

@@ -2,7 +2,6 @@ import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
   getMissingClinicProfileFields,
-  isClinicProfileComplete,
   getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
   listConversationsForClinic,
@@ -23,7 +22,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import {
-  DashboardHero,
+  ClinicDashboardHeaderActions,
+  ClinicDashboardHeaderName,
+  ClinicDashboardHeaderSubtitle,
+  ClinicDashboardGreeting,
   DashboardOverviewPanel,
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
@@ -203,10 +205,25 @@ export default function ClinicDashboardScreen() {
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
   const hasUnreadMessagePreviews = conversations.some((conversation) => conversation.unread);
+  const showMobileHeaderIdentity = !isTablet && isProfileComplete;
 
   return (
     <DashboardScreen
       showBrandHeader
+      brandHeaderLeading={showMobileHeaderIdentity ? <ClinicDashboardGreeting /> : undefined}
+      brandHeaderName={
+        showMobileHeaderIdentity ? (
+          <ClinicDashboardHeaderName clinicName={clinicName} />
+        ) : undefined
+      }
+      brandHeaderSubtitle={
+        showMobileHeaderIdentity ? <ClinicDashboardHeaderSubtitle /> : undefined
+      }
+      brandHeaderTrailing={
+        !isTablet ? (
+          <ClinicDashboardHeaderActions clinicName={clinicName} />
+        ) : undefined
+      }
       tabletTitle="Dashboard"
       tabletSubtitle="Postings, fill-ins, and applicants at your clinic.">
       {isLoading && !hasLoadedOnce.current ? (
@@ -219,14 +236,20 @@ export default function ClinicDashboardScreen() {
             </FadeInSection>
           ) : null}
 
-          {!isTablet ? (
-            <FadeInSection delayMs={0}>
-              <DashboardHero clinicName={clinicName} />
-            </FadeInSection>
-          ) : null}
+          <FadeInSection delayMs={40}>
+            <ClinicReadinessChecklist
+              clinicProfile={clinicProfile}
+              fillInsPosted={counts.fillInsPosted}
+              openRoles={counts.openRoles}
+              totalApplications={counts.totalApplications}
+              conversationCount={conversations.length}
+              onPostFillIn={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
+              onPostRole={() => guardPosting(CLINIC_POST_JOB)}
+            />
+          </FadeInSection>
 
           {isTablet ? (
-            <FadeInSection delayMs={40}>
+            <FadeInSection delayMs={80}>
               <View style={styles.quickActionSection}>
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
@@ -245,12 +268,6 @@ export default function ClinicDashboardScreen() {
                   />
                 </View>
               </View>
-            </FadeInSection>
-          ) : null}
-
-          {!isClinicProfileComplete(clinicProfile) ? (
-            <FadeInSection delayMs={80}>
-              <ClinicReadinessChecklist clinicProfile={clinicProfile} />
             </FadeInSection>
           ) : null}
 

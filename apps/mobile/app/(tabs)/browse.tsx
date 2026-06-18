@@ -14,6 +14,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import {
   ROLES_BROWSE_MODE_OPTIONS,
   sortJobsByPostedDate,
@@ -88,6 +89,7 @@ function renderRoleListingCards(
 }
 
 export default function BrowseScreen() {
+  useMarkGetStartedBrowseVisit('roles');
   const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';

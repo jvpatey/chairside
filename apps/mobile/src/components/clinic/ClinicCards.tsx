@@ -8,7 +8,10 @@ import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
+import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
+import { DashboardHeroName, DashboardHeroSubtitle } from '@/components/dashboard/DashboardHeroIdentity';
 import {
   DashboardStatGrid,
   getDashboardOverviewAccent,
@@ -33,13 +36,12 @@ import { useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
   clinicName?: string | null;
+  showActions?: boolean;
 };
 
 const CLINIC_NAME_PLACEHOLDER = 'Your practice';
 
-export function DashboardHero({
-  clinicName,
-}: DashboardHeroProps) {
+export function DashboardHero({ clinicName, showActions = true }: DashboardHeroProps) {
   const { logoUri } = useClinicLogo();
 
   return (
@@ -50,9 +52,44 @@ export function DashboardHero({
       photoUri={logoUri}
       namePlaceholder={CLINIC_NAME_PLACEHOLDER}
       subtitle="Dental Clinic"
+      showActions={showActions}
     />
   );
 }
+
+export function ClinicDashboardHeaderActions({ clinicName }: { clinicName?: string | null }) {
+  const { logoUri } = useClinicLogo();
+
+  return (
+    <DashboardHeroActions
+      profileHref={CLINIC_PROFILE}
+      avatarKind="clinic"
+      displayName={clinicName}
+      photoUri={logoUri}
+    />
+  );
+}
+
+export function ClinicDashboardHeaderName({ clinicName }: { clinicName?: string | null }) {
+  return (
+    <DashboardHeroName displayName={clinicName} namePlaceholder={CLINIC_NAME_PLACEHOLDER} />
+  );
+}
+
+export function ClinicDashboardHeaderSubtitle() {
+  return <DashboardHeroSubtitle subtitle="Dental Clinic" />;
+}
+
+export function ClinicDashboardHeaderIdentity({ clinicName }: { clinicName?: string | null }) {
+  return (
+    <>
+      <ClinicDashboardHeaderName clinicName={clinicName} />
+      <ClinicDashboardHeaderSubtitle />
+    </>
+  );
+}
+
+export { DashboardHeroGreeting as ClinicDashboardGreeting } from '@/components/dashboard/DashboardHeroIdentity';
 
 /** @deprecated Use `DashboardSectionHeader` from `@/components/dashboard/DashboardSectionHeader`. */
 export { DashboardSectionHeader as SectionHeader } from '@/components/dashboard/DashboardSectionHeader';
@@ -211,14 +248,17 @@ export function DashboardOverviewPanel({
 }: DashboardOverviewPanelProps) {
   const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
   const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
-  const styles = useThemedStyles(({ spacing, colors }) => ({
-    list: {
-      gap: spacing.sm,
-    },
-    subsection: {
-      gap: spacing.sm,
-    },
-  }));
+  const styles = useThemedStyles(({ spacing }) => {
+    const cardGap = dashboardSectionGap(spacing);
+    return {
+      list: {
+        gap: cardGap,
+      },
+      subsection: {
+        gap: cardGap,
+      },
+    };
+  });
 
   const roleJobs = jobs.filter(isMainListJob);
   const liveShifts = shifts.filter(

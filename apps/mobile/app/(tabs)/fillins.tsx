@@ -30,6 +30,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import {
@@ -52,6 +53,7 @@ function navigateToEditSchedule() {
 }
 
 export default function FillInsScreen() {
+  useMarkGetStartedBrowseVisit('fillIns');
   const { colors } = useTheme();
   const { user } = useAuth();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();

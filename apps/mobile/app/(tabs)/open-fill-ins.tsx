@@ -13,6 +13,7 @@ import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import { COMPACT_ROLE_TYPE_FILTER_OPTIONS, type RoleTypeFilter } from '@/lib/postingFilters';
 import { getWorkerShiftDetailRoute, WORKER_FILLINS } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -56,6 +57,7 @@ function OpenFillInsEmptyState() {
 }
 
 export default function OpenFillInsScreen() {
+  useMarkGetStartedBrowseVisit('fillIns');
   const { workerProfile } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
