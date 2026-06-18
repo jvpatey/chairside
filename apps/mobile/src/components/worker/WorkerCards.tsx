@@ -11,11 +11,7 @@ import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
-import {
-  DashboardHeroGreeting,
-  DashboardHeroName,
-  DashboardHeroSubtitle,
-} from '@/components/dashboard/DashboardHeroIdentity';
+import { DashboardHeroName, DashboardHeroSubtitle } from '@/components/dashboard/DashboardHeroIdentity';
 import {
   DashboardStatGrid,
   DASHBOARD_OVERVIEW_SEGMENT_ACCENTS,

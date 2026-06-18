@@ -187,6 +187,7 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       : null;
   const indicatorGradient = segmentGradient ?? {
     colors: getStatSelectedGradient(colors, isDark, accent),
+    locations: undefined,
     start: { x: 0, y: 0 },
     end: { x: 0, y: 1 },
   };
