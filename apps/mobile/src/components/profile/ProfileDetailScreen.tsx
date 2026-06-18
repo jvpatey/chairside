@@ -2,10 +2,11 @@ import { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type ProfileDetailScreenProps = {
   title: string;
@@ -27,10 +28,13 @@ export function ProfileDetailScreen({
   children,
 }: ProfileDetailScreenProps) {
   const insets = useSafeAreaInsets();
+  const tabDockInset = useMobileTabDockInset();
+  const { colors } = useTheme();
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       flex: 1,
-      backgroundColor: colors.backgroundGrouped,
+      overflow: 'hidden',
     },
     content: {
       flexGrow: 1,
@@ -87,44 +91,50 @@ export function ProfileDetailScreen({
   }));
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
-      ]}>
-      <WebPageEnter>
-        <View style={styles.header}>
-          <View style={styles.topRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              onPress={onBack}
-              style={({ pressed, hovered }) => [
-                styles.back,
-                webHover(hovered, pressed, styles.backHovered),
-                pressed && { opacity: 0.75 },
-              ]}>
-              <Text style={styles.backText}>Back</Text>
-            </Pressable>
-            {headerRight}
-          </View>
-          <View style={styles.titleRow}>
-            <View style={styles.titleBlock}>
-              <Text style={styles.title}>{title}</Text>
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: 'transparent' }}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + 16,
+            paddingBottom:
+              24 + (tabDockInset > 0 ? tabDockInset : insets.bottom),
+          },
+        ]}>
+        <WebPageEnter>
+          <View style={styles.header}>
+            <View style={styles.topRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                onPress={onBack}
+                style={({ pressed, hovered }) => [
+                  styles.back,
+                  webHover(hovered, pressed, styles.backHovered),
+                  pressed && { opacity: 0.75 },
+                ]}>
+                <Text style={styles.backText}>Back</Text>
+              </Pressable>
+              {headerRight}
             </View>
-            {actionLabel && onActionPress ? (
-              <EditPillButton
-                label={actionLabel}
-                onPress={onActionPress}
-                style={styles.titleAction}
-              />
-            ) : null}
+            <View style={styles.titleRow}>
+              <View style={styles.titleBlock}>
+                <Text style={styles.title}>{title}</Text>
+                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+              </View>
+              {actionLabel && onActionPress ? (
+                <EditPillButton
+                  label={actionLabel}
+                  onPress={onActionPress}
+                  style={styles.titleAction}
+                />
+              ) : null}
+            </View>
           </View>
-        </View>
-        <View style={styles.body}>{children}</View>
-      </WebPageEnter>
-    </ScrollView>
+          <View style={styles.body}>{children}</View>
+        </WebPageEnter>
+      </ScrollView>
+    </View>
   );
 }

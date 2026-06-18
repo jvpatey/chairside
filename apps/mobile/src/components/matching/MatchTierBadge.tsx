@@ -14,6 +14,8 @@ type MatchTierBadgeProps = {
   subtitle?: string;
   showProfileHint?: boolean;
   audience?: MatchDetailAudience;
+  /** Use a contrasting pill surface when the badge sits on a tinted row background. */
+  onTintedSurface?: boolean;
 };
 
 export function MatchTierBadge({
@@ -22,6 +24,7 @@ export function MatchTierBadge({
   subtitle,
   showProfileHint = false,
   audience = 'worker',
+  onTintedSurface = false,
 }: MatchTierBadgeProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const { colors } = useTheme();
@@ -34,7 +37,8 @@ export function MatchTierBadge({
       <PillBadge
         label={label}
         color={palette.color}
-        backgroundColor={palette.backgroundColor}
+        backgroundColor={onTintedSurface ? colors.surface : palette.backgroundColor}
+        borderColor={onTintedSurface ? palette.borderColor : undefined}
         accessibilityLabel={`${label}. Tap for details.`}
         onPress={() => setModalVisible(true)}
       />

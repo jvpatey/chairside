@@ -1,10 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import {
   LayoutAnimation,
   Platform,
-  Pressable,
   UIManager,
   View,
 } from 'react-native';
@@ -13,10 +11,14 @@ import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { DetailRow, RowDivider } from '@/components/clinic/DetailCard';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
-import { formatFillInRoleLabel, formatShiftPostMeta, formatShiftPostTimeDetail } from '@/lib/shiftPostDisplay';
+import { CardDetailSection } from '@/components/ui/CardDetailSection';
+import { ExpandableSurfaceCard } from '@/components/ui/ExpandableSurfaceCard';
+import {
+  formatFillInRoleLabel,
+  formatShiftPostMeta,
+  formatShiftPostTimeDetail,
+} from '@/lib/shiftPostDisplay';
 import { getClinicApplicationMessagesRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -56,31 +58,12 @@ export function ConfirmedFillInCard({
   const shiftMeta = formatShiftPostMeta(shiftTimes);
   const scheduleDetail = formatShiftPostTimeDetail(shiftTimes);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: `${colors.success}10`,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: `${colors.success}40`,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-    cardHeaderPressable: {
-      alignSelf: 'stretch',
-      borderRadius: 12,
-      ...webPointer(),
-    },
-    cardHeaderHovered: webListRowHoverStyles(colors),
-    cardPressed: { opacity: 0.92 },
-    expandedBody: {
-      gap: spacing.md,
-      paddingTop: spacing.xs,
+  const styles = useThemedStyles(({ spacing }) => ({
+    confirmedAccessory: {
+      paddingTop: 2,
     },
     detailsCard: {
       gap: spacing.sm,
-    },
-    confirmedAccessory: {
-      paddingTop: 2,
     },
   }));
 
@@ -89,61 +72,51 @@ export function ConfirmedFillInCard({
     onExpandChange?.(!expanded);
   };
 
-  return (
-    <View style={styles.card}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        accessibilityLabel={`${workerName} confirmed for ${roleLabel}`}
-        onPress={() => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          toggleExpanded();
-        }}
-        style={({ pressed, hovered }) => [
-          styles.cardHeaderPressable,
-          webHover(hovered, pressed, styles.cardHeaderHovered),
-          pressed && styles.cardPressed,
-        ]}>
-        <ApplicantPostHeader
-          displayName={workerName}
-          photoStoragePath={workerPhotoStoragePath}
-          eyebrow={roleLabel}
-          title={workerName}
-          detail={scheduleDetail}
-          avatarSize={44}
-          accessory={
-            <View style={styles.confirmedAccessory}>
-              <Ionicons name="checkmark-circle" size={22} color={colors.success} />
-            </View>
-          }
-          textFooter={<ClinicApplicationStatusBadge status="hired" postType="shift" />}
-        />
-      </Pressable>
-
-      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} />
-
-      {expanded ? (
-        <View style={styles.expandedBody}>
-          <View style={styles.detailsCard}>
-            <DetailRow label="Name" value={workerName} />
-            <RowDivider />
-            <DetailRow label="Role" value={roleLabel} />
-            <RowDivider />
-            <DetailRow label="Schedule" value={scheduleDetail ?? shiftMeta} />
-            <RowDivider />
-            <DetailRow label="Status" value="Confirmed" />
-          </View>
-          {applicationId ? (
-            <OnboardingButton
-              label="Message"
-              variant="secondary"
-              onPress={() =>
-                router.push(getClinicApplicationMessagesRoute(applicationId, returnTo))
-              }
-            />
-          ) : null}
+  const header = (
+    <ApplicantPostHeader
+      layout="split"
+      displayName={workerName}
+      photoStoragePath={workerPhotoStoragePath}
+      eyebrow={roleLabel}
+      title={workerName}
+      detail={scheduleDetail}
+      avatarSize={44}
+      accessory={
+        <View style={styles.confirmedAccessory}>
+          <Ionicons name="checkmark-circle" size={22} color={colors.success} />
         </View>
+      }
+      textFooter={<ClinicApplicationStatusBadge status="hired" postType="shift" />}
+    />
+  );
+
+  return (
+    <ExpandableSurfaceCard
+      header={header}
+      expanded={expanded}
+      onToggleExpand={toggleExpanded}
+      variant="success"
+      accent="secondary">
+      <CardDetailSection title="Shift details">
+        <View style={styles.detailsCard}>
+          <DetailRow label="Name" value={workerName} />
+          <RowDivider />
+          <DetailRow label="Role" value={roleLabel} />
+          <RowDivider />
+          <DetailRow label="Schedule" value={scheduleDetail ?? shiftMeta} />
+          <RowDivider />
+          <DetailRow label="Status" value="Confirmed" />
+        </View>
+      </CardDetailSection>
+      {applicationId ? (
+        <OnboardingButton
+          label="Message"
+          variant="secondary"
+          onPress={() =>
+            router.push(getClinicApplicationMessagesRoute(applicationId, returnTo))
+          }
+        />
       ) : null}
-    </View>
+    </ExpandableSurfaceCard>
   );
 }

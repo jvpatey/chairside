@@ -14,6 +14,7 @@ type ThemedSwitchProps = {
   disabled?: boolean;
   onValueChange: (value: boolean) => void;
   trackColorFalse?: string;
+  trackColorTrue?: string;
   accessibilityLabel?: string;
 };
 
@@ -23,10 +24,12 @@ export function ThemedSwitch({
   disabled,
   onValueChange,
   trackColorFalse,
+  trackColorTrue,
   accessibilityLabel,
 }: ThemedSwitchProps) {
   const { colors } = useTheme();
   const offTrack = trackColorFalse ?? colors.fillSubtle;
+  const onTrack = trackColorTrue ?? colors.primary;
 
   const styles = useThemedStyles(({ colors }) => ({
     track: {
@@ -44,8 +47,8 @@ export function ThemedSwitch({
       } as const),
     },
     trackOn: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
+      backgroundColor: onTrack,
+      borderColor: onTrack,
     },
     trackDisabled: {
       opacity: 0.45,
@@ -78,7 +81,7 @@ export function ThemedSwitch({
       onPress={handlePress}
       style={[
         styles.track,
-        { backgroundColor: value ? colors.primary : offTrack },
+        { backgroundColor: value ? onTrack : offTrack },
         value && styles.trackOn,
         disabled && styles.trackDisabled,
       ]}>

@@ -22,6 +22,7 @@ Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app
    - `application_rejected`
    - `application_hired`
    - `fill_in_posted` (configure SMS template + opt-out text)
+   - `fill_in_outreach_sms` (SMS-only; clinic-initiated fill-in text alerts)
    - `job_posted`
    - `message_received`
 3. Mobile env: set `EXPO_PUBLIC_PINGRAM_CLIENT_ID` to either the **environment client ID** (Environments page) or the **public key** (`pingram_pk_...`). The app resolves `pingram_pk_` JWTs to the environment ID automatically — the SDK must not use the raw public key as `clientId`.
@@ -42,6 +43,8 @@ export NOTIFY_WEBHOOK_SECRET='...'  # from Supabase Edge Function secrets
 ### Migration
 
 Run [`supabase/migrations/033_worker_notification_prefs.sql`](../supabase/migrations/033_worker_notification_prefs.sql) after prior migrations.
+
+Run [`supabase/migrations/070_outreach_message_notification_cleanup.sql`](../supabase/migrations/070_outreach_message_notification_cleanup.sql) for outreach message notification suppression.
 
 ### Edge Function
 
@@ -73,10 +76,12 @@ Use `application/json` body (default Supabase webhook payload).
 
 ## Mobile
 
-- In-app: works in Expo Go when `EXPO_PUBLIC_PINGRAM_CLIENT_ID` is set.
+- In-app bell: works in Expo Go when `EXPO_PUBLIC_PINGRAM_CLIENT_ID` is set.
 - Push: requires an **EAS build** on a **physical device** (not Expo Go). See **[PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md)** for APNs + Pingram + `eas build --profile production`.
 - SMS: worker opts in on the **Fill-ins** tab (or Profile → Alerts); enter mobile number inline when enabling "Text me for fill-ins".
 - Push preferences: candidates and clinics can mute push by category under **Profile → Notifications**. In-app notification history still records muted categories.
+- Tapping a push notification navigates to the deep link and marks matching Pingram in-app items read when possible.
+- Tab badges (Applications, Fill-ins, Messages) are separate from the notification bell and clear when the user visits the relevant screen.
 
 Run migration [`supabase/migrations/057_notification_preferences.sql`](../supabase/migrations/057_notification_preferences.sql) before relying on preference toggles in production.
 
@@ -93,16 +98,37 @@ eas build --profile production --platform ios
 
 ## Event summary
 
-| Event | Recipient | Channels |
-| ----- | --------- | -------- |
-| Application submitted | Clinic | in-app, push |
-| Status → reviewed/in_progress/rejected/selected/hired | Worker | in-app, push |
-| Interview offered | Worker | in-app, push |
-| Interview accepted (→ scheduled) | Clinic + Worker | in-app, push |
-| Interview declined/cancelled | Opposite party | in-app, push |
-| Interview reschedule propose/accept/decline | Opposite party | in-app, push |
-| Shift post → live | Workers only (fill-in prefs + role; excludes posting clinic) | in-app, push; + SMS if opted in |
-| Job post → live | Workers only (role + job opt-in; excludes posting clinic) | in-app, push |
-| New message | Other participant | in-app, push |
-| New message (application thread) | Other participant | Deep link: `/(tabs)/application/{application_id}/messages` or clinic equivalent |
-| New message (general inquiry) | Other participant | Deep link: `/(tabs)/conversation/{conversation_id}` or clinic equivalent |
+| Event | Recipient | Pingram type | Channels | Push pref category |
+| ----- | --------- | ------------ | -------- | ------------------ |
+| Application submitted | Clinic | `application_received` | in-app, push | `applications_interviews` |
+| Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app, push | `applications_interviews` |
+| Interview offered / scheduled / cancelled / reschedule | Worker or clinic | matching `application_interview_*` | in-app, push | `applications_interviews` |
+| Fill-in post → live | Eligible workers | `fill_in_posted` | in-app, push; + SMS if opted in | `fill_in_alerts` |
+| Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app, push; + SMS if opted in | `fill_in_alerts` |
+| Job post → live | Eligible workers | `job_posted` | in-app, push | `job_alerts` |
+| New message | Other participant | `message_received` | in-app, push | `messages` |
+| Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
+| Auto shift-details message in outreach thread | — | — | suppressed (no Pingram send) | — |
+
+### Deep links
+
+| Conversation / event | Deep link |
+| -------------------- | --------- |
+| Application thread message | `/(tabs)/application/{application_id}/messages` or clinic equivalent |
+| General / outreach message | `/(tabs)/conversation/{conversation_id}` or clinic equivalent |
+| Worker application update | `/(tabs)/application/{application_id}` |
+| Clinic new applicant | `/(clinic-tabs)/applications` |
+| Fill-in alert | `/(tabs)/fillins` |
+| Job alert | `/(tabs)/browse` |
+
+### Idempotency
+
+Edge dispatch dedupes via `notification_dispatch_log.idempotency_key`. Common patterns:
+
+- `message_received:{messageId}`
+- `fill_in_outreach_sms:{messageId}` (SMS-only outreach text alert)
+- `fill_in_posted:{shiftId}:{workerId}:{updatedAt}`
+- `application_{status}:{applicationId}:{status}` (worker status updates)
+- `application_received:{applicationId}` (clinic new applicant)
+
+Outreach SMS also has a DB-side 24h rate limit per clinic→worker pair before the message is inserted (`outreach_sms:{clinicId}:{workerId}:…`).

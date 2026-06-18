@@ -19,20 +19,6 @@ type SidebarProfileHeaderProps = {
   avatarSize?: number;
 };
 
-function textRevealStyle(collapsed: boolean): ViewStyle {
-  return {
-    flex: collapsed ? 0 : 1,
-    opacity: collapsed ? 0 : 1,
-    maxWidth: collapsed ? 0 : 9999,
-    overflow: 'hidden',
-    ...webOnlyStyle({
-      transitionProperty: 'opacity, max-width',
-      transitionDuration: '220ms',
-      transitionTimingFunction: 'ease-out',
-    } as ViewStyle),
-  } as ViewStyle;
-}
-
 export function SidebarProfileHeader({
   href,
   avatarKind,
@@ -56,7 +42,8 @@ export function SidebarProfileHeader({
     },
     pressableCollapsed: {
       justifyContent: 'center',
-      paddingHorizontal: spacing.xs,
+      alignSelf: 'center',
+      paddingHorizontal: 0,
       gap: 0,
       ...webOnlyStyle({
         transitionProperty: 'padding-left, padding-right, gap',
@@ -109,19 +96,18 @@ export function SidebarProfileHeader({
       ) : (
         <ClinicLogoAvatar clinicName={displayName} logoUri={photoUri} size={avatarSize} />
       )}
-      <View
-        style={[styles.textBlock, textRevealStyle(collapsed)]}
-        accessibilityElementsHidden={collapsed}
-        importantForAccessibility={collapsed ? 'no' : 'auto'}>
-        <Text style={styles.name} numberOfLines={2}>
-          {name}
-        </Text>
-        {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {subtitle}
+      {!collapsed ? (
+        <View style={styles.textBlock} accessibilityElementsHidden={false} importantForAccessibility="auto">
+          <Text style={styles.name} numberOfLines={2}>
+            {name}
           </Text>
-        ) : null}
-      </View>
+          {subtitle ? (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
     </Pressable>
   );
 }

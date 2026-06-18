@@ -1,43 +1,44 @@
 import type { ConfirmedFillInSummary, JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
 import { formatJobApplicationSummaryMeta } from '@chairside/config';
-import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import {
   DashboardStatGrid,
+  getDashboardOverviewAccent,
   type DashboardOverviewStat,
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
+import {
+  formatApplicantCountLabelWithNew,
+} from '@/components/ui/CountBadge';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
+import { formatPostedDateLabel } from '@/lib/dates';
 
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
-import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
   clinicName?: string | null;
-  province?: string;
-  showLocationBadge?: boolean;
 };
 
 const CLINIC_NAME_PLACEHOLDER = 'Your practice';
 
 export function DashboardHero({
   clinicName,
-  province = 'NS',
-  showLocationBadge = false,
 }: DashboardHeroProps) {
   const { logoUri } = useClinicLogo();
 
@@ -48,8 +49,7 @@ export function DashboardHero({
       displayName={clinicName}
       photoUri={logoUri}
       namePlaceholder={CLINIC_NAME_PLACEHOLDER}
-      province={province}
-      showProvinceBadge={showLocationBadge}
+      subtitle="Dental Clinic"
     />
   );
 }
@@ -85,6 +85,7 @@ export function StatGrid({
     <DashboardStatGrid
       selected={selected}
       onSelect={onSelect}
+      accent={getDashboardOverviewAccent(selected)}
       stats={[
         { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
         { key: 'fill-ins', label: 'Fill-ins', value: fillInsPosted, badgeCount: fillInUpdateCount },
@@ -126,15 +127,19 @@ type DashboardOverviewPanelProps = {
 
 function DashboardListCard({
   title,
-  subtitle,
   meta,
+  postedAt,
+  unseenCount = 0,
+  applicantCount = 0,
   statusBadge,
   highlighted = false,
   onPress,
 }: {
   title: string;
-  subtitle: string;
   meta?: string;
+  postedAt?: string | null;
+  unseenCount?: number;
+  applicantCount?: number;
   statusBadge?: ReactNode;
   highlighted?: boolean;
   onPress?: () => void;
@@ -142,127 +147,47 @@ function DashboardListCard({
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
-
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      ...webPointer(),
-    },
-    cardHovered: webTileHoverStyles(colors, isDark),
-    cardPressed: {
-      opacity: 0.92,
-    },
-    statPill: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-    },
-    statPillHighlighted: {
-      backgroundColor: colors.primary,
-    },
-    statText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    statTextHighlighted: {
-      color: colors.primaryOnPrimary,
-    },
-    meta: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-  }));
+  const countLabel = formatApplicantCountLabelWithNew(applicantCount, unseenCount);
+  const postedLabel = formatPostedDateLabel(postedAt);
+  const hasApplicants = applicantCount > 0;
 
   const accessory = highlighted ? (statusBadge ?? <ApplicationCardBadge />) : statusBadge;
 
-  const content = (
+  const applicantControl =
+    hasApplicants && onPress
+      ? (
+          <ApplicantCountButton
+            label={countLabel}
+            highlighted={highlighted}
+            onPress={onPress}
+            accessibilityLabel={`Review ${applicantCount} applicants`}
+          />
+        )
+      : hasApplicants
+        ? (
+            <ApplicantCountButton label={countLabel} highlighted={highlighted} showChevron={false} />
+          )
+        : null;
+
+  const header = (
     <ClinicPostHeader
+      layout="split"
       clinicName={clinicName}
       logoStoragePath={clinicProfile?.logo_storage_path}
       title={title}
       location={location || null}
       detail={meta ?? null}
+      postedLabel={postedLabel || null}
       avatarSize={44}
       accessory={accessory}
-      textFooter={
-        subtitle ? (
-          <View style={[styles.statPill, highlighted && styles.statPillHighlighted]}>
-            <Text style={[styles.statText, highlighted && styles.statTextHighlighted]}>
-              {subtitle}
-            </Text>
-          </View>
-        ) : null
-      }
+      detailAccessory={applicantControl}
     />
   );
 
-  if (!onPress) {
-    return <View style={styles.card}>{content}</View>;
-  }
-
-  const handlePress = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onPress();
-  };
-
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={handlePress}
-      style={({ pressed, hovered }) => [
-        styles.card,
-        webHover(hovered, pressed, styles.cardHovered),
-        pressed && styles.cardPressed,
-      ]}>
-      {content}
-    </Pressable>
-  );
-}
-
-function DashboardEmptyState({ message }: { message: string }) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.xl,
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    iconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.fillSubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.xs,
-    },
-    body: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      textAlign: 'center',
-    },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Ionicons name="document-text-outline" size={24} color={colors.labelSecondary} />
-      </View>
-      <Text style={styles.body}>{message}</Text>
-    </View>
+    <SurfaceCard onPress={onPress}>
+      {header}
+    </SurfaceCard>
   );
 }
 
@@ -293,13 +218,6 @@ export function DashboardOverviewPanel({
     subsection: {
       gap: spacing.sm,
     },
-    subsectionTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.3,
-      textTransform: 'uppercase',
-      color: colors.labelSecondary,
-    },
   }));
 
   const roleJobs = jobs.filter(isMainListJob);
@@ -312,7 +230,11 @@ export function DashboardOverviewPanel({
       <DashboardSectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
       {selected === 'roles' ? (
         roleJobs.length === 0 ? (
-          <DashboardEmptyState message="No active role postings yet. Post a role to get started." />
+          <DashboardEmptyState
+            icon="briefcase-outline"
+            title="No active roles yet"
+            message="Post a role to start receiving applications from dental professionals."
+          />
         ) : (
           <View style={styles.list}>
             {roleJobs.map((job) => (
@@ -343,12 +265,17 @@ export function DashboardOverviewPanel({
 
       {selected === 'fill-ins' ? (
         liveShifts.length === 0 && confirmedFillIns.length === 0 ? (
-          <DashboardEmptyState message="No live fill-in shifts yet. Post a fill-in to get started." />
+          <DashboardEmptyState
+            icon="calendar-outline"
+            title="No fill-in shifts yet"
+            message="Post a fill-in shift when you need temporary coverage."
+            accent="secondary"
+          />
         ) : (
           <View style={styles.list}>
                 {confirmedFillIns.length > 0 ? (
               <View style={styles.subsection}>
-                <Text style={styles.subsectionTitle}>Upcoming confirmed</Text>
+                <DashboardSectionHeader title="Upcoming confirmed" compact />
                 {confirmedFillIns.map((row) => (
                   <ConfirmedFillInCard
                     key={row.applicationId}
@@ -370,7 +297,7 @@ export function DashboardOverviewPanel({
             {liveShifts.length > 0 ? (
               <View style={styles.subsection}>
                 {confirmedFillIns.length > 0 ? (
-                  <Text style={styles.subsectionTitle}>Open fill-ins</Text>
+                  <DashboardSectionHeader title="Open fill-ins" compact />
                 ) : null}
                 {liveShifts.map((shift) => (
                   <FillInPostingCard
@@ -380,6 +307,7 @@ export function DashboardOverviewPanel({
                     applicationCount={shiftApplicationCounts[shift.id] ?? 0}
                     clinicId={clinicId}
                     returnTo={fillInReturnTo}
+                    accent="secondary"
                     expanded={expandedShiftId === shift.id}
                     onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
                     onShiftUpdated={onShiftUpdated}
@@ -394,7 +322,11 @@ export function DashboardOverviewPanel({
 
       {selected === 'applications' ? (
         jobApplicationSummaries.length === 0 ? (
-          <DashboardEmptyState message="No applications yet. They will appear when workers apply to your postings." />
+          <DashboardEmptyState
+            icon="people-outline"
+            title="No applications yet"
+            message="Applications will appear here when workers apply to your postings."
+          />
         ) : (
           <View style={styles.list}>
             {jobApplicationSummaries.map((summary) => {
@@ -403,15 +335,9 @@ export function DashboardOverviewPanel({
                 <DashboardListCard
                   key={summary.job_post_id}
                   title={summary.post_title}
-                  subtitle={
-                    hasNewApplicants
-                      ? summary.unseen_count === 1
-                        ? '1 new applicant'
-                        : `${summary.unseen_count} new applicants`
-                      : summary.applicant_count === 1
-                        ? '1 applicant'
-                        : `${summary.applicant_count} applicants`
-                  }
+                  applicantCount={summary.applicant_count}
+                  unseenCount={summary.unseen_count}
+                  postedAt={summary.post_created_at}
                   meta={formatJobApplicationSummaryMeta(summary)}
                   highlighted={hasNewApplicants}
                   onPress={

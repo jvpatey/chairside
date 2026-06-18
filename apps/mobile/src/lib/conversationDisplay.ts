@@ -27,6 +27,9 @@ function formatCardRole(conversation: Conversation): string {
   if (conversation.conversation_type === 'general') {
     return 'General inquiry';
   }
+  if (conversation.conversation_type === 'outreach') {
+    return 'Fill-in outreach';
+  }
 
   if (conversation.post_role_type) {
     return getRoleTypeLabel(conversation.post_role_type);
@@ -35,13 +38,23 @@ function formatCardRole(conversation: Conversation): string {
 }
 
 function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): string {
-  const deletedNote = conversation.counterpart_account_deleted
-    ? 'No longer on Chairside'
-    : null;
+  const deletedNote = conversation.counterpart_account_deleted ? 'No longer on Chairside' : null;
 
   if (conversation.conversation_type === 'general') {
     const base = role === 'worker' ? 'Reach out without applying' : null;
     return [base, deletedNote].filter(Boolean).join(' · ');
+  }
+
+  if (conversation.conversation_type === 'outreach') {
+    const dateLabel = conversation.shift_date
+      ? formatShiftPostDateLabel(conversation.shift_date)
+      : null;
+    const hours =
+      conversation.shift_start_time && conversation.shift_end_time
+        ? formatTimeRangePreview(conversation.shift_start_time, conversation.shift_end_time)
+        : null;
+    const base = role === 'worker' ? 'Clinic fill-in request' : 'Direct outreach';
+    return [dateLabel, hours, base, deletedNote].filter(Boolean).join(' · ');
   }
 
   const statusLabel = formatStatusLabel(conversation, role);
@@ -60,10 +73,7 @@ function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): 
   return [conversation.post_title, statusLabel, deletedNote].filter(Boolean).join(' · ');
 }
 
-function formatStatusLabel(
-  conversation: Conversation,
-  role: 'worker' | 'clinic',
-): string {
+function formatStatusLabel(conversation: Conversation, role: 'worker' | 'clinic'): string {
   if (!conversation.application_status) return '';
 
   if (role === 'clinic') {
@@ -96,6 +106,24 @@ function formatShiftContext(conversation: Conversation, role: 'worker' | 'clinic
   return `${roleLabel} · ${datePart} · ${statusLabel}`;
 }
 
+function formatOutreachContext(conversation: Conversation, role: 'worker' | 'clinic'): string {
+  if (!conversation.shift_date) {
+    return role === 'worker' ? 'Fill-in request' : 'Fill-in outreach';
+  }
+
+  const roleLabel = conversation.post_role_type
+    ? getRoleTypeLabel(conversation.post_role_type)
+    : 'Fill-in';
+  const dateLabel = formatShiftPostDateLabel(conversation.shift_date);
+  const hours =
+    conversation.shift_start_time && conversation.shift_end_time
+      ? formatTimeRangePreview(conversation.shift_start_time, conversation.shift_end_time)
+      : null;
+  const datePart = hours ? `${dateLabel} · ${hours}` : dateLabel;
+  const suffix = role === 'worker' ? 'Fill-in request' : 'Outreach inquiry';
+  return `${roleLabel} · ${datePart} · ${suffix}`;
+}
+
 export function formatConversationDisplay(
   conversation: Conversation,
   role: 'worker' | 'clinic',
@@ -107,6 +135,18 @@ export function formatConversationDisplay(
       threadSubtitle: 'General inquiry',
       cardName: conversation.counterpart_name,
       cardTitle: 'General inquiry',
+      cardMeta: formatCardMeta(conversation, role),
+    };
+  }
+
+  if (conversation.conversation_type === 'outreach') {
+    const contextLine = formatOutreachContext(conversation, role);
+    return {
+      contextLine,
+      threadTitle: conversation.counterpart_name,
+      threadSubtitle: contextLine,
+      cardName: conversation.counterpart_name,
+      cardTitle: formatCardRole(conversation),
       cardMeta: formatCardMeta(conversation, role),
     };
   }
@@ -140,10 +180,7 @@ export function getMessageThreadPreview(
 
 /** Compact meta for shift conversations when only date/hours are needed. */
 export function formatConversationShiftMeta(
-  conversation: Pick<
-    Conversation,
-    'shift_date' | 'shift_start_time' | 'shift_end_time'
-  >,
+  conversation: Pick<Conversation, 'shift_date' | 'shift_start_time' | 'shift_end_time'>,
 ): string | null {
   if (!conversation.shift_date) return null;
   return formatShiftPostMeta({

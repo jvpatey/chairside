@@ -28,6 +28,7 @@ import {
   type ApplicationScreening,
   type ScreeningSubmissionInput,
 } from './screening';
+import { listJobPosts } from './posts';
 
 export type ApplicationStatus =
   | 'screening_submitted'
@@ -227,6 +228,7 @@ export type CreateApplicationInput = {
 export type JobApplicationSummary = {
   job_post_id: string;
   post_title: string;
+  post_created_at: string | null;
   applicant_count: number;
   screening_count: number;
   pending_count: number;
@@ -772,7 +774,11 @@ export async function getJobPostApplicationCountsMap(
 export async function listJobApplicationSummaries(
   clinicId: string,
 ): Promise<JobApplicationSummary[]> {
-  const applications = await listClinicApplications(clinicId);
+  const [applications, jobPosts] = await Promise.all([
+    listClinicApplications(clinicId),
+    listJobPosts(clinicId),
+  ]);
+  const postCreatedAt = new Map(jobPosts.map((job) => [job.id, job.created_at]));
   const summaries = new Map<string, JobApplicationSummary>();
 
   for (const application of applications) {
@@ -803,6 +809,7 @@ export async function listJobApplicationSummaries(
       summaries.set(application.job_post_id, {
         job_post_id: application.job_post_id,
         post_title: application.post_title,
+        post_created_at: postCreatedAt.get(application.job_post_id) ?? null,
         applicant_count: 1,
         screening_count: application.status === 'screening_submitted' ? 1 : 0,
         pending_count: application.status === 'applied' ? 1 : 0,

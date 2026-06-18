@@ -1,4 +1,6 @@
-import type { LiveJobPost, LiveShiftPost, WorkerApplication } from '@chairside/api';
+import type { LiveJobPost, LiveShiftPost, WorkerApplication, WorkerProfile } from '@chairside/api';
+import { getWorkerRoleTypes } from '@chairside/api';
+import { formatRoleTypesLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
@@ -10,8 +12,10 @@ import { WorkerApplicationListCard } from '@/components/worker/WorkerApplication
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import {
   DashboardStatGrid,
+  getDashboardOverviewAccent,
   type DashboardOverviewStat,
 } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
@@ -69,16 +73,14 @@ export function WorkerSetupBanner({ onPress }: WorkerSetupBannerProps) {
 
 type WorkerDashboardHeroProps = {
   displayName?: string | null;
-  province?: string;
-  showProvinceBadge?: boolean;
+  workerProfile?: WorkerProfile | null;
 };
 
-export function WorkerDashboardHero({
-  displayName,
-  province = 'NS',
-  showProvinceBadge = false,
-}: WorkerDashboardHeroProps) {
+export function WorkerDashboardHero({ displayName, workerProfile }: WorkerDashboardHeroProps) {
   const { photoUri } = useProfilePhoto();
+  const subtitle =
+    (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
+    'Dental professional';
 
   return (
     <DashboardHeroCard
@@ -87,8 +89,7 @@ export function WorkerDashboardHero({
       displayName={displayName}
       photoUri={photoUri}
       namePlaceholder="Your profile"
-      province={province}
-      showProvinceBadge={showProvinceBadge}
+      subtitle={subtitle}
     />
   );
 }
@@ -124,6 +125,7 @@ export function WorkerStatGrid({
     <DashboardStatGrid
       selected={selected}
       onSelect={onSelect}
+      accent={getDashboardOverviewAccent(selected)}
       stats={[
         { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
         { key: 'fill-ins', label: 'Fill-ins', value: openFillIns, badgeCount: fillInUpdateCount },
@@ -150,7 +152,6 @@ type WorkerOverviewPanelProps = {
   shifts: LiveShiftPost[];
   jobApplications: WorkerApplication[];
   shiftApplications: WorkerApplication[];
-  appliedJobIds?: Set<string>;
   unreadMap?: Record<string, boolean>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
@@ -163,25 +164,15 @@ export function WorkerOverviewPanel({
   shifts,
   jobApplications,
   shiftApplications,
-  appliedJobIds,
   unreadMap,
   onJobPress,
   onShiftPress,
   onApplicationUpdated,
 }: WorkerOverviewPanelProps) {
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     list: { gap: spacing.sm },
     group: { gap: spacing.sm },
-    empty: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.xl,
-      alignItems: 'center',
-    },
-    emptyText: { ...typography.subtitle, fontSize: 14, textAlign: 'center' },
   }));
 
   const previewJobApplications = useMemo(() => {
@@ -215,16 +206,17 @@ export function WorkerOverviewPanel({
       <DashboardSectionHeader title={OVERVIEW_TITLES[selected]} />
       {selected === 'roles' ? (
         jobs.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No open roles in your province yet.</Text>
-          </View>
+          <DashboardEmptyState
+            icon="briefcase-outline"
+            title="No open roles yet"
+            message="New roles in your province will appear here when clinics post them."
+          />
         ) : (
           <View style={styles.list}>
             {jobs.slice(0, 5).map((job) => (
               <RoleListingCard
                 key={job.id}
                 job={job}
-                hasApplied={appliedJobIds?.has(job.id)}
                 onPress={onJobPress ? () => onJobPress(job.id) : undefined}
               />
             ))}
@@ -236,9 +228,12 @@ export function WorkerOverviewPanel({
         shifts.length === 0 &&
         confirmedShiftApplications.length === 0 &&
         activeShiftApplications.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No fill-in shifts in your province yet.</Text>
-          </View>
+          <DashboardEmptyState
+            icon="calendar-outline"
+            title="No fill-in shifts yet"
+            message="Temporary and urgent shifts in your province will show up here."
+            accent="secondary"
+          />
         ) : (
           <View style={styles.list}>
             {shifts.length > 0 ? (
@@ -248,6 +243,7 @@ export function WorkerOverviewPanel({
                   <FillInListingCard
                     key={shift.id}
                     shift={shift}
+                    accent="secondary"
                     onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
                   />
                 ))}
@@ -297,9 +293,11 @@ export function WorkerOverviewPanel({
 
       {selected === 'applications' ? (
         jobApplications.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>You have not applied to any roles yet.</Text>
-          </View>
+          <DashboardEmptyState
+            icon="document-text-outline"
+            title="No applications yet"
+            message="When you apply to roles, your application status will appear here."
+          />
         ) : (
           <View style={styles.list}>
             {previewJobApplications.map((application) => (

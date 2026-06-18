@@ -51,6 +51,7 @@ const PINGRAM_TYPES = {
   fillInPosted: 'fill_in_posted',
   jobPosted: 'job_posted',
   messageReceived: 'message_received',
+  fillInOutreachSms: 'fill_in_outreach_sms',
 } as const;
 
 const DEFAULT_PINGRAM_API_URL = 'https://api.ca.pingram.io';
@@ -157,10 +158,7 @@ function formatShiftDateLabel(isoDate: string): string {
   });
 }
 
-function formatClinicLocation(clinic: {
-  city?: string | null;
-  province?: string | null;
-}): string {
+function formatClinicLocation(clinic: { city?: string | null; province?: string | null }): string {
   const city = clinic.city?.trim();
   const province = clinic.province?.trim();
   if (city && province) return `${city}, ${province}`;
@@ -181,9 +179,7 @@ function buildFillInAlertCopy(input: {
   const locationSuffix = input.locationLabel ? ` (${input.locationLabel})` : '';
   const dateLabel = formatShiftDateLabel(input.shiftDate);
   const timeRange =
-    input.startTime && input.endTime
-      ? formatShiftTimeRange(input.startTime, input.endTime)
-      : null;
+    input.startTime && input.endTime ? formatShiftTimeRange(input.startTime, input.endTime) : null;
   const compensation = input.compensation?.trim();
   const compensationSuffix = compensation ? ` Compensation: ${compensation}.` : '';
   const verb = input.isUpdate ? 'updated' : 'posted';
@@ -222,6 +218,22 @@ function resolveMessageRecipient(
   if (sender === workerId) return conversation.clinic_id;
   if (sender === clinicId) return conversation.worker_id;
   return null;
+}
+
+function buildSmsOnlyBody(input: {
+  type: string;
+  userId: string;
+  phone: string;
+  smsMessage: string;
+  secondaryId: string;
+}): PingramSendBody {
+  return {
+    type: input.type,
+    to: { id: input.userId, number: input.phone },
+    sms: { message: input.smsMessage },
+    forceChannels: ['SMS'],
+    secondaryId: input.secondaryId,
+  };
 }
 
 function buildSendBody(input: {
@@ -268,6 +280,7 @@ function buildSendBody(input: {
       push: {
         customData: {
           url: input.deepLink,
+          secondaryId: input.secondaryId,
           ...(input.pushCustomData ?? {}),
         },
       },
@@ -310,6 +323,25 @@ function truncatePreview(text: string, maxLength = 120): string {
   return `${trimmed.slice(0, maxLength - 1).trim()}…`;
 }
 
+function buildOutreachSmsCopy(input: {
+  clinicName: string;
+  shiftDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  roleType?: string | null;
+}): string {
+  if (input.shiftDate) {
+    const dateLabel = formatShiftDateLabel(input.shiftDate);
+    const timeRange =
+      input.startTime && input.endTime
+        ? formatShiftTimeRange(input.startTime, input.endTime)
+        : null;
+    const detailParts = [dateLabel, timeRange].filter(Boolean).join(', ');
+    return `Chairside: ${input.clinicName} sent you a fill-in request for ${detailParts}. Open Chairside to reply. Reply STOP to opt out.`;
+  }
+  return `Chairside: ${input.clinicName} sent you a fill-in request. Open Chairside to reply. Reply STOP to opt out.`;
+}
+
 async function handleMessageInsert(
   supabase: ReturnType<typeof createClient>,
   pingramKey: string,
@@ -320,10 +352,16 @@ async function handleMessageInsert(
   const conversationId = record.conversation_id as string;
   const senderId = record.sender_id as string;
   const body = (record.body as string | undefined)?.trim() ?? '';
+  const triggerSmsAlert = record.trigger_sms_alert === true;
+  const suppressNotification = record.suppress_notification === true;
+
+  if (suppressNotification) return;
 
   const { data: conversation, error: conversationError } = await supabase
     .from('conversations')
-    .select('id, application_id, conversation_type, worker_id, clinic_id')
+    .select(
+      'id, application_id, conversation_type, worker_id, clinic_id, outreach_role_type, outreach_shift_date, outreach_start_time, outreach_end_time',
+    )
     .eq('id', conversationId)
     .maybeSingle();
 
@@ -341,13 +379,14 @@ async function handleMessageInsert(
 
   const recipientIsClinic = normalizeUuid(recipientId) === normalizeUuid(conversation.clinic_id);
   const isGeneralConversation = conversation.conversation_type === 'general';
+  const isOutreachConversation = conversation.conversation_type === 'outreach';
 
   const idempotencyKey = `${PINGRAM_TYPES.messageReceived}:${messageId}`;
   if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   let senderLabel = 'Someone';
   if (normalizeUuid(senderId) === normalizeUuid(conversation.worker_id)) {
-    if (isGeneralConversation) {
+    if (isGeneralConversation || isOutreachConversation) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('display_name')
@@ -371,15 +410,18 @@ async function handleMessageInsert(
     senderLabel = clinic?.clinic_name?.trim() || 'A clinic';
   }
 
-  const title = `Message from ${senderLabel}`;
+  const title = isOutreachConversation
+    ? `Fill-in request from ${senderLabel}`
+    : `Message from ${senderLabel}`;
   const message = truncatePreview(body, 100);
-  const deepLink = isGeneralConversation
-    ? recipientIsClinic
-      ? `chairside:///(clinic-tabs)/conversation/${conversation.id}`
-      : `chairside:///(tabs)/conversation/${conversation.id}`
-    : recipientIsClinic
-      ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
-      : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
+  const deepLink =
+    isGeneralConversation || isOutreachConversation
+      ? recipientIsClinic
+        ? `chairside:///(clinic-tabs)/conversation/${conversation.id}`
+        : `chairside:///(tabs)/conversation/${conversation.id}`
+      : recipientIsClinic
+        ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
+        : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
 
   const includePush = await isPushEnabledForUser(
     supabase,
@@ -401,6 +443,52 @@ async function handleMessageInsert(
       pushCustomData: { senderId },
     }),
   );
+
+  if (
+    isOutreachConversation &&
+    triggerSmsAlert &&
+    !recipientIsClinic &&
+    normalizeUuid(senderId) === normalizeUuid(conversation.clinic_id)
+  ) {
+    const smsKey = `${PINGRAM_TYPES.fillInOutreachSms}:${messageId}`;
+    if (!(await claimIdempotency(supabase, smsKey))) return;
+
+    const { data: worker } = await supabase
+      .from('worker_profiles')
+      .select('fill_in_sms_opt_in, phone')
+      .eq('id', conversation.worker_id)
+      .maybeSingle();
+
+    const e164 = worker?.fill_in_sms_opt_in ? normalizeE164(worker.phone as string | null) : null;
+    if (!e164) return;
+
+    const { data: clinic } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name')
+      .eq('id', conversation.clinic_id)
+      .maybeSingle();
+
+    const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
+    const smsMessage = buildOutreachSmsCopy({
+      clinicName,
+      shiftDate: conversation.outreach_shift_date as string,
+      startTime: conversation.outreach_start_time as string | null,
+      endTime: conversation.outreach_end_time as string | null,
+      roleType: conversation.outreach_role_type as string | null,
+    });
+
+    await pingramSend(
+      pingramKey,
+      pingramBase,
+      buildSmsOnlyBody({
+        type: PINGRAM_TYPES.fillInOutreachSms,
+        userId: conversation.worker_id,
+        phone: e164,
+        smsMessage,
+        secondaryId: smsKey,
+      }),
+    );
+  }
 }
 
 async function sendWorkerStatusNotification(
@@ -1140,8 +1228,7 @@ Deno.serve(async (req) => {
       shouldNotifyFillInShift(payload.record, payload.old_record, payload.type)
     ) {
       await handleShiftPostLive(supabase, pingramKey, pingramBase, payload.record, {
-        isUpdate:
-          payload.type === 'UPDATE' && !becameLive(payload.record, payload.old_record),
+        isUpdate: payload.type === 'UPDATE' && !becameLive(payload.record, payload.old_record),
       });
     } else if (payload.table === 'job_posts' && becameLive(payload.record, payload.old_record)) {
       await handleJobPostLive(supabase, pingramKey, pingramBase, payload.record);

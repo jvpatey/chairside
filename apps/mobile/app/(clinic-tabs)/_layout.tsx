@@ -6,9 +6,13 @@ import { renderClinicTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
+import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
-import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
+import {
+  ApplicationTabBadgeProvider,
+  useApplicationTabBadge,
+} from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 function ClinicTabNavigator() {
@@ -26,14 +30,18 @@ function ClinicTabNavigator() {
           options={{
             title: 'Postings',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} size={22} color={color} />
+              <Ionicons
+                name={focused ? 'briefcase' : 'briefcase-outline'}
+                size={22}
+                color={color}
+              />
             ),
           }}
         />
         <Tabs.Screen
           name="applications"
           options={{
-            title: 'Apps',
+            title: 'Applications',
             tabBarAccessibilityLabel: 'Applications',
             tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
             tabBarIcon: ({ color, focused }) => (
@@ -72,6 +80,8 @@ function ClinicTabNavigator() {
         <Tabs.Screen name="conversation/[id]" options={{ href: null }} />
         <Tabs.Screen name="post-job" options={{ href: null }} />
         <Tabs.Screen name="post-shift" options={{ href: null }} />
+        <Tabs.Screen name="find-available-workers" options={{ href: null }} />
+        <Tabs.Screen name="outreach-compose" options={{ href: null }} />
         <Tabs.Screen name="job/[id]" options={{ href: null }} />
         <Tabs.Screen name="shift/[id]" options={{ href: null }} />
         <Tabs.Screen name="role-applicants/[jobId]" options={{ href: null }} />
@@ -89,7 +99,9 @@ export default function ClinicTabLayout() {
       <MessageUnreadProvider role="clinic">
         <FillInPendingProvider>
           <ApplicationTabBadgeProvider role="clinic">
-            <ClinicTabNavigator />
+            <TabAtmosphereShell role="clinic">
+              <ClinicTabNavigator />
+            </TabAtmosphereShell>
           </ApplicationTabBadgeProvider>
         </FillInPendingProvider>
       </MessageUnreadProvider>

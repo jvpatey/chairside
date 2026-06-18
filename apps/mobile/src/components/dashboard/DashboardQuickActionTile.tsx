@@ -1,9 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
+import {
+  colorWithAlpha,
+  getPrimaryTileGradient,
+  getSecondaryTileGradient,
+  fontBold,
+  fontRegular,
+  useTheme,
+  useThemedStyles,
+} from '@/theme';
 import { webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
 
 export type DashboardQuickActionVariant = 'primary' | 'secondary';
 
@@ -22,55 +33,86 @@ export function DashboardQuickActionTile({
   variant = 'primary',
   onPress,
 }: DashboardQuickActionTileProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { isTablet } = useResponsiveLayout();
   const isPrimary = variant === 'primary';
+  const showDescription = isTablet;
+  const gradientColors = isPrimary
+    ? getPrimaryTileGradient(colors, isDark)
+    : getSecondaryTileGradient(colors, isDark);
 
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     tile: {
       flex: 1,
-      borderRadius: 18,
-      padding: spacing.md,
-      gap: spacing.xs,
-      minHeight: 108,
-      borderWidth: 1,
+      borderRadius: dashboardControlRadii.quickAction,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      overflow: 'hidden',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: isPrimary
+        ? isDark
+          ? `${colors.primary}66`
+          : `${colors.primary}44`
+        : isDark
+          ? `${colors.secondary}44`
+          : `${colors.secondary}30`,
+      ...elevation('subtle'),
       ...webPointer(),
     },
-    tilePrimary: {
-      borderColor: isDark ? `${colors.primary}55` : `${colors.primary}33`,
-      backgroundColor: colors.primarySubtle,
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
     },
-    tileSecondary: {
-      borderColor: colors.separator,
-      backgroundColor: colors.surface,
+    row: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    textBlock: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
     },
     tileHovered: webTileHoverStyles(colors, isDark),
     tilePressed: {
       opacity: 0.88,
       transform: [{ scale: 0.985 }],
     },
-    iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
+    iconHalo: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
+      flexShrink: 0,
+      borderWidth: StyleSheet.hairlineWidth,
     },
-    iconWrapPrimary: {
-      backgroundColor: colors.primary,
+    iconHaloPrimary: {
+      backgroundColor: colorWithAlpha(colors.primary, isDark ? 0.22 : 0.12),
+      borderColor: colorWithAlpha(colors.primary, isDark ? 0.28 : 0.16),
     },
-    iconWrapSecondary: {
-      backgroundColor: colors.fillSubtle,
+    iconHaloSecondary: {
+      backgroundColor: colorWithAlpha(colors.secondary, isDark ? 0.22 : 0.12),
+      borderColor: colorWithAlpha(colors.secondary, isDark ? 0.28 : 0.16),
     },
     label: {
-      ...typography.body,
-      fontWeight: '700',
-      fontSize: 16,
+      fontSize: 15,
+      lineHeight: 20,
+      fontFamily: fontBold,
+      fontWeight: '600',
       color: colors.labelPrimary,
+      letterSpacing: -0.2,
     },
     description: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: fontRegular,
       color: colors.labelSecondary,
+    },
+    chevron: {
+      flexShrink: 0,
+      opacity: 0.35,
+      marginLeft: -spacing.xs,
     },
   }));
 
@@ -89,19 +131,38 @@ export function DashboardQuickActionTile({
       onPress={handlePress}
       style={({ pressed, hovered }) => [
         styles.tile,
-        isPrimary ? styles.tilePrimary : styles.tileSecondary,
+        { minHeight: showDescription ? 92 : 82 },
         isWeb && hovered && !pressed && styles.tileHovered,
         pressed && styles.tilePressed,
       ]}>
-      <View style={[styles.iconWrap, isPrimary ? styles.iconWrapPrimary : styles.iconWrapSecondary]}>
-        <Ionicons
-          name={icon}
-          size={22}
-          color={isPrimary ? colors.primaryOnPrimary : colors.primary}
-        />
+      <LinearGradient colors={gradientColors} style={styles.gradient} />
+      <View style={styles.row}>
+        <View style={[styles.iconHalo, isPrimary ? styles.iconHaloPrimary : styles.iconHaloSecondary]}>
+          <Ionicons
+            name={icon}
+            size={20}
+            color={isPrimary ? colors.primary : colors.secondary}
+          />
+        </View>
+        <View style={styles.textBlock}>
+          <Text style={styles.label} numberOfLines={2}>
+            {label}
+          </Text>
+          {showDescription ? (
+            <Text style={styles.description} numberOfLines={2}>
+              {description}
+            </Text>
+          ) : null}
+        </View>
+        {isTablet ? (
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.labelTertiary}
+            style={styles.chevron}
+          />
+        ) : null}
       </View>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.description}>{description}</Text>
     </Pressable>
   );
 }

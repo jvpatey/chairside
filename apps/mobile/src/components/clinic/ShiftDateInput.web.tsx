@@ -11,7 +11,7 @@ import {
   toISODate,
   todayISO,
 } from '@/lib/dates';
-import { useThemedStyles } from '@/theme';
+import { useThemedStyles, type GradientAccent } from '@/theme';
 
 const SHIFT_DATE_OPTIONS = [
   { value: 'today' as const, label: 'Today' },
@@ -24,6 +24,7 @@ export type ShiftDateMode = (typeof SHIFT_DATE_OPTIONS)[number]['value'];
 type ShiftDateInputProps = {
   value: string;
   onChange: (isoDate: string) => void;
+  accent?: GradientAccent;
 };
 
 function resolveMode(value: string): ShiftDateMode {
@@ -32,7 +33,7 @@ function resolveMode(value: string): ShiftDateMode {
   return 'custom';
 }
 
-export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
+export function ShiftDateInput({ value, onChange, accent = 'primary' }: ShiftDateInputProps) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const [mode, setMode] = useState<ShiftDateMode>(() => resolveMode(value || todayISO()));
   const selectedDate = parseISODate(value) ?? today;
@@ -80,6 +81,7 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
         options={[...SHIFT_DATE_OPTIONS]}
         selected={mode}
         onChange={(next) => handleModeChange(next as ShiftDateMode)}
+        accent={accent}
       />
       {mode === 'custom' ? (
         <WebDateField
@@ -88,6 +90,7 @@ export function ShiftDateInput({ value, onChange }: ShiftDateInputProps) {
           min={minDate}
           onChange={onChange}
           hint="Tap to select date"
+          accent={accent}
         />
       ) : (
         <View style={styles.dateDisplay}>

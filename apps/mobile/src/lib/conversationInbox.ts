@@ -24,7 +24,10 @@ export function matchesConversationFilter(
     case 'roles':
       return conversation.conversation_type === 'application' && conversation.post_type === 'job';
     case 'fill_ins':
-      return conversation.conversation_type === 'application' && conversation.post_type === 'shift';
+      return (
+        (conversation.conversation_type === 'application' && conversation.post_type === 'shift') ||
+        conversation.conversation_type === 'outreach'
+      );
     case 'general':
       return conversation.conversation_type === 'general';
     default:
@@ -40,7 +43,9 @@ export function filterConversations(
   return conversations.filter((conversation) => matchesConversationFilter(conversation, filter));
 }
 
-export function getConversationFilterCounts(conversations: Conversation[]): ConversationFilterCounts {
+export function getConversationFilterCounts(
+  conversations: Conversation[],
+): ConversationFilterCounts {
   const counts: ConversationFilterCounts = {
     all: conversations.length,
     unread: 0,

@@ -38,6 +38,9 @@ function getEmptyStateMessage(conversation: Conversation | null, canSend: boolea
   if (conversation?.conversation_type === 'general') {
     return 'Ask about future opportunities, availability, or the clinic’s team.';
   }
+  if (conversation?.conversation_type === 'outreach') {
+    return 'Reply to let the clinic know if you can cover this fill-in.';
+  }
   return 'Send a message to start the conversation.';
 }
 
@@ -47,6 +50,9 @@ function getClosedBannerMessage(conversation: Conversation | null): string {
   }
   if (conversation?.conversation_type === 'general') {
     return 'This clinic is no longer accepting general messages. You can still read past messages.';
+  }
+  if (conversation?.conversation_type === 'outreach') {
+    return 'This fill-in outreach thread is closed. You can still read past messages.';
   }
   return 'This conversation is closed. You can still read past messages.';
 }
@@ -245,9 +251,7 @@ export function MessageThread({
   };
 
   const canSend = Boolean(conversation?.can_send);
-  const headerDisplay = conversation
-    ? formatConversationDisplay(conversation, role)
-    : null;
+  const headerDisplay = conversation ? formatConversationDisplay(conversation, role) : null;
   const headerTitle = headerDisplay?.threadTitle ?? title;
   const headerSubtitle = headerDisplay?.threadSubtitle ?? subtitle;
 
@@ -268,10 +272,7 @@ export function MessageThread({
       <FlatList
         ref={listRef}
         style={[styles.list, webScrollbarStyles()]}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: listBottomPadding },
-        ]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -305,7 +306,8 @@ export function MessageThread({
         style={[styles.composeWrap, { bottom: composeBottom }]}
         onLayout={(event) => {
           setComposeHeight(event.nativeEvent.layout.height);
-        }}>
+        }}
+      >
         <MessageComposeBar
           disabled={!canSend}
           sending={isSending}
@@ -318,11 +320,7 @@ export function MessageThread({
 
   return (
     <View ref={containerRef} style={styles.container} collapsable={false}>
-      {embedded ? (
-        threadBody
-      ) : (
-        <WebPageEnter style={{ flex: 1 }}>{threadBody}</WebPageEnter>
-      )}
+      {embedded ? threadBody : <WebPageEnter style={{ flex: 1 }}>{threadBody}</WebPageEnter>}
     </View>
   );
 }

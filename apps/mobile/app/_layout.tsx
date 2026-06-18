@@ -4,6 +4,7 @@ import {
   PlusJakartaSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -12,12 +13,13 @@ import { useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { getColors } from '@/theme/colors';
+import { getAppNavigationTheme } from '@/theme/navigationTheme';
 
 import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
-import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { OnboardingProvider } from '@/contexts/OnboardingContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ClinicProfileProvider } from '@/contexts/ClinicProfileContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ResumePreviewProvider } from '@/contexts/ResumePreviewContext';
@@ -34,19 +36,6 @@ export const unstable_settings = {
   initialRouteName: 'index',
 };
 
-function SplashScreenController({ fontsReady }: { fontsReady: boolean }) {
-  const { isHydrated } = useOnboarding();
-  const { isAuthReady } = useAuth();
-
-  useEffect(() => {
-    if (fontsReady && isHydrated && isAuthReady) {
-      void SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsReady, isHydrated, isAuthReady]);
-
-  return null;
-}
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts({
@@ -57,27 +46,37 @@ export default function RootLayout() {
 
   const fontsReady = fontsLoaded || !!fontError;
 
+  useEffect(() => {
+    if (fontsReady) {
+      void SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsReady]);
+
   if (!fontsReady) {
     return null;
   }
 
   const rootBackground = getColors(colorScheme).backgroundGrouped;
+  const navigationTheme = getAppNavigationTheme(colorScheme);
 
   return (
     <SafeAreaProvider style={{ flex: 1, backgroundColor: rootBackground }}>
       <View style={{ flex: 1, backgroundColor: rootBackground }}>
+      <ThemeProvider value={navigationTheme}>
       <AuthProvider>
         <ClinicProfileProvider>
           <WorkerProfileProvider>
             <NotificationProvider>
               <ResumePreviewProvider>
                 <OnboardingProvider>
-                  <SplashScreenController fontsReady={fontsReady} />
                   <PushRegistration />
                   <ConfirmActionSheetHost />
                   <VercelAnalytics />
                   <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-                  <Stack>
+                  <Stack
+                    screenOptions={{
+                      contentStyle: { backgroundColor: rootBackground },
+                    }}>
                   <Stack.Screen name="index" options={{ headerShown: false }} />
                   <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -93,6 +92,7 @@ export default function RootLayout() {
           </WorkerProfileProvider>
         </ClinicProfileProvider>
       </AuthProvider>
+      </ThemeProvider>
       </View>
     </SafeAreaProvider>
   );

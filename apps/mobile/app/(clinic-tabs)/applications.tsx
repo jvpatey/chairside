@@ -2,9 +2,13 @@ import { listJobApplicationSummaries, type JobApplicationSummary } from '@chairs
 import { formatJobApplicationSummaryMeta } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import {
+  formatViewApplicantsLabel,
+  PostingCardActionButton,
+} from '@/components/clinic/PostingCardActionButton';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
@@ -13,47 +17,25 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { formatPostedDateLabel } from '@/lib/dates';
 import { getClinicRoleApplicationsRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 function RoleApplicationSummaryRow({
   summary,
-  onPress,
+  onViewPress,
 }: {
   summary: JobApplicationSummary;
-  onPress: () => void;
+  onViewPress: () => void;
 }) {
   const { clinicProfile } = useClinicProfile();
   const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
-  const applicantLabel =
-    summary.applicant_count === 1 ? '1 applicant' : `${summary.applicant_count} applicants`;
-  const reviewMeta = formatJobApplicationSummaryMeta(summary);
+  const pipelineMeta = formatJobApplicationSummaryMeta(summary);
   const hasNewApplicants = summary.unseen_count > 0;
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    statPill: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-    },
-    statPillNew: {
-      backgroundColor: colors.primary,
-    },
-    statText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    statTextNew: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primaryOnPrimary,
-    },
-  }));
+  const postedLabel = formatPostedDateLabel(summary.post_created_at);
+  const viewLabel = formatViewApplicantsLabel(summary.applicant_count);
 
   return (
     <BrowseListRow
@@ -61,20 +43,20 @@ function RoleApplicationSummaryRow({
       eyebrow={clinicName}
       title={summary.post_title}
       meta={location || null}
-      detail={reviewMeta}
+      postedLabel={postedLabel || null}
+      postedLabelPlacement="header"
+      detail={pipelineMeta}
       topTrailing={hasNewApplicants ? <ApplicationCardBadge /> : undefined}
-      footer={
-        <View style={[styles.statPill, hasNewApplicants && styles.statPillNew]}>
-          <Text style={[styles.statText, hasNewApplicants && styles.statTextNew]}>
-            {hasNewApplicants
-              ? summary.unseen_count === 1
-                ? '1 new applicant'
-                : `${summary.unseen_count} new applicants`
-              : applicantLabel}
-          </Text>
-        </View>
+      showChevron={false}
+      action={
+        <PostingCardActionButton
+          label={viewLabel}
+          variant="primary"
+          highlighted={hasNewApplicants}
+          fullWidth
+          onPress={onViewPress}
+        />
       }
-      onPress={onPress}
     />
   );
 }
@@ -115,7 +97,7 @@ export default function ClinicApplicationsScreen() {
             <RoleApplicationSummaryRow
               key={summary.job_post_id}
               summary={summary}
-              onPress={() =>
+              onViewPress={() =>
                 router.push(getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'))
               }
             />

@@ -11,7 +11,7 @@ import {
   webListRowHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type WebDateFieldProps = {
   label?: string;
@@ -21,6 +21,7 @@ type WebDateFieldProps = {
   hint?: string;
   placeholder?: string;
   style?: ViewStyle;
+  accent?: GradientAccent;
 };
 
 type WebTimeFieldProps = {
@@ -31,9 +32,10 @@ type WebTimeFieldProps = {
   placeholder?: string;
   style?: ViewStyle;
   onOpenChange?: (open: boolean) => void;
+  accent?: GradientAccent;
 };
 
-function useWebPickerFieldStyles() {
+function useWebPickerFieldStyles(brandColor: string, brandSubtle: string) {
   return useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: { gap: spacing.xs },
     label: {
@@ -55,8 +57,8 @@ function useWebPickerFieldStyles() {
     },
     pickerButtonHovered: webListRowHoverStyles(colors),
     pickerButtonActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primarySubtle,
+      borderColor: brandColor,
+      backgroundColor: brandSubtle,
     },
     pickerButtonPressed: {
       opacity: 0.92,
@@ -77,7 +79,7 @@ function useWebPickerFieldStyles() {
     pickerButtonHint: {
       ...typography.subtitle,
       fontSize: 13,
-      color: colors.primary,
+      color: brandColor,
       fontWeight: '600' as const,
     },
     iconWrap: {
@@ -109,9 +111,12 @@ export function WebDateField({
   hint = 'Tap to change date',
   placeholder = 'Select date',
   style,
+  accent = 'primary',
 }: WebDateFieldProps) {
   const { colors } = useTheme();
-  const styles = useWebPickerFieldStyles();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const styles = useWebPickerFieldStyles(brandColor, brandSubtle);
   const [open, setOpen] = useState(false);
 
   const displayValue = useMemo(() => {
@@ -147,7 +152,7 @@ export function WebDateField({
           pressed && styles.pickerButtonPressed,
         ]}>
         <View style={[styles.iconWrap, open && styles.iconWrapActive]}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          <Ionicons name="calendar-outline" size={18} color={brandColor} />
         </View>
         <View style={styles.pickerContent}>
           <Text style={displayValue ? styles.pickerButtonText : styles.pickerButtonPlaceholder}>
@@ -172,9 +177,12 @@ export function WebTimeField({
   placeholder = 'Select time',
   style,
   onOpenChange,
+  accent = 'primary',
 }: WebTimeFieldProps) {
   const { colors } = useTheme();
-  const styles = useWebPickerFieldStyles();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const styles = useWebPickerFieldStyles(brandColor, brandSubtle);
   const [open, setOpen] = useState(false);
   const normalizedValue = useMemo(() => normalizeTimeValue(value), [value]);
 
@@ -207,7 +215,7 @@ export function WebTimeField({
           pressed && styles.pickerButtonPressed,
         ]}>
         <View style={[styles.iconWrap, open && styles.iconWrapActive]}>
-          <Ionicons name="time-outline" size={18} color={colors.primary} />
+          <Ionicons name="time-outline" size={18} color={brandColor} />
         </View>
         <View style={styles.pickerContent}>
           <Text style={displayValue ? styles.pickerButtonText : styles.pickerButtonPlaceholder}>
@@ -222,6 +230,7 @@ export function WebTimeField({
           value={normalizedValue}
           onChange={onChange}
           onDone={() => setOpen(false)}
+          accent={accent}
         />
       ) : null}
     </View>

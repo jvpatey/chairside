@@ -1,7 +1,8 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type ChipSelectorProps<T extends string> = {
   options: { value: T; label: string }[];
@@ -9,6 +10,7 @@ type ChipSelectorProps<T extends string> = {
   multiple?: boolean;
   horizontal?: boolean;
   compact?: boolean;
+  accent?: GradientAccent;
   onChange: (value: T | T[]) => void;
 };
 
@@ -18,8 +20,14 @@ export function ChipSelector<T extends string>({
   multiple = false,
   horizontal = true,
   compact = false,
+  accent,
   onChange,
 }: ChipSelectorProps<T>) {
+  const { colors } = useTheme();
+  const tabAccent = useTabAtmosphereAccent();
+  const resolvedAccent = accent ?? tabAccent;
+  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = resolvedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       flexDirection: 'row',
@@ -44,20 +52,21 @@ export function ChipSelector<T extends string>({
     chipPressed: {
       opacity: 0.88,
     },
-    chipSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primarySubtle,
-    },
     label: {
       ...typography.body,
       fontSize: compact ? 13 : 14,
       color: colors.labelPrimary,
     },
-    labelSelected: {
-      fontWeight: '600',
-      color: colors.primary,
-    },
   }));
+
+  const chipSelectedStyle = {
+    borderColor: brandColor,
+    backgroundColor: brandSubtle,
+  };
+  const labelSelectedStyle = {
+    fontWeight: '600' as const,
+    color: brandColor,
+  };
 
   const selectedItems: T[] = multiple
     ? Array.isArray(selected)
@@ -90,12 +99,12 @@ export function ChipSelector<T extends string>({
         onPress={() => handlePress(option.value)}
         style={({ pressed, hovered }) => [
           styles.chip,
-          active && styles.chipSelected,
+          active && chipSelectedStyle,
           !active && webHover(hovered, pressed, styles.chipHovered),
           pressed && styles.chipPressed,
         ]}
       >
-        <Text style={[styles.label, active && styles.labelSelected]}>{option.label}</Text>
+        <Text style={[styles.label, active && labelSelectedStyle]}>{option.label}</Text>
       </Pressable>
     );
   });

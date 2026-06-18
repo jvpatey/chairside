@@ -6,25 +6,34 @@ import { Text, View } from 'react-native';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
+  ROLES_BROWSE_MODE_OPTIONS,
   sortJobsByPostedDate,
   type JobPostedSort,
   type RoleTypeFilter,
+  type RolesBrowseMode,
 } from '@/lib/postingFilters';
-import {
-  buildLiveJobMatchDisplayContext,
-  computeJobMatchBreakdown,
-} from '@/lib/workerMatch';
+import { buildLiveJobMatchDisplayContext, computeJobMatchBreakdown } from '@/lib/workerMatch';
 import { getWorkerJobDetailRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
-function BrowseEmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }) {
+function BrowseEmptyState({
+  icon,
+  title,
+  body,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  body: string;
+}) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
@@ -60,10 +69,29 @@ function BrowseEmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.g
   );
 }
 
+function renderRoleListingCards(
+  jobs: LiveJobPost[],
+  appliedJobIds: Set<string>,
+  workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
+) {
+  return jobs.map((job) => (
+    <RoleListingCard
+      key={job.id}
+      job={job}
+      layout="list"
+      hasApplied={appliedJobIds.has(job.id)}
+      jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
+      matchContext={workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined}
+      onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
+    />
+  ));
+}
+
 export default function BrowseScreen() {
   const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
+  const [selectedMode, setSelectedMode] = useState<RolesBrowseMode>('open');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
@@ -91,22 +119,73 @@ export default function BrowseScreen() {
 
   const filteredJobs = useMemo(() => {
     const byRole =
-      roleTypeFilter === 'all'
-        ? jobs
-        : jobs.filter((job) => job.role_type === roleTypeFilter);
+      roleTypeFilter === 'all' ? jobs : jobs.filter((job) => job.role_type === roleTypeFilter);
     return sortJobsByPostedDate(byRole, postedSort);
   }, [jobs, postedSort, roleTypeFilter]);
 
+  const { openJobs, appliedJobs } = useMemo(() => {
+    const open: LiveJobPost[] = [];
+    const applied: LiveJobPost[] = [];
+
+    for (const job of filteredJobs) {
+      if (appliedJobIds.has(job.id)) {
+        applied.push(job);
+      } else {
+        open.push(job);
+      }
+    }
+
+    return { openJobs: open, appliedJobs: applied };
+  }, [appliedJobIds, filteredJobs]);
+
+  const hasBothSections = openJobs.length > 0 && appliedJobs.length > 0;
+  const segmentJobs = selectedMode === 'open' ? openJobs : appliedJobs;
+
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
+    panel: { gap: spacing.md },
   }));
 
   const showRoleFilters = !isLoading && jobs.length > 0;
 
+  const roleListContent = hasBothSections ? (
+    <View style={styles.panel}>
+      <SegmentedControl
+        options={ROLES_BROWSE_MODE_OPTIONS}
+        selected={selectedMode}
+        onChange={setSelectedMode}
+        density="compact"
+      />
+      {segmentJobs.length === 0 ? (
+        <DashboardEmptyState
+          icon={selectedMode === 'open' ? 'briefcase-outline' : 'checkmark-circle-outline'}
+          title={
+            selectedMode === 'open'
+              ? 'No open roles in this filter'
+              : 'No applied roles in this filter'
+          }
+          message={
+            selectedMode === 'open'
+              ? 'Try a different filter or check the Applied tab.'
+              : 'Roles you apply to will appear here while they are still posted.'
+          }
+        />
+      ) : (
+        <BrowseListGroup>
+          {renderRoleListingCards(segmentJobs, appliedJobIds, workerProfile)}
+        </BrowseListGroup>
+      )}
+    </View>
+  ) : (
+    <BrowseListGroup>
+      {renderRoleListingCards(filteredJobs, appliedJobIds, workerProfile)}
+    </BrowseListGroup>
+  );
+
   return (
     <Screen
       title="Roles"
-      subtitle="Open roles at clinics in your province."
+      subtitle="Open roles in your province."
       headerAccessory={
         showRoleFilters ? (
           <WorkerRoleBrowseFilters
@@ -116,7 +195,8 @@ export default function BrowseScreen() {
             onPostedSortChange={setPostedSort}
           />
         ) : undefined
-      }>
+      }
+    >
       <View style={styles.wrap}>
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
@@ -133,21 +213,7 @@ export default function BrowseScreen() {
             body="Try a different filter or check back soon for new opportunities."
           />
         ) : (
-          <BrowseListGroup>
-            {filteredJobs.map((job) => (
-              <RoleListingCard
-                key={job.id}
-                job={job}
-                layout="list"
-                hasApplied={appliedJobIds.has(job.id)}
-                jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
-                matchContext={
-                  workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
-                }
-                onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
-              />
-            ))}
-          </BrowseListGroup>
+          roleListContent
         )}
       </View>
     </Screen>

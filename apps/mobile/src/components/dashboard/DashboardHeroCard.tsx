@@ -1,12 +1,12 @@
-import { getProvinceLabel } from '@chairside/config';
 import { type Href } from 'expo-router';
 import { Platform, Text, View } from 'react-native';
 
 import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
 import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { getTimeOfDayGreeting } from '@/lib/greeting';
-import { useThemedStyles } from '@/theme';
+import { fontBold, fontRegular, useThemedStyles } from '@/theme';
 
 type DashboardHeroCardProps = {
   profileHref: Href;
@@ -14,8 +14,7 @@ type DashboardHeroCardProps = {
   displayName?: string | null;
   photoUri?: string | null;
   namePlaceholder: string;
-  province?: string;
-  showProvinceBadge?: boolean;
+  subtitle: string;
 };
 
 export function DashboardHeroCard({
@@ -24,17 +23,13 @@ export function DashboardHeroCard({
   displayName,
   photoUri,
   namePlaceholder,
-  province = 'NS',
-  showProvinceBadge = false,
+  subtitle,
 }: DashboardHeroCardProps) {
   const name = displayName?.trim();
   const greeting = getTimeOfDayGreeting();
   const showSignOut = Platform.OS === 'web';
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    hero: {
-      marginBottom: spacing.sm,
-    },
+  const styles = useThemedStyles(({ colors, spacing, radii, typography }) => ({
     headerRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -42,40 +37,56 @@ export function DashboardHeroCard({
     },
     identity: {
       flex: 1,
-      gap: spacing.xs,
+      gap: 4,
       minWidth: 0,
-      paddingTop: 2,
+      paddingTop: 4,
     },
     greeting: {
-      ...typography.subtitle,
       fontSize: 15,
       lineHeight: 20,
+      fontFamily: fontRegular,
+      color: colors.labelSecondary,
     },
     name: {
-      ...typography.title,
-      fontSize: 32,
-      lineHeight: 38,
-      minHeight: 38,
+      fontSize: 34,
+      lineHeight: 40,
+      fontFamily: fontBold,
+      fontWeight: '700',
+      color: colors.labelPrimary,
+      letterSpacing: -0.6,
+      minHeight: 40,
     },
     nameHidden: {
       opacity: 0,
     },
-    location: {
+    subtitle: {
       ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 18,
+      fontSize: 15,
+      lineHeight: 20,
       marginTop: spacing.xs,
     },
-    actions: {
+    actionsCluster: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: spacing.xs,
       flexShrink: 0,
+      marginTop: 2,
+    },
+    avatarRing: {
+      borderRadius: radii.pill,
+      padding: 2,
+      borderWidth: 2,
+      borderColor: `${colors.primary}44`,
+    },
+    signOutWrap: {
+      marginLeft: spacing.xs,
     },
   }));
 
   return (
-    <View style={styles.hero}>
+    <View>
       <View style={styles.headerRow}>
         <View style={styles.identity}>
           <Text style={styles.greeting}>{greeting}</Text>
@@ -86,21 +97,25 @@ export function DashboardHeroCard({
             importantForAccessibility={name ? 'yes' : 'no-hide-descendants'}>
             {name || namePlaceholder}
           </Text>
-          {showProvinceBadge ? (
-            <Text style={styles.location}>{getProvinceLabel(province)}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        </View>
+        <LiquidGlassSurface borderRadius={22} style={styles.actionsCluster}>
+          <View style={styles.avatarRing}>
+            <ProfileHeaderButton
+              href={profileHref}
+              placement="hero"
+              avatarKind={avatarKind}
+              displayName={name}
+              photoUri={photoUri}
+            />
+          </View>
+          <NotificationBell placement="hero" embedded />
+          {showSignOut ? (
+            <View style={styles.signOutWrap}>
+              <SignOutHeaderButton />
+            </View>
           ) : null}
-        </View>
-        <View style={styles.actions}>
-          <ProfileHeaderButton
-            href={profileHref}
-            placement="hero"
-            avatarKind={avatarKind}
-            displayName={name}
-            photoUri={photoUri}
-          />
-          <NotificationBell placement="hero" />
-          {showSignOut ? <SignOutHeaderButton /> : null}
-        </View>
+        </LiquidGlassSurface>
       </View>
     </View>
   );

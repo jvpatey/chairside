@@ -1,21 +1,35 @@
 import { getUnreadConversationMap, listWorkerJobApplications } from '@chairside/api';
+import { canWorkerHideApplication } from '@chairside/config';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Platform, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { Screen } from '@/components/ui/Screen';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import { toJobCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
-import { partitionWorkerApplications } from '@/lib/workerApplicationHide';
+import {
+  APPLICATIONS_TAB_MODE_OPTIONS,
+  confirmClearPastWorkerApplications,
+  partitionWorkerApplications,
+  type ApplicationsTabMode,
+} from '@/lib/workerApplicationHide';
+import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
-function ApplicationSection({
-  title,
+type ApplicationRow = Awaited<ReturnType<typeof listWorkerJobApplications>>[number];
+
+function ApplicationList({
   applications,
   unreadMap,
   expandedApplicationId,
@@ -24,8 +38,7 @@ function ApplicationSection({
   onHide,
   linkToDetail = false,
 }: {
-  title: string;
-  applications: Awaited<ReturnType<typeof listWorkerJobApplications>>;
+  applications: ApplicationRow[];
   unreadMap: Record<string, boolean>;
   expandedApplicationId: string | null;
   onExpandChange: (applicationId: string | null) => void;
@@ -33,41 +46,27 @@ function ApplicationSection({
   onHide?: () => void;
   linkToDetail?: boolean;
 }) {
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    section: { gap: spacing.sm },
-    title: {
-      ...typography.body,
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: typography.subtitle.color,
-    },
+  const styles = useThemedStyles(({ spacing }) => ({
     list: { gap: spacing.md },
   }));
 
-  if (applications.length === 0) return null;
-
   return (
-    <View style={styles.section}>
-      <Text style={styles.title}>{title}</Text>
-      <View style={styles.list}>
-        {applications.map((application) => (
-          <WorkerApplicationListCard
-            key={application.id}
-            application={application}
-            hasUnreadMessages={Boolean(unreadMap[application.id])}
-            returnTo="applications-tab"
-            expanded={linkToDetail ? false : expandedApplicationId === application.id}
-            onExpandChange={
-              linkToDetail ? undefined : (next) => onExpandChange(next ? application.id : null)
-            }
-            linkToDetail={linkToDetail}
-            onUpdated={onUpdated}
-            onHidden={onHide}
-          />
-        ))}
-      </View>
+    <View style={styles.list}>
+      {applications.map((application) => (
+        <WorkerApplicationListCard
+          key={application.id}
+          application={application}
+          hasUnreadMessages={Boolean(unreadMap[application.id])}
+          returnTo="applications-tab"
+          expanded={linkToDetail ? false : expandedApplicationId === application.id}
+          onExpandChange={
+            linkToDetail ? undefined : (next) => onExpandChange(next ? application.id : null)
+          }
+          linkToDetail={linkToDetail}
+          onUpdated={onUpdated}
+          onHidden={onHide}
+        />
+      ))}
     </View>
   );
 }
@@ -80,9 +79,8 @@ export function WorkerApplicationsInboxPanel({
   compact = false,
 }: WorkerApplicationsInboxPanelProps) {
   const { user } = useAuth();
-  const [applications, setApplications] = useState<Awaited<
-    ReturnType<typeof listWorkerJobApplications>
-  >>([]);
+  const [selectedMode, setSelectedMode] = useState<ApplicationsTabMode>('active');
+  const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -99,9 +97,32 @@ export function WorkerApplicationsInboxPanel({
     [applications],
   );
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const hideablePastCount = useMemo(
+    () => past.filter(canWorkerHideApplication).length,
+    [past],
+  );
+
+  const styles = useThemedStyles(({ spacing, colors, typography }) => ({
     content: { gap: spacing.lg },
+    panel: { gap: spacing.md },
     empty: typography.subtitle,
+    clearAllRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
+    clearAllPressable: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    clearAllLabel: {
+      ...typography.body,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.destructive,
+    },
+    clearAllHovered: webTextLinkHoverStyles(colors),
   }));
 
   const load = useCallback(async () => {
@@ -136,14 +157,19 @@ export function WorkerApplicationsInboxPanel({
   }, [load]);
 
   const hasAnyApplications = applications.length > 0;
+  const listProps = {
+    unreadMap,
+    expandedApplicationId,
+    onExpandChange: setExpandedApplicationId,
+    onUpdated: () => void load(),
+    linkToDetail: compact,
+  };
 
   return (
     <>
       <Screen
         title={compact ? undefined : 'Applications'}
-        subtitle={
-          compact ? undefined : "Roles you've applied to — track status here."
-        }
+        subtitle={compact ? undefined : 'Track your role applications.'}
         showHeader={!compact}
         constrainWidth={!compact}>
         <FormErrorBanner message={formError} />
@@ -153,25 +179,61 @@ export function WorkerApplicationsInboxPanel({
           </Text>
         ) : (
           <View style={styles.content}>
-            <ApplicationSection
-              title="Active"
-              applications={active}
-              unreadMap={unreadMap}
-              expandedApplicationId={expandedApplicationId}
-              onExpandChange={setExpandedApplicationId}
-              onUpdated={() => void load()}
-              linkToDetail={compact}
+            <SegmentedControl
+              options={APPLICATIONS_TAB_MODE_OPTIONS}
+              selected={selectedMode}
+              onChange={setSelectedMode}
+              density="compact"
             />
-            <ApplicationSection
-              title="Past"
-              applications={past}
-              unreadMap={unreadMap}
-              expandedApplicationId={expandedApplicationId}
-              onExpandChange={setExpandedApplicationId}
-              onUpdated={() => void load()}
-              onHide={handleHidden}
-              linkToDetail={compact}
-            />
+
+            {selectedMode === 'active' ? (
+              <View style={styles.panel}>
+                {active.length === 0 ? (
+                  <DashboardEmptyState
+                    icon="document-text-outline"
+                    title="No active applications"
+                    message="Applications in progress will appear here."
+                  />
+                ) : (
+                  <ApplicationList applications={active} {...listProps} />
+                )}
+              </View>
+            ) : null}
+
+            {selectedMode === 'past' ? (
+              <View style={styles.panel}>
+                {hideablePastCount > 0 ? (
+                  <View style={styles.clearAllRow}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear all past applications"
+                      style={({ pressed, hovered }) => [
+                        styles.clearAllPressable,
+                        webHover(hovered, pressed, styles.clearAllHovered),
+                        pressed && { opacity: 0.75 },
+                      ]}
+                      onPress={() =>
+                        confirmClearPastWorkerApplications(past, () => void load())
+                      }>
+                      <Text style={styles.clearAllLabel}>Clear all</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+                {past.length === 0 ? (
+                  <DashboardEmptyState
+                    icon="time-outline"
+                    title="No past applications"
+                    message="Filled, closed, or decided roles will appear here."
+                  />
+                ) : (
+                  <ApplicationList
+                    applications={past}
+                    {...listProps}
+                    onHide={handleHidden}
+                  />
+                )}
+              </View>
+            ) : null}
           </View>
         )}
       </Screen>

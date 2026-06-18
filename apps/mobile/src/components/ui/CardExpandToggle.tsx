@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import { GradientHairline } from '@/components/ui/GradientHairline';
 import {
   webFullBleedRowInsets,
   webHover,
   webListRowHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type CardExpandToggleProps = {
   expanded: boolean;
@@ -16,6 +18,7 @@ type CardExpandToggleProps = {
   bleedPadding?: number;
   /** When true, skip row hover styling (parent card owns hover). */
   suppressHover?: boolean;
+  accent?: GradientAccent;
 };
 
 export function CardExpandToggle({
@@ -23,10 +26,18 @@ export function CardExpandToggle({
   onPress,
   bleedPadding,
   suppressHover = false,
+  accent,
 }: CardExpandToggleProps) {
   const { colors } = useTheme();
+  const tabAccent = useTabAtmosphereAccent();
+  const resolvedAccent = accent ?? tabAccent;
+  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ spacing, colors }) => ({
+    toggleWrap: {
+      marginTop: spacing.xs,
+      gap: spacing.xs,
+    },
     toggle: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -45,29 +56,32 @@ export function CardExpandToggle({
     toggleText: {
       fontSize: 14,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
     },
   }));
 
   return (
-    <Pressable
-      style={({ pressed, hovered }) => [
-        styles.toggle,
-        !suppressHover && webHover(hovered, pressed, styles.toggleHovered),
-        pressed && styles.togglePressed,
-      ]}
-      accessibilityRole="button"
-      accessibilityState={{ expanded }}
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}>
-      <Text style={styles.toggleText}>{expanded ? 'Hide details' : 'View details'}</Text>
-      <Ionicons
-        name={expanded ? 'chevron-up' : 'chevron-down'}
-        size={18}
-        color={colors.primary}
-      />
-    </Pressable>
+    <View style={styles.toggleWrap}>
+      <GradientHairline />
+      <Pressable
+        style={({ pressed, hovered }) => [
+          styles.toggle,
+          !suppressHover && webHover(hovered, pressed, styles.toggleHovered),
+          pressed && styles.togglePressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}>
+        <Text style={styles.toggleText}>{expanded ? 'Hide details' : 'View details'}</Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={brandColor}
+        />
+      </Pressable>
+    </View>
   );
 }

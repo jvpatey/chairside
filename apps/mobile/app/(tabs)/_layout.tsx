@@ -5,6 +5,7 @@ import { renderWorkerTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
+import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -29,7 +30,7 @@ function WorkerTabNavigator() {
       <Tabs.Screen
         name="applications"
         options={{
-          title: 'Apps',
+          title: 'Applications',
           tabBarAccessibilityLabel: 'Applications',
           tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
           tabBarIcon: ({ color, focused }) => (
@@ -84,7 +85,9 @@ export default function TabLayout() {
     <SidebarCollapseProvider>
       <MessageUnreadProvider role="worker">
         <ApplicationTabBadgeProvider role="worker">
-          <WorkerTabNavigator />
+          <TabAtmosphereShell role="worker">
+            <WorkerTabNavigator />
+          </TabAtmosphereShell>
         </ApplicationTabBadgeProvider>
       </MessageUnreadProvider>
     </SidebarCollapseProvider>

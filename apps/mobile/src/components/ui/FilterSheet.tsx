@@ -10,18 +10,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 export function FilterSheetSection<T extends string>({
   label,
   options,
   selected,
   onChange,
+  accent = 'primary',
 }: {
   label: string;
   options: { value: T; label: string }[];
   selected: T;
   onChange: (value: T) => void;
+  accent?: GradientAccent;
 }) {
   const styles = useThemedStyles(({ spacing, colors }) => ({
     section: {
@@ -37,7 +39,12 @@ export function FilterSheetSection<T extends string>({
   return (
     <View style={styles.section}>
       <Text style={styles.label}>{label}</Text>
-      <ChipSelector options={options} selected={selected} onChange={(value) => onChange(value as T)} />
+      <ChipSelector
+        options={options}
+        selected={selected}
+        onChange={(value) => onChange(value as T)}
+        accent={accent}
+      />
     </View>
   );
 }
@@ -48,10 +55,20 @@ type FilterSheetProps = {
   onClose: () => void;
   onReset: () => void;
   children: ReactNode;
+  accent?: GradientAccent;
 };
 
-export function FilterSheet({ visible, title, onClose, onReset, children }: FilterSheetProps) {
+export function FilterSheet({
+  visible,
+  title,
+  onClose,
+  onReset,
+  children,
+  accent = 'primary',
+}: FilterSheetProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     backdrop: {
       flex: 1,
@@ -90,7 +107,7 @@ export function FilterSheet({ visible, title, onClose, onReset, children }: Filt
     reset: {
       fontSize: 15,
       fontWeight: '600',
-      color: colors.primary,
+      color: brandColor,
     },
     content: {
       gap: spacing.lg,
@@ -115,7 +132,7 @@ export function FilterSheet({ visible, title, onClose, onReset, children }: Filt
             {children}
           </ScrollView>
           <View style={styles.footer}>
-            <OnboardingButton label="Done" onPress={onClose} />
+            <OnboardingButton label="Done" accent={accent} onPress={onClose} />
           </View>
         </Pressable>
       </Pressable>

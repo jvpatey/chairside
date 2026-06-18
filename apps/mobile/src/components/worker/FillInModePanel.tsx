@@ -3,10 +3,10 @@ import {
   normalizePhoneForStorage,
   type FillInNotificationMode,
 } from '@chairside/config';
-import { useEffect, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
-import { RowDivider } from '@/components/clinic/DetailCard';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { SettingsRadioRow } from '@/components/ui/SettingsRadioRow';
@@ -14,7 +14,7 @@ import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
-import { spacing, useThemedStyles } from '@/theme';
+import { getFillInHeroGradient, radii, spacing, useTheme, useThemedStyles } from '@/theme';
 
 type FillInModePanelProps = {
   showNotificationOptions?: boolean;
@@ -25,56 +25,122 @@ const NOTIFICATION_MODE_OPTIONS = FILL_IN_NOTIFICATION_MODE_OPTIONS.filter(
   (option) => option.value !== 'off',
 );
 
+function SettingsSection({
+  title,
+  children,
+  nested = false,
+}: {
+  title?: string;
+  children: ReactNode;
+  nested?: boolean;
+}) {
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    wrap: nested
+      ? {
+          marginHorizontal: spacing.md,
+          marginBottom: spacing.md,
+        }
+      : {
+          paddingHorizontal: spacing.md,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.md,
+          gap: spacing.xs,
+        },
+    panel: nested
+      ? {
+          backgroundColor: colors.fillSubtle,
+          borderRadius: 12,
+          paddingHorizontal: spacing.md,
+          paddingTop: spacing.md,
+          paddingBottom: spacing.sm,
+          gap: spacing.xs,
+          overflow: 'visible',
+        }
+      : {
+          gap: spacing.xs,
+        },
+    title: {
+      fontSize: 12,
+      fontWeight: '600',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: colors.labelTertiary,
+      paddingBottom: spacing.xs,
+    },
+    body: {
+      gap: spacing.xs,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+      opacity: 0.7,
+      marginVertical: spacing.xs,
+    },
+  }));
+
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.panel}>
+        {title ? <Text style={styles.title}>{title}</Text> : null}
+        <View style={styles.body}>{children}</View>
+      </View>
+    </View>
+  );
+}
+
 export function FillInModePanel({
   showNotificationOptions = true,
   variant = 'card',
 }: FillInModePanelProps) {
+  const { colors, isDark } = useTheme();
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const [shortNoticeAvailable, setShortNoticeAvailable] = useState(false);
+  const [acceptsClinicOutreach, setAcceptsClinicOutreach] = useState(false);
   const [notificationMode, setNotificationMode] = useState<FillInNotificationMode>('off');
   const [smsOptIn, setSmsOptIn] = useState(false);
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const isGrouped = variant === 'grouped';
+  const useNestedSections = !isGrouped;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       overflow: 'hidden',
     },
-    grouped: {},
-    primaryBlock: {
+    grouped: {
+      overflow: 'hidden',
+    },
+    primaryHero: {
+      position: 'relative',
+      overflow: 'hidden',
+      borderTopLeftRadius: radii.lg,
+      borderTopRightRadius: radii.lg,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.md,
+      paddingVertical: spacing.md,
     },
-    primaryBlockExpanded: {
-      paddingBottom: 0,
+    primaryGradient: {
+      ...StyleSheet.absoluteFillObject,
+      borderTopLeftRadius: radii.lg,
+      borderTopRightRadius: radii.lg,
     },
-    nestedGroupWrap: {
-      marginHorizontal: spacing.md,
-      marginTop: spacing.md,
-      marginBottom: spacing.md,
-    },
-    nestedGroup: {
-      backgroundColor: colors.fillSubtle,
-      borderRadius: 12,
-      padding: spacing.md,
-      gap: spacing.md,
-      overflow: 'visible',
-    },
-    groupLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
+    phoneBlock: { gap: spacing.sm, paddingTop: spacing.sm, paddingBottom: spacing.xs },
+    phoneHelper: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
       color: colors.labelTertiary,
     },
-    phoneBlock: { gap: spacing.md, paddingTop: spacing.xs },
-    divider: {
+    sectionDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+      opacity: 0.7,
+    },
+    radioDivider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
       opacity: 0.7,
@@ -84,6 +150,7 @@ export function FillInModePanel({
   useEffect(() => {
     if (!workerProfile) return;
     setShortNoticeAvailable(workerProfile.short_notice_available ?? false);
+    setAcceptsClinicOutreach(workerProfile.accepts_clinic_fill_in_outreach ?? false);
     setNotificationMode(
       (workerProfile.fill_in_notification_mode as FillInNotificationMode) ?? 'off',
     );
@@ -99,17 +166,20 @@ export function FillInModePanel({
 
   const savedPhone = workerProfile?.phone?.trim() || null;
   const hasPhone = Boolean(savedPhone);
-  const showPhoneField = smsOptIn || !hasPhone;
+  const showPhoneField = smsOptIn || !hasPhone || Boolean(phone.trim());
   const showExpandedSettings = showNotificationOptions && shortNoticeAvailable;
   const pendingPhone = normalizePhoneForStorage(phone);
   const phoneNeedsSave = Boolean(phone.trim()) && pendingPhone !== savedPhone;
   const phoneIsSaved = Boolean(savedPhone) && pendingPhone === savedPhone;
+  const phoneSaveLabel = hasPhone ? 'Update number' : 'Save number';
+  const fillInHeroGradient = getFillInHeroGradient(colors, isDark);
 
   const persist = async (
     available: boolean,
     mode: FillInNotificationMode,
     sms: boolean = smsOptIn,
     savePhone = false,
+    outreach: boolean = acceptsClinicOutreach,
   ) => {
     const storedPhone = resolveStoredPhone();
     if (savePhone && phone.trim() && !storedPhone) {
@@ -122,15 +192,13 @@ export function FillInModePanel({
       await save({
         short_notice_available: available,
         fill_in_notification_mode: available ? mode : 'off',
-        fill_in_sms_opt_in: available && sms && Boolean(storedPhone),
+        fill_in_sms_opt_in: available && sms && Boolean(storedPhone) && !phoneNeedsSave,
+        accepts_clinic_fill_in_outreach: available && outreach,
         ...(savePhone ? { phone: storedPhone } : {}),
       });
       await refreshWorkerProfile();
     } catch (error) {
-      Alert.alert(
-        'Could not save',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      Alert.alert('Could not save', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -141,8 +209,24 @@ export function FillInModePanel({
       value && notificationMode === 'off' ? ('all' as FillInNotificationMode) : notificationMode;
     setShortNoticeAvailable(value);
     if (value) setNotificationMode(mode);
-    if (!value) setSmsOptIn(false);
-    await persist(value, value ? mode : 'off', value ? smsOptIn : false);
+    if (!value) {
+      setSmsOptIn(false);
+      setAcceptsClinicOutreach(false);
+    }
+    await persist(
+      value,
+      value ? mode : 'off',
+      value ? smsOptIn : false,
+      false,
+      value ? acceptsClinicOutreach : false,
+    );
+  };
+
+  const handleOutreachToggle = async (value: boolean) => {
+    setAcceptsClinicOutreach(value);
+    if (shortNoticeAvailable) {
+      await persist(true, notificationMode, smsOptIn, false, value);
+    }
   };
 
   const handleModeChange = async (mode: FillInNotificationMode) => {
@@ -153,6 +237,16 @@ export function FillInModePanel({
   };
 
   const handleSmsToggle = async (value: boolean) => {
+    if (value) {
+      if (!savedPhone || phoneNeedsSave) {
+        Alert.alert(
+          'Save your number',
+          'Enter and save your mobile number before enabling text alerts.',
+        );
+        return;
+      }
+    }
+
     setSmsOptIn(value);
     if (!value) {
       if (shortNoticeAvailable) {
@@ -160,9 +254,6 @@ export function FillInModePanel({
       }
       return;
     }
-
-    const storedPhone = resolveStoredPhone();
-    if (!storedPhone) return;
 
     if (shortNoticeAvailable) {
       await persist(true, notificationMode, true);
@@ -197,88 +288,124 @@ export function FillInModePanel({
     }
   };
 
+  const phoneField = showPhoneField ? (
+    <View style={styles.phoneBlock}>
+      <AuthField
+        label="Mobile phone"
+        value={phone}
+        onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+        keyboardType="phone-pad"
+        placeholder={PHONE_NUMBER_PLACEHOLDER}
+        editable={!isSaving}
+        validated={phoneIsSaved && !phoneNeedsSave}
+      />
+      {phoneNeedsSave ? (
+        <>
+          <Text style={styles.phoneHelper}>
+            {hasPhone
+              ? 'Tap update to confirm your new number.'
+              : 'Tap save to confirm your number before enabling texts.'}
+          </Text>
+          <OnboardingButton
+            label={phoneSaveLabel}
+            disabled={isSaving || !pendingPhone}
+            onPress={() => void handleSavePhone()}
+          />
+        </>
+      ) : null}
+    </View>
+  ) : null;
+
+  const clinicOutreachSection = showExpandedSettings ? (
+    <>
+      <View style={styles.sectionDivider} />
+      <SettingsSection nested={useNestedSections}>
+        <SettingsToggleRow
+          title="Let clinics reach out"
+          hint="Clinics in your province can find you and message you about fill-ins."
+          value={acceptsClinicOutreach}
+          disabled={isSaving}
+          bleedPadding={useNestedSections ? spacing.md : undefined}
+          accentColor={colors.secondary}
+          onValueChange={handleOutreachToggle}
+        />
+        <View style={styles.radioDivider} />
+        <SettingsToggleRow
+          title="Text me for fill-ins"
+          hint={
+            hasPhone && phoneIsSaved
+              ? 'SMS for posted fill-ins and urgent clinic outreach.'
+              : 'Add and save your mobile number.'
+          }
+          value={smsOptIn}
+          disabled={isSaving || phoneNeedsSave}
+          bleedPadding={useNestedSections ? spacing.md : undefined}
+          accentColor={colors.secondary}
+          onValueChange={handleSmsToggle}
+        />
+        {phoneField}
+      </SettingsSection>
+    </>
+  ) : null;
+
+  const postedFillInAlertsSection = showExpandedSettings ? (
+    <>
+      <View style={styles.sectionDivider} />
+      <SettingsSection title="Posted fill-in alerts" nested={useNestedSections}>
+        {NOTIFICATION_MODE_OPTIONS.map((option, index) => {
+          const selected = notificationMode === option.value;
+          return (
+            <View key={option.value}>
+              <SettingsRadioRow
+                label={option.label}
+                hint={
+                  option.value === 'available_days_only'
+                    ? 'When the shift matches your schedule.'
+                    : undefined
+                }
+                selected={selected}
+                disabled={isSaving}
+                bleedPadding={useNestedSections ? spacing.md : undefined}
+                accent="secondary"
+                onPress={() => handleModeChange(option.value)}
+              />
+              {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
+                <View style={styles.radioDivider} />
+              ) : null}
+            </View>
+          );
+        })}
+      </SettingsSection>
+    </>
+  ) : null;
+
   return (
-    <View style={variant === 'grouped' ? styles.grouped : styles.card}>
-      <View
-        style={[styles.primaryBlock, showExpandedSettings && styles.primaryBlockExpanded]}>
+    <View style={isGrouped ? styles.grouped : styles.card}>
+      <View style={styles.primaryHero}>
+        <LinearGradient
+          colors={fillInHeroGradient}
+          locations={[0, 0.55, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.primaryGradient}
+          pointerEvents="none"
+        />
         <SettingsToggleRow
           prominence="primary"
           title="Available for fill-ins"
           hint={
             shortNoticeAvailable
-              ? 'You are open to urgent shifts — clinics can reach you.'
-              : 'Turn on when you are open to short-notice temp work.'
+              ? 'You appear open to short-notice fill-in opportunities.'
+              : 'Turn on when you can cover urgent shifts.'
           }
           value={shortNoticeAvailable}
           disabled={isSaving}
+          accentColor={colors.secondary}
           onValueChange={handleToggle}
         />
       </View>
-
-      {showExpandedSettings ? (
-        <View style={styles.nestedGroupWrap}>
-          <View style={styles.nestedGroup}>
-            <Text style={styles.groupLabel}>Notification preferences</Text>
-            {NOTIFICATION_MODE_OPTIONS.map((option, index) => {
-              const selected = notificationMode === option.value;
-              return (
-                <View key={option.value}>
-                  <SettingsRadioRow
-                    label={option.label}
-                    hint={
-                      option.value === 'available_days_only'
-                        ? 'Only when the shift overlaps your weekly schedule.'
-                        : undefined
-                    }
-                    selected={selected}
-                    disabled={isSaving}
-                    bleedPadding={spacing.md}
-                    onPress={() => handleModeChange(option.value)}
-                  />
-                  {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
-                    <View style={styles.divider} />
-                  ) : null}
-                </View>
-              );
-            })}
-
-            <RowDivider />
-
-            <SettingsToggleRow
-              title="Text me for fill-ins"
-              hint={
-                hasPhone
-                  ? 'Optional SMS when a matching fill-in is posted.'
-                  : 'Add your mobile number below to enable SMS alerts.'
-              }
-              value={smsOptIn}
-              disabled={isSaving}
-              onValueChange={handleSmsToggle}
-            />
-
-            {showPhoneField ? (
-              <View style={styles.phoneBlock}>
-                <AuthField
-                  label="Mobile phone"
-                  value={phone}
-                  onChangeText={(text) => setPhone(formatPhoneNumber(text))}
-                  keyboardType="phone-pad"
-                  placeholder={PHONE_NUMBER_PLACEHOLDER}
-                  editable={!isSaving}
-                  validated={phoneIsSaved}
-                />
-                {phoneNeedsSave ? (
-                  <OnboardingButton
-                    label="Save number"
-                    disabled={isSaving || !pendingPhone}
-                    onPress={() => void handleSavePhone()}
-                  />
-                ) : null}
-              </View>
-            ) : null}
-          </View>
-        </View>
-      ) : null}
+      {clinicOutreachSection}
+      {postedFillInAlertsSection}
     </View>
   );
 }

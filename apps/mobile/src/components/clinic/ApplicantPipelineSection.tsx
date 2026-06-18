@@ -23,12 +23,13 @@ export function ApplicantPipelineSectionHeader({
 }: ApplicantPipelineSectionHeaderProps) {
   const { colors } = useTheme();
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing.sm,
+      paddingHorizontal: spacing.xs,
       paddingVertical: spacing.xs,
       borderRadius: 10,
       ...webPointer(onToggle ? 'pointer' : 'default'),
@@ -42,15 +43,17 @@ export function ApplicantPipelineSectionHeader({
       alignItems: 'center',
       gap: spacing.sm,
       flex: 1,
+      minWidth: 0,
     },
     title: {
-      ...typography.body,
-      fontSize: 15,
+      fontSize: 12,
       fontWeight: '700',
-      letterSpacing: -0.2,
+      letterSpacing: 0.55,
+      textTransform: 'uppercase',
+      color: colors.labelTertiary,
     },
     count: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '600',
       color: colors.labelSecondary,
       backgroundColor: colors.fillSubtle,
@@ -58,7 +61,7 @@ export function ApplicantPipelineSectionHeader({
       overflow: 'hidden',
       paddingHorizontal: spacing.sm,
       paddingVertical: 2,
-      minWidth: 24,
+      minWidth: 22,
       textAlign: 'center',
     },
   }));
@@ -72,7 +75,7 @@ export function ApplicantPipelineSectionHeader({
       {collapsible ? (
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={18}
+          size={16}
           color={colors.labelTertiary}
         />
       ) : null}

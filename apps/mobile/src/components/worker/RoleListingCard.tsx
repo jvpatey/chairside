@@ -1,19 +1,19 @@
 import type { LiveJobPost } from '@chairside/api';
 import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
 import { formatJobPostCardMeta } from '@chairside/config';
-import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
-import { AppliedPillBadge } from '@/components/matching/ApplicationStatusBadge';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { PillBadge } from '@/components/ui/PillBadge';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { RoleListingPostedMeta } from '@/components/worker/RoleListingPostedMeta';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { formatPostedDateLabel } from '@/lib/dates';
-import { webHover, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
   job: LiveJobPost;
@@ -21,7 +21,6 @@ type RoleListingCardProps = {
   matchContext?: Partial<JobMatchContext>;
   hasApplied?: boolean;
   layout?: ListingLayout;
-  isLast?: boolean;
   onPress?: () => void;
 };
 
@@ -31,25 +30,20 @@ export function RoleListingCard({
   matchContext,
   hasApplied,
   layout = 'tile',
-  isLast,
   onPress,
 }: RoleListingCardProps) {
+  const { colors } = useTheme();
   const logoUri = useClinicLogoUri(job.clinic.logo_storage_path);
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
   const detail = formatJobPostCardMeta(job);
-  const postedLabel = formatPostedDateLabel(job.created_at);
+  const postedLabel =
+    layout === 'list'
+      ? formatPostedDateLabel(job.created_at) || null
+      : formatPostedDateLabel(job.created_at) || hasApplied
+        ? <RoleListingPostedMeta postedAt={job.created_at} hasApplied={hasApplied} />
+        : null;
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      ...webPointer(),
-    },
-    cardHovered: webTileHoverStyles(colors, isDark),
-    cardPressed: { opacity: 0.92 },
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     footer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -61,10 +55,9 @@ export function RoleListingCard({
       fontWeight: '600',
       color: colors.primary,
     },
-    listWage: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.primary,
+    headerTrailing: {
+      alignItems: 'flex-end',
+      gap: spacing.xs,
     },
   }));
 
@@ -78,6 +71,23 @@ export function RoleListingCard({
       />
     ) : null;
 
+  const appliedBadge = hasApplied ? (
+    <PillBadge
+      label="Applied"
+      color={colors.primary}
+      backgroundColor={colors.primarySubtle}
+      accessibilityLabel="Already applied"
+    />
+  ) : null;
+
+  const listTopTrailing =
+    matchBadge || appliedBadge ? (
+      <View style={styles.headerTrailing}>
+        {matchBadge}
+        {appliedBadge}
+      </View>
+    ) : undefined;
+
   if (layout === 'list') {
     return (
       <BrowseListRow
@@ -87,53 +97,37 @@ export function RoleListingCard({
         eyebrow={job.clinic.clinic_name}
         title={job.title}
         meta={location || null}
-        detail={detail || null}
-        postedLabel={postedLabel || null}
-        topTrailing={matchBadge ?? undefined}
-        textFooter={hasApplied ? <AppliedPillBadge /> : null}
-        footer={job.wage_range ? <Text style={styles.listWage}>{job.wage_range}</Text> : null}
-        isLast={isLast}
+        postedLabel={postedLabel}
+        postedLabelPlacement="header"
+        headerDetail={detail || null}
+        headerAccent={job.wage_range || null}
+        topTrailing={listTopTrailing}
+        tone={hasApplied ? 'applied' : 'default'}
         onPress={onPress}
       />
     );
   }
 
-  const content = (
-    <ClinicPostHeader
-      clinicName={job.clinic.clinic_name}
-      logoStoragePath={job.clinic.logo_storage_path}
-      title={job.title}
-      location={location || null}
-      detail={detail || null}
-      postedLabel={postedLabel || null}
-      avatarSize={44}
-      accessory={matchBadge}
-      footer={
-        job.wage_range ? (
-          <View style={styles.footer}>
-            <Text style={styles.wage}>{job.wage_range}</Text>
-          </View>
-        ) : null
-      }
-      statusFooter={hasApplied ? <AppliedPillBadge /> : null}
-    />
-  );
-
-  if (!onPress) return <View style={styles.card}>{content}</View>;
-
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}
-      style={({ pressed, hovered }) => [
-        styles.card,
-        webHover(hovered, pressed, styles.cardHovered),
-        pressed && styles.cardPressed,
-      ]}>
-      {content}
-    </Pressable>
+    <SurfaceCard onPress={onPress}>
+      <ClinicPostHeader
+        layout="split"
+        clinicName={job.clinic.clinic_name}
+        logoStoragePath={job.clinic.logo_storage_path}
+        title={job.title}
+        location={location || null}
+        detail={detail || null}
+        postedLabel={postedLabel}
+        avatarSize={44}
+        accessory={matchBadge}
+        footer={
+          job.wage_range ? (
+            <View style={styles.footer}>
+              <Text style={styles.wage}>{job.wage_range}</Text>
+            </View>
+          ) : null
+        }
+      />
+    </SurfaceCard>
   );
 }

@@ -154,6 +154,7 @@ export type WorkerProfileRow = {
   fill_in_notification_mode: string;
   phone: string | null;
   fill_in_sms_opt_in: boolean;
+  accepts_clinic_fill_in_outreach: boolean;
   job_notification_opt_in: boolean;
   expo_push_token: string | null;
   resume_storage_path: string | null;
@@ -284,6 +285,7 @@ export type Database = {
           fill_in_notification_mode?: string;
           phone?: string | null;
           fill_in_sms_opt_in?: boolean;
+          accepts_clinic_fill_in_outreach?: boolean;
           job_notification_opt_in?: boolean;
           expo_push_token?: string | null;
           resume_storage_path?: string | null;
@@ -335,7 +337,11 @@ export type Database = {
         Row: {
           id: string;
           application_id: string | null;
-          conversation_type: 'application' | 'general';
+          conversation_type: 'application' | 'general' | 'outreach';
+          outreach_role_type: string | null;
+          outreach_shift_date: string | null;
+          outreach_start_time: string | null;
+          outreach_end_time: string | null;
           worker_id: string;
           clinic_id: string;
           worker_last_read_at: string | null;
@@ -359,12 +365,14 @@ export type Database = {
           conversation_id: string;
           sender_id: string;
           body: string;
+          trigger_sms_alert: boolean;
           created_at: string;
         };
         Insert: {
           conversation_id: string;
           sender_id: string;
           body: string;
+          trigger_sms_alert?: boolean;
           id?: string;
           created_at?: string;
         };
@@ -437,6 +445,33 @@ export type Database = {
       mark_shift_posts_seen_by_worker: {
         Args: { shift_post_ids: string[] };
         Returns: undefined;
+      };
+      list_fill_in_outreach_workers_for_clinic: {
+        Args: { p_role_type?: string | null };
+        Returns: {
+          worker_id: string;
+          display_name: string;
+          role_types: string[];
+          city: string | null;
+          years_of_experience: number | null;
+          short_notice_available: boolean;
+          photo_storage_path: string | null;
+          availability_summary: string | null;
+          existing_conversation_id: string | null;
+          sms_opt_in: boolean;
+        }[];
+      };
+      start_clinic_fill_in_outreach: {
+        Args: {
+          p_worker_id: string;
+          p_message: string;
+          p_role_type?: string | null;
+          p_shift_date?: string | null;
+          p_start_time?: string | null;
+          p_end_time?: string | null;
+          p_send_sms?: boolean;
+        };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;

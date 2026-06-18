@@ -18,6 +18,7 @@ export const PINGRAM_NOTIFICATION_TYPES = {
   fillInPosted: 'fill_in_posted',
   jobPosted: 'job_posted',
   messageReceived: 'message_received',
+  fillInOutreachSms: 'fill_in_outreach_sms',
 } as const;
 
 export type PingramNotificationType =

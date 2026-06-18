@@ -5,7 +5,7 @@ import {
 } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { RoleTypeFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
@@ -109,7 +109,7 @@ function HistorySection({
               onPress={() => router.push(getJobDetailRoute(job.id))}
               onApplicantsPress={
                 (applicantCounts[job.id] ?? 0) > 0
-                  ? () => router.push(getClinicRoleApplicationsRoute(job.id, 'applications-tab'))
+                  ? () => router.push(getClinicRoleApplicationsRoute(job.id, 'role-history'))
                   : undefined
               }
               manage={
@@ -206,7 +206,7 @@ export default function RoleHistoryScreen() {
 
   return (
     <OnboardingShell>
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         <AuthScreenHeader
           title="Role history"
           subtitle="Archived and filled roles"
@@ -252,7 +252,7 @@ export default function RoleHistoryScreen() {
             />
           </>
         )}
-      </ScrollView>
+      </View>
     </OnboardingShell>
   );
 }

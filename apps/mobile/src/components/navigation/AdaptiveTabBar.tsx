@@ -26,7 +26,7 @@ function AdaptiveTabBar({ role, ...props }: AdaptiveTabBarProps) {
           flexGrow: 0,
           flexShrink: 0,
           alignSelf: 'stretch',
-          backgroundColor: colors.surface,
+          backgroundColor: 'transparent',
           ...(Platform.OS === 'web'
             ? ({
                 height: '100%',

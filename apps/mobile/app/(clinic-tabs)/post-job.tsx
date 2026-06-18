@@ -8,7 +8,8 @@ import {
   type RoleType,
 } from '@chairside/api';
 import {
-  EMPLOYMENT_TYPE_OPTIONS,
+  normalizeRoleEmploymentType,
+  ROLE_EMPLOYMENT_TYPE_OPTIONS,
   ROLE_TYPE_OPTIONS,
 } from '@chairside/config';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -48,7 +49,7 @@ function applyJobToForm(job: JobPostWithScreening) {
 
   return {
     roleType: job.role_type,
-    employmentType: job.employment_type,
+    employmentType: normalizeRoleEmploymentType(job.employment_type),
     title: job.title,
     wageRange: job.wage_range ?? '',
     schedule: job.schedule ?? '',
@@ -254,7 +255,7 @@ export default function PostJobScreen() {
           subtitle={
             isEditing
               ? 'Update your job posting details.'
-              : 'Create a structured job posting.'
+              : 'Create a full-time or part-time job posting.'
           }
           onBack={() => router.back()}
         />
@@ -273,7 +274,7 @@ export default function PostJobScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>Employment type</Text>
           <ChipSelector
-            options={EMPLOYMENT_TYPE_OPTIONS}
+            options={ROLE_EMPLOYMENT_TYPE_OPTIONS}
             selected={employmentType}
             onChange={(value) => setEmploymentType(value as EmploymentType)}
           />

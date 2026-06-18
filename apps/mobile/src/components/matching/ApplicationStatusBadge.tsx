@@ -6,6 +6,8 @@ import {
   type ApplicationPostType,
 } from '@chairside/config';
 
+import { Text } from 'react-native';
+
 import { PillBadge } from '@/components/ui/PillBadge';
 import { useTheme } from '@/theme';
 
@@ -106,6 +108,28 @@ export function WorkerApplicationStatusBadge({
       label={formatApplicationStatus(status, postType)}
       variant={getWorkerApplicationStatusVariant(status, postType)}
     />
+  );
+}
+
+export function WorkerApplicationStatusLabel({
+  status,
+  postType,
+}: WorkerApplicationStatusBadgeProps) {
+  const variant = getWorkerApplicationStatusVariant(status, postType);
+  const palette = useStatusVariantPalette(variant);
+  const label = formatApplicationStatus(status, postType);
+
+  return (
+    <Text
+      style={{
+        fontSize: 13,
+        lineHeight: 18,
+        fontWeight: '600',
+        color: palette.color,
+      }}
+      numberOfLines={1}>
+      {label}
+    </Text>
   );
 }
 

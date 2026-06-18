@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 
-import { useThemedStyles } from '@/theme';
+import { fontSemibold, useThemedStyles } from '@/theme';
 
 type DashboardSectionHeaderProps = {
   title: string;
@@ -8,17 +8,18 @@ type DashboardSectionHeaderProps = {
   compact?: boolean;
 };
 
-export function DashboardSectionHeader({ title, compact = false }: DashboardSectionHeaderProps) {
+export function DashboardSectionHeader({
+  title,
+  compact = false,
+}: DashboardSectionHeaderProps) {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     header: {
       marginBottom: compact ? spacing.xs : spacing.sm,
     },
     title: {
-      ...typography.body,
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
+      ...typography.label,
+      fontFamily: fontSemibold,
+      fontSize: compact ? 13 : 15,
       color: typography.subtitle.color,
     },
   }));

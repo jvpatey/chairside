@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { useThemedStyles, spacing } from '@/theme';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 
@@ -52,6 +53,7 @@ export function OnboardingShell({
   backgroundAccessory,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
+  const tabDockInset = useMobileTabDockInset();
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const scrollYRef = useRef(0);
@@ -195,7 +197,15 @@ export function OnboardingShell({
     scheduleDelayedRuns(() => performScroll(pendingScrollRef.current));
   }, [footerHeight, performScroll, scheduleDelayedRuns]);
 
-  const footerPaddingBottom = footer ? spacing.md : insets.bottom + spacing.md;
+  const footerPaddingBottom = footer
+    ? spacing.md + tabDockInset
+    : insets.bottom + spacing.md;
+
+  const scrollBottomInset = footer
+    ? 0
+    : tabDockInset > 0
+      ? tabDockInset
+      : insets.bottom;
 
   const scrollView = (
     <ScrollView
@@ -214,7 +224,7 @@ export function OnboardingShell({
           paddingTop: insets.top + 16,
           paddingBottom:
             spacing.lg +
-            insets.bottom +
+            scrollBottomInset +
             footerScrollClearance +
             // iOS without a footer uses automaticallyAdjustKeyboardInsets; with a
             // footer, KeyboardAvoidingView handles the inset — avoid double padding.

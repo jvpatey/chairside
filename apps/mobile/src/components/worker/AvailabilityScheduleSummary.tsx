@@ -55,7 +55,7 @@ export function AvailabilityScheduleSummary({
   if (blocks.length === 0) {
     return (
       <View style={[wrapStyle, variant === 'grouped' && styles.groupedEmpty]}>
-        <Text style={styles.empty}>No weekly schedule set yet.</Text>
+        <Text style={styles.empty}>No available days set yet.</Text>
       </View>
     );
   }
@@ -74,7 +74,8 @@ export function AvailabilityScheduleSummary({
             style={({ pressed, hovered }) => [
               variant === 'grouped' ? styles.groupedRow : styles.row,
               variant === 'grouped' && webHover(hovered, pressed, styles.groupedRowHovered),
-            ]}>
+            ]}
+          >
             <Text style={styles.day}>{label}</Text>
             <Text style={styles.time}>
               {formatTime12h(block!.start_time.slice(0, 5)) ?? block!.start_time} –{' '}

@@ -7,6 +7,8 @@ import { Platform, Pressable, Text, View } from 'react-native';
 
 import { MOBILE_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
+import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { webPointer } from '@/lib/webPressableStyles';
 import { getGlassTokens, useTheme, useThemedStyles } from '@/theme';
 
@@ -43,6 +45,12 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
   const isWeb = Platform.OS === 'web';
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const visibleRoutes = getVisibleRoutes(state, descriptors, role);
+  const focusedVisibleIndex = visibleRoutes.findIndex(
+    (route) => state.routes.findIndex((item) => item.key === route.key) === state.index,
+  );
+  const { animatedStyle: indicatorStyle, onSegmentLayout } = useSlidingSegmentIndicator(
+    focusedVisibleIndex >= 0 ? focusedVisibleIndex : 0,
+  );
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outer: {
@@ -58,6 +66,14 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       gap: spacing.xs,
       paddingHorizontal: spacing.xs,
       paddingVertical: spacing.xs,
+      position: 'relative',
+    },
+    indicator: {
+      position: 'absolute',
+      top: spacing.xs,
+      left: 0,
+      borderRadius: 20,
+      backgroundColor: colors.primarySubtle,
     },
     item: {
       flex: 1,
@@ -69,9 +85,6 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       paddingVertical: spacing.xs,
       gap: 2,
       ...webPointer(),
-    },
-    itemActive: {
-      backgroundColor: colors.primarySubtle,
     },
     itemHovered: {
       backgroundColor: colors.fillSubtle,
@@ -121,7 +134,8 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       pointerEvents="box-none"
       onLayout={(event) => onHeightChange?.(event.nativeEvent.layout.height)}>
       <LiquidGlassSurface borderRadius={28} style={styles.dock}>
-        {visibleRoutes.map((route) => {
+        <SlidingSegmentIndicator animatedStyle={indicatorStyle} style={styles.indicator} />
+        {visibleRoutes.map((route, index) => {
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((item) => item.key === route.key);
           const isFocused = state.index === routeIndex;
@@ -158,6 +172,10 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
           return (
             <Pressable
               key={route.key}
+              onLayout={(event) => {
+                const { x, y, width, height } = event.nativeEvent.layout;
+                onSegmentLayout(index, { x, y, width, height });
+              }}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={accessibilityLabel}
@@ -165,11 +183,11 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
               onLongPress={onLongPress}
               style={({ pressed, hovered }) => [
                 styles.item,
-                isFocused && styles.itemActive,
                 isWeb &&
                   hovered &&
                   !pressed &&
-                  (isFocused ? styles.itemActive : styles.itemHovered),
+                  !isFocused &&
+                  styles.itemHovered,
                 pressed && styles.itemPressed,
               ]}>
               <View style={styles.iconWrap}>

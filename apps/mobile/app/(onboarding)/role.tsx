@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { setProfileRole } from '@chairside/api';
 
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
+import { AuthScreenHeader, AuthScreenTitle } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { RoleCard } from '@/components/onboarding/RoleCard';
+import { ChairsideBrandText } from '@/components/brand/ChairsideWordmark';
 import { ROLE_OPTIONS } from '@/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -89,7 +90,11 @@ export default function RoleScreen() {
         </View>
       }>
       <AuthScreenHeader
-        title="How will you use Chairside?"
+        title={
+          <AuthScreenTitle>
+            How will you use <ChairsideBrandText />?
+          </AuthScreenTitle>
+        }
         subtitle={
           isPostAuth
             ? 'Choose worker or clinic — then set up your profile.'

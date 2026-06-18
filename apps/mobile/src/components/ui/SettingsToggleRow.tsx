@@ -15,6 +15,7 @@ type SettingsToggleRowProps = {
   value: boolean;
   disabled?: boolean;
   prominence?: 'primary' | 'secondary';
+  accentColor?: string;
   onValueChange: (value: boolean) => void;
   /** Horizontal padding of parent card — enables full-width hover bleed. */
   bleedPadding?: number;
@@ -26,6 +27,7 @@ export function SettingsToggleRow({
   value,
   disabled = false,
   prominence = 'secondary',
+  accentColor,
   onValueChange,
   bleedPadding,
 }: SettingsToggleRowProps) {
@@ -90,6 +92,7 @@ export function SettingsToggleRow({
         <ThemedSwitch
           value={value}
           disabled={disabled}
+          trackColorTrue={accentColor}
           onValueChange={onValueChange}
         />
       </View>

@@ -2,6 +2,7 @@ import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
   getMissingClinicProfileFields,
+  isClinicProfileComplete,
   getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
   listConversationsForClinic,
@@ -18,7 +19,7 @@ import {
 } from '@chairside/api';
 import type { Href } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import {
@@ -28,13 +29,15 @@ import {
 } from '@/components/clinic/ClinicCards';
 import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
 import { DashboardCoverRequestsCard } from '@/components/clinic/DashboardCoverRequestsCard';
-import { DashboardTabletSectionHeader } from '@/components/dashboard/DashboardTabletSectionHeader';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
+import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
+import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
+import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardStatGrid, getDashboardOverviewAccent } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
-import { Screen } from '@/components/ui/Screen';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -80,6 +83,9 @@ export default function ClinicDashboardScreen() {
   const [shiftApplicationCounts, setShiftApplicationCounts] = useState<Record<string, number>>({});
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [confirmedFillIns, setConfirmedFillIns] = useState<ConfirmedFillInSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const hasLoadedOnce = useRef(false);
 
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
@@ -87,6 +93,11 @@ export default function ClinicDashboardScreen() {
 
   const loadDashboard = useCallback(async () => {
     if (!user?.id) return;
+
+    if (!hasLoadedOnce.current) {
+      setIsLoading(true);
+    }
+    setLoadError(false);
 
     try {
       const [nextCounts, jobPosts, shiftPosts, summaries, counts, pendingShiftCounts, conversationRows, confirmed] =
@@ -118,16 +129,22 @@ export default function ClinicDashboardScreen() {
       setConversations(conversationRows);
       setConfirmedFillIns(confirmed);
       await refreshUnread();
+      hasLoadedOnce.current = true;
     } catch {
-      setCounts({ openRoles: 0, fillInsPosted: 0, totalApplications: 0, newApplications: 0 });
-      setJobs([]);
-      setShifts([]);
-      setJobApplicationSummaries([]);
-      setApplicantCounts({});
-      setShiftPendingCounts({});
-      setShiftApplicationCounts({});
-      setConversations([]);
-      setConfirmedFillIns([]);
+      setLoadError(true);
+      if (!hasLoadedOnce.current) {
+        setCounts({ openRoles: 0, fillInsPosted: 0, totalApplications: 0, newApplications: 0 });
+        setJobs([]);
+        setShifts([]);
+        setJobApplicationSummaries([]);
+        setApplicantCounts({});
+        setShiftPendingCounts({});
+        setShiftApplicationCounts({});
+        setConversations([]);
+        setConfirmedFillIns([]);
+      }
+    } finally {
+      setIsLoading(false);
     }
   }, [refreshUnread, user?.id]);
 
@@ -185,135 +202,161 @@ export default function ClinicDashboardScreen() {
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
-  const province = clinicProfile?.province ?? 'NS';
+  const hasUnreadMessagePreviews = conversations.some((conversation) => conversation.unread);
 
   return (
-    <Screen showHeader={false} showNotifications={false}>
-      <View style={styles.content}>
-        {!isTablet ? (
-          <DashboardHero
-            clinicName={clinicName}
-            province={province}
-            showLocationBadge={isProfileComplete}
-          />
-        ) : null}
+    <DashboardScreen
+      showBrandHeader
+      tabletTitle="Dashboard"
+      tabletSubtitle="Postings, fill-ins, and applicants at your clinic.">
+      {isLoading && !hasLoadedOnce.current ? (
+        <DashboardLoadingShell />
+      ) : (
+        <View style={styles.content}>
+          {loadError ? (
+            <FadeInSection>
+              <DashboardErrorBanner onRetry={() => void loadDashboard()} />
+            </FadeInSection>
+          ) : null}
 
-        {isTablet ? (
-          <View style={styles.section}>
-            <DashboardTabletSectionHeader title="Quick actions" />
-            <View style={styles.quickActionRow}>
-              <DashboardQuickActionTile
-                label="Post a role"
-                description="Full-time or part-time hire"
-                icon="briefcase-outline"
-                variant="primary"
-                onPress={() => guardPosting(CLINIC_POST_JOB)}
+          {!isTablet ? (
+            <FadeInSection delayMs={0}>
+              <DashboardHero clinicName={clinicName} />
+            </FadeInSection>
+          ) : null}
+
+          {isTablet ? (
+            <FadeInSection delayMs={40}>
+              <View style={styles.quickActionSection}>
+                <View style={styles.quickActionRow}>
+                  <DashboardQuickActionTile
+                    label="Post a role"
+                    description="Full-time or part-time hire"
+                    icon="briefcase-outline"
+                    variant="primary"
+                    onPress={() => guardPosting(CLINIC_POST_JOB)}
+                  />
+                  <DashboardQuickActionTile
+                    label="Post fill-in"
+                    description="Temp or urgent shift"
+                    icon="calendar-outline"
+                    variant="secondary"
+                    onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
+                  />
+                </View>
+              </View>
+            </FadeInSection>
+          ) : null}
+
+          {!isClinicProfileComplete(clinicProfile) ? (
+            <FadeInSection delayMs={80}>
+              <ClinicReadinessChecklist clinicProfile={clinicProfile} />
+            </FadeInSection>
+          ) : null}
+
+          {hasUnreadMessagePreviews ? (
+            <FadeInSection delayMs={120}>
+              <DashboardUnreadMessagesCard
+                conversations={conversations}
+                avatarKind="worker"
+                role="clinic"
+                onConversationPress={(conversation) => {
+                  const preview = getMessageThreadPreview(conversation, 'clinic');
+                  router.push(
+                    getConversationMessagesRoute(
+                      conversation,
+                      'clinic',
+                      {
+                        conversationId: conversation.id,
+                        ...preview,
+                      },
+                      'messages-tab',
+                    ),
+                  );
+                }}
+                onViewAllPress={() => router.push(getClinicMessagesRoute())}
               />
-              <DashboardQuickActionTile
-                label="Post fill-in"
-                description="Temp or urgent shift"
-                icon="calendar-outline"
-                variant="secondary"
-                onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
+            </FadeInSection>
+          ) : null}
+
+          {!isTablet ? (
+            <FadeInSection delayMs={160}>
+              <View style={styles.quickActionSection}>
+                <View style={styles.quickActionRow}>
+                  <DashboardQuickActionTile
+                    label="Post a role"
+                    description="Full-time or part-time hire"
+                    icon="briefcase-outline"
+                    variant="primary"
+                    onPress={() => guardPosting(CLINIC_POST_JOB)}
+                  />
+                  <DashboardQuickActionTile
+                    label="Post fill-in"
+                    description="Temp or urgent shift"
+                    icon="calendar-outline"
+                    variant="secondary"
+                    onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
+                  />
+                </View>
+              </View>
+            </FadeInSection>
+          ) : null}
+
+          {fillInUpdateCount > 0 ? (
+            <FadeInSection delayMs={180}>
+              <DashboardCoverRequestsCard
+                pendingCount={fillInUpdateCount}
+                onPress={() => router.push(CLINIC_FILL_INS)}
+              />
+            </FadeInSection>
+          ) : null}
+
+          <FadeInSection delayMs={200}>
+            <View style={styles.overviewBlock}>
+              <DashboardStatGrid
+                selected={selectedOverview}
+                onSelect={setSelectedOverview}
+                accent={getDashboardOverviewAccent(selectedOverview)}
+                stats={[
+                  { key: 'roles', label: 'Open roles', value: counts.openRoles },
+                  {
+                    key: 'fill-ins',
+                    label: 'Fill-ins',
+                    value: counts.fillInsPosted,
+                    badgeCount: fillInUpdateCount,
+                  },
+                  {
+                    key: 'applications',
+                    label: 'Applications',
+                    value: counts.totalApplications,
+                    badgeCount: applicationUpdateCount,
+                  },
+                ]}
+              />
+              <DashboardOverviewPanel
+                selected={selectedOverview}
+                jobs={jobs}
+                shifts={shifts}
+                confirmedFillIns={confirmedFillIns}
+                jobApplicationSummaries={jobApplicationSummaries}
+                applicantCounts={applicantCounts}
+                shiftPendingCounts={shiftPendingCounts}
+                shiftApplicationCounts={shiftApplicationCounts}
+                clinicId={user?.id}
+                fillInReturnTo="dashboard-fill-ins"
+                onJobUpdated={handleJobUpdated}
+                onJobDeleted={handleJobDeleted}
+                onShiftUpdated={handleShiftUpdated}
+                onShiftDeleted={handleShiftDeleted}
+                onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
+                onJobApplicationsPress={(jobId) =>
+                  router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
+                }
               />
             </View>
-          </View>
-        ) : null}
-
-        <ClinicReadinessChecklist clinicProfile={clinicProfile} />
-
-        <DashboardCoverRequestsCard
-          pendingCount={fillInUpdateCount}
-          onPress={() => router.push(CLINIC_FILL_INS)}
-        />
-
-        <DashboardUnreadMessagesCard
-          conversations={conversations}
-          avatarKind="worker"
-          role="clinic"
-          onConversationPress={(conversation) => {
-            const preview = getMessageThreadPreview(conversation, 'clinic');
-            router.push(
-              getConversationMessagesRoute(
-                conversation,
-                'clinic',
-                {
-                  conversationId: conversation.id,
-                  ...preview,
-                },
-                'messages-tab',
-              ),
-            );
-          }}
-          onViewAllPress={() => router.push(getClinicMessagesRoute())}
-        />
-
-        {!isTablet ? (
-          <View style={styles.section}>
-            <DashboardSectionHeader title="Quick actions" />
-            <View style={styles.quickActionRow}>
-              <DashboardQuickActionTile
-                label="Post a role"
-                description="Full-time or part-time hire"
-                icon="briefcase-outline"
-                variant="primary"
-                onPress={() => guardPosting(CLINIC_POST_JOB)}
-              />
-              <DashboardQuickActionTile
-                label="Post fill-in"
-                description="Temp or urgent shift"
-                icon="calendar-outline"
-                variant="secondary"
-                onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
-              />
-            </View>
-          </View>
-        ) : null}
-
-        <View style={styles.overviewSection}>
-          <DashboardSectionHeader title="Overview" />
-          <DashboardStatGrid
-            selected={selectedOverview}
-            onSelect={setSelectedOverview}
-            stats={[
-              { key: 'roles', label: 'Open roles', value: counts.openRoles },
-              {
-                key: 'fill-ins',
-                label: 'Fill-ins',
-                value: counts.fillInsPosted,
-                badgeCount: fillInUpdateCount,
-              },
-              {
-                key: 'applications',
-                label: 'Applications',
-                value: counts.totalApplications,
-                badgeCount: applicationUpdateCount,
-              },
-            ]}
-          />
+          </FadeInSection>
         </View>
-
-        <DashboardOverviewPanel
-            selected={selectedOverview}
-            jobs={jobs}
-            shifts={shifts}
-            confirmedFillIns={confirmedFillIns}
-            jobApplicationSummaries={jobApplicationSummaries}
-            applicantCounts={applicantCounts}
-            shiftPendingCounts={shiftPendingCounts}
-            shiftApplicationCounts={shiftApplicationCounts}
-            clinicId={user?.id}
-            fillInReturnTo="dashboard-fill-ins"
-            onJobUpdated={handleJobUpdated}
-            onJobDeleted={handleJobDeleted}
-            onShiftUpdated={handleShiftUpdated}
-            onShiftDeleted={handleShiftDeleted}
-            onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
-            onJobApplicationsPress={(jobId) =>
-              router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
-            }
-          />
-      </View>
-    </Screen>
+      )}
+    </DashboardScreen>
   );
 }

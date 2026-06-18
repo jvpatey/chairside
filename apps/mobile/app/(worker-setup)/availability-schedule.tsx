@@ -1,3 +1,5 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { WORKER_FILLINS } from '@/lib/routing';
 import { useEffect, useState } from 'react';
@@ -15,7 +17,23 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerAvailabilitySave } from '@/hooks/useWorkerAvailabilitySave';
-import { useThemedStyles } from '@/theme';
+import { getFillInHeroGradient, useTheme, useThemedStyles } from '@/theme';
+
+function AvailabilityScheduleHeroGlow() {
+  const { colors, isDark } = useTheme();
+  const gradient = getFillInHeroGradient(colors, isDark);
+
+  return (
+    <LinearGradient
+      colors={gradient}
+      locations={[0, 0.55, 1]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+    />
+  );
+}
 
 export default function WorkerAvailabilityScheduleScreen() {
   const { availabilityBlocks, isWorkerProfileReady } = useWorkerProfile();
@@ -26,7 +44,6 @@ export default function WorkerAvailabilityScheduleScreen() {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    label: { ...typography.body, fontWeight: '600' },
     hint: typography.subtitle,
     section: { gap: spacing.sm },
   }));
@@ -56,24 +73,28 @@ export default function WorkerAvailabilityScheduleScreen() {
 
   return (
     <OnboardingShell
+      backgroundAccessory={<AvailabilityScheduleHeroGlow />}
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Save schedule'}
+            label={isSubmitting ? 'Saving…' : 'Save available days'}
             disabled={isSubmitting}
+            accent="secondary"
             onPress={handleSave}
           />
         </View>
       }>
       <AuthScreenHeader
-        title="Fill-in availability · Weekly schedule"
-        subtitle="Set the days and times you are generally available for temp shifts."
+        title="Available days"
+        subtitle="Choose the days of the week and hours you can cover fill-in shifts."
+        accent="secondary"
         onBack={() => router.back()}
       />
       <View style={styles.form}>
         <View style={styles.section}>
-          <Text style={styles.label}>Weekly schedule</Text>
-          <Text style={styles.hint}>Used when you choose available-days-only fill-in alerts.</Text>
+          <Text style={styles.hint}>
+            Clinics and alerts use these days when you limit notifications to matching days only.
+          </Text>
           <AvailabilityScheduleInput days={days} onChange={setDays} />
         </View>
       </View>

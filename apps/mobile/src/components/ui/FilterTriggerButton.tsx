@@ -1,21 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, Pressable, Text, View } from 'react-native';
 
+import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type FilterTriggerButtonProps = {
   activeCount: number;
   onPress: () => void;
   accessibilityLabel?: string;
+  accent?: GradientAccent;
 };
 
 export function FilterTriggerButton({
   activeCount,
   onPress,
   accessibilityLabel = 'Filter',
+  accent,
 }: FilterTriggerButtonProps) {
   const { colors } = useTheme();
+  const tabAccent = useTabAtmosphereAccent();
+  const resolvedAccent = accent ?? tabAccent;
+  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
+  const brandSubtle = resolvedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const brandOn = resolvedAccent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
+  const isActive = activeCount > 0;
+
   const styles = useThemedStyles(({ colors, spacing }) => ({
     button: {
       flexDirection: 'row',
@@ -23,8 +33,8 @@ export function FilterTriggerButton({
       gap: 4,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: activeCount > 0 ? colors.primary : colors.separator,
-      backgroundColor: activeCount > 0 ? colors.primarySubtle : colors.surface,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 8,
       minWidth: 44,
@@ -33,8 +43,8 @@ export function FilterTriggerButton({
       ...webPointer(),
     },
     buttonHovered: {
-      backgroundColor: activeCount > 0 ? colors.primarySubtle : colors.backgroundGrouped,
-      borderColor: activeCount > 0 ? colors.primary : colors.labelTertiary,
+      backgroundColor: colors.backgroundGrouped,
+      borderColor: colors.labelTertiary,
     },
     buttonPressed: {
       opacity: 0.85,
@@ -43,7 +53,6 @@ export function FilterTriggerButton({
       minWidth: 18,
       height: 18,
       borderRadius: 9,
-      backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 4,
@@ -51,9 +60,21 @@ export function FilterTriggerButton({
     badgeText: {
       fontSize: 11,
       fontWeight: '700',
-      color: colors.primaryOnPrimary,
     },
   }));
+
+  const activeButtonStyle = isActive
+    ? {
+        borderColor: brandColor,
+        backgroundColor: brandSubtle,
+      }
+    : null;
+  const activeButtonHoveredStyle = isActive
+    ? {
+        backgroundColor: brandSubtle,
+        borderColor: brandColor,
+      }
+    : null;
 
   const isWeb = Platform.OS === 'web';
 
@@ -61,7 +82,8 @@ export function FilterTriggerButton({
     <Pressable
       style={({ pressed, hovered }) => [
         styles.button,
-        isWeb && hovered && !pressed && styles.buttonHovered,
+        activeButtonStyle,
+        isWeb && hovered && !pressed && (activeButtonHoveredStyle ?? styles.buttonHovered),
         isWeb && pressed && styles.buttonPressed,
       ]}
       onPress={onPress}
@@ -71,11 +93,11 @@ export function FilterTriggerButton({
       <Ionicons
         name="options-outline"
         size={16}
-        color={activeCount > 0 ? colors.primary : colors.labelPrimary}
+        color={isActive ? brandColor : colors.labelPrimary}
       />
-      {activeCount > 0 ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{activeCount}</Text>
+      {isActive ? (
+        <View style={[styles.badge, { backgroundColor: brandColor }]}>
+          <Text style={[styles.badgeText, { color: brandOn }]}>{activeCount}</Text>
         </View>
       ) : null}
     </Pressable>

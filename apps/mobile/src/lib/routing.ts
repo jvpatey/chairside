@@ -6,7 +6,8 @@ export type FillInReturnTarget = 'postings-fill-ins' | 'dashboard-fill-ins' | 'f
 export type ApplicantReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
-  | 'postings-tab';
+  | 'postings-tab'
+  | 'role-history';
 export type WorkerApplicationReturnTarget =
   | 'applications-tab'
   | 'dashboard-applications'
@@ -57,6 +58,7 @@ export const CLINIC_POST_JOB: Href = '/(clinic-tabs)/post-job' as Href;
 export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;
 export const CLINIC_POSTINGS: Href = '/(clinic-tabs)/postings' as Href;
 export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
+export const CLINIC_FIND_AVAILABLE_WORKERS: Href = '/(clinic-tabs)/find-available-workers' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
@@ -81,6 +83,32 @@ export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
     return CLINIC_FILL_INS;
   }
   return CLINIC_POSTINGS;
+}
+
+export function getFindAvailableWorkersRoute(returnTo: FillInReturnTarget = 'fill-ins-tab'): Href {
+  return {
+    pathname: '/(clinic-tabs)/find-available-workers',
+    params: { returnTo },
+  } as Href;
+}
+
+export function getClinicOutreachComposeRoute(params: {
+  workerId: string;
+  workerName: string;
+  roleType?: string;
+  smsOptIn?: boolean;
+  returnTo?: FillInReturnTarget;
+}): Href {
+  return {
+    pathname: '/(clinic-tabs)/outreach-compose',
+    params: {
+      returnTo: params.returnTo ?? 'fill-ins-tab',
+      workerId: params.workerId,
+      workerName: params.workerName,
+      ...(params.roleType ? { roleType: params.roleType } : {}),
+      smsOptIn: params.smsOptIn ? '1' : '0',
+    },
+  } as Href;
 }
 
 export function getClinicFillInsRoute(): Href {
@@ -294,7 +322,11 @@ export function getConversationMessagesRoute(
     subtitle: '',
   };
 
-  if (conversation.conversation_type === 'general' || !conversation.application_id) {
+  if (
+    conversation.conversation_type === 'general' ||
+    conversation.conversation_type === 'outreach' ||
+    !conversation.application_id
+  ) {
     return role === 'worker'
       ? getWorkerConversationRoute(conversation.id, threadPreview)
       : getClinicConversationRoute(conversation.id, threadPreview);
@@ -327,7 +359,10 @@ export function getClinicShiftApplicantsRoute(
   } as Href;
 }
 
-export function navigateAfterMessageThread(router: { replace: (href: Href) => void }, role: 'worker' | 'clinic') {
+export function navigateAfterMessageThread(
+  router: { replace: (href: Href) => void },
+  role: 'worker' | 'clinic',
+) {
   router.replace(role === 'clinic' ? getClinicMessagesRoute() : getWorkerMessagesRoute());
 }
 
@@ -391,6 +426,10 @@ export function navigateAfterRoleApplicants(
     router.replace(CLINIC_POSTINGS);
     return;
   }
+  if (returnTo === 'role-history') {
+    router.replace(getRoleHistoryRoute());
+    return;
+  }
   router.replace(CLINIC_APPLICATIONS);
 }
 
@@ -404,19 +443,18 @@ export function getEditShiftRoute(
   } as Href;
 }
 
+export function getFillInReturnRoute(returnTo?: string): Href {
+  if (returnTo === 'dashboard-fill-ins') {
+    return getClinicHomeRoute('fill-ins');
+  }
+  return CLINIC_FILL_INS;
+}
+
 export function navigateAfterFillInSave(
   router: { replace: (href: Href) => void },
   returnTo?: string,
 ) {
-  if (returnTo === 'dashboard-fill-ins') {
-    router.replace(getClinicHomeRoute('fill-ins'));
-    return;
-  }
-  if (returnTo === 'postings-fill-ins') {
-    router.replace(CLINIC_FILL_INS);
-    return;
-  }
-  router.replace(CLINIC_FILL_INS);
+  router.replace(getFillInReturnRoute(returnTo));
 }
 
 export function getHomeRouteForRole(role: UserRole): Href {

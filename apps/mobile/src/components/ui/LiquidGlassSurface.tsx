@@ -9,6 +9,10 @@ type LiquidGlassSurfaceProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   borderRadius?: number;
+  /** Overrides the default glass overlay tint (web/iOS). */
+  overlayColor?: string;
+  /** Web only — backdrop blur needs content behind the panel; disable when the surface floats over empty layout. */
+  backdropBlur?: boolean;
 };
 
 /**
@@ -20,9 +24,12 @@ export function LiquidGlassSurface({
   children,
   style,
   borderRadius = 28,
+  overlayColor,
+  backdropBlur = true,
 }: LiquidGlassSurfaceProps) {
   const { isDark } = useTheme();
   const glass = getGlassTokens(isDark);
+  const overlay = overlayColor ?? glass.overlay;
 
   const shellStyle: ViewStyle = {
     borderRadius,
@@ -49,11 +56,13 @@ export function LiquidGlassSurface({
         style={[
           shellStyle,
           {
-            backgroundColor: glass.overlay,
-            ...webOnlyStyle({
-              backdropFilter: glass.backdropFilter,
-              WebkitBackdropFilter: glass.backdropFilter,
-            } as ViewStyle),
+            backgroundColor: overlay,
+            ...(backdropBlur
+              ? webOnlyStyle({
+                  backdropFilter: glass.backdropFilter,
+                  WebkitBackdropFilter: glass.backdropFilter,
+                } as ViewStyle)
+              : {}),
           },
           style,
         ]}>
@@ -71,7 +80,7 @@ export function LiquidGlassSurface({
         style={StyleSheet.absoluteFill}
       />
       <View
-        style={[StyleSheet.absoluteFill, { backgroundColor: glass.overlay }]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: overlay }]}
         pointerEvents="none"
       />
       {children}

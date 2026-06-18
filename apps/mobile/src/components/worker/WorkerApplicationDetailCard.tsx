@@ -19,21 +19,24 @@ import {
   isAwaitingApplicationKit,
   isScreeningStageStatus,
 } from '@chairside/config';
-import { Ionicons } from '@expo/vector-icons';
+import { Alert, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import {
   DetailProse,
-  RowDivider,
 } from '@/components/clinic/DetailCard';
+import { CardDetailSection } from '@/components/ui/CardDetailSection';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
+import { CardSectionDivider } from '@/components/ui/CardTitleSection';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationSubmittedFields } from '@/components/worker/ApplicationSubmittedFields';
-import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
+import { ApplicationScreeningPreview } from '@/components/clinic/ApplicationScreeningSection';
+import { ApplicationPreviewGroup } from '@/components/worker/ApplicationPreviewGroup';
 import { WorkerApplicationKitSubmission } from '@/components/worker/WorkerApplicationKitSubmission';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
@@ -52,7 +55,7 @@ import {
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles, spacing } from '@/theme';
 import { confirmHideWorkerApplication } from '@/lib/workerApplicationHide';
 
 type WorkerApplicationDetailCardProps = {
@@ -87,7 +90,6 @@ export function WorkerApplicationDetailCard({
   hasUnreadMessages = false,
   variant = 'full',
 }: WorkerApplicationDetailCardProps) {
-  const { colors } = useTheme();
   const [rescheduleVisible, setRescheduleVisible] = useState(false);
   const clinicDeleted = application.clinic_account_deleted;
   const canCancel = isActiveApplicationStatus(application.status) && !clinicDeleted;
@@ -97,17 +99,7 @@ export function WorkerApplicationDetailCard({
   const matchContext = !isShift ? getApplicationMatchDisplayContext(application) : null;
   const clinicLocation = application.clinic_city ?? null;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      overflow: 'hidden',
-    },
-    hero: {
-      padding: spacing.lg,
-    },
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     statusRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -125,36 +117,11 @@ export function WorkerApplicationDetailCard({
       lineHeight: 18,
       color: colors.labelTertiary,
     },
-    body: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.lg,
-      gap: spacing.lg,
-    },
     bodyEmbedded: {
-      paddingTop: spacing.sm,
       gap: spacing.lg,
     },
-    submittedSection: {
-      gap: spacing.md,
-    },
-    sectionEyebrow: {
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: colors.labelSecondary,
-    },
-    subsection: {
+    submittedWrap: {
       gap: spacing.sm,
-    },
-    actionsSection: {
-      gap: spacing.sm,
-    },
-    actionsLabel: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.labelPrimary,
     },
     actionsGrid: {
       gap: spacing.sm,
@@ -168,35 +135,10 @@ export function WorkerApplicationDetailCard({
       flex: 1,
       minWidth: 0,
     },
-    interviewCard: {
-      backgroundColor: colors.secondarySubtle,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-    interviewHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    interviewTitle: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.labelPrimary,
-      flex: 1,
-    },
-    interviewMeta: typography.subtitle,
-    deletedBanner: {
-      backgroundColor: colors.backgroundGrouped,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-    },
-    deletedText: {
-      ...typography.subtitle,
+    mutedText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
     },
   }));
 
@@ -472,24 +414,20 @@ export function WorkerApplicationDetailCard({
 
   const bodyContent = (
     <>
-      <View style={variant === 'embedded' ? styles.bodyEmbedded : styles.body}>
+      <View style={variant === 'embedded' ? styles.bodyEmbedded : undefined}>
         {clinicDeleted ? (
-          <View style={styles.deletedBanner}>
-            <Text style={styles.deletedText}>
+          <CardInfoPanel variant="default">
+            <CardInfoPanelText>
               This clinic is no longer signed up for Chairside.
-            </Text>
-          </View>
+            </CardInfoPanelText>
+          </CardInfoPanel>
         ) : null}
 
         {!clinicDeleted && application.status === 'interview_offered' && interviewSummary ? (
-          <View style={styles.interviewCard}>
-            <View style={styles.interviewHeader}>
-              <Ionicons name="calendar-outline" size={18} color={colors.warning} />
-              <Text style={styles.interviewTitle}>Interview invitation</Text>
-            </View>
-            <Text style={styles.interviewMeta}>{interviewSummary}</Text>
+          <CardInfoPanel variant="warning" icon="calendar-outline" title="Interview invitation">
+            <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
             {application.interview_details ? (
-              <Text style={styles.interviewMeta}>{application.interview_details}</Text>
+              <CardInfoPanelText>{application.interview_details}</CardInfoPanelText>
             ) : null}
             <OnboardingButton label="Accept interview" onPress={handleAcceptInterview} />
             <OnboardingButton
@@ -497,28 +435,22 @@ export function WorkerApplicationDetailCard({
               variant="destructive"
               onPress={handleDeclineInterview}
             />
-          </View>
+          </CardInfoPanel>
         ) : null}
 
         {!clinicDeleted && application.status === 'interview_scheduled' && interviewSummary ? (
-          <View style={styles.interviewCard}>
-            <View style={styles.interviewHeader}>
-              <Ionicons name="calendar-outline" size={18} color={colors.secondary} />
-              <Text style={styles.interviewTitle}>Interview confirmed</Text>
-            </View>
-            <Text style={styles.interviewMeta}>{interviewSummary}</Text>
+          <CardInfoPanel variant="info" icon="calendar-outline" title="Interview confirmed">
+            <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
             {application.interview_details ? (
-              <Text style={styles.interviewMeta}>{application.interview_details}</Text>
+              <CardInfoPanelText>{application.interview_details}</CardInfoPanelText>
             ) : null}
             {clinicProposedChange && proposedSummary ? (
-              <Text style={styles.interviewMeta}>
-                Clinic proposed · {proposedSummary}
-              </Text>
+              <CardInfoPanelText>Clinic proposed · {proposedSummary}</CardInfoPanelText>
             ) : null}
             {workerProposedChange && proposedSummary ? (
-              <Text style={styles.interviewMeta}>
+              <CardInfoPanelText>
                 Awaiting clinic response · {proposedSummary}
-              </Text>
+              </CardInfoPanelText>
             ) : null}
             {clinicProposedChange ? (
               <>
@@ -546,7 +478,7 @@ export function WorkerApplicationDetailCard({
                 />
               </>
             )}
-          </View>
+          </CardInfoPanel>
         ) : null}
 
         {awaitingKit ? (
@@ -558,34 +490,46 @@ export function WorkerApplicationDetailCard({
           />
         ) : null}
 
-        <View style={styles.submittedSection}>
-          <Text style={styles.sectionEyebrow}>
-            {isScreeningStage && !hasKitSubmitted ? 'Your screening submission' : 'What you submitted'}
-          </Text>
-          {application.post_type === 'job' && application.screening ? (
-            <ApplicationScreeningSection screening={application.screening} audience="worker" />
-          ) : null}
-          {hasKitSubmitted ? <ApplicationSubmittedFields application={application} /> : null}
-          {isScreeningStage && !hasKitSubmitted && !application.screening ? (
-            <Text style={styles.interviewMeta}>Screening responses submitted.</Text>
-          ) : null}
-
-          {hasKitSubmitted && application.cover_message ? (
-            <>
-              <RowDivider />
-              <View style={styles.subsection}>
-                <Text style={styles.sectionEyebrow}>Cover message</Text>
+        <CardDetailSection
+          title={
+            isScreeningStage && !hasKitSubmitted
+              ? 'Your screening submission'
+              : 'What you submitted'
+          }
+          divided={variant === 'embedded'}>
+          <View style={styles.submittedWrap}>
+            {hasKitSubmitted ? (
+              <ApplicationSubmittedFields
+                application={application}
+                screening={
+                  application.post_type === 'job' ? application.screening : undefined
+                }
+              />
+            ) : null}
+            {!hasKitSubmitted &&
+            application.post_type === 'job' &&
+            application.screening ? (
+              <ApplicationScreeningPreview
+                screening={application.screening}
+                audience="worker"
+                defaultExpanded={false}
+              />
+            ) : null}
+            {isScreeningStage && !hasKitSubmitted && !application.screening ? (
+              <ApplicationPreviewGroup>
+                <Text style={styles.mutedText}>Screening responses submitted.</Text>
+              </ApplicationPreviewGroup>
+            ) : null}
+            {hasKitSubmitted && application.cover_message ? (
+              <ApplicationPreviewGroup title="Cover message">
                 <DetailProse text={application.cover_message} />
-              </View>
-            </>
-          ) : null}
-        </View>
+              </ApplicationPreviewGroup>
+            ) : null}
+          </View>
+        </CardDetailSection>
 
         {hasActions ? (
-          <>
-            <RowDivider />
-            <View style={styles.actionsSection}>
-            <Text style={styles.actionsLabel}>Actions</Text>
+          <CardDetailSection title="Actions" divided>
             <View style={styles.actionsGrid}>
               {actionRows.map((slots, rowIndex) => (
                 <View key={`action-row-${rowIndex}`} style={styles.actionsRow}>
@@ -602,8 +546,7 @@ export function WorkerApplicationDetailCard({
                 </View>
               ))}
             </View>
-          </View>
-          </>
+          </CardDetailSection>
         ) : null}
       </View>
 
@@ -637,43 +580,47 @@ export function WorkerApplicationDetailCard({
     return bodyContent;
   }
 
+  const heroHeader = (
+    <ClinicPostHeader
+      clinicName={application.clinic_name}
+      logoStoragePath={application.clinic_logo_storage_path}
+      title={application.post_title}
+      location={clinicLocation}
+      accessory={
+        jobMatch && matchContext ? (
+          <MatchTierBadge
+            breakdown={jobMatch}
+            context={matchContext}
+            subtitle={application.post_title}
+          />
+        ) : null
+      }
+      footer={
+        <>
+          <View style={styles.statusRow}>
+            <Text style={styles.metaLabel}>Status</Text>
+            <WorkerApplicationStatusBadge
+              status={application.status}
+              postType={application.post_type}
+            />
+          </View>
+          {formatAppliedLabel(application) ? (
+            <Text style={styles.appliedDate}>{formatAppliedLabel(application)}</Text>
+          ) : null}
+        </>
+      }
+    />
+  );
+
   return (
-    <View style={styles.card}>
-      <View style={styles.hero}>
-        <ClinicPostHeader
-          clinicName={application.clinic_name}
-          logoStoragePath={application.clinic_logo_storage_path}
-          title={application.post_title}
-          location={clinicLocation}
-          accessory={
-            jobMatch && matchContext ? (
-              <MatchTierBadge
-                breakdown={jobMatch}
-                context={matchContext}
-                subtitle={application.post_title}
-              />
-            ) : null
-          }
-          footer={
-            <>
-              <View style={styles.statusRow}>
-                <Text style={styles.metaLabel}>Status</Text>
-                <WorkerApplicationStatusBadge
-                  status={application.status}
-                  postType={application.post_type}
-                />
-              </View>
-              {formatAppliedLabel(application) ? (
-                <Text style={styles.appliedDate}>{formatAppliedLabel(application)}</Text>
-              ) : null}
-            </>
-          }
-        />
+    <SurfaceCard padding="none" gap>
+      <View style={{ padding: spacing.lg }}>
+        {heroHeader}
       </View>
-
-      <RowDivider />
-
-      {bodyContent}
-    </View>
+      <CardSectionDivider />
+      <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.lg }}>
+        {bodyContent}
+      </View>
+    </SurfaceCard>
   );
 }

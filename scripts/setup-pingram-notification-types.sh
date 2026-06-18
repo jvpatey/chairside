@@ -70,7 +70,9 @@ echo ""
 
 # Only create types Chairside uses that are commonly missing.
 for spec in \
+  "application_received|Application received" \
   "fill_in_posted|Fill-in posted" \
+  "fill_in_outreach_sms|Fill-in outreach SMS" \
   "application_rejected|Application rejected" \
   "application_hired|Application hired" \
   "application_in_progress|Application in progress" \
