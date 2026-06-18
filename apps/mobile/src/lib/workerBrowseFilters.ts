@@ -220,10 +220,10 @@ function sortShifts(
         return a.shift_date.localeCompare(b.shift_date);
       }
       case 'oldest':
-        return b.shift_date.localeCompare(a.shift_date);
+        return a.shift_date.localeCompare(b.shift_date);
       case 'newest':
       default:
-        return a.shift_date.localeCompare(b.shift_date);
+        return b.shift_date.localeCompare(a.shift_date);
     }
   });
 }
