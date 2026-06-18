@@ -13,6 +13,14 @@ type DashboardScreenProps = {
   contentContainerStyle?: StyleProp<ViewStyle>;
   /** Centered wordmark above dashboard content on phone layouts. */
   showBrandHeader?: boolean;
+  /** Greeting on the first text line below the phone brand header wordmark row. */
+  brandHeaderLeading?: ReactNode;
+  /** Inline actions beside the wordmark on the phone brand header wordmark row. */
+  brandHeaderTrailing?: ReactNode;
+  /** Display name on the second text line below the wordmark row. */
+  brandHeaderName?: ReactNode;
+  /** Subtitle on the third text line below the wordmark row. */
+  brandHeaderSubtitle?: ReactNode;
   /** On tablet web, renders a page title row like other tab screens (no mobile greeting hero). */
   tabletTitle?: string;
   tabletSubtitle?: string;
@@ -22,6 +30,10 @@ type DashboardScreenProps = {
 export function DashboardScreen({
   children,
   showBrandHeader = false,
+  brandHeaderLeading,
+  brandHeaderTrailing,
+  brandHeaderName,
+  brandHeaderSubtitle,
   tabletTitle,
   tabletSubtitle,
   contentContainerStyle,
@@ -36,7 +48,12 @@ export function DashboardScreen({
 
   const body = showPhoneBrandHeader ? (
     <View style={styles.flow}>
-      <DashboardBrandHeader />
+      <DashboardBrandHeader
+        leading={brandHeaderLeading}
+        trailing={brandHeaderTrailing}
+        nameLine={brandHeaderName}
+        subtitleLine={brandHeaderSubtitle}
+      />
       {children}
     </View>
   ) : (

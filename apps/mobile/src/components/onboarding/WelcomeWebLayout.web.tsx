@@ -198,8 +198,8 @@ export function WelcomeWebLayout() {
           ? `radial-gradient(ellipse 55% 60% at 18% 0%, rgba(74, 154, 255, 0.24) 0%, transparent 58%), radial-gradient(ellipse 50% 45% at 82% 20%, rgba(152, 150, 255, 0.12) 0%, transparent 55%), linear-gradient(180deg, #0c1018 0%, ${colors.background} 48%)`
           : `radial-gradient(ellipse 90% 70% at 50% -15%, rgba(74, 154, 255, 0.22) 0%, transparent 58%), radial-gradient(ellipse 45% 35% at 88% 18%, rgba(152, 150, 255, 0.1) 0%, transparent 52%), linear-gradient(180deg, #0c1018 0%, ${colors.background} 42%)`
         : isWide
-          ? `radial-gradient(ellipse 55% 60% at 18% 0%, rgba(26, 111, 212, 0.16) 0%, transparent 58%), radial-gradient(ellipse 50% 45% at 82% 20%, rgba(88, 86, 214, 0.08) 0%, transparent 55%), linear-gradient(180deg, #f4f8fc 0%, ${colors.background} 42%)`
-          : `radial-gradient(ellipse 90% 70% at 50% -15%, rgba(26, 111, 212, 0.14) 0%, transparent 58%), radial-gradient(ellipse 45% 35% at 12% 22%, rgba(88, 86, 214, 0.07) 0%, transparent 52%), linear-gradient(180deg, #f4f8fc 0%, ${colors.background} 38%)`,
+          ? `radial-gradient(ellipse 55% 60% at 18% 0%, rgba(26, 111, 212, 0.3) 0%, transparent 58%), radial-gradient(ellipse 50% 45% at 82% 20%, rgba(88, 86, 214, 0.18) 0%, transparent 55%), linear-gradient(180deg, #f4f8fc 0%, ${colors.background} 42%)`
+          : `radial-gradient(ellipse 90% 70% at 50% -15%, rgba(26, 111, 212, 0.28) 0%, transparent 58%), radial-gradient(ellipse 45% 35% at 12% 22%, rgba(88, 86, 214, 0.16) 0%, transparent 52%), linear-gradient(180deg, #f4f8fc 0%, ${colors.background} 38%)`,
     },
     hero: {
       justifyContent: 'center' as const,

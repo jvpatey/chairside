@@ -10,12 +10,16 @@ import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
+import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
+import { DashboardHeroName, DashboardHeroSubtitle } from '@/components/dashboard/DashboardHeroIdentity';
 import {
   DashboardStatGrid,
+  DASHBOARD_OVERVIEW_SEGMENT_ACCENTS,
   getDashboardOverviewAccent,
   type DashboardOverviewStat,
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
@@ -74,9 +78,14 @@ export function WorkerSetupBanner({ onPress }: WorkerSetupBannerProps) {
 type WorkerDashboardHeroProps = {
   displayName?: string | null;
   workerProfile?: WorkerProfile | null;
+  showActions?: boolean;
 };
 
-export function WorkerDashboardHero({ displayName, workerProfile }: WorkerDashboardHeroProps) {
+export function WorkerDashboardHero({
+  displayName,
+  workerProfile,
+  showActions = true,
+}: WorkerDashboardHeroProps) {
   const { photoUri } = useProfilePhoto();
   const subtitle =
     (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
@@ -90,9 +99,65 @@ export function WorkerDashboardHero({ displayName, workerProfile }: WorkerDashbo
       photoUri={photoUri}
       namePlaceholder="Your profile"
       subtitle={subtitle}
+      showActions={showActions}
     />
   );
 }
+
+type WorkerDashboardHeaderActionsProps = {
+  displayName?: string | null;
+};
+
+export function WorkerDashboardHeaderActions({ displayName }: WorkerDashboardHeaderActionsProps) {
+  const { photoUri } = useProfilePhoto();
+
+  return (
+    <DashboardHeroActions
+      profileHref={WORKER_PROFILE}
+      avatarKind="worker"
+      displayName={displayName}
+      photoUri={photoUri}
+    />
+  );
+}
+
+type WorkerDashboardHeaderIdentityProps = {
+  displayName?: string | null;
+  workerProfile?: WorkerProfile | null;
+};
+
+function getWorkerDashboardSubtitle(workerProfile?: WorkerProfile | null) {
+  return (
+    (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
+    'Dental professional'
+  );
+}
+
+export function WorkerDashboardHeaderName({
+  displayName,
+}: Pick<WorkerDashboardHeaderIdentityProps, 'displayName'>) {
+  return <DashboardHeroName displayName={displayName} namePlaceholder="Your profile" />;
+}
+
+export function WorkerDashboardHeaderSubtitle({
+  workerProfile,
+}: Pick<WorkerDashboardHeaderIdentityProps, 'workerProfile'>) {
+  return <DashboardHeroSubtitle subtitle={getWorkerDashboardSubtitle(workerProfile)} />;
+}
+
+export function WorkerDashboardHeaderIdentity({
+  displayName,
+  workerProfile,
+}: WorkerDashboardHeaderIdentityProps) {
+  return (
+    <>
+      <WorkerDashboardHeaderName displayName={displayName} />
+      <WorkerDashboardHeaderSubtitle workerProfile={workerProfile} />
+    </>
+  );
+}
+
+export { DashboardHeroGreeting as WorkerDashboardGreeting } from '@/components/dashboard/DashboardHeroIdentity';
 
 /** @deprecated Use `DashboardSectionHeader` from `@/components/dashboard/DashboardSectionHeader`. */
 export { DashboardSectionHeader as WorkerSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
@@ -126,6 +191,7 @@ export function WorkerStatGrid({
       selected={selected}
       onSelect={onSelect}
       accent={getDashboardOverviewAccent(selected)}
+      segmentAccents={DASHBOARD_OVERVIEW_SEGMENT_ACCENTS}
       stats={[
         { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },
         { key: 'fill-ins', label: 'Fill-ins', value: openFillIns, badgeCount: fillInUpdateCount },
@@ -170,10 +236,13 @@ export function WorkerOverviewPanel({
   onApplicationUpdated,
 }: WorkerOverviewPanelProps) {
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
-  const styles = useThemedStyles(({ spacing }) => ({
-    list: { gap: spacing.sm },
-    group: { gap: spacing.sm },
-  }));
+  const styles = useThemedStyles(({ spacing }) => {
+    const cardGap = dashboardSectionGap(spacing);
+    return {
+      list: { gap: cardGap },
+      group: { gap: cardGap },
+    };
+  });
 
   const previewJobApplications = useMemo(() => {
     return [...jobApplications]

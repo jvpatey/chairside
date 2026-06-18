@@ -15,6 +15,7 @@ export {
   getPrimaryTileGradient,
   getSecondaryTileGradient,
   getStatSelectedGradient,
+  getStatSelectedSegmentGradient,
   getAppliedRowGradient,
   getFillInHeroGradient,
   type GradientAccent,

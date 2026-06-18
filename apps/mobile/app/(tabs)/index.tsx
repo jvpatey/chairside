@@ -1,6 +1,5 @@
 import {
   getWorkerDashboardCounts,
-  isWorkerProfileComplete,
   listConversationsForWorker,
   listLiveJobPosts,
   listLiveShiftPosts,
@@ -24,9 +23,12 @@ import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { DashboardStatGrid, getDashboardOverviewAccent } from '@/components/dashboard/DashboardStatGrid';
+import { DashboardStatGrid, DASHBOARD_OVERVIEW_SEGMENT_ACCENTS, getDashboardOverviewAccent } from '@/components/dashboard/DashboardStatGrid';
 import {
-  WorkerDashboardHero,
+  WorkerDashboardHeaderActions,
+  WorkerDashboardHeaderName,
+  WorkerDashboardHeaderSubtitle,
+  WorkerDashboardGreeting,
   WorkerOverviewPanel,
   type WorkerOverviewStat,
 } from '@/components/worker/WorkerCards';
@@ -54,7 +56,7 @@ export default function WorkerDashboardScreen() {
   const { user, profile } = useAuth();
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: applicationUpdateCount, fillInPendingCount } = useApplicationTabBadge();
-  const { workerProfile } = useWorkerProfile();
+  const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const { isTablet } = useResponsiveLayout();
   const province = workerProfile?.province ?? 'NS';
@@ -154,10 +156,27 @@ export default function WorkerDashboardScreen() {
   }, [conversations]);
 
   const hasUnreadMessagePreviews = conversations.some((conversation) => conversation.unread);
+  const showMobileHeaderIdentity = !isTablet && isProfileComplete;
 
   return (
     <DashboardScreen
       showBrandHeader
+      brandHeaderLeading={showMobileHeaderIdentity ? <WorkerDashboardGreeting /> : undefined}
+      brandHeaderName={
+        showMobileHeaderIdentity ? (
+          <WorkerDashboardHeaderName displayName={profile?.display_name} />
+        ) : undefined
+      }
+      brandHeaderSubtitle={
+        showMobileHeaderIdentity ? (
+          <WorkerDashboardHeaderSubtitle workerProfile={workerProfile} />
+        ) : undefined
+      }
+      brandHeaderTrailing={
+        !isTablet ? (
+          <WorkerDashboardHeaderActions displayName={profile?.display_name} />
+        ) : undefined
+      }
       tabletTitle="Dashboard"
       tabletSubtitle="Roles, fill-ins, and applications at a glance.">
       {isLoading && !hasLoadedOnce.current ? (
@@ -170,17 +189,16 @@ export default function WorkerDashboardScreen() {
             </FadeInSection>
           ) : null}
 
-          {!isTablet ? (
-            <FadeInSection delayMs={0}>
-              <WorkerDashboardHero
-                displayName={profile?.display_name}
-                workerProfile={workerProfile}
-              />
-            </FadeInSection>
-          ) : null}
+          <FadeInSection delayMs={40}>
+            <WorkerReadinessChecklist
+              workerProfile={workerProfile}
+              jobApplicationCount={jobApplications.length}
+              shiftApplicationCount={shiftApplications.length}
+            />
+          </FadeInSection>
 
           {isTablet ? (
-            <FadeInSection delayMs={40}>
+            <FadeInSection delayMs={80}>
               <View style={styles.quickActionSection}>
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
@@ -199,12 +217,6 @@ export default function WorkerDashboardScreen() {
                   />
                 </View>
               </View>
-            </FadeInSection>
-          ) : null}
-
-          {!isWorkerProfileComplete(workerProfile) ? (
-            <FadeInSection delayMs={80}>
-              <WorkerReadinessChecklist workerProfile={workerProfile} />
             </FadeInSection>
           ) : null}
 
@@ -262,6 +274,7 @@ export default function WorkerDashboardScreen() {
                 selected={selectedOverview}
                 onSelect={setSelectedOverview}
                 accent={getDashboardOverviewAccent(selectedOverview)}
+                segmentAccents={DASHBOARD_OVERVIEW_SEGMENT_ACCENTS}
                 stats={[
                   { key: 'roles', label: 'Open roles', value: openJobs.length },
                   {

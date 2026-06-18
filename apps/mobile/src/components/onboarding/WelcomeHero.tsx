@@ -3,9 +3,9 @@ import { Text, View } from 'react-native';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { useThemedStyles } from '@/theme';
 
-const MOBILE_HEADLINE = 'Dental shifts, simplified.';
+const MOBILE_HEADLINE = 'Dental staffing, simplified.';
 const MOBILE_SUBTITLE =
-  'Find trusted professionals, fill open shifts, and manage hiring in one place.';
+  'Hire staff, find work, and fill same-day shifts in one place.';
 
 export function WelcomeHero() {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({

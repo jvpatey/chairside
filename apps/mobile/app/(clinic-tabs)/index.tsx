@@ -2,7 +2,6 @@ import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
   getMissingClinicProfileFields,
-  isClinicProfileComplete,
   getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
   listConversationsForClinic,
@@ -23,7 +22,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import {
-  DashboardHero,
+  ClinicDashboardHeaderActions,
+  ClinicDashboardHeaderName,
+  ClinicDashboardHeaderSubtitle,
+  ClinicDashboardGreeting,
   DashboardOverviewPanel,
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
@@ -36,7 +38,11 @@ import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { DashboardStatGrid, getDashboardOverviewAccent } from '@/components/dashboard/DashboardStatGrid';
+import {
+  DashboardStatGrid,
+  DASHBOARD_OVERVIEW_SEGMENT_ACCENTS,
+  getDashboardOverviewAccent,
+} from '@/components/dashboard/DashboardStatGrid';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,8 +106,16 @@ export default function ClinicDashboardScreen() {
     setLoadError(false);
 
     try {
-      const [nextCounts, jobPosts, shiftPosts, summaries, counts, pendingShiftCounts, conversationRows, confirmed] =
-        await Promise.all([
+      const [
+        nextCounts,
+        jobPosts,
+        shiftPosts,
+        summaries,
+        counts,
+        pendingShiftCounts,
+        conversationRows,
+        confirmed,
+      ] = await Promise.all([
         getClinicDashboardCounts(user.id),
         listJobPosts(user.id),
         listShiftPosts(user.id),
@@ -166,15 +180,18 @@ export default function ClinicDashboardScreen() {
     [loadDashboard],
   );
 
-  const handleJobDeleted = useCallback((jobId: string) => {
-    setJobs((prev) => prev.filter((job) => job.id !== jobId));
-    setApplicantCounts((prev) => {
-      const next = { ...prev };
-      delete next[jobId];
-      return next;
-    });
-    void loadDashboard();
-  }, [loadDashboard]);
+  const handleJobDeleted = useCallback(
+    (jobId: string) => {
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+      setApplicantCounts((prev) => {
+        const next = { ...prev };
+        delete next[jobId];
+        return next;
+      });
+      void loadDashboard();
+    },
+    [loadDashboard],
+  );
 
   useEffect(() => {
     if (overview === 'roles' || overview === 'fill-ins' || overview === 'applications') {
@@ -203,12 +220,22 @@ export default function ClinicDashboardScreen() {
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
   const hasUnreadMessagePreviews = conversations.some((conversation) => conversation.unread);
+  const showMobileHeaderIdentity = !isTablet && isProfileComplete;
 
   return (
     <DashboardScreen
       showBrandHeader
+      brandHeaderLeading={showMobileHeaderIdentity ? <ClinicDashboardGreeting /> : undefined}
+      brandHeaderName={
+        showMobileHeaderIdentity ? <ClinicDashboardHeaderName clinicName={clinicName} /> : undefined
+      }
+      brandHeaderSubtitle={showMobileHeaderIdentity ? <ClinicDashboardHeaderSubtitle /> : undefined}
+      brandHeaderTrailing={
+        !isTablet ? <ClinicDashboardHeaderActions clinicName={clinicName} /> : undefined
+      }
       tabletTitle="Dashboard"
-      tabletSubtitle="Postings, fill-ins, and applicants at your clinic.">
+      tabletSubtitle="Postings, fill-ins, and applicants at your clinic."
+    >
       {isLoading && !hasLoadedOnce.current ? (
         <DashboardLoadingShell />
       ) : (
@@ -219,14 +246,20 @@ export default function ClinicDashboardScreen() {
             </FadeInSection>
           ) : null}
 
-          {!isTablet ? (
-            <FadeInSection delayMs={0}>
-              <DashboardHero clinicName={clinicName} />
-            </FadeInSection>
-          ) : null}
+          <FadeInSection delayMs={40}>
+            <ClinicReadinessChecklist
+              clinicProfile={clinicProfile}
+              fillInsPosted={counts.fillInsPosted}
+              openRoles={counts.openRoles}
+              totalApplications={counts.totalApplications}
+              conversationCount={conversations.length}
+              onPostFillIn={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
+              onPostRole={() => guardPosting(CLINIC_POST_JOB)}
+            />
+          </FadeInSection>
 
           {isTablet ? (
-            <FadeInSection delayMs={40}>
+            <FadeInSection delayMs={80}>
               <View style={styles.quickActionSection}>
                 <View style={styles.quickActionRow}>
                   <DashboardQuickActionTile
@@ -245,12 +278,6 @@ export default function ClinicDashboardScreen() {
                   />
                 </View>
               </View>
-            </FadeInSection>
-          ) : null}
-
-          {!isClinicProfileComplete(clinicProfile) ? (
-            <FadeInSection delayMs={80}>
-              <ClinicReadinessChecklist clinicProfile={clinicProfile} />
             </FadeInSection>
           ) : null}
 
@@ -317,6 +344,7 @@ export default function ClinicDashboardScreen() {
                 selected={selectedOverview}
                 onSelect={setSelectedOverview}
                 accent={getDashboardOverviewAccent(selectedOverview)}
+                segmentAccents={DASHBOARD_OVERVIEW_SEGMENT_ACCENTS}
                 stats={[
                   { key: 'roles', label: 'Open roles', value: counts.openRoles },
                   {

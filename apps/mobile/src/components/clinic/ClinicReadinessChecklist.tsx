@@ -1,84 +1,112 @@
 import type { ClinicProfile } from '@chairside/api';
 import { isClinicProfileComplete } from '@chairside/api';
-import { Ionicons } from '@expo/vector-icons';
+import type { Href } from 'expo-router';
 import { router } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { useMemo } from 'react';
 
-import { CLINIC_SETUP_BASICS } from '@/lib/routing';
+import { GetStartedChecklistCard } from '@/components/dashboard/GetStartedChecklistCard';
+import { useDismissedGetStartedChecklist } from '@/hooks/useDismissedGetStartedChecklist';
 import {
-  webFullBleedRowInsets,
-  webHover,
-  webListRowHoverStyles,
-  webPointer,
-} from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+  areAllGetStartedItemsComplete,
+  isClinicEngagementStepComplete,
+  type GetStartedChecklistItem,
+} from '@/lib/getStartedChecklist';
+import {
+  CLINIC_APPLICATIONS,
+  CLINIC_MESSAGES,
+  CLINIC_POST_JOB,
+  CLINIC_SETUP_BASICS,
+} from '@/lib/routing';
 
 type ClinicReadinessChecklistProps = {
   clinicProfile: ClinicProfile | null;
+  fillInsPosted: number;
+  openRoles: number;
+  totalApplications: number;
+  conversationCount: number;
+  onPostFillIn: () => void;
+  onPostRole: () => void;
 };
 
-export function ClinicReadinessChecklist({ clinicProfile }: ClinicReadinessChecklistProps) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.md,
-    },
-    title: { ...typography.body, fontWeight: '700', fontSize: 17 },
-    subtitle: typography.subtitle,
-    item: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
-      paddingVertical: spacing.xs,
-      borderRadius: 10,
-      ...webFullBleedRowInsets(spacing.lg),
-      ...webPointer(),
-    },
-    itemHovered: webListRowHoverStyles(colors),
-    itemPressed: {
-      opacity: 0.88,
-    },
-    iconWrap: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.fillSubtle,
-    },
-    textBlock: { flex: 1, gap: 2 },
-    itemTitle: { ...typography.body, fontWeight: '600' },
-    itemBody: { ...typography.subtitle, fontSize: 13, lineHeight: 18 },
-  }));
+export function ClinicReadinessChecklist({
+  clinicProfile,
+  fillInsPosted,
+  openRoles,
+  totalApplications,
+  conversationCount,
+  onPostFillIn,
+  onPostRole,
+}: ClinicReadinessChecklistProps) {
+  const { isHydrated, isDismissed, dismiss } = useDismissedGetStartedChecklist('clinic');
 
-  if (isClinicProfileComplete(clinicProfile)) return null;
+  const profileComplete = isClinicProfileComplete(clinicProfile);
+  const hasPostedFillIn = fillInsPosted > 0;
+  const hasPostedRole = openRoles > 0;
+  const hasEngagement = isClinicEngagementStepComplete({ totalApplications, conversationCount });
+
+  const items = useMemo<GetStartedChecklistItem[]>(
+    () => [
+      {
+        id: 'profile',
+        title: profileComplete ? 'Clinic profile complete' : 'Complete your clinic profile to post',
+        body: profileComplete
+          ? 'Your practice details are ready for workers.'
+          : 'Add your practice details so workers know who they are applying to.',
+        complete: profileComplete,
+        primary: !profileComplete,
+        onPress: () => router.push(CLINIC_SETUP_BASICS),
+      },
+      {
+        id: 'post-fill-in',
+        title: hasPostedFillIn ? 'Fill-in shift posted' : 'Post a fill-in shift',
+        body: hasPostedFillIn
+          ? 'You have at least one fill-in shift live.'
+          : 'Cover temporary or urgent shifts with available workers.',
+        complete: hasPostedFillIn,
+        onPress: onPostFillIn,
+      },
+      {
+        id: 'post-role',
+        title: hasPostedRole ? 'Role posted' : 'Post a role',
+        body: hasPostedRole
+          ? 'You have at least one role listing live.'
+          : 'Hire for full-time or part-time positions.',
+        complete: hasPostedRole,
+        onPress: onPostRole,
+      },
+      {
+        id: 'review',
+        title: hasEngagement ? 'Applications in progress' : 'Review applications and messages',
+        body: hasEngagement
+          ? 'Applicants and conversations are waiting for you.'
+          : 'Respond to applicants and keep hiring moving.',
+        complete: hasEngagement,
+        onPress: () => {
+          const target: Href = totalApplications > 0 ? CLINIC_APPLICATIONS : CLINIC_MESSAGES;
+          router.push(target);
+        },
+      },
+    ],
+    [
+      hasEngagement,
+      hasPostedFillIn,
+      hasPostedRole,
+      onPostFillIn,
+      onPostRole,
+      profileComplete,
+      totalApplications,
+    ],
+  );
+
+  if (!isHydrated || isDismissed || areAllGetStartedItemsComplete(items)) {
+    return null;
+  }
 
   return (
-    <View style={styles.card}>
-      <View>
-        <Text style={styles.title}>Get started</Text>
-        <Text style={styles.subtitle}>Complete your profile to post roles and fill-in shifts.</Text>
-      </View>
-      <Pressable
-        style={({ pressed, hovered }) => [
-          styles.item,
-          webHover(hovered, pressed, styles.itemHovered),
-          pressed && styles.itemPressed,
-        ]}
-        onPress={() => router.push(CLINIC_SETUP_BASICS)}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="ellipse-outline" size={16} color={colors.labelSecondary} />
-        </View>
-        <View style={styles.textBlock}>
-          <Text style={styles.itemTitle}>Complete your clinic profile</Text>
-          <Text style={styles.itemBody}>Practice details, location, and contact.</Text>
-        </View>
-      </Pressable>
-    </View>
+    <GetStartedChecklistCard
+      subtitle="Finish these steps to start hiring on Chairside."
+      items={items}
+      onDismiss={() => void dismiss()}
+    />
   );
 }

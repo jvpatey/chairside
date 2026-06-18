@@ -9,6 +9,7 @@ import { MOBILE_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
 import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
+import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { webPointer } from '@/lib/webPressableStyles';
 import { getGlassTokens, useTheme, useThemedStyles } from '@/theme';
 
@@ -51,6 +52,10 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
   const { animatedStyle: indicatorStyle, onSegmentLayout } = useSlidingSegmentIndicator(
     focusedVisibleIndex >= 0 ? focusedVisibleIndex : 0,
   );
+  const focusedRoute = visibleRoutes[focusedVisibleIndex];
+  const focusedAccent = focusedRoute ? getTabAccentForName(focusedRoute.name) : 'primary';
+  const focusedIndicatorColor =
+    focusedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outer: {
@@ -73,7 +78,6 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       top: spacing.xs,
       left: 0,
       borderRadius: 20,
-      backgroundColor: colors.primarySubtle,
     },
     item: {
       flex: 1,
@@ -104,7 +108,6 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       textAlign: 'center',
     },
     labelActive: {
-      color: colors.primary,
       fontWeight: '600',
     },
     badge: {
@@ -134,12 +137,17 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       pointerEvents="box-none"
       onLayout={(event) => onHeightChange?.(event.nativeEvent.layout.height)}>
       <LiquidGlassSurface borderRadius={28} style={styles.dock}>
-        <SlidingSegmentIndicator animatedStyle={indicatorStyle} style={styles.indicator} />
+        <SlidingSegmentIndicator
+          animatedStyle={indicatorStyle}
+          style={[styles.indicator, { backgroundColor: focusedIndicatorColor }]}
+        />
         {visibleRoutes.map((route, index) => {
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((item) => item.key === route.key);
           const isFocused = state.index === routeIndex;
-          const color = isFocused ? colors.primary : colors.tabInactive;
+          const tabAccent = getTabAccentForName(route.name);
+          const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
+          const color = isFocused ? activeColor : colors.tabInactive;
           const accessibilityLabel =
             options.tabBarAccessibilityLabel ?? options.title ?? route.name;
           const label = options.title ?? route.name;
@@ -199,7 +207,10 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
                 ) : null}
               </View>
               <Text
-                style={[styles.label, isFocused && styles.labelActive]}
+                style={[
+                  styles.label,
+                  isFocused && [styles.labelActive, { color: activeColor }],
+                ]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.85}>

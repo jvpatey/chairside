@@ -11,6 +11,7 @@ import {
   fontSemibold,
   colorWithAlpha,
   getStatSelectedGradient,
+  getStatSelectedSegmentGradient,
   useTheme,
   useThemedStyles,
   type GradientAccent,
@@ -18,6 +19,13 @@ import {
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 
 export type DashboardOverviewStat = 'roles' | 'fill-ins' | 'applications';
+
+/** Per-segment accents for the dashboard overview pill (blue → purple → blue). */
+export const DASHBOARD_OVERVIEW_SEGMENT_ACCENTS: GradientAccent[] = [
+  'primary',
+  'secondary',
+  'primary',
+];
 
 /** Purple accent when the dashboard overview pill is on Fill-ins. */
 export function getDashboardOverviewAccent(
@@ -45,6 +53,8 @@ type DashboardStatGridProps<T extends string = DashboardOverviewStat> = {
   /** `compact` fits more segments (e.g. applicant pipeline filters). */
   density?: DashboardStatGridDensity;
   accent?: GradientAccent;
+  /** When set, selected pill bleeds neighbor segment colors on its left/right edges. */
+  segmentAccents?: GradientAccent[];
   accessibilityRole?: 'button' | 'tab';
 };
 
@@ -55,13 +65,17 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
   variant = 'stat',
   density = 'default',
   accent = 'primary',
+  segmentAccents,
   accessibilityRole = 'button',
 }: DashboardStatGridProps<T>) {
   const { colors, isDark } = useTheme();
   const isLabelOnly = variant === 'label';
   const isCompact = density === 'compact';
   const manySegments = stats.length >= 5;
-  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const selectedIndex = stats.findIndex((stat) => stat.key === selected);
+  const resolvedSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
+  const selectedAccent = segmentAccents?.[resolvedSelectedIndex] ?? accent;
+  const brandColor = selectedAccent === 'secondary' ? colors.secondary : colors.primary;
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     grid: {
@@ -154,16 +168,29 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
   }));
 
   const indicatorAccentStyle = {
-    borderColor: isDark ? `${brandColor}77` : `${brandColor}55`,
+    borderColor: isDark ? `${brandColor}77` : colorWithAlpha(brandColor, 0.42),
     backgroundColor: isDark ? colorWithAlpha(brandColor, 0.16) : colors.surfaceElevated,
   };
   const selectedTextColor = { color: brandColor };
 
   const isWeb = Platform.OS === 'web';
-  const selectedIndex = stats.findIndex((stat) => stat.key === selected);
   const { animatedStyle: indicatorStyle, onSegmentLayout } = useSlidingSegmentIndicator(
-    selectedIndex >= 0 ? selectedIndex : 0,
+    resolvedSelectedIndex,
   );
+
+  const segmentGradient =
+    segmentAccents && segmentAccents.length === stats.length
+      ? getStatSelectedSegmentGradient(colors, isDark, selectedAccent, {
+          left: segmentAccents[resolvedSelectedIndex - 1],
+          right: segmentAccents[resolvedSelectedIndex + 1],
+        })
+      : null;
+  const indicatorGradient = segmentGradient ?? {
+    colors: getStatSelectedGradient(colors, isDark, accent),
+    locations: undefined,
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 1 },
+  };
 
   const handleSelect = (key: T) => {
     void Haptics.selectionAsync();
@@ -177,7 +204,10 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
         style={[styles.indicator, indicatorAccentStyle]}
       >
         <LinearGradient
-          colors={getStatSelectedGradient(colors, isDark, accent)}
+          colors={indicatorGradient.colors}
+          locations={indicatorGradient.locations}
+          start={indicatorGradient.start}
+          end={indicatorGradient.end}
           style={styles.gradient}
         />
       </SlidingSegmentIndicator>

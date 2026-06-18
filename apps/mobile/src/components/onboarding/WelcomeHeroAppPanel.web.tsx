@@ -19,10 +19,24 @@ type WelcomeHeroAppPanelProps = {
 export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
   const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     wrap: {
+      position: 'relative' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       width: '100%',
       alignSelf: 'stretch' as const,
+    },
+    glow: {
+      position: 'absolute' as const,
+      top: '6%',
+      left: '4%',
+      right: '4%',
+      bottom: '18%',
+      borderRadius: 32,
+      // @ts-expect-error — web-only gradient
+      backgroundImage: isDark
+        ? 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(74, 154, 255, 0.22) 0%, rgba(152, 150, 255, 0.08) 42%, transparent 72%)'
+        : 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(26, 111, 212, 0.18) 0%, rgba(88, 86, 214, 0.08) 42%, transparent 72%)',
+      pointerEvents: 'none' as const,
     },
     windowShell: {
       width: '100%',
@@ -116,6 +130,7 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
 
   return (
     <View style={styles.wrap}>
+      <View style={styles.glow} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       <View style={styles.windowShell}>
         <View style={styles.windowChrome} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <View style={styles.windowDot} />
