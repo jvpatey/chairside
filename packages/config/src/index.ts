@@ -1,5 +1,6 @@
 export {
   EMPLOYMENT_TYPE_OPTIONS,
+  ROLE_EMPLOYMENT_TYPE_OPTIONS,
   OFFERING_PRESET_OPTIONS,
   ROLE_TYPE_OPTIONS,
   SOFTWARE_OPTIONS,
@@ -12,6 +13,7 @@ export {
   formatJobPostRoleMeta,
   formatOfferingLabel,
   getEmploymentTypeLabel,
+  normalizeRoleEmploymentType,
   getJobPostStatusBadgeVariant,
   getJobPostStatusLabel,
   getOfferingPresetLabel,
@@ -46,6 +48,7 @@ export {
   type JobPostStatusBadgeVariant,
   type OfferingPreset,
   type RoleType,
+  type RoleEmploymentType,
   type TeamSizeRange,
 } from './clinicOptions';
 export {

@@ -60,6 +60,19 @@ export const EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'fill-in' as const, label: 'Fill-In' },
 ];
 
+/** Clinic role postings only — temp and fill-in use the dedicated shift flow. */
+export const ROLE_EMPLOYMENT_TYPE_OPTIONS = [
+  { value: 'permanent' as const, label: 'Full Time' },
+  { value: 'part-time' as const, label: 'Part Time' },
+] as const;
+
+export type RoleEmploymentType = (typeof ROLE_EMPLOYMENT_TYPE_OPTIONS)[number]['value'];
+
+/** Map legacy role employment values to supported role-posting choices. */
+export function normalizeRoleEmploymentType(employmentType: string): RoleEmploymentType {
+  return employmentType === 'part-time' ? 'part-time' : 'permanent';
+}
+
 export const URGENCY_OPTIONS = [
   { value: 'normal' as const, label: 'Normal' },
   { value: 'urgent' as const, label: 'Urgent' },
