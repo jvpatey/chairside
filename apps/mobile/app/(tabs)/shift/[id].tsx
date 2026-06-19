@@ -1,4 +1,4 @@
-import { getLiveShiftPost, hasAppliedToShift, type LiveShiftPost } from '@chairside/api';
+import { getLiveShiftPost, hasAppliedToShift, isShiftPostSaved, saveShiftPost, unsaveShiftPost, type LiveShiftPost } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -10,6 +10,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { SavePostButton } from '@/components/worker/SavePostButton';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -31,6 +32,7 @@ export default function WorkerShiftDetailScreen() {
   }, [resolvedReturnTo]);
   const [shift, setShift] = useState<LiveShiftPost | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -73,8 +75,12 @@ export default function WorkerShiftDetailScreen() {
       setShift(nextShift);
 
       if (user?.id) {
-        const applied = await hasAppliedToShift(user.id, shiftId);
+        const [applied, saved] = await Promise.all([
+          hasAppliedToShift(user.id, shiftId),
+          isShiftPostSaved(user.id, shiftId),
+        ]);
         setHasApplied(applied);
+        setIsSaved(saved);
       }
     } catch (error) {
       Alert.alert(
@@ -88,6 +94,22 @@ export default function WorkerShiftDetailScreen() {
   }, [goBack, shiftId, user?.id]);
 
   useRefreshOnFocus(loadShift);
+
+  const handleToggleSaved = useCallback(async () => {
+    if (!user?.id || !shift) return;
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    try {
+      if (nextSaved) await saveShiftPost(shift.id);
+      else await unsaveShiftPost(shift.id);
+    } catch (error) {
+      setIsSaved(!nextSaved);
+      Alert.alert(
+        'Could not update saved fill-in',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  }, [isSaved, shift, user?.id]);
 
   if (isLoading || !shift) {
     return (
@@ -119,6 +141,9 @@ export default function WorkerShiftDetailScreen() {
         title="Fill-in details"
         subtitle={shift.clinic.clinic_name}
         onBack={goBack}
+        accessory={
+          user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
+        }
       />
       <View style={styles.content}>
         <View style={styles.clinicCard}>

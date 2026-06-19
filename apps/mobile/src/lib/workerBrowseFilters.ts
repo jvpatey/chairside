@@ -16,6 +16,7 @@ import {
 import type {
   PayListedFilter,
   RoleTypeFilter,
+  SavedOnlyFilter,
   WorkerAvailabilityFilter,
   WorkerBrowseSort,
   WorkerDistanceFilter,
@@ -31,6 +32,7 @@ export type WorkerRoleBrowseFiltersState = {
   softwareFilter: WorkerSoftwareFilter;
   payListedFilter: PayListedFilter;
   matchTierFilter: WorkerMatchTierFilter;
+  savedOnlyFilter: SavedOnlyFilter;
 };
 
 export type WorkerFillInBrowseFiltersState = {
@@ -41,6 +43,7 @@ export type WorkerFillInBrowseFiltersState = {
   softwareFilter: WorkerSoftwareFilter;
   payListedFilter: PayListedFilter;
   availabilityFilter: WorkerAvailabilityFilter;
+  savedOnlyFilter: SavedOnlyFilter;
 };
 
 export type EnrichedLiveJobPost = LiveJobPost & {
@@ -300,6 +303,7 @@ export function countWorkerRoleBrowseFilterChanges(
   if (filters.softwareFilter !== defaults.softwareFilter) count += 1;
   if (filters.payListedFilter !== defaults.payListedFilter) count += 1;
   if (filters.matchTierFilter !== defaults.matchTierFilter) count += 1;
+  if (filters.savedOnlyFilter !== defaults.savedOnlyFilter) count += 1;
   return count;
 }
 
@@ -315,6 +319,7 @@ export function countWorkerFillInBrowseFilterChanges(
   if (filters.softwareFilter !== defaults.softwareFilter) count += 1;
   if (filters.payListedFilter !== defaults.payListedFilter) count += 1;
   if (filters.availabilityFilter !== defaults.availabilityFilter) count += 1;
+  if (filters.savedOnlyFilter !== defaults.savedOnlyFilter) count += 1;
   return count;
 }
 
@@ -326,6 +331,7 @@ export const DEFAULT_WORKER_ROLE_BROWSE_FILTERS: WorkerRoleBrowseFiltersState = 
   softwareFilter: 'all',
   payListedFilter: 'all',
   matchTierFilter: 'all',
+  savedOnlyFilter: 'all',
 };
 
 export const DEFAULT_WORKER_FILLIN_BROWSE_FILTERS: WorkerFillInBrowseFiltersState = {
@@ -336,4 +342,5 @@ export const DEFAULT_WORKER_FILLIN_BROWSE_FILTERS: WorkerFillInBrowseFiltersStat
   softwareFilter: 'all',
   payListedFilter: 'all',
   availabilityFilter: 'all',
+  savedOnlyFilter: 'all',
 };

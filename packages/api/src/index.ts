@@ -91,6 +91,24 @@ export {
   type WorkerDashboardCounts,
 } from './posts';
 export {
+  getSavedLiveJobPost,
+  getSavedLiveShiftPost,
+  getWorkerSavedJobPostIds,
+  getWorkerSavedPostIds,
+  getWorkerSavedShiftPostIds,
+  isJobPostSaved,
+  isShiftPostSaved,
+  listWorkerSavedPosts,
+  saveJobPost,
+  saveShiftPost,
+  unsaveJobPost,
+  unsaveShiftPost,
+  type SavedPostKind,
+  type WorkerSavedPost,
+  type WorkerSavedPostIds,
+  type WorkerSavedPostsResult,
+} from './savedPosts';
+export {
   completeWorkerSetup,
   getMissingWorkerProfileFields,
   getWorkerProfile,

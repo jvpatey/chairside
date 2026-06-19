@@ -1,15 +1,15 @@
-import { listLiveJobPosts, listWorkerAppliedJobPostIds, type LiveJobPost } from '@chairside/api';
+import { listLiveJobPosts, listWorkerAppliedJobPostIds, getWorkerSavedJobPostIds, saveJobPost, unsaveJobPost, type LiveJobPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
-import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,14 +73,17 @@ function BrowseEmptyState({
 function renderRoleListingCards(
   jobs: EnrichedLiveJobPost[],
   appliedJobIds: Set<string>,
+  savedJobIds: Set<string>,
   workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
+  onToggleSaved: (jobId: string, nextSaved: boolean) => void,
 ) {
   return jobs.map((job) => (
     <RoleListingCard
       key={job.id}
       job={job}
-      layout="list"
       hasApplied={appliedJobIds.has(job.id)}
+      isSaved={savedJobIds.has(job.id)}
+      onToggleSaved={() => onToggleSaved(job.id, !savedJobIds.has(job.id))}
       distanceLabel={job.distanceLabel}
       jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
       matchContext={workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined}
@@ -114,20 +117,27 @@ export default function BrowseScreen() {
   const [matchTierFilter, setMatchTierFilter] = useState(
     DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter,
   );
+  const [savedOnlyFilter, setSavedOnlyFilter] = useState(
+    DEFAULT_WORKER_ROLE_BROWSE_FILTERS.savedOnlyFilter,
+  );
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [jobRows, appliedIds] = await Promise.all([
+      const [jobRows, appliedIds, savedIds] = await Promise.all([
         listLiveJobPosts(province),
         user?.id ? listWorkerAppliedJobPostIds(user.id) : Promise.resolve([]),
+        user?.id ? getWorkerSavedJobPostIds(user.id) : Promise.resolve(new Set<string>()),
       ]);
       setJobs(jobRows);
       setAppliedJobIds(new Set(appliedIds));
+      setSavedJobIds(savedIds);
     } catch {
       setJobs([]);
       setAppliedJobIds(new Set());
+      setSavedJobIds(new Set());
     } finally {
       setIsLoading(false);
     }
@@ -145,18 +155,45 @@ export default function BrowseScreen() {
         softwareFilter,
         payListedFilter,
         matchTierFilter,
-      }),
+        savedOnlyFilter,
+      }).filter((job) => savedOnlyFilter !== 'saved_only' || savedJobIds.has(job.id)),
     [
       distanceFilter,
       jobs,
       matchTierFilter,
       payListedFilter,
       roleTypeFilter,
+      savedJobIds,
+      savedOnlyFilter,
       searchQuery,
       softwareFilter,
       sort,
       workerProfile,
     ],
+  );
+
+  const handleToggleSavedJob = useCallback(
+    async (jobId: string, nextSaved: boolean) => {
+      if (!user?.id) return;
+      const previous = new Set(savedJobIds);
+      setSavedJobIds((current) => {
+        const next = new Set(current);
+        if (nextSaved) next.add(jobId);
+        else next.delete(jobId);
+        return next;
+      });
+      try {
+        if (nextSaved) await saveJobPost(jobId);
+        else await unsaveJobPost(jobId);
+      } catch (error) {
+        setSavedJobIds(previous);
+        Alert.alert(
+          'Could not update saved role',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      }
+    },
+    [savedJobIds, user?.id],
   );
 
   const { openJobs, appliedJobs } = useMemo(() => {
@@ -183,11 +220,13 @@ export default function BrowseScreen() {
     distanceFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.distanceFilter ||
     softwareFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.softwareFilter ||
     payListedFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.payListedFilter ||
-    matchTierFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter;
+    matchTierFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter ||
+    savedOnlyFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.savedOnlyFilter;
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
     panel: { gap: spacing.lg },
+    cardList: { gap: dashboardSectionGap(spacing) },
     searchRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -215,12 +254,14 @@ export default function BrowseScreen() {
         softwareFilter={softwareFilter}
         payListedFilter={payListedFilter}
         matchTierFilter={matchTierFilter}
+        savedOnlyFilter={savedOnlyFilter}
         onRoleTypeChange={setRoleTypeFilter}
         onSortChange={setSort}
         onDistanceFilterChange={setDistanceFilter}
         onSoftwareFilterChange={setSoftwareFilter}
         onPayListedFilterChange={setPayListedFilter}
         onMatchTierFilterChange={setMatchTierFilter}
+        onSavedOnlyFilterChange={setSavedOnlyFilter}
       />
     </View>
   ) : null;
@@ -273,14 +314,26 @@ export default function BrowseScreen() {
                   }
                 />
               ) : (
-                <BrowseListGroup>
-                  {renderRoleListingCards(segmentJobs, appliedJobIds, workerProfile)}
-                </BrowseListGroup>
+                <View style={styles.cardList}>
+                  {renderRoleListingCards(
+                    segmentJobs,
+                    appliedJobIds,
+                    savedJobIds,
+                    workerProfile,
+                    handleToggleSavedJob,
+                  )}
+                </View>
               )
             ) : (
-              <BrowseListGroup>
-                {renderRoleListingCards(filteredJobs, appliedJobIds, workerProfile)}
-              </BrowseListGroup>
+              <View style={styles.cardList}>
+                {renderRoleListingCards(
+                  filteredJobs,
+                  appliedJobIds,
+                  savedJobIds,
+                  workerProfile,
+                  handleToggleSavedJob,
+                )}
+              </View>
             )}
           </View>
         )}

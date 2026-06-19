@@ -218,9 +218,13 @@ type WorkerOverviewPanelProps = {
   shifts: LiveShiftPost[];
   jobApplications: WorkerApplication[];
   shiftApplications: WorkerApplication[];
+  savedJobIds?: Set<string>;
+  savedShiftIds?: Set<string>;
   unreadMap?: Record<string, boolean>;
   onJobPress?: (jobId: string) => void;
   onShiftPress?: (shiftId: string) => void;
+  onToggleSavedJob?: (jobId: string, nextSaved: boolean) => void;
+  onToggleSavedShift?: (shiftId: string, nextSaved: boolean) => void;
   onApplicationUpdated?: () => void;
 };
 
@@ -230,9 +234,13 @@ export function WorkerOverviewPanel({
   shifts,
   jobApplications,
   shiftApplications,
+  savedJobIds,
+  savedShiftIds,
   unreadMap,
   onJobPress,
   onShiftPress,
+  onToggleSavedJob,
+  onToggleSavedShift,
   onApplicationUpdated,
 }: WorkerOverviewPanelProps) {
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
@@ -286,6 +294,13 @@ export function WorkerOverviewPanel({
               <RoleListingCard
                 key={job.id}
                 job={job}
+                isSaved={savedJobIds?.has(job.id) ?? false}
+                onToggleSaved={
+                  onToggleSavedJob
+                    ? () =>
+                        onToggleSavedJob(job.id, !(savedJobIds?.has(job.id) ?? false))
+                    : undefined
+                }
                 onPress={onJobPress ? () => onJobPress(job.id) : undefined}
               />
             ))}
@@ -313,6 +328,13 @@ export function WorkerOverviewPanel({
                     key={shift.id}
                     shift={shift}
                     accent="secondary"
+                    isSaved={savedShiftIds?.has(shift.id) ?? false}
+                    onToggleSaved={
+                      onToggleSavedShift
+                        ? () =>
+                            onToggleSavedShift(shift.id, !(savedShiftIds?.has(shift.id) ?? false))
+                        : undefined
+                    }
                     onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
                   />
                 ))}

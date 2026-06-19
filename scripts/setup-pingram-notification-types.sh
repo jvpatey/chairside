@@ -87,6 +87,9 @@ for spec in \
   "application_interview_scheduled_cancelled|Interview scheduled cancelled" \
   "application_selected|Application selected" \
   "job_posted|Job posted" \
+  "job_updated|Saved role updated" \
+  "fill_in_updated|Saved fill-in updated" \
+  "saved_post_unavailable|Saved posting unavailable" \
   "message_received|Message received"; do
   id="${spec%%|*}"
   title="${spec#*|}"

@@ -14,9 +14,11 @@ import {
   WORKER_DISTANCE_FILTER_OPTIONS,
   WORKER_MATCH_TIER_FILTER_OPTIONS,
   WORKER_SOFTWARE_FILTER_OPTIONS,
+  SAVED_ONLY_FILTER_OPTIONS,
   type JobStatusFilter,
   type PayListedFilter,
   type RoleTypeFilter,
+  type SavedOnlyFilter,
   type ShiftDateFilter,
   type ShiftStatusFilter,
   type WorkerAvailabilityFilter,
@@ -92,12 +94,14 @@ type WorkerRoleBrowseFiltersProps = {
   softwareFilter: WorkerSoftwareFilter;
   payListedFilter: PayListedFilter;
   matchTierFilter: WorkerMatchTierFilter;
+  savedOnlyFilter: SavedOnlyFilter;
   onRoleTypeChange: (value: RoleTypeFilter) => void;
   onSortChange: (value: WorkerBrowseSort) => void;
   onDistanceFilterChange: (value: WorkerDistanceFilter) => void;
   onSoftwareFilterChange: (value: WorkerSoftwareFilter) => void;
   onPayListedFilterChange: (value: PayListedFilter) => void;
   onMatchTierFilterChange: (value: WorkerMatchTierFilter) => void;
+  onSavedOnlyFilterChange: (value: SavedOnlyFilter) => void;
 };
 
 export function WorkerRoleBrowseFilters({
@@ -107,12 +111,14 @@ export function WorkerRoleBrowseFilters({
   softwareFilter,
   payListedFilter,
   matchTierFilter,
+  savedOnlyFilter,
   onRoleTypeChange,
   onSortChange,
   onDistanceFilterChange,
   onSoftwareFilterChange,
   onPayListedFilterChange,
   onMatchTierFilterChange,
+  onSavedOnlyFilterChange,
 }: WorkerRoleBrowseFiltersProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const defaults = {
@@ -122,6 +128,7 @@ export function WorkerRoleBrowseFilters({
     softwareFilter: 'all' as WorkerSoftwareFilter,
     payListedFilter: 'all' as PayListedFilter,
     matchTierFilter: 'all' as WorkerMatchTierFilter,
+    savedOnlyFilter: 'all' as SavedOnlyFilter,
   };
   const activeCount =
     (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
@@ -129,7 +136,8 @@ export function WorkerRoleBrowseFilters({
     (distanceFilter === defaults.distanceFilter ? 0 : 1) +
     (softwareFilter === defaults.softwareFilter ? 0 : 1) +
     (payListedFilter === defaults.payListedFilter ? 0 : 1) +
-    (matchTierFilter === defaults.matchTierFilter ? 0 : 1);
+    (matchTierFilter === defaults.matchTierFilter ? 0 : 1) +
+    (savedOnlyFilter === defaults.savedOnlyFilter ? 0 : 1);
 
   const handleReset = () => {
     onRoleTypeChange(defaults.roleTypeFilter);
@@ -138,6 +146,7 @@ export function WorkerRoleBrowseFilters({
     onSoftwareFilterChange(defaults.softwareFilter);
     onPayListedFilterChange(defaults.payListedFilter);
     onMatchTierFilterChange(defaults.matchTierFilter);
+    onSavedOnlyFilterChange(defaults.savedOnlyFilter);
   };
 
   return (
@@ -189,6 +198,12 @@ export function WorkerRoleBrowseFilters({
           selected={payListedFilter}
           onChange={onPayListedFilterChange}
         />
+        <FilterSheetSection
+          label="Saved"
+          options={SAVED_ONLY_FILTER_OPTIONS}
+          selected={savedOnlyFilter}
+          onChange={onSavedOnlyFilterChange}
+        />
       </FilterSheet>
     </>
   );
@@ -201,12 +216,14 @@ type WorkerFillInBrowseFiltersProps = {
   softwareFilter: WorkerSoftwareFilter;
   payListedFilter: PayListedFilter;
   availabilityFilter: WorkerAvailabilityFilter;
+  savedOnlyFilter: SavedOnlyFilter;
   onRoleTypeChange: (value: RoleTypeFilter) => void;
   onSortChange: (value: WorkerBrowseSort) => void;
   onDistanceFilterChange: (value: WorkerDistanceFilter) => void;
   onSoftwareFilterChange: (value: WorkerSoftwareFilter) => void;
   onPayListedFilterChange: (value: PayListedFilter) => void;
   onAvailabilityFilterChange: (value: WorkerAvailabilityFilter) => void;
+  onSavedOnlyFilterChange: (value: SavedOnlyFilter) => void;
   accent?: GradientAccent;
 };
 
@@ -217,12 +234,14 @@ export function WorkerFillInBrowseFilters({
   softwareFilter,
   payListedFilter,
   availabilityFilter,
+  savedOnlyFilter,
   onRoleTypeChange,
   onSortChange,
   onDistanceFilterChange,
   onSoftwareFilterChange,
   onPayListedFilterChange,
   onAvailabilityFilterChange,
+  onSavedOnlyFilterChange,
   accent = 'secondary',
 }: WorkerFillInBrowseFiltersProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -233,6 +252,7 @@ export function WorkerFillInBrowseFilters({
     softwareFilter: 'all' as WorkerSoftwareFilter,
     payListedFilter: 'all' as PayListedFilter,
     availabilityFilter: 'all' as WorkerAvailabilityFilter,
+    savedOnlyFilter: 'all' as SavedOnlyFilter,
   };
   const activeCount =
     (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
@@ -240,7 +260,8 @@ export function WorkerFillInBrowseFilters({
     (distanceFilter === defaults.distanceFilter ? 0 : 1) +
     (softwareFilter === defaults.softwareFilter ? 0 : 1) +
     (payListedFilter === defaults.payListedFilter ? 0 : 1) +
-    (availabilityFilter === defaults.availabilityFilter ? 0 : 1);
+    (availabilityFilter === defaults.availabilityFilter ? 0 : 1) +
+    (savedOnlyFilter === defaults.savedOnlyFilter ? 0 : 1);
 
   const handleReset = () => {
     onRoleTypeChange(defaults.roleTypeFilter);
@@ -249,6 +270,7 @@ export function WorkerFillInBrowseFilters({
     onSoftwareFilterChange(defaults.softwareFilter);
     onPayListedFilterChange(defaults.payListedFilter);
     onAvailabilityFilterChange(defaults.availabilityFilter);
+    onSavedOnlyFilterChange(defaults.savedOnlyFilter);
   };
 
   return (
@@ -306,6 +328,13 @@ export function WorkerFillInBrowseFilters({
           options={PAY_LISTED_FILTER_OPTIONS}
           selected={payListedFilter}
           onChange={onPayListedFilterChange}
+          accent={accent}
+        />
+        <FilterSheetSection
+          label="Saved"
+          options={SAVED_ONLY_FILTER_OPTIONS}
+          selected={savedOnlyFilter}
+          onChange={onSavedOnlyFilterChange}
           accent={accent}
         />
       </FilterSheet>

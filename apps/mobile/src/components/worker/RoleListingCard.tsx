@@ -1,26 +1,25 @@
 import type { LiveJobPost } from '@chairside/api';
 import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
 import { formatJobPostCardMeta } from '@chairside/config';
-import { Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
-import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { PillBadge } from '@/components/ui/PillBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { RoleListingPostedMeta } from '@/components/worker/RoleListingPostedMeta';
-import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
-import type { ListingLayout } from '@/components/ui/BrowseListRow';
+import { SavePostButton } from '@/components/worker/SavePostButton';
 import { formatPostedDateLabel } from '@/lib/dates';
-import { useTheme, useThemedStyles } from '@/theme';
+import { getAppliedRowGradient, useTheme, useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
   job: LiveJobPost;
   jobMatch?: JobMatchBreakdown | null;
   matchContext?: Partial<JobMatchContext>;
   hasApplied?: boolean;
-  layout?: ListingLayout;
+  isSaved?: boolean;
+  onToggleSaved?: () => void;
   distanceLabel?: string | null;
   onPress?: () => void;
 };
@@ -30,12 +29,12 @@ export function RoleListingCard({
   jobMatch,
   matchContext,
   hasApplied,
-  layout = 'tile',
+  isSaved = false,
+  onToggleSaved,
   distanceLabel,
   onPress,
 }: RoleListingCardProps) {
-  const { colors } = useTheme();
-  const logoUri = useClinicLogoUri(job.clinic.logo_storage_path);
+  const { colors, isDark } = useTheme();
   const locationBase = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
   const location = distanceLabel
     ? locationBase
@@ -43,28 +42,28 @@ export function RoleListingCard({
       : distanceLabel
     : locationBase;
   const detail = formatJobPostCardMeta(job);
-  const postedLabel =
-    layout === 'list'
-      ? formatPostedDateLabel(job.created_at) || null
-      : formatPostedDateLabel(job.created_at) || hasApplied
-        ? <RoleListingPostedMeta postedAt={job.created_at} hasApplied={hasApplied} />
-        : null;
+  const postedLabel = hasApplied ? (
+    <RoleListingPostedMeta postedAt={job.created_at} hasApplied />
+  ) : (
+    formatPostedDateLabel(job.created_at) || null
+  );
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: spacing.sm,
+    card: {
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    appliedGradient: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    accessoryColumn: {
+      alignItems: 'flex-end',
+      gap: spacing.xs,
     },
     wage: {
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
-    },
-    headerTrailing: {
-      alignItems: 'flex-end',
-      gap: spacing.xs,
     },
   }));
 
@@ -87,36 +86,31 @@ export function RoleListingCard({
     />
   ) : null;
 
-  const listTopTrailing =
-    matchBadge || appliedBadge ? (
-      <View style={styles.headerTrailing}>
+  const accessory =
+    matchBadge || appliedBadge || onToggleSaved ? (
+      <View style={styles.accessoryColumn}>
         {matchBadge}
         {appliedBadge}
+        {onToggleSaved ? (
+          <SavePostButton isSaved={isSaved} onToggle={onToggleSaved} size={20} />
+        ) : null}
       </View>
-    ) : undefined;
+    ) : null;
 
-  if (layout === 'list') {
-    return (
-      <BrowseListRow
-        avatar={
-          <ClinicLogoAvatar clinicName={job.clinic.clinic_name} logoUri={logoUri} size={40} />
-        }
-        eyebrow={job.clinic.clinic_name}
-        title={job.title}
-        meta={location || null}
-        postedLabel={postedLabel}
-        postedLabelPlacement="header"
-        headerDetail={detail || null}
-        headerAccent={job.wage_range || null}
-        topTrailing={listTopTrailing}
-        tone={hasApplied ? 'applied' : 'default'}
-        onPress={onPress}
-      />
-    );
-  }
+  const appliedGradient = hasApplied ? getAppliedRowGradient(colors, isDark) : null;
 
   return (
-    <SurfaceCard onPress={onPress}>
+    <SurfaceCard onPress={onPress} style={styles.card}>
+      {appliedGradient ? (
+        <LinearGradient
+          colors={appliedGradient}
+          locations={[0, 0.55, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.appliedGradient}
+          pointerEvents="none"
+        />
+      ) : null}
       <ClinicPostHeader
         layout="split"
         clinicName={job.clinic.clinic_name}
@@ -125,15 +119,12 @@ export function RoleListingCard({
         location={location || null}
         detail={detail || null}
         postedLabel={postedLabel}
-        avatarSize={44}
-        accessory={matchBadge}
-        footer={
-          job.wage_range ? (
-            <View style={styles.footer}>
-              <Text style={styles.wage}>{job.wage_range}</Text>
-            </View>
-          ) : null
+        textFooter={
+          job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : undefined
         }
+        avatarSize={44}
+        accessory={accessory}
+        stackedAccessory
       />
     </SurfaceCard>
   );

@@ -99,6 +99,21 @@ const TYPE_META: Record<string, NotificationDisplayMeta> = {
     accent: 'secondary',
     subtitle: 'New role',
   },
+  job_updated: {
+    icon: 'bookmark-outline',
+    accent: 'secondary',
+    subtitle: 'Saved role updated',
+  },
+  fill_in_updated: {
+    icon: 'bookmark-outline',
+    accent: 'urgent',
+    subtitle: 'Saved fill-in updated',
+  },
+  saved_post_unavailable: {
+    icon: 'alert-circle-outline',
+    accent: 'info',
+    subtitle: 'Saved posting closed',
+  },
   message_received: {
     icon: 'chatbubble-outline',
     accent: 'primary',

@@ -1,4 +1,10 @@
-import { listLiveShiftPosts, type LiveShiftPost } from '@chairside/api';
+import {
+  getWorkerSavedShiftPostIds,
+  listLiveShiftPosts,
+  saveShiftPost,
+  unsaveShiftPost,
+  type LiveShiftPost,
+} from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -7,10 +13,11 @@ import { Alert, Text, View } from 'react-native';
 import { WorkerFillInBrowseFilters } from '@/components/clinic/PostingFilters';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
-import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
@@ -66,6 +73,7 @@ function OpenFillInsEmptyState({ hasActiveFilters }: { hasActiveFilters: boolean
 
 export default function OpenFillInsScreen() {
   useMarkGetStartedBrowseVisit('fillIns');
+  const { user } = useAuth();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
@@ -86,20 +94,29 @@ export default function OpenFillInsScreen() {
   const [availabilityFilter, setAvailabilityFilter] = useState(
     DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter,
   );
+  const [savedOnlyFilter, setSavedOnlyFilter] = useState(
+    DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.savedOnlyFilter,
+  );
+  const [savedShiftIds, setSavedShiftIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const shiftRows = await listLiveShiftPosts(province);
+      const [shiftRows, savedIds] = await Promise.all([
+        listLiveShiftPosts(province),
+        user?.id ? getWorkerSavedShiftPostIds(user.id) : Promise.resolve(new Set<string>()),
+      ]);
       setShifts(shiftRows);
+      setSavedShiftIds(savedIds);
     } catch {
       setShifts([]);
+      setSavedShiftIds(new Set());
       Alert.alert('Could not load fill-ins', 'Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [province]);
+  }, [province, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -113,19 +130,46 @@ export default function OpenFillInsScreen() {
         softwareFilter,
         payListedFilter,
         availabilityFilter,
-      }),
+        savedOnlyFilter,
+      }).filter((shift) => savedOnlyFilter !== 'saved_only' || savedShiftIds.has(shift.id)),
     [
       availabilityBlocks,
       availabilityFilter,
       distanceFilter,
       payListedFilter,
       roleTypeFilter,
+      savedOnlyFilter,
+      savedShiftIds,
       searchQuery,
       shifts,
       softwareFilter,
       sort,
       workerProfile,
     ],
+  );
+
+  const handleToggleSavedShift = useCallback(
+    async (shiftId: string, nextSaved: boolean) => {
+      if (!user?.id) return;
+      const previous = new Set(savedShiftIds);
+      setSavedShiftIds((current) => {
+        const next = new Set(current);
+        if (nextSaved) next.add(shiftId);
+        else next.delete(shiftId);
+        return next;
+      });
+      try {
+        if (nextSaved) await saveShiftPost(shiftId);
+        else await unsaveShiftPost(shiftId);
+      } catch (error) {
+        setSavedShiftIds(previous);
+        Alert.alert(
+          'Could not update saved fill-in',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      }
+    },
+    [savedShiftIds, user?.id],
   );
 
   const hasActiveFilters =
@@ -135,10 +179,12 @@ export default function OpenFillInsScreen() {
     distanceFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.distanceFilter ||
     softwareFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.softwareFilter ||
     payListedFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.payListedFilter ||
-    availabilityFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter;
+    availabilityFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter ||
+    savedOnlyFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.savedOnlyFilter;
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
+    cardList: { gap: dashboardSectionGap(spacing) },
     browseSection: {
       gap: spacing.md,
     },
@@ -164,12 +210,14 @@ export default function OpenFillInsScreen() {
               softwareFilter={softwareFilter}
               payListedFilter={payListedFilter}
               availabilityFilter={availabilityFilter}
+              savedOnlyFilter={savedOnlyFilter}
               onRoleTypeChange={setRoleTypeFilter}
               onSortChange={setSort}
               onDistanceFilterChange={setDistanceFilter}
               onSoftwareFilterChange={setSoftwareFilter}
               onPayListedFilterChange={setPayListedFilter}
               onAvailabilityFilterChange={setAvailabilityFilter}
+              onSavedOnlyFilterChange={setSavedOnlyFilter}
             />
           ) : undefined
         }
@@ -195,17 +243,20 @@ export default function OpenFillInsScreen() {
         ) : filteredShifts.length === 0 ? (
           <OpenFillInsEmptyState hasActiveFilters={hasActiveFilters} />
         ) : (
-          <BrowseListGroup>
+          <View style={styles.cardList}>
             {filteredShifts.map((shift) => (
               <FillInListingCard
                 key={shift.id}
                 shift={shift}
-                layout="list"
                 distanceLabel={shift.distanceLabel}
+                isSaved={savedShiftIds.has(shift.id)}
+                onToggleSaved={() =>
+                  void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+                }
                 onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'open-fill-ins'))}
               />
             ))}
-          </BrowseListGroup>
+          </View>
         )}
       </View>
     </OnboardingShell>

@@ -74,6 +74,13 @@ export const WORKER_AVAILABILITY_FILTER_OPTIONS: {
   { value: 'my_available_days', label: 'My available days' },
 ];
 
+export type SavedOnlyFilter = 'all' | 'saved_only';
+
+export const SAVED_ONLY_FILTER_OPTIONS: { value: SavedOnlyFilter; label: string }[] = [
+  { value: 'all', label: 'All postings' },
+  { value: 'saved_only', label: 'Saved only' },
+];
+
 export function sortJobsByPostedDate<T extends { created_at: string }>(
   jobs: T[],
   sort: JobPostedSort,

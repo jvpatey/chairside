@@ -17,6 +17,9 @@ export const PINGRAM_NOTIFICATION_TYPES = {
   applicationHired: 'application_hired',
   fillInPosted: 'fill_in_posted',
   jobPosted: 'job_posted',
+  jobUpdated: 'job_updated',
+  fillInUpdated: 'fill_in_updated',
+  savedPostUnavailable: 'saved_post_unavailable',
   messageReceived: 'message_received',
   fillInOutreachSms: 'fill_in_outreach_sms',
 } as const;
