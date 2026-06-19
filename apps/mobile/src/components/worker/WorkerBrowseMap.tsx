@@ -234,9 +234,13 @@ export function WorkerBrowseMap({
               id={group.clinicId}
               coordinate={[group.longitude, group.latitude]}
               anchor={{ x: 0.5, y: 0.5 }}
-              onPress={() => setSelectedGroup(group)}
+              allowOverlap
             >
-              <WorkerMapPin label={formatPinCount(group)} saved={group.hasSaved} />
+              <WorkerMapPin
+                label={formatPinCount(group)}
+                saved={group.hasSaved}
+                onPress={() => setSelectedGroup(group)}
+              />
             </MarkerView>
           ))}
         </MapView>

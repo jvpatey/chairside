@@ -1,14 +1,19 @@
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { useThemedStyles } from '@/theme';
 
 type WorkerMapPinProps = {
   label: string;
   saved?: boolean;
+  onPress?: () => void;
 };
 
-export function WorkerMapPin({ label, saved = false }: WorkerMapPinProps) {
+export function WorkerMapPin({ label, saved = false, onPress }: WorkerMapPinProps) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
+    pressable: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     pin: {
       minWidth: 34,
       height: 34,
@@ -27,10 +32,25 @@ export function WorkerMapPin({ label, saved = false }: WorkerMapPinProps) {
     },
   }));
 
-  return (
+  const pin = (
     <View style={styles.pin}>
       <Text style={styles.label}>{label}</Text>
     </View>
+  );
+
+  if (!onPress) return pin;
+
+  // MarkerView on iOS does not reliably fire onPress; onPressIn works inside the child.
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label} postings at clinic`}
+      onPressIn={onPress}
+      hitSlop={10}
+      style={styles.pressable}
+    >
+      {pin}
+    </Pressable>
   );
 }
 

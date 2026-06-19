@@ -27,6 +27,8 @@ type ScreenProps = {
   constrainWidth?: boolean;
   /** When false, use a flex container instead of ScrollView (split-view panes). */
   scroll?: boolean;
+  /** Disable scrolling while keeping the ScrollView layout shell. */
+  scrollEnabled?: boolean;
   /** Fills available height; use with scroll={false} in master/detail panes. */
   fillsContainer?: boolean;
   /** When false, skip the web fade-in animation (split-view / tab surfaces). */
@@ -47,6 +49,7 @@ export function Screen({
   headerAccessory,
   constrainWidth = true,
   scroll = true,
+  scrollEnabled = true,
   fillsContainer = false,
   animateEntry = true,
   transparentBackground = false,
@@ -144,7 +147,7 @@ export function Screen({
 
   const paddingStyle = {
     paddingTop: topPadding,
-    paddingBottom: (fillsContainer ? spacing.md : 24) + tabDockInset,
+    paddingBottom: spacing.lg + tabDockInset,
   };
 
   const headerBlock = (
@@ -153,7 +156,6 @@ export function Screen({
         styles.header,
         !showTopBar && styles.headerHidden,
         !showHeader && showTopBar && styles.headerCompact,
-        fillsContainer && showHeader && styles.headerCompact,
       ]}
     >
       {onBack ? (
@@ -222,6 +224,7 @@ export function Screen({
     <View style={[styles.container, { backgroundColor: containerBackground }]}>
       {atmosphereLayer}
       <ScrollView
+        scrollEnabled={scrollEnabled}
         style={[
           { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
           webScrollbarStyles(),

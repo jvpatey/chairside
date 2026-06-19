@@ -227,12 +227,7 @@ export default function OpenFillInsScreen() {
           <View style={styles.browseSection}>
             <View style={styles.browseControlsRow}>
               <View style={styles.searchField}>
-                <WorkerBrowseSearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Search fill-ins, clinics, cities, or pay"
-                  accessibilityLabel="Search fill-ins"
-                />
+                <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
               </View>
             </View>
           </View>

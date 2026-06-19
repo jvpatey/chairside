@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
 import { PillBadge } from '@/components/ui/PillBadge';
@@ -13,8 +14,19 @@ type WorkerMapPostCardProps = {
 export function WorkerMapPostCard({ item, onPress }: WorkerMapPostCardProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
     content: {
+      flex: 1,
+      minWidth: 0,
       gap: spacing.xs,
+    },
+    chevron: {
+      flexShrink: 0,
+      marginTop: 2,
     },
     eyebrow: {
       fontSize: 11,
@@ -53,29 +65,37 @@ export function WorkerMapPostCard({ item, onPress }: WorkerMapPostCardProps) {
 
   return (
     <SurfaceCard onPress={onPress} padding="md">
-      <View style={styles.content}>
-        <Text style={styles.eyebrow}>{item.roleLabel}</Text>
-        <Text style={styles.title}>{item.title}</Text>
-        {item.detail ? <Text style={styles.detail}>{item.detail}</Text> : null}
-        {item.pay ? <Text style={styles.pay}>{item.pay}</Text> : null}
-        {item.isSaved || item.hasApplied ? (
-          <View style={styles.statusRow}>
-            {item.isSaved ? (
-              <PillBadge
-                label="Saved"
-                color={colors.labelSecondary}
-                backgroundColor={colors.fillSubtle}
-              />
-            ) : null}
-            {item.hasApplied ? (
-              <PillBadge
-                label="Applied"
-                color={colors.primary}
-                backgroundColor={colors.primarySubtle}
-              />
-            ) : null}
-          </View>
-        ) : null}
+      <View style={styles.row}>
+        <View style={styles.content}>
+          <Text style={styles.eyebrow}>{item.roleLabel}</Text>
+          <Text style={styles.title}>{item.title}</Text>
+          {item.detail ? <Text style={styles.detail}>{item.detail}</Text> : null}
+          {item.pay ? <Text style={styles.pay}>{item.pay}</Text> : null}
+          {item.isSaved || item.hasApplied ? (
+            <View style={styles.statusRow}>
+              {item.isSaved ? (
+                <PillBadge
+                  label="Saved"
+                  color={colors.labelSecondary}
+                  backgroundColor={colors.fillSubtle}
+                />
+              ) : null}
+              {item.hasApplied ? (
+                <PillBadge
+                  label="Applied"
+                  color={colors.primary}
+                  backgroundColor={colors.primarySubtle}
+                />
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={colors.labelTertiary}
+          style={styles.chevron}
+        />
       </View>
     </SurfaceCard>
   );

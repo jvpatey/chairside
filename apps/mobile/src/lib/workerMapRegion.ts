@@ -71,3 +71,17 @@ export function buildMapBoundsFromCoordinates(
     },
   };
 }
+
+const WORKER_MAP_HEADER_CHROME = 120;
+const WORKER_MAP_SCREEN_PADDING_BOTTOM = 24;
+
+export function getWorkerMapPanelHeight(
+  windowHeight: number,
+  topInset: number,
+  tabDockInset: number,
+  controlsHeight: number,
+): number {
+  const topChrome = topInset + 16 + WORKER_MAP_HEADER_CHROME;
+  const bottomChrome = WORKER_MAP_SCREEN_PADDING_BOTTOM + tabDockInset;
+  return Math.max(300, windowHeight - topChrome - bottomChrome - controlsHeight);
+}

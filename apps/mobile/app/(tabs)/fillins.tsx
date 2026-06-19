@@ -11,10 +11,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { WorkerFillInBrowseFilters } from '@/components/clinic/PostingFilters';
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
@@ -23,6 +25,7 @@ import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
 import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
+import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
@@ -59,6 +62,7 @@ import {
   groupWorkerMapItemsByClinic,
   toWorkerMapItemsFromShifts,
 } from '@/lib/workerMapItems';
+import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -99,6 +103,10 @@ export default function FillInsScreen() {
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [controlsHeight, setControlsHeight] = useState(132);
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const tabDockInset = useMobileTabDockInset();
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
   const { checkApplications } = useWorkerHiringCelebration(showCelebration);
@@ -215,14 +223,26 @@ export default function FillInsScreen() {
       ? { latitude: workerProfile.latitude, longitude: workerProfile.longitude }
       : null;
   const useMapLayout = selectedMode === 'open' && viewMode === 'map';
+  const showOpenMap =
+    useMapLayout && !isLoading && filteredShifts.length > 0;
+
+  const mapPanelHeight = useMemo(
+    () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
+    [controlsHeight, insets.top, tabDockInset, windowHeight],
+  );
+
+  const handleControlsLayout = (event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    if (height > 0) {
+      setControlsHeight((current) => (current === height ? current : height));
+    }
+  };
 
   const fillInsAvailable = workerProfile?.short_notice_available ?? false;
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     content: { gap: spacing.lg },
-    contentMap: { flex: 1, minHeight: 0, width: '100%', flexDirection: 'column', gap: spacing.md },
     panel: { gap: spacing.lg },
-    mapBody: { flex: 1, minHeight: 0, width: '100%', overflow: 'hidden' },
     cardList: { gap: dashboardSectionGap(spacing) },
     browseControlsRow: {
       width: '100%',
@@ -243,8 +263,6 @@ export default function FillInsScreen() {
     },
     searchField: { flex: 1, minWidth: 0 },
     mapPanel: {
-      flex: 1,
-      minHeight: 0,
       width: '100%',
       overflow: 'hidden',
     },
@@ -297,11 +315,11 @@ export default function FillInsScreen() {
       <Screen
         title="Fill-ins"
         subtitle="Temp shifts and your availability."
-        scroll={!useMapLayout}
-        fillsContainer={useMapLayout}
+        scroll
+        scrollEnabled={!useMapLayout}
       >
-        <View style={[styles.content, useMapLayout && styles.contentMap]}>
-          <View style={styles.controlsBlock}>
+        <View style={styles.content}>
+          <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
             <View style={styles.controlRow}>
               <SegmentedControl
                 options={FILL_INS_TAB_MODE_OPTIONS}
@@ -311,20 +329,12 @@ export default function FillInsScreen() {
               />
             </View>
             {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
-              <>
-                <View style={styles.controlRow}>
-                  <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
+              <View style={styles.browseControlsRow}>
+                <View style={styles.searchField}>
+                  <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
                 </View>
-                <View style={styles.browseControlsRow}>
-                  <View style={styles.searchField}>
-                    <WorkerBrowseSearchBar
-                      value={searchQuery}
-                      onChange={setSearchQuery}
-                      placeholder="Search fill-ins, clinics, cities, or pay"
-                      accessibilityLabel="Search fill-ins"
-                    />
-                  </View>
-                  <WorkerFillInBrowseFilters
+                <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
+                <WorkerFillInBrowseFilters
                     roleTypeFilter={roleTypeFilter}
                     sort={sort}
                     distanceFilter={distanceFilter}
@@ -340,61 +350,63 @@ export default function FillInsScreen() {
                     onAvailabilityFilterChange={setAvailabilityFilter}
                     onSavedOnlyFilterChange={setSavedOnlyFilter}
                   />
-                </View>
-              </>
+              </View>
             ) : null}
           </View>
 
           {selectedMode === 'open' ? (
-            useMapLayout && !isLoading && filteredShifts.length > 0 ? (
-              <View style={styles.mapBody} collapsable={false}>
-                <View style={styles.mapPanel}>
-                  <WorkerBrowseMap
-                    groups={mapGroups}
-                    workerCoords={workerCoords}
-                    province={province}
-                    unmappableCount={unmappableShiftCount}
-                    workerHasCoordinates={workerCoords != null}
-                    onSelectItem={(item) =>
-                      router.push(getWorkerShiftDetailRoute(item.id, 'fill-ins-tab'))
-                    }
-                  />
-                </View>
-              </View>
-            ) : (
-              <View style={styles.panel}>
-              {isLoading ? (
-                <PageLoadingList rowCount={4} />
-              ) : filteredShifts.length === 0 ? (
-                <DashboardEmptyState
-                  icon="calendar-outline"
-                  title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'}
-                  message={
-                    hasActiveFillInFilters
-                      ? 'Try a different search term or adjust your filters.'
-                      : 'New temp shifts in your province will appear here.'
+            <WorkerBrowseViewTransition
+              mode={showOpenMap ? 'map' : 'list'}
+              style={showOpenMap ? [styles.mapPanel, { height: mapPanelHeight }] : undefined}
+            >
+              {showOpenMap ? (
+                <WorkerBrowseMap
+                  groups={mapGroups}
+                  workerCoords={workerCoords}
+                  province={province}
+                  unmappableCount={unmappableShiftCount}
+                  workerHasCoordinates={workerCoords != null}
+                  onSelectItem={(item) =>
+                    router.push(getWorkerShiftDetailRoute(item.id, 'fill-ins-tab'))
                   }
                 />
               ) : (
-                <View style={styles.cardList}>
-                  {filteredShifts.map((shift) => (
-                    <FillInListingCard
-                      key={shift.id}
-                      shift={shift}
-                      distanceLabel={shift.distanceLabel}
-                      isSaved={savedShiftIds.has(shift.id)}
-                      onToggleSaved={() =>
-                        void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+                <View style={styles.panel}>
+                  {isLoading ? (
+                    <PageLoadingList rowCount={4} />
+                  ) : filteredShifts.length === 0 ? (
+                    <DashboardEmptyState
+                      icon="calendar-outline"
+                      title={
+                        hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'
                       }
-                      onPress={() =>
-                        router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))
+                      message={
+                        hasActiveFillInFilters
+                          ? 'Try a different search term or adjust your filters.'
+                          : 'New temp shifts in your province will appear here.'
                       }
                     />
-                  ))}
+                  ) : (
+                    <View style={styles.cardList}>
+                      {filteredShifts.map((shift) => (
+                        <FillInListingCard
+                          key={shift.id}
+                          shift={shift}
+                          distanceLabel={shift.distanceLabel}
+                          isSaved={savedShiftIds.has(shift.id)}
+                          onToggleSaved={() =>
+                            void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+                          }
+                          onPress={() =>
+                            router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))
+                          }
+                        />
+                      ))}
+                    </View>
+                  )}
                 </View>
               )}
-              </View>
-            )
+            </WorkerBrowseViewTransition>
           ) : null}
 
           {selectedMode === 'confirmed' ? (

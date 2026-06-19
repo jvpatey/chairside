@@ -1,12 +1,16 @@
 import { listLiveJobPosts, listWorkerAppliedJobPostIds, getWorkerSavedJobPostIds, saveJobPost, unsaveJobPost, type LiveJobPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
 import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
+import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
@@ -31,6 +35,7 @@ import {
   groupWorkerMapItemsByClinic,
   toWorkerMapItemsFromJobs,
 } from '@/lib/workerMapItems';
+import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function BrowseEmptyState({
@@ -130,6 +135,10 @@ export default function BrowseScreen() {
   );
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [controlsHeight, setControlsHeight] = useState(132);
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const tabDockInset = useMobileTabDockInset();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -222,6 +231,14 @@ export default function BrowseScreen() {
   const hasBothSections = openJobs.length > 0 && appliedJobs.length > 0;
   const segmentJobs = selectedMode === 'open' ? openJobs : appliedJobs;
   const displayJobs = hasBothSections ? segmentJobs : filteredJobs;
+  const canUseMap = selectedMode === 'open';
+
+  useEffect(() => {
+    if (!canUseMap && viewMode === 'map') {
+      setViewMode('list');
+    }
+  }, [canUseMap, viewMode]);
+
   const mapGroups = useMemo(
     () =>
       groupWorkerMapItemsByClinic(
@@ -244,17 +261,28 @@ export default function BrowseScreen() {
     matchTierFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter ||
     savedOnlyFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.savedOnlyFilter;
 
+  const hasMapResults =
+    canUseMap &&
+    !isLoading &&
+    jobs.length > 0 &&
+    viewMode === 'map' &&
+    (hasBothSections ? segmentJobs.length > 0 : filteredJobs.length > 0);
+
+  const mapPanelHeight = useMemo(
+    () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
+    [controlsHeight, insets.top, tabDockInset, windowHeight],
+  );
+
+  const handleControlsLayout = (event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    if (height > 0) {
+      setControlsHeight((current) => (current === height ? current : height));
+    }
+  };
+
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
-    wrapMap: { flex: 1, minHeight: 0, width: '100%' },
     panel: { gap: spacing.lg },
-    mapMode: {
-      flex: 1,
-      minHeight: 0,
-      width: '100%',
-      flexDirection: 'column',
-      gap: spacing.md,
-    },
     controlsBlock: {
       width: '100%',
       flexShrink: 0,
@@ -275,8 +303,6 @@ export default function BrowseScreen() {
     },
     searchField: { flex: 1, minWidth: 0 },
     mapPanel: {
-      flex: 1,
-      minHeight: 0,
       width: '100%',
       overflow: 'hidden',
     },
@@ -285,7 +311,7 @@ export default function BrowseScreen() {
   const showBrowseControls = !isLoading && jobs.length > 0;
 
   const browseControls = showBrowseControls ? (
-    <View style={styles.controlsBlock}>
+    <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
       {hasBothSections ? (
         <View style={styles.controlRow}>
           <SegmentedControl
@@ -296,18 +322,11 @@ export default function BrowseScreen() {
           />
         </View>
       ) : null}
-      <View style={styles.controlRow}>
-        <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
-      </View>
       <View style={styles.searchRow}>
         <View style={styles.searchField}>
-          <WorkerBrowseSearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search roles, clinics, cities, or pay"
-            accessibilityLabel="Search roles"
-          />
+          <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
         </View>
+        {canUseMap ? <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} /> : null}
         <WorkerRoleBrowseFilters
           roleTypeFilter={roleTypeFilter}
           sort={sort}
@@ -327,12 +346,6 @@ export default function BrowseScreen() {
       </View>
     </View>
   ) : null;
-
-  const hasMapResults =
-    !isLoading &&
-    jobs.length > 0 &&
-    viewMode === 'map' &&
-    (hasBothSections ? segmentJobs.length > 0 : filteredJobs.length > 0);
 
   const listContent =
     filteredJobs.length === 0 ? (
@@ -387,10 +400,10 @@ export default function BrowseScreen() {
     <Screen
       title="Roles"
       subtitle="Open roles in your province."
-      scroll={viewMode === 'list'}
-      fillsContainer={viewMode === 'map'}
+      scroll
+      scrollEnabled={viewMode === 'list'}
     >
-      <View style={[styles.wrap, viewMode === 'map' && styles.wrapMap]}>
+      <View style={styles.wrap}>
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
         ) : jobs.length === 0 ? (
@@ -399,24 +412,28 @@ export default function BrowseScreen() {
             title="No open roles"
             body="Check back soon for new opportunities in your province."
           />
-        ) : hasMapResults ? (
-          <View style={styles.mapMode}>
-            {browseControls}
-            <View style={styles.mapPanel} collapsable={false}>
-              <WorkerBrowseMap
-                groups={mapGroups}
-                workerCoords={workerCoords}
-                province={province}
-                unmappableCount={unmappableJobCount}
-                workerHasCoordinates={workerCoords != null}
-                onSelectItem={(item) => router.push(getWorkerJobDetailRoute(item.id))}
-              />
-            </View>
-          </View>
         ) : (
           <View style={styles.panel}>
             {browseControls}
-            {listContent}
+            <WorkerBrowseViewTransition
+              mode={hasMapResults ? 'map' : 'list'}
+              style={
+                hasMapResults ? [styles.mapPanel, { height: mapPanelHeight }] : undefined
+              }
+            >
+              {hasMapResults ? (
+                <WorkerBrowseMap
+                  groups={mapGroups}
+                  workerCoords={workerCoords}
+                  province={province}
+                  unmappableCount={unmappableJobCount}
+                  workerHasCoordinates={workerCoords != null}
+                  onSelectItem={(item) => router.push(getWorkerJobDetailRoute(item.id))}
+                />
+              ) : (
+                listContent
+              )}
+            </WorkerBrowseViewTransition>
           </View>
         )}
       </View>
