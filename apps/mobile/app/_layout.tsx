@@ -1,3 +1,5 @@
+import 'mapbox-gl/dist/mapbox-gl.css';
+
 import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_600SemiBold,
