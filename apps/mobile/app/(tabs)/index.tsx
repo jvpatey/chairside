@@ -1,7 +1,6 @@
 import {
   getWorkerDashboardCounts,
-  getWorkerSavedJobPostIds,
-  getWorkerSavedShiftPostIds,
+  getWorkerSavedPostIds,
   listConversationsForWorker,
   listLiveJobPosts,
   listLiveShiftPosts,
@@ -105,8 +104,7 @@ export default function WorkerDashboardScreen() {
         jobApplicationRows,
         shiftApplicationRows,
         conversationRows,
-        savedJobIdRows,
-        savedShiftIdRows,
+        savedPostIds,
       ] = await Promise.all([
         getWorkerDashboardCounts(user.id, province),
         listLiveJobPosts(province),
@@ -115,15 +113,14 @@ export default function WorkerDashboardScreen() {
         listWorkerJobApplications(user.id),
         listWorkerShiftApplications(user.id),
         listConversationsForWorker(user.id),
-        getWorkerSavedJobPostIds(user.id),
-        getWorkerSavedShiftPostIds(user.id),
+        getWorkerSavedPostIds(user.id),
       ]);
 
       setCounts(nextCounts);
       setJobs(jobPosts);
       setAppliedJobPostIds(new Set(appliedJobIds));
-      setSavedJobIds(savedJobIdRows);
-      setSavedShiftIds(savedShiftIdRows);
+      setSavedJobIds(savedPostIds.jobIds);
+      setSavedShiftIds(savedPostIds.shiftIds);
       setShifts(shiftPosts);
       setJobApplications(jobApplicationRows);
       setShiftApplications(shiftApplicationRows);

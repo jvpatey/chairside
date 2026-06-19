@@ -24,6 +24,11 @@ export type WorkerSavedPostsResult = {
   shifts: LiveShiftPost[];
 };
 
+export type WorkerSavedPostIds = {
+  jobIds: Set<string>;
+  shiftIds: Set<string>;
+};
+
 async function listSavedRows(workerId: string): Promise<WorkerSavedPost[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -36,22 +41,30 @@ async function listSavedRows(workerId: string): Promise<WorkerSavedPost[]> {
   return (data ?? []) as WorkerSavedPost[];
 }
 
-export async function getWorkerSavedJobPostIds(workerId: string): Promise<Set<string>> {
+export async function getWorkerSavedPostIds(workerId: string): Promise<WorkerSavedPostIds> {
   const rows = await listSavedRows(workerId);
-  return new Set(
-    rows
-      .map((row) => row.job_post_id)
-      .filter((id): id is string => typeof id === 'string'),
-  );
+  return {
+    jobIds: new Set(
+      rows
+        .map((row) => row.job_post_id)
+        .filter((id): id is string => typeof id === 'string'),
+    ),
+    shiftIds: new Set(
+      rows
+        .map((row) => row.shift_post_id)
+        .filter((id): id is string => typeof id === 'string'),
+    ),
+  };
+}
+
+export async function getWorkerSavedJobPostIds(workerId: string): Promise<Set<string>> {
+  const { jobIds } = await getWorkerSavedPostIds(workerId);
+  return jobIds;
 }
 
 export async function getWorkerSavedShiftPostIds(workerId: string): Promise<Set<string>> {
-  const rows = await listSavedRows(workerId);
-  return new Set(
-    rows
-      .map((row) => row.shift_post_id)
-      .filter((id): id is string => typeof id === 'string'),
-  );
+  const { shiftIds } = await getWorkerSavedPostIds(workerId);
+  return shiftIds;
 }
 
 export async function isJobPostSaved(workerId: string, jobId: string): Promise<boolean> {

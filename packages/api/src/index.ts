@@ -94,6 +94,7 @@ export {
   getSavedLiveJobPost,
   getSavedLiveShiftPost,
   getWorkerSavedJobPostIds,
+  getWorkerSavedPostIds,
   getWorkerSavedShiftPostIds,
   isJobPostSaved,
   isShiftPostSaved,
@@ -104,6 +105,7 @@ export {
   unsaveShiftPost,
   type SavedPostKind,
   type WorkerSavedPost,
+  type WorkerSavedPostIds,
   type WorkerSavedPostsResult,
 } from './savedPosts';
 export {

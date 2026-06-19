@@ -1054,6 +1054,7 @@ async function handleShiftPostLive(
   const notifiedRecipientIds = new Set<string>();
 
   for (const worker of recipients) {
+    notifiedRecipientIds.add(worker.id);
     const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}:${updatedAt}`;
     if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 
@@ -1077,7 +1078,6 @@ async function handleShiftPostLive(
         smsMessage: fillInCopy.smsMessage,
       }),
     );
-    notifiedRecipientIds.add(worker.id);
   }
 
   return notifiedRecipientIds;
