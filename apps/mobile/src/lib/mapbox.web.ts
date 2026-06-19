@@ -1,20 +1,4 @@
-import type { ComponentType } from 'react';
-
-type MapboxDefault = {
-  setAccessToken: (token: string) => void;
-  setTelemetryEnabled: (enabled: boolean) => void;
-  StyleURL: {
-    Dark: string;
-    Street: string;
-  };
-};
-
-export type MapboxRuntimeModule = {
-  default: MapboxDefault;
-  MapView: ComponentType<Record<string, unknown>>;
-  Camera: ComponentType<Record<string, unknown>>;
-  MarkerView: ComponentType<Record<string, unknown>>;
-};
+export type MapboxRuntimeModule = typeof import('@rnmapbox/maps');
 
 export function getMapboxAccessToken(): string | null {
   const token = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim();

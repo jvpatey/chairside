@@ -401,7 +401,7 @@ export default function BrowseScreen() {
       title="Roles"
       subtitle="Open roles in your province."
       scroll
-      scrollEnabled={viewMode === 'list'}
+      scrollEnabled={!hasMapResults}
     >
       <View style={styles.wrap}>
         {isLoading ? (

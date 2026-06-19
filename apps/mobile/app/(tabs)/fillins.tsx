@@ -316,7 +316,7 @@ export default function FillInsScreen() {
         title="Fill-ins"
         subtitle="Temp shifts and your availability."
         scroll
-        scrollEnabled={!useMapLayout}
+        scrollEnabled={!showOpenMap}
       >
         <View style={styles.content}>
           <View style={styles.controlsBlock} onLayout={handleControlsLayout}>

@@ -1,21 +1,6 @@
 import { Platform } from 'react-native';
-import type { ComponentType } from 'react';
 
-type MapboxDefault = {
-  setAccessToken: (token: string) => void;
-  setTelemetryEnabled: (enabled: boolean) => void;
-  StyleURL: {
-    Dark: string;
-    Street: string;
-  };
-};
-
-export type MapboxRuntimeModule = {
-  default: MapboxDefault;
-  MapView: ComponentType<Record<string, unknown>>;
-  Camera: ComponentType<Record<string, unknown>>;
-  MarkerView: ComponentType<Record<string, unknown>>;
-};
+export type MapboxRuntimeModule = typeof import('@rnmapbox/maps');
 
 let cachedMapboxModule: MapboxRuntimeModule | null | undefined;
 let mapboxInitialized = false;
