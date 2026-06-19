@@ -29,7 +29,8 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { PillBadge } from '@/components/ui/PillBadge';
 import { addDays, parseISODate, startOfDay, toISODate } from '@/lib/dates';
-import { useTheme, useThemedStyles } from '@/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type ClinicWorkerCrmSheetProps = {
   visible: boolean;
@@ -344,6 +345,63 @@ export function ClinicWorkerCrmSheet({
   );
 }
 
+type ClinicWorkerCrmBadgeColors = {
+  color: string;
+  backgroundColor: string;
+  borderColor: string;
+};
+
+function getClinicWorkerCrmTagBadgeColors(
+  tag: string,
+  colors: ReturnType<typeof useTheme>['colors'],
+): ClinicWorkerCrmBadgeColors {
+  switch (tag) {
+    case 'strong_candidate':
+      return {
+        color: colors.primary,
+        backgroundColor: colors.primarySubtle,
+        borderColor: colors.primary,
+      };
+    case 'follow_up_later':
+      return {
+        color: colors.secondary,
+        backgroundColor: colors.secondarySubtle,
+        borderColor: colors.secondary,
+      };
+    case 'worked_here_before':
+      return {
+        color: colors.labelPrimary,
+        backgroundColor: colors.fillSubtle,
+        borderColor: colors.separator,
+      };
+    default:
+      return {
+        color: colors.labelPrimary,
+        backgroundColor: colors.fillSubtle,
+        borderColor: colors.separator,
+      };
+  }
+}
+
+function getClinicWorkerCrmFollowUpBadgeColors(
+  followUpDue: boolean,
+  colors: ReturnType<typeof useTheme>['colors'],
+): ClinicWorkerCrmBadgeColors {
+  if (followUpDue) {
+    return {
+      color: colors.destructive,
+      backgroundColor: `${colors.destructive}1A`,
+      borderColor: colors.destructive,
+    };
+  }
+
+  return {
+    color: colors.primary,
+    backgroundColor: colors.primarySubtle,
+    borderColor: colors.primary,
+  };
+}
+
 type ClinicWorkerCrmBadgesProps = {
   record: ClinicWorkerCrmRecord | null;
   compact?: boolean;
@@ -356,25 +414,31 @@ export function ClinicWorkerCrmBadges({ record, compact = false }: ClinicWorkerC
 
   const followUpLabel = formatClinicWorkerCrmFollowUpLabel(record?.follow_up_at);
   const followUpDue = isClinicWorkerCrmFollowUpDue(record?.follow_up_at);
+  const followUpBadgeColors = followUpLabel
+    ? getClinicWorkerCrmFollowUpBadgeColors(followUpDue, colors)
+    : null;
 
   return (
     <BadgeRow>
-      {(record?.tags ?? []).map((tag) => (
-        <PillBadge
-          key={tag}
-          label={getClinicWorkerCrmTagLabel(tag)}
-          color={colors.labelPrimary}
-          backgroundColor={colors.backgroundGrouped}
-          borderColor={colors.separator}
-          size={compact ? 'sm' : 'md'}
-        />
-      ))}
-      {followUpLabel ? (
+      {(record?.tags ?? []).map((tag) => {
+        const badgeColors = getClinicWorkerCrmTagBadgeColors(tag, colors);
+        return (
+          <PillBadge
+            key={tag}
+            label={getClinicWorkerCrmTagLabel(tag)}
+            color={badgeColors.color}
+            backgroundColor={badgeColors.backgroundColor}
+            borderColor={badgeColors.borderColor}
+            size={compact ? 'sm' : 'md'}
+          />
+        );
+      })}
+      {followUpLabel && followUpBadgeColors ? (
         <PillBadge
           label={followUpLabel}
-          color={followUpDue ? colors.destructive : colors.primary}
-          backgroundColor={followUpDue ? `${colors.destructive}1A` : colors.primarySubtle}
-          borderColor={followUpDue ? colors.destructive : colors.primary}
+          color={followUpBadgeColors.color}
+          backgroundColor={followUpBadgeColors.backgroundColor}
+          borderColor={followUpBadgeColors.borderColor}
           size={compact ? 'sm' : 'md'}
         />
       ) : null}
@@ -388,7 +452,47 @@ type ClinicWorkerCrmSectionProps = {
 };
 
 export function ClinicWorkerCrmSection({ record, onEdit }: ClinicWorkerCrmSectionProps) {
+  const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    iconWrap: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySubtle,
+    },
+    title: {
+      ...typography.label,
+      fontFamily: fontSemibold,
+      fontSize: 13,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.labelSecondary,
+      flex: 1,
+    },
+    helper: {
+      ...typography.subtitle,
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.labelTertiary,
+      marginTop: spacing.xs,
+    },
+    notePanel: {
+      backgroundColor: colors.fillSubtle,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      gap: spacing.sm,
+      minHeight: 96,
+    },
     note: {
       ...typography.body,
       color: colors.labelPrimary,
@@ -396,29 +500,95 @@ export function ClinicWorkerCrmSection({ record, onEdit }: ClinicWorkerCrmSectio
     },
     empty: {
       ...typography.body,
-      color: colors.labelSecondary,
+      color: colors.labelTertiary,
+      fontStyle: 'italic',
+      lineHeight: 22,
     },
-    actions: {
+    metadata: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
       marginTop: spacing.sm,
+    },
+    editLink: {
+      ...typography.body,
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
     },
   }));
 
   const note = record?.note?.trim();
+  const hasContent = hasClinicWorkerCrmContent(record);
+  const followUpLabel = formatClinicWorkerCrmFollowUpLabel(record?.follow_up_at);
+  const followUpDue = isClinicWorkerCrmFollowUpDue(record?.follow_up_at);
+  const followUpBadgeColors = followUpLabel
+    ? getClinicWorkerCrmFollowUpBadgeColors(followUpDue, colors)
+    : null;
 
   return (
     <>
-      <ClinicWorkerCrmBadges record={record} />
-      {note ? (
-        <Text style={styles.note}>{note}</Text>
-      ) : (
-        <Text style={styles.empty}>No internal note yet.</Text>
-      )}
-      <View style={styles.actions}>
-        <OnboardingButton
-          label={hasClinicWorkerCrmContent(record) ? 'Edit private notes' : 'Add private notes'}
-          variant="secondary"
+      <View style={styles.header}>
+        <View style={styles.iconWrap}>
+          <Ionicons name="lock-closed-outline" size={15} color={colors.primary} />
+        </View>
+        <Text style={styles.title}>Private notes</Text>
+      </View>
+      <Text style={styles.helper}>Visible only to your clinic · not shared with the applicant</Text>
+
+      <View style={styles.notePanel}>
+        {(record?.tags ?? []).length > 0 || followUpLabel ? (
+          <View style={styles.metadata}>
+            {(record?.tags ?? []).map((tag) => {
+              const badgeColors = getClinicWorkerCrmTagBadgeColors(tag, colors);
+              return (
+                <PillBadge
+                  key={tag}
+                  label={getClinicWorkerCrmTagLabel(tag)}
+                  color={badgeColors.color}
+                  backgroundColor={badgeColors.backgroundColor}
+                  borderColor={badgeColors.borderColor}
+                  size="sm"
+                />
+              );
+            })}
+            {followUpLabel && followUpBadgeColors ? (
+              <PillBadge
+                label={followUpLabel}
+                color={followUpBadgeColors.color}
+                backgroundColor={followUpBadgeColors.backgroundColor}
+                borderColor={followUpBadgeColors.borderColor}
+                size="sm"
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        {note ? (
+          <Text style={styles.note}>{note}</Text>
+        ) : (
+          <Text style={styles.empty}>
+            Add notes about this candidate for your team — tags, follow-up reminders, and context
+            stay here.
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.footer}>
+        <Pressable
+          accessibilityRole="button"
           onPress={onEdit}
-        />
+          style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+          <Text style={styles.editLink}>
+            {hasContent ? 'Edit notes' : 'Add notes'}
+          </Text>
+        </Pressable>
       </View>
     </>
   );

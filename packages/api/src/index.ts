@@ -147,6 +147,7 @@ export {
   deleteApplication,
   getJobPostApplicationCountsMap,
   getWorkerApplication,
+  getClinicApplication,
   hasAppliedToJob,
   hasAppliedToShift,
   listClinicApplications,

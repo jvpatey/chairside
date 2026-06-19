@@ -255,6 +255,75 @@ export function getClinicApplicationMessagesRoute(
   } as unknown as Href;
 }
 
+function normalizeApplicantReturnTarget(returnTo?: string): ApplicantReturnTarget {
+  if (
+    returnTo === 'applications-tab' ||
+    returnTo === 'dashboard-applications' ||
+    returnTo === 'postings-tab' ||
+    returnTo === 'role-history'
+  ) {
+    return returnTo;
+  }
+  return 'applications-tab';
+}
+
+export function getClinicApplicationRoute(
+  applicationId: string,
+  returnTo?: ClinicApplicationReturnTarget,
+  roleJobId?: string,
+): Href {
+  return {
+    pathname: '/(clinic-tabs)/application/[id]',
+    params: {
+      id: applicationId,
+      returnTo: returnTo ?? '',
+      ...(roleJobId ? { roleJobId } : {}),
+    },
+  } as unknown as Href;
+}
+
+export function navigateAfterClinicApplication(
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
+  returnTo?: string,
+  roleJobId?: string,
+) {
+  if (roleJobId) {
+    router.replace(
+      getClinicRoleApplicationsRoute(roleJobId, normalizeApplicantReturnTarget(returnTo)),
+    );
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  if (returnTo === 'dashboard-applications') {
+    router.replace(getClinicHomeRoute('applications'));
+    return;
+  }
+  if (returnTo === 'postings-tab') {
+    router.replace(CLINIC_POSTINGS);
+    return;
+  }
+  if (returnTo === 'role-history') {
+    router.replace(getRoleHistoryRoute());
+    return;
+  }
+  if (
+    returnTo === 'fill-ins-tab' ||
+    returnTo === 'postings-fill-ins' ||
+    returnTo === 'dashboard-fill-ins'
+  ) {
+    router.replace(getClinicFillInsRoute());
+    return;
+  }
+  if (returnTo === 'messages-tab') {
+    router.replace(getClinicMessagesRoute());
+    return;
+  }
+  router.replace(CLINIC_APPLICATIONS);
+}
+
 export function getWorkerMessagesRoute(conversationId?: string): Href {
   if (conversationId) {
     return {
@@ -415,9 +484,13 @@ export function getClinicRoleApplicationsRoute(
 }
 
 export function navigateAfterRoleApplicants(
-  router: { replace: (href: Href) => void; back: () => void },
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
   returnTo?: string,
 ) {
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
   if (returnTo === 'dashboard-applications') {
     router.replace(getClinicHomeRoute('applications'));
     return;

@@ -11,14 +11,10 @@ import { Alert, Text, View } from 'react-native';
 import { ApplicantFilterBar } from '@/components/clinic/ApplicantFilterBar';
 import { ApplicantPipelineSectionBlock } from '@/components/clinic/ApplicantPipelineSection';
 import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard';
-import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
-import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   filterApplicationsByView,
@@ -31,23 +27,6 @@ import { navigateAfterRoleApplicants } from '@/lib/routing';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { useThemedStyles } from '@/theme';
 
-function formatClinicAddress(profile: {
-  address_line1?: string | null;
-  city?: string | null;
-  province?: string | null;
-  postal_code?: string | null;
-} | null): string | null {
-  if (!profile) return null;
-
-  const parts = [
-    profile.address_line1?.trim(),
-    [profile.city?.trim(), profile.province?.trim()].filter(Boolean).join(', '),
-    profile.postal_code?.trim(),
-  ].filter(Boolean);
-
-  return parts.length > 0 ? parts.join(' · ') : null;
-}
-
 const FILTER_EMPTY_MESSAGES: Record<Exclude<ApplicantListFilter, 'all'>, string> = {
   screening: 'No screening submissions yet. They appear here when candidates complete screening questions.',
   shortlisted: 'No shortlisted applicants yet. Add candidates from the All tab.',
@@ -59,7 +38,6 @@ const FILTER_EMPTY_MESSAGES: Record<Exclude<ApplicantListFilter, 'all'>, string>
 
 export default function ClinicRoleApplicationsScreen() {
   const { user } = useAuth();
-  const { clinicProfile } = useClinicProfile();
   const { jobId, returnTo } = useLocalSearchParams<{
     jobId?: string;
     returnTo?: string;
@@ -78,19 +56,9 @@ export default function ClinicRoleApplicationsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [listFilter, setListFilter] = useState<ApplicantListFilter>('all');
   const [archivedExpanded, setArchivedExpanded] = useState(false);
-  const [scheduleTarget, setScheduleTarget] = useState<ClinicApplication | null>(null);
-  const [scheduleMode, setScheduleMode] = useState<
-    'offer' | 'edit_offer' | 'propose_reschedule'
-  >('offer');
   const [sectionExpanded, setSectionExpanded] = useState<
     Partial<Record<ApplicantPipelineSectionId, boolean>>
   >({});
-  const {
-    celebrationVisible,
-    celebrationPayload,
-    showCelebration,
-    closeCelebration,
-  } = useHiringCelebration();
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     content: { gap: spacing.lg },
@@ -147,9 +115,6 @@ export default function ClinicRoleApplicationsScreen() {
     [applications, listFilter],
   );
 
-  const defaultLocation = formatClinicAddress(clinicProfile);
-  const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-
   const isSectionExpanded = (sectionId: ApplicantPipelineSectionId, defaultExpanded: boolean) =>
     sectionExpanded[sectionId] ?? defaultExpanded;
 
@@ -160,52 +125,14 @@ export default function ClinicRoleApplicationsScreen() {
     }));
   };
 
-  const handleShortlisted = useCallback(() => {
-    setListFilter('shortlisted');
-    void load();
-  }, [load]);
-
-  const handleInterviewOffered = useCallback(() => {
-    setListFilter('interview');
-    void load();
-  }, [load]);
-
-  const handleDecided = useCallback(() => {
-    setListFilter('decided');
-    setArchivedExpanded(true);
-    void load();
-  }, [load]);
-
-  const handleRemoved = useCallback(() => {
-    setArchivedExpanded(true);
-    void load();
-  }, [load]);
-
   const renderApplicationCards = (rows: ClinicApplication[]) =>
     rows.map((application) => (
       <ClinicApplicationCard
         key={application.id}
         application={application}
-        clinicId={user?.id}
         returnTo={resolvedReturnTo ?? 'applications-tab'}
+        roleJobId={resolvedJobId}
         hasUnreadMessages={Boolean(unreadMap[application.id])}
-        onUpdated={() => void load()}
-        onShortlisted={handleShortlisted}
-        onScheduleInterview={(application, sheetMode = 'offer') => {
-          setScheduleMode(sheetMode);
-          setScheduleTarget(application);
-        }}
-        onHired={(hiredApplication) =>
-          showCelebration({
-            applicationId: hiredApplication.id,
-            postType: 'job',
-            audience: 'clinic',
-            counterpartName: hiredApplication.worker_display_name?.trim() || 'Applicant',
-            postTitle: hiredApplication.post_title,
-          })
-        }
-        onRemoved={handleRemoved}
-        onDecided={handleDecided}
       />
     ));
 
@@ -224,8 +151,7 @@ export default function ClinicRoleApplicationsScreen() {
     );
 
   return (
-    <>
-      <OnboardingShell>
+    <OnboardingShell>
       <AuthScreenHeader
         eyebrow="Applications for"
         title={postTitle || 'Role'}
@@ -285,27 +211,6 @@ export default function ClinicRoleApplicationsScreen() {
           </>
         )}
       </View>
-      </OnboardingShell>
-
-      {scheduleTarget ? (
-        <InterviewScheduleSheet
-          visible
-          application={scheduleTarget}
-          clinicName={clinicName}
-          mode={scheduleMode}
-          defaultLocation={defaultLocation}
-          onSaved={handleInterviewOffered}
-          onClose={() => setScheduleTarget(null)}
-        />
-      ) : null}
-      <HiringCelebrationModal
-        visible={celebrationVisible}
-        payload={celebrationPayload}
-        onClose={() => {
-          void closeCelebration();
-          void load();
-        }}
-      />
-    </>
+    </OnboardingShell>
   );
 }

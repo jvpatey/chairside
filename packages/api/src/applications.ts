@@ -545,6 +545,72 @@ export async function getWorkerApplication(
   return enrichWorkerApplication(data as Application);
 }
 
+export async function getClinicApplication(
+  clinicId: string,
+  applicationId: string,
+): Promise<ClinicApplication | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*')
+    .eq('id', applicationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const application = data as Application;
+
+  if (application.job_post_id) {
+    const { data: job, error: jobError } = await supabase
+      .from('job_posts')
+      .select('id, title, role_type, clinic_id')
+      .eq('id', application.job_post_id)
+      .maybeSingle();
+
+    if (jobError) throw jobError;
+    if (job?.clinic_id !== clinicId) return null;
+
+    const screening = await getApplicationScreening(application.id);
+    const enriched: ClinicApplication = {
+      ...application,
+      post_title: job.title,
+      post_type: 'job',
+      post_role_type: job.role_type,
+      worker_account_deleted: Boolean(application.worker_account_deleted_at),
+      screening,
+      clinic_crm: null,
+    };
+    const [withCrm] = await attachClinicCrmToApplications(clinicId, [enriched]);
+    return withCrm;
+  }
+
+  if (application.shift_post_id) {
+    const { data: shift, error: shiftError } = await supabase
+      .from('shift_posts')
+      .select('id, role_type, shift_date, clinic_id')
+      .eq('id', application.shift_post_id)
+      .maybeSingle();
+
+    if (shiftError) throw shiftError;
+    if (shift?.clinic_id !== clinicId) return null;
+
+    const enriched: ClinicApplication = {
+      ...application,
+      post_title: `Fill-in · ${shift.shift_date}`,
+      post_type: 'shift',
+      post_role_type: shift.role_type,
+      worker_account_deleted: Boolean(application.worker_account_deleted_at),
+      screening: null,
+      clinic_crm: null,
+    };
+    const [withCrm] = await attachClinicCrmToApplications(clinicId, [enriched]);
+    return withCrm;
+  }
+
+  return null;
+}
+
 export async function deleteApplication(workerId: string, applicationId: string): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase

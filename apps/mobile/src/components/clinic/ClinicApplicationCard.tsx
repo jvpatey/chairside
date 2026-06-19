@@ -1,142 +1,38 @@
+import { getApplicantDisplayName, type ClinicApplication } from '@chairside/api';
 import {
-  acceptApplicationInterviewUpdate,
-  cancelApplicationInterviewOffer,
-  cancelScheduledApplicationInterview,
-  declineApplicationInterviewUpdate,
-  getApplicantDisplayName,
-  requestApplicationKit,
-  updateApplicationStatus,
-  type ClinicApplication,
-} from '@chairside/api';
-import {
-  formatApplicationEducation,
-  formatApplicationResumeStatus,
   formatApplicationDate,
-  formatInterviewDateTime,
-  hasApplicationKitSubmitted,
-  hasPendingInterviewProposal,
-  canClinicHideApplication,
-  isAwaitingApplicationKit,
-  isScreeningStageStatus,
   formatRoleTypesLabel,
   hasClinicWorkerCrmContent,
   resolveWorkerRoleTypes,
-  getSpecialtyLabel,
 } from '@chairside/config';
-import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  useState,
-  type ReactElement,
-  type ReactNode,
-} from 'react';
-import {
-  Alert,
-  LayoutAnimation,
-  Platform,
-  Text,
-  UIManager,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { Text, View } from 'react-native';
 
+import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
+import { ClinicWorkerCrmBadges } from '@/components/clinic/ClinicWorkerCrmSheet';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
-import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
-import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
-import {
-  ClinicWorkerCrmBadges,
-  ClinicWorkerCrmSection,
-  ClinicWorkerCrmSheet,
-} from '@/components/clinic/ClinicWorkerCrmSheet';
-import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
-import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
-import { ApplicationPreviewGroup } from '@/components/worker/ApplicationPreviewGroup';
-import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { CardExpandToggle } from '@/components/ui/CardExpandToggle';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
-import { CardDetailSection } from '@/components/ui/CardDetailSection';
-import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { BadgeRow } from '@/components/ui/BadgeRow';
-import { GradientHairline } from '@/components/ui/GradientHairline';
-import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
 import {
-  buildInterviewInviteInputFromApplication,
-  openInterviewCalendarInvite,
-} from '@/lib/calendarInvite';
-import { buildResumeFileName } from '@/lib/openResumePreview';
-import {
-  getClinicApplicationMessagesRoute,
+  getClinicApplicationRoute,
   type ClinicApplicationReturnTarget,
 } from '@/lib/routing';
-import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { useThemedStyles } from '@/theme';
-import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import { useTheme, useThemedStyles } from '@/theme';
 
 type ClinicApplicationCardProps = {
   application: ClinicApplication;
-  clinicId?: string;
   returnTo?: ClinicApplicationReturnTarget;
+  roleJobId?: string;
   hasUnreadMessages?: boolean;
-  onUpdated?: () => void;
-  onShortlisted?: () => void;
-  onScheduleInterview?: (
-    application: ClinicApplication,
-    mode?: InterviewScheduleSheetMode,
-  ) => void;
-  onHired?: (application: ClinicApplication) => void;
-  onRemoved?: () => void;
-  onDecided?: () => void;
 };
-
-function ApplicationActionRow({ children }: { children: ReactNode }) {
-  const styles = useThemedStyles(({ spacing }) => ({
-    row: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-      alignSelf: 'stretch',
-      alignItems: 'stretch',
-    },
-    cell: {
-      flex: 1,
-      minWidth: 0,
-    },
-  }));
-
-  const items = Children.toArray(children).filter((child) => child != null && child !== false);
-  if (items.length === 0) return null;
-
-  return (
-    <View style={styles.row}>
-      {items.map((child, index) => (
-        <View key={index} style={styles.cell}>
-          {isValidElement(child)
-            ? cloneElement(child as ReactElement<{ style?: ViewStyle }>, {
-                style: [
-                  (child as ReactElement<{ style?: ViewStyle }>).props.style,
-                  { flex: 1 },
-                ],
-              })
-            : child}
-        </View>
-      ))}
-    </View>
-  );
-}
 
 function truncatePreview(text: string, maxLength = 88): string {
   const trimmed = text.trim();
@@ -146,241 +42,22 @@ function truncatePreview(text: string, maxLength = 88): string {
 
 export function ClinicApplicationCard({
   application,
-  clinicId,
   returnTo = 'applications-tab',
+  roleJobId,
   hasUnreadMessages = false,
-  onUpdated,
-  onShortlisted,
-  onScheduleInterview,
-  onHired,
-  onRemoved,
-  onDecided,
 }: ClinicApplicationCardProps) {
-  const {
-    refreshPending: refreshApplicationTabBadge,
-    markApplicationSeen,
-    isApplicationHighlighted,
-  } = useApplicationTabBadge();
-  const { clinicProfile } = useClinicProfile();
-  const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const [expanded, setExpanded] = useState(false);
-  const [crmSheetVisible, setCrmSheetVisible] = useState(false);
+  const { colors } = useTheme();
+  const { isApplicationHighlighted } = useApplicationTabBadge();
   const isJob = application.post_type === 'job';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
-  const interviewSummary = formatInterviewDateTime(
-    application.interview_at,
-    application.interview_duration_minutes,
-  );
-  const proposedSummary = formatInterviewDateTime(
-    application.interview_proposed_at,
-    application.interview_proposed_duration_minutes,
-  );
-  const pendingProposal = hasPendingInterviewProposal(application);
-  const workerProposedChange =
-    pendingProposal && application.interview_proposed_by === 'worker';
-  const clinicProposedChange =
-    pendingProposal && application.interview_proposed_by === 'clinic';
   const hasNewApplication = isApplicationHighlighted(application);
-
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    preview: {
-      ...typography.subtitle,
-      fontStyle: 'italic',
-    },
-    quickActions: {
-      gap: spacing.sm,
-    },
-    actions: {
-      gap: spacing.sm,
-      marginTop: spacing.xs,
-    },
-  }));
-
-  const updateStatus = async (status: Parameters<typeof updateApplicationStatus>[1]) => {
-    try {
-      await updateApplicationStatus(application.id, status);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await refreshApplicationTabBadge();
-      if (status === 'selected') {
-        onHired?.(application);
-      }
-      if (status === 'rejected') {
-        onDecided?.();
-      }
-      if (status === 'in_progress') {
-        (onShortlisted ?? onUpdated)?.();
-      } else {
-        onUpdated?.();
-      }
-    } catch (error) {
-      Alert.alert(
-        'Update failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
-
-  const handleAddInterviewToCalendar = () => {
-    const inviteInput = buildInterviewInviteInputFromApplication({
-      clinicName,
-      roleTitle: application.post_title,
-      interviewAt: application.interview_at ?? '',
-      durationMinutes: application.interview_duration_minutes,
-      details: application.interview_details,
-    });
-    if (!inviteInput) return;
-    void (async () => {
-      try {
-        await openInterviewCalendarInvite(inviteInput);
-      } catch (error) {
-        Alert.alert(
-          'Could not open calendar',
-          error instanceof Error ? error.message : 'Please try again.',
-        );
-      }
-    })();
-  };
-
-  const cancelScheduledInterview = () => {
-    showConfirmActionSheet({
-      title: 'Cancel interview?',
-      message: 'This returns the applicant to your shortlist. You can reschedule or continue messaging.',
-      confirmLabel: 'Cancel interview',
-      destructive: true,
-      onConfirm: async () => {
-        try {
-          await cancelScheduledApplicationInterview(application.id, 'clinic');
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          (onShortlisted ?? onUpdated)?.();
-        } catch (error) {
-          Alert.alert(
-            'Update failed',
-            error instanceof Error ? error.message : 'Please try again.',
-          );
-        }
-      },
-    });
-  };
-
-  const acceptWorkerProposal = () => {
-    showConfirmActionSheet({
-      title: 'Accept new time?',
-      message: 'The confirmed interview will move to the proposed time.',
-      confirmLabel: 'Accept',
-      onConfirm: async () => {
-        try {
-          await acceptApplicationInterviewUpdate(application.id);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onUpdated?.();
-        } catch (error) {
-          Alert.alert(
-            'Update failed',
-            error instanceof Error ? error.message : 'Please try again.',
-          );
-        }
-      },
-    });
-  };
-
-  const declineWorkerProposal = () => {
-    showConfirmActionSheet({
-      title: 'Decline new time?',
-      message: 'The confirmed interview time will stay as scheduled.',
-      confirmLabel: 'Decline',
-      destructive: true,
-      onConfirm: async () => {
-        try {
-          await declineApplicationInterviewUpdate(application.id);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onUpdated?.();
-        } catch (error) {
-          Alert.alert(
-            'Update failed',
-            error instanceof Error ? error.message : 'Please try again.',
-          );
-        }
-      },
-    });
-  };
-
-  const cancelInterviewInvite = () => {
-    showConfirmActionSheet({
-      title: 'Cancel interview invite?',
-      message: 'This withdraws the invitation and moves the applicant back to your shortlist.',
-      confirmLabel: 'Cancel invite',
-      destructive: true,
-      onConfirm: async () => {
-        try {
-          await cancelApplicationInterviewOffer(application.id);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          (onShortlisted ?? onUpdated)?.();
-        } catch (error) {
-          Alert.alert(
-            'Update failed',
-            error instanceof Error ? error.message : 'Please try again.',
-          );
-        }
-      },
-    });
-  };
-
-  const toggleExpanded = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    if (!expanded && hasNewApplication) {
-      void markApplicationSeen(application.id);
-    }
-    setExpanded((current) => !current);
-  };
-
-  const resumeFileName = buildResumeFileName({
-    workerDisplayName: application.worker_display_name,
-    postTitle: application.post_title,
-  });
-
-  const hasInterviewDetails =
-    (application.status === 'interview_offered' ||
-      application.status === 'interview_scheduled') &&
-    interviewSummary;
-
-  const hasKitSubmitted = hasApplicationKitSubmitted(application);
-  const isScreeningStage = isScreeningStageStatus(application.status);
-  const awaitingKit = isAwaitingApplicationKit(application);
-
-  const requestKit = async () => {
-    try {
-      await requestApplicationKit(application.id);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onUpdated?.();
-    } catch (error) {
-      Alert.alert(
-        'Request failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
-    }
-  };
-
-  const handleRequestKit = () => {
-    showConfirmActionSheet({
-      title: 'Request application kit?',
-      message:
-        'The candidate will be asked to confirm and submit their full application before you can review it.',
-      confirmLabel: 'Request application',
-      onConfirm: () => requestKit(),
-    });
-  };
-
-  const hasActions =
-    !application.worker_account_deleted &&
-    (isScreeningStage ||
-      application.status === 'applied' ||
-      application.status === 'reviewed' ||
-      application.status === 'in_progress' ||
-      application.status === 'interview_offered' ||
-      application.status === 'interview_scheduled');
+  const showNewBadge = hasNewApplication;
+  const showStatusBadge = !(hasNewApplication && application.status === 'applied');
+  const workerDeleted = application.worker_account_deleted;
+  const crmRecord = application.clinic_crm;
 
   const applicantName = getApplicantDisplayName(application);
-  const workerDeleted = application.worker_account_deleted;
   const workerRoleLabel = formatRoleTypesLabel(resolveWorkerRoleTypes(application));
   const experienceLabel =
     application.years_of_experience != null
@@ -391,377 +68,83 @@ export function ClinicApplicationCard({
   const appliedDateLabel = formatApplicationDate(application.created_at);
   const appliedLabel = appliedDateLabel ? `Applied ${appliedDateLabel}` : null;
 
-  const canRemoveFromList = Boolean(clinicId) && canClinicHideApplication(application);
-  const canManageCrm = Boolean(clinicId) && !workerDeleted;
-  const crmRecord = application.clinic_crm;
+  const styles = useThemedStyles(({ spacing, typography }) => ({
+    preview: {
+      ...typography.subtitle,
+      fontStyle: 'italic',
+    },
+    trailingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: spacing.sm,
+    },
+    unread: {
+      ...typography.subtitle,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+  }));
 
-  const handleMessage = () => {
-    router.push(getClinicApplicationMessagesRoute(application.id, returnTo));
+  const openDetail = () => {
+    router.push(getClinicApplicationRoute(application.id, returnTo, roleJobId));
   };
 
-  const titleHeader = (
-    <ApplicantPostHeader
-      layout="split"
-      displayName={applicantName}
-      photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
-      eyebrow={workerRoleLabel}
-      title={applicantName}
-      location={workerDeleted ? null : application.worker_address}
-      detail={experienceLabel}
-      postedLabel={appliedLabel}
-      avatarSize={44}
-      accessory={
-        <View style={{ alignItems: 'flex-end', gap: 8 }}>
-          {hasNewApplication ? <ApplicationCardBadge /> : null}
-          <ClinicApplicationStatusBadge
-            status={application.status}
-            postType={application.post_type}
-            applicationKitRequestedAt={application.application_kit_requested_at}
-            applicationKitSubmittedAt={application.application_kit_submitted_at}
-          />
-        </View>
-      }
-      detailAccessory={
-        jobMatch && matchContext ? (
-          <BadgeRow>
-            <MatchTierBadge
-              breakdown={jobMatch}
-              context={matchContext}
-              subtitle={application.post_title}
-              audience="clinic"
-            />
-          </BadgeRow>
-        ) : null
-      }
-      textFooter={
-        canManageCrm && hasClinicWorkerCrmContent(crmRecord) ? (
-          <ClinicWorkerCrmBadges record={crmRecord} compact />
-        ) : null
-      }
-    />
-  );
-
   return (
-    <SurfaceCard padding="md" gap>
-      {titleHeader}
+    <SurfaceCard padding="md" gap onPress={openDetail}>
+      <ApplicantPostHeader
+        layout="split"
+        displayName={applicantName}
+        photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
+        eyebrow={workerRoleLabel}
+        title={applicantName}
+        location={workerDeleted ? null : application.worker_address}
+        detail={experienceLabel}
+        postedLabel={appliedLabel}
+        avatarSize={44}
+        accessory={
+          <View style={{ alignItems: 'flex-end', gap: 8 }}>
+            {showNewBadge ? <ApplicationCardBadge /> : null}
+            {showStatusBadge ? (
+              <ClinicApplicationStatusBadge
+                status={application.status}
+                postType={application.post_type}
+                applicationKitRequestedAt={application.application_kit_requested_at}
+                applicationKitSubmittedAt={application.application_kit_submitted_at}
+              />
+            ) : null}
+          </View>
+        }
+        detailAccessory={
+          jobMatch && matchContext ? (
+            <BadgeRow>
+              <MatchTierBadge
+                breakdown={jobMatch}
+                context={matchContext}
+                subtitle={application.post_title}
+                audience="clinic"
+              />
+            </BadgeRow>
+          ) : null
+        }
+        textFooter={
+          hasClinicWorkerCrmContent(crmRecord) ? (
+            <ClinicWorkerCrmBadges record={crmRecord} compact />
+          ) : null
+        }
+      />
 
-      {hasInterviewDetails ? (
-        <CardInfoPanel
-          variant={application.status === 'interview_offered' ? 'warning' : 'info'}
-          icon="calendar-outline"
-          title={
-            application.status === 'interview_offered'
-              ? 'Interview invitation'
-              : 'Interview scheduled'
-          }>
-          <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
-          {application.status === 'interview_offered' ? (
-            <CardInfoPanelText>Awaiting candidate response</CardInfoPanelText>
-          ) : null}
-          {application.status === 'interview_scheduled' && clinicProposedChange ? (
-            <CardInfoPanelText>
-              Awaiting candidate response to new time
-              {proposedSummary ? ` · ${proposedSummary}` : ''}
-            </CardInfoPanelText>
-          ) : null}
-          {application.status === 'interview_scheduled' &&
-          workerProposedChange &&
-          proposedSummary ? (
-            <CardInfoPanelText>Proposed new time · {proposedSummary}</CardInfoPanelText>
-          ) : null}
-        </CardInfoPanel>
-      ) : null}
-
-      {awaitingKit ? (
-        <CardInfoPanel variant="default" icon="document-text-outline" title="Application kit">
-          <CardInfoPanelText>
-            Application kit requested. Waiting for the candidate to submit.
-          </CardInfoPanelText>
-        </CardInfoPanel>
-      ) : null}
-
-      {workerDeleted ? (
-        <CardInfoPanel variant="default">
-          <CardInfoPanelText>
-            This candidate is no longer signed up for Chairside.
-          </CardInfoPanelText>
-        </CardInfoPanel>
-      ) : null}
-
-      <View style={styles.quickActions}>
-        <OnboardingButton
-          label={
-            workerDeleted
-              ? 'View messages'
-              : hasUnreadMessages
-                ? 'Message applicant · New'
-                : 'Message applicant'
-          }
-          variant="secondary"
-          onPress={handleMessage}
-        />
-
-        {canRemoveFromList && clinicId ? (
-          <OnboardingButton
-            label="Remove from list"
-            variant="secondary"
-            onPress={() =>
-              confirmHideClinicApplication(clinicId, application, () => onRemoved?.())
-            }
-          />
-        ) : null}
-      </View>
-
-      {!expanded && application.cover_message ? (
+      {application.cover_message?.trim() ? (
         <Text style={styles.preview} numberOfLines={2}>
           {truncatePreview(application.cover_message)}
         </Text>
       ) : null}
 
-      <CardExpandToggle expanded={expanded} onPress={toggleExpanded} suppressHover />
-
-      {expanded ? (
-        <View style={styles.actions}>
-          {application.post_type === 'job' && application.screening ? (
-            <CardDetailSection title="Screening responses" divided>
-              <ApplicationScreeningSection screening={application.screening} />
-            </CardDetailSection>
-          ) : null}
-
-          {(hasKitSubmitted ||
-            isScreeningStage ||
-            application.interview_details ||
-            application.resume_storage_path) ? (
-            <CardDetailSection title="Application details" divided>
-              {hasKitSubmitted ? (
-                <ApplicationPreviewGroup title="Qualifications">
-                  {application.years_of_experience != null ? (
-                    <ApplicationPreviewField
-                      label="Experience"
-                      value={`${application.years_of_experience} years`}
-                    />
-                  ) : null}
-                  {formatApplicationEducation(application.education) ? (
-                    <ApplicationPreviewField
-                      label="Education"
-                      value={formatApplicationEducation(application.education)}
-                    />
-                  ) : null}
-                  {resolveWorkerRoleTypes(application).length > 0 ? (
-                    <ApplicationPreviewField
-                      label="Roles"
-                      value={formatRoleTypesLabel(resolveWorkerRoleTypes(application))}
-                    />
-                  ) : null}
-                  {(application.software_used ?? []).length > 0 ? (
-                    <ApplicationPreviewField
-                      label="Software"
-                      value={(application.software_used ?? []).join(', ')}
-                    />
-                  ) : null}
-                  {(application.practice_types ?? []).length > 0 ? (
-                    <ApplicationPreviewField
-                      label="Specialties"
-                      value={(application.practice_types ?? []).map(getSpecialtyLabel).join(', ')}
-                    />
-                  ) : null}
-                </ApplicationPreviewGroup>
-              ) : null}
-              {hasKitSubmitted && application.cover_message ? (
-                <ApplicationPreviewGroup title="Cover message">
-                  <ApplicationPreviewField label="Message" value={application.cover_message} />
-                </ApplicationPreviewGroup>
-              ) : null}
-              {isScreeningStage && !hasKitSubmitted ? (
-                <ApplicationPreviewGroup>
-                  <ApplicationPreviewField label="Application kit" value="Not submitted yet" />
-                </ApplicationPreviewGroup>
-              ) : null}
-              {application.interview_details ? (
-                <ApplicationPreviewGroup title="Interview">
-                  <ApplicationPreviewField
-                    label="Details"
-                    value={application.interview_details}
-                  />
-                </ApplicationPreviewGroup>
-              ) : null}
-              {hasKitSubmitted ? (
-                <ApplicationPreviewGroup title="Documents">
-                  <ApplicationPreviewField
-                    label="Resume"
-                    value={formatApplicationResumeStatus(application.resume_storage_path)}
-                  />
-                  {application.resume_storage_path ? (
-                    <ResumeViewButton
-                      storagePath={application.resume_storage_path}
-                      fileName={resumeFileName}
-                    />
-                  ) : null}
-                </ApplicationPreviewGroup>
-              ) : null}
-            </CardDetailSection>
-          ) : null}
-
-          {canManageCrm ? (
-            <CardDetailSection title="Private notes" divided>
-              <ClinicWorkerCrmSection
-                record={crmRecord}
-                onEdit={() => setCrmSheetVisible(true)}
-              />
-            </CardDetailSection>
-          ) : null}
-
-          {hasActions ? (
-            <View style={styles.actions}>
-              <GradientHairline />
-              {isScreeningStage && !awaitingKit ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Request application kit"
-                    onPress={handleRequestKit}
-                  />
-                  <OnboardingButton
-                    label="Not moving forward"
-                    variant="destructive"
-                    onPress={() => void updateStatus('rejected')}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'applied' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Mark viewed"
-                    onPress={() => void updateStatus('reviewed')}
-                  />
-                  <OnboardingButton
-                    label="Add to shortlist"
-                    variant="secondary"
-                    onPress={() => void updateStatus('in_progress')}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'applied' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Not moving forward"
-                    variant="destructive"
-                    onPress={() => void updateStatus('rejected')}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'reviewed' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Add to shortlist"
-                    onPress={() => void updateStatus('in_progress')}
-                  />
-                  <OnboardingButton
-                    label="Not moving forward"
-                    variant="destructive"
-                    onPress={() => void updateStatus('rejected')}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'in_progress' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Schedule interview"
-                    onPress={() => onScheduleInterview?.(application, 'offer')}
-                  />
-                  <OnboardingButton
-                    label="Not moving forward"
-                    variant="destructive"
-                    onPress={() => void updateStatus('rejected')}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'interview_offered' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Edit invite"
-                    variant="secondary"
-                    onPress={() => onScheduleInterview?.(application, 'edit_offer')}
-                  />
-                  <OnboardingButton
-                    label="Cancel invite"
-                    variant="secondary"
-                    onPress={cancelInterviewInvite}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'interview_offered' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Not moving forward"
-                    variant="destructive"
-                    onPress={() => void updateStatus('rejected')}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'interview_scheduled' && workerProposedChange ? (
-                <ApplicationActionRow>
-                  <OnboardingButton label="Accept new time" onPress={acceptWorkerProposal} />
-                  <OnboardingButton
-                    label="Decline"
-                    variant="destructive"
-                    onPress={declineWorkerProposal}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'interview_scheduled' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Add to calendar"
-                    variant="secondary"
-                    onPress={handleAddInterviewToCalendar}
-                  />
-                  {!clinicProposedChange && !workerProposedChange ? (
-                    <OnboardingButton
-                      label="Reschedule"
-                      variant="secondary"
-                      onPress={() => onScheduleInterview?.(application, 'propose_reschedule')}
-                    />
-                  ) : null}
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'interview_scheduled' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Cancel interview"
-                    variant="secondary"
-                    onPress={cancelScheduledInterview}
-                  />
-                  <OnboardingButton
-                    label="Mark hired"
-                    onPress={() => void updateStatus('selected')}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-              {application.status === 'interview_scheduled' ? (
-                <ApplicationActionRow>
-                  <OnboardingButton
-                    label="Not moving forward"
-                    variant="destructive"
-                    onPress={() => void updateStatus('rejected')}
-                  />
-                </ApplicationActionRow>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      {canManageCrm && clinicId ? (
-        <ClinicWorkerCrmSheet
-          visible={crmSheetVisible}
-          clinicId={clinicId}
-          workerId={application.worker_id}
-          workerName={applicantName}
-          record={crmRecord}
-          onSaved={() => onUpdated?.()}
-          onClose={() => setCrmSheetVisible(false)}
-        />
-      ) : null}
+      <View style={styles.trailingRow}>
+        {hasUnreadMessages ? <Text style={styles.unread}>New message</Text> : null}
+        <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
+      </View>
     </SurfaceCard>
   );
 }
