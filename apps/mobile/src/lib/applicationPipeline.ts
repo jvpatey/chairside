@@ -1,4 +1,5 @@
 import type { ClinicApplication } from '@chairside/api';
+import { isClinicWorkerCrmFollowUpDue, isClinicWorkerCrmFollowUpScheduled } from '@chairside/config';
 
 export type ApplicantPipelineSectionId =
   | 'screening'
@@ -21,7 +22,13 @@ const MATCH_TIER_ORDER: Record<string, number> = {
   none: 3,
 };
 
-export type ApplicantListFilter = 'all' | 'screening' | 'shortlisted' | 'interview' | 'decided';
+export type ApplicantListFilter =
+  | 'all'
+  | 'screening'
+  | 'shortlisted'
+  | 'interview'
+  | 'decided'
+  | 'follow_up';
 
 export type ApplicantFilterCounts = Record<ApplicantListFilter, number>;
 
@@ -31,6 +38,20 @@ function compareApplications(a: ClinicApplication, b: ClinicApplication): number
   if (tierA !== tierB) return tierA - tierB;
 
   return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+}
+
+function compareFollowUpApplications(a: ClinicApplication, b: ClinicApplication): number {
+  const aFollowUp = a.clinic_crm?.follow_up_at;
+  const bFollowUp = b.clinic_crm?.follow_up_at;
+  const aDue = isClinicWorkerCrmFollowUpDue(aFollowUp);
+  const bDue = isClinicWorkerCrmFollowUpDue(bFollowUp);
+  if (aDue !== bDue) return aDue ? -1 : 1;
+
+  const aTime = aFollowUp ? new Date(aFollowUp).getTime() : Number.POSITIVE_INFINITY;
+  const bTime = bFollowUp ? new Date(bFollowUp).getTime() : Number.POSITIVE_INFINITY;
+  if (aTime !== bTime) return aTime - bTime;
+
+  return compareApplications(a, b);
 }
 
 const SECTION_CONFIG: {
@@ -84,12 +105,19 @@ export function groupApplicationsByPipeline(
   })).filter((section) => section.applications.length > 0);
 }
 
-const FILTER_STATUS_MAP: Record<Exclude<ApplicantListFilter, 'all'>, string[]> = {
+const FILTER_STATUS_MAP: Record<
+  Exclude<ApplicantListFilter, 'all' | 'follow_up'>,
+  string[]
+> = {
   screening: ['screening_submitted'],
   shortlisted: ['in_progress'],
   interview: ['interview_offered', 'interview_scheduled'],
   decided: ['selected', 'rejected', 'hired'],
 };
+
+export function hasApplicantFollowUpScheduled(application: ClinicApplication): boolean {
+  return isClinicWorkerCrmFollowUpScheduled(application.clinic_crm?.follow_up_at);
+}
 
 export function getApplicantFilterCounts(
   applications: ClinicApplication[],
@@ -108,6 +136,7 @@ export function getApplicantFilterCounts(
     decided: applications.filter((application) =>
       FILTER_STATUS_MAP.decided.includes(application.status),
     ).length,
+    follow_up: applications.filter(hasApplicantFollowUpScheduled).length,
   };
 }
 
@@ -117,6 +146,12 @@ export function filterApplicationsByView(
 ): ClinicApplication[] {
   if (filter === 'all') {
     return [...applications].sort(compareApplications);
+  }
+
+  if (filter === 'follow_up') {
+    return applications
+      .filter(hasApplicantFollowUpScheduled)
+      .sort(compareFollowUpApplications);
   }
 
   const statuses = FILTER_STATUS_MAP[filter];

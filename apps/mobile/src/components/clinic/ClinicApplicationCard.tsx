@@ -19,6 +19,7 @@ import {
   isAwaitingApplicationKit,
   isScreeningStageStatus,
   formatRoleTypesLabel,
+  hasClinicWorkerCrmContent,
   resolveWorkerRoleTypes,
   getSpecialtyLabel,
 } from '@chairside/config';
@@ -46,6 +47,11 @@ import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
+import {
+  ClinicWorkerCrmBadges,
+  ClinicWorkerCrmSection,
+  ClinicWorkerCrmSheet,
+} from '@/components/clinic/ClinicWorkerCrmSheet';
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
 import { ApplicationPreviewGroup } from '@/components/worker/ApplicationPreviewGroup';
@@ -158,6 +164,7 @@ export function ClinicApplicationCard({
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const [expanded, setExpanded] = useState(false);
+  const [crmSheetVisible, setCrmSheetVisible] = useState(false);
   const isJob = application.post_type === 'job';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
@@ -385,6 +392,8 @@ export function ClinicApplicationCard({
   const appliedLabel = appliedDateLabel ? `Applied ${appliedDateLabel}` : null;
 
   const canRemoveFromList = Boolean(clinicId) && canClinicHideApplication(application);
+  const canManageCrm = Boolean(clinicId) && !workerDeleted;
+  const crmRecord = application.clinic_crm;
 
   const handleMessage = () => {
     router.push(getClinicApplicationMessagesRoute(application.id, returnTo));
@@ -422,6 +431,11 @@ export function ClinicApplicationCard({
               audience="clinic"
             />
           </BadgeRow>
+        ) : null
+      }
+      textFooter={
+        canManageCrm && hasClinicWorkerCrmContent(crmRecord) ? (
+          <ClinicWorkerCrmBadges record={crmRecord} compact />
         ) : null
       }
     />
@@ -588,6 +602,15 @@ export function ClinicApplicationCard({
             </CardDetailSection>
           ) : null}
 
+          {canManageCrm ? (
+            <CardDetailSection title="Private notes" divided>
+              <ClinicWorkerCrmSection
+                record={crmRecord}
+                onEdit={() => setCrmSheetVisible(true)}
+              />
+            </CardDetailSection>
+          ) : null}
+
           {hasActions ? (
             <View style={styles.actions}>
               <GradientHairline />
@@ -726,6 +749,18 @@ export function ClinicApplicationCard({
             </View>
           ) : null}
         </View>
+      ) : null}
+
+      {canManageCrm && clinicId ? (
+        <ClinicWorkerCrmSheet
+          visible={crmSheetVisible}
+          clinicId={clinicId}
+          workerId={application.worker_id}
+          workerName={applicantName}
+          record={crmRecord}
+          onSaved={() => onUpdated?.()}
+          onClose={() => setCrmSheetVisible(false)}
+        />
       ) : null}
     </SurfaceCard>
   );

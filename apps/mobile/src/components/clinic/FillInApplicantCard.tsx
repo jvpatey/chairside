@@ -5,13 +5,18 @@ import {
   type ClinicApplication,
   type FillInCoverRequest,
 } from '@chairside/api';
-import { getRoleTypeLabel } from '@chairside/config';
+import { getRoleTypeLabel, hasClinicWorkerCrmContent } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
+import {
+  ClinicWorkerCrmBadges,
+  ClinicWorkerCrmSection,
+  ClinicWorkerCrmSheet,
+} from '@/components/clinic/ClinicWorkerCrmSheet';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
@@ -68,6 +73,7 @@ export function FillInApplicantCard({
   const { colors } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [crmSheetVisible, setCrmSheetVisible] = useState(false);
   const { refreshPending, isCoverRequestHighlighted, getCoverRequestHighlightLabel } =
     useFillInPending();
   const { markApplicationSeen } = useApplicationTabBadge();
@@ -86,6 +92,8 @@ export function FillInApplicantCard({
     returnTo === 'fill-ins-tab' || returnTo === 'postings-fill-ins' || returnTo === 'dashboard-fill-ins'
       ? 'messages-tab'
       : returnTo;
+  const canManageCrm = !workerDeleted;
+  const crmRecord = 'clinic_crm' in application ? application.clinic_crm : null;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -204,7 +212,19 @@ export function FillInApplicantCard({
             <ClinicApplicationStatusBadge status={application.status} postType="shift" />
           </View>
         }
+        footer={
+          canManageCrm && hasClinicWorkerCrmContent(crmRecord) ? (
+            <ClinicWorkerCrmBadges record={crmRecord} compact />
+          ) : null
+        }
       />
+
+      {canManageCrm ? (
+        <ClinicWorkerCrmSection
+          record={crmRecord}
+          onEdit={() => setCrmSheetVisible(true)}
+        />
+      ) : null}
 
       {application.cover_message?.trim() ? (
         <Text style={styles.preview}>{`\u201C${application.cover_message.trim()}\u201D`}</Text>
@@ -258,6 +278,18 @@ export function FillInApplicantCard({
           onPress={() =>
             router.push(getClinicApplicationMessagesRoute(application.id, messagesReturnTo))
           }
+        />
+      ) : null}
+
+      {canManageCrm ? (
+        <ClinicWorkerCrmSheet
+          visible={crmSheetVisible}
+          clinicId={clinicId}
+          workerId={application.worker_id}
+          workerName={workerName}
+          record={crmRecord}
+          onSaved={() => onUpdated?.()}
+          onClose={() => setCrmSheetVisible(false)}
         />
       ) : null}
     </View>

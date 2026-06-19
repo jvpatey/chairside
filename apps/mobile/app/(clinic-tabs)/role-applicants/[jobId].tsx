@@ -53,6 +53,8 @@ const FILTER_EMPTY_MESSAGES: Record<Exclude<ApplicantListFilter, 'all'>, string>
   shortlisted: 'No shortlisted applicants yet. Add candidates from the All tab.',
   interview: 'No interview invitations yet. Send one from a shortlisted applicant.',
   decided: 'No decided applicants yet. Mark applicants as hired or not moving forward.',
+  follow_up:
+    'No follow-up reminders yet. Add a follow-up date from an applicant’s private notes.',
 };
 
 export default function ClinicRoleApplicationsScreen() {

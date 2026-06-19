@@ -262,3 +262,11 @@ export {
   type NotificationPreferenceUpdate,
 } from './notificationPreferences';
 export type { Database, Profile, UserRole } from './types';
+export {
+  attachClinicCrmToApplications,
+  listClinicWorkerCrmRecords,
+  listClinicWorkerCrmRecordsMap,
+  upsertClinicWorkerCrmRecord,
+  type ClinicWorkerCrmRecord,
+  type UpsertClinicWorkerCrmInput,
+} from './clinicWorkerCrm';
