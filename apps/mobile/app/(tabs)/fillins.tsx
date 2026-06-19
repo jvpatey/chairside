@@ -21,6 +21,8 @@ import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionH
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
+import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
@@ -41,6 +43,7 @@ import {
   partitionWorkerShiftApplications,
   type FillInsTabMode,
 } from '@/lib/fillInFilters';
+import type { WorkerBrowseViewMode } from '@/lib/postingFilters';
 import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
 import {
   DEFAULT_WORKER_FILLIN_BROWSE_FILTERS,
@@ -51,6 +54,11 @@ import {
   WORKER_PAST_FILLINS,
   WORKER_SETUP_AVAILABILITY_SCHEDULE,
 } from '@/lib/routing';
+import {
+  countUnmappablePosts,
+  groupWorkerMapItemsByClinic,
+  toWorkerMapItemsFromShifts,
+} from '@/lib/workerMapItems';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -65,6 +73,7 @@ export default function FillInsScreen() {
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('open');
+  const [viewMode, setViewMode] = useState<WorkerBrowseViewMode>('list');
   const [searchQuery, setSearchQuery] = useState(DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.searchQuery);
   const [roleTypeFilter, setRoleTypeFilter] = useState(
     DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.roleTypeFilter,
@@ -195,19 +204,50 @@ export default function FillInsScreen() {
   );
   const pastFillInCount = pastConfirmed.length + pastInProgress.length;
   const activeFillInCount = upcomingConfirmed.length + upcomingInProgress.length;
+  const mapGroups = useMemo(
+    () =>
+      groupWorkerMapItemsByClinic(toWorkerMapItemsFromShifts(filteredShifts, savedShiftIds)),
+    [filteredShifts, savedShiftIds],
+  );
+  const unmappableShiftCount = useMemo(() => countUnmappablePosts(filteredShifts), [filteredShifts]);
+  const workerCoords =
+    workerProfile?.latitude != null && workerProfile?.longitude != null
+      ? { latitude: workerProfile.latitude, longitude: workerProfile.longitude }
+      : null;
+  const useMapLayout = selectedMode === 'open' && viewMode === 'map';
 
   const fillInsAvailable = workerProfile?.short_notice_available ?? false;
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     content: { gap: spacing.lg },
+    contentMap: { flex: 1, minHeight: 0, width: '100%', flexDirection: 'column', gap: spacing.md },
     panel: { gap: spacing.lg },
+    mapBody: { flex: 1, minHeight: 0, width: '100%', overflow: 'hidden' },
     cardList: { gap: dashboardSectionGap(spacing) },
     browseControlsRow: {
+      width: '100%',
+      flexShrink: 0,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
     },
+    controlsBlock: {
+      width: '100%',
+      flexShrink: 0,
+      flexGrow: 0,
+      gap: spacing.md,
+    },
+    controlRow: {
+      width: '100%',
+      flexShrink: 0,
+    },
     searchField: { flex: 1, minWidth: 0 },
+    mapPanel: {
+      flex: 1,
+      minHeight: 0,
+      width: '100%',
+      overflow: 'hidden',
+    },
     applicationGroup: { gap: spacing.sm },
     viewAllRow: {
       flexDirection: 'row',
@@ -254,18 +294,27 @@ export default function FillInsScreen() {
 
   return (
     <>
-      <Screen title="Fill-ins" subtitle="Temp shifts and your availability.">
-        <View style={styles.content}>
-          <SegmentedControl
-            options={FILL_INS_TAB_MODE_OPTIONS}
-            selected={selectedMode}
-            onChange={setSelectedMode}
-            density="compact"
-          />
-
-          {selectedMode === 'open' ? (
-            <View style={styles.panel}>
-              {!isLoading && shifts.length > 0 ? (
+      <Screen
+        title="Fill-ins"
+        subtitle="Temp shifts and your availability."
+        scroll={!useMapLayout}
+        fillsContainer={useMapLayout}
+      >
+        <View style={[styles.content, useMapLayout && styles.contentMap]}>
+          <View style={styles.controlsBlock}>
+            <View style={styles.controlRow}>
+              <SegmentedControl
+                options={FILL_INS_TAB_MODE_OPTIONS}
+                selected={selectedMode}
+                onChange={setSelectedMode}
+                density="compact"
+              />
+            </View>
+            {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
+              <>
+                <View style={styles.controlRow}>
+                  <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
+                </View>
                 <View style={styles.browseControlsRow}>
                   <View style={styles.searchField}>
                     <WorkerBrowseSearchBar
@@ -292,7 +341,28 @@ export default function FillInsScreen() {
                     onSavedOnlyFilterChange={setSavedOnlyFilter}
                   />
                 </View>
-              ) : null}
+              </>
+            ) : null}
+          </View>
+
+          {selectedMode === 'open' ? (
+            useMapLayout && !isLoading && filteredShifts.length > 0 ? (
+              <View style={styles.mapBody} collapsable={false}>
+                <View style={styles.mapPanel}>
+                  <WorkerBrowseMap
+                    groups={mapGroups}
+                    workerCoords={workerCoords}
+                    province={province}
+                    unmappableCount={unmappableShiftCount}
+                    workerHasCoordinates={workerCoords != null}
+                    onSelectItem={(item) =>
+                      router.push(getWorkerShiftDetailRoute(item.id, 'fill-ins-tab'))
+                    }
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.panel}>
               {isLoading ? (
                 <PageLoadingList rowCount={4} />
               ) : filteredShifts.length === 0 ? (
@@ -323,7 +393,8 @@ export default function FillInsScreen() {
                   ))}
                 </View>
               )}
-            </View>
+              </View>
+            )
           ) : null}
 
           {selectedMode === 'confirmed' ? (

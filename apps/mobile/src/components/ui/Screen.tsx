@@ -83,13 +83,21 @@ export function Screen({
         ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const }
         : {}),
     },
+    contentFill: {
+      flex: 1,
+      minHeight: 0,
+      flexDirection: 'column',
+    },
     body: {
       flex: fillsContainer ? 1 : undefined,
       minHeight: fillsContainer ? 0 : undefined,
+      width: fillsContainer ? '100%' : undefined,
+      flexDirection: fillsContainer ? ('column' as const) : undefined,
     },
     header: {
       gap: spacing.sm,
       marginBottom: spacing.lg,
+      ...(fillsContainer ? { flexShrink: 0 } : {}),
     },
     headerRow: {
       flexDirection: 'row',
@@ -145,6 +153,7 @@ export function Screen({
         styles.header,
         !showTopBar && styles.headerHidden,
         !showHeader && showTopBar && styles.headerCompact,
+        fillsContainer && showHeader && styles.headerCompact,
       ]}
     >
       {onBack ? (
@@ -197,7 +206,7 @@ export function Screen({
             style={[
               styles.content,
               paddingStyle,
-              fillsContainer && { flex: 1, minHeight: 0 },
+              fillsContainer && styles.contentFill,
               contentContainerStyle,
             ]}
           >

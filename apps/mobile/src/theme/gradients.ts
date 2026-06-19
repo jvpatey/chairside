@@ -48,7 +48,10 @@ export function getPrimaryTileGradient(colors: Colors, isDark: boolean): readonl
 }
 
 /** Secondary quick-action tile gradient. */
-export function getSecondaryTileGradient(colors: Colors, isDark: boolean): readonly [string, string] {
+export function getSecondaryTileGradient(
+  colors: Colors,
+  isDark: boolean,
+): readonly [string, string] {
   return isDark
     ? [colorWithAlpha(colors.secondary, 0.28), colorWithAlpha(colors.surfaceElevated, 0.95)]
     : [colorWithAlpha(colors.secondary, 0.22), colorWithAlpha(colors.secondarySubtle, 0.98)];
@@ -132,16 +135,8 @@ export function getAppliedRowGradient(
   isDark: boolean,
 ): readonly [string, string, string] {
   return isDark
-    ? [
-        colorWithAlpha(colors.primary, 0.22),
-        colorWithAlpha(colors.primary, 0.07),
-        'transparent',
-      ]
-    : [
-        colorWithAlpha(colors.primary, 0.2),
-        colorWithAlpha(colors.primary, 0.09),
-        'transparent',
-      ];
+    ? [colorWithAlpha(colors.primary, 0.22), colorWithAlpha(colors.primary, 0.07), 'transparent']
+    : [colorWithAlpha(colors.primary, 0.2), colorWithAlpha(colors.primary, 0.09), 'transparent'];
 }
 
 /** Fill-in availability hero wash (matches dashboard fill-in accent). */

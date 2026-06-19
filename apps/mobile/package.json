@@ -14,6 +14,7 @@
     "@notificationapi/core": "^1.2.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
+    "@rnmapbox/maps": "^10.3.1",
     "@supabase/supabase-js": "2.105.4",
     "@vercel/analytics": "^2.0.1",
     "expo": "~54.0.35",
@@ -53,7 +54,8 @@
     "@types/react": "~19.1.17",
     "eslint": "^9.39.4",
     "eslint-config-expo": "~10.0.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.4"
   },
   "scripts": {
     "dev": "expo start",
@@ -63,6 +65,7 @@
     "web": "expo start --web",
     "export:web": "expo export --platform web",
     "lint": "eslint app src",
+    "test": "vitest run",
     "generate:brand": "node ./scripts/generate-brand-assets.mjs"
   },
   "private": true
