@@ -319,6 +319,26 @@ export type Database = {
         };
         Relationships: [];
       };
+      worker_saved_posts: {
+        Row: {
+          id: string;
+          worker_id: string;
+          job_post_id: string | null;
+          shift_post_id: string | null;
+          saved_at: string;
+          last_change_seen_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          worker_id: string;
+          job_post_id?: string | null;
+          shift_post_id?: string | null;
+          saved_at?: string;
+          last_change_seen_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['worker_saved_posts']['Insert']>;
+        Relationships: [];
+      };
       availability_blocks: {
         Row: AvailabilityBlockRow;
         Insert: {
@@ -444,6 +464,22 @@ export type Database = {
       };
       mark_shift_posts_seen_by_worker: {
         Args: { shift_post_ids: string[] };
+        Returns: undefined;
+      };
+      save_job_post_for_worker: {
+        Args: { p_job_post_id: string };
+        Returns: undefined;
+      };
+      unsave_job_post_for_worker: {
+        Args: { p_job_post_id: string };
+        Returns: undefined;
+      };
+      save_shift_post_for_worker: {
+        Args: { p_shift_post_id: string };
+        Returns: undefined;
+      };
+      unsave_shift_post_for_worker: {
+        Args: { p_shift_post_id: string };
         Returns: undefined;
       };
       list_fill_in_outreach_workers_for_clinic: {

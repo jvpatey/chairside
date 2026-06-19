@@ -2,6 +2,9 @@ import {
   listLiveShiftPosts,
   listWorkerShiftApplications,
   isPastWorkerFillInApplication,
+  getWorkerSavedShiftPostIds,
+  saveShiftPost,
+  unsaveShiftPost,
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
@@ -13,12 +16,12 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { WorkerFillInBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
-import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -39,7 +42,6 @@ import {
   type FillInsTabMode,
 } from '@/lib/fillInFilters';
 import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
-import { type RoleTypeFilter } from '@/lib/postingFilters';
 import {
   DEFAULT_WORKER_FILLIN_BROWSE_FILTERS,
   filterAndSortLiveShifts,
@@ -80,6 +82,10 @@ export default function FillInsScreen() {
   const [availabilityFilter, setAvailabilityFilter] = useState(
     DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter,
   );
+  const [savedOnlyFilter, setSavedOnlyFilter] = useState(
+    DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.savedOnlyFilter,
+  );
+  const [savedShiftIds, setSavedShiftIds] = useState<Set<string>>(new Set());
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
@@ -92,12 +98,14 @@ export default function FillInsScreen() {
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [shiftRows, applicationRows] = await Promise.all([
+      const [shiftRows, applicationRows, savedIds] = await Promise.all([
         listLiveShiftPosts(province),
         user?.id ? listWorkerShiftApplications(user.id) : Promise.resolve([]),
+        user?.id ? getWorkerSavedShiftPostIds(user.id) : Promise.resolve(new Set<string>()),
       ]);
       setShifts(shiftRows);
       setApplications(applicationRows);
+      setSavedShiftIds(savedIds);
       await markShiftPostsSeen(shiftRows.map((shift) => shift.id));
 
       const pastShiftApplications = applicationRows.filter(isPastWorkerFillInApplication);
@@ -109,6 +117,7 @@ export default function FillInsScreen() {
     } catch {
       setShifts([]);
       setApplications([]);
+      setSavedShiftIds(new Set());
       Alert.alert('Could not load fill-ins', 'Please try again.');
     } finally {
       setIsLoading(false);
@@ -128,19 +137,46 @@ export default function FillInsScreen() {
         softwareFilter,
         payListedFilter,
         availabilityFilter,
-      }),
+        savedOnlyFilter,
+      }).filter((shift) => savedOnlyFilter !== 'saved_only' || savedShiftIds.has(shift.id)),
     [
       availabilityBlocks,
       availabilityFilter,
       distanceFilter,
       payListedFilter,
       roleTypeFilter,
+      savedOnlyFilter,
+      savedShiftIds,
       searchQuery,
       shifts,
       softwareFilter,
       sort,
       workerProfile,
     ],
+  );
+
+  const handleToggleSavedShift = useCallback(
+    async (shiftId: string, nextSaved: boolean) => {
+      if (!user?.id) return;
+      const previous = new Set(savedShiftIds);
+      setSavedShiftIds((current) => {
+        const next = new Set(current);
+        if (nextSaved) next.add(shiftId);
+        else next.delete(shiftId);
+        return next;
+      });
+      try {
+        if (nextSaved) await saveShiftPost(shiftId);
+        else await unsaveShiftPost(shiftId);
+      } catch (error) {
+        setSavedShiftIds(previous);
+        Alert.alert(
+          'Could not update saved fill-in',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      }
+    },
+    [savedShiftIds, user?.id],
   );
 
   const hasActiveFillInFilters =
@@ -150,7 +186,8 @@ export default function FillInsScreen() {
     distanceFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.distanceFilter ||
     softwareFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.softwareFilter ||
     payListedFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.payListedFilter ||
-    availabilityFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter;
+    availabilityFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter ||
+    savedOnlyFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.savedOnlyFilter;
 
   const { upcomingConfirmed, pastConfirmed, pastInProgress, upcomingInProgress } = useMemo(
     () => partitionWorkerShiftApplications(applications),
@@ -164,6 +201,7 @@ export default function FillInsScreen() {
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     content: { gap: spacing.lg },
     panel: { gap: spacing.lg },
+    cardList: { gap: dashboardSectionGap(spacing) },
     browseControlsRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -244,12 +282,14 @@ export default function FillInsScreen() {
                     softwareFilter={softwareFilter}
                     payListedFilter={payListedFilter}
                     availabilityFilter={availabilityFilter}
+                    savedOnlyFilter={savedOnlyFilter}
                     onRoleTypeChange={setRoleTypeFilter}
                     onSortChange={setSort}
                     onDistanceFilterChange={setDistanceFilter}
                     onSoftwareFilterChange={setSoftwareFilter}
                     onPayListedFilterChange={setPayListedFilter}
                     onAvailabilityFilterChange={setAvailabilityFilter}
+                    onSavedOnlyFilterChange={setSavedOnlyFilter}
                   />
                 </View>
               ) : null}
@@ -266,19 +306,22 @@ export default function FillInsScreen() {
                   }
                 />
               ) : (
-                <BrowseListGroup>
+                <View style={styles.cardList}>
                   {filteredShifts.map((shift) => (
                     <FillInListingCard
                       key={shift.id}
                       shift={shift}
-                      layout="list"
                       distanceLabel={shift.distanceLabel}
+                      isSaved={savedShiftIds.has(shift.id)}
+                      onToggleSaved={() =>
+                        void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+                      }
                       onPress={() =>
                         router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))
                       }
                     />
                   ))}
-                </BrowseListGroup>
+                </View>
               )}
             </View>
           ) : null}

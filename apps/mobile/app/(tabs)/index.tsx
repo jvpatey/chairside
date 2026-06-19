@@ -1,11 +1,17 @@
 import {
   getWorkerDashboardCounts,
+  getWorkerSavedJobPostIds,
+  getWorkerSavedShiftPostIds,
   listConversationsForWorker,
   listLiveJobPosts,
   listLiveShiftPosts,
   listWorkerAppliedJobPostIds,
   listWorkerJobApplications,
   listWorkerShiftApplications,
+  saveJobPost,
+  saveShiftPost,
+  unsaveJobPost,
+  unsaveShiftPost,
   type Conversation,
   type LiveJobPost,
   type LiveShiftPost,
@@ -14,7 +20,7 @@ import {
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
@@ -68,6 +74,8 @@ export default function WorkerDashboardScreen() {
   const [selectedOverview, setSelectedOverview] = useState<WorkerOverviewStat>('roles');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [appliedJobPostIds, setAppliedJobPostIds] = useState<Set<string>>(new Set());
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  const [savedShiftIds, setSavedShiftIds] = useState<Set<string>>(new Set());
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [jobApplications, setJobApplications] = useState<WorkerApplication[]>([]);
   const [shiftApplications, setShiftApplications] = useState<WorkerApplication[]>([]);
@@ -97,6 +105,8 @@ export default function WorkerDashboardScreen() {
         jobApplicationRows,
         shiftApplicationRows,
         conversationRows,
+        savedJobIdRows,
+        savedShiftIdRows,
       ] = await Promise.all([
         getWorkerDashboardCounts(user.id, province),
         listLiveJobPosts(province),
@@ -105,11 +115,15 @@ export default function WorkerDashboardScreen() {
         listWorkerJobApplications(user.id),
         listWorkerShiftApplications(user.id),
         listConversationsForWorker(user.id),
+        getWorkerSavedJobPostIds(user.id),
+        getWorkerSavedShiftPostIds(user.id),
       ]);
 
       setCounts(nextCounts);
       setJobs(jobPosts);
       setAppliedJobPostIds(new Set(appliedJobIds));
+      setSavedJobIds(savedJobIdRows);
+      setSavedShiftIds(savedShiftIdRows);
       setShifts(shiftPosts);
       setJobApplications(jobApplicationRows);
       setShiftApplications(shiftApplicationRows);
@@ -122,6 +136,8 @@ export default function WorkerDashboardScreen() {
         setCounts({ openRolesInProvince: 0, openFillInsInProvince: 0, pendingApplications: 0 });
         setJobs([]);
         setAppliedJobPostIds(new Set());
+        setSavedJobIds(new Set());
+        setSavedShiftIds(new Set());
         setShifts([]);
         setJobApplications([]);
         setShiftApplications([]);
@@ -143,6 +159,54 @@ export default function WorkerDashboardScreen() {
   const openJobs = useMemo(
     () => jobs.filter((job) => !appliedJobPostIds.has(job.id)),
     [appliedJobPostIds, jobs],
+  );
+
+  const handleToggleSavedJob = useCallback(
+    async (jobId: string, nextSaved: boolean) => {
+      if (!user?.id) return;
+      const previous = new Set(savedJobIds);
+      setSavedJobIds((current) => {
+        const next = new Set(current);
+        if (nextSaved) next.add(jobId);
+        else next.delete(jobId);
+        return next;
+      });
+      try {
+        if (nextSaved) await saveJobPost(jobId);
+        else await unsaveJobPost(jobId);
+      } catch (error) {
+        setSavedJobIds(previous);
+        Alert.alert(
+          'Could not update saved role',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      }
+    },
+    [savedJobIds, user?.id],
+  );
+
+  const handleToggleSavedShift = useCallback(
+    async (shiftId: string, nextSaved: boolean) => {
+      if (!user?.id) return;
+      const previous = new Set(savedShiftIds);
+      setSavedShiftIds((current) => {
+        const next = new Set(current);
+        if (nextSaved) next.add(shiftId);
+        else next.delete(shiftId);
+        return next;
+      });
+      try {
+        if (nextSaved) await saveShiftPost(shiftId);
+        else await unsaveShiftPost(shiftId);
+      } catch (error) {
+        setSavedShiftIds(previous);
+        Alert.alert(
+          'Could not update saved fill-in',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      }
+    },
+    [savedShiftIds, user?.id],
   );
 
   const unreadMap = useMemo(() => {
@@ -297,10 +361,16 @@ export default function WorkerDashboardScreen() {
                 shifts={shifts}
                 jobApplications={jobApplications}
                 shiftApplications={shiftApplications}
+                savedJobIds={savedJobIds}
+                savedShiftIds={savedShiftIds}
                 unreadMap={unreadMap}
                 onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
                 onShiftPress={(shiftId) =>
                   router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
+                }
+                onToggleSavedJob={(jobId, nextSaved) => void handleToggleSavedJob(jobId, nextSaved)}
+                onToggleSavedShift={(shiftId, nextSaved) =>
+                  void handleToggleSavedShift(shiftId, nextSaved)
                 }
                 onApplicationUpdated={() => void loadDashboard()}
               />

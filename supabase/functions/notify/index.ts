@@ -50,6 +50,9 @@ const PINGRAM_TYPES = {
   applicationHired: 'application_hired',
   fillInPosted: 'fill_in_posted',
   jobPosted: 'job_posted',
+  jobUpdated: 'job_updated',
+  fillInUpdated: 'fill_in_updated',
+  savedPostUnavailable: 'saved_post_unavailable',
   messageReceived: 'message_received',
   fillInOutreachSms: 'fill_in_outreach_sms',
 } as const;
@@ -1006,7 +1009,7 @@ async function handleShiftPostLive(
   pingramBase: string,
   record: Record<string, unknown>,
   options: { isUpdate?: boolean } = {},
-) {
+): Promise<Set<string>> {
   const shiftId = record.id as string;
   const clinicId = record.clinic_id as string;
   const shiftDate = record.shift_date as string;
@@ -1048,6 +1051,8 @@ async function handleShiftPostLive(
     NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
   );
 
+  const notifiedRecipientIds = new Set<string>();
+
   for (const worker of recipients) {
     const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}:${updatedAt}`;
     if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
@@ -1072,7 +1077,10 @@ async function handleShiftPostLive(
         smsMessage: fillInCopy.smsMessage,
       }),
     );
+    notifiedRecipientIds.add(worker.id);
   }
+
+  return notifiedRecipientIds;
 }
 
 async function handleJobPostLive(
@@ -1154,11 +1162,232 @@ const FILL_IN_NOTIFY_FIELDS = [
   'compensation',
 ] as const;
 
+const JOB_NOTIFY_FIELDS = [
+  'title',
+  'role_type',
+  'wage_range',
+  'schedule',
+  'description',
+  'employment_type',
+] as const;
+
 function fillInNotificationFieldsChanged(
   record: Record<string, unknown>,
   oldRecord: Record<string, unknown>,
 ): boolean {
   return FILL_IN_NOTIFY_FIELDS.some((field) => record[field] !== oldRecord[field]);
+}
+
+function jobNotificationFieldsChanged(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown>,
+): boolean {
+  return JOB_NOTIFY_FIELDS.some((field) => record[field] !== oldRecord[field]);
+}
+
+function savedJobBecameUnavailable(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+): boolean {
+  const oldStatus = oldRecord?.status as string | undefined;
+  const status = record.status as string;
+  return oldStatus === 'live' && status !== 'live';
+}
+
+function savedShiftBecameUnavailable(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+): boolean {
+  const oldStatus = oldRecord?.status as string | undefined;
+  const status = record.status as string;
+  return oldStatus === 'live' && status !== 'live';
+}
+
+function shouldNotifySavedJobChange(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+  eventType: WebhookPayload['type'],
+): boolean {
+  if (eventType !== 'UPDATE' || !oldRecord) return false;
+  if (savedJobBecameUnavailable(record, oldRecord)) return true;
+  if (record.status !== 'live' || oldRecord.status !== 'live') return false;
+  return jobNotificationFieldsChanged(record, oldRecord);
+}
+
+function shouldNotifySavedShiftChange(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+  eventType: WebhookPayload['type'],
+): boolean {
+  if (eventType !== 'UPDATE' || !oldRecord) return false;
+  if (savedShiftBecameUnavailable(record, oldRecord)) return true;
+  if (record.status !== 'live' || oldRecord.status !== 'live') return false;
+  return fillInNotificationFieldsChanged(record, oldRecord);
+}
+
+async function listSavedWorkersForJob(
+  supabase: ReturnType<typeof createClient>,
+  jobId: string,
+  clinicId: string,
+): Promise<Array<{ id: string }>> {
+  const { data, error } = await supabase
+    .from('worker_saved_posts')
+    .select('worker_id')
+    .eq('job_post_id', jobId);
+
+  if (error) throw error;
+  const workers = (data ?? []).map((row) => ({ id: row.worker_id as string }));
+  return filterWorkerNotificationRecipients(supabase, workers, [clinicId]);
+}
+
+async function listSavedWorkersForShift(
+  supabase: ReturnType<typeof createClient>,
+  shiftId: string,
+  clinicId: string,
+): Promise<Array<{ id: string }>> {
+  const { data, error } = await supabase
+    .from('worker_saved_posts')
+    .select('worker_id')
+    .eq('shift_post_id', shiftId);
+
+  if (error) throw error;
+  const workers = (data ?? []).map((row) => ({ id: row.worker_id as string }));
+  return filterWorkerNotificationRecipients(supabase, workers, [clinicId]);
+}
+
+async function handleSavedJobPostUpdate(
+  supabase: ReturnType<typeof createClient>,
+  pingramKey: string,
+  pingramBase: string,
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown>,
+) {
+  const jobId = record.id as string;
+  const clinicId = record.clinic_id as string;
+  const title = record.title as string;
+  const updatedAt = (record.updated_at as string | undefined) ?? jobId;
+  const unavailable = savedJobBecameUnavailable(record, oldRecord);
+
+  const savers = await listSavedWorkersForJob(supabase, jobId, clinicId);
+  if (!savers.length) return;
+
+  const { data: clinic } = await supabase
+    .from('clinic_profiles')
+    .select('clinic_name, city')
+    .eq('id', clinicId)
+    .maybeSingle();
+
+  const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
+  const cityLabel = clinic?.city ? ` · ${clinic.city}` : '';
+  const deepLink = `chairside:///(tabs)/job/${jobId}`;
+  const pingramType = unavailable
+    ? PINGRAM_TYPES.savedPostUnavailable
+    : PINGRAM_TYPES.jobUpdated;
+  const notifTitle = unavailable
+    ? `Role no longer available · ${title}`
+    : `Saved role updated · ${title}`;
+  const message = unavailable
+    ? `${clinicName}${cityLabel} is no longer hiring for ${title}.`
+    : `${clinicName}${cityLabel} updated ${title}.`;
+
+  const pushPreferences = await loadPushPreferenceMap(
+    supabase,
+    savers.map((worker) => worker.id),
+    NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
+  );
+
+  for (const worker of savers) {
+    const idempotencyKey = `${pingramType}:${jobId}:${worker.id}:${updatedAt}`;
+    if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
+
+    await pingramSend(
+      pingramKey,
+      pingramBase,
+      buildSendBody({
+        type: pingramType,
+        userId: worker.id,
+        title: notifTitle,
+        message,
+        deepLink,
+        secondaryId: idempotencyKey,
+        includePush: pushPreferences.get(worker.id) ?? true,
+      }),
+    );
+  }
+}
+
+async function handleSavedShiftPostUpdate(
+  supabase: ReturnType<typeof createClient>,
+  pingramKey: string,
+  pingramBase: string,
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown>,
+  excludeWorkerIds: Set<string>,
+) {
+  const shiftId = record.id as string;
+  const clinicId = record.clinic_id as string;
+  const shiftDate = record.shift_date as string;
+  const startTime = record.start_time as string | undefined;
+  const endTime = record.end_time as string | undefined;
+  const compensation = record.compensation as string | null | undefined;
+  const updatedAt = (record.updated_at as string | undefined) ?? shiftId;
+  const unavailable = savedShiftBecameUnavailable(record, oldRecord);
+
+  const savers = (await listSavedWorkersForShift(supabase, shiftId, clinicId)).filter(
+    (worker) => !excludeWorkerIds.has(worker.id),
+  );
+  if (!savers.length) return;
+
+  const { data: clinic } = await supabase
+    .from('clinic_profiles')
+    .select('clinic_name, city, province')
+    .eq('id', clinicId)
+    .maybeSingle();
+
+  const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
+  const locationLabel = formatClinicLocation(clinic ?? {});
+  const locationSuffix = locationLabel ? ` · ${locationLabel}` : '';
+  const deepLink = `chairside:///(tabs)/shift/${shiftId}`;
+  const pingramType = unavailable
+    ? PINGRAM_TYPES.savedPostUnavailable
+    : PINGRAM_TYPES.fillInUpdated;
+
+  const dateLabel = formatShiftDateLabel(shiftDate);
+  const timeRange =
+    startTime && endTime ? formatShiftTimeRange(startTime, endTime) : null;
+  const detailParts = [dateLabel, timeRange].filter(Boolean).join(', ');
+
+  const notifTitle = unavailable
+    ? `Saved fill-in no longer available · ${clinicName}`
+    : `Saved fill-in updated · ${clinicName}`;
+  const message = unavailable
+    ? `${clinicName}${locationSuffix} is no longer offering the fill-in on ${detailParts}.`
+    : `${clinicName}${locationSuffix} updated the fill-in on ${detailParts}.`;
+
+  const pushPreferences = await loadPushPreferenceMap(
+    supabase,
+    savers.map((worker) => worker.id),
+    NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
+  );
+
+  for (const worker of savers) {
+    const idempotencyKey = `${pingramType}:${shiftId}:${worker.id}:${updatedAt}`;
+    if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
+
+    await pingramSend(
+      pingramKey,
+      pingramBase,
+      buildSendBody({
+        type: pingramType,
+        userId: worker.id,
+        title: notifTitle,
+        message,
+        deepLink,
+        secondaryId: idempotencyKey,
+        includePush: pushPreferences.get(worker.id) ?? true,
+      }),
+    );
+  }
 }
 
 function shouldNotifyFillInShift(
@@ -1227,11 +1456,59 @@ Deno.serve(async (req) => {
       payload.table === 'shift_posts' &&
       shouldNotifyFillInShift(payload.record, payload.old_record, payload.type)
     ) {
-      await handleShiftPostLive(supabase, pingramKey, pingramBase, payload.record, {
-        isUpdate: payload.type === 'UPDATE' && !becameLive(payload.record, payload.old_record),
-      });
+      const broadcastRecipientIds = await handleShiftPostLive(
+        supabase,
+        pingramKey,
+        pingramBase,
+        payload.record,
+        {
+          isUpdate: payload.type === 'UPDATE' && !becameLive(payload.record, payload.old_record),
+        },
+      );
+      if (
+        payload.type === 'UPDATE' &&
+        payload.old_record &&
+        shouldNotifySavedShiftChange(payload.record, payload.old_record, payload.type)
+      ) {
+        await handleSavedShiftPostUpdate(
+          supabase,
+          pingramKey,
+          pingramBase,
+          payload.record,
+          payload.old_record,
+          broadcastRecipientIds,
+        );
+      }
+    } else if (
+      payload.table === 'shift_posts' &&
+      payload.type === 'UPDATE' &&
+      payload.old_record &&
+      !shouldNotifyFillInShift(payload.record, payload.old_record, payload.type) &&
+      shouldNotifySavedShiftChange(payload.record, payload.old_record, payload.type)
+    ) {
+      await handleSavedShiftPostUpdate(
+        supabase,
+        pingramKey,
+        pingramBase,
+        payload.record,
+        payload.old_record,
+        new Set<string>(),
+      );
     } else if (payload.table === 'job_posts' && becameLive(payload.record, payload.old_record)) {
       await handleJobPostLive(supabase, pingramKey, pingramBase, payload.record);
+    } else if (
+      payload.table === 'job_posts' &&
+      payload.type === 'UPDATE' &&
+      payload.old_record &&
+      shouldNotifySavedJobChange(payload.record, payload.old_record, payload.type)
+    ) {
+      await handleSavedJobPostUpdate(
+        supabase,
+        pingramKey,
+        pingramBase,
+        payload.record,
+        payload.old_record,
+      );
     } else if (payload.table === 'messages' && payload.type === 'INSERT') {
       await handleMessageInsert(supabase, pingramKey, pingramBase, payload.record);
     }

@@ -1,6 +1,9 @@
 import {
   getLiveJobPost,
   hasAppliedToJob,
+  isJobPostSaved,
+  saveJobPost,
+  unsaveJobPost,
   type LiveJobPost,
 } from '@chairside/api';
 import { getSpecialtyLabel } from '@chairside/config';
@@ -15,6 +18,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { SavePostButton } from '@/components/worker/SavePostButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -33,6 +37,7 @@ export default function WorkerJobDetailScreen() {
   const jobId = typeof id === 'string' ? id : '';
   const [job, setJob] = useState<LiveJobPost | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -65,8 +70,12 @@ export default function WorkerJobDetailScreen() {
       setJob(nextJob);
 
       if (user?.id) {
-        const applied = await hasAppliedToJob(user.id, jobId);
+        const [applied, saved] = await Promise.all([
+          hasAppliedToJob(user.id, jobId),
+          isJobPostSaved(user.id, jobId),
+        ]);
         setHasApplied(applied);
+        setIsSaved(saved);
       }
     } catch (error) {
       Alert.alert(
@@ -80,6 +89,22 @@ export default function WorkerJobDetailScreen() {
   }, [jobId, user?.id]);
 
   useRefreshOnFocus(loadJob);
+
+  const handleToggleSaved = useCallback(async () => {
+    if (!user?.id || !job) return;
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    try {
+      if (nextSaved) await saveJobPost(job.id);
+      else await unsaveJobPost(job.id);
+    } catch (error) {
+      setIsSaved(!nextSaved);
+      Alert.alert(
+        'Could not update saved role',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  }, [isSaved, job, user?.id]);
 
   const handleApply = () => {
     if (!job) return;
@@ -116,7 +141,14 @@ export default function WorkerJobDetailScreen() {
           />
         </View>
       }>
-      <AuthScreenHeader title="Role details" subtitle={job.clinic.clinic_name} onBack={() => router.back()} />
+      <AuthScreenHeader
+        title="Role details"
+        subtitle={job.clinic.clinic_name}
+        onBack={() => router.back()}
+        accessory={
+          user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
+        }
+      />
       <View style={styles.content}>
         <View style={styles.clinicCard}>
           <ClinicPostHeader
