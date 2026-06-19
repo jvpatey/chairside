@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import { WorkerMapClinicSheet } from '@/components/worker/WorkerMapClinicSheet';
 import { WorkerMapPin, WorkerMapWorkerPin } from '@/components/worker/WorkerMapPin';
 import { WorkerMapUnavailable } from '@/components/worker/WorkerMapUnavailable';
+import { WorkerMapControls } from '@/components/worker/WorkerMapControls';
 import type { WorkerBrowseMapProps } from '@/components/worker/workerBrowseMapTypes';
 import {
   getMapboxAccessToken,
@@ -15,11 +16,30 @@ import type { WorkerMapClinicGroup, WorkerMapItem } from '@/lib/workerMapItems';
 import {
   buildMapBoundsFromCoordinates,
   getDefaultMapZoom,
+  getWorkerLocateZoom,
   getWorkerMapCenter,
 } from '@/lib/workerMapRegion';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type { WorkerBrowseMapProps } from '@/components/worker/workerBrowseMapTypes';
+
+const ZOOM_ANIMATION_MS = 200;
+const ZOOM_SCALE_FACTOR = 1.4;
+const LOCATE_ANIMATION_MS = 350;
+
+type MapCameraHandle = {
+  scaleBy: (props: {
+    x: number;
+    y: number;
+    scaleFactor: number;
+    animationDuration?: number;
+  }) => void;
+  setCamera: (config: {
+    centerCoordinate?: [number, number];
+    zoomLevel?: number;
+    animationDuration?: number;
+  }) => void;
+};
 
 function formatPinCount(group: WorkerMapClinicGroup): string {
   const total = group.items.length;
@@ -59,6 +79,8 @@ export function WorkerBrowseMap({
   const maps = useMemo(() => loadMapboxModule(), []);
   const [mapReady, setMapReady] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<WorkerMapClinicGroup | null>(null);
+  const cameraRef = useRef<MapCameraHandle | null>(null);
+  const mapSizeRef = useRef({ width: 0, height: 0 });
 
   useEffect(() => {
     if (maps) {
@@ -115,6 +137,7 @@ export function WorkerBrowseMap({
       flex: 1,
       minHeight: 0,
       width: '100%',
+      position: 'relative',
       borderRadius: 16,
       overflow: 'hidden',
       borderWidth: 1,
@@ -125,6 +148,39 @@ export function WorkerBrowseMap({
       ...StyleSheet.absoluteFillObject,
     },
   }));
+
+  const handleMapShellLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    mapSizeRef.current = { width, height };
+  };
+
+  const scaleMap = useCallback((scaleFactor: number) => {
+    const { width, height } = mapSizeRef.current;
+    if (width <= 0 || height <= 0) return;
+    cameraRef.current?.scaleBy({
+      x: width / 2,
+      y: height / 2,
+      scaleFactor,
+      animationDuration: ZOOM_ANIMATION_MS,
+    });
+  }, []);
+
+  const handleZoomIn = useCallback(() => {
+    scaleMap(ZOOM_SCALE_FACTOR);
+  }, [scaleMap]);
+
+  const handleZoomOut = useCallback(() => {
+    scaleMap(1 / ZOOM_SCALE_FACTOR);
+  }, [scaleMap]);
+
+  const handleLocate = useCallback(() => {
+    if (!workerCoords) return;
+    cameraRef.current?.setCamera({
+      centerCoordinate: [workerCoords.longitude, workerCoords.latitude],
+      zoomLevel: getWorkerLocateZoom(),
+      animationDuration: LOCATE_ANIMATION_MS,
+    });
+  }, [workerCoords]);
 
   if (!maps || !mapReady) {
     const unavailable = getUnavailableMessage(maps);
@@ -189,17 +245,19 @@ export function WorkerBrowseMap({
           ) : null}
         </View>
       ) : null}
-      <View style={styles.mapShell} collapsable={false}>
+      <View style={styles.mapShell} collapsable={false} onLayout={handleMapShellLayout}>
         <MapView
           style={styles.map}
           styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
           compassEnabled
           logoEnabled={false}
           attributionEnabled
+          attributionPosition={{ bottom: 8, left: 8 }}
           scaleBarEnabled={false}
         >
           {mapBounds ? (
             <Camera
+              ref={cameraRef}
               bounds={{
                 ne: [mapBounds.ne.longitude, mapBounds.ne.latitude],
                 sw: [mapBounds.sw.longitude, mapBounds.sw.latitude],
@@ -214,6 +272,7 @@ export function WorkerBrowseMap({
             />
           ) : (
             <Camera
+              ref={cameraRef}
               centerCoordinate={[mapCenter.longitude, mapCenter.latitude]}
               zoomLevel={getDefaultMapZoom()}
               animationDuration={0}
@@ -244,6 +303,12 @@ export function WorkerBrowseMap({
             </MarkerView>
           ))}
         </MapView>
+        <WorkerMapControls
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onLocate={handleLocate}
+          locateEnabled={workerCoords != null}
+        />
       </View>
       <WorkerMapClinicSheet
         visible={selectedGroup != null}

@@ -40,6 +40,11 @@ export function getDefaultMapZoom(): number {
   return DEFAULT_ZOOM;
 }
 
+/** Street-level zoom when recentering on the worker's location. */
+export function getWorkerLocateZoom(): number {
+  return 11;
+}
+
 export function buildMapBoundsFromCoordinates(
   coordinates: MapCoordinate[],
 ): MapBounds | null {
