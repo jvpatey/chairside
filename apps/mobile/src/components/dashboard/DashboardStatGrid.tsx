@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ColorValue, type ViewStyle } from 'react-native';
 
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
@@ -87,6 +87,9 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       borderColor: colors.separator,
       overflow: 'hidden',
       ...elevation('none'),
+      ...(isLabelOnly
+        ? { minHeight: isCompact ? 46 : 50 }
+        : {}),
     },
     cellWrap: {
       flex: 1,
@@ -191,6 +194,14 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
     start: { x: 0, y: 0 },
     end: { x: 0, y: 1 },
   };
+  const gradientColors = indicatorGradient.colors as readonly [
+    ColorValue,
+    ColorValue,
+    ...ColorValue[],
+  ];
+  const gradientLocations = indicatorGradient.locations as
+    | readonly [number, number, ...number[]]
+    | undefined;
 
   const handleSelect = (key: T) => {
     void Haptics.selectionAsync();
@@ -204,8 +215,8 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
         style={[styles.indicator, indicatorAccentStyle]}
       >
         <LinearGradient
-          colors={indicatorGradient.colors}
-          locations={indicatorGradient.locations}
+          colors={gradientColors}
+          locations={gradientLocations}
           start={indicatorGradient.start}
           end={indicatorGradient.end}
           style={styles.gradient}

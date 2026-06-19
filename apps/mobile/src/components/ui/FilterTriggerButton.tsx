@@ -26,20 +26,18 @@ export function FilterTriggerButton({
   const brandOn = resolvedAccent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
   const isActive = activeCount > 0;
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors }) => ({
     button: {
-      flexDirection: 'row',
+      position: 'relative',
       alignItems: 'center',
-      gap: 4,
-      borderRadius: 999,
+      justifyContent: 'center',
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 8,
-      minWidth: 44,
-      minHeight: 36,
-      justifyContent: 'center',
+      width: 44,
+      height: 44,
+      flexShrink: 0,
       ...webPointer(),
     },
     buttonHovered: {
@@ -49,13 +47,26 @@ export function FilterTriggerButton({
     buttonPressed: {
       opacity: 0.85,
     },
+    buttonActive: {
+      borderColor: brandColor,
+      backgroundColor: brandSubtle,
+    },
+    buttonActiveHovered: {
+      backgroundColor: brandSubtle,
+      borderColor: brandColor,
+    },
     badge: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
       minWidth: 18,
       height: 18,
       borderRadius: 9,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 4,
+      borderWidth: 2,
+      borderColor: colors.surface,
     },
     badgeText: {
       fontSize: 11,
@@ -63,36 +74,25 @@ export function FilterTriggerButton({
     },
   }));
 
-  const activeButtonStyle = isActive
-    ? {
-        borderColor: brandColor,
-        backgroundColor: brandSubtle,
-      }
-    : null;
-  const activeButtonHoveredStyle = isActive
-    ? {
-        backgroundColor: brandSubtle,
-        borderColor: brandColor,
-      }
-    : null;
-
   const isWeb = Platform.OS === 'web';
 
   return (
     <Pressable
       style={({ pressed, hovered }) => [
         styles.button,
-        activeButtonStyle,
-        isWeb && hovered && !pressed && (activeButtonHoveredStyle ?? styles.buttonHovered),
+        isActive && styles.buttonActive,
+        isWeb && hovered && !pressed && (isActive ? styles.buttonActiveHovered : styles.buttonHovered),
         isWeb && pressed && styles.buttonPressed,
       ]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={
+        isActive ? `${accessibilityLabel}, ${activeCount} active` : accessibilityLabel
+      }
     >
       <Ionicons
         name="options-outline"
-        size={16}
+        size={20}
         color={isActive ? brandColor : colors.labelPrimary}
       />
       {isActive ? (

@@ -285,3 +285,10 @@ export const ROLES_BROWSE_MODE_OPTIONS: { value: RolesBrowseMode; label: string 
   { value: 'open', label: 'Open' },
   { value: 'applied', label: 'Applied' },
 ];
+
+export type WorkerBrowseViewMode = 'list' | 'map';
+
+export const WORKER_BROWSE_VIEW_MODE_OPTIONS: { value: WorkerBrowseViewMode; label: string }[] = [
+  { value: 'list', label: 'List' },
+  { value: 'map', label: 'Map' },
+];

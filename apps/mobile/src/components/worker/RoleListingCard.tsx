@@ -8,7 +8,6 @@ import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { PillBadge } from '@/components/ui/PillBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
-import { RoleListingPostedMeta } from '@/components/worker/RoleListingPostedMeta';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { getAppliedRowGradient, useTheme, useThemedStyles } from '@/theme';
@@ -42,15 +41,17 @@ export function RoleListingCard({
       : distanceLabel
     : locationBase;
   const detail = formatJobPostCardMeta(job);
-  const postedLabel = hasApplied ? (
-    <RoleListingPostedMeta postedAt={job.created_at} hasApplied />
-  ) : (
-    formatPostedDateLabel(job.created_at) || null
-  );
+  const postedLabel = formatPostedDateLabel(job.created_at) || null;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       overflow: 'hidden',
+      position: 'relative',
+    },
+    cardContent: {
+      padding: spacing.md,
+    },
+    cardInner: {
       position: 'relative',
     },
     appliedGradient: {
@@ -100,7 +101,7 @@ export function RoleListingCard({
   const appliedGradient = hasApplied ? getAppliedRowGradient(colors, isDark) : null;
 
   return (
-    <SurfaceCard onPress={onPress} style={styles.card}>
+    <SurfaceCard onPress={onPress} padding="none" style={styles.card} contentStyle={styles.cardInner}>
       {appliedGradient ? (
         <LinearGradient
           colors={appliedGradient}
@@ -111,21 +112,23 @@ export function RoleListingCard({
           pointerEvents="none"
         />
       ) : null}
-      <ClinicPostHeader
-        layout="split"
-        clinicName={job.clinic.clinic_name}
-        logoStoragePath={job.clinic.logo_storage_path}
-        title={job.title}
-        location={location || null}
-        detail={detail || null}
-        postedLabel={postedLabel}
-        textFooter={
-          job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : undefined
-        }
-        avatarSize={44}
-        accessory={accessory}
-        stackedAccessory
-      />
+      <View style={styles.cardContent}>
+        <ClinicPostHeader
+          layout="split"
+          clinicName={job.clinic.clinic_name}
+          logoStoragePath={job.clinic.logo_storage_path}
+          title={job.title}
+          location={location || null}
+          detail={detail || null}
+          postedLabel={postedLabel}
+          textFooter={
+            job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : undefined
+          }
+          avatarSize={44}
+          accessory={accessory}
+          stackedAccessory
+        />
+      </View>
     </SurfaceCard>
   );
 }

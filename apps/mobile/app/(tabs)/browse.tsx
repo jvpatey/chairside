@@ -1,10 +1,16 @@
 import { listLiveJobPosts, listWorkerAppliedJobPostIds, getWorkerSavedJobPostIds, saveJobPost, unsaveJobPost, type LiveJobPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
+import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
+import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
+import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
@@ -16,7 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
-import { ROLES_BROWSE_MODE_OPTIONS, type RolesBrowseMode } from '@/lib/postingFilters';
+import { ROLES_BROWSE_MODE_OPTIONS, type RolesBrowseMode, type WorkerBrowseViewMode } from '@/lib/postingFilters';
 import {
   DEFAULT_WORKER_ROLE_BROWSE_FILTERS,
   filterAndSortLiveJobs,
@@ -24,6 +30,12 @@ import {
 } from '@/lib/workerBrowseFilters';
 import { buildLiveJobMatchDisplayContext, computeJobMatchBreakdown } from '@/lib/workerMatch';
 import { getWorkerJobDetailRoute } from '@/lib/routing';
+import {
+  countUnmappablePosts,
+  groupWorkerMapItemsByClinic,
+  toWorkerMapItemsFromJobs,
+} from '@/lib/workerMapItems';
+import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function BrowseEmptyState({
@@ -98,6 +110,7 @@ export default function BrowseScreen() {
   const { workerProfile } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [selectedMode, setSelectedMode] = useState<RolesBrowseMode>('open');
+  const [viewMode, setViewMode] = useState<WorkerBrowseViewMode>('list');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState(DEFAULT_WORKER_ROLE_BROWSE_FILTERS.searchQuery);
@@ -122,6 +135,10 @@ export default function BrowseScreen() {
   );
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [controlsHeight, setControlsHeight] = useState(132);
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const tabDockInset = useMobileTabDockInset();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -213,6 +230,27 @@ export default function BrowseScreen() {
 
   const hasBothSections = openJobs.length > 0 && appliedJobs.length > 0;
   const segmentJobs = selectedMode === 'open' ? openJobs : appliedJobs;
+  const displayJobs = hasBothSections ? segmentJobs : filteredJobs;
+  const canUseMap = selectedMode === 'open';
+
+  useEffect(() => {
+    if (!canUseMap && viewMode === 'map') {
+      setViewMode('list');
+    }
+  }, [canUseMap, viewMode]);
+
+  const mapGroups = useMemo(
+    () =>
+      groupWorkerMapItemsByClinic(
+        toWorkerMapItemsFromJobs(displayJobs, savedJobIds, appliedJobIds),
+      ),
+    [appliedJobIds, displayJobs, savedJobIds],
+  );
+  const unmappableJobCount = useMemo(() => countUnmappablePosts(displayJobs), [displayJobs]);
+  const workerCoords =
+    workerProfile?.latitude != null && workerProfile?.longitude != null
+      ? { latitude: workerProfile.latitude, longitude: workerProfile.longitude }
+      : null;
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
     roleTypeFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.roleTypeFilter ||
@@ -223,51 +261,148 @@ export default function BrowseScreen() {
     matchTierFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter ||
     savedOnlyFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.savedOnlyFilter;
 
+  const hasMapResults =
+    canUseMap &&
+    !isLoading &&
+    jobs.length > 0 &&
+    viewMode === 'map' &&
+    (hasBothSections ? segmentJobs.length > 0 : filteredJobs.length > 0);
+
+  const mapPanelHeight = useMemo(
+    () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
+    [controlsHeight, insets.top, tabDockInset, windowHeight],
+  );
+
+  const handleControlsLayout = (event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    if (height > 0) {
+      setControlsHeight((current) => (current === height ? current : height));
+    }
+  };
+
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
     panel: { gap: spacing.lg },
+    controlsBlock: {
+      width: '100%',
+      flexShrink: 0,
+      flexGrow: 0,
+      gap: spacing.md,
+    },
+    controlRow: {
+      width: '100%',
+      flexShrink: 0,
+    },
     cardList: { gap: dashboardSectionGap(spacing) },
     searchRow: {
+      width: '100%',
+      flexShrink: 0,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
     },
     searchField: { flex: 1, minWidth: 0 },
+    mapPanel: {
+      width: '100%',
+      overflow: 'hidden',
+    },
   }));
 
   const showBrowseControls = !isLoading && jobs.length > 0;
 
   const browseControls = showBrowseControls ? (
-    <View style={styles.searchRow}>
-      <View style={styles.searchField}>
-        <WorkerBrowseSearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search roles, clinics, cities, or pay"
-          accessibilityLabel="Search roles"
+    <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
+      {hasBothSections ? (
+        <View style={styles.controlRow}>
+          <SegmentedControl
+            options={ROLES_BROWSE_MODE_OPTIONS}
+            selected={selectedMode}
+            onChange={setSelectedMode}
+            density="compact"
+          />
+        </View>
+      ) : null}
+      <View style={styles.searchRow}>
+        <View style={styles.searchField}>
+          <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
+        </View>
+        {canUseMap ? <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} /> : null}
+        <WorkerRoleBrowseFilters
+          roleTypeFilter={roleTypeFilter}
+          sort={sort}
+          distanceFilter={distanceFilter}
+          softwareFilter={softwareFilter}
+          payListedFilter={payListedFilter}
+          matchTierFilter={matchTierFilter}
+          savedOnlyFilter={savedOnlyFilter}
+          onRoleTypeChange={setRoleTypeFilter}
+          onSortChange={setSort}
+          onDistanceFilterChange={setDistanceFilter}
+          onSoftwareFilterChange={setSoftwareFilter}
+          onPayListedFilterChange={setPayListedFilter}
+          onMatchTierFilterChange={setMatchTierFilter}
+          onSavedOnlyFilterChange={setSavedOnlyFilter}
         />
       </View>
-      <WorkerRoleBrowseFilters
-        roleTypeFilter={roleTypeFilter}
-        sort={sort}
-        distanceFilter={distanceFilter}
-        softwareFilter={softwareFilter}
-        payListedFilter={payListedFilter}
-        matchTierFilter={matchTierFilter}
-        savedOnlyFilter={savedOnlyFilter}
-        onRoleTypeChange={setRoleTypeFilter}
-        onSortChange={setSort}
-        onDistanceFilterChange={setDistanceFilter}
-        onSoftwareFilterChange={setSoftwareFilter}
-        onPayListedFilterChange={setPayListedFilter}
-        onMatchTierFilterChange={setMatchTierFilter}
-        onSavedOnlyFilterChange={setSavedOnlyFilter}
-      />
     </View>
   ) : null;
 
+  const listContent =
+    filteredJobs.length === 0 ? (
+      <BrowseEmptyState
+        icon="filter-outline"
+        title="No roles match your search"
+        body={
+          hasActiveFilters
+            ? 'Try a different search term or adjust your filters.'
+            : 'Check back soon for new opportunities.'
+        }
+      />
+    ) : hasBothSections ? (
+      segmentJobs.length === 0 ? (
+        <DashboardEmptyState
+          icon={selectedMode === 'open' ? 'briefcase-outline' : 'checkmark-circle-outline'}
+          title={
+            selectedMode === 'open'
+              ? 'No open roles in this filter'
+              : 'No applied roles in this filter'
+          }
+          message={
+            selectedMode === 'open'
+              ? 'Try a different search or filter, or check the Applied tab.'
+              : 'Roles you apply to will appear here while they are still posted.'
+          }
+        />
+      ) : (
+        <View style={styles.cardList}>
+          {renderRoleListingCards(
+            segmentJobs,
+            appliedJobIds,
+            savedJobIds,
+            workerProfile,
+            handleToggleSavedJob,
+          )}
+        </View>
+      )
+    ) : (
+      <View style={styles.cardList}>
+        {renderRoleListingCards(
+          filteredJobs,
+          appliedJobIds,
+          savedJobIds,
+          workerProfile,
+          handleToggleSavedJob,
+        )}
+      </View>
+    );
+
   return (
-    <Screen title="Roles" subtitle="Open roles in your province.">
+    <Screen
+      title="Roles"
+      subtitle="Open roles in your province."
+      scroll
+      scrollEnabled={!hasMapResults}
+    >
       <View style={styles.wrap}>
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
@@ -279,62 +414,26 @@ export default function BrowseScreen() {
           />
         ) : (
           <View style={styles.panel}>
-            {hasBothSections ? (
-              <SegmentedControl
-                options={ROLES_BROWSE_MODE_OPTIONS}
-                selected={selectedMode}
-                onChange={setSelectedMode}
-                density="compact"
-              />
-            ) : null}
             {browseControls}
-            {filteredJobs.length === 0 ? (
-              <BrowseEmptyState
-                icon="filter-outline"
-                title="No roles match your search"
-                body={
-                  hasActiveFilters
-                    ? 'Try a different search term or adjust your filters.'
-                    : 'Check back soon for new opportunities.'
-                }
-              />
-            ) : hasBothSections ? (
-              segmentJobs.length === 0 ? (
-                <DashboardEmptyState
-                  icon={selectedMode === 'open' ? 'briefcase-outline' : 'checkmark-circle-outline'}
-                  title={
-                    selectedMode === 'open'
-                      ? 'No open roles in this filter'
-                      : 'No applied roles in this filter'
-                  }
-                  message={
-                    selectedMode === 'open'
-                      ? 'Try a different search or filter, or check the Applied tab.'
-                      : 'Roles you apply to will appear here while they are still posted.'
-                  }
+            <WorkerBrowseViewTransition
+              mode={hasMapResults ? 'map' : 'list'}
+              style={
+                hasMapResults ? [styles.mapPanel, { height: mapPanelHeight }] : undefined
+              }
+            >
+              {hasMapResults ? (
+                <WorkerBrowseMap
+                  groups={mapGroups}
+                  workerCoords={workerCoords}
+                  province={province}
+                  unmappableCount={unmappableJobCount}
+                  workerHasCoordinates={workerCoords != null}
+                  onSelectItem={(item) => router.push(getWorkerJobDetailRoute(item.id))}
                 />
               ) : (
-                <View style={styles.cardList}>
-                  {renderRoleListingCards(
-                    segmentJobs,
-                    appliedJobIds,
-                    savedJobIds,
-                    workerProfile,
-                    handleToggleSavedJob,
-                  )}
-                </View>
-              )
-            ) : (
-              <View style={styles.cardList}>
-                {renderRoleListingCards(
-                  filteredJobs,
-                  appliedJobIds,
-                  savedJobIds,
-                  workerProfile,
-                  handleToggleSavedJob,
-                )}
-              </View>
-            )}
+                listContent
+              )}
+            </WorkerBrowseViewTransition>
           </View>
         )}
       </View>

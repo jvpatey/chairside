@@ -27,6 +27,8 @@ type ScreenProps = {
   constrainWidth?: boolean;
   /** When false, use a flex container instead of ScrollView (split-view panes). */
   scroll?: boolean;
+  /** Disable scrolling while keeping the ScrollView layout shell. */
+  scrollEnabled?: boolean;
   /** Fills available height; use with scroll={false} in master/detail panes. */
   fillsContainer?: boolean;
   /** When false, skip the web fade-in animation (split-view / tab surfaces). */
@@ -47,6 +49,7 @@ export function Screen({
   headerAccessory,
   constrainWidth = true,
   scroll = true,
+  scrollEnabled = true,
   fillsContainer = false,
   animateEntry = true,
   transparentBackground = false,
@@ -83,13 +86,21 @@ export function Screen({
         ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const }
         : {}),
     },
+    contentFill: {
+      flex: 1,
+      minHeight: 0,
+      flexDirection: 'column',
+    },
     body: {
       flex: fillsContainer ? 1 : undefined,
       minHeight: fillsContainer ? 0 : undefined,
+      width: fillsContainer ? '100%' : undefined,
+      flexDirection: fillsContainer ? ('column' as const) : undefined,
     },
     header: {
       gap: spacing.sm,
       marginBottom: spacing.lg,
+      ...(fillsContainer ? { flexShrink: 0 } : {}),
     },
     headerRow: {
       flexDirection: 'row',
@@ -136,7 +147,7 @@ export function Screen({
 
   const paddingStyle = {
     paddingTop: topPadding,
-    paddingBottom: (fillsContainer ? spacing.md : 24) + tabDockInset,
+    paddingBottom: spacing.lg + tabDockInset,
   };
 
   const headerBlock = (
@@ -197,7 +208,7 @@ export function Screen({
             style={[
               styles.content,
               paddingStyle,
-              fillsContainer && { flex: 1, minHeight: 0 },
+              fillsContainer && styles.contentFill,
               contentContainerStyle,
             ]}
           >
@@ -213,6 +224,7 @@ export function Screen({
     <View style={[styles.container, { backgroundColor: containerBackground }]}>
       {atmosphereLayer}
       <ScrollView
+        scrollEnabled={scrollEnabled}
         style={[
           { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
           webScrollbarStyles(),
