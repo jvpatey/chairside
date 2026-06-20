@@ -41,7 +41,7 @@ export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
     },
     quickActionRow: {
       flexDirection: 'row' as const,
-      gap: spacing.sm,
+      gap: spacing.lg,
     },
     /** Stat bar + overview list share one vertical rhythm block. */
     overviewBlock: {

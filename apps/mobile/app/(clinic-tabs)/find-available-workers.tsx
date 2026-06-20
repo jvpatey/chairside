@@ -4,10 +4,9 @@ import {
   type RoleType,
 } from '@chairside/api';
 import { getRoleTypeLabel, ROLE_TYPE_OPTIONS } from '@chairside/config';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWorkerCard';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
@@ -25,25 +24,9 @@ import {
   navigateAfterFillInSave,
   type FillInReturnTarget,
 } from '@/lib/routing';
-import { getFillInHeroGradient, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { useThemedStyles, type GradientAccent } from '@/theme';
 
 const FILL_IN_ACCENT: GradientAccent = 'secondary';
-
-function FindWorkersHeroGlow() {
-  const { colors, isDark } = useTheme();
-  const gradient = getFillInHeroGradient(colors, isDark);
-
-  return (
-    <LinearGradient
-      colors={gradient}
-      locations={[0, 0.55, 1]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="none"
-    />
-  );
-}
 
 type RoleFilter = 'all' | RoleType;
 
@@ -65,8 +48,6 @@ export default function FindAvailableWorkersScreen() {
   const [workers, setWorkers] = useState<FillInOutreachWorker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
-  const { colors } = useTheme();
-  const brandSubtle = colors.secondarySubtle;
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     form: { gap: spacing.lg },
@@ -81,14 +62,6 @@ export default function FindAvailableWorkersScreen() {
       color: colors.labelSecondary,
       paddingVertical: spacing.lg,
     },
-    notice: {
-      backgroundColor: brandSubtle,
-      borderRadius: 16,
-      padding: spacing.lg,
-      gap: spacing.xs,
-    },
-    noticeTitle: { ...typography.body, fontWeight: '600' },
-    noticeBody: { ...typography.subtitle, fontSize: 14, lineHeight: 20 },
     count: { ...typography.subtitle, fontSize: 13, color: colors.labelSecondary },
   }));
 
@@ -169,22 +142,14 @@ export default function FindAvailableWorkersScreen() {
   };
 
   return (
-    <OnboardingShell backgroundAccessory={<FindWorkersHeroGlow />}>
+    <OnboardingShell transparentBackground>
       <View style={styles.form}>
         <AuthScreenHeader
           title="Find available workers"
-          subtitle="Browse candidates who opted into fill-in outreach and message them directly."
+          subtitle="Browse candidates who opted into fill-in outreach and message them directly. Phone numbers stay private."
           accent={FILL_IN_ACCENT}
           onBack={handleBack}
         />
-
-        <View style={styles.notice}>
-          <Text style={styles.noticeTitle}>Direct outreach</Text>
-          <Text style={styles.noticeBody}>
-            Workers appear here when they are available for fill-ins and allow clinics to reach
-            out. Phone numbers stay private.
-          </Text>
-        </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Filter by role</Text>

@@ -19,8 +19,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
-import { useThemedStyles, spacing } from '@/theme';
+import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useTheme, useThemedStyles, spacing } from '@/theme';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 
 type FormScrollContextValue = {
@@ -40,6 +42,8 @@ type OnboardingShellProps = {
   contentStyle?: StyleProp<ViewStyle>;
   /** Renders behind scroll content (e.g. welcome screen top glow). */
   backgroundAccessory?: ReactNode;
+  /** Lets tab atmosphere show through (used on stack screens with sidebar layouts). */
+  transparentBackground?: boolean;
 };
 
 const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;
@@ -51,9 +55,20 @@ export function OnboardingShell({
   footer,
   contentStyle,
   backgroundAccessory,
+  transparentBackground = false,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset();
+  const tabAtmosphere = useTabAtmosphere();
+  const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const { colors } = useTheme();
+  const showTabAtmosphere = tabAtmosphere !== 'none';
+  const containerBackground =
+    transparentBackground && showTabAtmosphere ? 'transparent' : colors.background;
+  const atmosphereLayer =
+    transparentBackground && showTabAtmosphere && Platform.OS === 'web' ? (
+      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+    ) : null;
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const scrollYRef = useRef(0);
@@ -68,7 +83,6 @@ export function OnboardingShell({
   const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
     },
     scroll: {
       flex: 1,
@@ -266,7 +280,8 @@ export function OnboardingShell({
 
   return (
     <FormScrollContext.Provider value={{ scrollWrapIntoView: scheduleScrollIntoView }}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: containerBackground }]}>
+        {atmosphereLayer}
         {backgroundAccessory ? (
           <View style={styles.backgroundLayer}>{backgroundAccessory}</View>
         ) : null}

@@ -66,6 +66,13 @@ function isProfilePath(relativePath: string): boolean {
   return relativePath === '/profile' || relativePath.startsWith('/profile/');
 }
 
+function isFillInOutreachPath(relativePath: string): boolean {
+  return (
+    relativePath === '/find-available-workers' ||
+    relativePath.startsWith('/outreach-compose')
+  );
+}
+
 function getTabBarNameFromReturnTo(
   returnTo: string | undefined,
   role: TabAtmosphereRole,
@@ -209,6 +216,10 @@ export function getTabAtmosphereIntensityFromPathname(
     return 'subtle';
   }
 
+  if (isFillInOutreachPath(relative)) {
+    return 'subtle';
+  }
+
   if (getMainTabFromRelativePath(relative, role)) {
     return 'subtle';
   }
@@ -226,6 +237,11 @@ export function getTabAtmosphereAccentFromPathname(
 ): TabAtmosphereAccent {
   const normalized = normalizePath(pathname);
   const relative = stripTabGroupPrefix(normalized, role);
+
+  if (isFillInOutreachPath(relative)) {
+    return 'secondary';
+  }
+
   const mainTab = getMainTabFromRelativePath(relative, role);
 
   if (!mainTab) {

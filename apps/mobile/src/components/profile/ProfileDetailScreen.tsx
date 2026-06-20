@@ -1,15 +1,18 @@
 import { ReactNode } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
+import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
+import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ProfileDetailScreenProps = {
-  title: string;
+  title?: string;
   subtitle?: string;
   onBack: () => void;
   actionLabel?: string;
@@ -30,6 +33,14 @@ export function ProfileDetailScreen({
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset();
   const { colors } = useTheme();
+  const tabAtmosphere = useTabAtmosphere();
+  const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const showAtmosphere = tabAtmosphere !== 'none';
+  const atmosphereLayer =
+    showAtmosphere && Platform.OS === 'web' ? (
+      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+    ) : null;
+  const containerBackground = showAtmosphere ? 'transparent' : colors.backgroundGrouped;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -91,9 +102,13 @@ export function ProfileDetailScreen({
   }));
 
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <View style={[styles.container, { backgroundColor: containerBackground }]}>
+      {atmosphereLayer}
       <ScrollView
-        style={{ flex: 1, backgroundColor: 'transparent' }}
+        style={[
+          { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
+          webScrollbarStyles(),
+        ]}
         contentContainerStyle={[
           styles.content,
           {
@@ -118,19 +133,21 @@ export function ProfileDetailScreen({
               </Pressable>
               {headerRight}
             </View>
-            <View style={styles.titleRow}>
-              <View style={styles.titleBlock}>
-                <Text style={styles.title}>{title}</Text>
-                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            {title || subtitle || (actionLabel && onActionPress) ? (
+              <View style={styles.titleRow}>
+                <View style={styles.titleBlock}>
+                  {title ? <Text style={styles.title}>{title}</Text> : null}
+                  {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+                </View>
+                {actionLabel && onActionPress ? (
+                  <EditPillButton
+                    label={actionLabel}
+                    onPress={onActionPress}
+                    style={styles.titleAction}
+                  />
+                ) : null}
               </View>
-              {actionLabel && onActionPress ? (
-                <EditPillButton
-                  label={actionLabel}
-                  onPress={onActionPress}
-                  style={styles.titleAction}
-                />
-              ) : null}
-            </View>
+            ) : null}
           </View>
           <View style={styles.body}>{children}</View>
         </WebPageEnter>

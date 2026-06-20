@@ -127,20 +127,17 @@ export default function WorkerApplicationDetailScreen() {
   const shiftDisplay =
     application?.post_type === 'shift' ? getWorkerShiftApplicationCardDisplay(application) : null;
 
-  const subtitle = application
-    ? isConfirmedFillIn
-      ? shiftDisplay?.title ?? application.clinic_name
-      : application.post_title
-    : 'Application details';
-
-  const headerTitle = isConfirmedFillIn ? 'Confirmed fill-in' : 'Application';
+  const headerTitle = isConfirmedFillIn ? 'Confirmed fill-in' : 'Your application';
+  const headerSubtitle = isConfirmedFillIn
+    ? shiftDisplay?.title ?? application?.clinic_name
+    : undefined;
 
   const detail = (
     <OnboardingShell>
       <AuthScreenHeader
         title={headerTitle}
-        subtitle={isConfirmedFillIn ? application?.clinic_name ?? subtitle : subtitle}
-        onBack={goBack}
+        subtitle={headerSubtitle}
+        onBack={Platform.OS === 'web' && isTablet ? undefined : goBack}
       />
       <View style={styles.content}>
         <FormErrorBanner message={formError} />
