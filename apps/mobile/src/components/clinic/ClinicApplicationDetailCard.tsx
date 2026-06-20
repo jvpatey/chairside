@@ -540,7 +540,7 @@ function ActionPanel({
             {renderActionButtons(primary)}
             {renderActionButtons(secondary.map((a) => ({ ...a, variant: a.variant ?? 'secondary' })))}
             {renderActionButtons(
-              destructive.map((a) => ({ ...a, variant: 'secondary' as const })),
+              destructive.map((a) => ({ ...a, variant: a.variant ?? 'destructive' })),
             )}
           </View>
         ) : null}

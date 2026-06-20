@@ -512,7 +512,7 @@ function WorkerActionPanel({
               secondary.map((action) => ({ ...action, variant: action.variant ?? 'secondary' })),
             )}
             {renderActionButtons(
-              destructive.map((action) => ({ ...action, variant: 'secondary' as const })),
+              destructive.map((action) => ({ ...action, variant: action.variant ?? 'destructive' })),
             )}
           </View>
         ) : null}

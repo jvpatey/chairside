@@ -347,8 +347,16 @@ async function withIdempotentDispatch(
     console.log(`[notify] ${label}: pingram sent (${key})`);
     return 'sent';
   } catch (error) {
-    await releaseIdempotency(supabase, key);
-    console.error(`[notify] ${label}: pingram failed, released idempotency (${key})`, error);
+    try {
+      await releaseIdempotency(supabase, key);
+      console.error(`[notify] ${label}: pingram failed, released idempotency (${key})`, error);
+    } catch (releaseError) {
+      console.error(
+        `[notify] ${label}: pingram failed and could not release idempotency (${key})`,
+        releaseError,
+      );
+      console.error(`[notify] ${label}: original pingram failure (${key})`, error);
+    }
     throw error;
   }
 }
@@ -1145,7 +1153,11 @@ async function handleShiftPostLive(
         },
       );
       if (result === 'skipped') continue;
-    } catch {
+    } catch (error) {
+      console.error(
+        `[notify] fill_in_posted: failed (workerId=${worker.id}, key=${idempotencyKey})`,
+        error,
+      );
       continue;
     }
   }
@@ -1219,7 +1231,11 @@ async function handleJobPostLive(
         },
       );
       if (result === 'skipped') continue;
-    } catch {
+    } catch (error) {
+      console.error(
+        `[notify] job_posted: failed (workerId=${worker.id}, key=${idempotencyKey})`,
+        error,
+      );
       continue;
     }
   }
@@ -1402,7 +1418,11 @@ async function handleSavedJobPostUpdate(
         },
       );
       if (result === 'skipped') continue;
-    } catch {
+    } catch (error) {
+      console.error(
+        `[notify] ${pingramType}: failed (workerId=${worker.id}, key=${idempotencyKey})`,
+        error,
+      );
       continue;
     }
   }
@@ -1487,7 +1507,11 @@ async function handleSavedShiftPostUpdate(
         },
       );
       if (result === 'skipped') continue;
-    } catch {
+    } catch (error) {
+      console.error(
+        `[notify] ${pingramType}: failed (workerId=${worker.id}, key=${idempotencyKey})`,
+        error,
+      );
       continue;
     }
   }
