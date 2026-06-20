@@ -12,6 +12,7 @@ import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHead
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
 import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
+import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
@@ -258,14 +259,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   }));
 
   const visibleRoutes = getSidebarRoutes(state, descriptors, role);
-  const focusedVisibleIndex = visibleRoutes.findIndex(
-    (route) => state.routes.findIndex((r) => r.key === route.key) === state.index,
-  );
+  const { indicatorIndex, isRouteFocused } = useResolvedTabBarFocus(state, visibleRoutes, role);
   const { animatedStyle: navIndicatorStyle, onSegmentLayout } = useSlidingSegmentIndicator(
-    focusedVisibleIndex >= 0 ? focusedVisibleIndex : 0,
+    indicatorIndex,
     'vertical',
   );
-  const focusedRoute = visibleRoutes[focusedVisibleIndex];
+  const focusedRoute = visibleRoutes[indicatorIndex];
   const focusedAccent = focusedRoute ? getTabAccentForName(focusedRoute.name) : 'primary';
   const focusedIndicatorColor =
     focusedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
@@ -359,7 +358,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         {visibleRoutes.map((route, index) => {
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((r) => r.key === route.key);
-          const isFocused = state.index === routeIndex;
+          const isFocused = isRouteFocused(route.name, routeIndex);
           const tabAccent = getTabAccentForName(route.name);
           const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
           const color = isFocused ? activeColor : colors.tabInactive;

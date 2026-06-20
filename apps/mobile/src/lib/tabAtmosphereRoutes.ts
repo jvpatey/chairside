@@ -66,6 +66,104 @@ function isProfilePath(relativePath: string): boolean {
   return relativePath === '/profile' || relativePath.startsWith('/profile/');
 }
 
+function getTabBarNameFromReturnTo(
+  returnTo: string | undefined,
+  role: TabAtmosphereRole,
+): string | null {
+  if (!returnTo) return null;
+
+  if (
+    returnTo === 'applications-tab' ||
+    returnTo === 'dashboard-applications'
+  ) {
+    return returnTo === 'dashboard-applications' ? 'index' : 'applications';
+  }
+
+  if (returnTo === 'messages-tab') {
+    return 'messages';
+  }
+
+  if (returnTo === 'browse-tab') {
+    return 'browse';
+  }
+
+  if (
+    returnTo === 'fill-ins-tab' ||
+    returnTo === 'open-fill-ins' ||
+    returnTo === 'past-fill-ins'
+  ) {
+    return role === 'worker' ? 'fillins' : 'fill-ins';
+  }
+
+  if (returnTo === 'dashboard-fill-ins') {
+    return 'index';
+  }
+
+  if (returnTo === 'postings-tab' || returnTo === 'role-history') {
+    return 'postings';
+  }
+
+  if (returnTo === 'postings-fill-ins') {
+    return role === 'worker' ? 'fillins' : 'postings';
+  }
+
+  return null;
+}
+
+function getStackParentTabFromRelativePath(
+  relativePath: string,
+  role: TabAtmosphereRole,
+): string | null {
+  const segments = relativePath.split('/').filter(Boolean);
+  const root = segments[0];
+  if (!root) return null;
+
+  if (root === 'application') return 'applications';
+  if (root === 'role-applicants') return 'applications';
+  if (root === 'conversation') return 'messages';
+  if (root === 'shift-applicants') return role === 'worker' ? 'fillins' : 'fill-ins';
+
+  if (root === 'job' || root === 'post-job' || root === 'role-history') {
+    return role === 'worker' ? 'browse' : 'postings';
+  }
+
+  if (
+    root === 'shift' ||
+    root === 'post-shift' ||
+    root === 'find-available-workers' ||
+    root === 'outreach-compose'
+  ) {
+    return role === 'worker' ? 'fillins' : 'fill-ins';
+  }
+
+  if (root === 'apply') return 'browse';
+  if (root === 'open-fill-ins' || root === 'past-fill-ins') return 'fillins';
+
+  return null;
+}
+
+/** Resolve which tab bar item should appear selected for stack/detail routes. */
+export function getActiveTabBarName(
+  pathname: string,
+  role: TabAtmosphereRole,
+  returnTo?: string,
+): string | null {
+  const normalized = normalizePath(pathname);
+  const relative = stripTabGroupPrefix(normalized, role);
+
+  const mainTab = getMainTabFromRelativePath(relative, role);
+  if (mainTab) return mainTab;
+
+  const returnTab = getTabBarNameFromReturnTo(returnTo, role);
+  if (returnTab) return returnTab;
+
+  if (isStackDetailPath(normalized, role)) {
+    return getStackParentTabFromRelativePath(relative, role);
+  }
+
+  return null;
+}
+
 function getMainTabFromRelativePath(
   relativePath: string,
   role: TabAtmosphereRole,
