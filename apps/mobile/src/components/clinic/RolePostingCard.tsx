@@ -49,6 +49,12 @@ export function RolePostingCard({
   const roleMeta = formatJobPostRoleMeta(job);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
+    card: {
+      overflow: 'hidden',
+    },
+    cardContent: {
+      padding: spacing.md,
+    },
     menuButton: {
       width: 28,
       height: 28,
@@ -112,7 +118,7 @@ export function RolePostingCard({
     />
   );
 
-  const wageFooter = job.wage_range ? (
+  const wageLabel = job.wage_range ? (
     <Text style={styles.wage}>{job.wage_range}</Text>
   ) : null;
 
@@ -135,21 +141,22 @@ export function RolePostingCard({
   }
 
   return (
-    <SurfaceCard>
-      <ClinicPostHeader
-        layout="split"
-        headerOnly
-        clinicName={clinicName}
-        logoStoragePath={clinicProfile?.logo_storage_path}
-        title={job.title}
-        location={location || null}
-        detail={roleMeta}
-        postedLabel={postedLabel || null}
-        avatarSize={44}
-        accessory={headerActions}
-        footer={wageFooter}
-        action={actionRow}
-      />
+    <SurfaceCard padding="none" style={styles.card}>
+      <View style={styles.cardContent}>
+        <ClinicPostHeader
+          layout="split"
+          clinicName={clinicName}
+          logoStoragePath={clinicProfile?.logo_storage_path}
+          title={job.title}
+          location={location || null}
+          detail={roleMeta}
+          postedLabel={postedLabel || null}
+          textFooter={wageLabel ?? undefined}
+          avatarSize={44}
+          accessory={headerActions}
+          action={actionRow}
+        />
+      </View>
     </SurfaceCard>
   );
 }

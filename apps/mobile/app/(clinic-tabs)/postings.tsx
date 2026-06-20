@@ -14,6 +14,7 @@ import { Alert, Text, View } from 'react-native';
 import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { PostingCardActionButton } from '@/components/clinic/PostingCardActionButton';
+import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
@@ -114,6 +115,9 @@ export default function ClinicPostingsScreen() {
     wrap: {
       gap: spacing.lg,
     },
+    cardList: {
+      gap: dashboardSectionGap(spacing),
+    },
   }));
 
   const load = useCallback(async () => {
@@ -206,12 +210,11 @@ export default function ClinicPostingsScreen() {
                 body="Try a different filter or publish a new role."
               />
             ) : (
-              <BrowseListGroup>
+              <View style={styles.cardList}>
                 {filteredJobs.map((job) => (
                   <RolePostingCard
                     key={job.id}
                     job={job}
-                    layout="list"
                     applicantCount={applicantCounts[job.id] ?? 0}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
                     onApplicantsPress={
@@ -233,7 +236,7 @@ export default function ClinicPostingsScreen() {
                     }
                   />
                 ))}
-              </BrowseListGroup>
+              </View>
             )}
 
             {hasRoleHistory ? (

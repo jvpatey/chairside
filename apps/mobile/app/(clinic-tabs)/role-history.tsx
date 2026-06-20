@@ -9,9 +9,9 @@ import { Alert, Text, View } from 'react-native';
 
 import { RoleTypeFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
+import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
-import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -85,6 +85,9 @@ function HistorySection({
       lineHeight: 20,
       textAlign: 'center',
     },
+    cardList: {
+      gap: dashboardSectionGap(spacing),
+    },
   }));
 
   return (
@@ -99,12 +102,11 @@ function HistorySection({
           <Text style={styles.emptyBody}>{emptyBody}</Text>
         </View>
       ) : (
-        <BrowseListGroup>
+        <View style={styles.cardList}>
           {jobs.map((job) => (
             <RolePostingCard
               key={job.id}
               job={job}
-              layout="list"
               applicantCount={applicantCounts[job.id] ?? 0}
               onPress={() => router.push(getJobDetailRoute(job.id))}
               onApplicantsPress={
@@ -123,7 +125,7 @@ function HistorySection({
               }
             />
           ))}
-        </BrowseListGroup>
+        </View>
       )}
     </View>
   );
