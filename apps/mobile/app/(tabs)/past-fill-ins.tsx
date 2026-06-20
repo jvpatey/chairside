@@ -63,7 +63,6 @@ function PastFillInsEmptyState() {
 export default function PastFillInsScreen() {
   const { user } = useAuth();
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
-  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -162,12 +161,6 @@ export default function PastFillInsScreen() {
                     key={application.id}
                     application={application}
                     returnTo="past-fill-ins"
-                    expanded={expandedApplicationId === application.id}
-                    onExpandChange={(next) =>
-                      setExpandedApplicationId(next ? application.id : null)
-                    }
-                    onUpdated={() => void load()}
-                    onHidden={() => void load()}
                   />
                 ))}
               </View>
@@ -180,12 +173,6 @@ export default function PastFillInsScreen() {
                     key={application.id}
                     application={application}
                     returnTo="past-fill-ins"
-                    expanded={expandedApplicationId === application.id}
-                    onExpandChange={(next) =>
-                      setExpandedApplicationId(next ? application.id : null)
-                    }
-                    onUpdated={() => void load()}
-                    onHidden={() => void load()}
                   />
                 ))}
               </View>

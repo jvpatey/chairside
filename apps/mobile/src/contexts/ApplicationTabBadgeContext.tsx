@@ -26,7 +26,9 @@ import {
 } from '@chairside/api';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useClinicApplicationRealtime } from '@/hooks/useApplicationRealtime';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
 type ApplicationTabBadgeContextValue = {
@@ -79,6 +81,7 @@ type ApplicationTabBadgeProviderProps = {
 
 export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBadgeProviderProps) {
   const { user } = useAuth();
+  const { refreshNotifications } = useNotifications();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const [pendingCount, setPendingCount] = useState(0);
   const [fillInPendingCount, setFillInPendingCount] = useState(0);
@@ -227,8 +230,20 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
     [isApplicationHighlighted, role],
   );
 
-  useRefreshOnFocus(refreshPending);
-  useRefreshOnForeground(refreshPending);
+  const refreshPendingAndBell = useCallback(async () => {
+    await refreshPending();
+    if (role === 'clinic') {
+      await refreshNotifications();
+    }
+  }, [refreshPending, refreshNotifications, role]);
+
+  useRefreshOnFocus(refreshPendingAndBell);
+  useRefreshOnForeground(refreshPendingAndBell);
+
+  useClinicApplicationRealtime(
+    role === 'clinic' ? user?.id : undefined,
+    refreshPendingAndBell,
+  );
 
   useEffect(() => {
     void refreshPending();

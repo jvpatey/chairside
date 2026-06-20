@@ -101,7 +101,6 @@ export default function FillInsScreen() {
   const [savedShiftIds, setSavedShiftIds] = useState<Set<string>>(new Set());
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
-  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [controlsHeight, setControlsHeight] = useState(132);
   const { height: windowHeight } = useWindowDimensions();
@@ -429,12 +428,6 @@ export default function FillInsScreen() {
                           key={application.id}
                           application={application}
                           returnTo="fill-ins-tab"
-                          expanded={expandedApplicationId === application.id}
-                          onExpandChange={(next) =>
-                            setExpandedApplicationId(next ? application.id : null)
-                          }
-                          onUpdated={() => void load()}
-                          onHidden={() => void load()}
                         />
                       ))}
                     </View>
@@ -447,12 +440,6 @@ export default function FillInsScreen() {
                           key={application.id}
                           application={application}
                           returnTo="fill-ins-tab"
-                          expanded={expandedApplicationId === application.id}
-                          onExpandChange={(next) =>
-                            setExpandedApplicationId(next ? application.id : null)
-                          }
-                          onUpdated={() => void load()}
-                          onHidden={() => void load()}
                         />
                       ))}
                     </View>

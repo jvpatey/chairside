@@ -94,14 +94,12 @@ type WorkerRoleBrowseFiltersProps = {
   softwareFilter: WorkerSoftwareFilter;
   payListedFilter: PayListedFilter;
   matchTierFilter: WorkerMatchTierFilter;
-  savedOnlyFilter: SavedOnlyFilter;
   onRoleTypeChange: (value: RoleTypeFilter) => void;
   onSortChange: (value: WorkerBrowseSort) => void;
   onDistanceFilterChange: (value: WorkerDistanceFilter) => void;
   onSoftwareFilterChange: (value: WorkerSoftwareFilter) => void;
   onPayListedFilterChange: (value: PayListedFilter) => void;
   onMatchTierFilterChange: (value: WorkerMatchTierFilter) => void;
-  onSavedOnlyFilterChange: (value: SavedOnlyFilter) => void;
 };
 
 export function WorkerRoleBrowseFilters({
@@ -111,14 +109,12 @@ export function WorkerRoleBrowseFilters({
   softwareFilter,
   payListedFilter,
   matchTierFilter,
-  savedOnlyFilter,
   onRoleTypeChange,
   onSortChange,
   onDistanceFilterChange,
   onSoftwareFilterChange,
   onPayListedFilterChange,
   onMatchTierFilterChange,
-  onSavedOnlyFilterChange,
 }: WorkerRoleBrowseFiltersProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const defaults = {
@@ -128,7 +124,6 @@ export function WorkerRoleBrowseFilters({
     softwareFilter: 'all' as WorkerSoftwareFilter,
     payListedFilter: 'all' as PayListedFilter,
     matchTierFilter: 'all' as WorkerMatchTierFilter,
-    savedOnlyFilter: 'all' as SavedOnlyFilter,
   };
   const activeCount =
     (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
@@ -136,8 +131,7 @@ export function WorkerRoleBrowseFilters({
     (distanceFilter === defaults.distanceFilter ? 0 : 1) +
     (softwareFilter === defaults.softwareFilter ? 0 : 1) +
     (payListedFilter === defaults.payListedFilter ? 0 : 1) +
-    (matchTierFilter === defaults.matchTierFilter ? 0 : 1) +
-    (savedOnlyFilter === defaults.savedOnlyFilter ? 0 : 1);
+    (matchTierFilter === defaults.matchTierFilter ? 0 : 1);
 
   const handleReset = () => {
     onRoleTypeChange(defaults.roleTypeFilter);
@@ -146,7 +140,6 @@ export function WorkerRoleBrowseFilters({
     onSoftwareFilterChange(defaults.softwareFilter);
     onPayListedFilterChange(defaults.payListedFilter);
     onMatchTierFilterChange(defaults.matchTierFilter);
-    onSavedOnlyFilterChange(defaults.savedOnlyFilter);
   };
 
   return (
@@ -197,12 +190,6 @@ export function WorkerRoleBrowseFilters({
           options={PAY_LISTED_FILTER_OPTIONS}
           selected={payListedFilter}
           onChange={onPayListedFilterChange}
-        />
-        <FilterSheetSection
-          label="Saved"
-          options={SAVED_ONLY_FILTER_OPTIONS}
-          selected={savedOnlyFilter}
-          onChange={onSavedOnlyFilterChange}
         />
       </FilterSheet>
     </>

@@ -130,9 +130,6 @@ export default function BrowseScreen() {
   const [matchTierFilter, setMatchTierFilter] = useState(
     DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter,
   );
-  const [savedOnlyFilter, setSavedOnlyFilter] = useState(
-    DEFAULT_WORKER_ROLE_BROWSE_FILTERS.savedOnlyFilter,
-  );
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [controlsHeight, setControlsHeight] = useState(132);
@@ -172,16 +169,13 @@ export default function BrowseScreen() {
         softwareFilter,
         payListedFilter,
         matchTierFilter,
-        savedOnlyFilter,
-      }).filter((job) => savedOnlyFilter !== 'saved_only' || savedJobIds.has(job.id)),
+      }),
     [
       distanceFilter,
       jobs,
       matchTierFilter,
       payListedFilter,
       roleTypeFilter,
-      savedJobIds,
-      savedOnlyFilter,
       searchQuery,
       softwareFilter,
       sort,
@@ -213,11 +207,15 @@ export default function BrowseScreen() {
     [savedJobIds, user?.id],
   );
 
-  const { openJobs, appliedJobs } = useMemo(() => {
+  const { openJobs, appliedJobs, savedJobs } = useMemo(() => {
     const open: EnrichedLiveJobPost[] = [];
     const applied: EnrichedLiveJobPost[] = [];
+    const saved: EnrichedLiveJobPost[] = [];
 
     for (const job of filteredJobs) {
+      if (savedJobIds.has(job.id)) {
+        saved.push(job);
+      }
       if (appliedJobIds.has(job.id)) {
         applied.push(job);
       } else {
@@ -225,12 +223,15 @@ export default function BrowseScreen() {
       }
     }
 
-    return { openJobs: open, appliedJobs: applied };
-  }, [appliedJobIds, filteredJobs]);
+    return { openJobs: open, appliedJobs: applied, savedJobs: saved };
+  }, [appliedJobIds, filteredJobs, savedJobIds]);
 
-  const hasBothSections = openJobs.length > 0 && appliedJobs.length > 0;
-  const segmentJobs = selectedMode === 'open' ? openJobs : appliedJobs;
-  const displayJobs = hasBothSections ? segmentJobs : filteredJobs;
+  const tabJobs =
+    selectedMode === 'open'
+      ? openJobs
+      : selectedMode === 'applied'
+        ? appliedJobs
+        : savedJobs;
   const canUseMap = selectedMode === 'open';
 
   useEffect(() => {
@@ -242,11 +243,11 @@ export default function BrowseScreen() {
   const mapGroups = useMemo(
     () =>
       groupWorkerMapItemsByClinic(
-        toWorkerMapItemsFromJobs(displayJobs, savedJobIds, appliedJobIds),
+        toWorkerMapItemsFromJobs(tabJobs, savedJobIds, appliedJobIds),
       ),
-    [appliedJobIds, displayJobs, savedJobIds],
+    [appliedJobIds, tabJobs, savedJobIds],
   );
-  const unmappableJobCount = useMemo(() => countUnmappablePosts(displayJobs), [displayJobs]);
+  const unmappableJobCount = useMemo(() => countUnmappablePosts(tabJobs), [tabJobs]);
   const workerCoords =
     workerProfile?.latitude != null && workerProfile?.longitude != null
       ? { latitude: workerProfile.latitude, longitude: workerProfile.longitude }
@@ -258,15 +259,14 @@ export default function BrowseScreen() {
     distanceFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.distanceFilter ||
     softwareFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.softwareFilter ||
     payListedFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.payListedFilter ||
-    matchTierFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter ||
-    savedOnlyFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.savedOnlyFilter;
+    matchTierFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter;
 
   const hasMapResults =
     canUseMap &&
     !isLoading &&
     jobs.length > 0 &&
     viewMode === 'map' &&
-    (hasBothSections ? segmentJobs.length > 0 : filteredJobs.length > 0);
+    tabJobs.length > 0;
 
   const mapPanelHeight = useMemo(
     () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
@@ -312,16 +312,14 @@ export default function BrowseScreen() {
 
   const browseControls = showBrowseControls ? (
     <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
-      {hasBothSections ? (
-        <View style={styles.controlRow}>
-          <SegmentedControl
-            options={ROLES_BROWSE_MODE_OPTIONS}
-            selected={selectedMode}
-            onChange={setSelectedMode}
-            density="compact"
-          />
-        </View>
-      ) : null}
+      <View style={styles.controlRow}>
+        <SegmentedControl
+          options={ROLES_BROWSE_MODE_OPTIONS}
+          selected={selectedMode}
+          onChange={setSelectedMode}
+          density="compact"
+        />
+      </View>
       <View style={styles.searchRow}>
         <View style={styles.searchField}>
           <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
@@ -334,18 +332,43 @@ export default function BrowseScreen() {
           softwareFilter={softwareFilter}
           payListedFilter={payListedFilter}
           matchTierFilter={matchTierFilter}
-          savedOnlyFilter={savedOnlyFilter}
           onRoleTypeChange={setRoleTypeFilter}
           onSortChange={setSort}
           onDistanceFilterChange={setDistanceFilter}
           onSoftwareFilterChange={setSoftwareFilter}
           onPayListedFilterChange={setPayListedFilter}
           onMatchTierFilterChange={setMatchTierFilter}
-          onSavedOnlyFilterChange={setSavedOnlyFilter}
         />
       </View>
     </View>
   ) : null;
+
+  const emptyTabState = (() => {
+    switch (selectedMode) {
+      case 'open':
+        return {
+          icon: 'briefcase-outline' as const,
+          title: 'No open roles in this filter',
+          message: hasActiveFilters
+            ? 'Try a different search or filter, or check the Applied or Saved tab.'
+            : 'Check back soon for new opportunities.',
+        };
+      case 'applied':
+        return {
+          icon: 'checkmark-circle-outline' as const,
+          title: 'No applied roles in this filter',
+          message: 'Roles you apply to will appear here while they are still posted.',
+        };
+      case 'saved':
+        return {
+          icon: 'bookmark-outline' as const,
+          title: 'No saved roles',
+          message: hasActiveFilters
+            ? 'Try a different search or filter, or save roles from the Open tab.'
+            : 'Save roles you are interested in to find them here.',
+        };
+    }
+  })();
 
   const listContent =
     filteredJobs.length === 0 ? (
@@ -358,36 +381,16 @@ export default function BrowseScreen() {
             : 'Check back soon for new opportunities.'
         }
       />
-    ) : hasBothSections ? (
-      segmentJobs.length === 0 ? (
-        <DashboardEmptyState
-          icon={selectedMode === 'open' ? 'briefcase-outline' : 'checkmark-circle-outline'}
-          title={
-            selectedMode === 'open'
-              ? 'No open roles in this filter'
-              : 'No applied roles in this filter'
-          }
-          message={
-            selectedMode === 'open'
-              ? 'Try a different search or filter, or check the Applied tab.'
-              : 'Roles you apply to will appear here while they are still posted.'
-          }
-        />
-      ) : (
-        <View style={styles.cardList}>
-          {renderRoleListingCards(
-            segmentJobs,
-            appliedJobIds,
-            savedJobIds,
-            workerProfile,
-            handleToggleSavedJob,
-          )}
-        </View>
-      )
+    ) : tabJobs.length === 0 ? (
+      <DashboardEmptyState
+        icon={emptyTabState.icon}
+        title={emptyTabState.title}
+        message={emptyTabState.message}
+      />
     ) : (
       <View style={styles.cardList}>
         {renderRoleListingCards(
-          filteredJobs,
+          tabJobs,
           appliedJobIds,
           savedJobIds,
           workerProfile,

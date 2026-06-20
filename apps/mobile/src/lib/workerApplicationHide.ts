@@ -57,7 +57,13 @@ export function confirmHideWorkerApplication(
       try {
         await hideWorkerApplication(application.worker_id, application.id);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        onHidden();
+        Alert.alert(
+          isShift ? 'Removed from list' : 'Application removed',
+          isShift
+            ? 'This fill-in request has been removed from your list.'
+            : 'This application has been removed from your list.',
+          [{ text: 'OK', onPress: () => onHidden() }],
+        );
       } catch (error) {
         Alert.alert(
           'Could not remove',

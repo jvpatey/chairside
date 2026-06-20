@@ -8,6 +8,7 @@ import { Platform, Pressable, Text, View } from 'react-native';
 import { MOBILE_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
+import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { webPointer } from '@/lib/webPressableStyles';
@@ -46,13 +47,11 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
   const isWeb = Platform.OS === 'web';
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const visibleRoutes = getVisibleRoutes(state, descriptors, role);
-  const focusedVisibleIndex = visibleRoutes.findIndex(
-    (route) => state.routes.findIndex((item) => item.key === route.key) === state.index,
-  );
+  const { indicatorIndex, isRouteFocused } = useResolvedTabBarFocus(state, visibleRoutes, role);
   const { animatedStyle: indicatorStyle, onSegmentLayout } = useSlidingSegmentIndicator(
-    focusedVisibleIndex >= 0 ? focusedVisibleIndex : 0,
+    indicatorIndex,
   );
-  const focusedRoute = visibleRoutes[focusedVisibleIndex];
+  const focusedRoute = visibleRoutes[indicatorIndex];
   const focusedAccent = focusedRoute ? getTabAccentForName(focusedRoute.name) : 'primary';
   const focusedIndicatorColor =
     focusedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
@@ -144,7 +143,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
         {visibleRoutes.map((route, index) => {
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((item) => item.key === route.key);
-          const isFocused = state.index === routeIndex;
+          const isFocused = isRouteFocused(route.name, routeIndex);
           const tabAccent = getTabAccentForName(route.name);
           const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
           const color = isFocused ? activeColor : colors.tabInactive;

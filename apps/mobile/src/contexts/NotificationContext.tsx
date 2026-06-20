@@ -11,8 +11,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
 import {
   getPingramApiHost,
   getPingramClientId,
@@ -57,6 +59,62 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.warn('Could not load in-app notifications', error);
     }
   }, []);
+
+  const reconnectWebSocket = useCallback(() => {
+    const client = clientRef.current;
+    if (!client) return;
+    try {
+      client.websocket.disconnect();
+      client.openWebSocket();
+    } catch (error) {
+      console.warn('Could not reconnect notification websocket', error);
+    }
+  }, []);
+
+  const refreshOnForeground = useCallback(async () => {
+    reconnectWebSocket();
+    await refreshNotifications();
+  }, [reconnectWebSocket, refreshNotifications]);
+
+  useRefreshOnForeground(refreshOnForeground);
+
+  useEffect(() => {
+    if (!user?.id || !isReady) return;
+
+    const pollIntervalMs = 25_000;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (intervalId) return;
+      intervalId = setInterval(() => {
+        void refreshNotifications();
+      }, pollIntervalMs);
+    };
+
+    const stopPolling = () => {
+      if (!intervalId) return;
+      clearInterval(intervalId);
+      intervalId = null;
+    };
+
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    if (AppState.currentState === 'active') {
+      startPolling();
+    }
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+      stopPolling();
+    };
+  }, [isReady, refreshNotifications, user?.id]);
 
   const markRead = useCallback(async (ids: string[]) => {
     const client = clientRef.current;

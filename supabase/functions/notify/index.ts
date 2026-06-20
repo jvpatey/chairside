@@ -320,6 +320,47 @@ async function claimIdempotency(
   return true;
 }
 
+async function releaseIdempotency(
+  supabase: ReturnType<typeof createClient>,
+  key: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('notification_dispatch_log')
+    .delete()
+    .eq('idempotency_key', key);
+  if (error) throw error;
+}
+
+async function withIdempotentDispatch(
+  supabase: ReturnType<typeof createClient>,
+  key: string,
+  label: string,
+  dispatch: () => Promise<void>,
+): Promise<'sent' | 'skipped'> {
+  if (!(await claimIdempotency(supabase, key))) {
+    console.log(`[notify] ${label}: idempotency skip (${key})`);
+    return 'skipped';
+  }
+
+  try {
+    await dispatch();
+    console.log(`[notify] ${label}: pingram sent (${key})`);
+    return 'sent';
+  } catch (error) {
+    try {
+      await releaseIdempotency(supabase, key);
+      console.error(`[notify] ${label}: pingram failed, released idempotency (${key})`, error);
+    } catch (releaseError) {
+      console.error(
+        `[notify] ${label}: pingram failed and could not release idempotency (${key})`,
+        releaseError,
+      );
+      console.error(`[notify] ${label}: original pingram failure (${key})`, error);
+    }
+    throw error;
+  }
+}
+
 function truncatePreview(text: string, maxLength = 120): string {
   const trimmed = text.trim();
   if (trimmed.length <= maxLength) return trimmed;
@@ -385,7 +426,6 @@ async function handleMessageInsert(
   const isOutreachConversation = conversation.conversation_type === 'outreach';
 
   const idempotencyKey = `${PINGRAM_TYPES.messageReceived}:${messageId}`;
-  if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   let senderLabel = 'Someone';
   if (normalizeUuid(senderId) === normalizeUuid(conversation.worker_id)) {
@@ -432,20 +472,22 @@ async function handleMessageInsert(
     NOTIFICATION_PREFERENCE_CATEGORIES.messages,
   );
 
-  await pingramSend(
-    pingramKey,
-    pingramBase,
-    buildSendBody({
-      type: PINGRAM_TYPES.messageReceived,
-      userId: recipientId,
-      title,
-      message,
-      deepLink,
-      secondaryId: idempotencyKey,
-      includePush,
-      pushCustomData: { senderId },
-    }),
-  );
+  await withIdempotentDispatch(supabase, idempotencyKey, 'message_received', async () => {
+    await pingramSend(
+      pingramKey,
+      pingramBase,
+      buildSendBody({
+        type: PINGRAM_TYPES.messageReceived,
+        userId: recipientId,
+        title,
+        message,
+        deepLink,
+        secondaryId: idempotencyKey,
+        includePush,
+        pushCustomData: { senderId },
+      }),
+    );
+  });
 
   if (
     isOutreachConversation &&
@@ -454,7 +496,6 @@ async function handleMessageInsert(
     normalizeUuid(senderId) === normalizeUuid(conversation.clinic_id)
   ) {
     const smsKey = `${PINGRAM_TYPES.fillInOutreachSms}:${messageId}`;
-    if (!(await claimIdempotency(supabase, smsKey))) return;
 
     const { data: worker } = await supabase
       .from('worker_profiles')
@@ -480,17 +521,19 @@ async function handleMessageInsert(
       roleType: conversation.outreach_role_type as string | null,
     });
 
-    await pingramSend(
-      pingramKey,
-      pingramBase,
-      buildSmsOnlyBody({
-        type: PINGRAM_TYPES.fillInOutreachSms,
-        userId: conversation.worker_id,
-        phone: e164,
-        smsMessage,
-        secondaryId: smsKey,
-      }),
-    );
+    await withIdempotentDispatch(supabase, smsKey, 'fill_in_outreach_sms', async () => {
+      await pingramSend(
+        pingramKey,
+        pingramBase,
+        buildSmsOnlyBody({
+          type: PINGRAM_TYPES.fillInOutreachSms,
+          userId: conversation.worker_id,
+          phone: e164,
+          smsMessage,
+          secondaryId: smsKey,
+        }),
+      );
+    });
   }
 }
 
@@ -598,7 +641,6 @@ async function sendWorkerStatusNotification(
   }
 
   const idempotencyKey = `${notification.pingramType}:${applicationId}:${status}`;
-  if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   const deepLink = `chairside:///(tabs)/application/${applicationId}`;
   const includePush = await isPushEnabledForUser(
@@ -606,18 +648,25 @@ async function sendWorkerStatusNotification(
     workerId,
     NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
   );
-  await pingramSend(
-    pingramKey,
-    pingramBase,
-    buildSendBody({
-      type: notification.pingramType,
-      userId: workerId,
-      title: notification.title,
-      message: notification.message,
-      deepLink,
-      secondaryId: idempotencyKey,
-      includePush,
-    }),
+  await withIdempotentDispatch(
+    supabase,
+    idempotencyKey,
+    `worker_status_${status}`,
+    async () => {
+      await pingramSend(
+        pingramKey,
+        pingramBase,
+        buildSendBody({
+          type: notification.pingramType,
+          userId: workerId,
+          title: notification.title,
+          message: notification.message,
+          deepLink,
+          secondaryId: idempotencyKey,
+          includePush,
+        }),
+      );
+    },
   );
 }
 
@@ -661,7 +710,6 @@ async function sendClinicApplicationNotification(
 
   const applicationId = application.id as string;
   const idempotencyKey = `${template.pingramType}:${applicationId}`;
-  if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   const jobPostId = application.job_post_id as string | null;
   const deepLink = jobPostId
@@ -674,18 +722,25 @@ async function sendClinicApplicationNotification(
     NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
   );
 
-  await pingramSend(
-    pingramKey,
-    pingramBase,
-    buildSendBody({
-      type: template.pingramType,
-      userId: clinicId,
-      title: template.title,
-      message: template.message,
-      deepLink,
-      secondaryId: idempotencyKey,
-      includePush,
-    }),
+  await withIdempotentDispatch(
+    supabase,
+    idempotencyKey,
+    `clinic_application_${template.pingramType}`,
+    async () => {
+      await pingramSend(
+        pingramKey,
+        pingramBase,
+        buildSendBody({
+          type: template.pingramType,
+          userId: clinicId,
+          title: template.title,
+          message: template.message,
+          deepLink,
+          secondaryId: idempotencyKey,
+          includePush,
+        }),
+      );
+    },
   );
 }
 
@@ -727,12 +782,22 @@ async function handleApplicationInsert(
     }
   }
 
-  if (!clinicId) return;
+  if (!clinicId) {
+    console.log(
+      `[notify] application INSERT: skipped, no clinicId (applicationId=${applicationId}, jobPostId=${jobPostId}, shiftPostId=${shiftPostId})`,
+    );
+    return;
+  }
+
+  console.log(
+    `[notify] application INSERT: dispatching application_received (applicationId=${applicationId}, clinicId=${clinicId}, jobPostId=${jobPostId}, shiftPostId=${shiftPostId})`,
+  );
+
+  const resolvedClinicId = clinicId;
 
   const workerName = (record.worker_display_name as string | null)?.trim() || 'A worker';
   const isShiftRequest = Boolean(shiftPostId);
   const idempotencyKey = `${PINGRAM_TYPES.applicationReceived}:${applicationId}`;
-  if (!(await claimIdempotency(supabase, idempotencyKey))) return;
 
   const title = isShiftRequest
     ? `New cover request · ${postTitle}`
@@ -744,23 +809,25 @@ async function handleApplicationInsert(
 
   const includePush = await isPushEnabledForUser(
     supabase,
-    clinicId,
+    resolvedClinicId,
     NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
   );
 
-  await pingramSend(
-    pingramKey,
-    pingramBase,
-    buildSendBody({
-      type: PINGRAM_TYPES.applicationReceived,
-      userId: clinicId,
-      title,
-      message,
-      deepLink,
-      secondaryId: idempotencyKey,
-      includePush,
-    }),
-  );
+  await withIdempotentDispatch(supabase, idempotencyKey, 'application_received', async () => {
+    await pingramSend(
+      pingramKey,
+      pingramBase,
+      buildSendBody({
+        type: PINGRAM_TYPES.applicationReceived,
+        userId: resolvedClinicId,
+        title,
+        message,
+        deepLink,
+        secondaryId: idempotencyKey,
+        includePush,
+      }),
+    );
+  });
 }
 
 async function handleInterviewProposalChange(
@@ -1056,28 +1123,43 @@ async function handleShiftPostLive(
   for (const worker of recipients) {
     notifiedRecipientIds.add(worker.id);
     const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}:${updatedAt}`;
-    if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 
     const deepLink = 'chairside:///(tabs)/fillins';
     const smsOptIn = worker.fill_in_sms_opt_in === true;
     const e164 = smsOptIn ? normalizeE164(worker.phone as string | null) : null;
 
-    await pingramSend(
-      pingramKey,
-      pingramBase,
-      buildSendBody({
-        type: PINGRAM_TYPES.fillInPosted,
-        userId: worker.id,
-        phone: e164 ?? undefined,
-        title: fillInCopy.title,
-        message: fillInCopy.message,
-        deepLink,
-        secondaryId: idempotencyKey,
-        includePush: pushPreferences.get(worker.id) ?? true,
-        includeSms: Boolean(smsOptIn && e164),
-        smsMessage: fillInCopy.smsMessage,
-      }),
-    );
+    try {
+      const result = await withIdempotentDispatch(
+        supabase,
+        idempotencyKey,
+        'fill_in_posted',
+        async () => {
+          await pingramSend(
+            pingramKey,
+            pingramBase,
+            buildSendBody({
+              type: PINGRAM_TYPES.fillInPosted,
+              userId: worker.id,
+              phone: e164 ?? undefined,
+              title: fillInCopy.title,
+              message: fillInCopy.message,
+              deepLink,
+              secondaryId: idempotencyKey,
+              includePush: pushPreferences.get(worker.id) ?? true,
+              includeSms: Boolean(smsOptIn && e164),
+              smsMessage: fillInCopy.smsMessage,
+            }),
+          );
+        },
+      );
+      if (result === 'skipped') continue;
+    } catch (error) {
+      console.error(
+        `[notify] fill_in_posted: failed (workerId=${worker.id}, key=${idempotencyKey})`,
+        error,
+      );
+      continue;
+    }
   }
 
   return notifiedRecipientIds;
@@ -1122,25 +1204,40 @@ async function handleJobPostLive(
 
   for (const worker of recipients) {
     const idempotencyKey = `${PINGRAM_TYPES.jobPosted}:${jobId}:${worker.id}`;
-    if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 
     const notifTitle = `New role · ${title}`;
     const message = `${clinicName}${cityLabel} posted ${title}.`;
     const deepLink = 'chairside:///(tabs)/browse';
 
-    await pingramSend(
-      pingramKey,
-      pingramBase,
-      buildSendBody({
-        type: PINGRAM_TYPES.jobPosted,
-        userId: worker.id,
-        title: notifTitle,
-        message,
-        deepLink,
-        secondaryId: idempotencyKey,
-        includePush: pushPreferences.get(worker.id) ?? true,
-      }),
-    );
+    try {
+      const result = await withIdempotentDispatch(
+        supabase,
+        idempotencyKey,
+        'job_posted',
+        async () => {
+          await pingramSend(
+            pingramKey,
+            pingramBase,
+            buildSendBody({
+              type: PINGRAM_TYPES.jobPosted,
+              userId: worker.id,
+              title: notifTitle,
+              message,
+              deepLink,
+              secondaryId: idempotencyKey,
+              includePush: pushPreferences.get(worker.id) ?? true,
+            }),
+          );
+        },
+      );
+      if (result === 'skipped') continue;
+    } catch (error) {
+      console.error(
+        `[notify] job_posted: failed (workerId=${worker.id}, key=${idempotencyKey})`,
+        error,
+      );
+      continue;
+    }
   }
 }
 
@@ -1298,21 +1395,36 @@ async function handleSavedJobPostUpdate(
 
   for (const worker of savers) {
     const idempotencyKey = `${pingramType}:${jobId}:${worker.id}:${updatedAt}`;
-    if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 
-    await pingramSend(
-      pingramKey,
-      pingramBase,
-      buildSendBody({
-        type: pingramType,
-        userId: worker.id,
-        title: notifTitle,
-        message,
-        deepLink,
-        secondaryId: idempotencyKey,
-        includePush: pushPreferences.get(worker.id) ?? true,
-      }),
-    );
+    try {
+      const result = await withIdempotentDispatch(
+        supabase,
+        idempotencyKey,
+        pingramType,
+        async () => {
+          await pingramSend(
+            pingramKey,
+            pingramBase,
+            buildSendBody({
+              type: pingramType,
+              userId: worker.id,
+              title: notifTitle,
+              message,
+              deepLink,
+              secondaryId: idempotencyKey,
+              includePush: pushPreferences.get(worker.id) ?? true,
+            }),
+          );
+        },
+      );
+      if (result === 'skipped') continue;
+    } catch (error) {
+      console.error(
+        `[notify] ${pingramType}: failed (workerId=${worker.id}, key=${idempotencyKey})`,
+        error,
+      );
+      continue;
+    }
   }
 }
 
@@ -1372,21 +1484,36 @@ async function handleSavedShiftPostUpdate(
 
   for (const worker of savers) {
     const idempotencyKey = `${pingramType}:${shiftId}:${worker.id}:${updatedAt}`;
-    if (!(await claimIdempotency(supabase, idempotencyKey))) continue;
 
-    await pingramSend(
-      pingramKey,
-      pingramBase,
-      buildSendBody({
-        type: pingramType,
-        userId: worker.id,
-        title: notifTitle,
-        message,
-        deepLink,
-        secondaryId: idempotencyKey,
-        includePush: pushPreferences.get(worker.id) ?? true,
-      }),
-    );
+    try {
+      const result = await withIdempotentDispatch(
+        supabase,
+        idempotencyKey,
+        pingramType,
+        async () => {
+          await pingramSend(
+            pingramKey,
+            pingramBase,
+            buildSendBody({
+              type: pingramType,
+              userId: worker.id,
+              title: notifTitle,
+              message,
+              deepLink,
+              secondaryId: idempotencyKey,
+              includePush: pushPreferences.get(worker.id) ?? true,
+            }),
+          );
+        },
+      );
+      if (result === 'skipped') continue;
+    } catch (error) {
+      console.error(
+        `[notify] ${pingramType}: failed (workerId=${worker.id}, key=${idempotencyKey})`,
+        error,
+      );
+      continue;
+    }
   }
 }
 
@@ -1441,6 +1568,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     if (payload.table === 'applications') {
+      console.log(`[notify] applications ${payload.type} received`);
       if (payload.type === 'INSERT') {
         await handleApplicationInsert(supabase, pingramKey, pingramBase, payload.record);
       } else if (payload.type === 'UPDATE') {
