@@ -5,13 +5,15 @@ import {
   type ClinicApplication,
   type FillInCoverRequest,
 } from '@chairside/api';
-import { getRoleTypeLabel } from '@chairside/config';
+import { getRoleTypeLabel, hasClinicWorkerCrmContent } from '@chairside/config';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
+import { ClinicWorkerCrmBadges } from '@/components/clinic/ClinicWorkerCrmSheet';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
@@ -21,6 +23,7 @@ import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   getClinicApplicationMessagesRoute,
+  getClinicApplicationRoute,
   type ClinicApplicationReturnTarget,
   type FillInReturnTarget,
 } from '@/lib/routing';
@@ -40,9 +43,13 @@ type FillInApplicantCardProps = {
 };
 
 function isPending(application: FillInApplicantApplication): boolean {
-  return ['applied', 'reviewed', 'in_progress', 'interview_offered', 'interview_scheduled'].includes(
-    application.status,
-  );
+  return [
+    'applied',
+    'reviewed',
+    'in_progress',
+    'interview_offered',
+    'interview_scheduled',
+  ].includes(application.status);
 }
 
 function getShiftMeta(application: FillInApplicantApplication): string {
@@ -67,25 +74,37 @@ export function FillInApplicantCard({
 }: FillInApplicantCardProps) {
   const { colors } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { refreshPending, isCoverRequestHighlighted, getCoverRequestHighlightLabel } =
     useFillInPending();
   const { markApplicationSeen } = useApplicationTabBadge();
+  const submittingActionRef = useRef<'accept' | 'decline' | null>(null);
+  const [submittingAction, setSubmittingAction] = useState<'accept' | 'decline' | null>(null);
   const workerName = getApplicantDisplayName(application);
   const workerDeleted = application.worker_account_deleted;
   const pending = isPending(application) && !workerDeleted;
+  const isSubmitting = submittingAction != null;
   const hasNewCoverRequest = isCoverRequestHighlighted(application);
   const newCoverRequestLabel = getCoverRequestHighlightLabel(application);
+  const crmRecord = 'clinic_crm' in application ? application.clinic_crm : null;
+  const showNewBadge = hasNewCoverRequest;
+  const showStatusBadge = !(hasNewCoverRequest && application.status === 'applied');
 
   useEffect(() => {
     if (hasNewCoverRequest) {
       void markApplicationSeen(application.id);
     }
   }, [application.id, hasNewCoverRequest, markApplicationSeen]);
+
   const messagesReturnTo =
-    returnTo === 'fill-ins-tab' || returnTo === 'postings-fill-ins' || returnTo === 'dashboard-fill-ins'
+    returnTo === 'fill-ins-tab' ||
+    returnTo === 'postings-fill-ins' ||
+    returnTo === 'dashboard-fill-ins'
       ? 'messages-tab'
       : returnTo;
+
+  const openDetail = () => {
+    router.push(getClinicApplicationRoute(application.id, messagesReturnTo));
+  };
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -125,15 +144,27 @@ export function FillInApplicantCard({
       lineHeight: 20,
       color: colors.labelSecondary,
     },
+    headerPress: {
+      marginHorizontal: -spacing.xs,
+    },
+    chevronRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: spacing.xs,
+    },
   }));
 
   const handleAccept = () => {
+    if (submittingActionRef.current != null || isSubmitting) return;
     showConfirmActionSheet({
       title: 'Accept cover request?',
       message: `Confirm ${workerName} for this fill-in? Other pending requests will be declined and the shift will be marked filled.`,
       confirmLabel: 'Accept',
       onConfirm: async () => {
-        setIsSubmitting(true);
+        if (submittingActionRef.current != null) return;
+        submittingActionRef.current = 'accept';
+        setSubmittingAction('accept');
         try {
           await confirmFillInApplicant(clinicId, application.id);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -153,20 +184,24 @@ export function FillInApplicantCard({
             error instanceof Error ? error.message : 'Please try again.',
           );
         } finally {
-          setIsSubmitting(false);
+          submittingActionRef.current = null;
+          setSubmittingAction(null);
         }
       },
     });
   };
 
   const handleDecline = () => {
+    if (submittingActionRef.current != null || isSubmitting) return;
     showConfirmActionSheet({
       title: 'Decline cover request?',
       message: `Decline ${workerName} for this fill-in?`,
       confirmLabel: 'Decline',
       destructive: true,
       onConfirm: async () => {
-        setIsSubmitting(true);
+        if (submittingActionRef.current != null) return;
+        submittingActionRef.current = 'decline';
+        setSubmittingAction('decline');
         try {
           await updateApplicationStatus(application.id, 'rejected');
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -178,7 +213,8 @@ export function FillInApplicantCard({
             error instanceof Error ? error.message : 'Please try again.',
           );
         } finally {
-          setIsSubmitting(false);
+          submittingActionRef.current = null;
+          setSubmittingAction(null);
         }
       },
     });
@@ -186,25 +222,37 @@ export function FillInApplicantCard({
 
   return (
     <View style={styles.card}>
-      <ApplicantPostHeader
-        displayName={workerName}
-        photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
-        title={getRoleTypeLabel(application.post_role_type)}
-        detail={[
-          getShiftMeta(application),
-          hasUnreadMessages ? 'New message' : null,
-          newCoverRequestLabel,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-        avatarSize={44}
-        accessory={
-          <View style={{ alignItems: 'flex-end', gap: 8 }}>
-            {hasNewCoverRequest ? <ApplicationCardBadge /> : null}
-            <ClinicApplicationStatusBadge status={application.status} postType="shift" />
-          </View>
-        }
-      />
+      <Pressable style={styles.headerPress} onPress={openDetail}>
+        <ApplicantPostHeader
+          displayName={workerName}
+          photoStoragePath={workerDeleted ? null : application.worker_photo_storage_path}
+          title={getRoleTypeLabel(application.post_role_type)}
+          detail={[
+            getShiftMeta(application),
+            hasUnreadMessages ? 'New message' : null,
+            newCoverRequestLabel,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+          avatarSize={44}
+          accessory={
+            <View style={{ alignItems: 'flex-end', gap: 8 }}>
+              {showNewBadge ? <ApplicationCardBadge label={newCoverRequestLabel ?? 'New'} /> : null}
+              {showStatusBadge ? (
+                <ClinicApplicationStatusBadge status={application.status} postType="shift" />
+              ) : null}
+              <View style={styles.chevronRow}>
+                <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
+              </View>
+            </View>
+          }
+          footer={
+            hasClinicWorkerCrmContent(crmRecord) ? (
+              <ClinicWorkerCrmBadges record={crmRecord} compact />
+            ) : null
+          }
+        />
+      </Pressable>
 
       {application.cover_message?.trim() ? (
         <Text style={styles.preview}>{`\u201C${application.cover_message.trim()}\u201D`}</Text>
@@ -221,9 +269,9 @@ export function FillInApplicantCard({
       {pending ? (
         <View style={styles.actions}>
           <OnboardingButton
-            label={isSubmitting ? 'Accepting…' : 'Accept'}
-            disabled={isSubmitting}
+            label={submittingAction === 'accept' ? 'Accepting...' : 'Accept'}
             accent={accent}
+            disabled={isSubmitting}
             onPress={handleAccept}
           />
           <View style={styles.row}>
@@ -238,7 +286,7 @@ export function FillInApplicantCard({
             />
             <OnboardingButton
               style={styles.action}
-              label="Decline"
+              label={submittingAction === 'decline' ? 'Declining...' : 'Decline'}
               variant="destructive"
               disabled={isSubmitting}
               onPress={handleDecline}
@@ -247,13 +295,7 @@ export function FillInApplicantCard({
         </View>
       ) : application.status !== 'rejected' ? (
         <OnboardingButton
-          label={
-            workerDeleted
-              ? 'View messages'
-              : hasUnreadMessages
-                ? 'Message · New'
-                : 'Message'
-          }
+          label={workerDeleted ? 'View messages' : hasUnreadMessages ? 'Message · New' : 'Message'}
           variant="secondary"
           onPress={() =>
             router.push(getClinicApplicationMessagesRoute(application.id, messagesReturnTo))

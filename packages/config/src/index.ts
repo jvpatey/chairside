@@ -52,6 +52,17 @@ export {
   type TeamSizeRange,
 } from './clinicOptions';
 export {
+  CLINIC_WORKER_CRM_PRESET_TAGS,
+  formatClinicWorkerCrmFollowUpLabel,
+  getClinicWorkerCrmTagLabel,
+  hasClinicWorkerCrmContent,
+  isClinicWorkerCrmFollowUpDue,
+  isClinicWorkerCrmFollowUpScheduled,
+  isClinicWorkerCrmPresetTag,
+  normalizeClinicWorkerCrmTags,
+  type ClinicWorkerCrmPresetTag,
+} from './clinicWorkerCrm';
+export {
   DELETED_ACCOUNT_LABEL,
   DELETED_CANDIDATE_LABEL,
   DELETED_CLINIC_LABEL,

@@ -13,6 +13,7 @@ const FILTER_TABS: { value: ApplicantListFilter; label: string }[] = [
   { value: 'shortlisted', label: 'Shortlisted' },
   { value: 'interview', label: 'Interview' },
   { value: 'decided', label: 'Decided' },
+  { value: 'follow_up', label: 'Follow-up' },
 ];
 
 export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilterBarProps) {

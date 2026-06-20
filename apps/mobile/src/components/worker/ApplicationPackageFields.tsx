@@ -17,6 +17,7 @@ type ApplicationPreviewFieldProps = {
   emptyLabel?: string;
   /** When true, question-style labels keep normal casing instead of uppercase. */
   preserveLabelCase?: boolean;
+  layout?: 'stacked' | 'inline';
 };
 
 export function ApplicationPreviewField({
@@ -24,18 +25,28 @@ export function ApplicationPreviewField({
   value,
   emptyLabel = 'Not set',
   preserveLabelCase = false,
+  layout = 'stacked',
 }: ApplicationPreviewFieldProps) {
   const trimmed = value?.trim();
   const isEmpty = !trimmed;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     field: { gap: 2 },
+    inlineRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'baseline',
+      gap: spacing.xs,
+    },
     label: {
       fontSize: 12,
       fontWeight: '600',
       letterSpacing: 0.3,
       textTransform: preserveLabelCase ? 'none' : 'uppercase',
       color: colors.labelSecondary,
+    },
+    inlineLabel: {
+      textTransform: 'none',
     },
     value: {
       ...typography.body,
@@ -49,6 +60,15 @@ export function ApplicationPreviewField({
     },
     fieldBlock: { paddingVertical: spacing.xs },
   }));
+
+  if (layout === 'inline') {
+    return (
+      <View style={[styles.fieldBlock, styles.inlineRow]}>
+        <Text style={[styles.label, styles.inlineLabel]}>{label}</Text>
+        <Text style={[styles.value, isEmpty && styles.valueEmpty]}>{trimmed || emptyLabel}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.field, styles.fieldBlock]}>

@@ -41,6 +41,7 @@ type ApplicationTabBadgeContextValue = {
   isApplicationHighlighted: (
     application: Pick<
       Application,
+      | 'id'
       | 'post_type'
       | 'status'
       | 'created_at'
@@ -55,6 +56,7 @@ type ApplicationTabBadgeContextValue = {
   getApplicationHighlightLabel: (
     application: Pick<
       Application,
+      | 'id'
       | 'post_type'
       | 'status'
       | 'created_at'
@@ -75,14 +77,14 @@ type ApplicationTabBadgeProviderProps = {
   children: ReactNode;
 };
 
-export function ApplicationTabBadgeProvider({
-  role,
-  children,
-}: ApplicationTabBadgeProviderProps) {
+export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBadgeProviderProps) {
   const { user } = useAuth();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const [pendingCount, setPendingCount] = useState(0);
   const [fillInPendingCount, setFillInPendingCount] = useState(0);
+  const [locallySeenApplicationIds, setLocallySeenApplicationIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const refreshPending = useCallback(async () => {
     if (!user?.id) {
@@ -124,12 +126,27 @@ export function ApplicationTabBadgeProvider({
 
   const markApplicationSeen = useCallback(
     async (applicationId: string) => {
-      if (role === 'clinic') {
-        await markApplicationSeenByClinic(applicationId);
-      } else {
-        await markApplicationSeenByWorker(applicationId);
+      setLocallySeenApplicationIds((current) => {
+        const next = new Set(current);
+        next.add(applicationId);
+        return next;
+      });
+
+      try {
+        if (role === 'clinic') {
+          await markApplicationSeenByClinic(applicationId);
+        } else {
+          await markApplicationSeenByWorker(applicationId);
+        }
+        await refreshPending();
+      } catch (error) {
+        setLocallySeenApplicationIds((current) => {
+          const next = new Set(current);
+          next.delete(applicationId);
+          return next;
+        });
+        console.warn('Failed to mark application seen', error);
       }
-      await refreshPending();
     },
     [refreshPending, role],
   );
@@ -161,6 +178,7 @@ export function ApplicationTabBadgeProvider({
     (
       application: Pick<
         Application,
+        | 'id'
         | 'post_type'
         | 'status'
         | 'created_at'
@@ -172,6 +190,10 @@ export function ApplicationTabBadgeProvider({
         | 'clinic_last_seen_at'
       >,
     ) => {
+      if (locallySeenApplicationIds.has(application.id)) {
+        return false;
+      }
+
       if (role === 'clinic') {
         return isClinicNewApplication(application);
       }
@@ -180,13 +202,14 @@ export function ApplicationTabBadgeProvider({
       }
       return isWorkerApplicationUpdateUnseen(application);
     },
-    [role],
+    [locallySeenApplicationIds, role],
   );
 
   const getApplicationHighlightLabel = useCallback(
     (
       application: Pick<
         Application,
+        | 'id'
         | 'post_type'
         | 'status'
         | 'created_at'

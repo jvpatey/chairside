@@ -34,7 +34,7 @@ const SHIFT_STATUS_LABELS: Record<string, string> = {
 
 const CLINIC_STATUS_LABELS: Record<string, string> = {
   screening_submitted: 'Screening',
-  applied: 'New',
+  applied: 'Applied',
   reviewed: 'Viewed',
   in_progress: 'Shortlisted',
   interview_offered: 'Awaiting response',

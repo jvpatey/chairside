@@ -106,12 +106,16 @@ export type Application = {
   updated_at: string;
 };
 
+import type { ClinicWorkerCrmRecord } from './clinicWorkerCrm';
+import { attachClinicCrmToApplications } from './clinicWorkerCrm';
+
 export type ClinicApplication = Application & {
   post_title: string;
   post_type: 'job' | 'shift';
   post_role_type: string;
   worker_account_deleted: boolean;
   screening: ApplicationScreening | null;
+  clinic_crm: ClinicWorkerCrmRecord | null;
 };
 
 export type WorkerApplication = Application & {
@@ -318,6 +322,7 @@ export async function listClinicApplications(
         post_role_type: job.role_type,
         worker_account_deleted: Boolean(application.worker_account_deleted_at),
         screening,
+        clinic_crm: null,
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
@@ -328,11 +333,12 @@ export async function listClinicApplications(
         post_role_type: shift.role_type,
         worker_account_deleted: Boolean(application.worker_account_deleted_at),
         screening,
+        clinic_crm: null,
       });
     }
   }
 
-  return applications;
+  return attachClinicCrmToApplications(clinicId, applications);
 }
 
 export async function listWorkerApplications(
@@ -537,6 +543,72 @@ export async function getWorkerApplication(
   if (!data) return null;
 
   return enrichWorkerApplication(data as Application);
+}
+
+export async function getClinicApplication(
+  clinicId: string,
+  applicationId: string,
+): Promise<ClinicApplication | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*')
+    .eq('id', applicationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const application = data as Application;
+
+  if (application.job_post_id) {
+    const { data: job, error: jobError } = await supabase
+      .from('job_posts')
+      .select('id, title, role_type, clinic_id')
+      .eq('id', application.job_post_id)
+      .maybeSingle();
+
+    if (jobError) throw jobError;
+    if (job?.clinic_id !== clinicId) return null;
+
+    const screening = await getApplicationScreening(application.id);
+    const enriched: ClinicApplication = {
+      ...application,
+      post_title: job.title,
+      post_type: 'job',
+      post_role_type: job.role_type,
+      worker_account_deleted: Boolean(application.worker_account_deleted_at),
+      screening,
+      clinic_crm: null,
+    };
+    const [withCrm] = await attachClinicCrmToApplications(clinicId, [enriched]);
+    return withCrm;
+  }
+
+  if (application.shift_post_id) {
+    const { data: shift, error: shiftError } = await supabase
+      .from('shift_posts')
+      .select('id, role_type, shift_date, clinic_id')
+      .eq('id', application.shift_post_id)
+      .maybeSingle();
+
+    if (shiftError) throw shiftError;
+    if (shift?.clinic_id !== clinicId) return null;
+
+    const enriched: ClinicApplication = {
+      ...application,
+      post_title: `Fill-in · ${shift.shift_date}`,
+      post_type: 'shift',
+      post_role_type: shift.role_type,
+      worker_account_deleted: Boolean(application.worker_account_deleted_at),
+      screening: null,
+      clinic_crm: null,
+    };
+    const [withCrm] = await attachClinicCrmToApplications(clinicId, [enriched]);
+    return withCrm;
+  }
+
+  return null;
 }
 
 export async function deleteApplication(workerId: string, applicationId: string): Promise<void> {
@@ -1295,18 +1367,22 @@ export async function listFillInCoverRequests(clinicId: string): Promise<FillInC
       post_title: shift.title,
       post_type: 'shift',
       post_role_type: shift.role_type,
+      worker_account_deleted: Boolean(application.worker_account_deleted_at),
       screening: null,
+      clinic_crm: null,
       shift_date: shift.shift_date,
       shift_start_time: shift.start_time,
       shift_end_time: shift.end_time,
     });
   }
 
-  return requests.sort((a, b) => {
+  const sorted = requests.sort((a, b) => {
     const dateCompare = a.shift_date.localeCompare(b.shift_date);
     if (dateCompare !== 0) return dateCompare;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
+
+  return attachClinicCrmToApplications(clinicId, sorted);
 }
 
 export async function getFillInPendingCount(clinicId: string): Promise<number> {
