@@ -32,7 +32,6 @@ export type WorkerRoleBrowseFiltersState = {
   softwareFilter: WorkerSoftwareFilter;
   payListedFilter: PayListedFilter;
   matchTierFilter: WorkerMatchTierFilter;
-  savedOnlyFilter: SavedOnlyFilter;
 };
 
 export type WorkerFillInBrowseFiltersState = {
@@ -303,7 +302,6 @@ export function countWorkerRoleBrowseFilterChanges(
   if (filters.softwareFilter !== defaults.softwareFilter) count += 1;
   if (filters.payListedFilter !== defaults.payListedFilter) count += 1;
   if (filters.matchTierFilter !== defaults.matchTierFilter) count += 1;
-  if (filters.savedOnlyFilter !== defaults.savedOnlyFilter) count += 1;
   return count;
 }
 
@@ -331,7 +329,6 @@ export const DEFAULT_WORKER_ROLE_BROWSE_FILTERS: WorkerRoleBrowseFiltersState = 
   softwareFilter: 'all',
   payListedFilter: 'all',
   matchTierFilter: 'all',
-  savedOnlyFilter: 'all',
 };
 
 export const DEFAULT_WORKER_FILLIN_BROWSE_FILTERS: WorkerFillInBrowseFiltersState = {

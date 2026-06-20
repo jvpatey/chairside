@@ -279,11 +279,12 @@ export function filterShiftPosts(
     });
 }
 
-export type RolesBrowseMode = 'open' | 'applied';
+export type RolesBrowseMode = 'open' | 'applied' | 'saved';
 
 export const ROLES_BROWSE_MODE_OPTIONS: { value: RolesBrowseMode; label: string }[] = [
   { value: 'open', label: 'Open' },
   { value: 'applied', label: 'Applied' },
+  { value: 'saved', label: 'Saved' },
 ];
 
 export type WorkerBrowseViewMode = 'list' | 'map';
