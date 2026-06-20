@@ -18,7 +18,8 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Chairside uses location to show roles and fill-ins on the map and help you see clinics near your profile location."
       }
     },
     "android": {
