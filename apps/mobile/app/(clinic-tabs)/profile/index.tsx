@@ -37,7 +37,6 @@ export default function ClinicAccountProfileScreen() {
 
   return (
     <ProfileDetailScreen
-      title="Profile"
       onBack={() => router.replace(CLINIC_HOME)}
       headerRight={<SignOutHeaderButton />}>
       <View style={styles.content}>

@@ -38,7 +38,7 @@ export function DashboardLoadingShell() {
     },
     quickActionRow: {
       flexDirection: 'row' as const,
-      gap: theme.spacing.sm,
+      gap: theme.spacing.lg,
     },
     tile: {
       flex: 1,

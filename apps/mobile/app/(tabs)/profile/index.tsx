@@ -35,7 +35,6 @@ export default function WorkerProfileScreen() {
 
   return (
     <ProfileDetailScreen
-      title="Profile"
       onBack={() => router.replace(WORKER_HOME)}
       headerRight={<SignOutHeaderButton />}>
       <View style={styles.content}>

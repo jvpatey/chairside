@@ -48,7 +48,7 @@ export function ApplicationScreeningPreview({
   defaultExpanded,
 }: ApplicationScreeningPreviewProps) {
   const { colors } = useTheme();
-  const initiallyExpanded = defaultExpanded ?? audience !== 'worker';
+  const initiallyExpanded = defaultExpanded ?? false;
   const [expanded, setExpanded] = useState(initiallyExpanded);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -175,7 +175,7 @@ export function ApplicationScreeningSection({
   audience = 'clinic',
 }: ApplicationScreeningSectionProps) {
   const { colors } = useTheme();
-  const [expanded, setExpanded] = useState(audience === 'worker');
+  const [expanded, setExpanded] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
