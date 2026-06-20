@@ -1,5 +1,6 @@
 import type { RoleType } from '@chairside/config';
 import { isMatchableSoftware } from '@chairside/core';
+import { isClinicNewApplication } from './applicationNotificationPredicates';
 import { getSupabaseClient } from './client';
 import {
   getJobPostScreeningQuestions,
@@ -437,7 +438,7 @@ export async function getClinicDashboardCounts(clinicId: string): Promise<Clinic
       .gte('shift_date', new Date().toISOString().slice(0, 10)),
     supabase
       .from('applications')
-      .select('id, job_post_id, status, clinic_hidden_at')
+      .select('id, job_post_id, status, clinic_hidden_at, clinic_attention_at, clinic_last_seen_at')
       .not('job_post_id', 'is', null)
       .is('clinic_hidden_at', null),
   ]);
@@ -459,8 +460,14 @@ export async function getClinicDashboardCounts(clinicId: string): Promise<Clinic
     ) ?? [];
 
   const totalApplications = clinicApplications.length;
-  const newApplications = clinicApplications.filter(
-    (application) => application.status === 'applied',
+  const newApplications = clinicApplications.filter((application) =>
+    isClinicNewApplication({
+      post_type: 'job',
+      status: application.status,
+      clinic_hidden_at: null,
+      clinic_attention_at: application.clinic_attention_at,
+      clinic_last_seen_at: application.clinic_last_seen_at,
+    }),
   ).length;
 
   return {

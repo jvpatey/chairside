@@ -15,16 +15,30 @@ export function parseInAppNotificationsResponse(
   return [];
 }
 
+type PingramInAppClient = {
+  getInAppNotifications?: (params: {
+    before?: string;
+    maxCountNeeded?: number;
+  }) => Promise<{ items?: InAppNotification[] }>;
+  rest: {
+    getNotifications: (before: string, count: number) => Promise<PingramNotificationsResponse>;
+  };
+};
+
 export async function fetchInAppNotifications(
-  client: {
-    rest: {
-      getNotifications: (before: string, count: number) => Promise<PingramNotificationsResponse>;
-    };
-  },
+  client: PingramInAppClient,
   options?: { before?: string; maxCount?: number },
 ): Promise<InAppNotification[]> {
-  const before = options?.before ?? new Date().toISOString();
   const count = options?.maxCount ?? 50;
+  // Slight future buffer avoids missing just-created items when client clock lags Pingram.
+  const before =
+    options?.before ?? new Date(Date.now() + 60_000).toISOString();
+
+  if (client.getInAppNotifications) {
+    const result = await client.getInAppNotifications({ before, maxCountNeeded: count });
+    return result.items ?? [];
+  }
+
   const raw = await client.rest.getNotifications(before, count);
   if (raw?.message && !raw.notifications?.length && !raw.items?.length) {
     throw new Error(raw.message);
