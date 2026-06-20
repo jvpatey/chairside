@@ -1,7 +1,8 @@
 import { getUnreadConversationMap, listWorkerJobApplications } from '@chairside/api';
 import { canWorkerHideApplication } from '@chairside/config';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import { usePathname } from 'expo-router';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
@@ -32,19 +33,9 @@ type ApplicationRow = Awaited<ReturnType<typeof listWorkerJobApplications>>[numb
 function ApplicationList({
   applications,
   unreadMap,
-  expandedApplicationId,
-  onExpandChange,
-  onUpdated,
-  onHide,
-  linkToDetail = false,
 }: {
   applications: ApplicationRow[];
   unreadMap: Record<string, boolean>;
-  expandedApplicationId: string | null;
-  onExpandChange: (applicationId: string | null) => void;
-  onUpdated?: () => void;
-  onHide?: () => void;
-  linkToDetail?: boolean;
 }) {
   const styles = useThemedStyles(({ spacing }) => ({
     list: { gap: spacing.md },
@@ -58,13 +49,6 @@ function ApplicationList({
           application={application}
           hasUnreadMessages={Boolean(unreadMap[application.id])}
           returnTo="applications-tab"
-          expanded={linkToDetail ? false : expandedApplicationId === application.id}
-          onExpandChange={
-            linkToDetail ? undefined : (next) => onExpandChange(next ? application.id : null)
-          }
-          linkToDetail={linkToDetail}
-          onUpdated={onUpdated}
-          onHidden={onHide}
         />
       ))}
     </View>
@@ -82,7 +66,6 @@ export function WorkerApplicationsInboxPanel({
   const [selectedMode, setSelectedMode] = useState<ApplicationsTabMode>('active');
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
-  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const {
     celebrationVisible,
@@ -152,18 +135,19 @@ export function WorkerApplicationsInboxPanel({
 
   useRefreshOnFocus(load);
 
-  const handleHidden = useCallback(() => {
-    void load();
-  }, [load]);
+  const pathname = usePathname();
+  const wasOnApplicationDetailRef = useRef(false);
+
+  useEffect(() => {
+    const onApplicationDetail = pathname.includes('/application/');
+    if (wasOnApplicationDetailRef.current && !onApplicationDetail) {
+      void load();
+    }
+    wasOnApplicationDetailRef.current = onApplicationDetail;
+  }, [load, pathname]);
 
   const hasAnyApplications = applications.length > 0;
-  const listProps = {
-    unreadMap,
-    expandedApplicationId,
-    onExpandChange: setExpandedApplicationId,
-    onUpdated: () => void load(),
-    linkToDetail: compact,
-  };
+  const listProps = { unreadMap };
 
   return (
     <>
@@ -226,11 +210,7 @@ export function WorkerApplicationsInboxPanel({
                     message="Filled, closed, or decided roles will appear here."
                   />
                 ) : (
-                  <ApplicationList
-                    applications={past}
-                    {...listProps}
-                    onHide={handleHidden}
-                  />
+                  <ApplicationList applications={past} {...listProps} />
                 )}
               </View>
             ) : null}

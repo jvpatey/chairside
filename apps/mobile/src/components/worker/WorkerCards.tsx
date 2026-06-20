@@ -2,7 +2,7 @@ import type { LiveJobPost, LiveShiftPost, WorkerApplication, WorkerProfile } fro
 import { getWorkerRoleTypes } from '@chairside/api';
 import { formatRoleTypesLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 
 import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
@@ -243,7 +243,6 @@ export function WorkerOverviewPanel({
   onToggleSavedShift,
   onApplicationUpdated,
 }: WorkerOverviewPanelProps) {
-  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const styles = useThemedStyles(({ spacing }) => {
     const cardGap = dashboardSectionGap(spacing);
     return {
@@ -349,12 +348,6 @@ export function WorkerOverviewPanel({
                     application={application}
                     hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                     returnTo="dashboard-fill-ins"
-                    expanded={expandedApplicationId === application.id}
-                    onExpandChange={(next) =>
-                      setExpandedApplicationId(next ? application.id : null)
-                    }
-                    onUpdated={onApplicationUpdated}
-                    onHidden={onApplicationUpdated}
                   />
                 ))}
               </View>
@@ -368,12 +361,6 @@ export function WorkerOverviewPanel({
                     application={application}
                     hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                     returnTo="dashboard-fill-ins"
-                    expanded={expandedApplicationId === application.id}
-                    onExpandChange={(next) =>
-                      setExpandedApplicationId(next ? application.id : null)
-                    }
-                    onUpdated={onApplicationUpdated}
-                    onHidden={onApplicationUpdated}
                   />
                 ))}
               </View>
@@ -397,10 +384,6 @@ export function WorkerOverviewPanel({
                 application={application}
                 hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                 returnTo="dashboard-applications"
-                expanded={expandedApplicationId === application.id}
-                onExpandChange={(next) => setExpandedApplicationId(next ? application.id : null)}
-                onUpdated={onApplicationUpdated}
-                onHidden={onApplicationUpdated}
               />
             ))}
           </View>

@@ -45,7 +45,7 @@ export default function WorkerApplicationDetailScreen() {
     closeCelebration,
   } = useHiringCelebration();
   const { checkApplications } = useWorkerHiringCelebration(showCelebration);
-  const { markApplicationSeen } = useApplicationTabBadge();
+  const { markApplicationSeen, refreshPending } = useApplicationTabBadge();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
@@ -54,6 +54,11 @@ export default function WorkerApplicationDetailScreen() {
   const goBack = useCallback(() => {
     navigateAfterWorkerApplication(router, resolvedReturnTo);
   }, [resolvedReturnTo]);
+
+  const handleApplicationRemoved = useCallback(async () => {
+    await refreshPending();
+    goBack();
+  }, [goBack, refreshPending]);
 
   const load = useCallback(async () => {
     if (!user?.id || !applicationId) {
@@ -155,8 +160,8 @@ export default function WorkerApplicationDetailScreen() {
             hasUnreadMessages={hasUnreadMessages}
             onViewPosting={handleViewPosting}
             onUpdated={() => void load()}
-            onCancelled={goBack}
-            onHidden={goBack}
+            onCancelled={() => void handleApplicationRemoved()}
+            onHidden={() => void handleApplicationRemoved()}
           />
         ) : null}
       </View>
