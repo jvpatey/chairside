@@ -23,10 +23,18 @@ import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
 import { TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
-import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
+import {
+  webHover,
+  webListRowHoverStyles,
+  webOnlyStyle,
+  webPointer,
+} from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, colorWithAlpha } from '@/theme';
 
-export { TABLET_SIDEBAR_COLLAPSED_WIDTH, TABLET_SIDEBAR_WIDTH } from '@/components/navigation/sidebarDimensions';
+export {
+  TABLET_SIDEBAR_COLLAPSED_WIDTH,
+  TABLET_SIDEBAR_WIDTH,
+} from '@/components/navigation/sidebarDimensions';
 
 const COLLAPSED_AVATAR_SIZE = 40;
 
@@ -295,7 +303,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         styles.toggleButton,
         webHover(hovered, pressed, styles.toggleHovered),
         pressed && styles.togglePressed,
-      ]}>
+      ]}
+    >
       <Ionicons
         name={isCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'}
         size={12}
@@ -319,22 +328,17 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const sidebarContent = (
     <>
-      <View
-        style={[
-          styles.profileSection,
-          isCollapsed && styles.profileSectionCollapsed,
-        ]}>
+      <View style={[styles.profileSection, isCollapsed && styles.profileSectionCollapsed]}>
         <View
           style={[
             styles.profileRow,
             isCollapsed && styles.profileRowCollapsed,
             !isCollapsed && styles.profileRowExpanded,
-          ]}>
+          ]}
+        >
           <View
-            style={[
-              styles.profileHeaderWrap,
-              isCollapsed && styles.profileHeaderWrapCollapsed,
-            ]}>
+            style={[styles.profileHeaderWrap, isCollapsed && styles.profileHeaderWrapCollapsed]}
+          >
             <SidebarProfileHeader
               href={profileHref}
               avatarKind={role === 'worker' ? 'worker' : 'clinic'}
@@ -408,7 +412,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
                 isCollapsed && styles.itemCollapsed,
                 isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
                 pressed && styles.itemPressed,
-              ]}>
+              ]}
+            >
               <View style={styles.iconWrap}>
                 {options.tabBarIcon?.({ focused: isFocused, color, size: 22 })}
                 {hasBadge && isCollapsed ? (
@@ -426,7 +431,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
                   ]}
                   numberOfLines={1}
                   accessibilityElementsHidden={isCollapsed}
-                  importantForAccessibility={isCollapsed ? 'no' : 'auto'}>
+                  importantForAccessibility={isCollapsed ? 'no' : 'auto'}
+                >
                   {options.title ?? route.name}
                 </Text>
               ) : null}
@@ -456,9 +462,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             isWeb &&
               hovered &&
               !pressed &&
-              (isCollapsed ? styles.itemHovered : isProfileActive ? styles.itemActiveHovered : styles.itemHovered),
+              (isCollapsed
+                ? styles.itemHovered
+                : isProfileActive
+                  ? styles.itemActiveHovered
+                  : styles.itemHovered),
             pressed && styles.itemPressed,
-          ]}>
+          ]}
+        >
           <View style={styles.iconWrap}>
             <Ionicons
               name={isProfileActive ? 'settings' : 'settings-outline'}
@@ -468,9 +479,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           </View>
           {!isCollapsed ? (
             <Text
-              style={[styles.label, isProfileActive && styles.labelActive, labelRevealStyle(isCollapsed)]}
+              style={[
+                styles.label,
+                isProfileActive && styles.labelActive,
+                labelRevealStyle(isCollapsed),
+              ]}
               accessibilityElementsHidden={isCollapsed}
-              importantForAccessibility={isCollapsed ? 'no' : 'auto'}>
+              importantForAccessibility={isCollapsed ? 'no' : 'auto'}
+            >
               Settings
             </Text>
           ) : null}
@@ -486,10 +502,9 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           borderRadius={28}
           style={styles.glassPanel}
           overlayColor={colorWithAlpha(colors.surfaceElevated, isDark ? 0.72 : 0.78)}
-          backdropBlur>
-          <View style={[styles.sidebarWebInner, panelPadding]}>
-            {sidebarContent}
-          </View>
+          backdropBlur
+        >
+          <View style={[styles.sidebarWebInner, panelPadding]}>{sidebarContent}</View>
         </LiquidGlassSurface>
         <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
           {collapseToggle}
