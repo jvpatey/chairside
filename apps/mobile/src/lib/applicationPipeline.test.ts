@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   filterApplicationsByView,
   getApplicantFilterCounts,
+  getClinicApplicantBadgeVisibility,
   hasApplicantFollowUpScheduled,
 } from './applicationPipeline';
 
@@ -118,5 +119,28 @@ describe('filterApplicationsByView follow_up', () => {
 
     expect(filtered.map((application) => application.id)).toEqual(['overdue', 'upcoming']);
     expect(getApplicantFilterCounts([upcoming, none, overdue]).follow_up).toBe(2);
+  });
+});
+
+describe('getClinicApplicantBadgeVisibility', () => {
+  it('shows only the New highlight for unseen applied applicants', () => {
+    expect(getClinicApplicantBadgeVisibility({ status: 'applied' }, true)).toEqual({
+      showNewBadge: true,
+      showStatusBadge: false,
+    });
+  });
+
+  it('clears New badges once the applicant has been seen', () => {
+    expect(getClinicApplicantBadgeVisibility({ status: 'applied' }, false)).toEqual({
+      showNewBadge: false,
+      showStatusBadge: true,
+    });
+  });
+
+  it('keeps pipeline status badges for later stages', () => {
+    expect(getClinicApplicantBadgeVisibility({ status: 'reviewed' }, false)).toEqual({
+      showNewBadge: false,
+      showStatusBadge: true,
+    });
   });
 });

@@ -21,6 +21,7 @@ import {
   getApplicationMatchDisplayContext,
   parseApplicationJobMatch,
 } from '@/lib/matchDisplay';
+import { getClinicApplicantBadgeVisibility } from '@/lib/applicationPipeline';
 import {
   getClinicApplicationRoute,
   type ClinicApplicationReturnTarget,
@@ -52,8 +53,10 @@ export function ClinicApplicationCard({
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
   const hasNewApplication = isApplicationHighlighted(application);
-  const showNewBadge = hasNewApplication;
-  const showStatusBadge = !(hasNewApplication && application.status === 'applied');
+  const { showNewBadge, showStatusBadge } = getClinicApplicantBadgeVisibility(
+    application,
+    hasNewApplication,
+  );
   const workerDeleted = application.worker_account_deleted;
   const crmRecord = application.clinic_crm;
 

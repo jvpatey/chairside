@@ -9,7 +9,9 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { ApplicantFilterBar } from '@/components/clinic/ApplicantFilterBar';
-import { ApplicantPipelineSectionBlock } from '@/components/clinic/ApplicantPipelineSection';
+import {
+  ApplicantPipelineSectionBlock,
+} from '@/components/clinic/ApplicantPipelineSection';
 import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
@@ -17,6 +19,7 @@ import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
+  APPLICANT_FILTER_SECTION_TITLES,
   filterApplicationsByView,
   getApplicantFilterCounts,
   groupApplicationsByPipeline,
@@ -61,9 +64,9 @@ export default function ClinicRoleApplicationsScreen() {
   >({});
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
-    content: { gap: spacing.lg },
-    sections: { gap: spacing.xl },
-    list: { gap: spacing.md },
+    content: { gap: spacing.md },
+    filterAndSections: { gap: spacing.md },
+    sections: { gap: spacing.lg },
     empty: typography.subtitle,
   }));
 
@@ -150,6 +153,28 @@ export default function ClinicRoleApplicationsScreen() {
       </ApplicantPipelineSectionBlock>
     );
 
+  const renderFilteredTabContent = () => {
+    if (listFilter === 'all') return null;
+
+    const sectionTitle = APPLICANT_FILTER_SECTION_TITLES[listFilter];
+
+    return (
+      <View style={styles.sections}>
+        <ApplicantPipelineSectionBlock
+          title={sectionTitle}
+          count={filteredApplications.length}
+          expanded>
+          {filteredApplications.length === 0 ? (
+            <Text style={styles.empty}>{FILTER_EMPTY_MESSAGES[listFilter]}</Text>
+          ) : (
+            renderApplicationCards(filteredApplications)
+          )}
+        </ApplicantPipelineSectionBlock>
+        {listFilter === 'decided' ? renderArchivedSection() : null}
+      </View>
+    );
+  };
+
   return (
     <OnboardingShell>
       <AuthScreenHeader
@@ -165,49 +190,43 @@ export default function ClinicRoleApplicationsScreen() {
           <Text style={styles.empty}>No applicants for this role yet.</Text>
         ) : (
           <>
-            <ApplicantFilterBar
-              selected={listFilter}
-              counts={filterCounts}
-              onChange={setListFilter}
-            />
+            <View style={styles.filterAndSections}>
+              <ApplicantFilterBar
+                selected={listFilter}
+                counts={filterCounts}
+                onChange={setListFilter}
+              />
 
-            {listFilter === 'all' ? (
-              sections.length === 0 ? (
-                <>
-                  <Text style={styles.empty}>No active applicants for this role.</Text>
-                  {renderArchivedSection()}
-                </>
+              {listFilter === 'all' ? (
+                sections.length === 0 ? (
+                  <>
+                    <Text style={styles.empty}>No active applicants for this role.</Text>
+                    {renderArchivedSection()}
+                  </>
+                ) : (
+                  <View style={styles.sections}>
+                    {sections.map((section) => (
+                      <ApplicantPipelineSectionBlock
+                        key={section.id}
+                        title={section.title}
+                        count={section.applications.length}
+                        expanded={isSectionExpanded(section.id, section.defaultExpanded)}
+                        collapsible={section.id === 'decided'}
+                        onToggle={
+                          section.id === 'decided'
+                            ? () => toggleSection(section.id, section.defaultExpanded)
+                            : undefined
+                        }>
+                        {renderApplicationCards(section.applications)}
+                      </ApplicantPipelineSectionBlock>
+                    ))}
+                    {renderArchivedSection()}
+                  </View>
+                )
               ) : (
-                <View style={styles.sections}>
-                  {sections.map((section) => (
-                    <ApplicantPipelineSectionBlock
-                      key={section.id}
-                      title={section.title}
-                      count={section.applications.length}
-                      expanded={isSectionExpanded(section.id, section.defaultExpanded)}
-                      collapsible={section.id === 'decided'}
-                      onToggle={
-                        section.id === 'decided'
-                          ? () => toggleSection(section.id, section.defaultExpanded)
-                          : undefined
-                      }>
-                      {renderApplicationCards(section.applications)}
-                    </ApplicantPipelineSectionBlock>
-                  ))}
-                  {renderArchivedSection()}
-                </View>
-              )
-            ) : filteredApplications.length === 0 ? (
-              <View style={styles.sections}>
-                <Text style={styles.empty}>{FILTER_EMPTY_MESSAGES[listFilter]}</Text>
-                {listFilter === 'decided' ? renderArchivedSection() : null}
-              </View>
-            ) : (
-              <View style={styles.sections}>
-                <View style={styles.list}>{renderApplicationCards(filteredApplications)}</View>
-                {listFilter === 'decided' ? renderArchivedSection() : null}
-              </View>
-            )}
+                renderFilteredTabContent()
+              )}
+            </View>
           </>
         )}
       </View>

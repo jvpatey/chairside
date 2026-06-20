@@ -29,8 +29,7 @@ export function ApplicantPipelineSectionHeader({
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing.sm,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: spacing.xs,
+      paddingVertical: 0,
       borderRadius: 10,
       ...webPointer(onToggle ? 'pointer' : 'default'),
     },
@@ -41,7 +40,7 @@ export function ApplicantPipelineSectionHeader({
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: spacing.xs,
       flex: 1,
       minWidth: 0,
     },
@@ -123,7 +122,7 @@ export function ApplicantPipelineSectionBlock({
 }: ApplicantPipelineSectionBlockProps) {
   const styles = useThemedStyles(({ spacing }) => ({
     section: {
-      gap: spacing.sm,
+      gap: spacing.md,
     },
     list: {
       gap: spacing.md,

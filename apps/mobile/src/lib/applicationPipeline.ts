@@ -32,6 +32,17 @@ export type ApplicantListFilter =
 
 export type ApplicantFilterCounts = Record<ApplicantListFilter, number>;
 
+export const APPLICANT_FILTER_SECTION_TITLES: Record<
+  Exclude<ApplicantListFilter, 'all'>,
+  string
+> = {
+  screening: 'Screening',
+  shortlisted: 'Shortlisted',
+  interview: 'Interview',
+  decided: 'Decided',
+  follow_up: 'Follow-up',
+};
+
 function compareApplications(a: ClinicApplication, b: ClinicApplication): number {
   const tierA = MATCH_TIER_ORDER[a.match_tier ?? 'none'] ?? 4;
   const tierB = MATCH_TIER_ORDER[b.match_tier ?? 'none'] ?? 4;
@@ -158,4 +169,18 @@ export function filterApplicationsByView(
   return applications
     .filter((application) => statuses.includes(application.status))
     .sort(compareApplications);
+}
+
+/** Controls New highlight vs pipeline status badge on clinic applicant surfaces. */
+export function getClinicApplicantBadgeVisibility(
+  application: Pick<ClinicApplication, 'status'>,
+  isHighlighted: boolean,
+): { showNewBadge: boolean; showStatusBadge: boolean } {
+  const isFreshApplicant =
+    application.status === 'applied' || application.status === 'screening_submitted';
+
+  return {
+    showNewBadge: isHighlighted,
+    showStatusBadge: isFreshApplicant ? !isHighlighted : true,
+  };
 }

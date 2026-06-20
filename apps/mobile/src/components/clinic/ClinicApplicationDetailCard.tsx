@@ -74,6 +74,7 @@ import {
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
+import { getClinicApplicantBadgeVisibility } from '@/lib/applicationPipeline';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
 
 type ClinicApplicationDetailCardProps = {
@@ -845,7 +846,7 @@ export function ClinicApplicationDetailCard({
   };
 
   const showNewBadge = hasNewApplication;
-  const showStatusBadge = !(hasNewApplication && application.status === 'applied');
+  const { showStatusBadge } = getClinicApplicantBadgeVisibility(application, hasNewApplication);
 
   const rejectAction = (): ActionButtonSpec => ({
     key: 'reject',
