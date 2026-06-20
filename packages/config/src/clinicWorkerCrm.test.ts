@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatClinicWorkerCrmFollowUpLabel,
+  hasClinicWorkerCrmContent,
   isClinicWorkerCrmFollowUpDue,
+  isClinicWorkerCrmFollowUpScheduled,
   normalizeClinicWorkerCrmTags,
 } from './clinicWorkerCrm';
 
@@ -22,13 +24,19 @@ describe('normalizeClinicWorkerCrmTags', () => {
 describe('formatClinicWorkerCrmFollowUpLabel', () => {
   it('marks overdue follow-ups', () => {
     expect(
-      formatClinicWorkerCrmFollowUpLabel('2026-01-01T12:00:00.000Z', new Date('2026-06-19T12:00:00.000Z')),
+      formatClinicWorkerCrmFollowUpLabel(
+        '2026-01-01T12:00:00.000Z',
+        new Date('2026-06-19T12:00:00.000Z'),
+      ),
     ).toBe('Follow-up overdue');
   });
 
   it('marks follow-ups due today', () => {
     expect(
-      formatClinicWorkerCrmFollowUpLabel('2026-06-19T08:00:00.000Z', new Date('2026-06-19T20:00:00.000Z')),
+      formatClinicWorkerCrmFollowUpLabel(
+        '2026-06-19T08:00:00.000Z',
+        new Date('2026-06-19T20:00:00.000Z'),
+      ),
     ).toBe('Follow-up today');
   });
 });
@@ -39,5 +47,19 @@ describe('isClinicWorkerCrmFollowUpDue', () => {
     expect(isClinicWorkerCrmFollowUpDue('2026-06-18T12:00:00.000Z', now)).toBe(true);
     expect(isClinicWorkerCrmFollowUpDue('2026-06-19T08:00:00.000Z', now)).toBe(true);
     expect(isClinicWorkerCrmFollowUpDue('2026-06-20T08:00:00.000Z', now)).toBe(false);
+  });
+});
+
+describe('isClinicWorkerCrmFollowUpScheduled', () => {
+  it('requires a non-empty valid date', () => {
+    expect(isClinicWorkerCrmFollowUpScheduled('2026-06-20T12:00:00.000Z')).toBe(true);
+    expect(isClinicWorkerCrmFollowUpScheduled('   ')).toBe(false);
+    expect(isClinicWorkerCrmFollowUpScheduled('not-a-date')).toBe(false);
+  });
+});
+
+describe('hasClinicWorkerCrmContent', () => {
+  it('does not treat a blank follow-up value as content', () => {
+    expect(hasClinicWorkerCrmContent({ note: null, tags: [], follow_up_at: '   ' })).toBe(false);
   });
 });

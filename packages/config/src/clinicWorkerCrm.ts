@@ -4,8 +4,7 @@ export const CLINIC_WORKER_CRM_PRESET_TAGS = [
   { value: 'worked_here_before', label: 'Worked here before' },
 ] as const;
 
-export type ClinicWorkerCrmPresetTag =
-  (typeof CLINIC_WORKER_CRM_PRESET_TAGS)[number]['value'];
+export type ClinicWorkerCrmPresetTag = (typeof CLINIC_WORKER_CRM_PRESET_TAGS)[number]['value'];
 
 const PRESET_TAG_LABELS = new Map<string, string>(
   CLINIC_WORKER_CRM_PRESET_TAGS.map((tag) => [tag.value, tag.label]),
@@ -38,32 +37,41 @@ function startOfDay(date: Date): Date {
   return next;
 }
 
-export function hasClinicWorkerCrmContent(record: {
-  note?: string | null;
-  tags?: string[] | null;
-  follow_up_at?: string | null;
-} | null | undefined): boolean {
+function parseFollowUpDate(followUpAt: string | null | undefined): Date | null {
+  const trimmed = followUpAt?.trim();
+  if (!trimmed) return null;
+  const date = new Date(trimmed);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function hasClinicWorkerCrmContent(
+  record:
+    | {
+        note?: string | null;
+        tags?: string[] | null;
+        follow_up_at?: string | null;
+      }
+    | null
+    | undefined,
+): boolean {
   if (!record) return false;
   return Boolean(
     record.note?.trim() ||
-      (record.tags?.length ?? 0) > 0 ||
-      record.follow_up_at,
+    (record.tags?.length ?? 0) > 0 ||
+    isClinicWorkerCrmFollowUpScheduled(record.follow_up_at),
   );
 }
 
-export function isClinicWorkerCrmFollowUpScheduled(
-  followUpAt: string | null | undefined,
-): boolean {
-  return Boolean(followUpAt?.trim());
+export function isClinicWorkerCrmFollowUpScheduled(followUpAt: string | null | undefined): boolean {
+  return parseFollowUpDate(followUpAt) != null;
 }
 
 export function isClinicWorkerCrmFollowUpDue(
   followUpAt: string | null | undefined,
   now: Date = new Date(),
 ): boolean {
-  if (!followUpAt?.trim()) return false;
-  const date = new Date(followUpAt);
-  if (Number.isNaN(date.getTime())) return false;
+  const date = parseFollowUpDate(followUpAt);
+  if (!date) return false;
   return startOfDay(date).getTime() <= startOfDay(now).getTime();
 }
 
@@ -71,9 +79,8 @@ export function formatClinicWorkerCrmFollowUpLabel(
   followUpAt: string | null | undefined,
   now: Date = new Date(),
 ): string | null {
-  if (!followUpAt?.trim()) return null;
-  const date = new Date(followUpAt);
-  if (Number.isNaN(date.getTime())) return null;
+  const date = parseFollowUpDate(followUpAt);
+  if (!date) return null;
 
   const today = startOfDay(now);
   const followUpDay = startOfDay(date);

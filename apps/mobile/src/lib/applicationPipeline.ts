@@ -1,5 +1,8 @@
 import type { ClinicApplication } from '@chairside/api';
-import { isClinicWorkerCrmFollowUpDue, isClinicWorkerCrmFollowUpScheduled } from '@chairside/config';
+import {
+  isClinicWorkerCrmFollowUpDue,
+  isClinicWorkerCrmFollowUpScheduled,
+} from '@chairside/config';
 
 export type ApplicantPipelineSectionId =
   | 'screening'
@@ -21,6 +24,13 @@ const MATCH_TIER_ORDER: Record<string, number> = {
   partial: 2,
   none: 3,
 };
+
+function getFollowUpTime(followUpAt: string | null | undefined): number {
+  const trimmed = followUpAt?.trim();
+  if (!trimmed) return Number.POSITIVE_INFINITY;
+  const time = new Date(trimmed).getTime();
+  return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
+}
 
 export type ApplicantListFilter =
   | 'all'
@@ -58,8 +68,8 @@ function compareFollowUpApplications(a: ClinicApplication, b: ClinicApplication)
   const bDue = isClinicWorkerCrmFollowUpDue(bFollowUp);
   if (aDue !== bDue) return aDue ? -1 : 1;
 
-  const aTime = aFollowUp ? new Date(aFollowUp).getTime() : Number.POSITIVE_INFINITY;
-  const bTime = bFollowUp ? new Date(bFollowUp).getTime() : Number.POSITIVE_INFINITY;
+  const aTime = getFollowUpTime(aFollowUp);
+  const bTime = getFollowUpTime(bFollowUp);
   if (aTime !== bTime) return aTime - bTime;
 
   return compareApplications(a, b);
@@ -116,10 +126,7 @@ export function groupApplicationsByPipeline(
   })).filter((section) => section.applications.length > 0);
 }
 
-const FILTER_STATUS_MAP: Record<
-  Exclude<ApplicantListFilter, 'all' | 'follow_up'>,
-  string[]
-> = {
+const FILTER_STATUS_MAP: Record<Exclude<ApplicantListFilter, 'all' | 'follow_up'>, string[]> = {
   screening: ['screening_submitted'],
   shortlisted: ['in_progress'],
   interview: ['interview_offered', 'interview_scheduled'],
@@ -130,9 +137,7 @@ export function hasApplicantFollowUpScheduled(application: ClinicApplication): b
   return isClinicWorkerCrmFollowUpScheduled(application.clinic_crm?.follow_up_at);
 }
 
-export function getApplicantFilterCounts(
-  applications: ClinicApplication[],
-): ApplicantFilterCounts {
+export function getApplicantFilterCounts(applications: ClinicApplication[]): ApplicantFilterCounts {
   return {
     all: applications.length,
     screening: applications.filter((application) =>
@@ -160,9 +165,7 @@ export function filterApplicationsByView(
   }
 
   if (filter === 'follow_up') {
-    return applications
-      .filter(hasApplicantFollowUpScheduled)
-      .sort(compareFollowUpApplications);
+    return applications.filter(hasApplicantFollowUpScheduled).sort(compareFollowUpApplications);
   }
 
   const statuses = FILTER_STATUS_MAP[filter];

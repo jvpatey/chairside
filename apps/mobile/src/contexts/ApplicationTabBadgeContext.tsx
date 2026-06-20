@@ -77,10 +77,7 @@ type ApplicationTabBadgeProviderProps = {
   children: ReactNode;
 };
 
-export function ApplicationTabBadgeProvider({
-  role,
-  children,
-}: ApplicationTabBadgeProviderProps) {
+export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBadgeProviderProps) {
   const { user } = useAuth();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const [pendingCount, setPendingCount] = useState(0);
@@ -148,7 +145,7 @@ export function ApplicationTabBadgeProvider({
           next.delete(applicationId);
           return next;
         });
-        throw error;
+        console.warn('Failed to mark application seen', error);
       }
     },
     [refreshPending, role],

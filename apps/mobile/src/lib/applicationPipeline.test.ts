@@ -120,6 +120,57 @@ describe('filterApplicationsByView follow_up', () => {
     expect(filtered.map((application) => application.id)).toEqual(['overdue', 'upcoming']);
     expect(getApplicantFilterCounts([upcoming, none, overdue]).follow_up).toBe(2);
   });
+
+  it('treats blank and invalid follow-up values as unscheduled', () => {
+    const valid = makeApplication({
+      id: 'valid',
+      status: 'applied',
+      clinic_crm: {
+        clinic_id: 'clinic-1',
+        worker_id: 'worker-1',
+        note: null,
+        tags: [],
+        follow_up_at: '2026-06-25T12:00:00.000Z',
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+      },
+    });
+    const blank = makeApplication({
+      id: 'blank',
+      status: 'applied',
+      clinic_crm: {
+        clinic_id: 'clinic-1',
+        worker_id: 'worker-2',
+        note: null,
+        tags: [],
+        follow_up_at: '   ',
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+      },
+    });
+    const invalid = makeApplication({
+      id: 'invalid',
+      status: 'applied',
+      clinic_crm: {
+        clinic_id: 'clinic-1',
+        worker_id: 'worker-3',
+        note: null,
+        tags: [],
+        follow_up_at: 'not-a-date',
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+      },
+    });
+
+    const applications = [invalid, valid, blank];
+
+    expect(
+      filterApplicationsByView(applications, 'follow_up').map((application) => application.id),
+    ).toEqual(['valid']);
+    expect(getApplicantFilterCounts(applications).follow_up).toBe(1);
+    expect(hasApplicantFollowUpScheduled(blank)).toBe(false);
+    expect(hasApplicantFollowUpScheduled(invalid)).toBe(false);
+  });
 });
 
 describe('getClinicApplicantBadgeVisibility', () => {
