@@ -6,6 +6,7 @@ export type ApplicationPostType = 'job' | 'shift';
 export const DELETED_ACCOUNT_LABEL = 'No longer on Chairside';
 export const DELETED_CANDIDATE_LABEL = 'Candidate no longer on Chairside';
 export const DELETED_CLINIC_LABEL = 'Clinic no longer on Chairside';
+export const DELETED_MESSAGE_BODY = '[Message removed]';
 
 const JOB_STATUS_LABELS: Record<string, string> = {
   screening_submitted: 'Screening submitted',

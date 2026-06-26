@@ -66,6 +66,7 @@ export {
   DELETED_ACCOUNT_LABEL,
   DELETED_CANDIDATE_LABEL,
   DELETED_CLINIC_LABEL,
+  DELETED_MESSAGE_BODY,
   formatApplicationDate,
   formatApplicationEducation,
   formatApplicationResumeStatus,

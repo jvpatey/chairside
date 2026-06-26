@@ -1004,6 +1004,7 @@ export function ClinicApplicationDetailCard({
   const workflowActions = buildWorkflowActions();
 
   const hasQualifications =
+    !workerDeleted &&
     hasKitSubmitted &&
     (application.years_of_experience != null ||
       formatApplicationEducation(application.education) ||
@@ -1011,13 +1012,14 @@ export function ClinicApplicationDetailCard({
       (application.software_used ?? []).length > 0 ||
       (application.practice_types ?? []).length > 0);
 
-  const hasDocuments = hasKitSubmitted;
+  const hasDocuments = !workerDeleted && hasKitSubmitted;
 
   const hasSummaryContent =
-    application.cover_message?.trim() ||
-    appliedLabel ||
-    (isScreeningStage && !hasKitSubmitted) ||
-    hasKitSubmitted;
+    !workerDeleted &&
+    (application.cover_message?.trim() ||
+      appliedLabel ||
+      (isScreeningStage && !hasKitSubmitted) ||
+      hasKitSubmitted);
 
   return (
     <>
@@ -1117,7 +1119,7 @@ export function ClinicApplicationDetailCard({
           />
         ) : null}
 
-        {application.post_type === 'job' && application.screening ? (
+        {application.post_type === 'job' && application.screening && !workerDeleted ? (
           <SurfaceCard padding="md" gap>
             <ApplicantDetailSection icon="clipboard-outline" title="Screening responses">
               <ApplicationScreeningSection screening={application.screening} />
@@ -1133,7 +1135,7 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         ) : null}
 
-        {application.interview_details ? (
+        {application.interview_details && !workerDeleted ? (
           <SurfaceCard padding="md" gap>
             <ApplicantDetailSection icon="calendar-outline" title="Interview notes">
               <ApplicationPreviewField

@@ -14,9 +14,13 @@ const MIN_PASSWORD_LENGTH = 6;
 
 type AccountChangePasswordSectionProps = {
   user: User;
+  showSectionLabel?: boolean;
 };
 
-export function AccountChangePasswordSection({ user }: AccountChangePasswordSectionProps) {
+export function AccountChangePasswordSection({
+  user,
+  showSectionLabel = true,
+}: AccountChangePasswordSectionProps) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -122,7 +126,7 @@ export function AccountChangePasswordSection({ user }: AccountChangePasswordSect
 
   return (
     <View style={styles.section}>
-      <Text style={styles.label}>Password</Text>
+      {showSectionLabel ? <Text style={styles.label}>Password</Text> : null}
       <AuthField
         label="New password"
         placeholder="At least 6 characters"

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
+import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
@@ -97,6 +98,23 @@ export function ClinicMessagingPreferences({
   };
 
   const title = compact ? 'General candidate messages' : 'Allow general candidate messages';
+  const hint =
+    'Candidates in your province can message your clinic even when they are not applying to a specific posting.';
+
+  if (!compact) {
+    return (
+      <SettingsToggleRow
+        title={title}
+        hint={hint}
+        value={acceptsGeneralMessages}
+        disabled={isSaving}
+        onValueChange={(value) => {
+          setAcceptsGeneralMessages(value);
+          void persistAcceptsGeneralMessages(value);
+        }}
+      />
+    );
+  }
 
   return (
     <View style={styles.card}>
