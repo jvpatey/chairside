@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { ConversationInboxGroup } from '@/components/messaging/ConversationInboxGroup';
 import { MessagingEmptyState } from '@/components/messaging/MessagingEmptyState';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { ConversationInboxFilters } from '@/components/messaging/ConversationInboxFilters';
 import { ConversationListItem } from '@/components/messaging/ConversationListItem';
 import { hideConversation } from '@/lib/conversationHide';
 import {
+  buildConversationInboxSections,
   CONVERSATION_INBOX_FILTERS,
   filterConversations,
   getConversationFilterCounts,
@@ -111,6 +113,9 @@ export function ConversationInboxList({
       color: colors.labelPrimary,
       padding: 0,
     },
+    listSections: {
+      gap: compact ? spacing.sm : spacing.md,
+    },
     chipWrap: {
       marginTop: spacing.xs,
     },
@@ -171,6 +176,16 @@ export function ConversationInboxList({
     );
   }, [conversations, filter, messageSearchHits, searchQuery]);
 
+  const hasSearch = searchQuery.trim().length > 0;
+
+  const inboxSections = useMemo(
+    () =>
+      buildConversationInboxSections(filteredConversations, role, {
+        groupEnabled: !hasSearch,
+      }),
+    [filteredConversations, hasSearch, role],
+  );
+
   const getConversationFocus = (conversation: Conversation): MessageThreadFocus | undefined => {
     const trimmed = searchQuery.trim();
     if (!trimmed) return undefined;
@@ -190,7 +205,6 @@ export function ConversationInboxList({
     return undefined;
   };
 
-  const hasSearch = searchQuery.trim().length > 0;
   const emptyMessage =
     conversations.length === 0
       ? getConversationInboxEmptyMessage('all', role)
@@ -230,32 +244,56 @@ export function ConversationInboxList({
         }
       />
     ) : (
-      <BrowseListGroup>
-        {filteredConversations.map((conversation) => {
+      <View style={styles.listSections}>
+        {inboxSections.map((section) => {
+          if (section.kind === 'group') {
+            return (
+              <ConversationInboxGroup
+                key={`group-${section.threads[0]?.id ?? 'unknown'}`}
+                threads={section.threads}
+                avatarKind={avatarKind}
+                role={role}
+                compact={compact}
+                selectedConversationId={selectedConversationId}
+                searchQuery={searchQuery}
+                messageSearchHits={messageSearchHits}
+                debouncedQuery={debouncedQuery}
+                onConversationPress={onConversationPress}
+                getConversationFocus={getConversationFocus}
+                onDelete={async (conversation) => {
+                  await hideConversation(conversation, role, userId);
+                  onConversationHidden();
+                }}
+              />
+            );
+          }
+
+          const conversation = section.conversation;
           const hit = messageSearchHits[conversation.id];
           const preview = hit
             ? formatMessageSearchPreview(hit.body, debouncedQuery || searchQuery)
             : null;
 
           return (
-          <ConversationListItem
-            key={conversation.id}
-            conversation={conversation}
-            avatarKind={avatarKind}
-            role={role}
-            compact={compact}
-            selected={conversation.id === selectedConversationId}
-            messageSearchPreview={preview}
-            searchQuery={searchQuery}
-            onPress={() => onConversationPress(conversation, getConversationFocus(conversation))}
-            onDelete={async () => {
-              await hideConversation(conversation, role, userId);
-              onConversationHidden();
-            }}
-          />
+            <BrowseListGroup key={conversation.id}>
+              <ConversationListItem
+                conversation={conversation}
+                avatarKind={avatarKind}
+                role={role}
+                compact={compact}
+                selected={conversation.id === selectedConversationId}
+                messageSearchPreview={preview}
+                searchQuery={searchQuery}
+                onPress={() => onConversationPress(conversation, getConversationFocus(conversation))}
+                onDelete={async () => {
+                  await hideConversation(conversation, role, userId);
+                  onConversationHidden();
+                }}
+              />
+            </BrowseListGroup>
           );
         })}
-      </BrowseListGroup>
+      </View>
     );
 
   const headerContent = (

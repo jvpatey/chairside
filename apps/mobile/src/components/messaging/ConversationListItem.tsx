@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { SearchMatchText } from '@/components/messaging/SearchMatchText';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
@@ -33,6 +34,7 @@ type ConversationListItemProps = {
   messageSearchPreview?: string | null;
   /** Active inbox search query — used to highlight matched text in previews and names. */
   searchQuery?: string;
+  compact?: boolean;
 };
 
 function ConversationAvatar({
@@ -91,6 +93,7 @@ export function ConversationListItem({
   const activeSearchQuery = searchQuery.trim();
   const previewText =
     messageSearchPreview ?? conversation.last_message_preview ?? 'No messages yet';
+  const isEmptyPreview = previewText === 'No messages yet';
 
   const avatarSize = compact ? 36 : 40;
 
@@ -135,14 +138,6 @@ export function ConversationListItem({
     titleRowWithMenu: {
       paddingRight: 36,
     },
-    roleEyebrow: {
-      fontSize: 11,
-      fontWeight: '600',
-      letterSpacing: 0.45,
-      textTransform: 'uppercase',
-      color: colors.labelSecondary,
-      flex: 1,
-    },
     name: {
       ...typography.body,
       fontSize: 17,
@@ -150,8 +145,9 @@ export function ConversationListItem({
       fontWeight: conversation.unread ? '700' : '600',
       letterSpacing: -0.2,
       color: colors.labelPrimary,
+      flex: 1,
     },
-    meta: {
+    context: {
       fontSize: 13,
       lineHeight: 18,
       color: colors.labelSecondary,
@@ -159,11 +155,14 @@ export function ConversationListItem({
     preview: {
       fontSize: 13,
       lineHeight: 18,
-      color: activeSearchQuery
-        ? colors.labelSecondary
-        : conversation.unread
-          ? colors.labelPrimary
-          : colors.labelSecondary,
+      color: isEmptyPreview
+        ? colors.labelTertiary
+        : activeSearchQuery
+          ? colors.labelSecondary
+          : conversation.unread
+            ? colors.labelPrimary
+            : colors.labelSecondary,
+      fontStyle: isEmptyPreview ? 'italic' : 'normal',
       fontWeight: activeSearchQuery ? '400' : conversation.unread ? '600' : '400',
       flex: 1,
     },
@@ -233,7 +232,7 @@ export function ConversationListItem({
 
   const accessibilityLabel = [
     display.cardName,
-    display.cardMeta,
+    display.inboxContextLine,
     conversation.unread ? 'Unread' : null,
     conversation.last_message_preview,
   ]
@@ -281,27 +280,24 @@ export function ConversationListItem({
           <ConversationAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
           <View style={styles.textWrap}>
             <View style={[styles.titleRow, onDelete ? styles.titleRowWithMenu : null]}>
-              <Text style={styles.roleEyebrow} numberOfLines={1}>
-                {display.cardTitle}
-              </Text>
+              {activeSearchQuery ? (
+                <SearchMatchText
+                  text={display.cardName}
+                  query={activeSearchQuery}
+                  style={styles.name}
+                  highlightStyle={styles.nameHighlight}
+                  numberOfLines={1}
+                />
+              ) : (
+                <Text style={styles.name} numberOfLines={1}>
+                  {display.cardName}
+                </Text>
+              )}
               {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
             </View>
-            {activeSearchQuery ? (
-              <SearchMatchText
-                text={display.cardName}
-                query={activeSearchQuery}
-                style={styles.name}
-                highlightStyle={styles.nameHighlight}
-                numberOfLines={1}
-              />
-            ) : (
-              <Text style={styles.name} numberOfLines={1}>
-                {display.cardName}
-              </Text>
-            )}
-            {!compact ? (
-              <Text style={styles.meta} numberOfLines={1}>
-                {display.cardMeta}
+            {display.inboxContextLine ? (
+              <Text style={styles.context} numberOfLines={compact ? 1 : 2}>
+                {display.inboxContextLine}
               </Text>
             ) : null}
             <View style={[styles.titleRow, activeSearchQuery ? styles.previewRowExpanded : null]}>
@@ -328,7 +324,7 @@ export function ConversationListItem({
               ) : null}
             </View>
           </View>
-          {!compact ? (
+          {isWeb && !compact ? (
             <View style={styles.chevronWrap}>
               <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
             </View>

@@ -6,6 +6,7 @@ import {
   SPECIALTY_OPTIONS,
 } from '@chairside/config';
 
+import { addDays, isSameDay, parseISODate, startOfDay } from '@/lib/dates';
 import { formatShiftPostDateLabel, formatShiftPostMeta } from '@/lib/shiftPostDisplay';
 import { formatTimeRangePreview } from '@/lib/time';
 
@@ -16,6 +17,8 @@ export type ConversationDisplay = {
   cardName: string;
   cardTitle: string;
   cardMeta: string;
+  /** Single inbox context line (role · date · status) — replaces separate eyebrow + meta. */
+  inboxContextLine: string;
 };
 
 function formatSpecialtyLabel(specialty: string | null | undefined): string | null {
@@ -35,6 +38,68 @@ function formatCardRole(conversation: Conversation): string {
     return getRoleTypeLabel(conversation.post_role_type);
   }
   return conversation.post_type === 'shift' ? 'Fill-in' : 'Role';
+}
+
+function formatInboxShortShiftDate(shiftDate: string): string {
+  const date = parseISODate(shiftDate);
+  if (!date) return shiftDate;
+
+  const today = startOfDay(new Date());
+  if (isSameDay(date, today)) return 'Today';
+  if (isSameDay(date, addDays(today, 1))) return 'Tomorrow';
+
+  const sameYear = date.getFullYear() === today.getFullYear();
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+}
+
+function formatInboxShiftParts(conversation: Conversation): string[] {
+  const parts: string[] = [];
+  if (conversation.shift_date) {
+    parts.push(formatInboxShortShiftDate(conversation.shift_date));
+  }
+  if (conversation.shift_start_time && conversation.shift_end_time) {
+    parts.push(
+      formatTimeRangePreview(conversation.shift_start_time, conversation.shift_end_time),
+    );
+  }
+  return parts;
+}
+
+function formatInboxContextLine(conversation: Conversation, role: 'worker' | 'clinic'): string {
+  const deletedNote = conversation.counterpart_account_deleted ? 'No longer on Chairside' : null;
+
+  if (conversation.conversation_type === 'general') {
+    const base =
+      role === 'worker' ? 'General inquiry · Reach out without applying' : 'General inquiry';
+    return [base, deletedNote].filter(Boolean).join(' · ');
+  }
+
+  if (conversation.conversation_type === 'outreach') {
+    const roleLabel = conversation.post_role_type
+      ? getRoleTypeLabel(conversation.post_role_type)
+      : 'Fill-in';
+    const suffix = role === 'worker' ? 'Fill-in request' : 'Direct outreach';
+    return [roleLabel, ...formatInboxShiftParts(conversation), suffix, deletedNote]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  const roleLabel = formatCardRole(conversation);
+  const statusLabel = formatStatusLabel(conversation, role);
+
+  if (conversation.post_type === 'shift') {
+    return [roleLabel, ...formatInboxShiftParts(conversation), statusLabel, deletedNote]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  return [roleLabel, conversation.post_title, statusLabel, deletedNote]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): string {
@@ -128,6 +193,8 @@ export function formatConversationDisplay(
   conversation: Conversation,
   role: 'worker' | 'clinic',
 ): ConversationDisplay {
+  const inboxContextLine = formatInboxContextLine(conversation, role);
+
   if (conversation.conversation_type === 'general') {
     return {
       contextLine: 'General inquiry',
@@ -136,6 +203,7 @@ export function formatConversationDisplay(
       cardName: conversation.counterpart_name,
       cardTitle: 'General inquiry',
       cardMeta: formatCardMeta(conversation, role),
+      inboxContextLine,
     };
   }
 
@@ -148,6 +216,7 @@ export function formatConversationDisplay(
       cardName: conversation.counterpart_name,
       cardTitle: formatCardRole(conversation),
       cardMeta: formatCardMeta(conversation, role),
+      inboxContextLine,
     };
   }
 
@@ -163,6 +232,7 @@ export function formatConversationDisplay(
     cardName: conversation.counterpart_name,
     cardTitle: formatCardRole(conversation),
     cardMeta: formatCardMeta(conversation, role),
+    inboxContextLine,
   };
 }
 
