@@ -18,6 +18,7 @@ import { Alert, Text, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { PageTabBar } from '@/components/ui/PageTabBar';
+import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
@@ -40,6 +41,11 @@ import {
   type ShiftDateFilter,
   type ShiftStatusFilter,
 } from '@/lib/postingFilters';
+import {
+  hasActiveListSearch,
+  matchesClinicApplicationSearch,
+  matchesShiftPostSearch,
+} from '@/lib/clinicListSearch';
 import { CLINIC_SETUP_BASICS, getFindAvailableWorkersRoute, getPostShiftRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -121,6 +127,8 @@ export default function ClinicFillInsScreen() {
   const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('past');
+  const [coverSearchQuery, setCoverSearchQuery] = useState('');
+  const [shiftSearchQuery, setShiftSearchQuery] = useState('');
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
@@ -148,9 +156,23 @@ export default function ClinicFillInsScreen() {
         shiftStatusFilter,
         shiftRoleTypeFilter,
         shiftDateFilter,
-      ),
-    [shifts, fillInsListMode, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter],
+      ).filter((shift) => matchesShiftPostSearch(shift, shiftSearchQuery)),
+    [shifts, fillInsListMode, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter, shiftSearchQuery],
   );
+
+  const filteredCoverRequests = useMemo(
+    () => coverRequests.filter((request) => matchesClinicApplicationSearch(request, coverSearchQuery)),
+    [coverRequests, coverSearchQuery],
+  );
+
+  const hasShiftSearch = hasActiveListSearch(shiftSearchQuery);
+  const hasShiftFilters =
+    (fillInsListMode === 'history' &&
+      (shiftStatusFilter !== 'all' ||
+        shiftRoleTypeFilter !== 'all' ||
+        shiftDateFilter !== 'past')) ||
+    (fillInsListMode === 'active' &&
+      (shiftStatusFilter !== 'open' || shiftRoleTypeFilter !== 'all' || shiftDateFilter !== 'all'));
 
   const handleFillInsListModeChange = (value: FillInsListMode) => {
     setFillInsListMode(value);
@@ -250,17 +272,31 @@ export default function ClinicFillInsScreen() {
               />
             ) : (
               <View style={styles.list}>
-                {coverRequests.map((request) => (
-                  <FillInApplicantCard
-                    key={request.id}
-                    application={request}
-                    clinicId={user?.id ?? ''}
-                    returnTo="fill-ins-tab"
-                    hasUnreadMessages={Boolean(unreadMap[request.id])}
-                    onUpdated={() => void load()}
-                    onConfirmed={(payload) => showCelebration(payload)}
+                <ListSearchFilterRow
+                  value={coverSearchQuery}
+                  onChange={setCoverSearchQuery}
+                  placeholder="Search applicant name"
+                  accessibilityLabel="Search cover requests"
+                />
+                {filteredCoverRequests.length === 0 ? (
+                  <EmptyCard
+                    icon="search-outline"
+                    title="No matching cover requests"
+                    body="Try a different search term."
                   />
-                ))}
+                ) : (
+                  filteredCoverRequests.map((request) => (
+                    <FillInApplicantCard
+                      key={request.id}
+                      application={request}
+                      clinicId={user?.id ?? ''}
+                      returnTo="fill-ins-tab"
+                      hasUnreadMessages={Boolean(unreadMap[request.id])}
+                      onUpdated={() => void load()}
+                      onConfirmed={(payload) => showCelebration(payload)}
+                    />
+                  ))
+                )}
               </View>
             )}
           </View>
@@ -299,6 +335,42 @@ export default function ClinicFillInsScreen() {
               />
             ) : (
               <View style={styles.sectionBody}>
+                <ListSearchFilterRow
+                  value={shiftSearchQuery}
+                  onChange={setShiftSearchQuery}
+                  placeholder="Search date or role type"
+                  accessibilityLabel="Search fill-ins"
+                  filter={
+                    <ShiftPostingFilters
+                      statusOptions={
+                        fillInsListMode === 'history'
+                          ? HISTORY_SHIFT_STATUS_FILTER_OPTIONS
+                          : undefined
+                      }
+                      includeStatusInSheet={fillInsListMode === 'history'}
+                      includeDateInSheet={fillInsListMode === 'history'}
+                      defaults={
+                        fillInsListMode === 'history'
+                          ? {
+                              statusFilter: 'all',
+                              roleTypeFilter: 'all',
+                              shiftDateFilter: 'past',
+                            }
+                          : {
+                              statusFilter: 'open',
+                              roleTypeFilter: 'all',
+                              shiftDateFilter: 'all',
+                            }
+                      }
+                      statusFilter={shiftStatusFilter}
+                      roleTypeFilter={shiftRoleTypeFilter}
+                      shiftDateFilter={shiftDateFilter}
+                      onStatusChange={setShiftStatusFilter}
+                      onRoleTypeChange={setShiftRoleTypeFilter}
+                      onShiftDateChange={setShiftDateFilter}
+                    />
+                  }
+                />
                 <View style={styles.filterToolbar}>
                   <View style={styles.modeSwitch}>
                     <PageTabBar
@@ -308,45 +380,23 @@ export default function ClinicFillInsScreen() {
                       accent="secondary"
                     />
                   </View>
-                  <ShiftPostingFilters
-                    statusOptions={
-                      fillInsListMode === 'history'
-                        ? HISTORY_SHIFT_STATUS_FILTER_OPTIONS
-                        : undefined
-                    }
-                    includeStatusInSheet={fillInsListMode === 'history'}
-                    includeDateInSheet={fillInsListMode === 'history'}
-                    defaults={
-                      fillInsListMode === 'history'
-                        ? {
-                            statusFilter: 'all',
-                            roleTypeFilter: 'all',
-                            shiftDateFilter: 'past',
-                          }
-                        : {
-                            statusFilter: 'open',
-                            roleTypeFilter: 'all',
-                            shiftDateFilter: 'all',
-                          }
-                    }
-                    statusFilter={shiftStatusFilter}
-                    roleTypeFilter={shiftRoleTypeFilter}
-                    shiftDateFilter={shiftDateFilter}
-                    onStatusChange={setShiftStatusFilter}
-                    onRoleTypeChange={setShiftRoleTypeFilter}
-                    onShiftDateChange={setShiftDateFilter}
-                  />
                 </View>
                 {filteredShifts.length === 0 ? (
                   <EmptyCard
                     icon="filter-outline"
                     title={
-                      fillInsListMode === 'history' ? 'No past fill-ins' : 'No active fill-ins'
+                      hasShiftSearch || hasShiftFilters
+                        ? 'No fill-ins match your search'
+                        : fillInsListMode === 'history'
+                          ? 'No past fill-ins'
+                          : 'No active fill-ins'
                     }
                     body={
-                      fillInsListMode === 'history'
-                        ? 'Past, filled, and closed fill-ins will appear here.'
-                        : 'Try a different filter or post a new fill-in shift.'
+                      hasShiftSearch || hasShiftFilters
+                        ? 'Try a different search or filter, or post a new fill-in shift.'
+                        : fillInsListMode === 'history'
+                          ? 'Past, filled, and closed fill-ins will appear here.'
+                          : 'Try a different filter or post a new fill-in shift.'
                     }
                   />
                 ) : (

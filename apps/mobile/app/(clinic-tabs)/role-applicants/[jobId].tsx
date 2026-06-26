@@ -16,6 +16,7 @@ import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -26,6 +27,7 @@ import {
   type ApplicantListFilter,
   type ApplicantPipelineSectionId,
 } from '@/lib/applicationPipeline';
+import { hasActiveListSearch, matchesClinicApplicationSearch } from '@/lib/clinicListSearch';
 import { navigateAfterRoleApplicants } from '@/lib/routing';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { useThemedStyles } from '@/theme';
@@ -58,6 +60,7 @@ export default function ClinicRoleApplicationsScreen() {
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [listFilter, setListFilter] = useState<ApplicantListFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [archivedExpanded, setArchivedExpanded] = useState(false);
   const [sectionExpanded, setSectionExpanded] = useState<
     Partial<Record<ApplicantPipelineSectionId, boolean>>
@@ -106,17 +109,35 @@ export default function ClinicRoleApplicationsScreen() {
 
   useRefreshOnFocus(load);
 
-  const filterCounts = useMemo(() => getApplicantFilterCounts(applications), [applications]);
+  const filterCounts = useMemo(
+    () => getApplicantFilterCounts(searchedApplications),
+    [searchedApplications],
+  );
+
+  const searchedApplications = useMemo(
+    () => applications.filter((application) => matchesClinicApplicationSearch(application, searchQuery)),
+    [applications, searchQuery],
+  );
+
+  const searchedArchivedApplications = useMemo(
+    () =>
+      archivedApplications.filter((application) =>
+        matchesClinicApplicationSearch(application, searchQuery),
+      ),
+    [archivedApplications, searchQuery],
+  );
 
   const sections = useMemo(
-    () => groupApplicationsByPipeline(applications),
-    [applications],
+    () => groupApplicationsByPipeline(searchedApplications),
+    [searchedApplications],
   );
 
   const filteredApplications = useMemo(
-    () => filterApplicationsByView(applications, listFilter),
-    [applications, listFilter],
+    () => filterApplicationsByView(searchedApplications, listFilter),
+    [searchedApplications, listFilter],
   );
+
+  const hasSearch = hasActiveListSearch(searchQuery);
 
   const isSectionExpanded = (sectionId: ApplicantPipelineSectionId, defaultExpanded: boolean) =>
     sectionExpanded[sectionId] ?? defaultExpanded;
@@ -140,16 +161,18 @@ export default function ClinicRoleApplicationsScreen() {
     ));
 
   const hasAnyApplicants = applications.length > 0 || archivedApplications.length > 0;
+  const hasVisibleApplicants =
+    searchedApplications.length > 0 || searchedArchivedApplications.length > 0;
 
   const renderArchivedSection = () =>
-    archivedApplications.length === 0 ? null : (
+    searchedArchivedApplications.length === 0 ? null : (
       <ApplicantPipelineSectionBlock
         title="Archived"
-        count={archivedApplications.length}
+        count={searchedArchivedApplications.length}
         expanded={archivedExpanded}
         collapsible
         onToggle={() => setArchivedExpanded((current) => !current)}>
-        {renderApplicationCards(archivedApplications)}
+        {renderApplicationCards(searchedArchivedApplications)}
       </ApplicantPipelineSectionBlock>
     );
 
@@ -188,9 +211,19 @@ export default function ClinicRoleApplicationsScreen() {
           <PageLoadingList />
         ) : !hasAnyApplicants ? (
           <Text style={styles.empty}>No applicants for this role yet.</Text>
+        ) : !hasVisibleApplicants ? (
+          <Text style={styles.empty}>
+            {hasSearch ? 'No applicants match your search.' : 'No applicants for this role yet.'}
+          </Text>
         ) : (
           <>
             <View style={styles.filterAndSections}>
+              <ListSearchFilterRow
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search applicant name"
+                accessibilityLabel="Search applicants"
+              />
               <ApplicantFilterBar
                 selected={listFilter}
                 counts={filterCounts}

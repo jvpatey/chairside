@@ -14,6 +14,7 @@ import { Alert, Text, View } from 'react-native';
 import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { PostingCardActionButton } from '@/components/clinic/PostingCardActionButton';
+import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
@@ -29,6 +30,7 @@ import {
   type JobStatusFilter,
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
+import { hasActiveListSearch, matchesJobPostSearch } from '@/lib/clinicListSearch';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function PostingListEmptyState({
@@ -93,6 +95,7 @@ export default function ClinicPostingsScreen() {
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [jobStatusFilter, setJobStatusFilter] = useState<JobStatusFilter>('all');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -104,9 +107,15 @@ export default function ClinicPostingsScreen() {
   const mainListJobs = useMemo(() => filterJobPostsForMainList(jobs, 'all', 'all'), [jobs]);
 
   const filteredJobs = useMemo(
-    () => filterJobPostsForMainList(jobs, jobStatusFilter, jobRoleTypeFilter),
-    [jobs, jobStatusFilter, jobRoleTypeFilter],
+    () =>
+      filterJobPostsForMainList(jobs, jobStatusFilter, jobRoleTypeFilter).filter((job) =>
+        matchesJobPostSearch(job, searchQuery),
+      ),
+    [jobs, jobStatusFilter, jobRoleTypeFilter, searchQuery],
   );
+
+  const hasSearch = hasActiveListSearch(searchQuery);
+  const hasActiveFilters = jobStatusFilter !== 'all' || jobRoleTypeFilter !== 'all';
 
   const historyCounts = useMemo(() => countHistoryJobs(jobs), [jobs]);
   const hasRoleHistory = historyCounts.archived > 0 || historyCounts.filled > 0;
@@ -164,28 +173,35 @@ export default function ClinicPostingsScreen() {
 
   const postTarget = CLINIC_POST_JOB;
   const postLabel = 'Post role';
-  const showRoleFilters = !isLoading && mainListJobs.length > 0;
+  const showRoleControls = !isLoading && mainListJobs.length > 0;
 
   return (
     <Screen
       title="Postings"
-      subtitle="Open roles at your clinic."
-      headerAccessory={
-        showRoleFilters ? (
-          <RolePostingFilters
-            statusFilter={jobStatusFilter}
-            roleTypeFilter={jobRoleTypeFilter}
-            onStatusChange={setJobStatusFilter}
-            onRoleTypeChange={setJobRoleTypeFilter}
-          />
-        ) : undefined
-      }>
+      subtitle="Open roles at your clinic.">
       <View style={styles.wrap}>
         <OnboardingButton
           label={postLabel}
           disabled={!isProfileComplete}
           onPress={() => router.push(postTarget)}
         />
+
+        {showRoleControls ? (
+          <ListSearchFilterRow
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search role title or type"
+            accessibilityLabel="Search postings"
+            filter={
+              <RolePostingFilters
+                statusFilter={jobStatusFilter}
+                roleTypeFilter={jobRoleTypeFilter}
+                onStatusChange={setJobStatusFilter}
+                onRoleTypeChange={setJobRoleTypeFilter}
+              />
+            }
+          />
+        ) : null}
 
         {isLoading ? (
           <PageLoadingList message="Loading postings…" />
@@ -206,8 +222,12 @@ export default function ClinicPostingsScreen() {
             ) : filteredJobs.length === 0 ? (
               <PostingListEmptyState
                 icon="filter-outline"
-                title="No roles in this filter"
-                body="Try a different filter or publish a new role."
+                title={hasSearch || hasActiveFilters ? 'No roles match your search' : 'No roles in this filter'}
+                body={
+                  hasSearch || hasActiveFilters
+                    ? 'Try a different search or filter, or publish a new role.'
+                    : 'Try a different filter or publish a new role.'
+                }
               />
             ) : (
               <View style={styles.cardList}>
