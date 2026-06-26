@@ -29,7 +29,7 @@ import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseView
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { PageTabBar } from '@/components/ui/PageTabBar';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
@@ -320,7 +320,7 @@ export default function FillInsScreen() {
         <View style={styles.content}>
           <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
             <View style={styles.controlRow}>
-              <SegmentedControl
+              <PageTabBar
                 options={FILL_INS_TAB_MODE_OPTIONS}
                 selected={selectedMode}
                 onChange={setSelectedMode}

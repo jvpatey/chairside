@@ -8,7 +8,7 @@ import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrati
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { Screen } from '@/components/ui/Screen';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { PageTabBar } from '@/components/ui/PageTabBar';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
@@ -163,11 +163,12 @@ export function WorkerApplicationsInboxPanel({
           </Text>
         ) : (
           <View style={styles.content}>
-            <SegmentedControl
+            <PageTabBar
               options={APPLICATIONS_TAB_MODE_OPTIONS}
               selected={selectedMode}
               onChange={setSelectedMode}
               density="compact"
+              accent="primary"
             />
 
             {selectedMode === 'active' ? (

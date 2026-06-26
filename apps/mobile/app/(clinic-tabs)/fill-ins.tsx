@@ -17,7 +17,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { PageTabBar } from '@/components/ui/PageTabBar';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
@@ -301,7 +301,7 @@ export default function ClinicFillInsScreen() {
               <View style={styles.sectionBody}>
                 <View style={styles.filterToolbar}>
                   <View style={styles.modeSwitch}>
-                    <SegmentedControl
+                    <PageTabBar
                       options={FILL_INS_LIST_MODE_OPTIONS}
                       selected={fillInsListMode}
                       onChange={handleFillInsListModeChange}
