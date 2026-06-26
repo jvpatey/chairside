@@ -2,16 +2,22 @@ import type { Conversation } from '@chairside/api';
 import { listConversationsForClinic } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
 import { ClinicMessagingPreferences } from '@/components/clinic/ClinicMessagingPreferences';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { ConversationInboxList } from '@/components/messaging/ConversationInboxList';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useInboxRealtime } from '@/hooks/useInboxRealtime';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { getConversationMessagesRoute } from '@/lib/routing';
+import type { MessageThreadFocus } from '@/lib/routing';
+import { useThemedStyles } from '@/theme';
 
 const CLINIC_MESSAGES_SUBTITLE =
   'Conversations with applicants about roles, fill-ins, and general inquiries.';
@@ -21,10 +27,18 @@ type ClinicMessagesInboxPanelProps = {
   scroll?: boolean;
   fillsContainer?: boolean;
   selectedConversationId?: string | null;
-  onConversationSelect?: (conversationId: string) => void;
+  onConversationSelect?: (conversationId: string, focus?: MessageThreadFocus) => void;
   onConversationsChange?: (conversations: Conversation[]) => void;
   onInboxVisibilityChange?: (state: { isFilteredEmpty: boolean }) => void;
 };
+
+function sortConversations(conversations: Conversation[]): Conversation[] {
+  return [...conversations].sort((a, b) => {
+    const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+    const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+    return bTime - aTime;
+  });
+}
 
 export function ClinicMessagesInboxPanel({
   compact = false,
@@ -41,31 +55,82 @@ export function ClinicMessagesInboxPanel({
   const [conversations, setConversations] = useState<Awaited<
     ReturnType<typeof listConversationsForClinic>
   >>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: {
+      gap: spacing.md,
+      flex: compact ? 1 : undefined,
+      minHeight: compact ? 0 : undefined,
+    },
+    loadingWrap: {
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+    },
+  }));
+
+  const publishConversations = useCallback(
+    (rows: Conversation[]) => {
+      setConversations(rows);
+      onConversationsChange?.(rows);
+    },
+    [onConversationsChange],
+  );
 
   const load = useCallback(async () => {
     if (!user?.id) {
-      setConversations([]);
-      onConversationsChange?.([]);
+      publishConversations([]);
+      setIsLoading(false);
+      setLoadError(null);
       return;
     }
 
+    setIsLoading(true);
     try {
       await refreshClinicProfile();
       const rows = await listConversationsForClinic(user.id);
-      setConversations(rows);
-      onConversationsChange?.(rows);
+      publishConversations(rows);
+      setLoadError(null);
       await refreshUnread();
-    } catch {
-      setConversations([]);
-      onConversationsChange?.([]);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Could not load conversations.');
+      publishConversations([]);
+    } finally {
+      setIsLoading(false);
     }
-  }, [onConversationsChange, refreshClinicProfile, refreshUnread, user?.id]);
+  }, [publishConversations, refreshClinicProfile, refreshUnread, user?.id]);
 
   useRefreshOnFocus(load);
 
-  const handleConversationPress = (conversation: Conversation) => {
+  useInboxRealtime(user?.id, 'clinic', (message) => {
+    setConversations((current) => {
+      const index = current.findIndex((row) => row.id === message.conversation_id);
+      if (index === -1) {
+        void load();
+        return current;
+      }
+
+      const next = [...current];
+      const row = next[index]!;
+      next[index] = {
+        ...row,
+        last_message_at: message.created_at,
+        last_message_preview:
+          message.body.length > 120 ? `${message.body.slice(0, 120).trim()}…` : message.body,
+        last_sender_id: message.sender_id,
+        unread: message.sender_id !== user?.id,
+      };
+      const sorted = sortConversations(next);
+      onConversationsChange?.(sorted);
+      return sorted;
+    });
+    void refreshUnread();
+  });
+
+  const handleConversationPress = (conversation: Conversation, focus?: MessageThreadFocus) => {
     if (onConversationSelect) {
-      onConversationSelect(conversation.id);
+      onConversationSelect(conversation.id, focus);
       return;
     }
 
@@ -77,6 +142,8 @@ export function ClinicMessagesInboxPanel({
         {
           conversationId: conversation.id,
           ...preview,
+          scrollToMessageId: focus?.scrollToMessageId,
+          highlightQuery: focus?.highlightQuery,
         },
         'messages-tab',
       ),
@@ -104,19 +171,40 @@ export function ClinicMessagesInboxPanel({
       fillsContainer={fillsContainer}
       animateEntry={false}
     >
-      <ConversationInboxList
-        conversations={conversations}
-        role="clinic"
-        userId={user.id}
-        avatarKind="worker"
-        compact={compact}
-        selectedConversationId={selectedConversationId}
-        header={<ClinicMessagingPreferences variant="compact" />}
-        filterBesideHeader
-        onInboxVisibilityChange={onInboxVisibilityChange}
-        onConversationPress={handleConversationPress}
-        onConversationHidden={load}
-      />
+      <View style={styles.content}>
+        {loadError ? (
+          <DashboardErrorBanner
+            message={loadError}
+            onRetry={() => {
+              void load();
+            }}
+          />
+        ) : null}
+
+        {isLoading && conversations.length === 0 ? (
+          compact ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="small" />
+            </View>
+          ) : (
+            <PageLoadingList message="Loading conversations…" />
+          )
+        ) : (
+          <ConversationInboxList
+            conversations={conversations}
+            role="clinic"
+            userId={user.id}
+            avatarKind="worker"
+            compact={compact}
+            selectedConversationId={selectedConversationId}
+            header={<ClinicMessagingPreferences variant="compact" />}
+            filterBesideHeader
+            onInboxVisibilityChange={onInboxVisibilityChange}
+            onConversationPress={handleConversationPress}
+            onConversationHidden={load}
+          />
+        )}
+      </View>
     </Screen>
   );
 }

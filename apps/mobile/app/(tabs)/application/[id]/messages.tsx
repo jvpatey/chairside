@@ -18,16 +18,22 @@ import { formatConversationDisplay } from '@/lib/conversationDisplay';
 export default function WorkerApplicationMessagesScreen() {
   const { user } = useAuth();
   const { isTablet } = useResponsiveLayout();
-  const { id, conversationId, title, subtitle } = useLocalSearchParams<{
+  const { id, conversationId, title, subtitle, scrollToMessageId, highlightQuery } =
+    useLocalSearchParams<{
     id?: string;
     conversationId?: string;
     title?: string;
     subtitle?: string;
+    scrollToMessageId?: string;
+    highlightQuery?: string;
   }>();
   const applicationId = typeof id === 'string' ? id : '';
   const routeConversationId = typeof conversationId === 'string' ? conversationId : undefined;
   const routeTitle = typeof title === 'string' ? title : undefined;
   const routeSubtitle = typeof subtitle === 'string' ? subtitle : undefined;
+  const routeScrollToMessageId =
+    typeof scrollToMessageId === 'string' ? scrollToMessageId : undefined;
+  const routeHighlightQuery = typeof highlightQuery === 'string' ? highlightQuery : undefined;
   const [conversation, setConversation] = useState<Conversation | null>(null);
 
   const goBack = useCallback(() => {
@@ -77,6 +83,8 @@ export default function WorkerApplicationMessagesScreen() {
         conversationId={resolvedConversationId}
         title={threadTitle}
         subtitle={threadSubtitle}
+        scrollToMessageId={routeScrollToMessageId}
+        highlightQuery={routeHighlightQuery}
       />
     );
   }
@@ -89,6 +97,8 @@ export default function WorkerApplicationMessagesScreen() {
         conversationId={routeConversationId}
         title={routeTitle ?? 'Messages'}
         subtitle={routeSubtitle ?? ''}
+        scrollToMessageId={routeScrollToMessageId}
+        highlightQuery={routeHighlightQuery}
         onBack={goBack}
         onConversationChange={setConversation}
       />
@@ -106,6 +116,8 @@ export default function WorkerApplicationMessagesScreen() {
       conversationId={conversation.id}
       title={formatConversationDisplay(conversation, 'worker').threadTitle}
       subtitle={formatConversationDisplay(conversation, 'worker').threadSubtitle}
+      scrollToMessageId={routeScrollToMessageId}
+      highlightQuery={routeHighlightQuery}
       onBack={goBack}
       onConversationChange={setConversation}
     />

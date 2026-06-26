@@ -223,10 +223,12 @@ export {
   listMessageableClinicsForWorker,
   listMessages,
   markConversationRead,
+  searchMessagesInConversations,
   sendMessage,
   type Conversation,
   type ConversationType,
   type Message,
+  type MessageSearchHit,
   type MessageableClinic,
 } from './messages';
 export {

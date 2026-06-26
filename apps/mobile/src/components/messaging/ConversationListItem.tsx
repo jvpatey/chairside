@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
-import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { SearchMatchText } from '@/components/messaging/SearchMatchText';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
@@ -29,8 +29,10 @@ type ConversationListItemProps = {
   onDelete?: () => void;
   /** Split-view selection (web/tablet). */
   selected?: boolean;
-  /** Tighter row spacing for compact inbox panes. */
-  compact?: boolean;
+  /** When searching messages, show the matching message snippet instead of last preview. */
+  messageSearchPreview?: string | null;
+  /** Active inbox search query — used to highlight matched text in previews and names. */
+  searchQuery?: string;
 };
 
 function ConversationAvatar({
@@ -76,6 +78,8 @@ export function ConversationListItem({
   onDelete,
   selected = false,
   compact = false,
+  messageSearchPreview,
+  searchQuery = '',
 }: ConversationListItemProps) {
   const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -84,6 +88,9 @@ export function ConversationListItem({
   const isWeb = Platform.OS === 'web';
   const timestamp = formatNotificationTime(conversation.last_message_at ?? undefined);
   const display = formatConversationDisplay(conversation, role);
+  const activeSearchQuery = searchQuery.trim();
+  const previewText =
+    messageSearchPreview ?? conversation.last_message_preview ?? 'No messages yet';
 
   const avatarSize = compact ? 36 : 40;
 
@@ -94,6 +101,7 @@ export function ConversationListItem({
       paddingVertical: compact ? spacing.sm + 2 : spacing.md,
       paddingHorizontal: compact ? spacing.sm : spacing.md,
       position: 'relative' as const,
+      backgroundColor: conversation.unread ? colors.primarySubtle : 'transparent',
     },
     rowHovered: webListRowHoverStyles(colors),
     rowSelected: webListRowSelectedStyles(colors),
@@ -139,7 +147,7 @@ export function ConversationListItem({
       ...typography.body,
       fontSize: 17,
       lineHeight: 22,
-      fontWeight: '600',
+      fontWeight: conversation.unread ? '700' : '600',
       letterSpacing: -0.2,
       color: colors.labelPrimary,
     },
@@ -151,8 +159,24 @@ export function ConversationListItem({
     preview: {
       fontSize: 13,
       lineHeight: 18,
-      color: conversation.unread ? colors.labelPrimary : colors.labelSecondary,
-      fontWeight: conversation.unread ? '600' : '400',
+      color: activeSearchQuery
+        ? colors.labelSecondary
+        : conversation.unread
+          ? colors.labelPrimary
+          : colors.labelSecondary,
+      fontWeight: activeSearchQuery ? '400' : conversation.unread ? '600' : '400',
+      flex: 1,
+    },
+    previewHighlight: {
+      fontWeight: '700',
+      color: colors.labelPrimary,
+    },
+    previewRowExpanded: {
+      alignItems: 'flex-start',
+    },
+    nameHighlight: {
+      fontWeight: '800',
+      color: colors.labelPrimary,
     },
     timestamp: {
       fontSize: 12,
@@ -163,6 +187,9 @@ export function ConversationListItem({
       height: 8,
       borderRadius: 4,
       backgroundColor: colors.primary,
+    },
+    unreadDotExpanded: {
+      marginTop: 5,
     },
     menuButton: {
       position: 'absolute' as const,
@@ -259,22 +286,53 @@ export function ConversationListItem({
               </Text>
               {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
             </View>
-            <Text style={styles.name} numberOfLines={1}>
-              {display.cardName}
-            </Text>
-            <Text style={styles.meta} numberOfLines={1}>
-              {display.cardMeta}
-            </Text>
-            <View style={styles.titleRow}>
-              <Text style={styles.preview} numberOfLines={1}>
-                {conversation.last_message_preview ?? 'No messages yet'}
+            {activeSearchQuery ? (
+              <SearchMatchText
+                text={display.cardName}
+                query={activeSearchQuery}
+                style={styles.name}
+                highlightStyle={styles.nameHighlight}
+                numberOfLines={1}
+              />
+            ) : (
+              <Text style={styles.name} numberOfLines={1}>
+                {display.cardName}
               </Text>
-              {conversation.unread ? <View style={styles.unreadDot} /> : null}
+            )}
+            {!compact ? (
+              <Text style={styles.meta} numberOfLines={1}>
+                {display.cardMeta}
+              </Text>
+            ) : null}
+            <View style={[styles.titleRow, activeSearchQuery ? styles.previewRowExpanded : null]}>
+              {activeSearchQuery && previewText !== 'No messages yet' ? (
+                <SearchMatchText
+                  text={previewText}
+                  query={activeSearchQuery}
+                  style={styles.preview}
+                  highlightStyle={styles.previewHighlight}
+                  numberOfLines={messageSearchPreview ? undefined : compact ? 3 : 2}
+                />
+              ) : (
+                <Text style={styles.preview} numberOfLines={compact ? 2 : 1}>
+                  {previewText}
+                </Text>
+              )}
+              {conversation.unread ? (
+                <View
+                  style={[
+                    styles.unreadDot,
+                    activeSearchQuery ? styles.unreadDotExpanded : null,
+                  ]}
+                />
+              ) : null}
             </View>
           </View>
-          <View style={styles.chevronWrap}>
-            <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
-          </View>
+          {!compact ? (
+            <View style={styles.chevronWrap}>
+              <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+            </View>
+          ) : null}
         </Pressable>
       </View>
 
@@ -283,7 +341,7 @@ export function ConversationListItem({
         title={display.cardName}
         actions={[
           {
-            label: 'Delete from inbox',
+            label: 'Remove from inbox',
             destructive: true,
             onPress: () => setConfirmVisible(true),
           },
@@ -293,11 +351,11 @@ export function ConversationListItem({
 
       <ActionMenuSheet
         visible={confirmVisible}
-        title="Delete conversation?"
+        title="Remove conversation?"
         message={getHideConversationMessage(conversation)}
         actions={[
           {
-            label: 'Delete',
+            label: 'Remove',
             destructive: true,
             onPress: () => {
               void handleDeleteConfirmed();

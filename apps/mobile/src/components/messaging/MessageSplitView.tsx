@@ -11,6 +11,7 @@ import {
 import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
+import type { MessageThreadFocus } from '@/lib/routing';
 
 const MASTER_WIDTH = 380;
 
@@ -28,6 +29,7 @@ function renderDetailPane({
   selectedId,
   inboxFilteredEmpty,
   preview,
+  threadFocus,
   onConversationChange,
 }: {
   role: 'worker' | 'clinic';
@@ -35,6 +37,7 @@ function renderDetailPane({
   selectedId: string | null;
   inboxFilteredEmpty: boolean;
   preview: ReturnType<typeof getMessageThreadPreview> | null;
+  threadFocus?: MessageThreadFocus | null;
   onConversationChange?: (conversation: Conversation) => void;
 }) {
   if (!userId || inboxFilteredEmpty) {
@@ -53,6 +56,8 @@ function renderDetailPane({
       conversationId={selectedId}
       title={preview?.title ?? 'Messages'}
       subtitle={preview?.subtitle ?? ''}
+      scrollToMessageId={threadFocus?.scrollToMessageId}
+      highlightQuery={threadFocus?.highlightQuery}
       onConversationChange={onConversationChange}
     />
   );
@@ -65,6 +70,7 @@ export function MessageSplitView({
 }: MessageSplitViewProps) {
   const { user } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(initialConversationId ?? null);
+  const [threadFocus, setThreadFocus] = useState<MessageThreadFocus | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
 
@@ -105,18 +111,27 @@ export function MessageSplitView({
     ? getMessageThreadPreview(selectedConversation, role)
     : null;
 
+  const handleConversationSelect = useCallback(
+    (conversationId: string, focus?: MessageThreadFocus) => {
+      setSelectedId(conversationId);
+      setThreadFocus(focus ?? null);
+    },
+    [],
+  );
+
   const inboxProps = useMemo(
     () => ({
       compact: true as const,
       scroll: false as const,
       fillsContainer: true as const,
       selectedConversationId: selectedId,
-      onConversationSelect: setSelectedId,
+      onConversationSelect: handleConversationSelect,
       onConversationsChange: handleConversationsChange,
       onInboxVisibilityChange: handleInboxVisibilityChange,
     }),
     [
       selectedId,
+      handleConversationSelect,
       handleConversationsChange,
       handleInboxVisibilityChange,
     ],
@@ -143,6 +158,7 @@ export function MessageSplitView({
         selectedId,
         inboxFilteredEmpty: masterView === 'inbox' && inboxFilteredEmpty,
         preview,
+        threadFocus,
         onConversationChange: handleConversationChange,
       })}
     />
@@ -155,14 +171,23 @@ export function MessageThreadSplitView({
   conversationId,
   title,
   subtitle,
+  scrollToMessageId,
+  highlightQuery,
 }: {
   role: 'worker' | 'clinic';
   conversationId: string;
   title: string;
   subtitle: string;
+  scrollToMessageId?: string;
+  highlightQuery?: string;
 }) {
   const { user } = useAuth();
   const [selectedId, setSelectedId] = useState(conversationId);
+  const [threadFocus, setThreadFocus] = useState<MessageThreadFocus | null>(
+    scrollToMessageId || highlightQuery
+      ? { scrollToMessageId, highlightQuery }
+      : null,
+  );
   const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
 
   const handleInboxVisibilityChange = useCallback((state: { isFilteredEmpty: boolean }) => {
@@ -174,7 +199,10 @@ export function MessageThreadSplitView({
     scroll: false as const,
     fillsContainer: true as const,
     selectedConversationId: selectedId,
-    onConversationSelect: setSelectedId,
+    onConversationSelect: (conversationId: string, focus?: MessageThreadFocus) => {
+      setSelectedId(conversationId);
+      setThreadFocus(focus ?? null);
+    },
     onInboxVisibilityChange: handleInboxVisibilityChange,
   };
 
@@ -189,6 +217,8 @@ export function MessageThreadSplitView({
         conversationId={selectedId}
         title={title}
         subtitle={subtitle}
+        scrollToMessageId={threadFocus?.scrollToMessageId}
+        highlightQuery={threadFocus?.highlightQuery}
       />
     );
 

@@ -36,7 +36,11 @@ export type MessageThreadPreview = {
   conversationId: string;
   title: string;
   subtitle: string;
+  scrollToMessageId?: string;
+  highlightQuery?: string;
 };
+
+export type MessageThreadFocus = Pick<MessageThreadPreview, 'scrollToMessageId' | 'highlightQuery'>;
 
 export const CLINIC_HOME: Href = '/(clinic-tabs)' as Href;
 export const WORKER_HOME: Href = '/(tabs)' as Href;
@@ -228,6 +232,10 @@ export function getWorkerApplicationMessagesRoute(
             conversationId: preview.conversationId,
             title: preview.title,
             subtitle: preview.subtitle,
+            ...(preview.scrollToMessageId
+              ? { scrollToMessageId: preview.scrollToMessageId }
+              : {}),
+            ...(preview.highlightQuery ? { highlightQuery: preview.highlightQuery } : {}),
           }
         : {}),
     },
@@ -249,6 +257,10 @@ export function getClinicApplicationMessagesRoute(
             conversationId: preview.conversationId,
             title: preview.title,
             subtitle: preview.subtitle,
+            ...(preview.scrollToMessageId
+              ? { scrollToMessageId: preview.scrollToMessageId }
+              : {}),
+            ...(preview.highlightQuery ? { highlightQuery: preview.highlightQuery } : {}),
           }
         : {}),
     },
@@ -351,6 +363,10 @@ export function getWorkerConversationRoute(
             conversationId: preview.conversationId,
             title: preview.title,
             subtitle: preview.subtitle,
+            ...(preview.scrollToMessageId
+              ? { scrollToMessageId: preview.scrollToMessageId }
+              : {}),
+            ...(preview.highlightQuery ? { highlightQuery: preview.highlightQuery } : {}),
           }
         : {}),
     },
@@ -370,6 +386,10 @@ export function getClinicConversationRoute(
             conversationId: preview.conversationId,
             title: preview.title,
             subtitle: preview.subtitle,
+            ...(preview.scrollToMessageId
+              ? { scrollToMessageId: preview.scrollToMessageId }
+              : {}),
+            ...(preview.highlightQuery ? { highlightQuery: preview.highlightQuery } : {}),
           }
         : {}),
     },
