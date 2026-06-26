@@ -156,6 +156,10 @@ export function getWorkerJobDetailRoute(jobId: string): Href {
   return { pathname: '/(tabs)/job/[id]', params: { id: jobId } } as unknown as Href;
 }
 
+export function getWorkerClinicProfileRoute(clinicId: string): Href {
+  return { pathname: '/(tabs)/clinic/[id]', params: { id: clinicId } } as unknown as Href;
+}
+
 export function getEditJobRoute(jobId: string): Href {
   return { pathname: '/(clinic-tabs)/post-job', params: { id: jobId } } as Href;
 }

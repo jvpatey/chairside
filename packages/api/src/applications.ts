@@ -126,6 +126,7 @@ export type WorkerApplication = Application & {
   shift_date?: string | null;
   shift_start_time?: string | null;
   shift_end_time?: string | null;
+  clinic_id: string | null;
   clinic_name: string;
   clinic_city: string | null;
   clinic_province?: string | null;
@@ -478,6 +479,7 @@ export async function listWorkerApplications(
         post_title: job.title,
         post_type: 'job',
         post_status: job.status,
+        clinic_id: job.clinic_id,
         ...clinicFields,
         screening,
       });
@@ -494,6 +496,7 @@ export async function listWorkerApplications(
         shift_date: shift.shift_date,
         shift_start_time: shift.start_time,
         shift_end_time: shift.end_time,
+        clinic_id: shift.clinic_id,
         ...clinicFields,
         screening: null,
       });
@@ -535,6 +538,7 @@ async function enrichWorkerApplication(
       ...application,
       post_title: job.title,
       post_type: 'job',
+      clinic_id: job.clinic_id,
       ...resolveWorkerClinicFields(application, clinic),
       screening,
     };
@@ -566,6 +570,7 @@ async function enrichWorkerApplication(
       shift_date: shift.shift_date,
       shift_start_time: shift.start_time,
       shift_end_time: shift.end_time,
+      clinic_id: shift.clinic_id,
       ...resolveWorkerClinicFields(application, clinic),
       screening: null,
     };

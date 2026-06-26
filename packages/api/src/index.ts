@@ -91,6 +91,12 @@ export {
   type WorkerDashboardCounts,
 } from './posts';
 export {
+  getPublicClinicPostings,
+  getPublicClinicProfile,
+  type PublicClinicPostings,
+  type PublicClinicProfile,
+} from './publicClinicProfile';
+export {
   getSavedLiveJobPost,
   getSavedLiveShiftPost,
   getWorkerSavedJobPostIds,

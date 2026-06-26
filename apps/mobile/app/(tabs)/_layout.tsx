@@ -72,6 +72,7 @@ function WorkerTabNavigator() {
       <Tabs.Screen name="conversation/[id]" options={{ href: null }} />
       <Tabs.Screen name="job/[id]" options={{ href: null }} />
       <Tabs.Screen name="shift/[id]" options={{ href: null }} />
+      <Tabs.Screen name="clinic/[id]" options={{ href: null }} />
       <Tabs.Screen name="apply" options={{ href: null }} />
       <Tabs.Screen name="apply-screening" options={{ href: null }} />
       <Tabs.Screen name="open-fill-ins" options={{ href: null }} />
