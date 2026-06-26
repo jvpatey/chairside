@@ -9,6 +9,7 @@ import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useSignOut } from '@/hooks/useSignOut';
+import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerProfileAccountScreen() {
@@ -31,7 +32,7 @@ export default function WorkerProfileAccountScreen() {
         <AccountProfileHero
           displayName={profile?.display_name}
           email={user.email}
-          accountTypeLabel="Find work"
+          accountTypeLabel={getAccountTypeLabel('worker')}
         />
         <AccountDisplayNameField
           userId={user.id}

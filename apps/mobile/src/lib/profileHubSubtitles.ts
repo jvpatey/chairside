@@ -1,6 +1,10 @@
-import type { ClinicProfile, WorkerProfile } from '@chairside/api';
+import type { ClinicProfile, UserRole, WorkerProfile } from '@chairside/api';
 import { getWorkerRoleTypes, isClinicProfileComplete, isWorkerProfileComplete } from '@chairside/api';
 import { getProvinceLabel, formatRoleTypesLabel, getSpecialtyLabel } from '@chairside/config';
+
+export function getAccountTypeLabel(role: UserRole): string {
+  return role === 'worker' ? 'Find work' : 'Clinic';
+}
 
 export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null): string {
   if (!profile || !isWorkerProfileComplete(profile)) {

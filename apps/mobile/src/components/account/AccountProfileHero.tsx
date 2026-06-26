@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 
+import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
 import { useThemedStyles } from '@/theme';
 
 type AccountProfileHeroProps = {
@@ -41,18 +42,6 @@ export function AccountProfileHero({
       textAlign: 'center',
       fontStyle: 'italic',
     },
-    badge: {
-      marginTop: spacing.xs,
-      borderRadius: 999,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs + 2,
-      backgroundColor: colors.fillSubtle,
-    },
-    badgeText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
   }));
 
   const trimmedName = displayName?.trim();
@@ -72,9 +61,7 @@ export function AccountProfileHero({
       ) : (
         <Text style={styles.emailPlaceholder}>No email on file</Text>
       )}
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{accountTypeLabel} account</Text>
-      </View>
+      <AccountTypeBadge label={accountTypeLabel} />
     </View>
   );
 }
