@@ -41,11 +41,11 @@ Press `i` in the Expo dev tools for the iOS simulator, or scan the QR code with 
 
 ### Database migrations
 
-Apply every file in [`supabase/migrations/`](supabase/migrations/) **in numeric order** (`001` through `048` and any newer files). Use the Supabase SQL editor, or your usual migration workflow against the linked project.
+Apply every file in [`supabase/migrations/`](supabase/migrations/) **in numeric order** (currently `001` through `079`). Use the Supabase SQL editor, or your usual migration workflow against the linked project.
 
 If the database already has early migrations, run only the files you have not applied yet.
 
-Major areas covered by migrations include: profiles and RLS, clinic/worker profiles, job and shift posts, applications and screening, match tiers, application kit snapshots, storage (resumes/photos/logos), notifications prefs, interviews, messaging, and fill-in confirmation RPCs.
+Major areas covered by migrations include: profiles and RLS, clinic/worker profiles, job and shift posts, applications and screening (including staged flow), match tiers, application kit snapshots, storage (resumes/photos/logos/doctor photos), notification preferences, interviews, messaging (inbox, message search), fill-in outreach and confirmation RPCs, clinic worker CRM, saved posts, practice doctors, and account deletion retention with PII scrubbing.
 
 ## Auth
 
@@ -130,14 +130,20 @@ Full webhook and dashboard setup: [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)
 | `pnpm dev` | Start Expo dev server |
 | `pnpm ios` | Expo + iOS simulator |
 | `pnpm android` | Expo + Android |
-| `pnpm web` | Expo web (experimental) |
+| `pnpm web` | Expo web dev server |
+| `pnpm export:web` | Static web export to `apps/mobile/dist` |
 | `pnpm lint` | ESLint (`apps/mobile`) |
+| `pnpm --filter mobile test` | Vitest unit tests |
+| `pnpm build:ios` | EAS production iOS build |
+| `pnpm build:ios:preview` | EAS preview iOS build |
+| `pnpm --filter mobile generate:brand` | Regenerate app icons, splash logos, and favicon |
 
 ## Project structure
 
 ```
 chairside/
 ├── apps/mobile/           # Expo app (Expo SDK 54, Expo Router)
+│   └── scripts/           # Brand asset generator (icons, splash)
 ├── packages/
 │   ├── api/               # Supabase client, auth, applications, messaging
 │   ├── core/              # Match scoring and shared domain logic
@@ -146,9 +152,13 @@ chairside/
 ├── supabase/
 │   ├── migrations/        # Postgres schema and RLS
 │   └── functions/         # delete-account, notify
-├── docs/                  # Notifications, iOS push, operational runbooks
+├── docs/                  # Notifications, iOS push, web deploy runbooks
 └── scripts/               # Pingram verification and notify smoke tests
 ```
+
+## Web deployment
+
+Expo web can be exported and hosted separately from the native apps. Build with `pnpm export:web`, then follow [docs/WEB_DEPLOY.md](docs/WEB_DEPLOY.md) for Supabase redirect URLs and Vercel/Netlify/Cloudflare setup.
 
 ## Documentation
 
@@ -156,6 +166,7 @@ chairside/
 | --- | -------- |
 | [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Pingram types, webhooks, `notify` deploy |
 | [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md) | APNs, EAS env, TestFlight push debugging |
+| [docs/WEB_DEPLOY.md](docs/WEB_DEPLOY.md) | Static web export, auth redirects, hosting |
 
 ## Expo Go vs dev build (quick reference)
 
