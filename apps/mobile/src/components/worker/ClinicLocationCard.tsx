@@ -1,8 +1,14 @@
 import type { PublicClinicProfile } from '@chairside/api';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { getSpecialtyLabel } from '@chairside/config';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ClinicLocationMapPreview } from '@/components/worker/ClinicLocationMapPreview';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
+import { ClinicLocationMapCallout } from '@/components/worker/ClinicLocationMapCallout';
+import { ClinicLocationMapPreview } from '@/components/worker/ClinicLocationMapPreview';
 import {
   FieldBlock,
   ProfileDetailStack,
@@ -19,11 +25,13 @@ import {
   shouldShowGoogleMapsLink,
   type MapsDestination,
 } from '@/lib/mapsDirections';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type ClinicLocationCardProps = {
   profile: Pick<
     PublicClinicProfile,
+    | 'clinic_name'
+    | 'specialty'
     | 'address_line1'
     | 'address_line2'
     | 'city'
@@ -46,8 +54,12 @@ function buildMapsDestination(
 }
 
 export function ClinicLocationCard({ profile }: ClinicLocationCardProps) {
+  const { colors, isDark } = useTheme();
+  const [directionsSheetVisible, setDirectionsSheetVisible] = useState(false);
+  const [calloutVisible, setCalloutVisible] = useState(false);
   const formattedAddress = formatPublicClinicAddress(profile);
   const addressLine = formatPublicClinicAddressLine(profile);
+  const specialtyLabel = getSpecialtyLabel(profile.specialty);
   const hasCoordinates = hasMappablePublicClinicCoordinates(profile);
   const destination = buildMapsDestination(profile, addressLine);
 
@@ -58,20 +70,23 @@ export function ClinicLocationCard({ profile }: ClinicLocationCardProps) {
       lineHeight: 22,
       color: colors.labelPrimary,
     },
-    mapWrap: {
+    mapShell: {
       marginTop: spacing.sm,
+      position: 'relative',
+      borderRadius: 12,
     },
-    actions: {
-      gap: spacing.sm,
+    mapTapTarget: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: 12,
+    },
+    calloutOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'flex-end',
+      padding: spacing.sm,
+      pointerEvents: 'box-none',
+    },
+    directionsButton: {
       marginTop: spacing.sm,
-    },
-    actionRow: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-    actionCell: {
-      flex: 1,
-      minWidth: 0,
     },
   }));
 
@@ -87,60 +102,110 @@ export function ClinicLocationCard({ profile }: ClinicLocationCardProps) {
   const showGoogle = shouldShowGoogleMapsLink();
   const showBothLinks = showApple && showGoogle;
 
-  return (
-    <ProfileDetailStack>
-      <SectionPanel icon="location-outline" title="Location">
-        {formattedAddress ? (
-          <FieldBlock label="Address">
-            <Text style={styles.address}>{formattedAddress}</Text>
-          </FieldBlock>
-        ) : null}
+  const handleDirectionsPress = () => {
+    setCalloutVisible(false);
 
-        {hasCoordinates ? (
-          <View style={styles.mapWrap}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open directions in maps"
-              onPress={() => handleOpenMaps('native')}>
+    if (showBothLinks) {
+      setDirectionsSheetVisible(true);
+      return;
+    }
+
+    handleOpenMaps('native');
+  };
+
+  const directionsActions = [
+    ...(showApple
+      ? [
+          {
+            label: 'Apple Maps',
+            icon: (
+              <Ionicons
+                name="logo-apple"
+                size={20}
+                color={isDark ? colors.labelPrimary : '#000000'}
+              />
+            ),
+            onPress: () => handleOpenMaps('apple'),
+          },
+        ]
+      : []),
+    ...(showGoogle
+      ? [
+          {
+            label: 'Google Maps',
+            icon: <AntDesign name="google" size={20} color="#4285F4" />,
+            onPress: () => handleOpenMaps('google'),
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <>
+      <ProfileDetailStack>
+        <SectionPanel icon="location-outline" title="Location">
+          {formattedAddress ? (
+            <FieldBlock label="Address">
+              <Text style={styles.address}>{formattedAddress}</Text>
+            </FieldBlock>
+          ) : null}
+
+          {hasCoordinates ? (
+            <View style={styles.mapShell}>
               <ClinicLocationMapPreview
                 latitude={profile.latitude!}
                 longitude={profile.longitude!}
+                selected={calloutVisible}
               />
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View style={styles.actions}>
-          {showBothLinks ? (
-            <View style={styles.actionRow}>
-              {showApple ? (
-                <View style={styles.actionCell}>
-                  <OnboardingButton
-                    label="Apple Maps"
-                    variant="secondary"
-                    onPress={() => handleOpenMaps('apple')}
+              {calloutVisible ? (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Hide clinic location details"
+                    onPress={() => setCalloutVisible(false)}
+                    style={styles.mapTapTarget}
                   />
-                </View>
-              ) : null}
-              {showGoogle ? (
-                <View style={styles.actionCell}>
-                  <OnboardingButton
-                    label="Google Maps"
-                    variant="secondary"
-                    onPress={() => handleOpenMaps('google')}
-                  />
-                </View>
-              ) : null}
+                  <View style={styles.calloutOverlay}>
+                    <ClinicLocationMapCallout
+                      clinicName={profile.clinic_name}
+                      address={addressLine}
+                      specialtyLabel={specialtyLabel}
+                      onGetDirections={handleDirectionsPress}
+                    />
+                  </View>
+                </>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Show clinic location details"
+                  onPress={() => setCalloutVisible(true)}
+                  style={styles.mapTapTarget}
+                />
+              )}
             </View>
-          ) : (
+          ) : null}
+
+          <View style={styles.directionsButton}>
             <OnboardingButton
-              label={Platform.OS === 'ios' ? 'Open in Apple Maps' : 'Open in Google Maps'}
+              label="Get directions"
               variant="secondary"
-              onPress={() => handleOpenMaps('native')}
+              onPress={handleDirectionsPress}
             />
-          )}
-        </View>
-      </SectionPanel>
-    </ProfileDetailStack>
+          </View>
+        </SectionPanel>
+      </ProfileDetailStack>
+
+      <ActionMenuSheet
+        visible={directionsSheetVisible}
+        title="Get directions"
+        message={
+          Platform.OS === 'web'
+            ? 'Choose which maps app to open.'
+            : undefined
+        }
+        actions={directionsActions}
+        onClose={() => setDirectionsSheetVisible(false)}
+      />
+    </>
   );
 }

@@ -24,11 +24,13 @@ const MAP_DIV_STYLE: CSSProperties = {
 type ClinicLocationMapPreviewProps = {
   latitude: number;
   longitude: number;
+  selected?: boolean;
 };
 
 export function ClinicLocationMapPreview({
   latitude,
   longitude,
+  selected = false,
 }: ClinicLocationMapPreviewProps) {
   const { isDark, colors } = useTheme();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -94,12 +96,22 @@ export function ClinicLocationMapPreview({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    const marker = markerRef.current;
+    if (!map || !marker) return;
 
     map.setStyle(isDark ? MAP_STYLE.dark : MAP_STYLE.light);
     map.jumpTo({ center: [longitude, latitude], zoom: PREVIEW_ZOOM });
-    markerRef.current?.setLngLat([longitude, latitude]);
-  }, [isDark, latitude, longitude]);
+    marker.setLngLat([longitude, latitude]);
+
+    const markerElement = marker.getElement();
+    const pinSize = selected ? 20 : 16;
+    markerElement.style.width = `${pinSize}px`;
+    markerElement.style.height = `${pinSize}px`;
+    markerElement.style.borderRadius = `${pinSize / 2}px`;
+    markerElement.style.boxShadow = selected
+      ? `0 0 0 8px ${colors.primary}24, 0 1px 4px rgba(0,0,0,0.25)`
+      : '0 1px 4px rgba(0,0,0,0.25)';
+  }, [colors.primary, isDark, latitude, longitude, selected]);
 
   if (!getMapboxAccessToken()) {
     return <View style={styles.shell} />;

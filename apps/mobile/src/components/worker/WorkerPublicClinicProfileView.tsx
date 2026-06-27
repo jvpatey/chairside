@@ -18,7 +18,7 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
-import { fontSemibold, useThemedStyles } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type WorkerPublicClinicProfileViewProps = {
   profile: PublicClinicProfile;
@@ -86,7 +86,22 @@ function ClinicProfileJobRow({
   job: LiveJobPost;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    content: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.xs,
+    },
+    chevron: {
+      flexShrink: 0,
+      marginTop: 2,
+    },
     title: {
       ...typography.body,
       fontSize: 17,
@@ -111,15 +126,25 @@ function ClinicProfileJobRow({
 
   return (
     <SurfaceCard onPress={onPress}>
-      <Text style={styles.title} numberOfLines={2}>
-        {job.title}
-      </Text>
-      {meta ? (
-        <Text style={styles.meta} numberOfLines={2}>
-          {meta}
-        </Text>
-      ) : null}
-      {job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : null}
+      <View style={styles.row}>
+        <View style={styles.content}>
+          <Text style={styles.title} numberOfLines={2}>
+            {job.title}
+          </Text>
+          {meta ? (
+            <Text style={styles.meta} numberOfLines={2}>
+              {meta}
+            </Text>
+          ) : null}
+          {job.wage_range ? <Text style={styles.wage}>{job.wage_range}</Text> : null}
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={colors.labelTertiary}
+          style={styles.chevron}
+        />
+      </View>
     </SurfaceCard>
   );
 }
@@ -131,7 +156,22 @@ function ClinicProfileShiftRow({
   shift: LiveShiftPost;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    content: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.xs,
+    },
+    chevron: {
+      flexShrink: 0,
+      marginTop: 2,
+    },
     title: {
       ...typography.body,
       fontSize: 17,
@@ -156,17 +196,27 @@ function ClinicProfileShiftRow({
 
   return (
     <SurfaceCard onPress={onPress}>
-      <Text style={styles.title} numberOfLines={2}>
-        {formatShiftPostRoleTitle(shift.role_type)}
-      </Text>
-      {meta ? (
-        <Text style={styles.meta} numberOfLines={2}>
-          {meta}
-        </Text>
-      ) : null}
-      {shift.compensation ? (
-        <Text style={styles.compensation}>{shift.compensation}</Text>
-      ) : null}
+      <View style={styles.row}>
+        <View style={styles.content}>
+          <Text style={styles.title} numberOfLines={2}>
+            {formatShiftPostRoleTitle(shift.role_type)}
+          </Text>
+          {meta ? (
+            <Text style={styles.meta} numberOfLines={2}>
+              {meta}
+            </Text>
+          ) : null}
+          {shift.compensation ? (
+            <Text style={styles.compensation}>{shift.compensation}</Text>
+          ) : null}
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={colors.labelTertiary}
+          style={styles.chevron}
+        />
+      </View>
     </SurfaceCard>
   );
 }

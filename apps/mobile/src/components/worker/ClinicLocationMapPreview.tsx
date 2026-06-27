@@ -14,13 +14,15 @@ const PREVIEW_ZOOM = 14;
 type ClinicLocationMapPreviewProps = {
   latitude: number;
   longitude: number;
+  selected?: boolean;
 };
 
 export function ClinicLocationMapPreview({
   latitude,
   longitude,
+  selected = false,
 }: ClinicLocationMapPreviewProps) {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const maps = useMemo(() => loadMapboxModule(), []);
   const [mapReady, setMapReady] = useState(false);
 
@@ -47,12 +49,13 @@ export function ClinicLocationMapPreview({
       justifyContent: 'center',
     },
     pin: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
       backgroundColor: colors.primary,
       borderWidth: 2,
       borderColor: colors.surface,
+    },
+    pinRing: {
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     fallback: {
       flex: 1,
@@ -60,6 +63,21 @@ export function ClinicLocationMapPreview({
       justifyContent: 'center',
     },
   }));
+
+  const pinSize = selected ? 20 : 16;
+  const pinStyle = {
+    width: pinSize,
+    height: pinSize,
+    borderRadius: pinSize / 2,
+  };
+  const pinRingStyle = selected
+    ? {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: `${colors.primary}24`,
+      }
+    : null;
 
   if (!getMapboxAccessToken() || !maps || !mapReady) {
     return <View style={styles.shell} />;
@@ -90,7 +108,13 @@ export function ClinicLocationMapPreview({
           coordinate={[longitude, latitude]}
           anchor={{ x: 0.5, y: 0.5 }}>
           <View style={styles.pinWrap}>
-            <View style={styles.pin} />
+            {selected && pinRingStyle ? (
+              <View style={[styles.pinRing, pinRingStyle]}>
+                <View style={[styles.pin, pinStyle]} />
+              </View>
+            ) : (
+              <View style={[styles.pin, pinStyle]} />
+            )}
           </View>
         </MarkerView>
       </MapView>

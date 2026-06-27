@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   Modal,
   Pressable,
@@ -18,6 +19,7 @@ import { useThemedStyles } from '@/theme';
 export type ActionMenuSheetItem = {
   label: string;
   destructive?: boolean;
+  icon?: ReactNode;
   onPress: () => void;
 };
 
@@ -94,6 +96,16 @@ export function ActionMenuSheet({
       alignItems: 'center',
       ...webPointer(),
     },
+    actionContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+    },
+    actionIcon: {
+      width: 22,
+      alignItems: 'center',
+    },
     actionHovered: webListRowHoverStyles(colors),
     actionPressed: {
       opacity: 0.88,
@@ -161,14 +173,17 @@ export function ActionMenuSheet({
                   pressed && styles.actionPressed,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.actionLabel,
-                    action.destructive && styles.actionDestructive,
-                  ]}
-                >
-                  {action.label}
-                </Text>
+                <View style={styles.actionContent}>
+                  {action.icon ? <View style={styles.actionIcon}>{action.icon}</View> : null}
+                  <Text
+                    style={[
+                      styles.actionLabel,
+                      action.destructive && styles.actionDestructive,
+                    ]}
+                  >
+                    {action.label}
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </View>
