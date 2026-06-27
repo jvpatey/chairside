@@ -36,6 +36,7 @@ export function WorkerMessagesMasterPane({
         scroll={false}
         fillsContainer
         onBack={() => router.back()}
+        backLabel="Back"
         onConversationStarted={handleConversationStarted}
       />
     );
@@ -44,7 +45,7 @@ export function WorkerMessagesMasterPane({
   return (
     <WorkerMessagesInboxPanel
       {...inboxProps}
-      onMessageClinicPress={() => router.push(getWorkerMessageClinicsRoute())}
+      onMessageClinicPress={() => router.push(getWorkerMessageClinicsRoute('messages-tab'))}
     />
   );
 }

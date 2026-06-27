@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 
 import { renderWorkerTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
@@ -9,6 +9,7 @@ import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { getWorkerMessagesRoute } from '@/lib/routing';
 
 function WorkerTabNavigator() {
   const { unreadCount } = useMessageUnread();
@@ -55,6 +56,25 @@ function WorkerTabNavigator() {
       />
       <Tabs.Screen
         name="messages"
+        listeners={({ navigation }) => ({
+          tabPress: (event) => {
+            const messagesRoute = navigation
+              .getState()
+              .routes.find((route) => route.name === 'messages');
+            const stackRoutes = messagesRoute?.state?.routes;
+            const stackIndex = messagesRoute?.state?.index ?? 0;
+            const currentStackRoute = stackRoutes?.[stackIndex];
+
+            if (
+              currentStackRoute?.name === 'clinics' &&
+              (currentStackRoute.params as { returnTo?: string } | undefined)?.returnTo ===
+                'browse-tab'
+            ) {
+              event.preventDefault();
+              router.replace(getWorkerMessagesRoute());
+            }
+          },
+        })}
         options={{
           title: 'Messages',
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
@@ -67,6 +87,7 @@ function WorkerTabNavigator() {
           ),
         }}
       />
+      <Tabs.Screen name="message-clinics" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="application" options={{ href: null }} />
       <Tabs.Screen name="conversation/[id]" options={{ href: null }} />

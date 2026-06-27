@@ -328,7 +328,7 @@ export default function BrowseScreen() {
         </View>
         {profileComplete ? (
           <WorkerClinicsDirectoryIconButton
-            onPress={() => router.push(getWorkerClinicsDirectoryRoute())}
+            onPress={() => router.push(getWorkerClinicsDirectoryRoute('browse-tab'))}
           />
         ) : null}
         {canUseMap ? <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} /> : null}

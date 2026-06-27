@@ -43,7 +43,7 @@ export function WorkerMessageClinicsPanel({
   scroll,
   fillsContainer = false,
   onBack,
-  backLabel = 'Messages',
+  backLabel = 'Back',
   onConversationStarted,
 }: WorkerMessageClinicsPanelProps) {
   const { user } = useAuth();

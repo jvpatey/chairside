@@ -203,7 +203,7 @@ export function WorkerMessagesInboxPanel({
                     onMessageClinicPress();
                     return;
                   }
-                  router.push(getWorkerMessageClinicsRoute());
+                  router.push(getWorkerMessageClinicsRoute('messages-tab'));
                 }}
               />
             }

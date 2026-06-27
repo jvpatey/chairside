@@ -350,13 +350,48 @@ export function getWorkerMessagesRoute(conversationId?: string): Href {
   return '/(tabs)/messages' as Href;
 }
 
-export function getWorkerMessageClinicsRoute(): Href {
-  return '/(tabs)/messages/clinics' as Href;
+export type WorkerMessageClinicsReturnTarget = 'messages-tab' | 'browse-tab';
+
+export function getWorkerMessageClinicsRoute(
+  returnTo: WorkerMessageClinicsReturnTarget = 'messages-tab',
+): Href {
+  return {
+    pathname: '/(tabs)/messages/clinics',
+    params: { returnTo },
+  } as unknown as Href;
 }
 
-/** Alias for the candidate clinic directory (messageable clinics list). */
-export function getWorkerClinicsDirectoryRoute(): Href {
-  return getWorkerMessageClinicsRoute();
+/** Roles browse entry — top-level route so the messages tab stack stays on the inbox. */
+export function getWorkerClinicsDirectoryRoute(
+  returnTo: WorkerMessageClinicsReturnTarget = 'browse-tab',
+): Href {
+  return {
+    pathname: '/(tabs)/message-clinics',
+    params: { returnTo },
+  } as unknown as Href;
+}
+
+export function navigateAfterWorkerMessageClinics(
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
+  returnTo?: string,
+) {
+  if (returnTo === 'browse-tab') {
+    router.replace(WORKER_BROWSE);
+    return;
+  }
+  if (returnTo === 'messages-tab') {
+    if (router.canGoBack?.()) {
+      router.back();
+      return;
+    }
+    router.replace(getWorkerMessagesRoute());
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(getWorkerMessagesRoute());
 }
 
 export function getWorkerConversationRoute(
