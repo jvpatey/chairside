@@ -109,14 +109,14 @@ export default function ClinicRoleApplicationsScreen() {
 
   useRefreshOnFocus(load);
 
-  const filterCounts = useMemo(
-    () => getApplicantFilterCounts(searchedApplications),
-    [searchedApplications],
-  );
-
   const searchedApplications = useMemo(
     () => applications.filter((application) => matchesClinicApplicationSearch(application, searchQuery)),
     [applications, searchQuery],
+  );
+
+  const filterCounts = useMemo(
+    () => getApplicantFilterCounts(searchedApplications),
+    [searchedApplications],
   );
 
   const searchedArchivedApplications = useMemo(

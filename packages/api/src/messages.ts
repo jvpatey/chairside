@@ -839,6 +839,8 @@ export type MessageSearchHit = {
 
 const MESSAGE_SEARCH_MIN_LENGTH = 2;
 const MESSAGE_SEARCH_MAX_RESULTS = 100;
+const MESSAGE_SEARCH_FETCH_MULTIPLIER = 25;
+const MESSAGE_SEARCH_FETCH_MAX = 2500;
 
 function escapeIlikePattern(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
@@ -855,13 +857,14 @@ export async function searchMessagesInConversations(
   const supabase = getSupabaseClient();
   const pattern = `%${escapeIlikePattern(trimmed)}%`;
   const limit = options?.limit ?? MESSAGE_SEARCH_MAX_RESULTS;
+  const fetchLimit = Math.min(limit * MESSAGE_SEARCH_FETCH_MULTIPLIER, MESSAGE_SEARCH_FETCH_MAX);
 
   const { data, error } = await supabase
     .from('messages')
     .select('id, conversation_id, body, created_at')
     .ilike('body', pattern)
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .limit(fetchLimit);
 
   if (error) throw error;
 
@@ -871,6 +874,7 @@ export async function searchMessagesInConversations(
     if (!byConversation.has(hit.conversation_id)) {
       byConversation.set(hit.conversation_id, hit);
     }
+    if (byConversation.size >= limit) break;
   }
 
   return Array.from(byConversation.values());
