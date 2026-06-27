@@ -354,6 +354,11 @@ export function getWorkerMessageClinicsRoute(): Href {
   return '/(tabs)/messages/clinics' as Href;
 }
 
+/** Alias for the candidate clinic directory (messageable clinics list). */
+export function getWorkerClinicsDirectoryRoute(): Href {
+  return getWorkerMessageClinicsRoute();
+}
+
 export function getWorkerConversationRoute(
   conversationId: string,
   preview?: MessageThreadPreview,

@@ -12,15 +12,16 @@ import { MessageableClinicListItem } from '@/components/messaging/MessageableCli
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { Screen } from '@/components/ui/Screen';
-import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getWorkerConversationRoute, WORKER_PROFILE } from '@/lib/routing';
+import { getWorkerConversationRoute, getWorkerClinicProfileRoute, WORKER_PROFILE } from '@/lib/routing';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
-const CLINICS_SUBTITLE = 'Clinics in your province that accept general inquiries.';
+const CLINICS_TITLE = 'Message a clinic';
+const CLINICS_SUBTITLE =
+  'Reach out to clinics in your province, even if they do not have a role posted right now.';
 
 type WorkerMessageClinicsPanelProps = {
   /** Split-view master pane: Screen shell with back navigation. */
@@ -100,7 +101,9 @@ export function WorkerMessageClinicsPanel({
       ...typography.subtitle,
       textAlign: 'center',
     },
-    provinceHint: typography.subtitle,
+    cardList: {
+      gap: spacing.md,
+    },
   }));
 
   const load = useCallback(async () => {
@@ -124,7 +127,12 @@ export function WorkerMessageClinicsPanel({
     if (!query) return clinics;
 
     return clinics.filter((clinic) => {
-      const haystack = [clinic.clinic_name, clinic.city, clinic.description]
+      const haystack = [
+        clinic.clinic_name,
+        clinic.city,
+        clinic.description,
+        clinic.specialty,
+      ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
@@ -176,10 +184,6 @@ export function WorkerMessageClinicsPanel({
 
   const body = (
     <View style={styles.content}>
-      {workerProfile?.province ? (
-        <Text style={styles.provinceHint}>Showing clinics in {workerProfile.province}.</Text>
-      ) : null}
-
       {!profileComplete ? (
         <View style={styles.emptyCard}>
           <View style={styles.emptyIconWrap}>
@@ -196,7 +200,7 @@ export function WorkerMessageClinicsPanel({
           <View style={styles.searchWrap}>
             <TextInput
               accessibilityLabel="Search clinics"
-              placeholder="Search by clinic name or city"
+              placeholder="Search clinics by name, city, or specialty"
               placeholderTextColor={colors.labelTertiary}
               style={styles.searchInput}
               value={searchQuery}
@@ -212,26 +216,28 @@ export function WorkerMessageClinicsPanel({
               <View style={styles.emptyIconWrap}>
                 <Ionicons name="chatbubbles-outline" size={24} color={colors.primary} />
               </View>
-              <Text style={styles.emptyTitle}>No clinics available yet</Text>
+              <Text style={styles.emptyTitle}>No clinics to message yet</Text>
               <Text style={styles.emptyBody}>
                 {clinics.length === 0
-                  ? 'No clinics in your province are accepting general messages right now. Check back later or message a clinic from a role or fill-in application.'
-                  : 'No clinics match your search. Try a different clinic name or city.'}
+                  ? 'No clinics in your province are open to general messages right now. Check back later, or message a clinic from a role, fill-in, or clinic profile.'
+                  : 'No clinics match your search. Try a different clinic name, city, or specialty.'}
               </Text>
             </View>
           ) : (
-            <BrowseListGroup>
+            <View style={styles.cardList}>
               {filteredClinics.map((clinic) => (
                 <MessageableClinicListItem
                   key={clinic.id}
                   clinic={clinic}
+                  variant="directory"
                   compact={embedded}
                   onPress={() => {
                     void handleClinicPress(clinic);
                   }}
+                  onViewProfile={() => router.push(getWorkerClinicProfileRoute(clinic.id))}
                 />
               ))}
-            </BrowseListGroup>
+            </View>
           )}
         </>
       )}
@@ -254,7 +260,7 @@ export function WorkerMessageClinicsPanel({
 
     return (
       <Screen
-        title="Message a clinic"
+        title={CLINICS_TITLE}
         subtitle={CLINICS_SUBTITLE}
         onBack={onBack}
         backLabel={backLabel}
@@ -269,10 +275,7 @@ export function WorkerMessageClinicsPanel({
   }
 
   return (
-    <ProfileDetailScreen
-      title="Message a clinic"
-      subtitle={CLINICS_SUBTITLE}
-      onBack={onBack ?? (() => router.back())}>
+    <ProfileDetailScreen title={CLINICS_TITLE} subtitle={CLINICS_SUBTITLE} onBack={onBack ?? (() => router.back())}>
       {body}
     </ProfileDetailScreen>
   );

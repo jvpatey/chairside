@@ -9,7 +9,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 const MESSAGE_CLINIC_INFO = {
   title: 'Message a clinic',
   message:
-    'Browse clinics in your province that accept general inquiries. You can reach out without applying to a specific role or fill-in.\n\nMessages about your applications and fill-ins still appear in your inbox below.',
+    'Browse clinics in your province that welcome general inquiries. You can reach out even if they do not have a role or fill-in posted right now.\n\nMessages about your applications and fill-ins still appear in your inbox below.',
 };
 
 type WorkerMessageClinicActionProps = {
@@ -120,7 +120,7 @@ export function WorkerMessageClinicAction({ onPress }: WorkerMessageClinicAction
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Message a clinic"
-          accessibilityHint="Browse clinics to message"
+          accessibilityHint="Browse clinics you can message"
           onPress={handleNavigate}
           style={({ pressed }) => [
             styles.navigatePressable,

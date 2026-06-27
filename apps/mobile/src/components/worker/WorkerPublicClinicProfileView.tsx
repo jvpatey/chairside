@@ -15,6 +15,7 @@ import {
 } from '@/components/profile/ProfileDetailBlocks';
 import { ClinicLocationCard } from '@/components/worker/ClinicLocationCard';
 import { PracticeDoctorList } from '@/components/clinic/PracticeDoctorList';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
@@ -240,6 +241,9 @@ export function WorkerPublicClinicProfileView({
   const practiceDoctors = profile.practice_doctors ?? [];
   const hasDoctors = practiceDoctors.length > 0;
   const hasPracticeDetails = Boolean(teamSizeLabel || softwareLabel);
+  const acceptsGeneralMessages = profile.accepts_general_candidate_messages;
+  const hasNoPostings = jobs.length === 0 && shifts.length === 0;
+  const showGeneralMessageHint = acceptsGeneralMessages && hasNoPostings;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     stack: {
@@ -334,6 +338,15 @@ export function WorkerPublicClinicProfileView({
         </View>
       </View>
 
+      {showGeneralMessageHint ? (
+        <CardInfoPanel variant="info" icon="chatbubble-ellipses-outline" title="Open to inquiries">
+          <CardInfoPanelText>
+            This clinic accepts general messages from candidates, even without an open role or fill-in.
+            Use Message clinic below to introduce yourself.
+          </CardInfoPanelText>
+        </CardInfoPanel>
+      ) : null}
+
       <ClinicLocationCard profile={profile} />
 
       {hasAbout ? (
@@ -400,7 +413,11 @@ export function WorkerPublicClinicProfileView({
               <Ionicons name="briefcase-outline" size={22} color={styles.specialty.color} />
             </View>
             <Text style={styles.emptyTitle}>No open roles right now</Text>
-            <Text style={styles.emptyBody}>Check back later for new opportunities.</Text>
+            <Text style={styles.emptyBody}>
+              {acceptsGeneralMessages
+                ? 'No roles are posted, but you can still message this clinic if you are interested in working there.'
+                : 'Check back later for new opportunities.'}
+            </Text>
           </View>
         )}
       </View>
@@ -421,7 +438,11 @@ export function WorkerPublicClinicProfileView({
               <Ionicons name="calendar-outline" size={22} color={styles.specialty.color} />
             </View>
             <Text style={styles.emptyTitle}>No open fill-ins right now</Text>
-            <Text style={styles.emptyBody}>This clinic has no upcoming shifts posted.</Text>
+            <Text style={styles.emptyBody}>
+              {acceptsGeneralMessages
+                ? 'No fill-ins are posted, but you can still message this clinic about future opportunities.'
+                : 'This clinic has no upcoming shifts posted.'}
+            </Text>
           </View>
         )}
       </View>

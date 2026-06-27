@@ -331,7 +331,7 @@ export function ConversationInboxGroup({
 }: ConversationInboxGroupProps) {
   const { colors } = useTheme();
   const lead = threads[0];
-  const [expanded, setExpanded] = useState(() => threads.length <= 2);
+  const [expanded, setExpanded] = useState(false);
   const [headerHovered, setHeaderHovered] = useState(false);
   const isWeb = Platform.OS === 'web';
 

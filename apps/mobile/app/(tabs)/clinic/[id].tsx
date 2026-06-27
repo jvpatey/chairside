@@ -15,6 +15,7 @@ import {
   getWorkerConversationRoute,
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
+  WORKER_PROFILE,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
@@ -89,10 +90,13 @@ export default function WorkerClinicProfileScreen() {
   };
 
   const profileComplete = Boolean(workerProfile?.setup_completed_at);
-  const canMessage =
-    Boolean(user?.id) &&
-    profileComplete &&
-    postings?.profile.accepts_general_candidate_messages;
+  const acceptsGeneralMessages = Boolean(postings?.profile.accepts_general_candidate_messages);
+  const canMessage = Boolean(user?.id) && profileComplete && acceptsGeneralMessages;
+  const messageFooterLabel = isStartingMessage
+    ? 'Opening…'
+    : acceptsGeneralMessages
+      ? 'Message clinic'
+      : undefined;
 
   if (isLoading || !postings) {
     return (
@@ -113,9 +117,16 @@ export default function WorkerClinicProfileScreen() {
         canMessage ? (
           <View style={styles.footer}>
             <OnboardingButton
-              label={isStartingMessage ? 'Opening…' : 'Message clinic'}
+              label={messageFooterLabel ?? 'Message clinic'}
               disabled={isStartingMessage}
               onPress={() => void handleMessageClinic()}
+            />
+          </View>
+        ) : acceptsGeneralMessages && !profileComplete ? (
+          <View style={styles.footer}>
+            <OnboardingButton
+              label="Complete profile to message"
+              onPress={() => router.push(WORKER_PROFILE)}
             />
           </View>
         ) : undefined
