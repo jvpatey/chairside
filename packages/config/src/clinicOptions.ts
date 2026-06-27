@@ -110,6 +110,125 @@ export const TEAM_SIZE_RANGE_OPTIONS: { value: TeamSizeRange; label: string }[] 
   { value: 'prefer_not_to_say', label: 'Prefer not to say' },
 ];
 
+export type PracticeDoctor = {
+  id: string;
+  name: string;
+  title: string | null;
+  bio: string | null;
+  photo_storage_path: string | null;
+};
+
+export const PRACTICE_DOCTOR_BIO_MAX_LENGTH = 280;
+
+function normalizePracticeDoctorBio(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim().replace(/\s+/g, ' ');
+  if (!trimmed) return null;
+
+  return trimmed.length > PRACTICE_DOCTOR_BIO_MAX_LENGTH
+    ? trimmed.slice(0, PRACTICE_DOCTOR_BIO_MAX_LENGTH).trimEnd()
+    : trimmed;
+}
+
+function createPracticeDoctorId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `doctor-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function newPracticeDoctorId(): string {
+  return createPracticeDoctorId();
+}
+
+export function createPracticeDoctor(input: {
+  name: string;
+  title?: string | null;
+  bio?: string | null;
+  photo_storage_path?: string | null;
+  id?: string;
+}): PracticeDoctor {
+  const name = formatDisplayLabel(input.name);
+  const title =
+    typeof input.title === 'string' && input.title.trim()
+      ? formatDisplayLabel(input.title)
+      : null;
+
+  return {
+    id: input.id ?? createPracticeDoctorId(),
+    name,
+    title,
+    bio: normalizePracticeDoctorBio(input.bio),
+    photo_storage_path: input.photo_storage_path ?? null,
+  };
+}
+
+/** Common dentist roles for quick selection when listing practice doctors. */
+export const PRACTICE_DOCTOR_ROLE_OPTIONS = [
+  'Owner Dentist',
+  'Associate Dentist',
+  'General Dentist',
+  'Orthodontist',
+  'Periodontist',
+  'Pediatric Dentist',
+  'Oral Surgeon',
+  'Endodontist',
+  'Prosthodontist',
+] as const;
+
+export function normalizePracticeDoctor(value: unknown): PracticeDoctor | null {
+  if (!value || typeof value !== 'object') return null;
+
+  const record = value as Record<string, unknown>;
+  const name = typeof record.name === 'string' ? formatDisplayLabel(record.name) : '';
+  if (!name) return null;
+
+  const title =
+    typeof record.title === 'string' && record.title.trim()
+      ? formatDisplayLabel(record.title)
+      : null;
+  const id =
+    typeof record.id === 'string' && record.id.trim() ? record.id.trim() : createPracticeDoctorId();
+  const photo_storage_path =
+    typeof record.photo_storage_path === 'string' && record.photo_storage_path.trim()
+      ? record.photo_storage_path.trim()
+      : null;
+  const bio = normalizePracticeDoctorBio(record.bio);
+
+  return { id, name, title, bio, photo_storage_path };
+}
+
+export function normalizePracticeDoctors(value: unknown): PracticeDoctor[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => normalizePracticeDoctor(item))
+    .filter((doctor): doctor is PracticeDoctor => doctor != null);
+}
+
+export function formatPracticeDoctorSummary(doctor: PracticeDoctor): string {
+  return doctor.title ? `${doctor.name} · ${doctor.title}` : doctor.name;
+}
+
+export function isDuplicatePracticeDoctor(
+  doctors: PracticeDoctor[],
+  candidate: PracticeDoctor,
+  excludeId?: string,
+): boolean {
+  const normalizedName = candidate.name.trim().toLowerCase();
+  const normalizedTitle = candidate.title?.trim().toLowerCase() ?? '';
+
+  return doctors.some((doctor) => {
+    if (excludeId && doctor.id === excludeId) return false;
+
+    const name = doctor.name.trim().toLowerCase();
+    const title = doctor.title?.trim().toLowerCase() ?? '';
+    return name === normalizedName && title === normalizedTitle;
+  });
+}
+
 export function getTeamSizeRangeLabel(value: TeamSizeRange | null | undefined): string | null {
   if (!value) return null;
   return TEAM_SIZE_RANGE_OPTIONS.find((option) => option.value === value)?.label ?? null;

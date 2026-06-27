@@ -1,6 +1,8 @@
 import { getSupabaseClient } from '@chairside/api';
 import { useEffect, useRef } from 'react';
 
+let channelInstance = 0;
+
 /** Refresh application tab badges when applications change for the signed-in clinic. */
 export function useClinicApplicationRealtime(
   clinicId: string | undefined,
@@ -13,8 +15,9 @@ export function useClinicApplicationRealtime(
     if (!clinicId) return;
 
     const supabase = getSupabaseClient();
+    const instanceId = ++channelInstance;
     const channel = supabase
-      .channel(`clinic-applications:${clinicId}`)
+      .channel(`clinic-applications:${clinicId}:${instanceId}`)
       .on(
         'postgres_changes',
         {

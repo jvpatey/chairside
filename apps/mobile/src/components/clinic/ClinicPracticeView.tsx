@@ -1,6 +1,7 @@
 import type { ClinicProfile } from '@chairside/api';
 import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel } from '@chairside/config';
 
+import { PracticeDoctorFieldValue } from '@/components/clinic/PracticeDoctorList';
 import {
   FieldBlock,
   FieldDivider,
@@ -31,6 +32,7 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
   const teamSizeLabel = getTeamSizeRangeLabel(profile.team_size_range ?? null);
   const softwareUsed = profile.software_used ?? [];
   const softwareLabel = softwareUsed.length > 0 ? softwareUsed.join(' · ') : null;
+  const practiceDoctors = profile.practice_doctors ?? [];
   const address = [
     profile.address_line1,
     profile.address_line2,
@@ -75,6 +77,14 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
         <FieldBlock label="Team size">
           <FieldValue value={teamSizeLabel} />
         </FieldBlock>
+        {practiceDoctors.length > 0 ? (
+          <>
+            <FieldDivider />
+            <FieldBlock label="Doctors">
+              <PracticeDoctorFieldValue doctors={practiceDoctors} />
+            </FieldBlock>
+          </>
+        ) : null}
       </SectionPanel>
     </ProfileDetailStack>
   );

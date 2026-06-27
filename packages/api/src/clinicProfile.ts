@@ -1,4 +1,5 @@
 import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
+import { normalizePracticeDoctors } from '@chairside/config';
 import { getSupabaseClient } from './client';
 import type { Database } from './types';
 
@@ -115,6 +116,9 @@ export async function upsertClinicProfile(
   }
   if (partial.accepts_general_candidate_messages !== undefined) {
     payload.accepts_general_candidate_messages = partial.accepts_general_candidate_messages;
+  }
+  if (partial.practice_doctors !== undefined) {
+    payload.practice_doctors = normalizePracticeDoctors(partial.practice_doctors);
   }
 
   const { data, error } = await supabase

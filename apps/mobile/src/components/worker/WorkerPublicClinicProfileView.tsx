@@ -14,6 +14,7 @@ import {
   SectionPanel,
 } from '@/components/profile/ProfileDetailBlocks';
 import { ClinicLocationCard } from '@/components/worker/ClinicLocationCard';
+import { PracticeDoctorList } from '@/components/clinic/PracticeDoctorList';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
@@ -236,6 +237,8 @@ export function WorkerPublicClinicProfileView({
     profile.software_used.length > 0 ? profile.software_used.join(' · ') : null;
   const description = profile.description?.trim() || null;
   const hasAbout = Boolean(description || profile.website?.trim());
+  const practiceDoctors = profile.practice_doctors ?? [];
+  const hasDoctors = practiceDoctors.length > 0;
   const hasPracticeDetails = Boolean(teamSizeLabel || softwareLabel);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -355,6 +358,14 @@ export function WorkerPublicClinicProfileView({
                 <WebsiteField url={profile.website} />
               </FieldBlock>
             )}
+          </SectionPanel>
+        </ProfileDetailStack>
+      ) : null}
+
+      {hasDoctors ? (
+        <ProfileDetailStack>
+          <SectionPanel icon="people-outline" title="Doctors">
+            <PracticeDoctorList doctors={practiceDoctors} />
           </SectionPanel>
         </ProfileDetailStack>
       ) : null}

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './client';
+import { normalizePracticeDoctors, type PracticeDoctor } from '@chairside/config';
 import {
   getJobPostScreeningQuestions,
   type ScreeningQuestion,
@@ -22,6 +23,7 @@ export type PublicClinicProfile = {
   description: string | null;
   website: string | null;
   team_size_range: string | null;
+  practice_doctors: PracticeDoctor[];
   accepts_general_candidate_messages: boolean;
 };
 
@@ -32,7 +34,7 @@ export type PublicClinicPostings = {
 };
 
 const PUBLIC_CLINIC_SELECT =
-  'id, clinic_name, city, province, address_line1, address_line2, postal_code, latitude, longitude, specialty, software_used, logo_storage_path, description, website, team_size_range, accepts_general_candidate_messages, setup_completed_at' as const;
+  'id, clinic_name, city, province, address_line1, address_line2, postal_code, latitude, longitude, specialty, software_used, logo_storage_path, description, website, team_size_range, practice_doctors, accepts_general_candidate_messages, setup_completed_at' as const;
 
 function mapPublicClinicProfile(row: {
   id: string;
@@ -50,6 +52,7 @@ function mapPublicClinicProfile(row: {
   description: string | null;
   website: string | null;
   team_size_range: string | null;
+  practice_doctors: unknown;
   accepts_general_candidate_messages: boolean;
 }): PublicClinicProfile {
   return {
@@ -68,6 +71,7 @@ function mapPublicClinicProfile(row: {
     description: row.description,
     website: row.website,
     team_size_range: row.team_size_range,
+    practice_doctors: normalizePracticeDoctors(row.practice_doctors),
     accepts_general_candidate_messages: row.accepts_general_candidate_messages,
   };
 }

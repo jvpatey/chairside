@@ -1,6 +1,7 @@
 import type {
   ClinicSpecialty,
   NotificationPreferenceCategory,
+  PracticeDoctor,
   TeamSizeRange,
 } from '@chairside/config';
 
@@ -37,6 +38,7 @@ export type ClinicProfileRow = {
   logo_uploaded_at: string | null;
   setup_completed_at: string | null;
   accepts_general_candidate_messages: boolean;
+  practice_doctors: PracticeDoctor[];
   created_at: string;
   updated_at: string;
 };
@@ -231,6 +233,7 @@ export type Database = {
           logo_uploaded_at?: string | null;
           setup_completed_at?: string | null;
           accepts_general_candidate_messages?: boolean;
+          practice_doctors?: PracticeDoctor[];
           created_at?: string;
           updated_at?: string;
         };

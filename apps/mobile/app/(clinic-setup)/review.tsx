@@ -8,6 +8,7 @@ import { Alert, Text, View } from 'react-native';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PracticeDoctorReviewValue } from '@/components/clinic/PracticeDoctorList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useThemedStyles } from '@/theme';
@@ -120,6 +121,10 @@ export default function ClinicReviewScreen() {
           value={getTeamSizeRangeLabel(clinicProfile.team_size_range) ?? ''}
         />
         <ReviewRow label="Software" value={clinicProfile.software_used.join(', ')} />
+        <ReviewRow
+          label="Doctors"
+          value={PracticeDoctorReviewValue({ doctors: clinicProfile.practice_doctors ?? [] })}
+        />
         <ReviewRow label="Description" value={clinicProfile.description ?? ''} />
       </View>
     </OnboardingShell>
