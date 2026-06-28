@@ -132,6 +132,8 @@ export type WorkerApplication = Application & {
   clinic_province?: string | null;
   clinic_address?: string | null;
   clinic_location?: string | null;
+  clinic_latitude?: number | null;
+  clinic_longitude?: number | null;
   clinic_logo_storage_path: string | null;
   clinic_account_deleted: boolean;
   screening: ApplicationScreening | null;
@@ -174,6 +176,8 @@ function resolveWorkerClinicFields(
     province?: string | null;
     address_line1?: string | null;
     logo_storage_path?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   } | null,
 ): Pick<
   WorkerApplication,
@@ -182,6 +186,8 @@ function resolveWorkerClinicFields(
   | 'clinic_province'
   | 'clinic_address'
   | 'clinic_location'
+  | 'clinic_latitude'
+  | 'clinic_longitude'
   | 'clinic_logo_storage_path'
   | 'clinic_account_deleted'
 > {
@@ -195,6 +201,8 @@ function resolveWorkerClinicFields(
       clinic_address: null,
       clinic_location:
         [application.clinic_city, application.clinic_province].filter(Boolean).join(', ') || null,
+      clinic_latitude: null,
+      clinic_longitude: null,
       clinic_logo_storage_path: null,
       clinic_account_deleted: true,
     };
@@ -206,6 +214,8 @@ function resolveWorkerClinicFields(
     clinic_province: clinic?.province ?? application.clinic_province ?? null,
     clinic_address: clinic?.address_line1 ?? null,
     clinic_location: formatWorkerClinicLocation(clinic),
+    clinic_latitude: clinic?.latitude ?? null,
+    clinic_longitude: clinic?.longitude ?? null,
     clinic_logo_storage_path:
       clinic?.logo_storage_path ?? application.clinic_logo_storage_path ?? null,
     clinic_account_deleted: false,
@@ -448,7 +458,7 @@ export async function listWorkerApplications(
     clinicIds.length > 0
       ? await supabase
           .from('clinic_profiles')
-          .select('id, clinic_name, city, province, address_line1, logo_storage_path')
+          .select('id, clinic_name, city, province, address_line1, logo_storage_path, latitude, longitude')
           .in('id', clinicIds)
       : { data: [], error: null };
 
@@ -528,7 +538,7 @@ async function enrichWorkerApplication(
 
     const { data: clinic, error: clinicError } = await supabase
       .from('clinic_profiles')
-      .select('clinic_name, city, province, address_line1, logo_storage_path')
+      .select('clinic_name, city, province, address_line1, logo_storage_path, latitude, longitude')
       .eq('id', job.clinic_id)
       .maybeSingle();
 
@@ -556,7 +566,7 @@ async function enrichWorkerApplication(
 
     const { data: clinic, error: clinicError } = await supabase
       .from('clinic_profiles')
-      .select('clinic_name, city, province, address_line1, logo_storage_path')
+      .select('clinic_name, city, province, address_line1, logo_storage_path, latitude, longitude')
       .eq('id', shift.clinic_id)
       .maybeSingle();
 

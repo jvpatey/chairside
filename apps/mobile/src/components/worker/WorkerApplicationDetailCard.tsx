@@ -47,6 +47,7 @@ import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel'
 import { cardShellRadii } from '@/components/ui/cardLayout';
 import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { ApplicationClinicMapsLink } from '@/components/worker/ApplicationClinicMapsLink';
 import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
 import { WorkerApplicationKitSubmission } from '@/components/worker/WorkerApplicationKitSubmission';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
@@ -68,6 +69,11 @@ import {
 } from '@/lib/routing';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { confirmHideWorkerApplication } from '@/lib/workerApplicationHide';
+import {
+  getWorkerApplicationClinicLocationLabel,
+  getWorkerApplicationMapsDestination,
+  hasMappableWorkerApplicationClinicLocation,
+} from '@/lib/workerApplicationMaps';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type WorkerApplicationDetailCardProps = {
@@ -252,6 +258,12 @@ function WorkerApplicationHeroCard({
       lineHeight: 20,
       color: colors.labelSecondary,
     },
+    clinicNameLink: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.primary,
+    },
     clinicNamePressable: {
       alignSelf: 'flex-start',
       borderRadius: 8,
@@ -297,7 +309,7 @@ function WorkerApplicationHeroCard({
                   styles.clinicNamePressable,
                   pressed && { opacity: 0.75 },
                 ]}>
-                <Text style={[styles.clinicName, { color: colors.primary }]} numberOfLines={2}>
+                <Text style={styles.clinicNameLink} numberOfLines={2}>
                   {application.clinic_name}
                 </Text>
               </Pressable>
@@ -606,6 +618,11 @@ export function WorkerApplicationDetailCard({
   const jobMatch = !isShift ? parseApplicationJobMatch(application) : null;
   const matchContext = !isShift ? getApplicationMatchDisplayContext(application) : null;
   const clinicLocation = application.clinic_city ?? null;
+  const clinicMapsLabel = getWorkerApplicationClinicLocationLabel(application);
+  const clinicMapsDestination = getWorkerApplicationMapsDestination(application);
+  const showInterviewClinicMapsLink =
+    application.status === 'interview_scheduled' &&
+    hasMappableWorkerApplicationClinicLocation(application);
   const appliedLabel = formatAppliedLabel(application);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -672,6 +689,7 @@ export function WorkerApplicationDetailCard({
       interviewAt: application.interview_at ?? '',
       durationMinutes: application.interview_duration_minutes,
       details: application.interview_details,
+      clinicLocation: clinicMapsLabel,
     });
 
     if (!inviteInput) return;
@@ -1017,6 +1035,12 @@ export function WorkerApplicationDetailCard({
                 <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
                 {application.interview_details ? (
                   <CardInfoPanelText>{application.interview_details}</CardInfoPanelText>
+                ) : null}
+                {showInterviewClinicMapsLink && clinicMapsDestination && clinicMapsLabel ? (
+                  <ApplicationClinicMapsLink
+                    destination={clinicMapsDestination}
+                    label={clinicMapsLabel}
+                  />
                 ) : null}
                 {application.status === 'interview_scheduled' && clinicProposedChange ? (
                   <CardInfoPanelText>

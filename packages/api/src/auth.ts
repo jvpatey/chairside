@@ -165,6 +165,25 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithApple() {
+  if (Platform.OS === 'web') {
+    const supabase = getSupabaseClient();
+    const redirectTo = getOAuthRedirectUrl();
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) throw error;
+    if (!data.url) {
+      throw new Error('Apple sign-in URL was not returned.');
+    }
+
+    window.location.assign(data.url);
+    return null;
+  }
+
   if (Platform.OS !== 'ios') {
     throw new Error('Sign in with Apple is only available on iOS.');
   }

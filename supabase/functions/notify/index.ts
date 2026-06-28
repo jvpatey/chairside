@@ -642,7 +642,9 @@ async function sendWorkerStatusNotification(
 
   const idempotencyKey = `${notification.pingramType}:${applicationId}:${status}`;
 
-  const deepLink = `chairside:///(tabs)/application/${applicationId}`;
+  const deepLink = isShift
+    ? 'chairside:///(tabs)/fillins'
+    : `chairside:///(tabs)/application/${applicationId}`;
   const includePush = await isPushEnabledForUser(
     supabase,
     workerId,
@@ -712,9 +714,12 @@ async function sendClinicApplicationNotification(
   const idempotencyKey = `${template.pingramType}:${applicationId}`;
 
   const jobPostId = application.job_post_id as string | null;
+  const shiftPostId = application.shift_post_id as string | null;
   const deepLink = jobPostId
     ? `chairside:///(clinic-tabs)/role-applicants/${jobPostId}`
-    : 'chairside:///(clinic-tabs)/applications';
+    : shiftPostId
+      ? `chairside:///(clinic-tabs)/shift-applicants/${shiftPostId}`
+      : 'chairside:///(clinic-tabs)/applications';
 
   const includePush = await isPushEnabledForUser(
     supabase,
@@ -805,7 +810,12 @@ async function handleApplicationInsert(
   const message = isShiftRequest
     ? `${workerName} requested to cover your ${postType}.`
     : `${workerName} applied to your ${postType}.`;
-  const deepLink = 'chairside:///(clinic-tabs)/applications';
+  const deepLink =
+    isShiftRequest && shiftPostId
+      ? `chairside:///(clinic-tabs)/shift-applicants/${shiftPostId}`
+      : jobPostId
+        ? `chairside:///(clinic-tabs)/role-applicants/${jobPostId}`
+        : 'chairside:///(clinic-tabs)/applications';
 
   const includePush = await isPushEnabledForUser(
     supabase,
@@ -1459,7 +1469,7 @@ async function handleSavedShiftPostUpdate(
   const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
   const locationLabel = formatClinicLocation(clinic ?? {});
   const locationSuffix = locationLabel ? ` · ${locationLabel}` : '';
-  const deepLink = `chairside:///(tabs)/shift/${shiftId}`;
+  const deepLink = 'chairside:///(tabs)/fillins';
   const pingramType = unavailable
     ? PINGRAM_TYPES.savedPostUnavailable
     : PINGRAM_TYPES.fillInUpdated;

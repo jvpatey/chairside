@@ -72,7 +72,15 @@ import {
   type ClinicApplicationReturnTarget,
 } from '@/lib/routing';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+
+function useBrandColors(accent: GradientAccent) {
+  const { colors } = useTheme();
+  return {
+    brand: accent === 'secondary' ? colors.secondary : colors.primary,
+    brandSubtle: accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle,
+  };
+}
 import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
 import { getClinicApplicantBadgeVisibility } from '@/lib/applicationPipeline';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
@@ -107,12 +115,14 @@ function ApplicantDetailSection({
   icon,
   title,
   children,
+  accent = 'primary',
 }: {
   icon: SectionIcon;
   title: string;
   children: ReactNode;
+  accent?: GradientAccent;
 }) {
-  const { colors } = useTheme();
+  const { brand, brandSubtle } = useBrandColors(accent);
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     section: {
       gap: spacing.sm,
@@ -128,7 +138,6 @@ function ApplicantDetailSection({
       borderRadius: 8,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.primarySubtle,
     },
     title: {
       ...typography.label,
@@ -147,8 +156,8 @@ function ApplicantDetailSection({
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={15} color={colors.primary} />
+        <View style={[styles.iconWrap, { backgroundColor: brandSubtle }]}>
+          <Ionicons name={icon} size={15} color={brand} />
         </View>
         <Text style={styles.title}>{title}</Text>
       </View>
@@ -192,7 +201,7 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
   );
 }
 
-function renderActionButtons(actions: ActionButtonSpec[]) {
+function renderActionButtons(actions: ActionButtonSpec[], accent: GradientAccent = 'primary') {
   if (actions.length === 0) return null;
 
   const chunks: ActionButtonSpec[][] = [];
@@ -208,6 +217,7 @@ function renderActionButtons(actions: ActionButtonSpec[]) {
             key={chunk[0].key}
             label={chunk[0].label}
             variant={chunk[0].variant ?? 'primary'}
+            accent={accent}
             onPress={chunk[0].onPress}
           />
         ) : (
@@ -217,6 +227,7 @@ function renderActionButtons(actions: ActionButtonSpec[]) {
                 key={action.key}
                 label={action.label}
                 variant={action.variant ?? 'primary'}
+                accent={accent}
                 onPress={action.onPress}
               />
             ))}
@@ -237,6 +248,7 @@ function ApplicantHeroCard({
   showStatusBadge,
   jobMatch,
   matchContext,
+  accent = 'primary',
 }: {
   application: ClinicApplication;
   applicantName: string;
@@ -247,6 +259,7 @@ function ApplicantHeroCard({
   showStatusBadge: boolean;
   jobMatch: ReturnType<typeof parseApplicationJobMatch>;
   matchContext: ReturnType<typeof getApplicationMatchDisplayContext>;
+  accent?: GradientAccent;
 }) {
   const photoUri = useWorkerPhotoUri(
     workerDeleted ? null : application.worker_photo_storage_path,
@@ -310,7 +323,7 @@ function ApplicantHeroCard({
         </View>
 
         <View style={styles.badgeRow}>
-          {showNewBadge ? <ApplicationCardBadge /> : null}
+          {showNewBadge ? <ApplicationCardBadge accent={accent} /> : null}
           {showStatusBadge ? (
             <ClinicApplicationStatusBadge
               status={application.status}
@@ -424,12 +437,15 @@ function ApplicationSummaryCard({
   kitSubmitted,
   isScreeningStage,
   appliedLabel,
+  accent = 'primary',
 }: {
   coverMessage?: string | null;
   kitSubmitted: boolean;
   isScreeningStage: boolean;
   appliedLabel: string | null;
+  accent?: GradientAccent;
 }) {
+  const { brand } = useBrandColors(accent);
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     quote: {
       backgroundColor: colors.fillSubtle,
@@ -437,7 +453,6 @@ function ApplicationSummaryCard({
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
       borderLeftWidth: 3,
-      borderLeftColor: colors.primary,
       gap: spacing.xs,
     },
     quoteLabel: {
@@ -470,7 +485,10 @@ function ApplicationSummaryCard({
 
   return (
     <SurfaceCard padding="md" gap>
-      <ApplicantDetailSection icon="document-text-outline" title="Application summary">
+      <ApplicantDetailSection
+        icon="document-text-outline"
+        title="Application summary"
+        accent={accent}>
         <View style={styles.metaList}>
           {appliedLabel ? (
             <ApplicationPreviewField label="Submitted" value={appliedLabel} preserveLabelCase />
@@ -491,7 +509,7 @@ function ApplicationSummaryCard({
           ) : null}
         </View>
         {coverMessage?.trim() ? (
-          <View style={styles.quote}>
+          <View style={[styles.quote, { borderLeftColor: brand }]}>
             <Text style={styles.quoteLabel}>Cover message</Text>
             <Text style={styles.quoteText}>{coverMessage.trim()}</Text>
           </View>
@@ -507,12 +525,14 @@ function ActionPanel({
   destructive,
   messageAction,
   removeAction,
+  accent = 'primary',
 }: {
   primary: ActionButtonSpec[];
   secondary: ActionButtonSpec[];
   destructive: ActionButtonSpec[];
   messageAction: ActionButtonSpec;
   removeAction: ActionButtonSpec | null;
+  accent?: GradientAccent;
 }) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
@@ -537,10 +557,14 @@ function ActionPanel({
       <View style={styles.wrap}>
         {hasWorkflow ? (
           <View style={styles.primaryBlock}>
-            {renderActionButtons(primary)}
-            {renderActionButtons(secondary.map((a) => ({ ...a, variant: a.variant ?? 'secondary' })))}
+            {renderActionButtons(primary, accent)}
+            {renderActionButtons(
+              secondary.map((a) => ({ ...a, variant: a.variant ?? 'secondary' })),
+              accent,
+            )}
             {renderActionButtons(
               destructive.map((a) => ({ ...a, variant: a.variant ?? 'destructive' })),
+              accent,
             )}
           </View>
         ) : null}
@@ -552,12 +576,14 @@ function ActionPanel({
           ]}>
           <OnboardingButton
             label={messageAction.label}
+            accent={accent}
             onPress={messageAction.onPress}
           />
           {removeAction ? (
             <OnboardingButton
               label={removeAction.label}
               variant="ghost"
+              accent={accent}
               onPress={removeAction.onPress}
             />
           ) : null}
@@ -589,6 +615,7 @@ export function ClinicApplicationDetailCard({
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const [crmSheetVisible, setCrmSheetVisible] = useState(false);
   const isJob = application.post_type === 'job';
+  const accent: GradientAccent = isJob ? 'primary' : 'secondary';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
   const interviewSummary = formatInterviewDateTime(
@@ -1034,6 +1061,7 @@ export function ClinicApplicationDetailCard({
           showStatusBadge={showStatusBadge}
           jobMatch={jobMatch}
           matchContext={matchContext}
+          accent={accent}
         />
 
         {!workerDeleted ? (
@@ -1041,6 +1069,7 @@ export function ClinicApplicationDetailCard({
             primary={workflowActions.primary}
             secondary={workflowActions.secondary}
             destructive={workflowActions.destructive}
+            accent={accent}
             messageAction={{
               key: 'message',
               label: hasUnreadMessages ? 'Message applicant · New' : 'Message applicant',
@@ -1059,7 +1088,7 @@ export function ClinicApplicationDetailCard({
           />
         ) : (
           <SurfaceCard padding="md" gap>
-            <OnboardingButton label="View messages" onPress={handleMessage} />
+            <OnboardingButton label="View messages" accent={accent} onPress={handleMessage} />
           </SurfaceCard>
         )}
 
@@ -1116,12 +1145,13 @@ export function ClinicApplicationDetailCard({
             kitSubmitted={hasKitSubmitted}
             isScreeningStage={isScreeningStage}
             appliedLabel={appliedLabel}
+            accent={accent}
           />
         ) : null}
 
         {application.post_type === 'job' && application.screening && !workerDeleted ? (
           <SurfaceCard padding="md" gap>
-            <ApplicantDetailSection icon="clipboard-outline" title="Screening responses">
+            <ApplicantDetailSection icon="clipboard-outline" title="Screening responses" accent={accent}>
               <ApplicationScreeningSection screening={application.screening} />
             </ApplicantDetailSection>
           </SurfaceCard>
@@ -1129,7 +1159,7 @@ export function ClinicApplicationDetailCard({
 
         {hasQualifications ? (
           <SurfaceCard padding="md" gap>
-            <ApplicantDetailSection icon="ribbon-outline" title="Qualifications">
+            <ApplicantDetailSection icon="ribbon-outline" title="Qualifications" accent={accent}>
               <ApplicantQualificationsGrid application={application} />
             </ApplicantDetailSection>
           </SurfaceCard>
@@ -1137,7 +1167,7 @@ export function ClinicApplicationDetailCard({
 
         {application.interview_details && !workerDeleted ? (
           <SurfaceCard padding="md" gap>
-            <ApplicantDetailSection icon="calendar-outline" title="Interview notes">
+            <ApplicantDetailSection icon="calendar-outline" title="Interview notes" accent={accent}>
               <ApplicationPreviewField
                 label="Details"
                 value={application.interview_details}
@@ -1149,7 +1179,7 @@ export function ClinicApplicationDetailCard({
 
         {hasDocuments ? (
           <SurfaceCard padding="md" gap>
-            <ApplicantDetailSection icon="folder-outline" title="Documents">
+            <ApplicantDetailSection icon="folder-outline" title="Documents" accent={accent}>
               <ApplicationPreviewField
                 label="Resume:"
                 value={formatApplicationResumeStatus(application.resume_storage_path)}

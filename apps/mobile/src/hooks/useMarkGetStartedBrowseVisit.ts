@@ -1,13 +1,15 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 
-import { markGetStartedBrowseVisited } from '@/hooks/useGetStartedBrowseProgress';
+import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import type { WorkerBrowseSection } from '@/lib/getStartedChecklist';
 
 export function useMarkGetStartedBrowseVisit(section: WorkerBrowseSection) {
+  const { markVisited } = useGetStartedBrowseProgress();
+
   useFocusEffect(
     useCallback(() => {
-      void markGetStartedBrowseVisited(section);
-    }, [section]),
+      void markVisited(section);
+    }, [markVisited, section]),
   );
 }

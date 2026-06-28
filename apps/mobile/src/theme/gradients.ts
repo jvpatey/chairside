@@ -90,6 +90,15 @@ export function getStatSelectedSegmentGradient(
   const leftNeighbor = neighbors.left ? resolveAccentColor(colors, neighbors.left) : null;
   const rightNeighbor = neighbors.right ? resolveAccentColor(colors, neighbors.right) : null;
 
+  if (!isDark) {
+    const [top, bottom] = getStatSelectedGradient(colors, isDark, accent);
+    return {
+      colors: [top, bottom],
+      start: { x: 0, y: 0 },
+      end: { x: 0, y: 1 },
+    };
+  }
+
   const center = isDark ? colorWithAlpha(brand, 0.34) : colorWithAlpha(brand, 0.26);
   const centerSoft = isDark ? colorWithAlpha(brand, 0.16) : subtle;
   const edgeBleed = (neighbor: string) => colorWithAlpha(neighbor, isDark ? 0.24 : 0.2);

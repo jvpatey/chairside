@@ -18,6 +18,7 @@ import { getAppNavigationTheme } from '@/theme/navigationTheme';
 import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
+import { GetStartedBrowseProgressProvider } from '@/contexts/GetStartedBrowseProgressContext';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ClinicProfileProvider } from '@/contexts/ClinicProfileContext';
@@ -64,6 +65,7 @@ export default function RootLayout() {
       <View style={{ flex: 1, backgroundColor: rootBackground }}>
       <ThemeProvider value={navigationTheme}>
       <AuthProvider>
+        <GetStartedBrowseProgressProvider>
         <ClinicProfileProvider>
           <WorkerProfileProvider>
             <NotificationProvider>
@@ -91,6 +93,7 @@ export default function RootLayout() {
             </NotificationProvider>
           </WorkerProfileProvider>
         </ClinicProfileProvider>
+        </GetStartedBrowseProgressProvider>
       </AuthProvider>
       </ThemeProvider>
       </View>

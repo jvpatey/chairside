@@ -250,6 +250,7 @@ export function buildInterviewInviteInputFromApplication(options: {
   interviewAt: string;
   durationMinutes?: number | null;
   details?: string | null;
+  clinicLocation?: string | null;
 }): InterviewInviteInput | null {
   const interviewAt = new Date(options.interviewAt);
   if (Number.isNaN(interviewAt.getTime())) return null;
@@ -259,7 +260,8 @@ export function buildInterviewInviteInputFromApplication(options: {
     roleTitle: options.roleTitle,
   });
 
-  const { location, notes } = parseInterviewDetailsForCalendar(options.details);
+  const { location: detailsLocation, notes } = parseInterviewDetailsForCalendar(options.details);
+  const location = detailsLocation ?? options.clinicLocation?.trim() ?? null;
 
   return {
     title,

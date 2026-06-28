@@ -22,6 +22,7 @@ import {
   resolveNotificationDeepLink,
 } from '@/lib/pingram';
 import { fetchInAppNotifications } from '@/lib/pingramInApp';
+import { navigateToNotificationDeepLink } from '@/lib/notificationRouting';
 
 type NotificationContextValue = {
   notifications: InAppNotification[];
@@ -268,10 +269,8 @@ export function useNotifications() {
 }
 
 export function openNotificationTarget(notification: InAppNotification) {
-  const path = resolveNotificationDeepLink(
+  navigateToNotificationDeepLink(
+    router,
     notification.redirectURL ?? notification.template?.instant?.redirectURL,
   );
-  if (path) {
-    router.push(path as never);
-  }
 }

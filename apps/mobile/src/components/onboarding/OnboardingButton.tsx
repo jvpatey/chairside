@@ -65,7 +65,7 @@ export function OnboardingButton({
       paddingVertical: spacing.sm,
     },
     ghostHovered: {
-      backgroundColor: colors.primarySubtle,
+      backgroundColor: accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle,
     },
     destructive: {
       backgroundColor: colors.surface,
@@ -86,7 +86,7 @@ export function OnboardingButton({
       color: colors.labelPrimary,
     },
     labelGhost: {
-      color: colors.primary,
+      color: brandBg,
     },
     labelDestructive: {
       color: colors.destructive,

@@ -118,7 +118,8 @@ function canSendApplicationMessages(
     applicationStatus === 'in_progress' ||
     applicationStatus === 'interview_offered' ||
     applicationStatus === 'interview_scheduled' ||
-    applicationStatus === 'selected'
+    applicationStatus === 'selected' ||
+    applicationStatus === 'hired'
   );
 }
 

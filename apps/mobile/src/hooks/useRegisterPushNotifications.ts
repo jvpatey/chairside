@@ -8,6 +8,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { getPingramClientId, resolveNotificationDeepLink } from '@/lib/pingram';
+import { navigateToNotificationDeepLink } from '@/lib/notificationRouting';
 import { registerPingramPushNotifications } from '@/lib/pingramPushRegistration';
 import { isNativePushAvailable } from '@/lib/pingramPush';
 
@@ -57,10 +58,6 @@ export function useRegisterPushNotifications() {
 
   const canNavigate = isAuthReady && Boolean(user?.id) && setupComplete;
 
-  const navigateToPushTarget = useCallback((path: string) => {
-    router.push(path as never);
-  }, []);
-
   const handleNotificationResponse = useCallback(
     (response: Notifications.NotificationResponse | null | undefined) => {
       if (!response) return;
@@ -71,19 +68,20 @@ export function useRegisterPushNotifications() {
       handledResponseKeyRef.current = responseKey;
 
       const data = response.notification.request.content.data as Record<string, unknown> | undefined;
-      const path = resolveNotificationDeepLink(getPushDeepLink(data));
+      const deepLink = getPushDeepLink(data);
+      const path = resolveNotificationDeepLink(deepLink);
       if (!path) return;
 
-      void markReadByDeepLink(path);
+      void markReadByDeepLink(deepLink ?? path);
 
       if (!canNavigate) {
-        pendingRouteRef.current = path;
+        pendingRouteRef.current = deepLink ?? path;
         return;
       }
 
-      navigateToPushTarget(path);
+      navigateToNotificationDeepLink(router, deepLink);
     },
-    [canNavigate, markReadByDeepLink, navigateToPushTarget],
+    [canNavigate, markReadByDeepLink],
   );
 
   useEffect(() => {
@@ -118,8 +116,8 @@ export function useRegisterPushNotifications() {
 
     const path = pendingRouteRef.current;
     pendingRouteRef.current = null;
-    navigateToPushTarget(path);
-  }, [canNavigate, navigateToPushTarget]);
+    navigateToNotificationDeepLink(router, path);
+  }, [canNavigate]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;

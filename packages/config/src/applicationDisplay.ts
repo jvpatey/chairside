@@ -46,6 +46,19 @@ const CLINIC_STATUS_LABELS: Record<string, string> = {
   shortlisted: 'Shortlisted',
 };
 
+/** Clinic-facing labels for fill-in (shift) applications. */
+const CLINIC_SHIFT_STATUS_LABELS: Record<string, string> = {
+  applied: 'Requested',
+  reviewed: 'Viewed',
+  in_progress: 'In progress',
+  interview_offered: 'Awaiting response',
+  interview_scheduled: 'Interview set',
+  selected: 'Confirmed',
+  rejected: 'Not moving forward',
+  hired: 'Confirmed',
+  shortlisted: 'In progress',
+};
+
 export function formatApplicationStatus(
   status: string | null | undefined,
   postType?: ApplicationPostType,
@@ -55,10 +68,14 @@ export function formatApplicationStatus(
   return labels[status] ?? status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
 }
 
-/** Clinic-facing labels for role application pipeline. */
-export function formatClinicApplicationStatus(status: string | null | undefined): string {
+/** Clinic-facing labels for role and fill-in application pipeline. */
+export function formatClinicApplicationStatus(
+  status: string | null | undefined,
+  postType?: ApplicationPostType,
+): string {
   if (!status) return 'Unknown';
-  return CLINIC_STATUS_LABELS[status] ?? formatApplicationStatus(status, 'job');
+  const labels = postType === 'shift' ? CLINIC_SHIFT_STATUS_LABELS : CLINIC_STATUS_LABELS;
+  return labels[status] ?? formatApplicationStatus(status, postType ?? 'job');
 }
 
 export function formatJobApplicationSummaryMeta(summary: {
@@ -188,9 +205,10 @@ export function formatClinicScreeningStatus(application: {
   application_kit_requested_at?: string | null;
   application_kit_submitted_at?: string | null;
   status?: string | null;
+  post_type?: ApplicationPostType;
 }): string {
   if (application.status !== 'screening_submitted') {
-    return formatClinicApplicationStatus(application.status);
+    return formatClinicApplicationStatus(application.status, application.post_type);
   }
   if (isAwaitingApplicationKit(application)) {
     return 'Awaiting application kit';

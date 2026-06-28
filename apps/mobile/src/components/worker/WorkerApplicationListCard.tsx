@@ -26,11 +26,8 @@ export function WorkerApplicationListCard({
   returnTo = 'applications-tab',
 }: WorkerApplicationListCardProps) {
   const { colors } = useTheme();
-  const {
-    isApplicationHighlighted,
-    getApplicationHighlightLabel,
-    markApplicationSeen,
-  } = useApplicationTabBadge();
+  const { isApplicationHighlighted, getApplicationHighlightLabel, markApplicationSeen } =
+    useApplicationTabBadge();
   const isShift = application.post_type === 'shift';
   const appliedLabel = formatApplicationDate(application.created_at);
 
@@ -76,7 +73,8 @@ export function WorkerApplicationListCard({
       variant={isConfirmedShift ? 'success' : 'default'}
       padding="md"
       gap
-      onPress={openDetail}>
+      onPress={openDetail}
+    >
       <ClinicPostHeader
         layout="split"
         headerOnly
