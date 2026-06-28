@@ -1,6 +1,11 @@
 import type { WorkerProfile } from '@chairside/api';
 import { isClinicProfileComplete, isWorkerProfileComplete } from '@chairside/api';
 
+import {
+  isWorkerFillInsStepComplete,
+  type WorkerFillInEngagementProfile,
+} from '@/lib/workerFillInGetStarted';
+
 export const GET_STARTED_DISMISS_KEYS = {
   worker: 'chairside.getStarted.worker.dismissed.v1',
   clinic: 'chairside.getStarted.clinic.dismissed.v1',
@@ -41,12 +46,8 @@ export function isWorkerRolesStepComplete(params: {
   return params.jobApplicationCount > 0 || params.visitedRoles;
 }
 
-export function isWorkerFillInsStepComplete(params: {
-  shiftApplicationCount: number;
-  visitedFillIns: boolean;
-}): boolean {
-  return params.shiftApplicationCount > 0 || params.visitedFillIns;
-}
+export type { WorkerFillInEngagementProfile };
+export { isWorkerFillInsStepComplete };
 
 export function isClinicPostingStepComplete(params: {
   fillInsPosted: number;
@@ -68,6 +69,8 @@ export function isWorkerGetStartedComplete(params: {
   shiftApplicationCount: number;
   visitedRoles: boolean;
   visitedFillIns: boolean;
+  availabilityBlockCount?: number;
+  savedShiftCount?: number;
 }): boolean {
   return (
     isWorkerProfileComplete(params.workerProfile) &&
@@ -79,6 +82,9 @@ export function isWorkerGetStartedComplete(params: {
     isWorkerFillInsStepComplete({
       shiftApplicationCount: params.shiftApplicationCount,
       visitedFillIns: params.visitedFillIns,
+      workerProfile: params.workerProfile,
+      availabilityBlockCount: params.availabilityBlockCount,
+      savedShiftCount: params.savedShiftCount,
     })
   );
 }

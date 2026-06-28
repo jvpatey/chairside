@@ -5,8 +5,9 @@ import { useMemo } from 'react';
 
 import { GetStartedChecklistCard } from '@/components/dashboard/GetStartedChecklistCard';
 import { useDismissedGetStartedChecklist } from '@/hooks/useDismissedGetStartedChecklist';
-import { useGetStartedBrowseProgress } from '@/hooks/useGetStartedBrowseProgress';
+import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import {
   areAllGetStartedItemsComplete,
   isWorkerApplicationKitStarted,
@@ -25,14 +26,17 @@ type WorkerReadinessChecklistProps = {
   workerProfile: WorkerProfile | null;
   jobApplicationCount: number;
   shiftApplicationCount: number;
+  savedShiftCount?: number;
 };
 
 export function WorkerReadinessChecklist({
   workerProfile,
   jobApplicationCount,
   shiftApplicationCount,
+  savedShiftCount = 0,
 }: WorkerReadinessChecklistProps) {
   const { isHydrated, isDismissed, dismiss } = useDismissedGetStartedChecklist('worker');
+  const { availabilityBlocks } = useWorkerProfile();
   const {
     visitedRoles,
     visitedFillIns,
@@ -43,7 +47,18 @@ export function WorkerReadinessChecklist({
   useRefreshOnFocus(refreshBrowseProgress);
 
   const rolesComplete = isWorkerRolesStepComplete({ jobApplicationCount, visitedRoles });
-  const fillInsComplete = isWorkerFillInsStepComplete({ shiftApplicationCount, visitedFillIns });
+  const fillInsComplete = isWorkerFillInsStepComplete({
+    shiftApplicationCount,
+    visitedFillIns,
+    workerProfile,
+    availabilityBlockCount: availabilityBlocks.length,
+    savedShiftCount,
+  });
+  const fillInsConfigured =
+    Boolean(workerProfile?.short_notice_available) ||
+    availabilityBlocks.length > 0 ||
+    (workerProfile?.fill_in_notification_mode ?? 'off') !== 'off' ||
+    savedShiftCount > 0;
 
   const items = useMemo<GetStartedChecklistItem[]>(
     () => [
@@ -87,13 +102,22 @@ export function WorkerReadinessChecklist({
         body: fillInsComplete
           ? shiftApplicationCount > 0
             ? 'You have submitted at least one fill-in application.'
-            : 'You have browsed temporary shifts near you.'
+            : fillInsConfigured
+              ? 'Your fill-in availability and alerts are set up.'
+              : 'You have browsed temporary shifts near you.'
           : 'Temporary shifts are a fast way to get chairside experience.',
         complete: fillInsComplete,
         onPress: () => router.push(WORKER_FILLINS),
       },
     ],
-    [fillInsComplete, jobApplicationCount, rolesComplete, shiftApplicationCount, workerProfile],
+    [
+      fillInsComplete,
+      fillInsConfigured,
+      jobApplicationCount,
+      rolesComplete,
+      shiftApplicationCount,
+      workerProfile,
+    ],
   );
 
   if (

@@ -43,6 +43,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
@@ -82,6 +83,7 @@ export default function WorkerDashboardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
+  const { markVisited: markGetStartedBrowseVisited } = useGetStartedBrowseProgress();
 
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
@@ -152,6 +154,12 @@ export default function WorkerDashboardScreen() {
       setSelectedOverview(overview);
     }
   }, [overview]);
+
+  useEffect(() => {
+    if (selectedOverview === 'fill-ins') {
+      void markGetStartedBrowseVisited('fillIns');
+    }
+  }, [markGetStartedBrowseVisited, selectedOverview]);
 
   const openJobs = useMemo(
     () => jobs.filter((job) => !appliedJobPostIds.has(job.id)),
@@ -255,6 +263,7 @@ export default function WorkerDashboardScreen() {
               workerProfile={workerProfile}
               jobApplicationCount={jobApplications.length}
               shiftApplicationCount={shiftApplications.length}
+              savedShiftCount={savedShiftIds.size}
             />
           </FadeInSection>
 
