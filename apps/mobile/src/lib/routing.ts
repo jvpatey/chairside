@@ -597,3 +597,35 @@ export function navigateAfterFillInSave(
 export function getHomeRouteForRole(role: UserRole): Href {
   return role === 'clinic' ? CLINIC_HOME : WORKER_HOME;
 }
+
+const NOTIFICATION_TAB_ROOT_ROUTES = new Set([
+  '/(tabs)',
+  '/(tabs)/browse',
+  '/(tabs)/applications',
+  '/(tabs)/fillins',
+  '/(tabs)/open-fill-ins',
+  '/(tabs)/past-fill-ins',
+  '/(tabs)/messages',
+  '/(tabs)/profile',
+  '/(clinic-tabs)',
+  '/(clinic-tabs)/postings',
+  '/(clinic-tabs)/fill-ins',
+  '/(clinic-tabs)/applications',
+  '/(clinic-tabs)/messages',
+  '/(clinic-tabs)/clinic',
+  '/(clinic-tabs)/profile',
+]);
+
+/** Fill-in alert deep links should land on the Fill-ins tab, not a stacked detail screen. */
+export function normalizeNotificationRoute(path: string): string {
+  const [pathname, query = ''] = path.split('?');
+  if (/^\/\(tabs\)\/shift\/[^/]+$/.test(pathname)) {
+    return WORKER_FILLINS as string;
+  }
+  return query ? `${pathname}?${query}` : pathname;
+}
+
+export function isNotificationTabRootRoute(path: string): boolean {
+  const pathname = path.split('?')[0];
+  return NOTIFICATION_TAB_ROOT_ROUTES.has(pathname);
+}
