@@ -76,7 +76,7 @@ export function matchesClinicApplicationSearch(
 ): boolean {
   const statusLabel =
     application.post_type === 'shift'
-      ? formatApplicationStatus(application.status, 'shift')
+      ? formatClinicApplicationStatus(application.status, 'shift')
       : formatClinicApplicationStatus(application.status);
 
   return matchesAnyListSearchText(

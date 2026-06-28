@@ -142,7 +142,10 @@ function formatStatusLabel(conversation: Conversation, role: 'worker' | 'clinic'
   if (!conversation.application_status) return '';
 
   if (role === 'clinic') {
-    return formatClinicApplicationStatus(conversation.application_status);
+    return formatClinicApplicationStatus(
+      conversation.application_status,
+      conversation.post_type ?? 'job',
+    );
   }
   return formatApplicationStatus(conversation.application_status, conversation.post_type ?? 'job');
 }

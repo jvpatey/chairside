@@ -150,10 +150,11 @@ export function ClinicApplicationStatusBadge({
     status === 'screening_submitted'
       ? formatClinicScreeningStatus({
           status,
+          post_type: postType,
           application_kit_requested_at: applicationKitRequestedAt,
           application_kit_submitted_at: applicationKitSubmittedAt,
         })
-      : formatClinicApplicationStatus(status);
+      : formatClinicApplicationStatus(status, postType);
 
   return (
     <ApplicationStatusBadge
