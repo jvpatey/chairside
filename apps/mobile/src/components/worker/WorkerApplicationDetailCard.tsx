@@ -258,6 +258,12 @@ function WorkerApplicationHeroCard({
       lineHeight: 20,
       color: colors.labelSecondary,
     },
+    clinicNameLink: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.primary,
+    },
     clinicNamePressable: {
       alignSelf: 'flex-start',
       borderRadius: 8,
@@ -303,7 +309,7 @@ function WorkerApplicationHeroCard({
                   styles.clinicNamePressable,
                   pressed && { opacity: 0.75 },
                 ]}>
-                <Text style={[styles.clinicName, { color: colors.primary }]} numberOfLines={2}>
+                <Text style={styles.clinicNameLink} numberOfLines={2}>
                   {application.clinic_name}
                 </Text>
               </Pressable>
