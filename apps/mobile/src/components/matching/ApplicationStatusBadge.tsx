@@ -42,6 +42,15 @@ export function getClinicApplicationStatusVariant(
   postType?: ApplicationPostType,
 ): ApplicationStatusVariant {
   if (status === 'screening_submitted') return 'screening';
+  if (postType === 'shift') {
+    if (status === 'hired' || status === 'selected') return 'confirmed';
+    if (status === 'rejected') return 'rejected';
+    if (status === 'interview_offered') return 'interviewOffered';
+    if (status === 'interview_scheduled') return 'interviewScheduled';
+    if (status === 'applied' || status === 'reviewed' || status === 'in_progress') {
+      return 'interviewScheduled';
+    }
+  }
   if (status === 'applied') return 'applied';
   if (status === 'reviewed') return 'viewed';
   if (status === 'in_progress') return 'inProgress';
@@ -86,11 +95,7 @@ type ApplicationStatusBadgeProps = {
 export function ApplicationStatusBadge({ label, variant }: ApplicationStatusBadgeProps) {
   const palette = useStatusVariantPalette(variant);
   return (
-    <PillBadge
-      label={label}
-      color={palette.color}
-      backgroundColor={palette.backgroundColor}
-    />
+    <PillBadge label={label} color={palette.color} backgroundColor={palette.backgroundColor} />
   );
 }
 
@@ -127,7 +132,8 @@ export function WorkerApplicationStatusLabel({
         fontWeight: '600',
         color: palette.color,
       }}
-      numberOfLines={1}>
+      numberOfLines={1}
+    >
       {label}
     </Text>
   );
