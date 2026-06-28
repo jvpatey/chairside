@@ -136,7 +136,7 @@ export function SocialAuthButtons({
     },
   }));
 
-  const showApple = Platform.OS === 'ios' && onApplePress;
+  const showApple = (Platform.OS === 'ios' || Platform.OS === 'web') && onApplePress;
 
   if (!showApple && !onGooglePress) {
     return null;
