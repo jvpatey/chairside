@@ -126,6 +126,7 @@ export type WorkerApplication = Application & {
   shift_date?: string | null;
   shift_start_time?: string | null;
   shift_end_time?: string | null;
+  clinic_id: string | null;
   clinic_name: string;
   clinic_city: string | null;
   clinic_province?: string | null;
@@ -220,6 +221,44 @@ export function isApplicationCounterpartDeleted(
     : Boolean(application.worker_account_deleted_at);
 }
 
+export function scrubApplicationPii(application: Application): Application {
+  if (!application.worker_account_deleted_at && !application.clinic_account_deleted_at) {
+    return application;
+  }
+
+  const scrubbed: Application = { ...application };
+
+  if (application.worker_account_deleted_at) {
+    scrubbed.worker_display_name = null;
+    scrubbed.cover_message = null;
+    scrubbed.education = null;
+    scrubbed.years_of_experience = null;
+    scrubbed.license_type = null;
+    scrubbed.worker_address = null;
+    scrubbed.resume_storage_path = null;
+    scrubbed.worker_photo_storage_path = null;
+    scrubbed.software_used = [];
+    scrubbed.practice_types = [];
+    scrubbed.preferred_employment_types = [];
+    scrubbed.interview_details = null;
+    scrubbed.interview_proposed_details = null;
+  }
+
+  if (application.clinic_account_deleted_at) {
+    scrubbed.clinic_logo_storage_path = null;
+  }
+
+  return scrubbed;
+}
+
+function scrubClinicApplicationScreening(
+  application: Application,
+  screening: ApplicationScreening | null,
+): ApplicationScreening | null {
+  if (application.worker_account_deleted_at) return null;
+  return screening;
+}
+
 export type CreateApplicationInput = {
   jobPostId?: string;
   shiftPostId?: string;
@@ -307,11 +346,14 @@ export async function listClinicApplications(
   const applications: ClinicApplication[] = [];
 
   for (const row of data ?? []) {
-    const application = row as Application;
+    const application = scrubApplicationPii(row as Application);
     const isArchived = Boolean(application.clinic_hidden_at);
     if (visibility === 'active' && isArchived) continue;
     if (visibility === 'archived' && !isArchived) continue;
-    const screening = screeningMap.get(row.id) ?? null;
+    const screening = scrubClinicApplicationScreening(
+      application,
+      screeningMap.get(row.id) ?? null,
+    );
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
@@ -419,11 +461,14 @@ export async function listWorkerApplications(
   const applications: WorkerApplication[] = [];
 
   for (const row of data) {
-    const application = row as Application;
+    const application = scrubApplicationPii(row as Application);
     const isArchived = Boolean(application.worker_hidden_at);
     if (visibility === 'active' && isArchived) continue;
     if (visibility === 'archived' && !isArchived) continue;
-    const screening = screeningMap.get(row.id) ?? null;
+    const screening = scrubClinicApplicationScreening(
+      application,
+      screeningMap.get(row.id) ?? null,
+    );
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
@@ -434,6 +479,7 @@ export async function listWorkerApplications(
         post_title: job.title,
         post_type: 'job',
         post_status: job.status,
+        clinic_id: job.clinic_id,
         ...clinicFields,
         screening,
       });
@@ -450,6 +496,7 @@ export async function listWorkerApplications(
         shift_date: shift.shift_date,
         shift_start_time: shift.start_time,
         shift_end_time: shift.end_time,
+        clinic_id: shift.clinic_id,
         ...clinicFields,
         screening: null,
       });
@@ -460,11 +507,14 @@ export async function listWorkerApplications(
 }
 
 async function enrichWorkerApplication(
-  application: Application,
+  raw: Application,
 ): Promise<WorkerApplication | null> {
+  const application = scrubApplicationPii(raw);
   const supabase = getSupabaseClient();
   const screening =
-    application.job_post_id != null ? await getApplicationScreening(application.id) : null;
+    application.job_post_id != null && !application.worker_account_deleted_at
+      ? await getApplicationScreening(application.id)
+      : null;
 
   if (application.job_post_id) {
     const { data: job, error: jobError } = await supabase
@@ -488,6 +538,7 @@ async function enrichWorkerApplication(
       ...application,
       post_title: job.title,
       post_type: 'job',
+      clinic_id: job.clinic_id,
       ...resolveWorkerClinicFields(application, clinic),
       screening,
     };
@@ -519,6 +570,7 @@ async function enrichWorkerApplication(
       shift_date: shift.shift_date,
       shift_start_time: shift.start_time,
       shift_end_time: shift.end_time,
+      clinic_id: shift.clinic_id,
       ...resolveWorkerClinicFields(application, clinic),
       screening: null,
     };
@@ -559,7 +611,7 @@ export async function getClinicApplication(
   if (error) throw error;
   if (!data) return null;
 
-  const application = data as Application;
+  const application = scrubApplicationPii(data as Application);
 
   if (application.job_post_id) {
     const { data: job, error: jobError } = await supabase
@@ -571,7 +623,10 @@ export async function getClinicApplication(
     if (jobError) throw jobError;
     if (job?.clinic_id !== clinicId) return null;
 
-    const screening = await getApplicationScreening(application.id);
+    const screening = scrubClinicApplicationScreening(
+      application,
+      await getApplicationScreening(application.id),
+    );
     const enriched: ClinicApplication = {
       ...application,
       post_title: job.title,
@@ -1357,7 +1412,7 @@ export async function listFillInCoverRequests(clinicId: string): Promise<FillInC
   const requests: FillInCoverRequest[] = [];
 
   for (const row of data ?? []) {
-    const application = row as Application;
+    const application = scrubApplicationPii(row as Application);
     if (!application.shift_post_id || !shiftMap.has(application.shift_post_id)) continue;
     if (!isFillInPendingStatus(application.status)) continue;
 

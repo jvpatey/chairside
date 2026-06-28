@@ -1,52 +1,28 @@
 import type { ClinicProfile } from '@chairside/api';
 import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel } from '@chairside/config';
-import { Text, View } from 'react-native';
 
+import { PracticeDoctorFieldValue } from '@/components/clinic/PracticeDoctorList';
 import {
-  DetailRow,
-  DetailSection,
-  DetailSectionDivider,
-  RowDivider,
-} from '@/components/clinic/DetailCard';
-import { useThemedStyles } from '@/theme';
+  FieldBlock,
+  FieldDivider,
+  FieldValue,
+  ProfileDetailStack,
+  ProfileEmptyState,
+  SectionPanel,
+} from '@/components/profile/ProfileDetailBlocks';
 
 type ClinicPracticeViewProps = {
   profile: ClinicProfile | null;
 };
 
 export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      gap: spacing.lg,
-    },
-    emptyCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-    },
-    emptyText: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.labelSecondary,
-      textAlign: 'center',
-    },
-  }));
-
   if (!profile) {
     return (
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyText}>
-          Add your practice details, location, and contact info to start posting.
-        </Text>
-      </View>
+      <ProfileEmptyState
+        icon="business-outline"
+        title="Add practice details"
+        description="Add your practice details, location, and contact info to start posting."
+      />
     );
   }
 
@@ -56,6 +32,7 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
   const teamSizeLabel = getTeamSizeRangeLabel(profile.team_size_range ?? null);
   const softwareUsed = profile.software_used ?? [];
   const softwareLabel = softwareUsed.length > 0 ? softwareUsed.join(' · ') : null;
+  const practiceDoctors = profile.practice_doctors ?? [];
   const address = [
     profile.address_line1,
     profile.address_line2,
@@ -67,30 +44,48 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
     .join(', ');
 
   return (
-    <View style={styles.card}>
-      <DetailSection title="Contact">
-        <DetailRow label="Contact name" value={profile.contact_name} />
-        <RowDivider />
-        <DetailRow label="Phone" value={profile.phone} />
-      </DetailSection>
+    <ProfileDetailStack>
+      <SectionPanel icon="call-outline" title="Contact">
+        <FieldBlock label="Contact name">
+          <FieldValue value={profile.contact_name} />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Phone">
+          <FieldValue value={profile.phone} />
+        </FieldBlock>
+      </SectionPanel>
 
-      <DetailSectionDivider>
-        <DetailSection title="Location">
-          <DetailRow label="Address" value={address || null} layout="stacked" />
-        </DetailSection>
-      </DetailSectionDivider>
+      <SectionPanel icon="location-outline" title="Location">
+        <FieldBlock label="Address">
+          <FieldValue value={address || null} />
+        </FieldBlock>
+      </SectionPanel>
 
-      <DetailSectionDivider>
-        <DetailSection title="Practice">
-          <DetailRow label="Specialty" value={specialtyLabel} />
-          <RowDivider />
-          <DetailRow label="Software" value={softwareLabel} />
-          <RowDivider />
-          <DetailRow label="Operatories" value={profile.operatories_count?.toString() ?? null} />
-          <RowDivider />
-          <DetailRow label="Team size" value={teamSizeLabel} />
-        </DetailSection>
-      </DetailSectionDivider>
-    </View>
+      <SectionPanel icon="business-outline" title="Practice">
+        <FieldBlock label="Specialty">
+          <FieldValue value={specialtyLabel} />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Software">
+          <FieldValue value={softwareLabel} />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Operatories">
+          <FieldValue value={profile.operatories_count?.toString() ?? null} />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Team size">
+          <FieldValue value={teamSizeLabel} />
+        </FieldBlock>
+        {practiceDoctors.length > 0 ? (
+          <>
+            <FieldDivider />
+            <FieldBlock label="Doctors">
+              <PracticeDoctorFieldValue doctors={practiceDoctors} />
+            </FieldBlock>
+          </>
+        ) : null}
+      </SectionPanel>
+    </ProfileDetailStack>
   );
 }

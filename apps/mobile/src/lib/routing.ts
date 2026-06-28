@@ -36,7 +36,11 @@ export type MessageThreadPreview = {
   conversationId: string;
   title: string;
   subtitle: string;
+  scrollToMessageId?: string;
+  highlightQuery?: string;
 };
+
+export type MessageThreadFocus = Pick<MessageThreadPreview, 'scrollToMessageId' | 'highlightQuery'>;
 
 export const CLINIC_HOME: Href = '/(clinic-tabs)' as Href;
 export const WORKER_HOME: Href = '/(tabs)' as Href;
@@ -152,6 +156,10 @@ export function getWorkerJobDetailRoute(jobId: string): Href {
   return { pathname: '/(tabs)/job/[id]', params: { id: jobId } } as unknown as Href;
 }
 
+export function getWorkerClinicProfileRoute(clinicId: string): Href {
+  return { pathname: '/(tabs)/clinic/[id]', params: { id: clinicId } } as unknown as Href;
+}
+
 export function getEditJobRoute(jobId: string): Href {
   return { pathname: '/(clinic-tabs)/post-job', params: { id: jobId } } as Href;
 }
@@ -228,6 +236,10 @@ export function getWorkerApplicationMessagesRoute(
             conversationId: preview.conversationId,
             title: preview.title,
             subtitle: preview.subtitle,
+            ...(preview.scrollToMessageId
+              ? { scrollToMessageId: preview.scrollToMessageId }
+              : {}),
+            ...(preview.highlightQuery ? { highlightQuery: preview.highlightQuery } : {}),
           }
         : {}),
     },
@@ -249,6 +261,10 @@ export function getClinicApplicationMessagesRoute(
             conversationId: preview.conversationId,
             title: preview.title,
             subtitle: preview.subtitle,
+            ...(preview.scrollToMessageId
+              ? { scrollToMessageId: preview.scrollToMessageId }
+              : {}),
+            ...(preview.highlightQuery ? { highlightQuery: preview.highlightQuery } : {}),
           }
         : {}),
     },
@@ -334,8 +350,48 @@ export function getWorkerMessagesRoute(conversationId?: string): Href {
   return '/(tabs)/messages' as Href;
 }
 
-export function getWorkerMessageClinicsRoute(): Href {
-  return '/(tabs)/messages/clinics' as Href;
+export type WorkerMessageClinicsReturnTarget = 'messages-tab' | 'browse-tab';
+
+export function getWorkerMessageClinicsRoute(
+  returnTo: WorkerMessageClinicsReturnTarget = 'messages-tab',
+): Href {
+  return {
+    pathname: '/(tabs)/messages/clinics',
+    params: { returnTo },
+  } as unknown as Href;
+}
+
+/** Roles browse entry — top-level route so the messages tab stack stays on the inbox. */
+export function getWorkerClinicsDirectoryRoute(
+  returnTo: WorkerMessageClinicsReturnTarget = 'browse-tab',
+): Href {
+  return {
+    pathname: '/(tabs)/message-clinics',
+    params: { returnTo },
+  } as unknown as Href;
+}
+
+export function navigateAfterWorkerMessageClinics(
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
+  returnTo?: string,
+) {
+  if (returnTo === 'browse-tab') {
+    router.replace(WORKER_BROWSE);
+    return;
+  }
+  if (returnTo === 'messages-tab') {
+    if (router.canGoBack?.()) {
+      router.back();
+      return;
+    }
+    router.replace(getWorkerMessagesRoute());
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(getWorkerMessagesRoute());
 }
 
 export function getWorkerConversationRoute(
@@ -351,6 +407,10 @@ export function getWorkerConversationRoute(
             conversationId: preview.conversationId,
             title: preview.title,
             subtitle: preview.subtitle,
+            ...(preview.scrollToMessageId
+              ? { scrollToMessageId: preview.scrollToMessageId }
+              : {}),
+            ...(preview.highlightQuery ? { highlightQuery: preview.highlightQuery } : {}),
           }
         : {}),
     },
@@ -370,6 +430,10 @@ export function getClinicConversationRoute(
             conversationId: preview.conversationId,
             title: preview.title,
             subtitle: preview.subtitle,
+            ...(preview.scrollToMessageId
+              ? { scrollToMessageId: preview.scrollToMessageId }
+              : {}),
+            ...(preview.highlightQuery ? { highlightQuery: preview.highlightQuery } : {}),
           }
         : {}),
     },

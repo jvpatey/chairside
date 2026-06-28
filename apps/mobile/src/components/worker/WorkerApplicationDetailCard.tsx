@@ -35,7 +35,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
-import { Alert, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
@@ -61,6 +61,7 @@ import {
 import { buildResumeFileName } from '@/lib/openResumePreview';
 import {
   getWorkerApplicationMessagesRoute,
+  getWorkerClinicProfileRoute,
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
   type WorkerApplicationReturnTarget,
@@ -221,12 +222,14 @@ function WorkerApplicationHeroCard({
   clinicLocation,
   jobMatch,
   matchContext,
+  onClinicPress,
 }: {
   application: WorkerApplication;
   appliedLabel: string | null;
   clinicLocation: string | null;
   jobMatch: ReturnType<typeof parseApplicationJobMatch>;
   matchContext: ReturnType<typeof getApplicationMatchDisplayContext>;
+  onClinicPress?: () => void;
 }) {
   const logoUri = useClinicLogoUri(application.clinic_logo_storage_path);
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -248,6 +251,10 @@ function WorkerApplicationHeroCard({
       fontSize: 14,
       lineHeight: 20,
       color: colors.labelSecondary,
+    },
+    clinicNamePressable: {
+      alignSelf: 'flex-start',
+      borderRadius: 8,
     },
     title: {
       ...typography.title,
@@ -281,9 +288,24 @@ function WorkerApplicationHeroCard({
             size={56}
           />
           <View style={styles.identity}>
-            <Text style={styles.clinicName} numberOfLines={2}>
-              {application.clinic_name}
-            </Text>
+            {onClinicPress ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`View ${application.clinic_name} profile`}
+                onPress={onClinicPress}
+                style={({ pressed }) => [
+                  styles.clinicNamePressable,
+                  pressed && { opacity: 0.75 },
+                ]}>
+                <Text style={[styles.clinicName, { color: colors.primary }]} numberOfLines={2}>
+                  {application.clinic_name}
+                </Text>
+              </Pressable>
+            ) : (
+              <Text style={styles.clinicName} numberOfLines={2}>
+                {application.clinic_name}
+              </Text>
+            )}
             <Text style={styles.title} numberOfLines={2}>
               {application.post_title}
             </Text>
@@ -475,6 +497,7 @@ function WorkerActionPanel({
   destructive,
   messageAction,
   postingAction,
+  clinicProfileAction,
   removeAction,
 }: {
   primary: ActionButtonSpec[];
@@ -482,6 +505,7 @@ function WorkerActionPanel({
   destructive: ActionButtonSpec[];
   messageAction: ActionButtonSpec;
   postingAction: ActionButtonSpec | null;
+  clinicProfileAction: ActionButtonSpec | null;
   removeAction: ActionButtonSpec | null;
 }) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -532,6 +556,14 @@ function WorkerActionPanel({
               variant="secondary"
               onPress={postingAction.onPress}
               disabled={postingAction.disabled}
+            />
+          ) : null}
+          {clinicProfileAction ? (
+            <OnboardingButton
+              label={clinicProfileAction.label}
+              variant="secondary"
+              onPress={clinicProfileAction.onPress}
+              disabled={clinicProfileAction.disabled}
             />
           ) : null}
           {removeAction ? (
@@ -598,6 +630,14 @@ export function WorkerApplicationDetailCard({
     if (application.post_type === 'shift' && application.shift_post_id) {
       router.push(getWorkerShiftDetailRoute(application.shift_post_id));
     }
+  };
+
+  const canViewClinicProfile =
+    !clinicDeleted && Boolean(application.clinic_id);
+
+  const handleViewClinicProfile = () => {
+    if (!application.clinic_id) return;
+    router.push(getWorkerClinicProfileRoute(application.clinic_id));
   };
 
   const canViewPosting =
@@ -880,6 +920,14 @@ export function WorkerApplicationDetailCard({
       }
     : null;
 
+  const clinicProfileAction: ActionButtonSpec | null = canViewClinicProfile
+    ? {
+        key: 'clinic-profile',
+        label: 'View clinic profile',
+        onPress: handleViewClinicProfile,
+      }
+    : null;
+
   const removeAction: ActionButtonSpec | null = canHide
     ? {
         key: 'hide',
@@ -929,6 +977,7 @@ export function WorkerApplicationDetailCard({
           clinicLocation={clinicLocation}
           jobMatch={jobMatch}
           matchContext={matchContext}
+          onClinicPress={canViewClinicProfile ? handleViewClinicProfile : undefined}
         />
 
         {clinicDeleted ? (
@@ -949,6 +998,7 @@ export function WorkerApplicationDetailCard({
             destructive={workflowActions.destructive}
             messageAction={messageAction}
             postingAction={postingAction}
+            clinicProfileAction={clinicProfileAction}
             removeAction={removeAction}
           />
         )}

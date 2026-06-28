@@ -829,3 +829,53 @@ export async function getUnreadConversationMap(
   }
   return map;
 }
+
+export type MessageSearchHit = {
+  id: string;
+  conversation_id: string;
+  body: string;
+  created_at: string;
+};
+
+const MESSAGE_SEARCH_MIN_LENGTH = 2;
+const MESSAGE_SEARCH_MAX_RESULTS = 100;
+const MESSAGE_SEARCH_FETCH_MULTIPLIER = 25;
+const MESSAGE_SEARCH_FETCH_MAX = 2500;
+
+function escapeIlikePattern(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+/** Search message bodies across conversations the current user can read (RLS-scoped). */
+export async function searchMessagesInConversations(
+  query: string,
+  options?: { limit?: number },
+): Promise<MessageSearchHit[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < MESSAGE_SEARCH_MIN_LENGTH) return [];
+
+  const supabase = getSupabaseClient();
+  const pattern = `%${escapeIlikePattern(trimmed)}%`;
+  const limit = options?.limit ?? MESSAGE_SEARCH_MAX_RESULTS;
+  const fetchLimit = Math.min(limit * MESSAGE_SEARCH_FETCH_MULTIPLIER, MESSAGE_SEARCH_FETCH_MAX);
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, conversation_id, body, created_at')
+    .ilike('body', pattern)
+    .order('created_at', { ascending: false })
+    .limit(fetchLimit);
+
+  if (error) throw error;
+
+  const byConversation = new Map<string, MessageSearchHit>();
+  for (const row of data ?? []) {
+    const hit = row as MessageSearchHit;
+    if (!byConversation.has(hit.conversation_id)) {
+      byConversation.set(hit.conversation_id, hit);
+    }
+    if (byConversation.size >= limit) break;
+  }
+
+  return Array.from(byConversation.values());
+}

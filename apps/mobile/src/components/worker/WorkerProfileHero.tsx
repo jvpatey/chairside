@@ -5,7 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
+import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -123,6 +125,7 @@ export function WorkerProfileHero({
         {name}
       </Text>
       <Text style={styles.meta}>{metaLine}</Text>
+      <AccountTypeBadge label={getAccountTypeLabel('worker')} />
     </View>
   );
 }

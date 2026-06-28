@@ -4,7 +4,7 @@ import { Alert, Platform, View } from 'react-native';
 
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
-import { spacing, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 type NotificationCategoryPreferencesProps = {
   categories: NotificationPreferenceCategory[];
@@ -16,17 +16,14 @@ export function NotificationCategoryPreferences({
   const { isPushEnabled, setPushEnabled, savingCategory, isLoading } = useNotificationPreferences();
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      overflow: 'hidden',
-      paddingHorizontal: spacing.md,
+    list: {
+      gap: 0,
     },
     rowBorder: {
       borderTopWidth: 1,
       borderTopColor: colors.separator,
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
     },
   }));
 
@@ -56,7 +53,7 @@ export function NotificationCategoryPreferences({
   };
 
   return (
-    <View style={styles.card}>
+    <View style={styles.list}>
       {categories.map((category, index) => {
         const meta = getCategoryCopy(category);
         const enabled = isPushEnabled(category);
@@ -69,7 +66,6 @@ export function NotificationCategoryPreferences({
               hint={meta.hint}
               value={enabled}
               disabled={isLoading || isSaving}
-              bleedPadding={spacing.md}
               onValueChange={(value) => {
                 void persist(category, value);
               }}

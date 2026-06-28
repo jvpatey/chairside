@@ -14,6 +14,8 @@ type ProfileSettingsRowProps = {
   title: string;
   subtitle?: string;
   onPress: () => void;
+  /** When nested inside ProfileSettingsCard — no negative bleed margins. */
+  embedded?: boolean;
 };
 
 export function ProfileSettingsRow({
@@ -21,6 +23,7 @@ export function ProfileSettingsRow({
   title,
   subtitle,
   onPress,
+  embedded = false,
 }: ProfileSettingsRowProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -31,7 +34,7 @@ export function ProfileSettingsRow({
       paddingVertical: spacing.sm + 4,
       minHeight: subtitle ? 60 : 52,
       borderRadius: 10,
-      ...webFullBleedRowInsets(spacing.lg),
+      ...(embedded ? null : webFullBleedRowInsets(spacing.lg)),
       ...webPointer(),
     },
     rowHovered: webListRowHoverStyles(colors),

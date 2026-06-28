@@ -16,7 +16,8 @@ import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { PageTabBar } from '@/components/ui/PageTabBar';
+import { WorkerClinicsDirectoryIconButton } from '@/components/worker/WorkerClinicsDirectoryEntryCard';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -29,7 +30,7 @@ import {
   type EnrichedLiveJobPost,
 } from '@/lib/workerBrowseFilters';
 import { buildLiveJobMatchDisplayContext, computeJobMatchBreakdown } from '@/lib/workerMatch';
-import { getWorkerJobDetailRoute } from '@/lib/routing';
+import { getWorkerClinicsDirectoryRoute, getWorkerJobDetailRoute } from '@/lib/routing';
 import {
   countUnmappablePosts,
   groupWorkerMapItemsByClinic,
@@ -109,6 +110,7 @@ export default function BrowseScreen() {
   const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
+  const profileComplete = Boolean(workerProfile?.setup_completed_at);
   const [selectedMode, setSelectedMode] = useState<RolesBrowseMode>('open');
   const [viewMode, setViewMode] = useState<WorkerBrowseViewMode>('list');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
@@ -313,7 +315,7 @@ export default function BrowseScreen() {
   const browseControls = showBrowseControls ? (
     <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
       <View style={styles.controlRow}>
-        <SegmentedControl
+        <PageTabBar
           options={ROLES_BROWSE_MODE_OPTIONS}
           selected={selectedMode}
           onChange={setSelectedMode}
@@ -324,6 +326,11 @@ export default function BrowseScreen() {
         <View style={styles.searchField}>
           <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
         </View>
+        {profileComplete ? (
+          <WorkerClinicsDirectoryIconButton
+            onPress={() => router.push(getWorkerClinicsDirectoryRoute('browse-tab'))}
+          />
+        ) : null}
         {canUseMap ? <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} /> : null}
         <WorkerRoleBrowseFilters
           roleTypeFilter={roleTypeFilter}

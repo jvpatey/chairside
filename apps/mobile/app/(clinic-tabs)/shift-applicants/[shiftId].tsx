@@ -5,7 +5,7 @@ import {
   type ClinicApplication,
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
@@ -13,9 +13,11 @@ import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrati
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { hasActiveListSearch, matchesClinicApplicationSearch } from '@/lib/clinicListSearch';
 import { navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
@@ -30,6 +32,7 @@ export default function ClinicShiftApplicationsScreen() {
   const [postTitle, setPostTitle] = useState('');
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const {
     celebrationVisible,
@@ -79,6 +82,13 @@ export default function ClinicShiftApplicationsScreen() {
 
   useRefreshOnFocus(load);
 
+  const filteredApplications = useMemo(
+    () => applications.filter((application) => matchesClinicApplicationSearch(application, searchQuery)),
+    [applications, searchQuery],
+  );
+
+  const hasSearch = hasActiveListSearch(searchQuery);
+
   const subtitle = isLoading
     ? undefined
     : applications.length === 1
@@ -96,17 +106,29 @@ export default function ClinicShiftApplicationsScreen() {
             <Text style={styles.empty}>No cover requests for this fill-in yet.</Text>
           ) : (
             <View style={styles.list}>
-              {applications.map((application) => (
-                <FillInApplicantCard
-                  key={application.id}
-                  application={application}
-                  clinicId={user?.id ?? ''}
-                  returnTo={resolvedReturnTo}
-                  hasUnreadMessages={Boolean(unreadMap[application.id])}
-                  onUpdated={() => void load()}
-                  onConfirmed={(payload) => showCelebration(payload)}
-                />
-              ))}
+              <ListSearchFilterRow
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search applicant name"
+                accessibilityLabel="Search cover requests"
+              />
+              {filteredApplications.length === 0 ? (
+                <Text style={styles.empty}>
+                  {hasSearch ? 'No cover requests match your search.' : 'No cover requests for this fill-in yet.'}
+                </Text>
+              ) : (
+                filteredApplications.map((application) => (
+                  <FillInApplicantCard
+                    key={application.id}
+                    application={application}
+                    clinicId={user?.id ?? ''}
+                    returnTo={resolvedReturnTo}
+                    hasUnreadMessages={Boolean(unreadMap[application.id])}
+                    onUpdated={() => void load()}
+                    onConfirmed={(payload) => showCelebration(payload)}
+                  />
+                ))
+              )}
             </View>
           )}
         </View>

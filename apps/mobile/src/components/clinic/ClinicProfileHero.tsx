@@ -3,7 +3,9 @@ import { getProvinceLabel, SPECIALTY_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
+import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -111,6 +113,7 @@ export function ClinicProfileHero({
       </Text>
       {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
       <Text style={styles.meta}>{metaLine}</Text>
+      <AccountTypeBadge label={getAccountTypeLabel('clinic')} />
     </View>
   );
 }

@@ -13,6 +13,7 @@ import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -24,6 +25,7 @@ import {
   navigateAfterFillInSave,
   type FillInReturnTarget,
 } from '@/lib/routing';
+import { hasActiveListSearch, matchesFillInOutreachWorkerSearch } from '@/lib/clinicListSearch';
 import { useThemedStyles, type GradientAccent } from '@/theme';
 
 const FILL_IN_ACCENT: GradientAccent = 'secondary';
@@ -45,6 +47,7 @@ export default function FindAvailableWorkersScreen() {
   const resolvedReturnTo = returnTo ?? 'fill-ins-tab';
 
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [workers, setWorkers] = useState<FillInOutreachWorker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
@@ -69,6 +72,13 @@ export default function FindAvailableWorkersScreen() {
     if (roleFilter === 'all') return 'all roles';
     return getRoleTypeLabel(roleFilter).toLowerCase();
   }, [roleFilter]);
+
+  const filteredWorkers = useMemo(
+    () => workers.filter((worker) => matchesFillInOutreachWorkerSearch(worker, searchQuery)),
+    [searchQuery, workers],
+  );
+
+  const hasSearch = hasActiveListSearch(searchQuery);
 
   const loadWorkers = useCallback(async () => {
     if (!user?.id) {
@@ -161,6 +171,15 @@ export default function FindAvailableWorkersScreen() {
           />
         </View>
 
+        {!isProfileComplete ? null : isLoading ? null : workers.length > 0 ? (
+          <ListSearchFilterRow
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search worker name or city"
+            accessibilityLabel="Search available workers"
+          />
+        ) : null}
+
         {formError ? <FormErrorBanner message={formError} /> : null}
 
         {!isProfileComplete ? (
@@ -172,13 +191,19 @@ export default function FindAvailableWorkersScreen() {
             No workers are open to clinic outreach for {filteredRoleLabel} in{' '}
             {clinicProfile?.province ?? 'your province'} yet.
           </Text>
+        ) : filteredWorkers.length === 0 ? (
+          <Text style={styles.empty}>
+            {hasSearch
+              ? 'No workers match your search.'
+              : `No workers are open to clinic outreach for ${filteredRoleLabel} in ${clinicProfile?.province ?? 'your province'} yet.`}
+          </Text>
         ) : (
           <>
             <Text style={styles.count}>
-              {workers.length} worker{workers.length === 1 ? '' : 's'} available
+              {filteredWorkers.length} worker{filteredWorkers.length === 1 ? '' : 's'} available
             </Text>
             <View style={styles.list}>
-              {workers.map((worker) => (
+              {filteredWorkers.map((worker) => (
                 <AvailableFillInWorkerCard
                   key={worker.workerId}
                   worker={worker}

@@ -9,6 +9,7 @@ import {
   ProfileDetailStack,
   ProfileEmptyState,
   SectionPanel,
+  profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
@@ -26,12 +27,8 @@ export function WorkerApplicationKitView({
   displayPreview = true,
 }: WorkerApplicationKitViewProps) {
   const { refreshWorkerProfile } = useWorkerProfile();
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    hint: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    hint: profileSettingsHintStyle({ typography, colors }),
     badge: {
       alignSelf: 'flex-start',
       borderRadius: 999,

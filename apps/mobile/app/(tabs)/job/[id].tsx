@@ -9,7 +9,7 @@ import {
 import { getSpecialtyLabel } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
@@ -18,11 +18,12 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getApplyRoute } from '@/lib/routing';
+import { getApplyRoute, getWorkerClinicProfileRoute } from '@/lib/routing';
 import { guardApply } from '@/lib/workerGuard';
 import {
   buildLiveJobMatchDisplayContext,
@@ -48,6 +49,9 @@ export default function WorkerJobDetailScreen() {
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
+    },
+    clinicCardPressed: {
+      opacity: 0.92,
     },
     footer: { gap: spacing.sm },
   }));
@@ -150,7 +154,11 @@ export default function WorkerJobDetailScreen() {
         }
       />
       <View style={styles.content}>
-        <View style={styles.clinicCard}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`View ${job.clinic.clinic_name} profile`}
+          onPress={() => router.push(getWorkerClinicProfileRoute(job.clinic.clinic_id))}
+          style={({ pressed }) => [styles.clinicCard, pressed && styles.clinicCardPressed]}>
           <ClinicPostHeader
             clinicName={job.clinic.clinic_name}
             logoStoragePath={job.clinic.logo_storage_path}
@@ -167,7 +175,8 @@ export default function WorkerJobDetailScreen() {
               ) : null
             }
           />
-        </View>
+          <ClinicProfileLinkFooter />
+        </Pressable>
         <JobPostDetailView job={job} />
       </View>
     </OnboardingShell>

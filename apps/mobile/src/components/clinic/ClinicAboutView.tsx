@@ -1,7 +1,15 @@
 import type { ClinicProfile } from '@chairside/api';
-import { Alert, Linking, Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Text } from 'react-native';
 
-import { DetailProse, RowDivider } from '@/components/clinic/DetailCard';
+import { DetailProse } from '@/components/clinic/DetailCard';
+import {
+  FieldBlock,
+  FieldDivider,
+  FieldValue,
+  ProfileDetailStack,
+  ProfileEmptyState,
+  SectionPanel,
+} from '@/components/profile/ProfileDetailBlocks';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
@@ -15,42 +23,20 @@ function normalizeWebsiteUrl(url: string): string {
   return `https://${trimmed}`;
 }
 
-function WebsiteRow({ url }: { url: string | null | undefined }) {
+function WebsiteField({ url }: { url: string | null | undefined }) {
   const trimmed = url?.trim();
 
-  const styles = useThemedStyles(({ spacing, colors }) => ({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.md,
-      paddingVertical: spacing.sm + 2,
-    },
-    label: {
-      flex: 1,
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
+  const styles = useThemedStyles(({ colors }) => ({
     linkPressable: {
-      flex: 1,
+      alignSelf: 'flex-start',
       borderRadius: 8,
       ...webPointer(),
     },
     linkHovered: webTextLinkHoverStyles(colors),
     link: {
-      flex: 1,
       fontSize: 15,
-      lineHeight: 20,
+      lineHeight: 22,
       color: colors.primary,
-      textAlign: 'right',
-    },
-    empty: {
-      flex: 1,
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.labelTertiary,
-      textAlign: 'right',
     },
   }));
 
@@ -64,88 +50,48 @@ function WebsiteRow({ url }: { url: string | null | undefined }) {
     }
   };
 
+  if (!trimmed) {
+    return <FieldValue value={null} />;
+  }
+
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>Website</Text>
-      {trimmed ? (
-        <Pressable
-          accessibilityRole="link"
-          onPress={handlePress}
-          style={({ pressed, hovered }) => [
-            styles.linkPressable,
-            webHover(hovered, pressed, styles.linkHovered),
-            pressed && { opacity: 0.75 },
-          ]}>
-          <Text style={styles.link} numberOfLines={2}>
-            {trimmed.replace(/^https?:\/\//i, '')}
-          </Text>
-        </Pressable>
-      ) : (
-        <Text style={styles.empty}>—</Text>
-      )}
-    </View>
+    <Pressable
+      accessibilityRole="link"
+      onPress={handlePress}
+      style={({ pressed, hovered }) => [
+        styles.linkPressable,
+        webHover(hovered, pressed, styles.linkHovered),
+        pressed && { opacity: 0.75 },
+      ]}>
+      <Text style={styles.link}>{trimmed.replace(/^https?:\/\//i, '')}</Text>
+    </Pressable>
   );
 }
 
 export function ClinicAboutView({ profile }: ClinicAboutViewProps) {
   const description = profile?.description?.trim() || null;
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      gap: spacing.sm,
-    },
-    emptyCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-    },
-    emptyText: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.labelSecondary,
-      textAlign: 'center',
-    },
-    descriptionField: { gap: spacing.xs, paddingVertical: spacing.sm + 2 },
-    descriptionLabel: {
-      fontSize: 15,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-    descriptionEmpty: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.labelTertiary,
-    },
-  }));
-
   if (!profile) {
     return (
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyText}>Add a description and website so candidates can learn about your practice.</Text>
-      </View>
+      <ProfileEmptyState
+        icon="document-text-outline"
+        title="Tell candidates about your practice"
+        description="Add a description and website so candidates can learn about your practice."
+      />
     );
   }
 
   return (
-    <View style={styles.card}>
-      <View style={styles.descriptionField}>
-        <Text style={styles.descriptionLabel}>Description</Text>
-        {description ? (
-          <DetailProse text={description} />
-        ) : (
-          <Text style={styles.descriptionEmpty}>—</Text>
-        )}
-      </View>
-      <RowDivider />
-      <WebsiteRow url={profile.website} />
-    </View>
+    <ProfileDetailStack>
+      <SectionPanel icon="document-text-outline" title="About your practice">
+        <FieldBlock label="Description">
+          {description ? <DetailProse text={description} /> : <FieldValue value={null} />}
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Website">
+          <WebsiteField url={profile.website} />
+        </FieldBlock>
+      </SectionPanel>
+    </ProfileDetailStack>
   );
 }

@@ -24,6 +24,7 @@ type SegmentAxis = 'horizontal' | 'vertical';
 export function useSlidingSegmentIndicator(
   selectedIndex: number,
   axis: SegmentAxis = 'horizontal',
+  fixedHeight?: number,
 ) {
   const layoutsRef = useRef<Record<number, SegmentLayout>>({});
   const initializedRef = useRef(false);
@@ -41,12 +42,16 @@ export function useSlidingSegmentIndicator(
         translateY.value = withSpring(layout.y, SEGMENT_INDICATOR_SPRING);
       }
       width.value = withSpring(layout.width, SEGMENT_INDICATOR_SPRING);
-      height.value = withSpring(layout.height, SEGMENT_INDICATOR_SPRING);
+      if (fixedHeight == null) {
+        height.value = withSpring(layout.height, SEGMENT_INDICATOR_SPRING);
+      }
     } else {
       translateX.value = layout.x;
       translateY.value = layout.y;
       width.value = layout.width;
-      height.value = layout.height;
+      if (fixedHeight == null) {
+        height.value = layout.height;
+      }
     }
     opacity.value = 1;
   };
@@ -72,7 +77,7 @@ export function useSlidingSegmentIndicator(
         ? [{ translateX: translateX.value }]
         : [{ translateY: translateY.value }],
     width: width.value,
-    height: height.value,
+    height: fixedHeight ?? height.value,
     opacity: opacity.value,
   }));
 

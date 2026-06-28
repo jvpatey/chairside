@@ -38,6 +38,13 @@ export {
   uploadClinicLogoFromBase64,
 } from './clinicLogo';
 export {
+  deletePracticeDoctorPhoto,
+  getPracticeDoctorPhotoDownloadRequest,
+  getPracticeDoctorPhotoSignedUrl,
+  getPracticeDoctorPhotoStoragePath,
+  uploadPracticeDoctorPhotoFromBase64,
+} from './practiceDoctorPhoto';
+export {
   parseMapboxFeature,
   searchAddresses,
   type AddressSuggestion,
@@ -90,6 +97,12 @@ export {
   type UpdateShiftPostInput,
   type WorkerDashboardCounts,
 } from './posts';
+export {
+  getPublicClinicPostings,
+  getPublicClinicProfile,
+  type PublicClinicPostings,
+  type PublicClinicProfile,
+} from './publicClinicProfile';
 export {
   getSavedLiveJobPost,
   getSavedLiveShiftPost,
@@ -223,10 +236,12 @@ export {
   listMessageableClinicsForWorker,
   listMessages,
   markConversationRead,
+  searchMessagesInConversations,
   sendMessage,
   type Conversation,
   type ConversationType,
   type Message,
+  type MessageSearchHit,
   type MessageableClinic,
 } from './messages';
 export {

@@ -1,7 +1,7 @@
 import { getLiveShiftPost, hasAppliedToShift, isShiftPostSaved, saveShiftPost, unsaveShiftPost, type LiveShiftPost } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
 import { RequestedPillBadge } from '@/components/matching/ApplicationStatusBadge';
@@ -10,12 +10,13 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getApplyRoute, navigateAfterWorkerShift } from '@/lib/routing';
+import { getApplyRoute, getWorkerClinicProfileRoute, navigateAfterWorkerShift } from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { guardApply } from '@/lib/workerGuard';
 import { useThemedStyles } from '@/theme';
@@ -43,6 +44,9 @@ export default function WorkerShiftDetailScreen() {
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
+    },
+    clinicCardPressed: {
+      opacity: 0.92,
     },
     footer: {
       flexDirection: 'row',
@@ -146,7 +150,11 @@ export default function WorkerShiftDetailScreen() {
         }
       />
       <View style={styles.content}>
-        <View style={styles.clinicCard}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`View ${shift.clinic.clinic_name} profile`}
+          onPress={() => router.push(getWorkerClinicProfileRoute(shift.clinic.clinic_id))}
+          style={({ pressed }) => [styles.clinicCard, pressed && styles.clinicCardPressed]}>
           <ClinicPostHeader
             clinicName={shift.clinic.clinic_name}
             logoStoragePath={shift.clinic.logo_storage_path}
@@ -163,7 +171,8 @@ export default function WorkerShiftDetailScreen() {
               ) : null
             }
           />
-        </View>
+          <ClinicProfileLinkFooter />
+        </Pressable>
         <ShiftPostDetailView shift={shift} softwareUsed={shift.clinic.software_used} />
       </View>
     </OnboardingShell>

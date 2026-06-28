@@ -90,3 +90,107 @@ export function getConversationInboxEmptyMessage(
     ? 'No conversations yet. Message a clinic from an application or use Message a clinic above.'
     : 'No conversations yet. Message an applicant from their application details, or turn on general candidate messages above.';
 }
+
+export type ConversationInboxGroupVariant = 'standalone' | 'group-lead' | 'group-thread';
+
+export type ConversationInboxListEntry = {
+  conversation: Conversation;
+  groupVariant: ConversationInboxGroupVariant;
+  groupThreadCount?: number;
+};
+
+export function getConversationCounterpartId(
+  conversation: Conversation,
+  role: 'worker' | 'clinic',
+): string {
+  return role === 'clinic' ? conversation.worker_id : conversation.clinic_id;
+}
+
+function conversationRecency(conversation: Conversation): number {
+  return conversation.last_message_at ? new Date(conversation.last_message_at).getTime() : 0;
+}
+
+/** Cluster threads with the same counterpart; groups ordered by latest activity. */
+export function buildGroupedConversationInboxList(
+  conversations: Conversation[],
+  role: 'worker' | 'clinic',
+  options?: { groupEnabled?: boolean },
+): ConversationInboxListEntry[] {
+  const groupEnabled = options?.groupEnabled ?? true;
+  if (!groupEnabled || conversations.length === 0) {
+    return conversations.map((conversation) => ({
+      conversation,
+      groupVariant: 'standalone' as const,
+    }));
+  }
+
+  const byCounterpart = new Map<string, Conversation[]>();
+  for (const conversation of conversations) {
+    const key = getConversationCounterpartId(conversation, role);
+    const bucket = byCounterpart.get(key) ?? [];
+    bucket.push(conversation);
+    byCounterpart.set(key, bucket);
+  }
+
+  const groups = [...byCounterpart.entries()].map(([counterpartId, items]) => ({
+    counterpartId,
+    items: [...items].sort((a, b) => conversationRecency(b) - conversationRecency(a)),
+    latestRecency: Math.max(...items.map(conversationRecency)),
+  }));
+
+  groups.sort((a, b) => b.latestRecency - a.latestRecency);
+
+  const entries: ConversationInboxListEntry[] = [];
+  for (const group of groups) {
+    if (group.items.length === 1) {
+      entries.push({
+        conversation: group.items[0]!,
+        groupVariant: 'standalone',
+      });
+      continue;
+    }
+
+    group.items.forEach((conversation, index) => {
+      entries.push({
+        conversation,
+        groupVariant: index === 0 ? 'group-lead' : 'group-thread',
+        groupThreadCount: group.items.length,
+      });
+    });
+  }
+
+  return entries;
+}
+
+export type ConversationInboxSection =
+  | { kind: 'standalone'; conversation: Conversation }
+  | { kind: 'group'; threads: Conversation[] };
+
+export function buildConversationInboxSections(
+  conversations: Conversation[],
+  role: 'worker' | 'clinic',
+  options?: { groupEnabled?: boolean },
+): ConversationInboxSection[] {
+  const entries = buildGroupedConversationInboxList(conversations, role, options);
+  const sections: ConversationInboxSection[] = [];
+  let index = 0;
+
+  while (index < entries.length) {
+    const entry = entries[index]!;
+    if (entry.groupVariant === 'group-lead') {
+      const threads = [entry.conversation];
+      index += 1;
+      while (index < entries.length && entries[index]?.groupVariant === 'group-thread') {
+        threads.push(entries[index]!.conversation);
+        index += 1;
+      }
+      sections.push({ kind: 'group', threads });
+      continue;
+    }
+
+    sections.push({ kind: 'standalone', conversation: entry.conversation });
+    index += 1;
+  }
+
+  return sections;
+}

@@ -1,26 +1,16 @@
 import { router } from 'expo-router';
-import { Platform, Text, View } from 'react-native';
+import { Platform } from 'react-native';
 
+import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { NotificationCategoryPreferences } from '@/components/notifications/NotificationCategoryPreferences';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { FillInSettingsLink } from '@/components/worker/FillInSettingsLink';
 import { WorkerJobNotificationPreferences } from '@/components/worker/WorkerJobNotificationPreferences';
 import { NOTIFICATION_PREFERENCE_CATEGORIES } from '@chairside/config';
-import { useThemedStyles } from '@/theme';
+
+const pushAlertsTitle = Platform.OS === 'web' ? 'In-app alerts' : 'Push alerts';
 
 export default function WorkerProfileNotificationsScreen() {
-  const styles = useThemedStyles(({ spacing, colors }) => ({
-    section: { gap: spacing.sm },
-    label: {
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: colors.labelSecondary,
-      paddingHorizontal: spacing.xs,
-    },
-  }));
-
   return (
     <ProfileDetailScreen
       title="Notifications"
@@ -30,10 +20,7 @@ export default function WorkerProfileNotificationsScreen() {
           : 'Choose which alerts send push notifications. In-app history stays available.'
       }
       onBack={() => router.back()}>
-      <View style={styles.section}>
-        <Text style={styles.label}>
-          {Platform.OS === 'web' ? 'In-app alerts' : 'Push alerts'}
-        </Text>
+      <ProfileSettingsCard title={pushAlertsTitle} icon="notifications-outline">
         <NotificationCategoryPreferences
           categories={[
             NOTIFICATION_PREFERENCE_CATEGORIES.messages,
@@ -42,15 +29,15 @@ export default function WorkerProfileNotificationsScreen() {
             NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
           ]}
         />
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Permanent roles</Text>
+      </ProfileSettingsCard>
+
+      <ProfileSettingsCard title="Permanent roles" icon="briefcase-outline">
         <WorkerJobNotificationPreferences />
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Fill-in shifts</Text>
+      </ProfileSettingsCard>
+
+      <ProfileSettingsCard title="Fill-in shifts" icon="calendar-outline">
         <FillInSettingsLink />
-      </View>
+      </ProfileSettingsCard>
     </ProfileDetailScreen>
   );
 }

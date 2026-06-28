@@ -2,8 +2,10 @@ import {
   SPECIALTY_OPTIONS,
   SOFTWARE_OPTIONS,
   TEAM_SIZE_RANGE_OPTIONS,
+  normalizePracticeDoctors,
   resolveSoftwareSelection,
   type ClinicSpecialty,
+  type PracticeDoctor,
   type TeamSizeRange,
 } from '@chairside/config';
 import { router } from 'expo-router';
@@ -12,6 +14,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { PracticeDoctorsInput } from '@/components/clinic/PracticeDoctorsInput';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -27,6 +30,7 @@ export default function ClinicPracticeScreen() {
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
   const [operatories, setOperatories] = useState('');
   const [teamSizeRange, setTeamSizeRange] = useState<TeamSizeRange | null>(null);
+  const [practiceDoctors, setPracticeDoctors] = useState<PracticeDoctor[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
@@ -47,6 +51,7 @@ export default function ClinicPracticeScreen() {
     setSoftwareUsed(clinicProfile.software_used ?? []);
     setOperatories(clinicProfile.operatories_count?.toString() ?? '');
     setTeamSizeRange(clinicProfile.team_size_range ?? null);
+    setPracticeDoctors(normalizePracticeDoctors(clinicProfile.practice_doctors ?? []));
   }, [clinicProfile]);
 
   const handleContinue = async () => {
@@ -62,6 +67,7 @@ export default function ClinicPracticeScreen() {
         software_used: softwareUsed,
         operatories_count: operatories ? Number(operatories) : null,
         team_size_range: teamSizeRange,
+        practice_doctors: practiceDoctors,
       });
       router.push(CLINIC_SETUP_ABOUT);
     } catch (error) {
@@ -129,6 +135,7 @@ export default function ClinicPracticeScreen() {
             }
           />
         </View>
+        <PracticeDoctorsInput value={practiceDoctors} onChange={setPracticeDoctors} />
       </View>
     </OnboardingShell>
   );

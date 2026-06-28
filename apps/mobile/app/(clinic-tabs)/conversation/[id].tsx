@@ -15,11 +15,14 @@ import { navigateAfterMessageThread } from '@/lib/routing';
 export default function ClinicConversationScreen() {
   const { user } = useAuth();
   const { isTablet } = useResponsiveLayout();
-  const { id, conversationId, title, subtitle } = useLocalSearchParams<{
+  const { id, conversationId, title, subtitle, scrollToMessageId, highlightQuery } =
+    useLocalSearchParams<{
     id?: string;
     conversationId?: string;
     title?: string;
     subtitle?: string;
+    scrollToMessageId?: string;
+    highlightQuery?: string;
   }>();
   const routeConversationId =
     typeof conversationId === 'string'
@@ -29,6 +32,9 @@ export default function ClinicConversationScreen() {
         : '';
   const routeTitle = typeof title === 'string' ? title : undefined;
   const routeSubtitle = typeof subtitle === 'string' ? subtitle : undefined;
+  const routeScrollToMessageId =
+    typeof scrollToMessageId === 'string' ? scrollToMessageId : undefined;
+  const routeHighlightQuery = typeof highlightQuery === 'string' ? highlightQuery : undefined;
   const [conversation, setConversation] = useState<Conversation | null>(null);
 
   const goBack = useCallback(() => {
@@ -78,6 +84,8 @@ export default function ClinicConversationScreen() {
         conversationId={routeConversationId}
         title={threadTitle}
         subtitle={threadSubtitle}
+        scrollToMessageId={routeScrollToMessageId}
+        highlightQuery={routeHighlightQuery}
       />
     );
   }
@@ -90,6 +98,8 @@ export default function ClinicConversationScreen() {
         conversationId={routeConversationId}
         title={routeTitle}
         subtitle={routeSubtitle ?? ''}
+        scrollToMessageId={routeScrollToMessageId}
+        highlightQuery={routeHighlightQuery}
         onBack={goBack}
         onConversationChange={setConversation}
       />
@@ -107,6 +117,8 @@ export default function ClinicConversationScreen() {
       conversationId={conversation.id}
       title={formatConversationDisplay(conversation, 'clinic').threadTitle}
       subtitle={formatConversationDisplay(conversation, 'clinic').threadSubtitle}
+      scrollToMessageId={routeScrollToMessageId}
+      highlightQuery={routeHighlightQuery}
       onBack={goBack}
       onConversationChange={setConversation}
     />

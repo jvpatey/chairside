@@ -1,7 +1,7 @@
 import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, Platform } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
@@ -126,25 +126,20 @@ export function DashboardUnreadMessagesCard({
     previewText: {
       flex: 1,
       gap: 2,
-    },
-    roleEyebrow: {
-      fontSize: 12,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: colors.labelSecondary,
+      minWidth: 0,
     },
     name: {
       ...typography.body,
-      fontSize: 20,
-      lineHeight: 26,
+      fontSize: 17,
+      lineHeight: 22,
       fontWeight: '700',
       letterSpacing: -0.2,
       color: colors.labelPrimary,
+      flex: 1,
     },
-    cardMeta: {
-      fontSize: 14,
-      lineHeight: 20,
+    context: {
+      fontSize: 13,
+      lineHeight: 18,
       color: colors.labelSecondary,
     },
     previewMessage: {
@@ -159,6 +154,7 @@ export function DashboardUnreadMessagesCard({
 
   const previews = unread.slice(0, PREVIEW_LIMIT);
   const label = unread.length === 1 ? '1 unread message' : `${unread.length} unread messages`;
+  const isWeb = Platform.OS === 'web';
 
   const handleViewAll = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -202,20 +198,19 @@ export function DashboardUnreadMessagesCard({
             ]}>
             <PreviewAvatar conversation={conversation} avatarKind={avatarKind} />
             <View style={styles.previewText}>
-              <Text style={styles.roleEyebrow} numberOfLines={1}>
-                {display.cardTitle}
-              </Text>
-              <Text style={styles.name} numberOfLines={2}>
+              <Text style={styles.name} numberOfLines={1}>
                 {display.cardName}
               </Text>
-              <Text style={styles.cardMeta} numberOfLines={2}>
-                {display.cardMeta}
+              <Text style={styles.context} numberOfLines={2}>
+                {display.inboxContextLine}
               </Text>
               <Text style={styles.previewMessage} numberOfLines={1}>
                 {conversation.last_message_preview ?? 'New message'}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+            {isWeb ? (
+              <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+            ) : null}
           </Pressable>
           );
         })}
