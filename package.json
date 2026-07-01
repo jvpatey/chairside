@@ -11,7 +11,9 @@
     "export:web": "pnpm --filter mobile export:web",
     "lint": "pnpm --filter mobile lint",
     "build:ios": "pnpm --filter mobile exec eas build --platform ios --profile production",
-    "build:ios:preview": "pnpm --filter mobile exec eas build --platform ios --profile preview"
+    "build:ios:preview": "pnpm --filter mobile exec eas build --platform ios --profile preview",
+    "submit:ios": "pnpm --filter mobile exec eas submit --platform ios --profile production",
+    "release:check": "bash scripts/verify-release-readiness.sh"
   },
   "devDependencies": {
     "prettier": "^3.5.3"

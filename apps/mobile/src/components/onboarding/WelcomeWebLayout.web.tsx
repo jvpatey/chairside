@@ -18,6 +18,7 @@ import {
   APP_STORE_COMING_SOON_HINT,
   APP_STORE_COMING_SOON_LABEL,
   ONBOARDING_SUBTITLE,
+  PUBLIC_LEGAL_PATHS,
 } from '@/constants';
 import { BREAKPOINTS, CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import {
@@ -570,6 +571,51 @@ export function WelcomeWebLayout() {
             ]}>
             {({ pressed }) => (
               <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Sign in</Text>
+            )}
+          </Pressable>
+          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
+            ·
+          </Text>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push(PUBLIC_LEGAL_PATHS.privacy)}
+            style={({ pressed, hovered }) => [
+              styles.footerLinkPressable,
+              webHover(hovered, pressed, styles.footerLinkHovered),
+              pressed && { opacity: 0.75 },
+            ]}>
+            {({ pressed }) => (
+              <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Privacy</Text>
+            )}
+          </Pressable>
+          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
+            ·
+          </Text>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
+            style={({ pressed, hovered }) => [
+              styles.footerLinkPressable,
+              webHover(hovered, pressed, styles.footerLinkHovered),
+              pressed && { opacity: 0.75 },
+            ]}>
+            {({ pressed }) => (
+              <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Support</Text>
+            )}
+          </Pressable>
+          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
+            ·
+          </Text>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push(PUBLIC_LEGAL_PATHS.terms)}
+            style={({ pressed, hovered }) => [
+              styles.footerLinkPressable,
+              webHover(hovered, pressed, styles.footerLinkHovered),
+              pressed && { opacity: 0.75 },
+            ]}>
+            {({ pressed }) => (
+              <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Terms</Text>
             )}
           </Pressable>
           <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">

@@ -5,6 +5,7 @@ import { AccountChangePasswordSection } from '@/components/account/AccountChange
 import { AccountDataPrivacyNotice } from '@/components/account/AccountDataPrivacyNotice';
 import { AccountDeleteAccountCard } from '@/components/account/AccountDeleteAccountCard';
 import { AccountDisplayNameField } from '@/components/account/AccountDisplayNameField';
+import { AccountLegalLinks } from '@/components/account/AccountLegalLinks';
 import { AccountProfileHero } from '@/components/account/AccountProfileHero';
 import { AccountSettingsCard } from '@/components/account/AccountSettingsCard';
 import { AccountSignOutCard } from '@/components/account/AccountSignOutCard';
@@ -65,6 +66,8 @@ export function AccountScreenContent({
       ) : null}
 
       <AccountDataPrivacyNotice />
+
+      <AccountLegalLinks />
 
       <AccountSignOutCard
         isSigningOut={isSigningOut}

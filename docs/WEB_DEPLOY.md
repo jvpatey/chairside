@@ -10,6 +10,8 @@ pnpm export:web
 
 Output is written to `apps/mobile/dist`.
 
+Public legal pages (`/privacy`, `/support`, `/terms`) are included in the export and should be deployed before App Store submission. Set `EXPO_PUBLIC_WEB_BASE_URL` in hosting env vars to your production origin.
+
 ## Supabase redirect URLs
 
 Add these under **Authentication → URL Configuration → Redirect URLs**:
