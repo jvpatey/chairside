@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { PublicSiteFooter } from '@/components/legal/PublicSiteFooter';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
@@ -57,8 +58,6 @@ const ROLE_BADGES = [
   { label: 'For clinics', icon: 'business-outline' as const },
   { label: 'For dental professionals', icon: 'medical-outline' as const },
 ] as const;
-
-const FOOTER_YEAR = new Date().getFullYear();
 
 type FeatureCardProps = {
   icon: (typeof FEATURES)[number]['icon'];
@@ -386,50 +385,6 @@ export function WelcomeWebLayout() {
       gap: spacing.lg,
       alignItems: 'stretch' as const,
     },
-    footer: {
-      width: '100%',
-      alignSelf: 'center' as const,
-      alignItems: 'center' as const,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: colors.separator,
-      backgroundColor: colors.background,
-    },
-    footerRow: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      gap: spacing.sm,
-      maxWidth: 560,
-    },
-    footerDivider: {
-      fontSize: 13,
-      color: colors.labelTertiary,
-      lineHeight: 20,
-    },
-    footerLinkPressable: {
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    footerLinkHovered: webTextLinkHoverStyles(colors),
-    footerLink: {
-      ...typography.body,
-      fontSize: 13,
-      fontWeight: '500' as const,
-      color: colors.labelSecondary,
-    },
-    footerLinkPressed: {
-      color: colors.primary,
-    },
-    footerCopyright: {
-      fontSize: 13,
-      color: colors.labelTertiary,
-    },
   }));
 
   return (
@@ -554,75 +509,27 @@ export function WelcomeWebLayout() {
         </View>
       </View>
 
-      <WebPageEnter delayMs={800} style={styles.footer}>
-        <View style={styles.footerRow}>
-          <ChairsideWordmark variant="small" align="left" />
-          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
-            ·
-          </Text>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityHint="Opens the sign in screen"
-            onPress={() => router.push('/(onboarding)/sign-in')}
-            style={({ pressed, hovered }) => [
-              styles.footerLinkPressable,
-              webHover(hovered, pressed, styles.footerLinkHovered),
-              pressed && { opacity: 0.75 },
-            ]}>
-            {({ pressed }) => (
-              <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Sign in</Text>
-            )}
-          </Pressable>
-          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
-            ·
-          </Text>
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push(PUBLIC_LEGAL_PATHS.privacy)}
-            style={({ pressed, hovered }) => [
-              styles.footerLinkPressable,
-              webHover(hovered, pressed, styles.footerLinkHovered),
-              pressed && { opacity: 0.75 },
-            ]}>
-            {({ pressed }) => (
-              <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Privacy</Text>
-            )}
-          </Pressable>
-          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
-            ·
-          </Text>
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
-            style={({ pressed, hovered }) => [
-              styles.footerLinkPressable,
-              webHover(hovered, pressed, styles.footerLinkHovered),
-              pressed && { opacity: 0.75 },
-            ]}>
-            {({ pressed }) => (
-              <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Support</Text>
-            )}
-          </Pressable>
-          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
-            ·
-          </Text>
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push(PUBLIC_LEGAL_PATHS.terms)}
-            style={({ pressed, hovered }) => [
-              styles.footerLinkPressable,
-              webHover(hovered, pressed, styles.footerLinkHovered),
-              pressed && { opacity: 0.75 },
-            ]}>
-            {({ pressed }) => (
-              <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Terms</Text>
-            )}
-          </Pressable>
-          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
-            ·
-          </Text>
-          <Text style={styles.footerCopyright}>© {FOOTER_YEAR} Chairside</Text>
-        </View>
+      <WebPageEnter delayMs={800}>
+        <PublicSiteFooter
+          links={[
+            {
+              label: 'Sign in',
+              onPress: () => router.push('/(onboarding)/sign-in'),
+            },
+            {
+              label: 'Privacy',
+              onPress: () => router.push(PUBLIC_LEGAL_PATHS.privacy),
+            },
+            {
+              label: 'Support',
+              onPress: () => router.push(PUBLIC_LEGAL_PATHS.support),
+            },
+            {
+              label: 'Terms',
+              onPress: () => router.push(PUBLIC_LEGAL_PATHS.terms),
+            },
+          ]}
+        />
       </WebPageEnter>
     </ScrollView>
   );

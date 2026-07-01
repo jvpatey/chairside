@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { navigateToWelcome } from '@/lib/publicRoutes';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
@@ -10,7 +11,7 @@ function handleBack() {
     router.back();
     return;
   }
-  router.push('/(onboarding)/welcome');
+  navigateToWelcome();
 }
 
 export function PublicLegalPageHeader() {
@@ -55,7 +56,7 @@ export function PublicLegalPageHeader() {
         ]}>
         <Text style={styles.backText}>Back</Text>
       </Pressable>
-      <ChairsideWordmark variant="small" align="center" />
+      <ChairsideWordmark variant="small" align="center" onPress={navigateToWelcome} />
     </View>
   );
 }

@@ -1,27 +1,22 @@
 import { router } from 'expo-router';
 import { useCallback, useRef } from 'react';
-import { Pressable, ScrollView, Text, View, type View as ViewType } from 'react-native';
+import { ScrollView, Text, View, type View as ViewType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LegalTableOfContents } from '@/components/legal/LegalTableOfContents';
 import { legalSectionAnchor } from '@/components/legal/legalSectionAnchor';
+import { getPublicLegalFooterLinks, PublicSiteFooter } from '@/components/legal/PublicSiteFooter';
 import { PublicLegalPageHeader } from '@/components/legal/PublicLegalPageHeader';
+import { PublicLegalPageShell } from '@/components/legal/PublicLegalPageShell';
 import type { LegalPageContent } from '@/content/legal/types';
 import { LEGAL_LAST_UPDATED, PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
-import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type LegalPageLayoutProps = {
   content: LegalPageContent;
   currentPath: keyof typeof PUBLIC_LEGAL_PATHS;
 };
-
-const FOOTER_LINKS: { path: keyof typeof PUBLIC_LEGAL_PATHS; label: string }[] = [
-  { path: 'privacy', label: 'Privacy' },
-  { path: 'support', label: 'Support' },
-  { path: 'terms', label: 'Terms' },
-];
 
 const INLINE_LINKS: { phrase: string; path: keyof typeof PUBLIC_LEGAL_PATHS }[] = [
   { phrase: 'Privacy Policy', path: 'privacy' },
@@ -129,7 +124,7 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     page: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     scrollContent: {
       flexGrow: 1,
@@ -198,46 +193,11 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
       color: colors.labelSecondary,
       flex: 1,
     },
-    footer: {
-      marginTop: spacing.xl,
-      paddingTop: spacing.lg,
-      borderTopWidth: 1,
-      borderTopColor: colors.separator,
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      gap: spacing.sm,
-    },
-    footerDivider: {
-      fontSize: 13,
-      color: colors.labelTertiary,
-    },
-    footerLinkPressable: {
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    footerLinkHovered: webTextLinkHoverStyles(colors),
-    footerLink: {
-      ...typography.body,
-      fontSize: 13,
-      fontWeight: '500' as const,
-      color: colors.labelSecondary,
-    },
-    footerLinkActive: {
-      color: colors.primary,
-      fontWeight: '600' as const,
-    },
-    copyright: {
-      fontSize: 13,
-      color: colors.labelTertiary,
-    },
   }));
 
   return (
-    <ScrollView ref={scrollRef} style={styles.page} contentContainerStyle={styles.scrollContent}>
+    <PublicLegalPageShell>
+      <ScrollView ref={scrollRef} style={styles.page} contentContainerStyle={styles.scrollContent}>
       <View ref={contentRef}>
         <PublicLegalPageHeader />
 
@@ -272,36 +232,9 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
           ))}
         </View>
 
-        <View style={styles.footer}>
-          {FOOTER_LINKS.map((link, index) => (
-            <View key={link.path} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {index > 0 ? (
-                <Text style={styles.footerDivider} accessibilityElementsHidden>
-                  ·
-                </Text>
-              ) : null}
-              <Pressable
-                accessibilityRole="link"
-                onPress={() => router.push(PUBLIC_LEGAL_PATHS[link.path])}
-                style={({ pressed, hovered }) => [
-                  styles.footerLinkPressable,
-                  webHover(hovered, pressed, styles.footerLinkHovered),
-                  pressed && { opacity: 0.75 },
-                ]}>
-                <Text
-                  style={[
-                    styles.footerLink,
-                    link.path === currentPath && styles.footerLinkActive,
-                  ]}>
-                  {link.label}
-                </Text>
-              </Pressable>
-            </View>
-          ))}
-          <Text style={styles.footerDivider}>·</Text>
-          <Text style={styles.copyright}>© {new Date().getFullYear()} Chairside</Text>
-        </View>
+        <PublicSiteFooter links={getPublicLegalFooterLinks(currentPath)} />
       </View>
-    </ScrollView>
+      </ScrollView>
+    </PublicLegalPageShell>
   );
 }
