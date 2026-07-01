@@ -5,6 +5,7 @@ import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'rea
 
 import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import type { LegalSection } from '@/content/legal/types';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -30,17 +31,20 @@ function toggleLayoutAnimation() {
 }
 
 function HelpTopicBody({ section }: { section: LegalSection }) {
+  const { isCompact } = useResponsiveLayout();
+  const iconInset = isCompact ? 36 : 44;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     body: {
       gap: spacing.sm,
       paddingTop: spacing.sm,
       paddingBottom: spacing.xs,
-      paddingLeft: 44 + spacing.md,
+      paddingLeft: iconInset + spacing.md,
+      paddingRight: isCompact ? spacing.sm : 0,
     },
     paragraph: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 22 : 24,
       color: colors.labelSecondary,
     },
     link: {
@@ -54,16 +58,16 @@ function HelpTopicBody({ section }: { section: LegalSection }) {
     },
     bullet: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 22 : 24,
       color: colors.primary,
       width: 16,
       fontWeight: '700' as const,
     },
     bulletText: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 22 : 24,
       color: colors.labelSecondary,
       flex: 1,
     },
@@ -122,7 +126,9 @@ function HelpTopicRow({
   showDivider: boolean;
 }) {
   const { colors } = useTheme();
+  const { isCompact } = useResponsiveLayout();
   const iconName = TOPIC_ICONS[section.title] ?? 'help-circle-outline';
+  const iconSize = isCompact ? 36 : 44;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
@@ -131,17 +137,18 @@ function HelpTopicRow({
     headerPressable: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: spacing.md,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
+      gap: isCompact ? spacing.sm : spacing.md,
+      paddingVertical: isCompact ? spacing.sm : spacing.md,
+      paddingHorizontal: isCompact ? spacing.md : spacing.lg,
       borderRadius: 12,
+      minHeight: isCompact ? 52 : undefined,
       ...webPointer(),
     },
     headerHovered: webListRowHoverStyles(colors),
     iconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
+      width: iconSize,
+      height: iconSize,
+      borderRadius: isCompact ? 10 : 12,
       backgroundColor: colors.primarySubtle,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
@@ -149,7 +156,7 @@ function HelpTopicRow({
     },
     title: {
       ...typography.body,
-      fontSize: 16,
+      fontSize: isCompact ? 15 : 16,
       fontWeight: '600' as const,
       color: colors.labelPrimary,
       flex: 1,
@@ -157,7 +164,7 @@ function HelpTopicRow({
     divider: {
       height: 1,
       backgroundColor: colors.separator,
-      marginLeft: spacing.lg + 44 + spacing.md,
+      marginLeft: (isCompact ? spacing.md : spacing.lg) + iconSize + (isCompact ? spacing.sm : spacing.md),
     },
   }));
 
@@ -173,7 +180,7 @@ function HelpTopicRow({
           pressed && { opacity: 0.88 },
         ]}>
         <View style={styles.iconWrap}>
-          <Ionicons name={iconName} size={22} color={colors.primary} />
+          <Ionicons name={iconName} size={isCompact ? 20 : 22} color={colors.primary} />
         </View>
         <Text style={styles.title}>{section.title}</Text>
         <Ionicons
@@ -190,30 +197,31 @@ function HelpTopicRow({
 
 export function SupportHelpTopics({ sections }: SupportHelpTopicsProps) {
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(() => new Set());
+  const { isCompact } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
-      gap: spacing.sm,
+      gap: isCompact ? spacing.xs : spacing.sm,
     },
     heading: {
       gap: spacing.xs,
-      marginBottom: spacing.sm,
+      marginBottom: isCompact ? spacing.xs : spacing.sm,
     },
     title: {
       ...typography.body,
-      fontSize: 20,
+      fontSize: isCompact ? 18 : 20,
       fontWeight: '700' as const,
       color: colors.labelPrimary,
     },
     subtitle: {
       ...typography.subtitle,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 20 : 22,
       color: colors.labelSecondary,
     },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: isCompact ? 12 : 16,
       borderWidth: 1,
       borderColor: colors.separator,
       overflow: 'hidden' as const,

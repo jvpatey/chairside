@@ -3,16 +3,22 @@ import { Pressable, Text, View } from 'react-native';
 
 import { AccountSettingsCard } from '@/components/account/AccountSettingsCard';
 import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
-const LEGAL_LINKS: { path: keyof typeof PUBLIC_LEGAL_PATHS; label: string }[] = [
+const PRIVACY_TERMS_LINKS: { path: keyof typeof PUBLIC_LEGAL_PATHS; label: string }[] = [
   { path: 'privacy', label: 'Privacy Policy' },
-  { path: 'support', label: 'Support' },
   { path: 'terms', label: 'Terms of Service' },
 ];
 
+const SUPPORT_LINK = { path: 'support' as const, label: 'Support' };
+
 export function AccountLegalLinks() {
+  const { isCompact } = useResponsiveLayout();
+  const links = isCompact
+    ? PRIVACY_TERMS_LINKS
+    : [PRIVACY_TERMS_LINKS[0], SUPPORT_LINK, PRIVACY_TERMS_LINKS[1]];
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     list: {
       gap: spacing.xs,
@@ -50,9 +56,11 @@ export function AccountLegalLinks() {
   }));
 
   return (
-    <AccountSettingsCard title="Legal & support" icon="document-text-outline">
+    <AccountSettingsCard
+      title={isCompact ? 'Legal' : 'Legal & support'}
+      icon="document-text-outline">
       <View style={styles.list}>
-        {LEGAL_LINKS.map((link) => (
+        {links.map((link) => (
           <Pressable
             key={link.path}
             accessibilityRole="link"
@@ -66,16 +74,18 @@ export function AccountLegalLinks() {
           </Pressable>
         ))}
       </View>
-      <Text style={styles.hint}>
-        Questions? Use the{' '}
-        <Text
-          style={styles.hintLink}
-          onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
-          accessibilityRole="link">
-          Support page
-        </Text>{' '}
-        to send us a message.
-      </Text>
+      {!isCompact ? (
+        <Text style={styles.hint}>
+          Questions? Use the{' '}
+          <Text
+            style={styles.hintLink}
+            onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
+            accessibilityRole="link">
+            Support page
+          </Text>{' '}
+          to send us a message.
+        </Text>
+      ) : null}
     </AccountSettingsCard>
   );
 }

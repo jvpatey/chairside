@@ -10,6 +10,7 @@ import { PublicLegalPageHeader } from '@/components/legal/PublicLegalPageHeader'
 import { PublicLegalPageShell } from '@/components/legal/PublicLegalPageShell';
 import type { LegalPageContent } from '@/content/legal/types';
 import { LEGAL_LAST_UPDATED, PUBLIC_LEGAL_PATHS } from '@/constants/legal';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { useThemedStyles } from '@/theme';
 
@@ -61,11 +62,12 @@ function parseLegalInlineText(text: string): TextPart[] {
 }
 
 function LegalBodyText({ children }: { children: string }) {
+  const { isCompact } = useResponsiveLayout();
   const styles = useThemedStyles(({ colors, typography, spacing }) => ({
     text: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 22 : 24,
       color: colors.labelSecondary,
       marginBottom: spacing.sm,
     },
@@ -103,6 +105,7 @@ function LegalBodyText({ children }: { children: string }) {
 
 export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) {
   const insets = useSafeAreaInsets();
+  const { isCompact } = useResponsiveLayout();
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<ViewType>(null);
   const sectionRefs = useRef<Record<string, ViewType | null>>({});
@@ -128,17 +131,17 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
     },
     scrollContent: {
       flexGrow: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: insets.top + spacing.lg,
-      paddingBottom: insets.bottom + spacing.xl,
+      paddingHorizontal: isCompact ? spacing.md : spacing.lg,
+      paddingTop: insets.top + (isCompact ? spacing.md : spacing.lg),
+      paddingBottom: insets.bottom + (isCompact ? spacing.lg : spacing.xl),
       alignSelf: 'center' as const,
       width: '100%' as const,
       maxWidth: CONTENT_MAX_WIDTH.regular,
     },
     title: {
       ...typography.title,
-      fontSize: 32,
-      lineHeight: 38,
+      fontSize: isCompact ? 28 : 32,
+      lineHeight: isCompact ? 34 : 38,
       marginBottom: spacing.xs,
       color: colors.labelPrimary,
     },
@@ -146,32 +149,32 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
       ...typography.subtitle,
       fontSize: 13,
       color: colors.labelTertiary,
-      marginBottom: spacing.lg,
+      marginBottom: isCompact ? spacing.md : spacing.lg,
     },
     intro: {
       ...typography.body,
-      fontSize: 16,
-      lineHeight: 26,
+      fontSize: isCompact ? 15 : 16,
+      lineHeight: isCompact ? 24 : 26,
       color: colors.labelSecondary,
-      marginBottom: spacing.xl,
+      marginBottom: isCompact ? spacing.lg : spacing.xl,
     },
     sectionsStack: {
-      gap: spacing.md,
+      gap: isCompact ? spacing.sm : spacing.md,
     },
     sectionCard: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: isCompact ? 12 : 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.sm,
+      padding: isCompact ? spacing.md : spacing.lg,
+      gap: isCompact ? spacing.xs : spacing.sm,
     },
     sectionTitle: {
       ...typography.body,
-      fontSize: 18,
+      fontSize: isCompact ? 17 : 18,
       fontWeight: '700' as const,
       color: colors.labelPrimary,
-      marginBottom: spacing.xs,
+      marginBottom: isCompact ? 0 : spacing.xs,
     },
     bulletRow: {
       flexDirection: 'row' as const,
@@ -180,16 +183,16 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
     },
     bullet: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 22 : 24,
       color: colors.primary,
       width: 16,
       fontWeight: '700' as const,
     },
     bulletText: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 22 : 24,
       color: colors.labelSecondary,
       flex: 1,
     },
@@ -232,7 +235,9 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
           ))}
         </View>
 
-        <PublicSiteFooter links={getPublicLegalFooterLinks(currentPath)} />
+        {!isCompact ? (
+          <PublicSiteFooter links={getPublicLegalFooterLinks(currentPath)} />
+        ) : null}
       </View>
       </ScrollView>
     </PublicLegalPageShell>

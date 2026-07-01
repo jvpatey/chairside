@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { navigateToWelcome } from '@/lib/publicRoutes';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
@@ -40,16 +41,17 @@ export function getPublicLegalFooterLinks(
 }
 
 export function PublicSiteFooter({ links }: PublicSiteFooterProps) {
+  const { isCompact } = useResponsiveLayout();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     footer: {
       width: '100%' as const,
       alignSelf: 'center' as const,
       alignItems: 'center' as const,
-      gap: spacing.lg,
-      marginTop: spacing.xl,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.xl,
-      paddingBottom: spacing.lg,
+      gap: isCompact ? spacing.md : spacing.lg,
+      marginTop: isCompact ? spacing.lg : spacing.xl,
+      paddingHorizontal: isCompact ? 0 : spacing.lg,
+      paddingTop: isCompact ? spacing.lg : spacing.xl,
+      paddingBottom: isCompact ? spacing.md : spacing.lg,
       borderTopWidth: 1,
       borderTopColor: colors.separator,
       maxWidth: CONTENT_MAX_WIDTH.regular,
@@ -62,7 +64,7 @@ export function PublicSiteFooter({ links }: PublicSiteFooterProps) {
       flexWrap: 'wrap' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      gap: spacing.md,
+      gap: isCompact ? spacing.sm : spacing.md,
     },
     linkPressable: {
       paddingVertical: spacing.xs,

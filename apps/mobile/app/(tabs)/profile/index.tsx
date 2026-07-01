@@ -6,13 +6,16 @@ import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton
 import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { WorkerProfileHero } from '@/components/worker/WorkerProfileHero';
+import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   getAccountSubtitle,
   getApplicationKitSubtitle,
   getNotificationsSubtitle,
   getProfessionalBackgroundSubtitle,
+  getSupportSubtitle,
 } from '@/lib/profileHubSubtitles';
 import {
   WORKER_HOME,
@@ -26,6 +29,7 @@ import { useThemedStyles } from '@/theme';
 export default function WorkerProfileScreen() {
   const { profile, user } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+  const { isCompact } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
@@ -63,6 +67,14 @@ export default function WorkerProfileScreen() {
             subtitle={getNotificationsSubtitle(workerProfile)}
             onPress={() => router.push(WORKER_PROFILE_NOTIFICATIONS)}
           />
+          {isCompact ? (
+            <ProfileSettingsRow
+              icon="help-circle-outline"
+              title="Support"
+              subtitle={getSupportSubtitle()}
+              onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
+            />
+          ) : null}
           <ProfileSettingsRow
             icon="person-circle-outline"
             title="Account"

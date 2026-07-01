@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
 import type { LegalSection } from '@/content/legal/types';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
@@ -10,37 +11,40 @@ type LegalTableOfContentsProps = {
 };
 
 export function LegalTableOfContents({ sections, onSelectSection }: LegalTableOfContentsProps) {
+  const { isCompact } = useResponsiveLayout();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: isCompact ? 12 : 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
-      marginBottom: spacing.xl,
-      gap: spacing.md,
+      padding: isCompact ? spacing.md : spacing.lg,
+      marginBottom: isCompact ? spacing.lg : spacing.xl,
+      gap: isCompact ? spacing.sm : spacing.md,
     },
     heading: {
       ...typography.body,
-      fontSize: 16,
+      fontSize: isCompact ? 15 : 16,
       fontWeight: '700' as const,
       color: colors.labelPrimary,
     },
     list: {
-      gap: spacing.xs,
+      gap: isCompact ? 0 : spacing.xs,
     },
     itemPressable: {
-      paddingVertical: spacing.sm,
+      paddingVertical: isCompact ? spacing.xs : spacing.sm,
       paddingHorizontal: spacing.sm,
       marginHorizontal: -spacing.sm,
       borderRadius: 10,
+      minHeight: isCompact ? 40 : undefined,
+      justifyContent: 'center' as const,
       ...webPointer(),
     },
     itemHovered: webListRowHoverStyles(colors),
     itemText: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 20 : 22,
       color: colors.primary,
       fontWeight: '500' as const,
     },

@@ -9,6 +9,7 @@ import { SupportContactForm } from '@/components/support/SupportContactForm';
 import { SupportHelpTopics } from '@/components/support/SupportHelpTopics';
 import { LEGAL_LAST_UPDATED } from '@/constants/legal';
 import { SUPPORT_PAGE_CONTENT } from '@/content/legal/support';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { useThemedStyles } from '@/theme';
 
@@ -18,6 +19,7 @@ const FAQ_SECTIONS = SUPPORT_PAGE_CONTENT.sections.filter(
 
 export function SupportPageLayout() {
   const insets = useSafeAreaInsets();
+  const { isCompact } = useResponsiveLayout();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     page: {
       flex: 1,
@@ -25,17 +27,17 @@ export function SupportPageLayout() {
     },
     scrollContent: {
       flexGrow: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: insets.top + spacing.lg,
-      paddingBottom: insets.bottom + spacing.xl,
+      paddingHorizontal: isCompact ? spacing.md : spacing.lg,
+      paddingTop: insets.top + (isCompact ? spacing.md : spacing.lg),
+      paddingBottom: insets.bottom + (isCompact ? spacing.lg : spacing.xl),
       alignSelf: 'center' as const,
       width: '100%' as const,
       maxWidth: CONTENT_MAX_WIDTH.regular,
     },
     title: {
       ...typography.title,
-      fontSize: 32,
-      lineHeight: 38,
+      fontSize: isCompact ? 28 : 32,
+      lineHeight: isCompact ? 34 : 38,
       marginBottom: spacing.xs,
       color: colors.labelPrimary,
     },
@@ -43,23 +45,23 @@ export function SupportPageLayout() {
       ...typography.subtitle,
       fontSize: 13,
       color: colors.labelTertiary,
-      marginBottom: spacing.lg,
+      marginBottom: isCompact ? spacing.md : spacing.lg,
     },
     intro: {
       ...typography.body,
-      fontSize: 16,
-      lineHeight: 26,
+      fontSize: isCompact ? 15 : 16,
+      lineHeight: isCompact ? 24 : 26,
       color: colors.labelSecondary,
-      marginBottom: spacing.xl,
+      marginBottom: isCompact ? spacing.lg : spacing.xl,
     },
     formCard: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: isCompact ? 12 : 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
-      marginBottom: spacing.xl,
-      gap: spacing.lg,
+      padding: isCompact ? spacing.md : spacing.lg,
+      marginBottom: isCompact ? spacing.lg : spacing.xl,
+      gap: isCompact ? spacing.md : spacing.lg,
     },
   }));
 
@@ -83,7 +85,9 @@ export function SupportPageLayout() {
 
       <SupportHelpTopics sections={FAQ_SECTIONS} />
 
-      <PublicSiteFooter links={getPublicLegalFooterLinks('support')} />
+      {!isCompact ? (
+        <PublicSiteFooter links={getPublicLegalFooterLinks('support')} />
+      ) : null}
       </ScrollView>
     </PublicLegalPageShell>
   );

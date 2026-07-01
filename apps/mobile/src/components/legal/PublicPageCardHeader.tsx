@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type PublicPageCardHeaderProps = {
@@ -11,16 +12,18 @@ type PublicPageCardHeaderProps = {
 
 export function PublicPageCardHeader({ icon, title, subtitle }: PublicPageCardHeaderProps) {
   const { colors } = useTheme();
+  const { isCompact } = useResponsiveLayout();
+  const iconSize = isCompact ? 40 : 44;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
-      gap: spacing.md,
+      gap: isCompact ? spacing.sm : spacing.md,
     },
     iconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
+      width: iconSize,
+      height: iconSize,
+      borderRadius: isCompact ? 10 : 12,
       backgroundColor: colors.primarySubtle,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
@@ -33,14 +36,14 @@ export function PublicPageCardHeader({ icon, title, subtitle }: PublicPageCardHe
     },
     title: {
       ...typography.body,
-      fontSize: 20,
+      fontSize: isCompact ? 18 : 20,
       fontWeight: '700' as const,
       color: colors.labelPrimary,
     },
     subtitle: {
       ...typography.subtitle,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 20 : 22,
       color: colors.labelSecondary,
     },
   }));
@@ -48,7 +51,7 @@ export function PublicPageCardHeader({ icon, title, subtitle }: PublicPageCardHe
   return (
     <View style={styles.row}>
       <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={22} color={colors.primary} />
+        <Ionicons name={icon} size={isCompact ? 20 : 22} color={colors.primary} />
       </View>
       <View style={styles.textBlock}>
         <Text style={styles.title}>{title}</Text>
