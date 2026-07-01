@@ -7,8 +7,9 @@ import { useTheme } from '@/theme';
 type ChairsideWordmarkProps = {
   variant?: 'hero' | 'compact' | 'small';
   align?: 'left' | 'center';
-  /** Web-only: slides "side" right on hover. */
+  /** Web-only: slides "side" right on hover. Defaults on when `onPress` is set. */
   animateSideOnHover?: boolean;
+  onPress?: () => void;
 };
 
 const COMPACT = { fontSize: 28, letterSpacing: -0.6 } as const;
@@ -46,10 +47,47 @@ function heroSize(screenWidth: number) {
   return Math.round(Math.max(52, Math.min(screenWidth * 0.14, 56)));
 }
 
+function WordmarkSplitText({
+  baseTextStyle,
+  colors,
+  slideSide,
+}: {
+  baseTextStyle: {
+    fontFamily: string;
+    fontSize: number;
+    letterSpacing: number;
+    textTransform: 'lowercase';
+  };
+  colors: { labelPrimary: string; primary: string };
+  slideSide: boolean;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+      <Text style={[baseTextStyle, { color: colors.labelPrimary }]}>chair</Text>
+      <Text
+        style={
+          {
+            ...baseTextStyle,
+            color: colors.primary,
+            transform: [{ translateX: slideSide ? SIDE_SLIDE_PX : 0 }],
+            ...webOnlyStyle({
+              transitionProperty: 'transform',
+              transitionDuration: '280ms',
+              transitionTimingFunction: 'ease-out',
+            } as ViewStyle),
+          } as TextStyle
+        }>
+        side
+      </Text>
+    </View>
+  );
+}
+
 export function ChairsideWordmark({
   variant = 'hero',
   align = 'center',
   animateSideOnHover = false,
+  onPress,
 }: ChairsideWordmarkProps) {
   const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
@@ -75,6 +113,29 @@ export function ChairsideWordmark({
   };
 
   const staticWordmark = <ChairsideBrandText variant={variant === 'small' ? 'small' : 'compact'} />;
+  const shouldAnimateOnHover =
+    animateSideOnHover || (onPress != null && Platform.OS === 'web');
+  const usesHoverPressable =
+    onPress != null || (shouldAnimateOnHover && Platform.OS === 'web');
+
+  if (variant !== 'hero' && usesHoverPressable) {
+    return (
+      <Pressable
+        accessibilityRole={onPress ? 'link' : 'header'}
+        accessibilityLabel="chairside"
+        accessibilityHint={onPress ? 'Go to home page' : undefined}
+        onPress={onPress}
+        style={[alignStyle, webPointer(onPress || shouldAnimateOnHover ? 'pointer' : 'default')]}>
+        {({ hovered }) => (
+          <WordmarkSplitText
+            baseTextStyle={baseTextStyle}
+            colors={colors}
+            slideSide={shouldAnimateOnHover && hovered}
+          />
+        )}
+      </Pressable>
+    );
+  }
 
   if (variant === 'hero') {
     const heroTextStyle = {
@@ -84,6 +145,25 @@ export function ChairsideWordmark({
       textTransform: 'lowercase' as const,
     };
 
+    if (usesHoverPressable) {
+      return (
+        <Pressable
+          accessibilityRole={onPress ? 'link' : 'header'}
+          accessibilityLabel="chairside"
+          accessibilityHint={onPress ? 'Go to home page' : undefined}
+          onPress={onPress}
+          style={[alignStyle, webPointer(onPress || shouldAnimateOnHover ? 'pointer' : 'default')]}>
+          {({ hovered }) => (
+            <WordmarkSplitText
+              baseTextStyle={heroTextStyle}
+              colors={colors}
+              slideSide={shouldAnimateOnHover && hovered}
+            />
+          )}
+        </Pressable>
+      );
+    }
+
     return (
       <View accessibilityRole="header" accessibilityLabel="chairside" style={alignStyle}>
         <Text style={heroTextStyle}>
@@ -91,36 +171,6 @@ export function ChairsideWordmark({
           <Text style={{ color: colors.primary }}>side</Text>
         </Text>
       </View>
-    );
-  }
-
-  if (animateSideOnHover && Platform.OS === 'web') {
-    return (
-      <Pressable
-        accessibilityRole="header"
-        accessibilityLabel="chairside"
-        style={[alignStyle, webPointer('default')]}>
-        {({ hovered }) => (
-          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-            <Text style={[baseTextStyle, { color: colors.labelPrimary }]}>chair</Text>
-            <Text
-              style={
-                {
-                  ...baseTextStyle,
-                  color: colors.primary,
-                  transform: [{ translateX: hovered ? SIDE_SLIDE_PX : 0 }],
-                  ...webOnlyStyle({
-                    transitionProperty: 'transform',
-                    transitionDuration: '280ms',
-                    transitionTimingFunction: 'ease-out',
-                  } as ViewStyle),
-                } as TextStyle
-              }>
-              side
-            </Text>
-          </View>
-        )}
-      </Pressable>
     );
   }
 

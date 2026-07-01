@@ -1,5 +1,12 @@
 export const APP_NAME = 'Chairside';
 
+export {
+  getPublicLegalUrl,
+  getPublicWebBaseUrl,
+  LEGAL_LAST_UPDATED,
+  PUBLIC_LEGAL_PATHS,
+} from './legal';
+
 /** Set when the App Store listing is live, e.g. https://apps.apple.com/app/id… */
 export const APP_STORE_URL: string | null = null;
 

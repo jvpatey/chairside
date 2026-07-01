@@ -1,6 +1,6 @@
 # Chairside
 
-A mobile-first dental staffing app for Nova Scotia clinics and dental professionals. Clinics post permanent roles and fill-in shifts; workers browse, apply with an application kit, and get explainable match scoring. Includes in-app messaging, interviews, and Pingram notifications.
+A mobile-first dental staffing app for Canadian clinics and dental professionals. Clinics post permanent roles and fill-in shifts; workers browse, apply with an application kit, and get explainable match scoring. Includes in-app messaging, interviews, and Pingram notifications.
 
 ## Prerequisites
 
@@ -24,6 +24,7 @@ Create `apps/mobile/.env` with values from Supabase → Project Settings → API
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anon / publishable key |
 | `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox token for address autocomplete |
 | `EXPO_PUBLIC_PINGRAM_CLIENT_ID` | Pingram environment ID or `pingram_pk_...` public key (see [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)) |
+| `EXPO_PUBLIC_WEB_BASE_URL` | Production web origin for legal links (e.g. `https://chairside.app`) |
 
 Optional overrides:
 
@@ -97,7 +98,7 @@ Push setup: [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md)
 
 Build profiles are defined in [`apps/mobile/eas.json`](apps/mobile/eas.json) (`development`, `preview`, `production`).
 
-**Important:** Run EAS from `apps/mobile`, not the monorepo root. A stray root `app.json` will make EAS introspect the wrong config and try to disable Push Notifications / Sign in with Apple on your bundle ID.
+**Important:** Always run EAS from `apps/mobile` (or use `pnpm build:ios` from the repo root). There is no root `app.json` — the mobile app config in [`apps/mobile/app.json`](apps/mobile/app.json) and [`apps/mobile/app.config.ts`](apps/mobile/app.config.ts) is the single source of truth (`com.chairside.app`).
 
 ## Edge Functions
 
@@ -136,6 +137,8 @@ Full webhook and dashboard setup: [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)
 | `pnpm --filter mobile test` | Vitest unit tests |
 | `pnpm build:ios` | EAS production iOS build |
 | `pnpm build:ios:preview` | EAS preview iOS build |
+| `pnpm submit:ios` | Submit latest production iOS build to App Store Connect |
+| `pnpm release:check` | Verify App Store release artifacts in repo |
 | `pnpm --filter mobile generate:brand` | Regenerate app icons, splash logos, and favicon |
 
 ## Project structure
@@ -164,6 +167,10 @@ Expo web can be exported and hosted separately from the native apps. Build with 
 
 | Doc | Contents |
 | --- | -------- |
+| [docs/APP_STORE_RELEASE.md](docs/APP_STORE_RELEASE.md) | End-to-end App Store release runbook |
+| [docs/APP_STORE_CONNECT.md](docs/APP_STORE_CONNECT.md) | Listing copy, privacy labels, review notes |
+| [docs/TESTFLIGHT_CHECKLIST.md](docs/TESTFLIGHT_CHECKLIST.md) | Pre-submission smoke test checklist |
+| [docs/SUPPORT_CONTACT.md](docs/SUPPORT_CONTACT.md) | Support form, Pingram email, edge function deploy |
 | [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Pingram types, webhooks, `notify` deploy |
 | [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md) | APNs, EAS env, TestFlight push debugging |
 | [docs/WEB_DEPLOY.md](docs/WEB_DEPLOY.md) | Static web export, auth redirects, hosting |

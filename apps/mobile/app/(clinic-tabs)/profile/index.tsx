@@ -6,14 +6,17 @@ import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
+import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   getAccountSubtitle,
   getClinicAboutSubtitle,
   getClinicMessagingSubtitle,
   getClinicNotificationsSubtitle,
   getClinicPracticeSubtitle,
+  getSupportSubtitle,
 } from '@/lib/profileHubSubtitles';
 import {
   CLINIC_HOME,
@@ -28,6 +31,7 @@ import { useThemedStyles } from '@/theme';
 export default function ClinicAccountProfileScreen() {
   const { user } = useAuth();
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { isCompact } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
@@ -67,6 +71,14 @@ export default function ClinicAccountProfileScreen() {
             subtitle={getClinicMessagingSubtitle(clinicProfile)}
             onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}
           />
+          {isCompact ? (
+            <ProfileSettingsRow
+              icon="help-circle-outline"
+              title="Support"
+              subtitle={getSupportSubtitle()}
+              onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
+            />
+          ) : null}
           <ProfileSettingsRow
             icon="person-circle-outline"
             title="Account"

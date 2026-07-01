@@ -76,3 +76,7 @@ export function getClinicMessagingSubtitle(profile: ClinicProfile | null): strin
 export function getClinicNotificationsSubtitle(): string {
   return 'Manage push alerts';
 }
+
+export function getSupportSubtitle(): string {
+  return 'Help topics and contact form';
+}

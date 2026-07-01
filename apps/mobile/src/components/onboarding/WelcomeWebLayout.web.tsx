@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { PublicSiteFooter } from '@/components/legal/PublicSiteFooter';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
@@ -18,11 +19,13 @@ import {
   APP_STORE_COMING_SOON_HINT,
   APP_STORE_COMING_SOON_LABEL,
   ONBOARDING_SUBTITLE,
+  PUBLIC_LEGAL_PATHS,
 } from '@/constants';
 import { BREAKPOINTS, CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import {
   webChipHoverStyles,
   webHover,
+  webOnlyStyle,
   webPointer,
   webTextLinkHoverStyles,
   webTileHoverStyles,
@@ -31,47 +34,84 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 const HERO_HEADLINE = 'Staffing for dental clinics, simplified.';
 
-const FEATURES = [
+type FeatureSize = 'large' | 'compact';
+
+type Feature = {
+  id: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  titleHighlight?: string;
+  body: string;
+  size: FeatureSize;
+};
+
+const FEATURES: Feature[] = [
   {
-    icon: 'calendar-outline' as const,
+    id: 'fill-ins',
+    size: 'large',
+    icon: 'calendar-outline',
     title: 'Fill chairs, same day',
     titleHighlight: 'same day',
     body: 'Post a fill-in shift and get qualified applicants instantly. Built-in screening questions filter candidates before you even open a message.',
   },
   {
-    icon: 'flash-outline' as const,
+    id: 'availability',
+    size: 'compact',
+    icon: 'flash-outline',
     title: "Let clinics know you're free",
     titleHighlight: "you're free",
     body: "Turn on fill-in mode and let nearby clinics know you're available right now. No job board, no waiting—just work.",
   },
   {
-    icon: 'checkmark-circle-outline' as const,
+    id: 'matches',
+    size: 'compact',
+    icon: 'sparkles-outline',
+    title: 'Better matches from the start',
+    titleHighlight: 'matches',
+    body: 'Application kits, screening responses, and match insights help clinics compare fit quickly while professionals put their best profile forward.',
+  },
+  {
+    id: 'hiring',
+    size: 'large',
+    icon: 'checkmark-circle-outline',
     title: 'The hiring process — streamlined',
     titleHighlight: 'streamlined',
     body: 'Messaging, interviews, and offers stay in one place. No email threads, no phone tag.',
   },
-] as const;
+];
 
 const ROLE_BADGES = [
   { label: 'For clinics', icon: 'business-outline' as const },
   { label: 'For dental professionals', icon: 'medical-outline' as const },
 ] as const;
 
-const FOOTER_YEAR = new Date().getFullYear();
-
 type FeatureCardProps = {
-  icon: (typeof FEATURES)[number]['icon'];
+  icon: Feature['icon'];
   title: string;
   titleHighlight?: string;
   body: string;
+  size?: FeatureSize;
   enterDelayMs?: number;
+  style?: object;
+  banner?: boolean;
+  /** Stretch to fill a bento grid cell; content stays top-aligned. */
+  fillHeight?: boolean;
 };
 
-function FeatureTitle({ title, highlight }: { title: string; highlight?: string }) {
+function FeatureTitle({
+  title,
+  highlight,
+  large = false,
+}: {
+  title: string;
+  highlight?: string;
+  large?: boolean;
+}) {
   const styles = useThemedStyles(({ colors, typography }) => ({
     title: {
       ...typography.body,
-      fontSize: 17,
+      fontSize: large ? 20 : 17,
+      lineHeight: large ? 26 : 22,
       fontWeight: '600' as const,
       color: colors.labelPrimary,
     },
@@ -101,19 +141,31 @@ function FeatureTitle({ title, highlight }: { title: string; highlight?: string 
   );
 }
 
-function FeatureCard({ icon, title, titleHighlight, body, enterDelayMs = 0 }: FeatureCardProps) {
+function FeatureCard({
+  icon,
+  title,
+  titleHighlight,
+  body,
+  size = 'compact',
+  enterDelayMs = 0,
+  style,
+  banner = false,
+  fillHeight = false,
+}: FeatureCardProps) {
   const { colors } = useTheme();
   const [cardHovered, setCardHovered] = useState(false);
+  const isLarge = size === 'large';
   const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
-      flex: 1,
-      minWidth: 240,
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.lg,
+      padding: isLarge ? spacing.xl : spacing.lg,
       gap: spacing.md,
+      justifyContent: 'flex-start' as const,
+      alignSelf: 'stretch' as const,
+      width: '100%' as const,
       // @ts-expect-error — boxShadow is web-only
       boxShadow: isDark
         ? '0 8px 24px rgba(0, 0, 0, 0.25)'
@@ -123,40 +175,178 @@ function FeatureCard({ icon, title, titleHighlight, body, enterDelayMs = 0 }: Fe
       transitionDuration: '160ms',
       transitionTimingFunction: 'ease',
     },
+    cardFillHeight: {
+      flex: 1,
+      minHeight: 0,
+    },
+    cardBanner: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.lg,
+      paddingVertical: spacing.xl,
+      minHeight: 132,
+    },
     cardHovered: {
       ...webTileHoverStyles(colors, isDark),
       // @ts-expect-error — transform is web-only
       transform: [{ translateY: -2 }],
     },
     iconWrap: {
-      width: 44,
-      height: 44,
+      width: isLarge ? 52 : 44,
+      height: isLarge ? 52 : 44,
       borderRadius: 12,
       backgroundColor: colors.primarySubtle,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
+      flexShrink: 0,
+    },
+    content: {
+      flex: 1,
+      gap: spacing.sm,
+      minWidth: 0,
     },
     body: {
       ...typography.subtitle,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: isLarge ? 16 : 15,
+      lineHeight: isLarge ? 24 : 22,
       color: colors.labelSecondary,
     },
   }));
 
-  return (
-    <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1, minWidth: 240 }}>
-      <View
-        style={[styles.card, cardHovered && styles.cardHovered]}
-        onMouseEnter={() => setCardHovered(true)}
-        onMouseLeave={() => setCardHovered(false)}>
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={22} color={colors.primary} />
-        </View>
-        <FeatureTitle title={title} highlight={titleHighlight} />
+  const cardContent = banner ? (
+    <>
+      <View style={styles.iconWrap}>
+        <Ionicons name={icon} size={isLarge ? 26 : 22} color={colors.primary} />
+      </View>
+      <View style={styles.content}>
+        <FeatureTitle title={title} highlight={titleHighlight} large={isLarge} />
         <Text style={styles.body}>{body}</Text>
       </View>
+    </>
+  ) : (
+    <>
+      <View style={styles.iconWrap}>
+        <Ionicons name={icon} size={isLarge ? 26 : 22} color={colors.primary} />
+      </View>
+      <FeatureTitle title={title} highlight={titleHighlight} large={isLarge} />
+      <Text style={styles.body}>{body}</Text>
+    </>
+  );
+
+  return (
+    <WebPageEnter
+      delayMs={enterDelayMs}
+      style={[
+        fillHeight ? { flex: 1, minWidth: 0, alignSelf: 'stretch' } : { width: '100%' },
+        style,
+      ]}>
+      <View
+        style={[
+          styles.card,
+          fillHeight && styles.cardFillHeight,
+          banner && styles.cardBanner,
+          cardHovered && styles.cardHovered,
+        ]}
+        onMouseEnter={() => setCardHovered(true)}
+        onMouseLeave={() => setCardHovered(false)}>
+        {cardContent}
+      </View>
     </WebPageEnter>
+  );
+}
+
+type WelcomeFeaturesBentoProps = {
+  isWide: boolean;
+};
+
+function WelcomeFeaturesBento({ isWide }: WelcomeFeaturesBentoProps) {
+  const fillIns = FEATURES.find((feature) => feature.id === 'fill-ins')!;
+  const availability = FEATURES.find((feature) => feature.id === 'availability')!;
+  const matches = FEATURES.find((feature) => feature.id === 'matches')!;
+  const hiring = FEATURES.find((feature) => feature.id === 'hiring')!;
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    bento: {
+      gap: spacing.lg,
+      width: '100%' as const,
+    },
+    bentoRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'stretch' as const,
+      gap: spacing.lg,
+      width: '100%' as const,
+    },
+    leftColumn: {
+      flex: 1.55,
+      gap: spacing.lg,
+      minWidth: 0,
+    },
+    rightColumn: {
+      flex: 1,
+      flexDirection: 'column' as const,
+      gap: spacing.lg,
+      minWidth: 0,
+    },
+    rightCell: {
+      flex: 1,
+      minHeight: 0,
+    },
+  }));
+
+  if (!isWide) {
+    return (
+      <View style={styles.bento}>
+        <FeatureCard {...fillIns} titleHighlight={fillIns.titleHighlight} enterDelayMs={560} />
+        <FeatureCard
+          {...hiring}
+          titleHighlight={hiring.titleHighlight}
+          enterDelayMs={640}
+        />
+        <FeatureCard
+          {...availability}
+          titleHighlight={availability.titleHighlight}
+          enterDelayMs={720}
+        />
+        <FeatureCard {...matches} titleHighlight={matches.titleHighlight} enterDelayMs={800} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.bento}>
+      <View style={styles.bentoRow}>
+        <View style={styles.leftColumn}>
+          <FeatureCard
+            {...fillIns}
+            titleHighlight={fillIns.titleHighlight}
+            enterDelayMs={560}
+          />
+          <FeatureCard
+            {...hiring}
+            titleHighlight={hiring.titleHighlight}
+            enterDelayMs={720}
+          />
+        </View>
+        <View style={styles.rightColumn}>
+          <View style={styles.rightCell}>
+            <FeatureCard
+              {...availability}
+              titleHighlight={availability.titleHighlight}
+              enterDelayMs={640}
+              fillHeight
+            />
+          </View>
+          <View style={styles.rightCell}>
+            <FeatureCard
+              {...matches}
+              titleHighlight={matches.titleHighlight}
+              enterDelayMs={800}
+              fillHeight
+            />
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -378,56 +568,7 @@ export function WelcomeWebLayout() {
     featuresSubtitle: {
       ...typography.subtitle,
       textAlign: 'center' as const,
-      maxWidth: 480,
-    },
-    featureGrid: {
-      flexDirection: isWide ? ('row' as const) : ('column' as const),
-      gap: spacing.lg,
-      alignItems: 'stretch' as const,
-    },
-    footer: {
-      width: '100%',
-      alignSelf: 'center' as const,
-      alignItems: 'center' as const,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: colors.separator,
-      backgroundColor: colors.background,
-    },
-    footerRow: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      gap: spacing.sm,
-      maxWidth: 560,
-    },
-    footerDivider: {
-      fontSize: 13,
-      color: colors.labelTertiary,
-      lineHeight: 20,
-    },
-    footerLinkPressable: {
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    footerLinkHovered: webTextLinkHoverStyles(colors),
-    footerLink: {
-      ...typography.body,
-      fontSize: 13,
-      fontWeight: '500' as const,
-      color: colors.labelSecondary,
-    },
-    footerLinkPressed: {
-      color: colors.primary,
-    },
-    footerCopyright: {
-      fontSize: 13,
-      color: colors.labelTertiary,
+      maxWidth: 520,
     },
   }));
 
@@ -539,44 +680,30 @@ export function WelcomeWebLayout() {
             the back-and-forth.
           </Text>
         </WebPageEnter>
-        <View style={styles.featureGrid}>
-          {FEATURES.map((feature, index) => (
-            <FeatureCard
-              key={feature.title}
-              icon={feature.icon}
-              title={feature.title}
-              titleHighlight={feature.titleHighlight}
-              body={feature.body}
-              enterDelayMs={560 + index * 80}
-            />
-          ))}
-        </View>
+        <WelcomeFeaturesBento isWide={isWide} />
       </View>
 
-      <WebPageEnter delayMs={800} style={styles.footer}>
-        <View style={styles.footerRow}>
-          <ChairsideWordmark variant="small" align="left" />
-          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
-            ·
-          </Text>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityHint="Opens the sign in screen"
-            onPress={() => router.push('/(onboarding)/sign-in')}
-            style={({ pressed, hovered }) => [
-              styles.footerLinkPressable,
-              webHover(hovered, pressed, styles.footerLinkHovered),
-              pressed && { opacity: 0.75 },
-            ]}>
-            {({ pressed }) => (
-              <Text style={[styles.footerLink, pressed && styles.footerLinkPressed]}>Sign in</Text>
-            )}
-          </Pressable>
-          <Text style={styles.footerDivider} accessibilityElementsHidden importantForAccessibility="no">
-            ·
-          </Text>
-          <Text style={styles.footerCopyright}>© {FOOTER_YEAR} Chairside</Text>
-        </View>
+      <WebPageEnter delayMs={800}>
+        <PublicSiteFooter
+          links={[
+            {
+              label: 'Sign in',
+              onPress: () => router.push('/(onboarding)/sign-in'),
+            },
+            {
+              label: 'Privacy',
+              onPress: () => router.push(PUBLIC_LEGAL_PATHS.privacy),
+            },
+            {
+              label: 'Support',
+              onPress: () => router.push(PUBLIC_LEGAL_PATHS.support),
+            },
+            {
+              label: 'Terms',
+              onPress: () => router.push(PUBLIC_LEGAL_PATHS.terms),
+            },
+          ]}
+        />
       </WebPageEnter>
     </ScrollView>
   );
