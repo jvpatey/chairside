@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { AccountSettingsCard } from '@/components/account/AccountSettingsCard';
-import { PUBLIC_LEGAL_PATHS, SUPPORT_EMAIL } from '@/constants/legal';
+import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
@@ -67,13 +67,14 @@ export function AccountLegalLinks() {
         ))}
       </View>
       <Text style={styles.hint}>
-        Questions?{' '}
+        Questions? Use the{' '}
         <Text
           style={styles.hintLink}
-          onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
+          onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
           accessibilityRole="link">
-          {SUPPORT_EMAIL}
-        </Text>
+          Support page
+        </Text>{' '}
+        to send us a message.
       </Text>
     </AccountSettingsCard>
   );

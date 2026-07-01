@@ -170,6 +170,7 @@ Expo web can be exported and hosted separately from the native apps. Build with 
 | [docs/APP_STORE_RELEASE.md](docs/APP_STORE_RELEASE.md) | End-to-end App Store release runbook |
 | [docs/APP_STORE_CONNECT.md](docs/APP_STORE_CONNECT.md) | Listing copy, privacy labels, review notes |
 | [docs/TESTFLIGHT_CHECKLIST.md](docs/TESTFLIGHT_CHECKLIST.md) | Pre-submission smoke test checklist |
+| [docs/SUPPORT_CONTACT.md](docs/SUPPORT_CONTACT.md) | Support form, Pingram email, edge function deploy |
 | [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Pingram types, webhooks, `notify` deploy |
 | [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md) | APNs, EAS env, TestFlight push debugging |
 | [docs/WEB_DEPLOY.md](docs/WEB_DEPLOY.md) | Static web export, auth redirects, hosting |

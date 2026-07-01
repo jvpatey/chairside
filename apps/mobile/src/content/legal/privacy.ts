@@ -24,6 +24,7 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
         'Match and display relevant opportunities based on role, location, and preferences.',
         'Authenticate you and keep your account secure.',
         'Send transactional notifications about applications, messages, interviews, and fill-in alerts.',
+        'Respond to support messages you submit through the Support page.',
         'Improve reliability, prevent abuse, and support customers.',
       ],
     },
@@ -90,7 +91,7 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
     {
       title: 'Contact',
       paragraphs: [
-        'Questions about privacy? Email support@chairside.app.',
+        'Contact us through the Support page in the app or on our website.',
       ],
     },
   ],

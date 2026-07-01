@@ -3,16 +3,12 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
-import type { LegalPageContent } from '@/content/legal/types';
+import { SupportContactForm } from '@/components/support/SupportContactForm';
 import { LEGAL_LAST_UPDATED, PUBLIC_LEGAL_PATHS } from '@/constants/legal';
+import { SUPPORT_PAGE_CONTENT } from '@/content/legal/support';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
-
-type LegalPageLayoutProps = {
-  content: LegalPageContent;
-  currentPath: keyof typeof PUBLIC_LEGAL_PATHS;
-};
 
 const FOOTER_LINKS: { path: keyof typeof PUBLIC_LEGAL_PATHS; label: string }[] = [
   { path: 'privacy', label: 'Privacy' },
@@ -20,41 +16,11 @@ const FOOTER_LINKS: { path: keyof typeof PUBLIC_LEGAL_PATHS; label: string }[] =
   { path: 'terms', label: 'Terms' },
 ];
 
-function LegalBodyText({ children }: { children: string }) {
-  const styles = useThemedStyles(({ colors, typography, spacing }) => ({
-    text: {
-      ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
-      color: colors.labelSecondary,
-      marginBottom: spacing.sm,
-    },
-    link: {
-      color: colors.primary,
-      fontWeight: '600' as const,
-    },
-  }));
+const FAQ_SECTIONS = SUPPORT_PAGE_CONTENT.sections.filter(
+  (section) => section.title !== 'Contact us' && section.title !== 'Report a problem',
+);
 
-  if (children.includes('Support page')) {
-    const parts = children.split('Support page');
-    return (
-      <Text style={styles.text}>
-        {parts[0]}
-        <Text
-          style={styles.link}
-          onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
-          accessibilityRole="link">
-          Support page
-        </Text>
-        {parts[1] ?? ''}
-      </Text>
-    );
-  }
-
-  return <Text style={styles.text}>{children}</Text>;
-}
-
-export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) {
+export function SupportPageLayout() {
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     page: {
@@ -110,16 +76,51 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
       color: colors.labelSecondary,
       marginBottom: spacing.xl,
     },
+    formCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.lg,
+      marginBottom: spacing.xl,
+      gap: spacing.md,
+    },
+    formTitle: {
+      ...typography.body,
+      fontSize: 20,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    formSubtitle: {
+      ...typography.subtitle,
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.labelSecondary,
+    },
+    faqTitle: {
+      ...typography.body,
+      fontSize: 18,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+      marginBottom: spacing.lg,
+    },
     section: {
       marginBottom: spacing.xl,
       gap: spacing.sm,
     },
     sectionTitle: {
       ...typography.body,
-      fontSize: 18,
-      fontWeight: '700' as const,
+      fontSize: 17,
+      fontWeight: '600' as const,
       color: colors.labelPrimary,
       marginBottom: spacing.xs,
+    },
+    body: {
+      ...typography.body,
+      fontSize: 15,
+      lineHeight: 24,
+      color: colors.labelSecondary,
+      marginBottom: spacing.sm,
     },
     bulletRow: {
       flexDirection: 'row' as const,
@@ -195,15 +196,27 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
         </Pressable>
       </View>
 
-      <Text style={styles.title}>{content.title}</Text>
+      <Text style={styles.title}>{SUPPORT_PAGE_CONTENT.title}</Text>
       <Text style={styles.updated}>Last updated: {LEGAL_LAST_UPDATED}</Text>
-      {content.intro ? <Text style={styles.intro}>{content.intro}</Text> : null}
+      <Text style={styles.intro}>{SUPPORT_PAGE_CONTENT.intro}</Text>
 
-      {content.sections.map((section) => (
+      <View style={styles.formCard}>
+        <Text style={styles.formTitle}>Contact us</Text>
+        <Text style={styles.formSubtitle}>
+          Send a message for bugs, account issues, or questions. We typically respond within one to
+          two business days.
+        </Text>
+        <SupportContactForm />
+      </View>
+
+      <Text style={styles.faqTitle}>Help topics</Text>
+      {FAQ_SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
           {section.paragraphs?.map((paragraph) => (
-            <LegalBodyText key={paragraph}>{paragraph}</LegalBodyText>
+            <Text key={paragraph} style={styles.body}>
+              {paragraph}
+            </Text>
           ))}
           {section.bullets?.map((bullet) => (
             <View key={bullet} style={styles.bulletRow}>
@@ -233,7 +246,7 @@ export function LegalPageLayout({ content, currentPath }: LegalPageLayoutProps) 
               <Text
                 style={[
                   styles.footerLink,
-                  link.path === currentPath && styles.footerLinkActive,
+                  link.path === 'support' && styles.footerLinkActive,
                 ]}>
                 {link.label}
               </Text>

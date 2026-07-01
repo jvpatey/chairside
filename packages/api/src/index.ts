@@ -22,6 +22,12 @@ export {
   deleteAccount,
 } from './auth';
 export {
+  SUPPORT_CONTACT_SUBJECTS,
+  submitSupportContact,
+  type SubmitSupportContactInput,
+  type SupportContactSubject,
+} from './supportContact';
+export {
   completeClinicSetup,
   getClinicProfile,
   getMissingClinicProfileFields,

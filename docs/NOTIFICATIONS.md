@@ -25,6 +25,7 @@ Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app
    - `fill_in_outreach_sms` (SMS-only; clinic-initiated fill-in text alerts)
    - `job_posted`
    - `message_received`
+   - `support_contact` (Support page form email — see [SUPPORT_CONTACT.md](./SUPPORT_CONTACT.md))
 3. Mobile env: set `EXPO_PUBLIC_PINGRAM_CLIENT_ID` to either the **environment client ID** (Environments page) or the **public key** (`pingram_pk_...`). The app resolves `pingram_pk_` JWTs to the environment ID automatically — the SDK must not use the raw public key as `clientId`.
 4. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
 5. Configure **APNs** (iOS) — often under a notification’s **Mobile Integration** tab (not Settings → Integrations). See [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) when you ship Android push.

@@ -1,11 +1,8 @@
-/** Public support contact — used on Support page and App Store Connect. */
-export const SUPPORT_EMAIL = 'support@chairside.app';
-
 /** Shown on legal pages; update when policy copy changes materially. */
 export const LEGAL_LAST_UPDATED = 'July 1, 2026';
 
 /**
- * Production web origin for absolute legal URLs (App Store Connect, email footers).
+ * Production web origin for absolute legal URLs (App Store Connect).
  * Set EXPO_PUBLIC_WEB_BASE_URL in production, e.g. https://chairside.app
  */
 export function getPublicWebBaseUrl(): string {

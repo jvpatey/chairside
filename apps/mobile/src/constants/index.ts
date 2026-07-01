@@ -5,7 +5,6 @@ export {
   getPublicWebBaseUrl,
   LEGAL_LAST_UPDATED,
   PUBLIC_LEGAL_PATHS,
-  SUPPORT_EMAIL,
 } from './legal';
 
 /** Set when the App Store listing is live, e.g. https://apps.apple.com/app/id… */

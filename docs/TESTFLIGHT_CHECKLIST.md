@@ -50,6 +50,7 @@ Record build number, date, and tester name when signing off.
 ## Account & legal
 
 - [ ] Profile → Account → Legal links open privacy/support/terms
+- [ ] Support page contact form sends successfully (web and native)
 - [ ] Profile → Account → Delete account (use throwaway account only)
 - [ ] Deleted user cannot sign in; other party sees "no longer on Chairside" where applicable
 

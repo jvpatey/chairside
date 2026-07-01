@@ -97,7 +97,7 @@ export const TERMS_OF_SERVICE_CONTENT: LegalPageContent = {
     {
       title: 'Contact',
       paragraphs: [
-        'Questions? Email support@chairside.app.',
+        'Questions? Contact us through the Support page.',
       ],
     },
   ],

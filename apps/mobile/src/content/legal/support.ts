@@ -8,7 +8,7 @@ export const SUPPORT_PAGE_CONTENT: LegalPageContent = {
     {
       title: 'Contact us',
       paragraphs: [
-        'Email support@chairside.app with your account email and a short description of the issue. We typically respond within one to two business days.',
+        'Use the form on this page to send a message. Include your account email and a short description of the issue. We typically respond within one to two business days.',
       ],
     },
     {
@@ -53,7 +53,7 @@ export const SUPPORT_PAGE_CONTENT: LegalPageContent = {
     {
       title: 'Report a problem',
       paragraphs: [
-        'For bugs, incorrect data, or safety concerns, email support@chairside.app with steps to reproduce, screenshots if possible, and your device model and app version.',
+        'For bugs, incorrect data, or safety concerns, use the contact form above with steps to reproduce, screenshots if possible, and your device model and app version.',
       ],
     },
     {

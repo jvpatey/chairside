@@ -35,7 +35,7 @@ for route in privacy support terms; do
   fi
 done
 
-for doc in APP_STORE_RELEASE.md APP_STORE_CONNECT.md TESTFLIGHT_CHECKLIST.md PUSH_IOS_PRODUCTION.md NOTIFICATIONS.md; do
+for doc in APP_STORE_RELEASE.md APP_STORE_CONNECT.md TESTFLIGHT_CHECKLIST.md PUSH_IOS_PRODUCTION.md NOTIFICATIONS.md SUPPORT_CONTACT.md; do
   if [[ -f "$ROOT/docs/$doc" ]]; then
     ok "docs/$doc"
   else
@@ -43,14 +43,21 @@ for doc in APP_STORE_RELEASE.md APP_STORE_CONNECT.md TESTFLIGHT_CHECKLIST.md PUS
   fi
 done
 
+if [[ -f "$ROOT/supabase/functions/support-contact/index.ts" ]]; then
+  ok "support-contact edge function"
+else
+  fail "Missing supabase/functions/support-contact/index.ts"
+fi
+
 echo
 echo "Manual steps (require your credentials):"
 echo "  1. cd apps/mobile && eas env:list --environment production"
-echo "  2. supabase functions deploy delete-account notify --use-api"
-echo "  3. Configure Pingram APNs — docs/PUSH_IOS_PRODUCTION.md"
-echo "  4. pnpm build:ios  →  TestFlight  →  docs/TESTFLIGHT_CHECKLIST.md"
-echo "  5. eas submit --profile production --platform ios"
-echo "  6. App Store Connect — docs/APP_STORE_CONNECT.md"
+echo "  2. supabase functions deploy delete-account notify support-contact --no-verify-jwt --use-api"
+echo "  3. supabase secrets set SUPPORT_INBOX_EMAIL=... SUPPORT_SENDER_EMAIL=... (see docs/SUPPORT_CONTACT.md)"
+echo "  4. Configure Pingram APNs — docs/PUSH_IOS_PRODUCTION.md"
+echo "  5. pnpm build:ios  →  TestFlight  →  docs/TESTFLIGHT_CHECKLIST.md"
+echo "  6. eas submit --profile production --platform ios"
+echo "  7. App Store Connect — docs/APP_STORE_CONNECT.md"
 echo
 echo "Full runbook: docs/APP_STORE_RELEASE.md"
 echo

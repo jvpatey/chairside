@@ -76,6 +76,7 @@ Apply every file in `supabase/migrations/` in numeric order through the latest (
 # From repo root
 supabase functions deploy delete-account --use-api
 supabase functions deploy notify --use-api
+supabase functions deploy support-contact --no-verify-jwt --use-api
 ```
 
 ### Secrets
@@ -83,8 +84,13 @@ supabase functions deploy notify --use-api
 ```bash
 supabase secrets set PINGRAM_API_KEY=pingram_sk_...
 supabase secrets set NOTIFY_WEBHOOK_SECRET=$(openssl rand -hex 32)
+supabase secrets set SUPPORT_INBOX_EMAIL='your-inbox@example.com'
+supabase secrets set SUPPORT_SENDER_EMAIL='noreply@pingram.io'
+supabase secrets set SUPPORT_SENDER_NAME='Chairside Support'
 # Optional: PINGRAM_API_URL=https://api.ca.pingram.io
 ```
+
+`SUPPORT_INBOX_EMAIL` is server-only and never appears in the app. See [SUPPORT_CONTACT.md](./SUPPORT_CONTACT.md).
 
 ### Auth redirect URLs
 
@@ -143,12 +149,19 @@ See [APP_STORE_CONNECT.md](./APP_STORE_CONNECT.md) for listing copy, privacy ans
 
 Before submitting for review, complete [TESTFLIGHT_CHECKLIST.md](./TESTFLIGHT_CHECKLIST.md) on a physical iPhone.
 
+## 9. Auth email via Pingram SMTP (pre-launch, separate)
+
+Password reset and sign-up confirmation emails still use Supabase Auth. Before launch:
+
+1. Verify `chairside.app` in Pingram **Domains**.
+2. Pingram **Email Playground → SMTP & Supabase → Integrate with Supabase** (or manual SMTP: `smtp.ca.pingram.io`, port 465).
+3. Test from Supabase → Auth → Users → Send password recovery.
+
 ## Quick reference
 
 | Item | Value |
 | ---- | ----- |
 | Bundle ID | `com.chairside.app` |
 | EAS project | `apps/mobile` only |
-| Support email | `support@chairside.app` |
 | Privacy URL | `https://<domain>/privacy` |
-| Support URL | `https://<domain>/support` |
+| Support URL | `https://<domain>/support` (contact form; no public inbox email) |
