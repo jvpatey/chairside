@@ -2,8 +2,10 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { PublicLegalPageHeader } from '@/components/legal/PublicLegalPageHeader';
+import { PublicPageCardHeader } from '@/components/legal/PublicPageCardHeader';
 import { SupportContactForm } from '@/components/support/SupportContactForm';
+import { SupportHelpTopics } from '@/components/support/SupportHelpTopics';
 import { LEGAL_LAST_UPDATED, PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { SUPPORT_PAGE_CONTENT } from '@/content/legal/support';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
@@ -36,26 +38,6 @@ export function SupportPageLayout() {
       width: '100%' as const,
       maxWidth: CONTENT_MAX_WIDTH.regular,
     },
-    headerRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
-      marginBottom: spacing.xl,
-      gap: spacing.md,
-    },
-    backPressable: {
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.sm,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    backHovered: webTextLinkHoverStyles(colors),
-    backText: {
-      ...typography.body,
-      fontSize: 14,
-      fontWeight: '600' as const,
-      color: colors.primary,
-    },
     title: {
       ...typography.title,
       fontSize: 32,
@@ -83,63 +65,7 @@ export function SupportPageLayout() {
       borderColor: colors.separator,
       padding: spacing.lg,
       marginBottom: spacing.xl,
-      gap: spacing.md,
-    },
-    formTitle: {
-      ...typography.body,
-      fontSize: 20,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-    },
-    formSubtitle: {
-      ...typography.subtitle,
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.labelSecondary,
-    },
-    faqTitle: {
-      ...typography.body,
-      fontSize: 18,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-      marginBottom: spacing.lg,
-    },
-    section: {
-      marginBottom: spacing.xl,
-      gap: spacing.sm,
-    },
-    sectionTitle: {
-      ...typography.body,
-      fontSize: 17,
-      fontWeight: '600' as const,
-      color: colors.labelPrimary,
-      marginBottom: spacing.xs,
-    },
-    body: {
-      ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
-      color: colors.labelSecondary,
-      marginBottom: spacing.sm,
-    },
-    bulletRow: {
-      flexDirection: 'row' as const,
-      gap: spacing.sm,
-      paddingRight: spacing.sm,
-    },
-    bullet: {
-      ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
-      color: colors.labelTertiary,
-      width: 16,
-    },
-    bulletText: {
-      ...typography.body,
-      fontSize: 15,
-      lineHeight: 24,
-      color: colors.labelSecondary,
-      flex: 1,
+      gap: spacing.lg,
     },
     footer: {
       marginTop: spacing.lg,
@@ -181,51 +107,22 @@ export function SupportPageLayout() {
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.headerRow}>
-        <ChairsideWordmark variant="small" align="left" />
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel="Back to home"
-          onPress={() => router.push('/(onboarding)/welcome')}
-          style={({ pressed, hovered }) => [
-            styles.backPressable,
-            webHover(hovered, pressed, styles.backHovered),
-            pressed && { opacity: 0.75 },
-          ]}>
-          <Text style={styles.backText}>Home</Text>
-        </Pressable>
-      </View>
+      <PublicLegalPageHeader />
 
       <Text style={styles.title}>{SUPPORT_PAGE_CONTENT.title}</Text>
       <Text style={styles.updated}>Last updated: {LEGAL_LAST_UPDATED}</Text>
       <Text style={styles.intro}>{SUPPORT_PAGE_CONTENT.intro}</Text>
 
       <View style={styles.formCard}>
-        <Text style={styles.formTitle}>Contact us</Text>
-        <Text style={styles.formSubtitle}>
-          Send a message for bugs, account issues, or questions. We typically respond within one to
-          two business days.
-        </Text>
+        <PublicPageCardHeader
+          icon="mail-outline"
+          title="Contact us"
+          subtitle="Send a message for bugs, account issues, or questions. We typically respond within one to two business days."
+        />
         <SupportContactForm />
       </View>
 
-      <Text style={styles.faqTitle}>Help topics</Text>
-      {FAQ_SECTIONS.map((section) => (
-        <View key={section.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          {section.paragraphs?.map((paragraph) => (
-            <Text key={paragraph} style={styles.body}>
-              {paragraph}
-            </Text>
-          ))}
-          {section.bullets?.map((bullet) => (
-            <View key={bullet} style={styles.bulletRow}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.bulletText}>{bullet}</Text>
-            </View>
-          ))}
-        </View>
-      ))}
+      <SupportHelpTopics sections={FAQ_SECTIONS} />
 
       <View style={styles.footer}>
         {FOOTER_LINKS.map((link, index) => (
