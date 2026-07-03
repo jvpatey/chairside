@@ -15,8 +15,10 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   CLINIC_SETUP_BASICS,
@@ -43,6 +45,7 @@ const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
 export default function FindAvailableWorkersScreen() {
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { billing, upgradePrompt, showOutreachUpgrade } = useClinicUpgradePrompt();
   const { returnTo } = useLocalSearchParams<{ returnTo?: FillInReturnTarget }>();
   const resolvedReturnTo = returnTo ?? 'fill-ins-tab';
 
@@ -135,6 +138,11 @@ export default function FindAvailableWorkersScreen() {
       return;
     }
 
+    if (billing && !billing.canUseFillInOutreach) {
+      showOutreachUpgrade();
+      return;
+    }
+
     if (worker.existingConversationId) {
       router.push(getClinicConversationRoute(worker.existingConversationId));
       return;
@@ -152,7 +160,9 @@ export default function FindAvailableWorkersScreen() {
   };
 
   return (
-    <OnboardingShell transparentBackground>
+    <>
+      {upgradePrompt}
+      <OnboardingShell transparentBackground>
       <View style={styles.form}>
         <AuthScreenHeader
           title="Find available workers"
@@ -184,6 +194,13 @@ export default function FindAvailableWorkersScreen() {
 
         {!isProfileComplete ? (
           <Text style={styles.empty}>Complete your clinic profile to browse available workers.</Text>
+        ) : billing && !billing.canUseFillInOutreach ? (
+          <>
+            <Text style={styles.empty}>
+              Direct fill-in outreach is available on Starter and Pro plans.
+            </Text>
+            <OnboardingButton label="View plans" onPress={showOutreachUpgrade} />
+          </>
         ) : isLoading ? (
           <PageLoadingDetail />
         ) : workers.length === 0 ? (
@@ -215,5 +232,6 @@ export default function FindAvailableWorkersScreen() {
         )}
       </View>
     </OnboardingShell>
+    </>
   );
 }

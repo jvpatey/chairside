@@ -13,6 +13,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   getAccountSubtitle,
   getClinicAboutSubtitle,
+  getClinicBillingSubtitle,
   getClinicMessagingSubtitle,
   getClinicNotificationsSubtitle,
   getClinicPracticeSubtitle,
@@ -22,15 +23,18 @@ import {
   CLINIC_HOME,
   CLINIC_PROFILE_ABOUT,
   CLINIC_PROFILE_ACCOUNT,
+  CLINIC_PROFILE_BILLING,
   CLINIC_PROFILE_MESSAGING,
   CLINIC_PROFILE_NOTIFICATIONS,
   CLINIC_PROFILE_PRACTICE,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
+import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingContext';
 
 export default function ClinicAccountProfileScreen() {
   const { user } = useAuth();
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { billing } = useClinicBilling();
   const { isCompact } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -70,6 +74,12 @@ export default function ClinicAccountProfileScreen() {
             title="Messaging"
             subtitle={getClinicMessagingSubtitle(clinicProfile)}
             onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}
+          />
+          <ProfileSettingsRow
+            icon="card-outline"
+            title="Plans & billing"
+            subtitle={getClinicBillingSubtitle(getClinicPlanLabel(billing?.plan ?? 'free'))}
+            onPress={() => router.push(CLINIC_PROFILE_BILLING)}
           />
           {isCompact ? (
             <ProfileSettingsRow

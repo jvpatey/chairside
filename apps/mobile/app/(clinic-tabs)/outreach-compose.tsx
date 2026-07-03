@@ -19,6 +19,7 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { todayISO } from '@/lib/dates';
 import { getClinicConversationRoute, type FillInReturnTarget } from '@/lib/routing';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
@@ -28,6 +29,7 @@ import { useThemedStyles } from '@/theme';
 
 export default function OutreachComposeScreen() {
   const { user } = useAuth();
+  const { billing, upgradePrompt, showSmsUpgrade, handleBillingError } = useClinicUpgradePrompt();
   const params = useLocalSearchParams<{
     workerId?: string;
     workerName?: string;
@@ -54,7 +56,7 @@ export default function OutreachComposeScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
 
-  const canOfferSms = workerSmsOptIn;
+  const canOfferSms = workerSmsOptIn && (billing?.canUseFillInSms ?? false);
 
   const resetForm = useCallback(() => {
     setMessage('');
@@ -165,6 +167,11 @@ export default function OutreachComposeScreen() {
       outreachRoleType = roleType;
     }
 
+    if (sendSms && !billing?.canUseFillInSms) {
+      showSmsUpgrade();
+      return;
+    }
+
     setFormError(null);
     setIsSubmitting(true);
     try {
@@ -179,6 +186,9 @@ export default function OutreachComposeScreen() {
       });
       await openConversation(conversationId);
     } catch (error) {
+      if (handleBillingError(error)) {
+        return;
+      }
       setFormError(getErrorMessage(error, 'Could not send outreach message.'));
     } finally {
       setIsSubmitting(false);
@@ -186,7 +196,9 @@ export default function OutreachComposeScreen() {
   };
 
   return (
-    <OnboardingShell>
+    <>
+      {upgradePrompt}
+      <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
           title={`Message ${workerName}`}
@@ -248,6 +260,12 @@ export default function OutreachComposeScreen() {
           </View>
         ) : null}
 
+        {workerSmsOptIn && billing && !billing.canUseFillInSms ? (
+          <Text style={styles.helper}>
+            SMS fill-in alerts are available on Starter and Pro plans.
+          </Text>
+        ) : null}
+
         {canOfferSms ? (
           <SettingsToggleRow
             title="Send text alert too"
@@ -267,5 +285,6 @@ export default function OutreachComposeScreen() {
         />
       </View>
     </OnboardingShell>
+    </>
   );
 }

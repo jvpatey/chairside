@@ -414,6 +414,30 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['notification_preferences']['Insert']>;
         Relationships: [];
       };
+      clinic_subscriptions: {
+        Row: {
+          clinic_id: string;
+          provider: string;
+          provider_customer_id: string | null;
+          plan: 'free' | 'starter' | 'pro';
+          status: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
+          current_period_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          clinic_id: string;
+          provider?: string;
+          provider_customer_id?: string | null;
+          plan?: 'free' | 'starter' | 'pro';
+          status?: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
+          current_period_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['clinic_subscriptions']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -511,6 +535,34 @@ export type Database = {
           p_send_sms?: boolean;
         };
         Returns: string;
+      };
+      get_clinic_billing_state: {
+        Args: { p_clinic_id?: string };
+        Returns: {
+          plan: 'free' | 'starter' | 'pro';
+          status: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
+          active_opportunity_count: number;
+          active_opportunity_limit: number | null;
+          can_publish_opportunity: boolean;
+          can_use_fill_in_outreach: boolean;
+          can_use_fill_in_sms: boolean;
+          has_priority_listing: boolean;
+          current_period_end: string | null;
+        };
+      };
+      get_clinic_plan_map: {
+        Args: { p_clinic_ids: string[] };
+        Returns: { clinic_id: string; plan: 'free' | 'starter' | 'pro' }[];
+      };
+      upsert_clinic_subscription: {
+        Args: {
+          p_clinic_id: string;
+          p_plan: 'free' | 'starter' | 'pro';
+          p_status: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
+          p_current_period_end?: string | null;
+          p_provider_customer_id?: string | null;
+        };
+        Returns: Database['public']['Tables']['clinic_subscriptions']['Row'];
       };
     };
     Enums: Record<string, never>;

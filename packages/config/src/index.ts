@@ -108,6 +108,21 @@ export {
 } from './notifications';
 export { normalizePhoneForStorage, normalizePhoneToE164 } from './phone';
 export {
+  CLINIC_ACTIVE_OPPORTUNITY_LIMITS,
+  CLINIC_PLAN_LABELS,
+  CLINIC_PLAN_MARKETING,
+  REVENUECAT_ENTITLEMENT_PRO,
+  REVENUECAT_ENTITLEMENT_STARTER,
+  REVENUECAT_PRODUCT_IDS,
+  clinicPlanIncludesFeature,
+  formatClinicActiveOpportunityLimit,
+  getClinicActiveOpportunityLimit,
+  resolveClinicPlanFromEntitlements,
+  type ClinicBillingFeature,
+  type ClinicPlan,
+  type ClinicPlanMarketing,
+} from './billing';
+export {
   ALL_SCREENING_CATALOG_SLUGS,
   RATING_SCALE_OPTIONS,
   SCREENING_CATALOG,

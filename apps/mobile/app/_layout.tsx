@@ -21,6 +21,7 @@ import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
 import { GetStartedBrowseProgressProvider } from '@/contexts/GetStartedBrowseProgressContext';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ClinicBillingProvider } from '@/contexts/ClinicBillingContext';
 import { ClinicProfileProvider } from '@/contexts/ClinicProfileContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ResumePreviewProvider } from '@/contexts/ResumePreviewContext';
@@ -67,6 +68,7 @@ export default function RootLayout() {
       <AuthProvider>
         <GetStartedBrowseProgressProvider>
         <ClinicProfileProvider>
+          <ClinicBillingProvider>
           <WorkerProfileProvider>
             <NotificationProvider>
               <ResumePreviewProvider>
@@ -95,6 +97,7 @@ export default function RootLayout() {
               </ResumePreviewProvider>
             </NotificationProvider>
           </WorkerProfileProvider>
+          </ClinicBillingProvider>
         </ClinicProfileProvider>
         </GetStartedBrowseProgressProvider>
       </AuthProvider>

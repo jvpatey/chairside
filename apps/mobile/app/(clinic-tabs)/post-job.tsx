@@ -32,6 +32,7 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useThemedStyles } from '@/theme';
 
 function applyJobToForm(job: JobPostWithScreening) {
@@ -76,6 +77,7 @@ const DEFAULT_CREATE_FORM = {
 
 export default function PostJobScreen() {
   const { user } = useAuth();
+  const { billing, upgradePrompt, showPublishUpgrade, handleBillingError } = useClinicUpgradePrompt();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const jobId = typeof id === 'string' ? id : undefined;
   const isEditing = Boolean(jobId);
@@ -193,6 +195,11 @@ export default function PostJobScreen() {
       return;
     }
 
+    if (!isEditing && billing && !billing.canPublishRole) {
+      showPublishUpgrade();
+      return;
+    }
+
     setIsSubmitting(true);
     setFormError(null);
     try {
@@ -225,6 +232,9 @@ export default function PostJobScreen() {
         router.replace(CLINIC_POSTINGS);
       }
     } catch (error) {
+      if (handleBillingError(error)) {
+        return;
+      }
       const message = error instanceof Error ? error.message : 'Please try again.';
       setFormError(message);
       if (Platform.OS !== 'web') {
@@ -248,7 +258,9 @@ export default function PostJobScreen() {
   }
 
   return (
-    <OnboardingShell>
+    <>
+      {upgradePrompt}
+      <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit role' : 'Post a role'}
@@ -310,5 +322,6 @@ export default function PostJobScreen() {
         />
       </View>
     </OnboardingShell>
+    </>
   );
 }

@@ -25,6 +25,7 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { todayISO } from '@/lib/dates';
 import { isValidTimeRange, normalizeTime24h, parseTime24h } from '@/lib/time';
 import { getFillInHeroGradient, useTheme, useThemedStyles } from '@/theme';
@@ -60,6 +61,7 @@ function applyShiftToForm(shift: ShiftPost) {
 
 export default function PostShiftScreen() {
   const { user } = useAuth();
+  const { billing, upgradePrompt, showPublishUpgrade, handleBillingError } = useClinicUpgradePrompt();
   const { colors } = useTheme();
   const brandColor = colors.secondary;
   const brandSubtle = colors.secondarySubtle;
@@ -201,6 +203,12 @@ export default function PostShiftScreen() {
       return;
     }
 
+    const countsTowardLimit = shiftDate.trim() >= todayISO();
+    if (!isEditing && countsTowardLimit && billing && !billing.canPublishFillIn) {
+      showPublishUpgrade('fill-in');
+      return;
+    }
+
     setIsSubmitting(true);
     setFormError(null);
     try {
@@ -224,6 +232,9 @@ export default function PostShiftScreen() {
         navigateAfterFillInSave(router, returnTo);
       }
     } catch (error) {
+      if (handleBillingError(error)) {
+        return;
+      }
       const message = error instanceof Error ? error.message : 'Please try again.';
       setFormError(message);
       if (Platform.OS !== 'web') {
@@ -248,7 +259,9 @@ export default function PostShiftScreen() {
   }
 
   return (
-    <OnboardingShell backgroundAccessory={<PostShiftHeroGlow />}>
+    <>
+      {upgradePrompt}
+      <OnboardingShell backgroundAccessory={<PostShiftHeroGlow />}>
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
@@ -339,5 +352,6 @@ export default function PostShiftScreen() {
         />
       </View>
     </OnboardingShell>
+    </>
   );
 }
