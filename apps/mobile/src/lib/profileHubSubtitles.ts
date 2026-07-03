@@ -77,6 +77,10 @@ export function getClinicNotificationsSubtitle(): string {
   return 'Manage push alerts';
 }
 
+export function getClinicBillingSubtitle(planLabel?: string | null): string {
+  return planLabel ? `${planLabel} plan` : 'Free plan';
+}
+
 export function getSupportSubtitle(): string {
   return 'Help topics and contact form';
 }

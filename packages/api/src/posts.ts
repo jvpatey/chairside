@@ -1,6 +1,7 @@
-import type { RoleType } from '@chairside/config';
+import type { ClinicPlan } from '@chairside/config';
 import { isMatchableSoftware } from '@chairside/core';
 import { isClinicNewApplication } from './applicationNotificationPredicates';
+import { getClinicPlanMap } from './billing';
 import { getSupabaseClient } from './client';
 import {
   getJobPostScreeningQuestions,
@@ -563,6 +564,21 @@ function attachClinic<T extends { clinic_id: string }>(
     .filter((post): post is T & { clinic: ClinicSummary } => post != null);
 }
 
+function sortPostsByClinicPlanPriority<T extends { clinic_id: string; created_at?: string }>(
+  posts: T[],
+  planMap: Map<string, ClinicPlan>,
+  secondarySort: (left: T, right: T) => number,
+): T[] {
+  return [...posts].sort((left, right) => {
+    const leftPriority = planMap.get(left.clinic_id) === 'pro' ? 1 : 0;
+    const rightPriority = planMap.get(right.clinic_id) === 'pro' ? 1 : 0;
+    if (leftPriority !== rightPriority) {
+      return rightPriority - leftPriority;
+    }
+    return secondarySort(left, right);
+  });
+}
+
 export async function listLiveJobPosts(province: string): Promise<LiveJobPost[]> {
   const supabase = getSupabaseClient();
   const clinicMap = await listClinicSummariesInProvince(province);
@@ -578,7 +594,11 @@ export async function listLiveJobPosts(province: string): Promise<LiveJobPost[]>
 
   if (error) throw error;
   const posts = attachClinic((data ?? []) as JobPost[], clinicMap);
-  return posts.map((post) => ({ ...post, screening_questions: [] }));
+  const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
+  const sortedPosts = sortPostsByClinicPlanPriority(posts, planMap, (left, right) =>
+    right.created_at.localeCompare(left.created_at),
+  );
+  return sortedPosts.map((post) => ({ ...post, screening_questions: [] }));
 }
 
 export async function listLiveShiftPosts(province: string): Promise<LiveShiftPost[]> {
@@ -598,7 +618,13 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
     .order('shift_date', { ascending: true });
 
   if (error) throw error;
-  return attachClinic((data ?? []) as ShiftPost[], clinicMap);
+  const posts = attachClinic((data ?? []) as ShiftPost[], clinicMap);
+  const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
+  return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
+    const dateCompare = left.shift_date.localeCompare(right.shift_date);
+    if (dateCompare !== 0) return dateCompare;
+    return left.created_at.localeCompare(right.created_at);
+  });
 }
 
 function shiftWeekday(shiftDate: string): number {

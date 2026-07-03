@@ -1,3 +1,11 @@
+export {
+  getClinicBillingState,
+  getClinicPlanMap,
+  isClinicBillingLimitError,
+  syncClinicSubscriptionFromRevenueCat,
+  type ClinicBillingState,
+  type ClinicSubscriptionStatus,
+} from './billing';
 export { createSupabaseClient, getSupabaseClient } from './client';
 export { getErrorMessage, throwWithMessage } from './errors';
 export {
