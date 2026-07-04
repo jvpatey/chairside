@@ -16,6 +16,7 @@ import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import { toJobCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
@@ -44,7 +45,7 @@ function ApplicationList({
   unreadMap: Record<string, boolean>;
 }) {
   const styles = useThemedStyles(({ spacing }) => ({
-    list: { gap: spacing.md },
+    list: { gap: spacing.lg },
   }));
 
   return (
@@ -159,6 +160,7 @@ export function WorkerApplicationsInboxPanel({
   }, [checkApplications, user?.id]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
 
   useEffect(() => {
     const redirect = redirectEmbeddedCalendarDeepLink(
@@ -191,7 +193,9 @@ export function WorkerApplicationsInboxPanel({
         title={compact ? undefined : 'Applications'}
         subtitle={compact ? undefined : 'Track your role applications.'}
         showHeader={!compact}
-        constrainWidth={!compact}>
+        constrainWidth={!compact}
+        refreshing={refreshing}
+        onRefresh={onRefresh}>
         <FormErrorBanner message={formError} />
         {isLoading ? (
           <PageLoadingList rowCount={3} message="Loading applications…" />

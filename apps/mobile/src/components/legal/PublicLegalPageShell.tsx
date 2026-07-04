@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
-import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
+import { PageHeroGlow } from '@/components/ui/PageHeroGlow';
 import { useTheme } from '@/theme';
 
 type PublicLegalPageShellProps = {
@@ -14,7 +14,7 @@ export function PublicLegalPageShell({ children }: PublicLegalPageShellProps) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <AuthHeroGlow />
+      <PageHeroGlow variant="form" />
       {children}
     </View>
   );

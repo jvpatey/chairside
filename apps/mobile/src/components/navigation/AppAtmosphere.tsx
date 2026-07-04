@@ -1,7 +1,5 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, useWindowDimensions } from 'react-native';
-
-import { getAtmosphereGradient, useTheme, type GradientAccent } from '@/theme';
+import { PageHeroGlow } from '@/components/ui/PageHeroGlow';
+import type { GradientAccent } from '@/theme';
 import type { TabAtmosphereIntensity } from '@/lib/tabAtmosphereRoutes';
 
 type AppAtmosphereProps = {
@@ -9,35 +7,8 @@ type AppAtmosphereProps = {
   accent?: GradientAccent;
 };
 
-/** Soft brand wash fixed to the top of tab and hero surfaces. */
+/** Soft brand wash fixed to the top of tab and hero surfaces (static — no drifting orbs). */
 export function AppAtmosphere({ intensity = 'prominent', accent = 'primary' }: AppAtmosphereProps) {
-  const { colors, isDark } = useTheme();
-  const { height } = useWindowDimensions();
-  const glowHeight =
-    intensity === 'prominent'
-      ? Math.min(height * 0.48, 420)
-      : Math.min(height * 0.34, 300);
-
-  return (
-    <LinearGradient
-      colors={getAtmosphereGradient(colors, isDark, intensity, accent)}
-      locations={[0, 0.32, 0.62, 1]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={[styles.glow, { height: glowHeight }]}
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    />
-  );
+  const variant = intensity === 'prominent' ? 'accent' : 'subtle';
+  return <PageHeroGlow variant={variant} accent={accent} />;
 }
-
-const styles = StyleSheet.create({
-  glow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 0,
-  },
-});

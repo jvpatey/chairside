@@ -6,7 +6,7 @@ import {
   getTravelRadiusRangeLabel,
 } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
-import { WORKER_HOME, WORKER_PROFILE } from '@/lib/routing';
+import { WORKER_HOME } from '@/lib/routing';
 import { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -16,6 +16,7 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -45,8 +46,8 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 export default function WorkerReviewScreen() {
   const { user } = useAuth();
   const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isEditing = Boolean(workerProfile?.setup_completed_at);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -59,8 +60,8 @@ export default function WorkerReviewScreen() {
     footer: { gap: spacing.md, marginTop: spacing.lg },
   }));
 
-  if (isEditing) {
-    return <Redirect href={WORKER_PROFILE} />;
+  if (isEditMode) {
+    return <Redirect href={exitHref} />;
   }
 
   const handleFinish = async () => {
@@ -94,7 +95,7 @@ export default function WorkerReviewScreen() {
     .join(', ');
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton

@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
+import { PageHeroGlow } from '@/components/ui/PageHeroGlow';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
@@ -38,7 +38,7 @@ export function ProfileDetailScreen({
   const showAtmosphere = tabAtmosphere !== 'none';
   const atmosphereLayer =
     showAtmosphere && Platform.OS === 'web' ? (
-      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+      <PageHeroGlow variant="subtle" accent={tabAtmosphereAccent} />
     ) : null;
   const containerBackground = showAtmosphere ? 'transparent' : colors.backgroundGrouped;
 

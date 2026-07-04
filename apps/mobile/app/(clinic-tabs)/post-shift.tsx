@@ -7,8 +7,6 @@ import {
 } from '@chairside/api';
 import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { useCallback, useEffect, useState } from 'react';
@@ -28,25 +26,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { todayISO } from '@/lib/dates';
 import { isValidTimeRange, normalizeTime24h, parseTime24h } from '@/lib/time';
-import { getFillInHeroGradient, useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 const FILL_IN_ACCENT = 'secondary' as const;
-
-function PostShiftHeroGlow() {
-  const { colors, isDark } = useTheme();
-  const gradient = getFillInHeroGradient(colors, isDark);
-
-  return (
-    <LinearGradient
-      colors={gradient}
-      locations={[0, 0.55, 1]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="none"
-    />
-  );
-}
 
 function applyShiftToForm(shift: ShiftPost) {
   return {
@@ -247,7 +229,7 @@ export default function PostShiftScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell backgroundAccessory={<PostShiftHeroGlow />}>
+      <OnboardingShell atmosphere="accent" atmosphereAccent="secondary">
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
           accent={FILL_IN_ACCENT}
@@ -261,7 +243,7 @@ export default function PostShiftScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell backgroundAccessory={<PostShiftHeroGlow />}>
+      <OnboardingShell atmosphere="accent" atmosphereAccent="secondary">
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}

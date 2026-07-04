@@ -2,6 +2,7 @@
 export const fontRegular = 'PlusJakartaSans_400Regular';
 export const fontSemibold = 'PlusJakartaSans_600SemiBold';
 export const fontBold = 'PlusJakartaSans_700Bold';
+export const fontExtraBold = 'PlusJakartaSans_800ExtraBold';
 
 /** Wordmark and display headings */
 export const fontWordmark = fontBold;

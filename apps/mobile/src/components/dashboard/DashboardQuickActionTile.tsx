@@ -44,7 +44,8 @@ export function DashboardQuickActionTile({
   const gradientColors = isPrimary
     ? getPrimaryTileGradient(colors, isDark)
     : getSecondaryTileGradient(colors, isDark);
-  const brandColor = isPrimary ? colors.primary : colors.secondary;
+  const onGradient = isPrimary ? colors.primaryOnPrimary : colors.secondaryOnSecondary;
+  const onGradientMuted = colorWithAlpha(onGradient, 0.82);
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     tile: {
@@ -94,7 +95,7 @@ export function DashboardQuickActionTile({
       lineHeight: useStackedLayout ? 18 : 22,
       fontFamily: useStackedLayout ? fontSemibold : fontBold,
       fontWeight: useStackedLayout ? '600' : '700',
-      color: colors.labelPrimary,
+      color: onGradient,
       letterSpacing: -0.2,
       textAlign: useStackedLayout ? ('center' as const) : ('left' as const),
     },
@@ -102,11 +103,11 @@ export function DashboardQuickActionTile({
       fontSize: 13,
       lineHeight: 18,
       fontFamily: fontRegular,
-      color: colors.labelSecondary,
+      color: onGradientMuted,
     },
     chevron: {
       flexShrink: 0,
-      opacity: 0.45,
+      opacity: 0.72,
     },
   }));
 
@@ -136,6 +137,7 @@ export function DashboardQuickActionTile({
               icon={icon}
               accent={isPrimary ? 'primary' : 'secondary'}
               size="sm"
+              onGradient
             />
           </View>
           <Text style={styles.label} numberOfLines={2}>
@@ -149,6 +151,7 @@ export function DashboardQuickActionTile({
               icon={icon}
               accent={isPrimary ? 'primary' : 'secondary'}
               size="md"
+              onGradient
             />
           </View>
           <View style={styles.textBlock}>
@@ -159,7 +162,7 @@ export function DashboardQuickActionTile({
               {description}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} style={styles.chevron} />
+          <Ionicons name="chevron-forward" size={18} color={onGradient} style={styles.chevron} />
         </View>
       )}
     </Pressable>

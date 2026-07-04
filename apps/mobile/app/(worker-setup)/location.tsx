@@ -15,6 +15,7 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
 function buildFormattedAddress(
@@ -48,6 +49,7 @@ function profileToAddress(
 export default function WorkerLocationScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const [address, setAddress] = useState<AddressFormValue>(() =>
     workerProfile ? profileToAddress(workerProfile) : createEmptyAddressValue(),
   );
@@ -84,7 +86,11 @@ export default function WorkerLocationScreen() {
         longitude: address.longitude,
         bio: bio.trim() || null,
       });
-      router.push(WORKER_SETUP_REVIEW);
+      if (isEditMode) {
+        router.replace(exitHref);
+      } else {
+        router.push(WORKER_SETUP_REVIEW);
+      }
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -98,11 +104,11 @@ export default function WorkerLocationScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Continue'}
+            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
             onPress={handleContinue}
           />
@@ -111,9 +117,9 @@ export default function WorkerLocationScreen() {
       <AuthScreenHeader
         title="Professional background · Location & bio"
         subtitle="Your province determines which roles you can browse."
-        onBack={() => router.back()}
+        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />
-      <SetupStepProgress step={4} total={5} />
+      {!isEditMode ? <SetupStepProgress step={4} total={5} /> : null}
       <View style={styles.form}>
         <AddressAutocomplete value={address} onChange={setAddress} />
         <AuthField

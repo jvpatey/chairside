@@ -5,7 +5,7 @@ import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton
 import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
-import { useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroActionsProps = {
   profileHref: Href;
@@ -20,10 +20,11 @@ export function DashboardHeroActions({
   displayName,
   photoUri,
 }: DashboardHeroActionsProps) {
+  const { colors, isDark } = useTheme();
   const name = displayName?.trim();
   const showSignOut = Platform.OS === 'web';
 
-  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
     actionsCluster: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -36,7 +37,8 @@ export function DashboardHeroActions({
       borderRadius: radii.pill,
       padding: 2,
       borderWidth: 2,
-      borderColor: `${colors.primary}44`,
+      borderColor: colorWithAlpha(colors.primary, isDark ? 0.55 : 0.4),
+      backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.5 : 0.88),
     },
     signOutWrap: {
       marginLeft: spacing.xs,
@@ -44,7 +46,10 @@ export function DashboardHeroActions({
   }));
 
   return (
-    <LiquidGlassSurface borderRadius={22} style={styles.actionsCluster}>
+    <LiquidGlassSurface
+      borderRadius={22}
+      style={styles.actionsCluster}
+      overlayColor={colorWithAlpha(colors.surface, isDark ? 0.58 : 0.84)}>
       <View style={styles.avatarRing}>
         <ProfileHeaderButton
           href={profileHref}

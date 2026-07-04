@@ -30,6 +30,8 @@ type RolePostingCardProps = {
   onPress?: () => void;
   onApplicantsPress?: () => void;
   manage?: RolePostingCardManageProps;
+  /** Hide view-post / applicants action row (detail screens). */
+  hideActions?: boolean;
 };
 
 export function RolePostingCard({
@@ -39,6 +41,7 @@ export function RolePostingCard({
   onPress,
   onApplicantsPress,
   manage,
+  hideActions = false,
 }: RolePostingCardProps) {
   const { colors } = useTheme();
   const { clinicProfile } = useClinicProfile();
@@ -110,7 +113,7 @@ export function RolePostingCard({
     </View>
   );
 
-  const actionRow = (
+  const actionRow = hideActions ? null : (
     <PostingCardActionRow
       onViewPost={onPress}
       onViewApplicants={onApplicantsPress}

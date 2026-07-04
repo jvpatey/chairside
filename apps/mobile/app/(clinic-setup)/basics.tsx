@@ -13,12 +13,14 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicBasicsScreen() {
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
   const { save } = useClinicSetupSave();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [clinicName, setClinicName] = useState('');
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
@@ -49,7 +51,11 @@ export default function ClinicBasicsScreen() {
         contact_name: contactName.trim() || null,
         phone: phone.trim() || null,
       });
-      router.push(CLINIC_SETUP_LOCATION);
+      if (isEditMode) {
+        router.replace(exitHref);
+      } else {
+        router.push(CLINIC_SETUP_LOCATION);
+      }
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -63,11 +69,11 @@ export default function ClinicBasicsScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Continue'}
+            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
             onPress={handleContinue}
           />
@@ -76,9 +82,11 @@ export default function ClinicBasicsScreen() {
       <AuthScreenHeader
         title="Clinic basics"
         subtitle="Tell us about your practice."
-        onBack={() => router.replace(CLINIC_HOME)}
+        onBack={() =>
+          isEditMode ? router.replace(exitHref) : router.replace(CLINIC_HOME)
+        }
       />
-      <SetupStepProgress step={1} total={5} />
+      {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
       <View style={styles.form}>
         <AuthField
           label="Clinic name"

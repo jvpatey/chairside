@@ -85,6 +85,17 @@ export const WORKER_PROFILE_APPLICATION_KIT: Href = '/(tabs)/profile/application
 export const WORKER_PROFILE_NOTIFICATIONS: Href = '/(tabs)/profile/notifications' as Href;
 export const WORKER_PROFILE_ACCOUNT: Href = '/(tabs)/profile/account' as Href;
 
+type RouterReplace = { replace: (href: Href) => void };
+
+/** Profile sub-screens should return to the settings hub, not browser/tab history. */
+export function navigateToWorkerProfileHub(nav: RouterReplace) {
+  nav.replace(WORKER_PROFILE);
+}
+
+export function navigateToClinicProfileHub(nav: RouterReplace) {
+  nav.replace(CLINIC_PROFILE);
+}
+
 export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
   if (tab === 'fill-ins') {
     return CLINIC_FILL_INS;

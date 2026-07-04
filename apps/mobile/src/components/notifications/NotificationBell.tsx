@@ -11,7 +11,7 @@ import {
   webIconButtonHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 type NotificationBellProps = {
   /** `hero` — top-right inside dashboard hero card; `header` — screen title row */
@@ -24,7 +24,7 @@ export function NotificationBell({
   placement = 'header',
   embedded = false,
 }: NotificationBellProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const clientId = getPingramClientId();
   const { unreadCount, isReady } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -38,7 +38,12 @@ export function NotificationBell({
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: inHero ? 0 : spacing.sm,
-      backgroundColor: embedded ? 'transparent' : colors.fillSubtle,
+      backgroundColor:
+        embedded && inHero
+          ? colorWithAlpha(colors.surface, isDark ? 0.42 : 0.78)
+          : embedded
+            ? 'transparent'
+            : colors.fillSubtle,
       ...webPointer(),
     },
     buttonHovered: webIconButtonHoverStyles(colors),

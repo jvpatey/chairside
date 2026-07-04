@@ -139,7 +139,7 @@ export function ClinicPostHeader({
     posted: {
       fontSize: 13,
       lineHeight: 18,
-      color: colors.labelTertiary,
+      color: colors.labelSecondary,
     },
     accessory: {
       flexShrink: 0,

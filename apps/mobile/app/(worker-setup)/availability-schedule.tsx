@@ -1,5 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { WORKER_FILLINS } from '@/lib/routing';
 import { useEffect, useState } from 'react';
@@ -17,23 +15,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerAvailabilitySave } from '@/hooks/useWorkerAvailabilitySave';
-import { getFillInHeroGradient, useTheme, useThemedStyles } from '@/theme';
-
-function AvailabilityScheduleHeroGlow() {
-  const { colors, isDark } = useTheme();
-  const gradient = getFillInHeroGradient(colors, isDark);
-
-  return (
-    <LinearGradient
-      colors={gradient}
-      locations={[0, 0.55, 1]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="none"
-    />
-  );
-}
+import { useThemedStyles } from '@/theme';
 
 export default function WorkerAvailabilityScheduleScreen() {
   const { availabilityBlocks, isWorkerProfileReady } = useWorkerProfile();
@@ -73,7 +55,8 @@ export default function WorkerAvailabilityScheduleScreen() {
 
   return (
     <OnboardingShell
-      backgroundAccessory={<AvailabilityScheduleHeroGlow />}
+      atmosphere="form"
+      atmosphereAccent="secondary"
       footer={
         <View style={styles.footer}>
           <OnboardingButton

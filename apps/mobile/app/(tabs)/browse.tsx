@@ -23,6 +23,7 @@ import { WorkerClinicsDirectoryIconButton } from '@/components/worker/WorkerClin
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -125,6 +126,7 @@ export default function BrowseScreen() {
   }, [province, user?.id]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
 
   const filteredJobs = useMemo(
     () =>
@@ -390,6 +392,8 @@ export default function BrowseScreen() {
       subtitle="Open roles in your province."
       scroll
       scrollEnabled={!hasMapResults}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
     >
       <View style={styles.wrap}>
         {isLoading ? (

@@ -208,7 +208,7 @@ export default function ApplyScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell>
+      <OnboardingShell atmosphere="form">
         <AuthScreenHeader
           title={type === 'shift' ? 'Request to cover' : 'Apply'}
           onBack={() => router.back()}
@@ -219,7 +219,7 @@ export default function ApplyScreen() {
   }
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <OnboardingButton
           label={

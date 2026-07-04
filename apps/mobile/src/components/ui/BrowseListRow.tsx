@@ -164,7 +164,7 @@ export function BrowseListRow({
     posted: {
       fontSize: 13,
       lineHeight: 18,
-      color: colors.labelTertiary,
+      color: colors.labelSecondary,
     },
     accent: {
       fontSize: 14,

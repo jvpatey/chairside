@@ -10,6 +10,7 @@ import Animated, {
 import {
   getPrimaryTileGradient,
   getSecondaryTileGradient,
+  radii,
   useTheme,
   useThemedStyles,
   type GradientAccent,
@@ -56,13 +57,16 @@ export function OnboardingButton({
     transform: [{ scale: scale.value }],
   }));
 
+  const isPrimary = variant === 'primary';
+  const isWeb = Platform.OS === 'web';
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     outer: {
       alignSelf: 'stretch' as const,
     },
     base: {
       alignSelf: 'stretch',
-      borderRadius: 12,
+      borderRadius: radii.md,
       paddingVertical: 14,
       paddingHorizontal: spacing.lg,
       alignItems: 'center' as const,
@@ -134,10 +138,26 @@ export function OnboardingButton({
     },
   }));
 
-  const isPrimary = variant === 'primary';
-  const isWeb = Platform.OS === 'web';
   const primaryBg = { backgroundColor: brandBg };
   const primaryPressedStyle = { backgroundColor: brandPressed };
+  const primaryGlowStyle: ViewStyle | null =
+    isPrimary && !disabled
+      ? isDark
+        ? {
+            shadowColor: accent === 'secondary' ? colors.secondary : colors.primary,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.35,
+            shadowRadius: 16,
+            elevation: 6,
+          }
+        : {
+            shadowColor: '#1A6FD4',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.35,
+            shadowRadius: 16,
+            elevation: 6,
+          }
+      : null;
   const primaryHoveredStyle = webOnlyStyle({
     transform: [{ translateY: -1 }],
     boxShadow: isDark
@@ -182,6 +202,7 @@ export function OnboardingButton({
               ? styles.primaryDisabled
               : [
                   primaryBg,
+                  primaryGlowStyle,
                   isWeb && hovered && !pressed && primaryHoveredStyle,
                   pressed && styles.primaryPressed,
                   pressed && primaryPressedStyle,

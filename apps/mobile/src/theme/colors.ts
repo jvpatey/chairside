@@ -26,10 +26,10 @@ export type Colors = {
 
 export const lightColors: Colors = {
   background: '#FFFFFF',
-  backgroundGrouped: '#F2F2F7',
+  backgroundGrouped: '#F4F6FB',
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
-  labelPrimary: '#1C1C1E',
+  labelPrimary: '#0E1B2C',
   labelSecondary: '#3C3C4399',
   labelTertiary: '#3C3C434D',
   separator: '#C6C6C8',
@@ -52,10 +52,10 @@ export const lightColors: Colors = {
 };
 
 export const darkColors: Colors = {
-  background: '#0C0C0E',
-  backgroundGrouped: '#0C0C0E',
+  background: '#0B0D12',
+  backgroundGrouped: '#0B0D12',
   surface: '#1C1C1E',
-  surfaceElevated: '#2C2C2E',
+  surfaceElevated: '#242428',
   labelPrimary: '#FFFFFF',
   labelSecondary: '#EBEBF599',
   labelTertiary: '#EBEBF54D',

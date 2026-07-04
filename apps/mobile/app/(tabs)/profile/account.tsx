@@ -7,6 +7,7 @@ import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useSignOut } from '@/hooks/useSignOut';
 import { ACCOUNT_DELETION_DESCRIPTION } from '@/lib/accountDeletionCopy';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
+import { navigateToWorkerProfileHub } from '@/lib/routing';
 
 export default function WorkerProfileAccountScreen() {
   const { user, profile, refreshProfile } = useAuth();
@@ -19,7 +20,7 @@ export default function WorkerProfileAccountScreen() {
     <ProfileDetailScreen
       title="Account"
       subtitle="Your name, password, login, sign out, and account deletion."
-      onBack={() => router.back()}>
+      onBack={() => navigateToWorkerProfileHub(router)}>
       <AccountScreenContent
         user={user}
         displayName={profile?.display_name}

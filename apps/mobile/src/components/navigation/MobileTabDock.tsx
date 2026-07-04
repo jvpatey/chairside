@@ -2,8 +2,9 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BottomTabBarHeightCallbackContext } from '@react-navigation/bottom-tabs';
 import { CommonActions } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useContext, useEffect } from 'react';
-import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,10 +18,32 @@ import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { webPointer } from '@/lib/webPressableStyles';
-import { getGlassTokens, useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, getGlassTokens, getTabIndicatorGradient, useTheme, useThemedStyles } from '@/theme';
 
 const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
 const ICON_ONLY_BREAKPOINT = 360;
+/** Outer glass shell — end tabs use a matching inner radius on the dock-facing edge. */
+const DOCK_SHELL_RADIUS = 30;
+const TAB_INDICATOR_RADIUS = 18;
+
+function getDockIndicatorCornerRadii(
+  index: number,
+  count: number,
+  tabRadius: number,
+  endRadius: number,
+) {
+  const isFirst = index <= 0;
+  const isLast = index >= count - 1;
+  const leftRadius = isFirst ? endRadius : tabRadius;
+  const rightRadius = isLast ? endRadius : tabRadius;
+
+  return {
+    borderTopLeftRadius: leftRadius,
+    borderBottomLeftRadius: leftRadius,
+    borderTopRightRadius: rightRadius,
+    borderBottomRightRadius: rightRadius,
+  };
+}
 
 type MobileTabDockProps = BottomTabBarProps & {
   role: 'worker' | 'clinic';
@@ -78,8 +101,8 @@ function DockTabItem({
   isWeb,
 }: DockTabItemProps) {
   const tabAccent = getTabAccentForName(route.name);
-  const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
-  const color = isFocused ? activeColor : colors.tabInactive;
+  const activeColor = isFocused ? colors.primaryOnPrimary : colors.tabInactive;
+  const color = activeColor;
   const accessibilityLabel = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
   const label = options.title ?? route.name;
   const badge = options.tabBarBadge;
@@ -121,7 +144,10 @@ function DockTabItem({
       </Animated.View>
       {showLabels ? (
         <Text
-          style={[styles.label, isFocused && [styles.labelActive, { color: activeColor }]]}
+          style={[
+            styles.label,
+            isFocused && [styles.labelActive, { color: activeColor }],
+          ]}
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.85}>
@@ -133,7 +159,7 @@ function DockTabItem({
 }
 
 export function MobileTabDock({ state, descriptors, navigation, insets, role }: MobileTabDockProps) {
-  const { colors } = useTheme();
+  const { colors, isDark, spacing } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const showLabels = windowWidth >= ICON_ONLY_BREAKPOINT;
   const isWeb = Platform.OS === 'web';
@@ -145,10 +171,20 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
   );
   const focusedRoute = visibleRoutes[indicatorIndex];
   const focusedAccent = focusedRoute ? getTabAccentForName(focusedRoute.name) : 'primary';
-  const focusedIndicatorColor =
-    focusedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const indicatorGradient = getTabIndicatorGradient(colors, isDark, focusedAccent);
+  const dockInset = spacing.xs;
+  const dockEndRadius = DOCK_SHELL_RADIUS - dockInset;
+  const indicatorCornerStyle = getDockIndicatorCornerRadii(
+    indicatorIndex,
+    visibleRoutes.length,
+    TAB_INDICATOR_RADIUS,
+    dockEndRadius,
+  );
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => {
+    const dockInset = spacing.xs;
+
+    return {
     outer: {
       paddingHorizontal: spacing.sm,
       paddingTop: spacing.sm,
@@ -164,18 +200,33 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       paddingVertical: spacing.xs,
       position: 'relative',
     },
+    dockElevated: Platform.select({
+      ios: {
+        shadowColor: '#1A6FD4',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: isDark ? 0.28 : 0.14,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 10,
+      },
+      default: {},
+    }),
     indicator: {
       position: 'absolute',
-      top: spacing.xs,
+      top: dockInset,
       left: 0,
-      borderRadius: 18,
+      overflow: 'hidden',
+    },
+    indicatorGradient: {
+      ...StyleSheet.absoluteFillObject,
     },
     item: {
       flex: 1,
       minHeight: 54,
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: 18,
+      borderRadius: TAB_INDICATOR_RADIUS,
       paddingHorizontal: 4,
       paddingVertical: spacing.xs,
       gap: 2,
@@ -220,18 +271,21 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       fontWeight: '700',
       color: '#FFFFFF',
     },
-  }));
+  };
+  });
 
   return (
     <View
       style={styles.outer}
       pointerEvents="box-none"
       onLayout={(event) => onHeightChange?.(event.nativeEvent.layout.height)}>
-      <LiquidGlassSurface borderRadius={30} style={styles.dock}>
+      <LiquidGlassSurface borderRadius={DOCK_SHELL_RADIUS} style={[styles.dock, styles.dockElevated]}>
         <SlidingSegmentIndicator
           animatedStyle={indicatorStyle}
-          style={[styles.indicator, { backgroundColor: focusedIndicatorColor }]}
-        />
+          style={[styles.indicator, indicatorCornerStyle]}
+        >
+          <LinearGradient colors={indicatorGradient} style={styles.indicatorGradient} />
+        </SlidingSegmentIndicator>
         {visibleRoutes.map((route, index) => {
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((item) => item.key === route.key);

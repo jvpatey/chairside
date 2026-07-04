@@ -1,14 +1,16 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { type Href } from 'expo-router';
-import { Platform, Text, View } from 'react-native';
+import { useFocusEffect, type Href } from 'expo-router';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
 import {
@@ -21,6 +23,7 @@ import { IS_WEB } from '@/lib/webPressableStyles';
 import {
   colorWithAlpha,
   fontRegular,
+  fontSemibold,
   getHeroBandGradient,
   useTheme,
   useThemedStyles,
@@ -58,15 +61,30 @@ export function DashboardHero({
 }: DashboardHeroProps) {
   const { colors, isDark } = useTheme();
   const { isTablet } = useResponsiveLayout();
+  const reducedMotion = useReducedMotion();
   const drift = useSharedValue(0);
 
-  useEffect(() => {
+  const startOrbMotion = useCallback(() => {
+    if (reducedMotion) {
+      drift.value = 0;
+      return;
+    }
     drift.value = withRepeat(
       withTiming(1, { duration: 12000, easing: Easing.inOut(Easing.sin) }),
       -1,
       true,
     );
-  }, [drift]);
+  }, [drift, reducedMotion]);
+
+  useFocusEffect(
+    useCallback(() => {
+      startOrbMotion();
+      return () => {
+        cancelAnimation(drift);
+        drift.value = 0;
+      };
+    }, [drift, startOrbMotion]),
+  );
 
   const orbStyle = useAnimatedStyle(() => ({
     transform: [
@@ -119,12 +137,28 @@ export function DashboardHero({
       fontFamily: fontRegular,
       color: colors.labelSecondary,
     },
-    context: {
-      fontSize: 13,
-      lineHeight: 18,
-      fontFamily: fontRegular,
-      color: colors.labelTertiary,
-      marginTop: spacing.xs,
+    contextRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 6,
+      borderRadius: radii.pill,
+      backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.16 : 0.72),
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colorWithAlpha(colors.primaryOnPrimary, isDark ? 0.18 : 0.35),
+    },
+    chipLabel: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: isDark ? colors.labelPrimary : colors.labelPrimary,
     },
   }));
 
@@ -143,8 +177,17 @@ export function DashboardHero({
             displayName={displayName}
             namePlaceholder={namePlaceholder}
           />
-          <DashboardHeroSubtitle subtitle={subtitle} />
-          <Text style={styles.context}>{contextLine ?? formatDashboardDate()}</Text>
+          <DashboardHeroSubtitle
+            subtitle={subtitle}
+            trailing={contextLine ? undefined : formatDashboardDate()}
+          />
+          {contextLine ? (
+            <View style={styles.contextRow}>
+              <View style={styles.chip}>
+                <Text style={styles.chipLabel}>{contextLine}</Text>
+              </View>
+            </View>
+          ) : null}
         </View>
         {showActions ? (
           <DashboardHeroActions

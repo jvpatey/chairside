@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   FILL_INS_LIST_MODE_OPTIONS,
@@ -206,6 +207,7 @@ export default function ClinicFillInsScreen() {
   }, [params.date, params.mode]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
 
   const guardPosting = (target: Href) => {
     if (isProfileComplete) {
@@ -228,7 +230,12 @@ export default function ClinicFillInsScreen() {
 
   if (isLoading && !hasLoadedOnce.current) {
     return (
-      <Screen title="Fill-ins" subtitle="Review cover requests and manage your fill-in shifts.">
+      <Screen
+        title="Fill-ins"
+        subtitle="Review cover requests and manage your fill-in shifts."
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        refreshAccent="secondary">
         <PageLoadingList message="Loading fill-ins…" />
       </Screen>
     );
@@ -236,7 +243,12 @@ export default function ClinicFillInsScreen() {
 
   return (
     <>
-      <Screen title="Fill-ins" subtitle="Review cover requests and manage your fill-in shifts.">
+      <Screen
+        title="Fill-ins"
+        subtitle="Review cover requests and manage your fill-in shifts."
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        refreshAccent="secondary">
         <View style={styles.wrap}>
           <DashboardQuickActionsRow
             actions={[

@@ -146,6 +146,7 @@ export function MessageThread({
   const containerRef = useRef<View>(null);
   const listRef = useRef<FlatList<ThreadListItem>>(null);
   const seenMessageIds = useRef(new Set<string>());
+  const entryAnimateMessageIds = useRef(new Set<string>());
   const loadedConversationIdRef = useRef<string | null>(null);
   const onConversationChangeRef = useRef(onConversationChange);
   const suppressAutoScrollRef = useRef(Boolean(scrollToMessageId || highlightQuery?.trim()));
@@ -342,6 +343,7 @@ export function MessageThread({
     (message: ThreadMessage) => {
       if (seenMessageIds.current.has(message.id)) return;
       seenMessageIds.current.add(message.id);
+      entryAnimateMessageIds.current.add(message.id);
       setMessages((current) => [...current, message]);
       if (isNearBottom) {
         scrollToLatest(true);
@@ -369,6 +371,7 @@ export function MessageThread({
       setMessages([]);
       setHasMoreMessages(false);
       seenMessageIds.current = new Set();
+      entryAnimateMessageIds.current = new Set();
       searchFocusAttemptedRef.current = false;
     }
 
@@ -669,7 +672,9 @@ export function MessageThread({
         showDeliveryStatus={showDeliveryStatus}
         highlighted={isHighlighted}
         highlightQuery={isHighlighted ? highlightQuery : undefined}
-        animateEntry={message.clientStatus !== 'pending'}
+        animateEntry={
+          entryAnimateMessageIds.current.has(message.id) && message.clientStatus !== 'pending'
+        }
       />
     );
 
@@ -826,7 +831,7 @@ export function MessageThread({
 
   return (
     <View ref={containerRef} style={styles.container} collapsable={false}>
-      {embedded ? threadBody : <WebPageEnter style={{ flex: 1 }}>{threadBody}</WebPageEnter>}
+      {embedded ? threadBody : <WebPageEnter animate={false} style={{ flex: 1 }}>{threadBody}</WebPageEnter>}
     </View>
   );
 }

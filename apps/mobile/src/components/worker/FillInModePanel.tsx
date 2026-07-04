@@ -14,7 +14,7 @@ import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
-import { getFillInHeroGradient, radii, spacing, useTheme, useThemedStyles } from '@/theme';
+import { FILL_IN_HERO_GRADIENT_LOCATIONS, getFillInHeroGradient, radii, spacing, useTheme, useThemedStyles } from '@/theme';
 
 type FillInModePanelProps = {
   showNotificationOptions?: boolean;
@@ -384,7 +384,7 @@ export function FillInModePanel({
       <View style={styles.primaryHero}>
         <LinearGradient
           colors={fillInHeroGradient}
-          locations={[0, 0.55, 1]}
+          locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={styles.primaryGradient}

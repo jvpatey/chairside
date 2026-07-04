@@ -25,12 +25,13 @@ import {
   WORKER_PROFILE_NOTIFICATIONS,
   WORKER_PROFILE_PROFESSIONAL,
 } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 export default function WorkerProfileScreen() {
   const { profile, user } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { isCompact } = useResponsiveLayout();
+  const { colors } = useTheme();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
@@ -62,18 +63,24 @@ export default function WorkerProfileScreen() {
             icon="briefcase-outline"
             title="Professional background"
             subtitle={getProfessionalBackgroundSubtitle(workerProfile)}
+            iconColor={colors.primary}
+            iconBackgroundColor={colors.primarySubtle}
             onPress={() => router.push(WORKER_PROFILE_PROFESSIONAL)}
           />
           <ProfileSettingsRow
             icon="folder-outline"
             title="Application kit"
             subtitle={getApplicationKitSubtitle(workerProfile)}
+            iconColor={colors.secondary}
+            iconBackgroundColor={colors.secondarySubtle}
             onPress={() => router.push(WORKER_PROFILE_APPLICATION_KIT)}
           />
           <ProfileSettingsRow
             icon="notifications-outline"
             title="Notifications"
             subtitle={getNotificationsSubtitle(workerProfile)}
+            iconColor={colors.info}
+            iconBackgroundColor={`${colors.info}18`}
             onPress={() => router.push(WORKER_PROFILE_NOTIFICATIONS)}
           />
           {isCompact ? (

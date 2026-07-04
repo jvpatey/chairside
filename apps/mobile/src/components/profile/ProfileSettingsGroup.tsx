@@ -3,13 +3,14 @@ import { View } from 'react-native';
 
 import { RowDivider } from '@/components/clinic/DetailCard';
 import { useThemedStyles } from '@/theme';
+import { getElevationStyle } from '@/theme/tokens';
 
 type ProfileSettingsGroupProps = {
   children: ReactNode;
 };
 
 export function ProfileSettingsGroup({ children }: ProfileSettingsGroupProps) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -17,6 +18,7 @@ export function ProfileSettingsGroup({ children }: ProfileSettingsGroupProps) {
       borderColor: colors.separator,
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.xs,
+      ...getElevationStyle({ isDark, level: 'subtle' }),
     },
   }));
 

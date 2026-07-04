@@ -165,9 +165,6 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       color: colors.labelSecondary,
       textAlign: 'center',
     },
-    labelSelectedPrimary: {
-      color: colors.labelPrimary,
-    },
   }));
 
   const indicatorAccentStyle = {
@@ -265,7 +262,7 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
               <Text
                 style={[
                   styles.label,
-                  isSelected && (isLabelOnly ? selectedTextColor : styles.labelSelectedPrimary),
+                  isSelected && selectedTextColor,
                 ]}
                 numberOfLines={1}
                 adjustsFontSizeToFit={isCompact && !manySegments}

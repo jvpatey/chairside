@@ -2,6 +2,12 @@ import type { Colors } from './colors';
 
 export type GradientAccent = 'primary' | 'secondary';
 
+/** Hue-shift partners for richer brand gradients. */
+const GRADIENT_HUE_SHIFT = {
+  primaryEnd: '#4E54E8',
+  secondaryEnd: '#8B5CF6',
+} as const;
+
 function resolveAccentColor(colors: Colors, accent: GradientAccent): string {
   return accent === 'secondary' ? colors.secondary : colors.primary;
 }
@@ -45,25 +51,29 @@ export function getHeroBandGradient(
   colors: Colors,
   isDark: boolean,
   accent: GradientAccent = 'primary',
-): readonly [string, string, string, string, string] {
+): readonly [string, string, string, string, string, string] {
   const brand = resolveAccentColor(colors, accent);
   const secondary = colors.secondary;
+  const indigo = GRADIENT_HUE_SHIFT.primaryEnd;
+  const violet = GRADIENT_HUE_SHIFT.secondaryEnd;
 
   if (isDark) {
     return [
-      colorWithAlpha(brand, 0.32),
-      colorWithAlpha(secondary, 0.14),
-      colorWithAlpha(brand, 0.08),
-      colorWithAlpha(brand, 0.03),
+      colorWithAlpha(brand, 0.36),
+      colorWithAlpha(indigo, 0.2),
+      colorWithAlpha(secondary, 0.16),
+      colorWithAlpha(violet, 0.08),
+      colorWithAlpha(brand, 0.04),
       'transparent',
     ];
   }
 
   return [
-    colorWithAlpha(brand, 0.38),
-    colorWithAlpha(secondary, 0.16),
-    colorWithAlpha(brand, 0.12),
-    colorWithAlpha(brand, 0.04),
+    colorWithAlpha(brand, 0.42),
+    colorWithAlpha(indigo, 0.22),
+    colorWithAlpha(secondary, 0.18),
+    colorWithAlpha(violet, 0.1),
+    colorWithAlpha(brand, 0.05),
     'transparent',
   ];
 }
@@ -111,9 +121,10 @@ export function getStatCardIdleGradient(
 
 /** Primary quick-action tile gradient. */
 export function getPrimaryTileGradient(colors: Colors, isDark: boolean): readonly [string, string] {
+  const end = GRADIENT_HUE_SHIFT.primaryEnd;
   return isDark
-    ? [colorWithAlpha(colors.primary, 0.5), colorWithAlpha(colors.primary, 0.2)]
-    : [colorWithAlpha(colors.primary, 0.36), colorWithAlpha(colors.primarySubtle, 0.98)];
+    ? [colorWithAlpha(colors.primary, 0.58), colorWithAlpha(end, 0.32)]
+    : [colors.primary, colorWithAlpha(end, 0.88)];
 }
 
 /** Secondary quick-action tile gradient. */
@@ -121,9 +132,10 @@ export function getSecondaryTileGradient(
   colors: Colors,
   isDark: boolean,
 ): readonly [string, string] {
+  const end = GRADIENT_HUE_SHIFT.secondaryEnd;
   return isDark
-    ? [colorWithAlpha(colors.secondary, 0.34), colorWithAlpha(colors.surfaceElevated, 0.95)]
-    : [colorWithAlpha(colors.secondary, 0.28), colorWithAlpha(colors.secondarySubtle, 0.98)];
+    ? [colorWithAlpha(colors.secondary, 0.42), colorWithAlpha(end, 0.28)]
+    : [colors.secondary, colorWithAlpha(end, 0.86)];
 }
 
 /** Selected stat cell accent gradient. */
@@ -217,20 +229,55 @@ export function getAppliedRowGradient(
     : [colorWithAlpha(colors.primary, 0.2), colorWithAlpha(colors.primary, 0.09), 'transparent'];
 }
 
+/** Location stops for fill-in hero washes — long tail avoids a harsh bottom edge. */
+export const FILL_IN_HERO_GRADIENT_LOCATIONS = [0, 0.28, 0.55, 0.78, 1] as const;
+
 /** Fill-in availability hero wash (matches dashboard fill-in accent). */
 export function getFillInHeroGradient(
   colors: Colors,
   isDark: boolean,
-): readonly [string, string, string] {
+): readonly [string, string, string, string, string] {
+  const end = GRADIENT_HUE_SHIFT.secondaryEnd;
   return isDark
     ? [
-        colorWithAlpha(colors.secondary, 0.26),
-        colorWithAlpha(colors.secondary, 0.08),
+        colorWithAlpha(colors.secondary, 0.24),
+        colorWithAlpha(end, 0.11),
+        colorWithAlpha(end, 0.045),
+        colorWithAlpha(colors.secondary, 0.012),
         'transparent',
       ]
     : [
-        colorWithAlpha(colors.secondary, 0.24),
-        colorWithAlpha(colors.secondary, 0.1),
+        colorWithAlpha(colors.secondary, 0.2),
+        colorWithAlpha(end, 0.09),
+        colorWithAlpha(end, 0.035),
+        colorWithAlpha(colors.secondary, 0.01),
         'transparent',
       ];
+}
+
+/** Active tab dock indicator gradient. */
+export function getTabIndicatorGradient(
+  colors: Colors,
+  isDark: boolean,
+  accent: GradientAccent = 'primary',
+): readonly [string, string] {
+  if (accent === 'secondary') {
+    return isDark
+      ? [colors.secondary, GRADIENT_HUE_SHIFT.secondaryEnd]
+      : [colors.secondary, GRADIENT_HUE_SHIFT.secondaryEnd];
+  }
+
+  return isDark
+    ? [colors.primary, GRADIENT_HUE_SHIFT.primaryEnd]
+    : [colors.primary, GRADIENT_HUE_SHIFT.primaryEnd];
+}
+
+/** Subtle gradient for dark-mode card surfaces. */
+export function getSurfaceGradient(
+  colors: Colors,
+  isDark: boolean,
+): readonly [string, string] {
+  return isDark
+    ? [colors.surfaceElevated, colors.surface]
+    : [colors.surface, colors.surface];
 }

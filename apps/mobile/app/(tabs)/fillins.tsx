@@ -45,6 +45,7 @@ import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
@@ -72,7 +73,7 @@ import {
   toWorkerMapItemsFromShifts,
 } from '@/lib/workerMapItems';
 import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
-import { getFillInHeroGradient, useTheme, useThemedStyles } from '@/theme';
+import { getFillInHeroGradient, FILL_IN_HERO_GRADIENT_LOCATIONS, useTheme, useThemedStyles } from '@/theme';
 
 function FillInAvailabilityPanelAccent({ children }: { children: ReactNode }) {
   const { colors, isDark } = useTheme();
@@ -90,9 +91,9 @@ function FillInAvailabilityPanelAccent({ children }: { children: ReactNode }) {
     <View style={styles.wrap}>
       <LinearGradient
         colors={gradient}
-        locations={[0, 0.55, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
         style={styles.gradient}
         pointerEvents="none"
       />
@@ -176,6 +177,7 @@ export default function FillInsScreen() {
   }, [checkApplications, markApplicationsSeen, markShiftPostsSeen, province, user?.id]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
   useRefreshOnForeground(load);
 
   useEffect(() => {
@@ -347,6 +349,9 @@ export default function FillInsScreen() {
         subtitle="Temp shifts and your availability."
         scroll
         scrollEnabled={!showOpenMap}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        refreshAccent="secondary"
       >
         <View style={styles.content}>
           <View style={styles.controlsBlock} onLayout={handleControlsLayout}>

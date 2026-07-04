@@ -29,7 +29,7 @@ import {
   buildLiveJobMatchDisplayContext,
   computeJobMatchBreakdown,
 } from '@/lib/workerMatch';
-import { useThemedStyles } from '@/theme';
+import { radii, useThemedStyles } from '@/theme';
 
 export default function WorkerJobDetailScreen() {
   const { user } = useAuth();
@@ -45,7 +45,7 @@ export default function WorkerJobDetailScreen() {
     content: { gap: spacing.lg },
     clinicCard: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
@@ -135,7 +135,7 @@ export default function WorkerJobDetailScreen() {
     : null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="subtle"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
@@ -154,6 +154,7 @@ export default function WorkerJobDetailScreen() {
         }
       />
       <View style={styles.content}>
+        <JobPostDetailView job={job} part="hero" />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`View ${job.clinic.clinic_name} profile`}
@@ -177,7 +178,7 @@ export default function WorkerJobDetailScreen() {
           />
           <ClinicProfileLinkFooter />
         </Pressable>
-        <JobPostDetailView job={job} />
+        <JobPostDetailView job={job} part="body" />
       </View>
     </OnboardingShell>
   );

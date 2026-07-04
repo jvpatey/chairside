@@ -12,7 +12,9 @@ import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -66,24 +68,8 @@ function HistorySection({
       fontSize: 14,
       lineHeight: 20,
     },
-    empty: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.xs,
-    },
-    emptyTitle: {
-      ...typography.body,
-      fontWeight: '600',
-      textAlign: 'center',
-    },
-    emptyBody: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      textAlign: 'center',
+    emptyWrap: {
+      width: '100%',
     },
     cardList: {
       gap: dashboardSectionGap(spacing),
@@ -97,34 +83,33 @@ function HistorySection({
         {helper ? <Text style={styles.helper}>{helper}</Text> : null}
       </View>
       {jobs.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-          <Text style={styles.emptyBody}>{emptyBody}</Text>
+        <View style={styles.emptyWrap}>
+          <EmptyState icon="archive-outline" title={emptyTitle} message={emptyBody} />
         </View>
       ) : (
         <View style={styles.cardList}>
-          {jobs.map((job) => (
-            <RolePostingCard
-              key={job.id}
-              job={job}
-              applicantCount={applicantCounts[job.id] ?? 0}
-              onPress={() => router.push(getJobDetailRoute(job.id))}
-              onApplicantsPress={
-                (applicantCounts[job.id] ?? 0) > 0
-                  ? () => router.push(getClinicRoleApplicationsRoute(job.id, 'role-history'))
-                  : undefined
-              }
-              manage={
-                clinicId && onJobUpdated && onJobDeleted
-                  ? {
-                      clinicId,
-                      onUpdated: onJobUpdated,
-                      onDeleted: () => onJobDeleted(job.id),
-                    }
-                  : undefined
-              }
-            />
-          ))}
+          <StaggeredList>
+            {jobs.map((job) => (
+              <RolePostingCard
+                key={job.id}
+                job={job}
+                applicantCount={applicantCounts[job.id] ?? 0}
+                onPress={() => router.push(getJobDetailRoute(job.id))}
+                onApplicantsPress={() =>
+                  router.push(getClinicRoleApplicationsRoute(job.id, 'role-history'))
+                }
+                manage={
+                  clinicId && onJobUpdated && onJobDeleted
+                    ? {
+                        clinicId,
+                        onUpdated: onJobUpdated,
+                        onDeleted: () => onJobDeleted(job.id),
+                      }
+                    : undefined
+                }
+              />
+            ))}
+          </StaggeredList>
         </View>
       )}
     </View>

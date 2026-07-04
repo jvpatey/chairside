@@ -6,14 +6,16 @@ import {
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -41,10 +43,9 @@ export default function ClinicShiftApplicationsScreen() {
     closeCelebration,
   } = useHiringCelebration();
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
-    list: { gap: spacing.md },
-    empty: typography.subtitle,
+    list: { gap: spacing.lg },
   }));
 
   const goBack = useCallback(() => {
@@ -101,9 +102,14 @@ export default function ClinicShiftApplicationsScreen() {
         <AuthScreenHeader title={postTitle || 'Fill-in applicants'} subtitle={subtitle} onBack={goBack} />
         <View style={styles.content}>
           {isLoading ? (
-            <PageLoadingList />
+            <PageLoadingList message="Loading cover requests…" />
           ) : applications.length === 0 ? (
-            <Text style={styles.empty}>No cover requests for this fill-in yet.</Text>
+            <EmptyState
+              icon="people-outline"
+              title="No cover requests yet"
+              message="When workers request to cover this fill-in, they'll appear here."
+              accent="secondary"
+            />
           ) : (
             <View style={styles.list}>
               <ListSearchFilterRow
@@ -113,21 +119,30 @@ export default function ClinicShiftApplicationsScreen() {
                 accessibilityLabel="Search cover requests"
               />
               {filteredApplications.length === 0 ? (
-                <Text style={styles.empty}>
-                  {hasSearch ? 'No cover requests match your search.' : 'No cover requests for this fill-in yet.'}
-                </Text>
+                <EmptyState
+                  icon="search-outline"
+                  title="No matches"
+                  message={
+                    hasSearch
+                      ? 'No cover requests match your search.'
+                      : 'No cover requests for this fill-in yet.'
+                  }
+                  accent="secondary"
+                />
               ) : (
-                filteredApplications.map((application) => (
-                  <FillInApplicantCard
-                    key={application.id}
-                    application={application}
-                    clinicId={user?.id ?? ''}
-                    returnTo={resolvedReturnTo}
-                    hasUnreadMessages={Boolean(unreadMap[application.id])}
-                    onUpdated={() => void load()}
-                    onConfirmed={(payload) => showCelebration(payload)}
-                  />
-                ))
+                <StaggeredList>
+                  {filteredApplications.map((application) => (
+                    <FillInApplicantCard
+                      key={application.id}
+                      application={application}
+                      clinicId={user?.id ?? ''}
+                      returnTo={resolvedReturnTo}
+                      hasUnreadMessages={Boolean(unreadMap[application.id])}
+                      onUpdated={() => void load()}
+                      onConfirmed={(payload) => showCelebration(payload)}
+                    />
+                  ))}
+                </StaggeredList>
               )}
             </View>
           )}

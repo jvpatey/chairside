@@ -5,22 +5,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { ClinicApplicationSummaryFilters } from '@/components/clinic/ClinicApplicationSummaryFilters';
-import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import {
   formatViewApplicantsLabel,
   PostingCardActionButton,
 } from '@/components/clinic/PostingCardActionButton';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
-import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
+import { StaggeredList } from '@/components/ui/StaggeredList';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { Ionicons } from '@expo/vector-icons';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
@@ -31,7 +33,27 @@ import {
   type ClinicApplicationSummaryFilter,
 } from '@/lib/clinicListSearch';
 import { CLINIC_POST_JOB, getClinicRoleApplicationsRoute } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
+
+function RoleIconAvatar() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ radii }) => ({
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySubtle,
+    },
+  }));
+
+  return (
+    <View style={styles.avatar}>
+      <Ionicons name="briefcase-outline" size={22} color={colors.primary} />
+    </View>
+  );
+}
 
 function RoleApplicationSummaryRow({
   summary,
@@ -40,36 +62,33 @@ function RoleApplicationSummaryRow({
   summary: JobApplicationSummary;
   onViewPress: () => void;
 }) {
-  const { clinicProfile } = useClinicProfile();
-  const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
-  const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
   const pipelineMeta = formatJobApplicationSummaryMeta(summary);
   const hasNewApplicants = summary.unseen_count > 0;
   const postedLabel = formatPostedDateLabel(summary.post_created_at);
   const viewLabel = formatViewApplicantsLabel(summary.applicant_count);
 
   const row = (
-    <BrowseListRow
-      avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
-      eyebrow={clinicName}
-      title={summary.post_title}
-      meta={location || null}
-      postedLabel={postedLabel || null}
-      postedLabelPlacement="header"
-      detail={pipelineMeta}
-      topTrailing={hasNewApplicants ? <ApplicationCardBadge /> : undefined}
-      showChevron={false}
-      action={
-        <PostingCardActionButton
-          label={viewLabel}
-          variant="primary"
-          highlighted={hasNewApplicants}
-          fullWidth
-          onPress={onViewPress}
-        />
-      }
-    />
+    <SurfaceCard padding="none">
+      <BrowseListRow
+        avatar={<RoleIconAvatar />}
+        eyebrow={`${summary.applicant_count} applicant${summary.applicant_count === 1 ? '' : 's'}`}
+        title={summary.post_title}
+        meta={pipelineMeta}
+        postedLabel={postedLabel || null}
+        postedLabelPlacement="header"
+        topTrailing={hasNewApplicants ? <ApplicationCardBadge /> : undefined}
+        showChevron={false}
+        action={
+          <PostingCardActionButton
+            label={viewLabel}
+            variant="primary"
+            highlighted={hasNewApplicants}
+            fullWidth
+            onPress={onViewPress}
+          />
+        }
+      />
+    </SurfaceCard>
   );
 
   return hasNewApplicants ? <FadeInSection>{row}</FadeInSection> : row;
@@ -85,7 +104,8 @@ export default function ClinicApplicationsScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   const styles = useThemedStyles(({ spacing }) => ({
-    content: { gap: spacing.md },
+    content: { gap: spacing.lg },
+    list: { gap: spacing.lg },
   }));
 
   const filteredSummaries = useMemo(
@@ -120,6 +140,7 @@ export default function ClinicApplicationsScreen() {
   }, [user?.id]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
 
   useEffect(() => {
     const redirect = redirectEmbeddedCalendarDeepLink(
@@ -140,7 +161,11 @@ export default function ClinicApplicationsScreen() {
     : {};
 
   return (
-    <Screen title="Applications" subtitle="Review applicants and your interview schedule.">
+    <Screen
+      title="Applications"
+      subtitle="Review applicants and your interview schedule."
+      refreshing={refreshing}
+      onRefresh={onRefresh}>
       <View style={styles.content}>
         {isLoading ? (
           <PageLoadingList message="Loading applications…" />
@@ -181,19 +206,21 @@ export default function ClinicApplicationsScreen() {
                 {...(hasSearch || hasActiveFilters ? {} : postRoleCta)}
               />
             ) : (
-              <BrowseListGroup>
-                {filteredSummaries.map((summary) => (
-                  <RoleApplicationSummaryRow
-                    key={summary.job_post_id}
-                    summary={summary}
-                    onViewPress={() =>
-                      router.push(
-                        getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'),
-                      )
-                    }
-                  />
-                ))}
-              </BrowseListGroup>
+              <View style={styles.list}>
+                <StaggeredList>
+                  {filteredSummaries.map((summary) => (
+                    <RoleApplicationSummaryRow
+                      key={summary.job_post_id}
+                      summary={summary}
+                      onViewPress={() =>
+                        router.push(
+                          getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'),
+                        )
+                      }
+                    />
+                  ))}
+                </StaggeredList>
+              </View>
             )}
           </>
         )}

@@ -7,6 +7,7 @@ import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useSignOut } from '@/hooks/useSignOut';
 import { ACCOUNT_DELETION_DESCRIPTION } from '@/lib/accountDeletionCopy';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
+import { navigateToClinicProfileHub } from '@/lib/routing';
 
 export default function ClinicProfileAccountScreen() {
   const { user, profile, refreshProfile } = useAuth();
@@ -19,7 +20,7 @@ export default function ClinicProfileAccountScreen() {
     <ProfileDetailScreen
       title="Account"
       subtitle="Your clinic name, password, login, sign out, and account deletion."
-      onBack={() => router.back()}>
+      onBack={() => navigateToClinicProfileHub(router)}>
       <AccountScreenContent
         user={user}
         displayName={profile?.display_name}

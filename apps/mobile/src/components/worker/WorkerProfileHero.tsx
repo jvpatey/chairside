@@ -40,13 +40,14 @@ export function WorkerProfileHero({
 
   const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
     card: {
-      borderRadius: 20,
+      borderRadius: radii.hero,
       overflow: 'hidden',
-      borderWidth: 1,
+      borderWidth: isDark ? 1 : 0,
       borderColor: colors.separator,
       position: 'relative',
+      ...elevation('subtle'),
     },
     gradient: {
       ...StyleSheet.absoluteFillObject,

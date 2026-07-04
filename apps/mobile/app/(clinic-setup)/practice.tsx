@@ -22,11 +22,13 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicPracticeScreen() {
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
   const { save } = useClinicSetupSave();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [specialty, setSpecialty] = useState<ClinicSpecialty>('general');
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
   const [operatories, setOperatories] = useState('');
@@ -69,7 +71,11 @@ export default function ClinicPracticeScreen() {
         team_size_range: teamSizeRange,
         practice_doctors: practiceDoctors,
       });
-      router.push(CLINIC_SETUP_ABOUT);
+      if (isEditMode) {
+        router.replace(exitHref);
+      } else {
+        router.push(CLINIC_SETUP_ABOUT);
+      }
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -83,11 +89,11 @@ export default function ClinicPracticeScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Continue'}
+            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
             onPress={handleContinue}
           />
@@ -96,9 +102,9 @@ export default function ClinicPracticeScreen() {
       <AuthScreenHeader
         title="Practice details"
         subtitle="Help candidates understand your clinic."
-        onBack={() => router.back()}
+        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />
-      <SetupStepProgress step={3} total={5} />
+      {!isEditMode ? <SetupStepProgress step={3} total={5} /> : null}
       <View style={styles.form}>
         <View style={styles.section}>
           <Text style={styles.label}>Specialty</Text>

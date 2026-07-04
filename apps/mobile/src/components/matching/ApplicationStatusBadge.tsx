@@ -95,7 +95,12 @@ type ApplicationStatusBadgeProps = {
 export function ApplicationStatusBadge({ label, variant }: ApplicationStatusBadgeProps) {
   const palette = useStatusVariantPalette(variant);
   return (
-    <PillBadge label={label} color={palette.color} backgroundColor={palette.backgroundColor} />
+    <PillBadge
+      label={label}
+      color={palette.color}
+      backgroundColor={palette.backgroundColor}
+      showDot
+    />
   );
 }
 

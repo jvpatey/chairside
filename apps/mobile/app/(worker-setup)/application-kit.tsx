@@ -1,6 +1,5 @@
 import { isWorkerProfileComplete } from '@chairside/api';
 import { router } from 'expo-router';
-import { WORKER_PROFILE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -11,13 +10,16 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { ResumeUpload } from '@/components/worker/ResumeUpload';
+import { WORKER_SETUP_REVIEW } from '@/lib/routing';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerApplicationKitScreen() {
   const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const [defaultCoverMessage, setDefaultCoverMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,7 +47,11 @@ export default function WorkerApplicationKitScreen() {
     try {
       await save({ default_cover_message: defaultCoverMessage.trim() || null });
       await refreshWorkerProfile();
-      router.replace(WORKER_PROFILE);
+      if (isEditMode) {
+        router.replace(exitHref);
+      } else {
+        router.push(WORKER_SETUP_REVIEW);
+      }
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -59,11 +65,11 @@ export default function WorkerApplicationKitScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Save changes'}
+            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
             onPress={handleSave}
           />
@@ -72,7 +78,7 @@ export default function WorkerApplicationKitScreen() {
       <AuthScreenHeader
         title="Application kit · Photo, resume & note"
         subtitle="What clinics receive when you apply. Photo and resume are optional."
-        onBack={() => router.back()}
+        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />
       <View style={styles.form}>
         {!backgroundComplete ? (

@@ -7,6 +7,7 @@ import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { FillInSettingsLink } from '@/components/worker/FillInSettingsLink';
 import { WorkerJobNotificationPreferences } from '@/components/worker/WorkerJobNotificationPreferences';
 import { NOTIFICATION_PREFERENCE_CATEGORIES } from '@chairside/config';
+import { navigateToWorkerProfileHub } from '@/lib/routing';
 
 const pushAlertsTitle = Platform.OS === 'web' ? 'In-app alerts' : 'Push alerts';
 
@@ -19,7 +20,7 @@ export default function WorkerProfileNotificationsScreen() {
           ? 'Choose which events show in-app alerts. Notification history stays available.'
           : 'Choose which alerts send push notifications. In-app history stays available.'
       }
-      onBack={() => router.back()}>
+      onBack={() => navigateToWorkerProfileHub(router)}>
       <ProfileSettingsCard title={pushAlertsTitle} icon="notifications-outline">
         <NotificationCategoryPreferences
           categories={[

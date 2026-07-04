@@ -15,13 +15,17 @@ import {
 import { CultureFitScreeningBadge } from '@/components/clinic/CultureFitScreeningBadge';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
-import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
+import { getHeroBandGradient, radii, useTheme, useThemedStyles } from '@/theme';
+
+type JobPostDetailPart = 'all' | 'hero' | 'body';
 
 type JobPostDetailViewProps = {
   job: JobPost;
+  /** Render only the hero band, only the detail sections, or both (default). */
+  part?: JobPostDetailPart;
 };
 
-export function JobPostDetailView({ job }: JobPostDetailViewProps) {
+export function JobPostDetailView({ job, part = 'all' }: JobPostDetailViewProps) {
   const { colors, isDark } = useTheme();
   const metaLine = formatJobPostRoleMeta(job);
   const matchableSoftware = job.software_used.filter(isMatchableSoftware);
@@ -36,7 +40,7 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
     },
     heroBand: {
       position: 'relative',
-      borderRadius: 16,
+      borderRadius: radii.lg,
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: colors.separator,
@@ -84,7 +88,7 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
     },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       paddingHorizontal: spacing.lg,
@@ -93,38 +97,44 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
     },
   }));
 
+  const showHero = part === 'all' || part === 'hero';
+  const showBody = part === 'all' || part === 'body';
+
   return (
     <View style={styles.wrap}>
-      <FadeInSection delayMs={0}>
-        <View style={styles.heroBand}>
-          <LinearGradient
-            colors={heroGradient}
-            locations={[0, 0.35, 0.65, 0.85, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-            pointerEvents="none"
-          />
-          <View style={styles.hero}>
-            <JobPostStatusBadge status={job.status} style={styles.statusBadge} />
+      {showHero ? (
+        <FadeInSection delayMs={0}>
+          <View style={styles.heroBand}>
+            <LinearGradient
+              colors={heroGradient}
+              locations={[0, 0.2, 0.45, 0.7, 0.88, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroGradient}
+              pointerEvents="none"
+            />
+            <View style={styles.hero}>
+              <JobPostStatusBadge status={job.status} style={styles.statusBadge} />
 
-            <View style={styles.heroTop}>
-              <Text style={styles.overline}>Open role</Text>
-              <Text style={styles.title}>{job.title}</Text>
-            </View>
-
-            <Text style={styles.meta}>{metaLine}</Text>
-
-            {Boolean(job.screening_enabled) ? (
-              <View style={styles.badgeRow}>
-                <CultureFitScreeningBadge />
+              <View style={styles.heroTop}>
+                <Text style={styles.overline}>Open role</Text>
+                <Text style={styles.title}>{job.title}</Text>
               </View>
-            ) : null}
-          </View>
-        </View>
-      </FadeInSection>
 
-      <FadeInSection delayMs={80}>
+              <Text style={styles.meta}>{metaLine}</Text>
+
+              {Boolean(job.screening_enabled) ? (
+                <View style={styles.badgeRow}>
+                  <CultureFitScreeningBadge />
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </FadeInSection>
+      ) : null}
+
+      {showBody ? (
+        <FadeInSection delayMs={showHero ? 80 : 0}>
         <View style={styles.card}>
           <DetailSection>
             <DetailRow label="Compensation" value={job.wage_range} />
@@ -157,6 +167,7 @@ export function JobPostDetailView({ job }: JobPostDetailViewProps) {
           ) : null}
         </View>
       </FadeInSection>
+      ) : null}
     </View>
   );
 }

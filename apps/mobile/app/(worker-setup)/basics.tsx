@@ -14,12 +14,14 @@ import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerBasicsScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const [displayName, setDisplayName] = useState('');
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,7 +59,11 @@ export default function WorkerBasicsScreen() {
         await refreshProfile();
       }
       await save({ role_types: roleTypes });
-      router.push(WORKER_SETUP_EXPERIENCE);
+      if (isEditMode) {
+        router.replace(exitHref);
+      } else {
+        router.push(WORKER_SETUP_EXPERIENCE);
+      }
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -71,11 +77,11 @@ export default function WorkerBasicsScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Continue'}
+            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
             onPress={handleContinue}
           />
@@ -84,9 +90,9 @@ export default function WorkerBasicsScreen() {
       <AuthScreenHeader
         title="Professional background · Basics"
         subtitle="Tell clinics who you are and which roles you are qualified for."
-        onBack={() => router.replace(WORKER_HOME)}
+        onBack={() => (isEditMode ? router.replace(exitHref) : router.replace(WORKER_HOME))}
       />
-      <SetupStepProgress step={1} total={5} />
+      {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
       <View style={styles.form}>
         <AuthField
           label="Full name"

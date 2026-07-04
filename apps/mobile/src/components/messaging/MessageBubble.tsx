@@ -1,6 +1,6 @@
 import type { MessageDeliveryStatus } from '@chairside/api';
 import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { SearchMatchText } from '@/components/messaging/SearchMatchText';
 import { copyMessageText } from '@/lib/copyText';
@@ -183,7 +183,7 @@ export function MessageBubble({
   if (!animateEntry) return content;
 
   return (
-    <Animated.View entering={FadeInDown.duration(180).springify().damping(18)}>
+    <Animated.View entering={FadeIn.duration(160)}>
       {content}
     </Animated.View>
   );

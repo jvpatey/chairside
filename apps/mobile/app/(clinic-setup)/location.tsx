@@ -14,6 +14,7 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
 function buildFormattedAddress(
@@ -45,6 +46,7 @@ function profileToAddress(profile: NonNullable<ReturnType<typeof useClinicProfil
 export default function ClinicLocationScreen() {
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
   const { save } = useClinicSetupSave();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [address, setAddress] = useState<AddressFormValue>(() =>
     clinicProfile ? profileToAddress(clinicProfile) : createEmptyAddressValue(),
   );
@@ -78,7 +80,11 @@ export default function ClinicLocationScreen() {
         latitude: address.latitude,
         longitude: address.longitude,
       });
-      router.push(CLINIC_SETUP_PRACTICE);
+      if (isEditMode) {
+        router.replace(exitHref);
+      } else {
+        router.push(CLINIC_SETUP_PRACTICE);
+      }
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -92,11 +98,11 @@ export default function ClinicLocationScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Continue'}
+            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
             onPress={handleContinue}
           />
@@ -105,9 +111,9 @@ export default function ClinicLocationScreen() {
       <AuthScreenHeader
         title="Clinic location"
         subtitle="Where is your practice located?"
-        onBack={() => router.back()}
+        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />
-      <SetupStepProgress step={2} total={5} />
+      {!isEditMode ? <SetupStepProgress step={2} total={5} /> : null}
       <View style={styles.form}>
         <AddressAutocomplete value={address} onChange={setAddress} />
       </View>

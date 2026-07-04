@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
+import { getElevationStyle } from '@/theme/tokens';
 
 export type ProfileSettingsCardVariant = 'default' | 'danger';
 
@@ -27,7 +28,7 @@ export function ProfileSettingsCard({
   const isDanger = variant === 'danger';
   const iconColor = isDanger ? colors.destructive : colors.primary;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -35,6 +36,7 @@ export function ProfileSettingsCard({
       borderColor: isDanger ? `${colors.destructive}33` : colors.separator,
       padding: spacing.lg,
       gap: spacing.md,
+      ...getElevationStyle({ isDark, level: 'subtle' }),
     },
     header: {
       flexDirection: 'row',

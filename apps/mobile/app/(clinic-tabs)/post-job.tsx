@@ -13,10 +13,9 @@ import {
   ROLE_TYPE_OPTIONS,
 } from '@chairside/config';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { CLINIC_POSTINGS } from '@/lib/routing';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OfferingsInput } from '@/components/clinic/OfferingsInput';
@@ -34,23 +33,7 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
-import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
-
-function PostJobHeroGlow() {
-  const { colors, isDark } = useTheme();
-  const gradient = getHeroBandGradient(colors, isDark, 'primary');
-
-  return (
-    <LinearGradient
-      colors={gradient}
-      locations={[0, 0.35, 0.65, 0.85, 1]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="none"
-    />
-  );
-}
+import { useThemedStyles } from '@/theme';
 
 function applyJobToForm(job: JobPostWithScreening) {
   const catalogSlugs = job.screening_questions
@@ -264,7 +247,7 @@ export default function PostJobScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell backgroundAccessory={<PostJobHeroGlow />}>
+      <OnboardingShell atmosphere="accent" atmosphereAccent="primary">
         <AuthScreenHeader
           title={isEditing ? 'Edit role' : 'Post a role'}
           onBack={() => router.back()}
@@ -277,7 +260,7 @@ export default function PostJobScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell backgroundAccessory={<PostJobHeroGlow />}>
+      <OnboardingShell atmosphere="accent" atmosphereAccent="primary">
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit role' : 'Post a role'}

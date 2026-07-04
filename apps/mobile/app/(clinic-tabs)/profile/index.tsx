@@ -29,7 +29,7 @@ import {
   CLINIC_PROFILE_NOTIFICATIONS,
   CLINIC_PROFILE_PRACTICE,
 } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingContext';
 
 export default function ClinicAccountProfileScreen() {
@@ -37,6 +37,7 @@ export default function ClinicAccountProfileScreen() {
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
   const { billing } = useClinicBilling();
   const { isCompact } = useResponsiveLayout();
+  const { colors } = useTheme();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
@@ -64,30 +65,40 @@ export default function ClinicAccountProfileScreen() {
             icon="business-outline"
             title="Practice details"
             subtitle={getClinicPracticeSubtitle(clinicProfile)}
+            iconColor={colors.primary}
+            iconBackgroundColor={colors.primarySubtle}
             onPress={() => router.push(CLINIC_PROFILE_PRACTICE)}
           />
           <ProfileSettingsRow
             icon="document-text-outline"
             title="About"
             subtitle={getClinicAboutSubtitle(clinicProfile)}
+            iconColor={colors.secondary}
+            iconBackgroundColor={colors.secondarySubtle}
             onPress={() => router.push(CLINIC_PROFILE_ABOUT)}
           />
           <ProfileSettingsRow
             icon="notifications-outline"
             title="Notifications"
             subtitle={getClinicNotificationsSubtitle()}
+            iconColor={colors.info}
+            iconBackgroundColor={`${colors.info}18`}
             onPress={() => router.push(CLINIC_PROFILE_NOTIFICATIONS)}
           />
           <ProfileSettingsRow
             icon="chatbubbles-outline"
             title="Messaging"
             subtitle={getClinicMessagingSubtitle(clinicProfile)}
+            iconColor={colors.success}
+            iconBackgroundColor={`${colors.success}18`}
             onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}
           />
           <ProfileSettingsRow
             icon="card-outline"
             title="Plans & billing"
             subtitle={getClinicBillingSubtitle(getClinicPlanLabel(billing?.plan ?? 'free'))}
+            iconColor={colors.warning}
+            iconBackgroundColor={`${colors.warning}18`}
             onPress={() => router.push(CLINIC_PROFILE_BILLING)}
           />
           {isCompact ? (
