@@ -9,8 +9,8 @@ import {
   type WorkerApplication,
 } from '@chairside/api';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Alert,
   StyleSheet,
@@ -54,6 +54,7 @@ import {
   partitionWorkerShiftApplications,
   type FillInsTabMode,
 } from '@/lib/fillInFilters';
+import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import type { WorkerBrowseViewMode } from '@/lib/postingFilters';
 import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
 import {
@@ -107,6 +108,7 @@ function navigateToEditSchedule() {
 export default function FillInsScreen() {
   useMarkGetStartedBrowseVisit('fillIns');
   const { user } = useAuth();
+  const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('open');
@@ -175,6 +177,17 @@ export default function FillInsScreen() {
 
   useRefreshOnFocus(load);
   useRefreshOnForeground(load);
+
+  useEffect(() => {
+    const redirect = redirectEmbeddedCalendarDeepLink(
+      params.mode,
+      typeof params.date === 'string' ? params.date : undefined,
+      'worker',
+    );
+    if (redirect) {
+      router.replace(redirect);
+    }
+  }, [params.date, params.mode]);
 
   const filteredShifts = useMemo(
     () =>

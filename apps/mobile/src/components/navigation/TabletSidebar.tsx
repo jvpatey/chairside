@@ -20,7 +20,7 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
-import { TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
+import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import {
@@ -55,6 +55,36 @@ function getSidebarRoutes(
       if (bIndex === -1) return -1;
       return aIndex - bIndex;
     });
+}
+
+type SidebarRoute = ReturnType<typeof getSidebarRoutes>[number];
+
+function groupSidebarRoutes(
+  routes: SidebarRoute[],
+  role: 'worker' | 'clinic',
+  useSections: boolean,
+): { label: string | null; routes: SidebarRoute[] }[] {
+  if (!useSections) {
+    return [{ label: null, routes }];
+  }
+
+  const routeByName = new Map(routes.map((route) => [route.name, route]));
+  const sections = TABLET_SIDEBAR_SECTIONS[role]
+    .map((section) => ({
+      label: section.label,
+      routes: section.routes
+        .map((name) => routeByName.get(name))
+        .filter((route): route is SidebarRoute => route != null),
+    }))
+    .filter((section) => section.routes.length > 0);
+
+  const groupedNames = new Set(sections.flatMap((section) => section.routes.map((route) => route.name)));
+  const ungrouped = routes.filter((route) => !groupedNames.has(route.name));
+  if (ungrouped.length > 0) {
+    sections.push({ label: null, routes: ungrouped });
+  }
+
+  return sections;
 }
 
 type TabletSidebarProps = BottomTabBarProps & {
@@ -150,7 +180,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingBottom: spacing.sm,
       marginBottom: spacing.sm,
       borderBottomWidth: 0.5,
-      borderBottomColor: colors.separator,
+      borderBottomColor: colorWithAlpha(colors.separator, 0.55),
     },
     profileSectionCollapsed: {
       alignItems: 'center',
@@ -168,12 +198,26 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     nav: {
       flex: 1,
-      gap: spacing.xs,
+      gap: spacing.sm,
       paddingTop: spacing.xs,
       position: 'relative',
     },
     navCollapsed: {
       alignItems: 'center',
+      gap: spacing.xs,
+    },
+    sectionGroup: {
+      gap: spacing.xs,
+    },
+    sectionLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: colors.labelSecondary,
+      paddingHorizontal: spacing.sm,
+      paddingTop: spacing.xs,
+      paddingBottom: 2,
     },
     navIndicator: {
       position: 'absolute',
@@ -185,7 +229,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     footer: {
       flexShrink: 0,
       borderTopWidth: 0.5,
-      borderTopColor: colors.separator,
+      borderTopColor: colorWithAlpha(colors.separator, 0.55),
       paddingTop: spacing.sm,
       paddingBottom: spacing.sm,
       marginTop: spacing.sm,
@@ -197,9 +241,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
-      paddingVertical: 11,
+      minHeight: 44,
+      paddingVertical: 10,
       paddingHorizontal: spacing.sm,
       borderRadius: isWeb ? 12 : 10,
+      position: 'relative',
+      overflow: 'hidden',
       ...webPointer(),
       ...(isWeb
         ? webOnlyStyle({
@@ -208,6 +255,20 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
           } as ViewStyle)
         : {}),
+    },
+    itemHovered: {
+      backgroundColor: colors.fillSubtle,
+      ...webOnlyStyle({
+        transform: [{ translateX: 2 }],
+      } as ViewStyle),
+    },
+    accentBar: {
+      position: 'absolute',
+      left: 0,
+      top: 8,
+      bottom: 8,
+      width: 3,
+      borderRadius: 2,
     },
     itemCollapsed: {
       justifyContent: 'center',
@@ -219,9 +280,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     itemActive: {
       backgroundColor: colors.primarySubtle,
-    },
-    itemHovered: {
-      backgroundColor: colors.fillSubtle,
     },
     itemActiveHovered: webOnlyStyle({
       backgroundColor: colors.primarySubtle,
@@ -239,11 +297,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     label: {
       flex: 1,
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '500',
       color: colors.labelPrimary,
     },
     labelActive: {
+      fontSize: 15,
       fontWeight: '600',
     },
     badge: {
@@ -332,6 +391,101 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       : {}),
   };
 
+  const sidebarSections = groupSidebarRoutes(visibleRoutes, role, isWeb && !isCollapsed);
+
+  const renderSidebarNavItem = (route: SidebarRoute, index: number) => {
+    const { options } = descriptors[route.key];
+    const routeIndex = state.routes.findIndex((r) => r.key === route.key);
+    const isFocused = isRouteFocused(route.name, routeIndex);
+    const tabAccent = getTabAccentForName(route.name);
+    const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
+    const color = isFocused ? activeColor : colors.tabInactive;
+    const itemLabel = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
+    const titleLabel = options.title ?? route.name;
+
+    const onPress = () => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: route.key,
+        canPreventDefault: true,
+      });
+
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.dispatch({
+          ...CommonActions.navigate(route.name),
+          target: state.key,
+        });
+      }
+    };
+
+    const onLongPress = () => {
+      navigation.emit({
+        type: 'tabLongPress',
+        target: route.key,
+      });
+    };
+
+    const badge = options.tabBarBadge;
+    const hasBadge = badge != null && badge !== 0;
+
+    return (
+      <Pressable
+        key={route.key}
+        onLayout={(event) => {
+          if (isCollapsed) return;
+          const { x, y, width, height } = event.nativeEvent.layout;
+          onSegmentLayout(index, { x, y, width, height });
+        }}
+        accessibilityRole="button"
+        accessibilityState={isFocused ? { selected: true } : {}}
+        accessibilityLabel={itemLabel}
+        {...(isCollapsed && isWeb
+          ? webOnlyStyle({ title: titleLabel } as ViewStyle)
+          : {})}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        style={({ pressed, hovered }) => [
+          styles.item,
+          isCollapsed && styles.itemCollapsed,
+          isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
+          pressed && styles.itemPressed,
+        ]}
+      >
+        {isFocused ? (
+          <View style={[styles.accentBar, { backgroundColor: activeColor }]} />
+        ) : null}
+        <View style={styles.iconWrap}>
+          {options.tabBarIcon?.({ focused: isFocused, color, size: 20 })}
+          {hasBadge && isCollapsed ? (
+            <View style={[styles.badge, styles.badgeCollapsed]}>
+              <Text style={[styles.badgeText, styles.badgeTextCollapsed]}>{badge}</Text>
+            </View>
+          ) : null}
+        </View>
+        {!isCollapsed ? (
+          <Text
+            style={[
+              styles.label,
+              isFocused && [styles.labelActive, { color: activeColor }],
+              labelRevealStyle(isCollapsed),
+            ]}
+            numberOfLines={1}
+            accessibilityElementsHidden={isCollapsed}
+            importantForAccessibility={isCollapsed ? 'no' : 'auto'}
+          >
+            {titleLabel}
+          </Text>
+        ) : null}
+        {hasBadge && !isCollapsed ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badge}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    );
+  };
+
   const sidebarContent = (
     <>
       <View style={[styles.profileSection, isCollapsed && styles.profileSectionCollapsed]}>
@@ -365,91 +519,17 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             style={[styles.navIndicator, { backgroundColor: focusedIndicatorColor }]}
           />
         ) : null}
-        {visibleRoutes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const routeIndex = state.routes.findIndex((r) => r.key === route.key);
-          const isFocused = isRouteFocused(route.name, routeIndex);
-          const tabAccent = getTabAccentForName(route.name);
-          const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
-          const color = isFocused ? activeColor : colors.tabInactive;
-          const label = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
-
-          const onPress = () => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.dispatch({
-                ...CommonActions.navigate(route.name),
-                target: state.key,
-              });
-            }
-          };
-
-          const onLongPress = () => {
-            navigation.emit({
-              type: 'tabLongPress',
-              target: route.key,
-            });
-          };
-
-          const badge = options.tabBarBadge;
-          const hasBadge = badge != null && badge !== 0;
-
-          return (
-            <Pressable
-              key={route.key}
-              onLayout={(event) => {
-                if (isCollapsed) return;
-                const { x, y, width, height } = event.nativeEvent.layout;
-                onSegmentLayout(index, { x, y, width, height });
-              }}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={label}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              style={({ pressed, hovered }) => [
-                styles.item,
-                isCollapsed && styles.itemCollapsed,
-                isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
-                pressed && styles.itemPressed,
-              ]}
-            >
-              <View style={styles.iconWrap}>
-                {options.tabBarIcon?.({ focused: isFocused, color, size: 22 })}
-                {hasBadge && isCollapsed ? (
-                  <View style={[styles.badge, styles.badgeCollapsed]}>
-                    <Text style={[styles.badgeText, styles.badgeTextCollapsed]}>{badge}</Text>
-                  </View>
-                ) : null}
-              </View>
-              {!isCollapsed ? (
-                <Text
-                  style={[
-                    styles.label,
-                    isFocused && [styles.labelActive, { color: activeColor }],
-                    labelRevealStyle(isCollapsed),
-                  ]}
-                  numberOfLines={1}
-                  accessibilityElementsHidden={isCollapsed}
-                  importantForAccessibility={isCollapsed ? 'no' : 'auto'}
-                >
-                  {options.title ?? route.name}
-                </Text>
-              ) : null}
-              {hasBadge && !isCollapsed ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{badge}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
+        {sidebarSections.map((section) => (
+          <View key={section.label ?? 'ungrouped'} style={styles.sectionGroup}>
+            {!isCollapsed && section.label ? (
+              <Text style={styles.sectionLabel}>{section.label}</Text>
+            ) : null}
+            {section.routes.map((route) => {
+              const index = visibleRoutes.findIndex((item) => item.key === route.key);
+              return renderSidebarNavItem(route, index);
+            })}
+          </View>
+        ))}
       </View>
 
       <View style={[styles.footer, isCollapsed && styles.footerCollapsed]}>
@@ -475,11 +555,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
                   : styles.itemHovered),
             pressed && styles.itemPressed,
           ]}
+          {...(isCollapsed && isWeb ? webOnlyStyle({ title: 'Settings' } as ViewStyle) : {})}
         >
           <View style={styles.iconWrap}>
             <Ionicons
               name={isProfileActive ? 'settings' : 'settings-outline'}
-              size={22}
+              size={20}
               color={isProfileActive ? colors.primary : colors.tabInactive}
             />
           </View>

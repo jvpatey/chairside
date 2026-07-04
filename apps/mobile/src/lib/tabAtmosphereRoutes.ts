@@ -4,8 +4,8 @@ export type TabAtmosphereIntensity = 'none' | 'subtle' | 'prominent';
 
 export type TabAtmosphereAccent = 'primary' | 'secondary';
 
-const WORKER_MAIN_TABS = new Set(['browse', 'applications', 'fillins', 'messages']);
-const CLINIC_MAIN_TABS = new Set(['postings', 'applications', 'fill-ins', 'messages']);
+const WORKER_MAIN_TABS = new Set(['browse', 'applications', 'calendar', 'fillins', 'messages']);
+const CLINIC_MAIN_TABS = new Set(['postings', 'applications', 'calendar', 'fill-ins', 'messages']);
 
 const WORKER_STACK_FRAGMENTS = [
   '/job/',
@@ -88,6 +88,10 @@ function getTabBarNameFromReturnTo(
 
   if (returnTo === 'messages-tab') {
     return 'messages';
+  }
+
+  if (returnTo === 'calendar-tab') {
+    return 'calendar';
   }
 
   if (returnTo === 'browse-tab') {

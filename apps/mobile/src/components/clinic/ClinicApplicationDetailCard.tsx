@@ -67,6 +67,7 @@ import {
   openInterviewCalendarInvite,
 } from '@/lib/calendarInvite';
 import { buildResumeFileName } from '@/lib/openResumePreview';
+import { getClinicCalendarRoute } from '@/lib/calendarNavigation';
 import {
   getClinicApplicationMessagesRoute,
   type ClinicApplicationReturnTarget,
@@ -577,6 +578,7 @@ function ActionPanel({
           <OnboardingButton
             label={messageAction.label}
             accent={accent}
+            solid
             onPress={messageAction.onPress}
           />
           {removeAction ? (
@@ -1001,6 +1003,15 @@ export function ClinicApplicationDetailCard({
             variant: 'secondary',
             onPress: handleAddInterviewToCalendar,
           },
+          {
+            key: 'view-calendar',
+            label: 'View on calendar',
+            variant: 'secondary',
+            onPress: () =>
+              router.push(
+                getClinicCalendarRoute(application.interview_at?.slice(0, 10) ?? undefined),
+              ),
+          },
           ...(clinicProposedChange || workerProposedChange
             ? []
             : [
@@ -1088,7 +1099,7 @@ export function ClinicApplicationDetailCard({
           />
         ) : (
           <SurfaceCard padding="md" gap>
-            <OnboardingButton label="View messages" accent={accent} onPress={handleMessage} />
+            <OnboardingButton label="View messages" accent={accent} solid onPress={handleMessage} />
           </SurfaceCard>
         )}
 
