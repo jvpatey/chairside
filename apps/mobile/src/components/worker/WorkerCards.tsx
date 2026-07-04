@@ -19,6 +19,7 @@ import {
   type DashboardOverviewStat,
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
@@ -226,6 +227,7 @@ type WorkerOverviewPanelProps = {
   onToggleSavedJob?: (jobId: string, nextSaved: boolean) => void;
   onToggleSavedShift?: (shiftId: string, nextSaved: boolean) => void;
   onApplicationUpdated?: () => void;
+  onViewAllPress?: () => void;
 };
 
 export function WorkerOverviewPanel({
@@ -242,12 +244,17 @@ export function WorkerOverviewPanel({
   onToggleSavedJob,
   onToggleSavedShift,
   onApplicationUpdated,
+  onViewAllPress,
 }: WorkerOverviewPanelProps) {
   const styles = useThemedStyles(({ spacing }) => {
     const cardGap = dashboardSectionGap(spacing);
     return {
-      list: { gap: cardGap },
-      group: { gap: cardGap },
+      root: {
+        width: '100%',
+        alignSelf: 'stretch' as const,
+      },
+      list: { gap: cardGap, width: '100%', alignSelf: 'stretch' as const },
+      group: { gap: cardGap, width: '100%', alignSelf: 'stretch' as const },
     };
   });
 
@@ -278,9 +285,14 @@ export function WorkerOverviewPanel({
   );
 
   return (
-    <View>
-      <DashboardSectionHeader title={OVERVIEW_TITLES[selected]} />
-      {selected === 'roles' ? (
+    <View style={styles.root}>
+      <DashboardSectionHeader
+        title={OVERVIEW_TITLES[selected]}
+        actionLabel={onViewAllPress ? 'View all' : undefined}
+        onActionPress={onViewAllPress}
+      />
+      <FadeInSection key={selected} delayMs={0}>
+        {selected === 'roles' ? (
         jobs.length === 0 ? (
           <DashboardEmptyState
             icon="briefcase-outline"
@@ -388,7 +400,8 @@ export function WorkerOverviewPanel({
             ))}
           </View>
         )
-      ) : null}
+        ) : null}
+      </FadeInSection>
     </View>
   );
 }

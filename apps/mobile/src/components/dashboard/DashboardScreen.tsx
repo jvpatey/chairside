@@ -1,9 +1,8 @@
 import { ReactNode } from 'react';
-import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { DashboardBrandHeader } from '@/components/dashboard/DashboardBrandHeader';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { Screen } from '@/components/ui/Screen';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useThemedStyles } from '@/theme';
@@ -21,9 +20,6 @@ type DashboardScreenProps = {
   brandHeaderName?: ReactNode;
   /** Subtitle on the third text line below the wordmark row. */
   brandHeaderSubtitle?: ReactNode;
-  /** On tablet web, renders a page title row like other tab screens (no mobile greeting hero). */
-  tabletTitle?: string;
-  tabletSubtitle?: string;
 };
 
 /** Dashboard content shell; atmosphere is provided by `TabAtmosphereShell`. */
@@ -34,16 +30,12 @@ export function DashboardScreen({
   brandHeaderTrailing,
   brandHeaderName,
   brandHeaderSubtitle,
-  tabletTitle,
-  tabletSubtitle,
   contentContainerStyle,
 }: DashboardScreenProps) {
   const { isTablet } = useResponsiveLayout();
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
   }));
-  const showWebTabletHeader =
-    isTablet && Platform.OS === 'web' && Boolean(tabletTitle);
   const showPhoneBrandHeader = showBrandHeader && !isTablet;
 
   const body = showPhoneBrandHeader ? (
@@ -61,15 +53,7 @@ export function DashboardScreen({
   );
 
   return (
-    <Screen
-      showHeader={showWebTabletHeader}
-      title={tabletTitle}
-      subtitle={showWebTabletHeader ? tabletSubtitle : undefined}
-      showNotifications={showWebTabletHeader}
-      headerAccessory={
-        showWebTabletHeader ? <SignOutHeaderButton /> : undefined
-      }
-      contentContainerStyle={contentContainerStyle}>
+    <Screen showHeader={false} showNotifications={false} contentContainerStyle={contentContainerStyle}>
       {body}
     </Screen>
   );

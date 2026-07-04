@@ -1,7 +1,8 @@
 import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
@@ -9,7 +10,14 @@ import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import {
+  colorWithAlpha,
+  fontBold,
+  fontSemibold,
+  getSpotlightGradient,
+  useTheme,
+  useThemedStyles,
+} from '@/theme';
 
 const PREVIEW_LIMIT = 2;
 
@@ -40,7 +48,7 @@ function PreviewAvatar({
       <ClinicLogoAvatar
         clinicName={conversation.counterpart_name}
         logoUri={clinicLogoUri}
-        size={36}
+        size={40}
       />
     );
   }
@@ -49,7 +57,7 @@ function PreviewAvatar({
     <WorkerProfileAvatar
       displayName={conversation.counterpart_name}
       photoUri={workerPhotoUri}
-      size={36}
+      size={40}
     />
   );
 }
@@ -61,16 +69,21 @@ export function DashboardUnreadMessagesCard({
   onConversationPress,
   onViewAllPress,
 }: DashboardUnreadMessagesCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const unread = conversations.filter((conversation) => conversation.unread);
+  const gradientColors = getSpotlightGradient(colors, isDark, 'primary');
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
     card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colorWithAlpha(colors.primary, isDark ? 0.24 : 0.14),
       overflow: 'hidden',
+      ...elevation('subtle'),
+    },
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
+      opacity: 0.45,
     },
     header: {
       flexDirection: 'row',
@@ -79,9 +92,8 @@ export function DashboardUnreadMessagesCard({
       gap: spacing.sm,
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.separator,
-      backgroundColor: colors.primarySubtle,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colorWithAlpha(colors.separator, 0.8),
     },
     headerLeft: {
       flexDirection: 'row',
@@ -90,7 +102,9 @@ export function DashboardUnreadMessagesCard({
       flex: 1,
     },
     headerTitle: {
-      ...typography.body,
+      fontSize: 15,
+      lineHeight: 20,
+      fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.primary,
     },
@@ -107,7 +121,7 @@ export function DashboardUnreadMessagesCard({
       color: colors.primary,
     },
     previews: {
-      gap: 1,
+      gap: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
     },
     previewRow: {
@@ -130,8 +144,9 @@ export function DashboardUnreadMessagesCard({
     },
     name: {
       ...typography.body,
-      fontSize: 17,
+      fontSize: 16,
       lineHeight: 22,
+      fontFamily: fontBold,
       fontWeight: '700',
       letterSpacing: -0.2,
       color: colors.labelPrimary,
@@ -163,6 +178,7 @@ export function DashboardUnreadMessagesCard({
 
   return (
     <View style={styles.card}>
+      <LinearGradient colors={gradientColors} style={styles.gradient} />
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="chatbubbles" size={18} color={colors.primary} />
@@ -184,34 +200,34 @@ export function DashboardUnreadMessagesCard({
         {previews.map((conversation) => {
           const display = formatConversationDisplay(conversation, role);
           return (
-          <Pressable
-            key={conversation.id}
-            accessibilityRole="button"
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onConversationPress(conversation);
-            }}
-            style={({ pressed, hovered }) => [
-              styles.previewRow,
-              webHover(hovered, pressed, styles.previewRowHovered),
-              pressed && styles.previewRowPressed,
-            ]}>
-            <PreviewAvatar conversation={conversation} avatarKind={avatarKind} />
-            <View style={styles.previewText}>
-              <Text style={styles.name} numberOfLines={1}>
-                {display.cardName}
-              </Text>
-              <Text style={styles.context} numberOfLines={2}>
-                {display.inboxContextLine}
-              </Text>
-              <Text style={styles.previewMessage} numberOfLines={1}>
-                {conversation.last_message_preview ?? 'New message'}
-              </Text>
-            </View>
-            {isWeb ? (
-              <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
-            ) : null}
-          </Pressable>
+            <Pressable
+              key={conversation.id}
+              accessibilityRole="button"
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onConversationPress(conversation);
+              }}
+              style={({ pressed, hovered }) => [
+                styles.previewRow,
+                webHover(hovered, pressed, styles.previewRowHovered),
+                pressed && styles.previewRowPressed,
+              ]}>
+              <PreviewAvatar conversation={conversation} avatarKind={avatarKind} />
+              <View style={styles.previewText}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {display.cardName}
+                </Text>
+                <Text style={styles.context} numberOfLines={2}>
+                  {display.inboxContextLine}
+                </Text>
+                <Text style={styles.previewMessage} numberOfLines={1}>
+                  {conversation.last_message_preview ?? 'New message'}
+                </Text>
+              </View>
+              {isWeb ? (
+                <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+              ) : null}
+            </Pressable>
           );
         })}
       </View>

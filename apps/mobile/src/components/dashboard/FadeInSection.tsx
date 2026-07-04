@@ -14,7 +14,8 @@ export function FadeInSection({ children, delayMs = 0, style }: FadeInSectionPro
   const { opacity, translateY } = useEnterAnimation(delayMs);
 
   return (
-    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+    <Animated.View
+      style={[{ width: '100%', alignSelf: 'stretch' }, style, { opacity, transform: [{ translateY }] }]}>
       {children}
     </Animated.View>
   );

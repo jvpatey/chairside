@@ -1,97 +1,83 @@
-import { Animated, View } from 'react-native';
+import { View } from 'react-native';
 
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
+import { ShimmerBlock } from '@/components/dashboard/ShimmerBlock';
 import { getDashboardLayoutStyles, dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
-import { usePulseOpacity } from '@/lib/motion';
 import { useThemedStyles } from '@/theme';
 
-function SkeletonBlock({
-  height,
-  width,
-  borderRadius = 8,
-  pulse,
-}: {
-  height: number;
-  width: number | `${number}%`;
-  borderRadius?: number;
-  pulse: Animated.Value;
-}) {
-  const styles = useThemedStyles(({ colors }) => ({
-    block: {
-      height,
-      width,
-      borderRadius,
-      backgroundColor: colors.fillSubtle,
-    },
-  }));
-
-  return <Animated.View style={[styles.block, { opacity: pulse }]} />;
-}
-
-/** Skeleton placeholder matching the dashboard layout rhythm. */
+/** Skeleton placeholder matching the premium dashboard layout rhythm. */
 export function DashboardLoadingShell() {
-  const pulse = usePulseOpacity();
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
     heroBlock: {
       gap: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
+    },
+    heroBand: {
+      borderRadius: theme.radii.hero,
+      overflow: 'hidden',
+      padding: theme.spacing.lg,
+      gap: theme.spacing.sm,
+      backgroundColor: theme.colors.fillSubtle,
     },
     quickActionRow: {
       flexDirection: 'row' as const,
-      gap: theme.spacing.lg,
-    },
-    tile: {
-      flex: 1,
-      height: 82,
-      borderRadius: dashboardControlRadii.quickAction,
-      backgroundColor: theme.colors.fillSubtle,
+      gap: theme.spacing.md,
     },
     statRow: {
       flexDirection: 'row' as const,
-      gap: 3,
-      padding: 3,
-      borderRadius: dashboardControlRadii.statBar,
-      backgroundColor: theme.colors.fillSubtle,
+      gap: theme.spacing.sm,
     },
     statCell: {
       flex: 1,
-      height: 72,
-      borderRadius: dashboardControlRadii.statSegment,
-      backgroundColor: theme.colors.surface,
+      height: 96,
+      borderRadius: theme.radii.lg,
+    },
+    spotlight: {
+      height: 128,
+      borderRadius: theme.radii.xl,
+    },
+    tile: {
+      flex: 1,
+      height: 96,
+      borderRadius: dashboardControlRadii.quickAction,
     },
     listCard: {
       height: 132,
       borderRadius: theme.radii.lg,
-      backgroundColor: theme.colors.fillSubtle,
     },
   }));
 
   return (
     <View style={styles.content} accessibilityRole="progressbar" accessibilityLabel="Loading dashboard">
       <View style={styles.heroBlock}>
-        <SkeletonBlock pulse={pulse} height={16} width="34%" borderRadius={6} />
-        <SkeletonBlock pulse={pulse} height={36} width="72%" borderRadius={8} />
-        <SkeletonBlock pulse={pulse} height={14} width="28%" borderRadius={6} />
+        <View style={styles.heroBand}>
+          <ShimmerBlock height={14} width="28%" borderRadius={6} />
+          <ShimmerBlock height={40} width="76%" borderRadius={10} />
+          <ShimmerBlock height={16} width="42%" borderRadius={6} />
+        </View>
+      </View>
+
+      <ShimmerBlock height={128} width="100%" borderRadius={18} style={styles.spotlight} />
+
+      <View style={styles.statRow}>
+        <ShimmerBlock height={96} width="100%" borderRadius={16} style={styles.statCell} />
+        <ShimmerBlock height={96} width="100%" borderRadius={16} style={styles.statCell} />
+        <ShimmerBlock height={96} width="100%" borderRadius={16} style={styles.statCell} />
       </View>
 
       <View style={styles.quickActionSection}>
         <View style={styles.quickActionRow}>
-          <Animated.View style={[styles.tile, { opacity: pulse }]} />
-          <Animated.View style={[styles.tile, { opacity: pulse }]} />
+          <ShimmerBlock height={96} width="100%" borderRadius={22} style={styles.tile} />
+          <ShimmerBlock height={96} width="100%" borderRadius={22} style={styles.tile} />
         </View>
       </View>
 
       <View style={styles.overviewBlock}>
-        <View style={styles.statRow}>
-          <Animated.View style={[styles.statCell, { opacity: pulse }]} />
-          <Animated.View style={[styles.statCell, { opacity: pulse }]} />
-          <Animated.View style={[styles.statCell, { opacity: pulse }]} />
-        </View>
-
         <View style={styles.section}>
           <DashboardSectionHeader title="Open roles near you" />
-          <Animated.View style={[styles.listCard, { opacity: pulse }]} />
-          <Animated.View style={[styles.listCard, { opacity: pulse }]} />
+          <ShimmerBlock height={132} width="100%" borderRadius={16} style={styles.listCard} />
+          <ShimmerBlock height={132} width="100%" borderRadius={16} style={styles.listCard} />
         </View>
       </View>
     </View>

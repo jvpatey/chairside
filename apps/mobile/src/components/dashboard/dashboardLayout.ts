@@ -36,16 +36,56 @@ export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
     section: {
       gap: spacing.sm,
     },
+    heroSection: {
+      gap: spacing.sm,
+    },
     quickActionSection: {
       gap: spacing.sm,
     },
     quickActionRow: {
       flexDirection: 'row' as const,
-      gap: spacing.lg,
+      gap: spacing.md,
     },
-    /** Stat bar + overview list share one vertical rhythm block. */
+    /** Stat cards + overview list share one vertical rhythm block. */
     overviewBlock: {
       gap: sectionGap,
+    },
+    asideStack: {
+      gap: sectionGap,
+    },
+    desktopShell: {
+      gap: sectionGap,
+      width: '100%',
+      alignSelf: 'stretch' as const,
+    },
+    desktopSupplementary: {
+      width: '100%',
+      alignSelf: 'stretch' as const,
+      gap: sectionGap,
+    },
+    desktopGrid: {
+      flexDirection: 'row' as const,
+      gap: spacing.xl,
+      alignItems: 'flex-start' as const,
+    },
+    desktopMain: {
+      flex: 1,
+      minWidth: 0,
+      gap: sectionGap,
+    },
+    desktopAside: {
+      flex: 0,
+      width: 320,
+      minWidth: 300,
+      maxWidth: 340,
+      gap: sectionGap,
+      ...(Platform.OS === 'web'
+        ? {
+            position: 'sticky' as const,
+            top: spacing.lg,
+            alignSelf: 'flex-start' as const,
+          }
+        : null),
     },
   };
 }

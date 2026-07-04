@@ -40,11 +40,76 @@ export function getAtmosphereGradient(
   return [strong, mid, soft, 'transparent'];
 }
 
+/** Rich hero-band wash for the dashboard greeting area. */
+export function getHeroBandGradient(
+  colors: Colors,
+  isDark: boolean,
+  accent: GradientAccent = 'primary',
+): readonly [string, string, string, string, string] {
+  const brand = resolveAccentColor(colors, accent);
+  const secondary = colors.secondary;
+
+  if (isDark) {
+    return [
+      colorWithAlpha(brand, 0.32),
+      colorWithAlpha(secondary, 0.14),
+      colorWithAlpha(brand, 0.08),
+      colorWithAlpha(brand, 0.03),
+      'transparent',
+    ];
+  }
+
+  return [
+    colorWithAlpha(brand, 0.38),
+    colorWithAlpha(secondary, 0.16),
+    colorWithAlpha(brand, 0.12),
+    colorWithAlpha(brand, 0.04),
+    'transparent',
+  ];
+}
+
+/** Spotlight card gradient — bold brand wash with depth. */
+export function getSpotlightGradient(
+  colors: Colors,
+  isDark: boolean,
+  accent: GradientAccent = 'primary',
+): readonly [string, string, string] {
+  const brand = resolveAccentColor(colors, accent);
+  const subtle = resolveAccentSubtle(colors, accent);
+
+  return isDark
+    ? [
+        colorWithAlpha(brand, 0.42),
+        colorWithAlpha(brand, 0.18),
+        colorWithAlpha(colors.surfaceElevated, 0.92),
+      ]
+    : [colorWithAlpha(brand, 0.34), colorWithAlpha(subtle, 0.95), colors.surface];
+}
+
+/** Selected stat card fill gradient. */
+export function getStatCardSelectedGradient(
+  colors: Colors,
+  isDark: boolean,
+  accent: GradientAccent = 'primary',
+): readonly [string, string] {
+  return getStatSelectedGradient(colors, isDark, accent);
+}
+
+/** Unselected stat card subtle surface tint. */
+export function getStatCardIdleGradient(
+  colors: Colors,
+  isDark: boolean,
+): readonly [string, string] {
+  return isDark
+    ? [colorWithAlpha(colors.surfaceElevated, 0.88), colorWithAlpha(colors.surface, 0.72)]
+    : [colors.surface, colorWithAlpha(colors.backgroundGrouped, 0.85)];
+}
+
 /** Primary quick-action tile gradient. */
 export function getPrimaryTileGradient(colors: Colors, isDark: boolean): readonly [string, string] {
   return isDark
-    ? [colorWithAlpha(colors.primary, 0.42), colorWithAlpha(colors.primary, 0.18)]
-    : [colorWithAlpha(colors.primary, 0.3), colorWithAlpha(colors.primarySubtle, 0.95)];
+    ? [colorWithAlpha(colors.primary, 0.5), colorWithAlpha(colors.primary, 0.2)]
+    : [colorWithAlpha(colors.primary, 0.36), colorWithAlpha(colors.primarySubtle, 0.98)];
 }
 
 /** Secondary quick-action tile gradient. */
@@ -53,8 +118,8 @@ export function getSecondaryTileGradient(
   isDark: boolean,
 ): readonly [string, string] {
   return isDark
-    ? [colorWithAlpha(colors.secondary, 0.28), colorWithAlpha(colors.surfaceElevated, 0.95)]
-    : [colorWithAlpha(colors.secondary, 0.22), colorWithAlpha(colors.secondarySubtle, 0.98)];
+    ? [colorWithAlpha(colors.secondary, 0.34), colorWithAlpha(colors.surfaceElevated, 0.95)]
+    : [colorWithAlpha(colors.secondary, 0.28), colorWithAlpha(colors.secondarySubtle, 0.98)];
 }
 
 /** Selected stat cell accent gradient. */
