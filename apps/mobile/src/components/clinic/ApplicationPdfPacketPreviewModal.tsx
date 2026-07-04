@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Platform,
   Pressable,
@@ -16,7 +17,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ResumePdfViewer } from '@/components/resume/ResumePdfViewer';
 import { isNativePdfViewerAvailable } from '@/lib/nativePdfViewer';
-import type { ApplicationPdfPacketResult } from '@/lib/applicationPdfPacket';
+import {
+  printApplicationPdfPacket,
+  resolveApplicationPdfDownloadUri,
+  type ApplicationPdfPacketResult,
+} from '@/lib/applicationPdfPacket';
 import {
   webHover,
   webIconButtonHoverStyles,
@@ -49,6 +54,7 @@ export function ApplicationPdfPacketPreviewModal({
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const canUseNativePdf = isNativePdfViewerAvailable();
   const canShowInlinePdf = canUseNativePdf || Platform.OS === 'web';
   const localUri = packet?.uri ?? null;
@@ -162,16 +168,25 @@ export function ApplicationPdfPacketPreviewModal({
   }));
 
   const handleShare = async () => {
-    if (!localUri) return;
+    if (!localUri || !packet || isExporting) return;
 
     if (Platform.OS === 'web') {
-      const link = document.createElement('a');
-      link.href = localUri;
-      link.download = fileName;
-      link.rel = 'noopener';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      setIsExporting(true);
+      try {
+        const { uri: downloadUri, resumeMergeWarning } = await resolveApplicationPdfDownloadUri(packet);
+        const link = document.createElement('a');
+        link.href = downloadUri;
+        link.download = fileName;
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        if (resumeMergeWarning) {
+          Alert.alert('Candidate packet ready', resumeMergeWarning);
+        }
+      } finally {
+        setIsExporting(false);
+      }
       return;
     }
 
@@ -186,7 +201,21 @@ export function ApplicationPdfPacketPreviewModal({
   };
 
   const handlePrint = async () => {
-    if (!localUri) return;
+    if (!localUri || !packet || isExporting) return;
+
+    if (Platform.OS === 'web') {
+      setIsExporting(true);
+      try {
+        const { resumeMergeWarning } = await printApplicationPdfPacket(packet);
+        if (resumeMergeWarning) {
+          Alert.alert('Candidate packet ready', resumeMergeWarning);
+        }
+      } finally {
+        setIsExporting(false);
+      }
+      return;
+    }
+
     await Print.printAsync({ uri: localUri });
   };
 
@@ -208,7 +237,11 @@ export function ApplicationPdfPacketPreviewModal({
               </Text>
               <Text style={styles.subtitle} numberOfLines={1}>
                 {candidateName}
-                {packet?.resumeAttached ? ' · Resume included' : ''}
+                {packet?.resumeAttached
+                  ? packet.previewKind === 'html'
+                    ? ' · Resume included in download'
+                    : ' · Resume included'
+                  : ''}
               </Text>
             </View>
             <View style={styles.headerActions}>
@@ -306,13 +339,24 @@ export function ApplicationPdfPacketPreviewModal({
           <View style={styles.footer}>
             <View style={styles.footerButton}>
               <OnboardingButton
-                label={Platform.OS === 'web' ? 'Download' : 'Share'}
+                label={
+                  isExporting
+                    ? 'Preparing…'
+                    : Platform.OS === 'web'
+                      ? 'Download'
+                      : 'Share'
+                }
                 variant="secondary"
+                disabled={isExporting}
                 onPress={() => void handleShare()}
               />
             </View>
             <View style={styles.footerButton}>
-              <OnboardingButton label="Print" onPress={() => void handlePrint()} />
+              <OnboardingButton
+                label={isExporting ? 'Preparing…' : 'Print'}
+                disabled={isExporting}
+                onPress={() => void handlePrint()}
+              />
             </View>
           </View>
         ) : null}

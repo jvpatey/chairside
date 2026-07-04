@@ -27,23 +27,23 @@ export function DashboardHeroActions({
   const showSignOut = Platform.OS === 'web';
 
   const buttonSize = compact ? 32 : 40;
+  const pillPadding = compact ? 5 : 6;
+  const glassOverlay = colorWithAlpha(colors.surface, isDark ? 0.52 : 0.82);
 
-  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
+    wrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexShrink: 0,
+    },
     actionsCluster: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: compact ? 4 : spacing.xs,
-      paddingHorizontal: compact ? 6 : spacing.sm,
-      paddingVertical: compact ? 5 : spacing.xs + 2,
+      gap: compact ? 6 : spacing.xs,
+      paddingHorizontal: pillPadding,
+      paddingVertical: pillPadding,
       flexShrink: 0,
-      minHeight: compact ? 42 : 48,
-    },
-    avatarRing: {
-      borderRadius: radii.pill,
-      padding: compact ? 1 : 2,
-      borderWidth: compact ? 1.5 : 2,
-      borderColor: colorWithAlpha(colors.primary, isDark ? 0.55 : 0.4),
-      backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.5 : 0.88),
+      alignSelf: 'flex-start',
     },
     signOutWrap: {
       marginLeft: spacing.xs,
@@ -51,26 +51,27 @@ export function DashboardHeroActions({
   }));
 
   return (
-    <LiquidGlassSurface
-      borderRadius={compact ? 18 : 22}
-      style={styles.actionsCluster}
-      overlayColor={colorWithAlpha(colors.surface, isDark ? 0.58 : 0.84)}>
-      <View style={styles.avatarRing}>
+    <View style={styles.wrap}>
+      <LiquidGlassSurface
+        borderRadius={999}
+        style={styles.actionsCluster}
+        overlayColor={glassOverlay}>
         <ProfileHeaderButton
           href={profileHref}
           placement="hero"
+          embedded
           avatarKind={avatarKind}
           displayName={name}
           photoUri={photoUri}
           size={buttonSize}
         />
-      </View>
-      <NotificationBell placement="hero" embedded size={buttonSize} />
+        <NotificationBell placement="hero" embedded size={buttonSize} />
+      </LiquidGlassSurface>
       {showSignOut ? (
         <View style={styles.signOutWrap}>
           <SignOutHeaderButton />
         </View>
       ) : null}
-    </LiquidGlassSurface>
+    </View>
   );
 }

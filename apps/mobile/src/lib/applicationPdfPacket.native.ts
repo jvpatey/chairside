@@ -1,7 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import { PDFDocument } from 'pdf-lib';
-import { Platform } from 'react-native';
 import * as Sharing from 'expo-sharing';
 
 import {
@@ -9,6 +8,7 @@ import {
   buildApplicationPdfPacketHtml,
   canGenerateApplicationPdfPacket,
   type ApplicationPdfPacketOptions,
+  type ApplicationPdfPacketResult,
 } from '@/lib/applicationPdfPacketContent';
 import {
   buildResumeFileName,
@@ -16,18 +16,11 @@ import {
   sanitizeResumeFileName,
 } from '@/lib/openResumePreview';
 
-export type { ApplicationPdfPacketOptions } from '@/lib/applicationPdfPacketContent';
+export type { ApplicationPdfPacketOptions, ApplicationPdfPacketResult } from '@/lib/applicationPdfPacketContent';
 export {
   buildApplicationPdfPacketHtml,
   canGenerateApplicationPdfPacket,
 } from '@/lib/applicationPdfPacketContent';
-
-export type ApplicationPdfPacketResult = {
-  uri: string;
-  fileName: string;
-  resumeAttached: boolean;
-  resumeMergeWarning?: string;
-};
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -39,14 +32,6 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 async function readPdfBytes(uri: string): Promise<Uint8Array> {
-  if (Platform.OS === 'web') {
-    const response = await fetch(uri);
-    if (!response.ok) {
-      throw new Error(`Could not read PDF (${response.status})`);
-    }
-    return new Uint8Array(await response.arrayBuffer());
-  }
-
   const base64 = await FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
   });
@@ -59,11 +44,6 @@ async function readPdfBytes(uri: string): Promise<Uint8Array> {
 }
 
 async function writePdfBytes(bytes: Uint8Array, fileName: string): Promise<string> {
-  if (Platform.OS === 'web') {
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    return URL.createObjectURL(blob);
-  }
-
   const cacheDirectory = FileSystem.cacheDirectory;
   if (!cacheDirectory) {
     throw new Error('Device cache is unavailable');
@@ -141,17 +121,6 @@ export async function generateApplicationPdfPacket(
 }
 
 export async function shareApplicationPdfPacket(result: ApplicationPdfPacketResult): Promise<void> {
-  if (Platform.OS === 'web') {
-    const link = document.createElement('a');
-    link.href = result.uri;
-    link.download = result.fileName;
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    return;
-  }
-
   const canShare = await Sharing.isAvailableAsync();
   if (!canShare) {
     throw new Error('Sharing is not available on this device.');
@@ -170,6 +139,19 @@ export async function generateAndShareApplicationPdfPacket(
   const result = await generateApplicationPdfPacket(options);
   await shareApplicationPdfPacket(result);
   return result;
+}
+
+export async function resolveApplicationPdfDownloadUri(
+  result: ApplicationPdfPacketResult,
+): Promise<{ uri: string; resumeMergeWarning?: string }> {
+  return { uri: result.uri, resumeMergeWarning: result.resumeMergeWarning };
+}
+
+export async function printApplicationPdfPacket(
+  result: ApplicationPdfPacketResult,
+): Promise<{ resumeMergeWarning?: string }> {
+  await Print.printAsync({ uri: result.uri });
+  return { resumeMergeWarning: result.resumeMergeWarning };
 }
 
 export { buildApplicationPdfPacketFileName };

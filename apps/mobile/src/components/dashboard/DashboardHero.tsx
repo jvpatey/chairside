@@ -149,8 +149,8 @@ export function DashboardHero({
     },
     actionsCorner: {
       position: 'absolute' as const,
-      top: spacing.xs,
-      right: spacing.xs,
+      top: spacing.sm,
+      right: spacing.sm,
       zIndex: 2,
     },
     greeting: {

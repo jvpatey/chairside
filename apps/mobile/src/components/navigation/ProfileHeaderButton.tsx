@@ -12,6 +12,8 @@ type ProfileHeaderButtonProps = {
   href: Href;
   /** `hero` — top-left inside dashboard hero card; `header` — screen title row */
   placement?: 'header' | 'hero';
+  /** Transparent surface when nested inside a hero glass control */
+  embedded?: boolean;
   avatarKind?: 'worker' | 'clinic';
   displayName?: string | null;
   photoUri?: string | null;
@@ -21,6 +23,7 @@ type ProfileHeaderButtonProps = {
 export function ProfileHeaderButton({
   href,
   placement = 'header',
+  embedded = false,
   avatarKind,
   displayName,
   photoUri,
@@ -38,7 +41,7 @@ export function ProfileHeaderButton({
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: inHero ? 0 : spacing.sm,
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: embedded && inHero ? 'transparent' : colors.fillSubtle,
       overflow: 'hidden',
       ...webPointer(),
     },

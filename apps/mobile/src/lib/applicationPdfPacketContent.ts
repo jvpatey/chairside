@@ -31,6 +31,19 @@ export type ApplicationPdfPacketOptions = {
   clinicName?: string | null;
 };
 
+export type ApplicationPdfPacketResult = {
+  uri: string;
+  fileName: string;
+  resumeAttached: boolean;
+  resumeMergeWarning?: string;
+  /** Web previews the HTML directly; PDF is built on download/print. */
+  previewKind?: 'pdf' | 'html';
+  sourceHtml?: string;
+  exportOptions?: ApplicationPdfPacketOptions;
+  /** Cached merged PDF blob URL after first export on web. */
+  exportPdfUri?: string;
+};
+
 export function canGenerateApplicationPdfPacket(application: ClinicApplication): boolean {
   return (
     application.post_type === 'job' &&

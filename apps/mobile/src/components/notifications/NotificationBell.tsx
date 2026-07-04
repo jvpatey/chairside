@@ -32,11 +32,10 @@ export function NotificationBell({
   const [open, setOpen] = useState(false);
   const inHero = placement === 'hero';
   const isCompact = size <= 32;
-  const isSmall = size <= 28;
+  /** Dot badge avoids clipping inside the hero glass pill. */
+  const useDotBadge = isCompact && embedded;
 
   const iconSize = Math.round(size * (isCompact ? 0.52 : 0.55));
-  /** Tiny hero buttons can't fit a count pill inside the clipped glass cluster. */
-  const useDotBadge = isSmall && embedded;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     hitArea: {
@@ -54,7 +53,7 @@ export function NotificationBell({
       marginRight: inHero ? 0 : spacing.sm,
       backgroundColor:
         embedded && inHero
-          ? colorWithAlpha(colors.surface, isDark ? 0.42 : 0.78)
+          ? 'transparent'
           : embedded
             ? 'transparent'
             : colors.fillSubtle,
