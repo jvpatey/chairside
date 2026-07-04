@@ -13,19 +13,19 @@ const STEPS = [
     number: '01',
     icon: 'person-circle-outline' as const,
     title: 'Create your profile',
-    body: 'Clinics set up their practice. Professionals build an application kit once — credentials, skills, and availability.',
+    body: 'Set up your clinic or build your professional application kit once.',
   },
   {
     number: '02',
     icon: 'briefcase-outline' as const,
     title: 'Post or browse',
-    body: 'Clinics post roles and fill-ins. Professionals browse matches, apply in one tap, or signal they’re available.',
+    body: 'Post a role, browse shifts, or turn on availability.',
   },
   {
     number: '03',
     icon: 'chatbubbles-outline' as const,
     title: 'Connect and hire',
-    body: 'Message, schedule interviews, and close the loop — all without leaving Chairside.',
+    body: 'Message, interview, and close the loop in-app.',
   },
 ] as const;
 
@@ -267,7 +267,7 @@ export function WebLandingHowItWorks() {
   const styles = useThemedStyles(({ colors, spacing }) => ({
     section: {
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xl * 2,
+      paddingVertical: spacing.xl * 2.5,
       maxWidth: CONTENT_MAX_WIDTH.xwide,
       width: '100%' as const,
       alignSelf: 'center' as const,
@@ -296,9 +296,6 @@ export function WebLandingHowItWorks() {
       <View style={styles.header}>
         <Text style={styles.eyebrow}>How it works</Text>
         <Text style={styles.title}>Three steps to get started</Text>
-        <Text style={styles.subtitle}>
-          From first profile to first hire — Chairside keeps the whole workflow in one place.
-        </Text>
       </View>
 
       {isWide ? <DesktopTimeline /> : <MobileTimeline />}

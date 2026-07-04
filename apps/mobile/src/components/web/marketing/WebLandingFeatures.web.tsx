@@ -1,22 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import type { ThemeColors } from '@/theme/colors';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
-const WEB_SCREENSHOT = require('../../../../assets/images/web_screenshot.png');
-const SCREENSHOT_ASPECT_RATIO = 3008 / 1602;
-
 const HERO_FEATURE = {
   icon: 'calendar-outline' as const,
   title: 'Fill chairs, same day',
   highlight: 'same day',
+  subtitle: 'Built for same-day coverage',
   body: 'Post a fill-in shift and get qualified applicants fast. Screening filters candidates before you open a message.',
-  microProof: 'Built for same-day coverage',
 };
 
 const SATELLITE_FEATURES = [
@@ -32,7 +30,7 @@ const SATELLITE_FEATURES = [
     icon: 'sparkles-outline' as const,
     title: 'Better matches from the start',
     highlight: 'matches',
-    body: 'Application kits and match insights help clinics compare fit in seconds.',
+    body: 'Application kits and match scores help clinics compare fit in seconds.',
   },
   {
     id: 'hiring',
@@ -42,6 +40,20 @@ const SATELLITE_FEATURES = [
     body: 'Messages, interviews, and offers — without the email thread spiral.',
   },
 ] as const;
+
+const CALENDAR_DAYS = [
+  { label: 'Mon', day: '30', status: 'empty' as const },
+  { label: 'Tue', day: '1', status: 'open' as const, shift: 'Hygienist' },
+  { label: 'Wed', day: '2', status: 'filled' as const, shift: 'Assistant' },
+  { label: 'Thu', day: '3', status: 'open' as const, shift: 'Receptionist' },
+  { label: 'Fri', day: '4', status: 'empty' as const },
+] as const;
+
+function dayAccent(status: (typeof CALENDAR_DAYS)[number]['status'], colors: ThemeColors) {
+  if (status === 'open') return colors.primary;
+  if (status === 'filled') return colors.success;
+  return colors.labelTertiary;
+}
 
 function HighlightTitle({
   title,
@@ -88,81 +100,228 @@ function HighlightTitle({
   );
 }
 
-function FeatureHeroVisual() {
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    wrap: {
-      flex: 1,
-      minWidth: 0,
-      position: 'relative' as const,
+function FeatureCardHeader({
+  icon,
+  title,
+  highlight,
+  subtitle,
+  variant = 'satellite',
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  highlight?: string;
+  subtitle?: string;
+  variant?: 'hero' | 'satellite';
+}) {
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    header: {
+      gap: variant === 'hero' ? spacing.xs : 2,
     },
-    glow: {
-      position: 'absolute' as const,
-      top: '8%',
-      left: '6%',
-      right: '6%',
-      bottom: '8%',
-      borderRadius: 24,
-      pointerEvents: 'none' as const,
-      // @ts-expect-error web gradient
-      backgroundImage: isDark
-        ? 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(74, 154, 255, 0.2) 0%, transparent 70%)'
-        : 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(26, 111, 212, 0.14) 0%, transparent 70%)',
-    },
-    shell: {
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      backgroundColor: colors.surface,
-      overflow: 'hidden' as const,
-      ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'floating') } as object),
-    },
-    chrome: {
+    titleRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 5,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs + 2,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.separator,
-      backgroundColor: colors.backgroundGrouped,
+      gap: spacing.sm,
     },
-    dot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: colors.fillSubtle,
+    titleWrap: {
+      flex: 1,
+      minWidth: 0,
     },
-    frame: {
-      width: '100%' as const,
-      aspectRatio: SCREENSHOT_ASPECT_RATIO,
-      backgroundColor: colors.backgroundGrouped,
-    },
-    screenshot: {
-      width: '100%' as const,
-      height: '100%' as const,
-      // @ts-expect-error web-only
-      objectFit: 'cover',
-      objectPosition: 'top center',
+    subtitle: {
+      fontSize: variant === 'hero' ? 13 : 15,
+      lineHeight: variant === 'hero' ? 18 : 22,
+      fontWeight: variant === 'hero' ? ('600' as const) : ('400' as const),
+      letterSpacing: variant === 'hero' ? 0.3 : 0,
+      textTransform: variant === 'hero' ? ('uppercase' as const) : undefined,
+      color: variant === 'hero' ? colors.primary : colors.labelSecondary,
     },
   }));
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.glow} />
-      <View style={styles.shell}>
-        <View style={styles.chrome}>
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
+    <View style={styles.header}>
+      <View style={styles.titleRow}>
+        <Ionicons name={icon} size={22} color={colors.primary} />
+        <View style={styles.titleWrap}>
+          <HighlightTitle title={title} highlight={highlight} variant={variant} />
         </View>
-        <View style={styles.frame}>
-          <Image
-            source={WEB_SCREENSHOT}
-            style={styles.screenshot}
-            resizeMode="cover"
-            accessibilityRole="image"
-            accessibilityLabel="Chairside fill-in shift workflow"
-          />
+      </View>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+    </View>
+  );
+}
+
+function FeatureAvailabilityPreview() {
+  const { colors } = useTheme();
+  const openCount = CALENDAR_DAYS.filter((day) => day.status === 'open').length;
+
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+    shell: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      backgroundColor: colors.backgroundGrouped,
+      overflow: 'hidden' as const,
+      ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'subtle') } as object),
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.separator,
+      backgroundColor: colors.surface,
+    },
+    headerLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase' as const,
+      color: colors.labelSecondary,
+    },
+    badge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      borderRadius: 999,
+      backgroundColor: `${colors.primary}20`,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '600' as const,
+      color: colors.primary,
+    },
+    body: {
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    weekRow: {
+      flexDirection: 'row' as const,
+      gap: spacing.xs,
+    },
+    dayCell: {
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'center' as const,
+      gap: 4,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: 2,
+      borderRadius: 10,
+      borderWidth: 1,
+      backgroundColor: colors.surface,
+    },
+    dayCellEmpty: {
+      borderColor: colors.separator,
+    },
+    dayCellOpen: {
+      borderColor: `${colors.primary}55`,
+      ...webOnlyStyle({
+        backgroundImage: `linear-gradient(180deg, ${colors.primary}18 0%, ${colors.surface} 100%)`,
+      } as object),
+    },
+    dayCellFilled: {
+      borderColor: `${colors.success}44`,
+    },
+    dayLabel: {
+      fontSize: 10,
+      fontWeight: '600' as const,
+      letterSpacing: 0.3,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+    },
+    dayNumber: {
+      fontSize: 15,
+      lineHeight: 18,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    shiftDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    legend: {
+      gap: spacing.xs,
+    },
+    legendRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+    },
+    legendDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    legendText: {
+      flex: 1,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
+    legendRole: {
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+    },
+  }));
+
+  const openDays = CALENDAR_DAYS.filter((day) => day.status === 'open' && 'shift' in day);
+  const filledDays = CALENDAR_DAYS.filter((day) => day.status === 'filled' && 'shift' in day);
+
+  return (
+    <View style={styles.shell}>
+      <View style={styles.header}>
+        <Text style={styles.headerLabel}>This week</Text>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {openCount} open shift{openCount === 1 ? '' : 's'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.body}>
+        <View style={styles.weekRow}>
+          {CALENDAR_DAYS.map((day) => {
+            const accent = dayAccent(day.status, colors);
+            const cellStyle =
+              day.status === 'open'
+                ? styles.dayCellOpen
+                : day.status === 'filled'
+                  ? styles.dayCellFilled
+                  : styles.dayCellEmpty;
+
+            return (
+              <View key={day.label} style={[styles.dayCell, cellStyle]}>
+                <Text style={styles.dayLabel}>{day.label}</Text>
+                <Text style={styles.dayNumber}>{day.day}</Text>
+                {day.status !== 'empty' ? (
+                  <View style={[styles.shiftDot, { backgroundColor: accent }]} />
+                ) : (
+                  <View style={{ height: 6 }} />
+                )}
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={styles.legend}>
+          {openDays.map((day) => (
+            <View key={`open-${day.label}`} style={styles.legendRow}>
+              <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
+              <Text style={styles.legendText}>
+                <Text style={styles.legendRole}>{day.shift}</Text> needed · {day.label}
+              </Text>
+            </View>
+          ))}
+          {filledDays.map((day) => (
+            <View key={`filled-${day.label}`} style={styles.legendRow}>
+              <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+              <Text style={styles.legendText}>
+                <Text style={styles.legendRole}>{day.shift}</Text> filled · {day.label}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
     </View>
@@ -170,7 +329,6 @@ function FeatureHeroVisual() {
 }
 
 function FeatureHeroCard() {
-  const { colors, isDark } = useTheme();
   const { isWide } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
@@ -180,65 +338,50 @@ function FeatureHeroCard() {
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.separator,
-      gap: spacing.xl,
-      overflow: 'hidden' as const,
+      gap: spacing.lg,
       ...webCardLiftBase(),
       ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'raised') } as object),
-      ...(isWide
-        ? ({
-            flexDirection: 'row' as const,
-            alignItems: 'center' as const,
-          } as object)
-        : {}),
+    },
+    layout: {
+      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      gap: spacing.xl,
+      alignItems: isWide ? ('center' as const) : ('stretch' as const),
     },
     copy: {
       flex: isWide ? 1 : undefined,
-      gap: spacing.md,
-      maxWidth: isWide ? 420 : undefined,
+      gap: spacing.lg,
+      minWidth: 0,
     },
-    iconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 14,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      backgroundColor: colors.primarySubtle,
+    preview: {
+      flex: isWide ? 1 : undefined,
+      width: '100%' as const,
+      maxWidth: isWide ? 380 : undefined,
+      alignSelf: isWide ? ('stretch' as const) : ('stretch' as const),
     },
     body: {
       fontSize: 17,
       lineHeight: 26,
       color: colors.labelSecondary,
     },
-    microProof: {
-      fontSize: 13,
-      fontWeight: '600' as const,
-      letterSpacing: 0.3,
-      color: colors.primary,
-      textTransform: 'uppercase' as const,
-    },
-    visual: {
-      flex: isWide ? 1.15 : undefined,
-      width: '100%' as const,
-    },
   }));
 
   return (
     <WebPageEnter>
       <View style={styles.card}>
-        <View style={styles.copy}>
-          <View style={styles.iconWrap}>
-            <Ionicons name={HERO_FEATURE.icon} size={24} color={colors.primary} />
+        <View style={styles.layout}>
+          <View style={styles.copy}>
+            <FeatureCardHeader
+              icon={HERO_FEATURE.icon}
+              title={HERO_FEATURE.title}
+              highlight={HERO_FEATURE.highlight}
+              subtitle={HERO_FEATURE.subtitle}
+              variant="hero"
+            />
+            <Text style={styles.body}>{HERO_FEATURE.body}</Text>
           </View>
-          <Text style={styles.microProof}>{HERO_FEATURE.microProof}</Text>
-          <HighlightTitle
-            title={HERO_FEATURE.title}
-            highlight={HERO_FEATURE.highlight}
-            variant="hero"
-          />
-          <Text style={styles.body}>{HERO_FEATURE.body}</Text>
-        </View>
-        <View style={styles.visual}>
-          <FeatureHeroVisual />
+          <View style={styles.preview}>
+            <FeatureAvailabilityPreview />
+          </View>
         </View>
       </View>
     </WebPageEnter>
@@ -252,7 +395,7 @@ function FeatureSatelliteCard({
   feature: (typeof SATELLITE_FEATURES)[number];
   enterDelayMs?: number;
 }) {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     card: {
@@ -267,14 +410,6 @@ function FeatureSatelliteCard({
       ...webCardLiftBase(),
       ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'subtle') } as object),
     },
-    iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      backgroundColor: colors.primarySubtle,
-    },
     body: {
       fontSize: 15,
       lineHeight: 22,
@@ -285,10 +420,11 @@ function FeatureSatelliteCard({
   return (
     <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1 }}>
       <View style={styles.card}>
-        <View style={styles.iconWrap}>
-          <Ionicons name={feature.icon} size={20} color={colors.primary} />
-        </View>
-        <HighlightTitle title={feature.title} highlight={feature.highlight} variant="satellite" />
+        <FeatureCardHeader
+          icon={feature.icon}
+          title={feature.title}
+          highlight={feature.highlight}
+        />
         <Text style={styles.body}>{feature.body}</Text>
       </View>
     </WebPageEnter>
@@ -302,14 +438,15 @@ export function WebLandingFeatures() {
   const styles = useThemedStyles(({ colors, spacing }) => ({
     section: {
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xl * 2,
+      paddingVertical: spacing.xl * 2.5,
       maxWidth: CONTENT_MAX_WIDTH.xwide,
       width: '100%' as const,
       alignSelf: 'center' as const,
       borderTopWidth: 1,
       borderTopColor: colors.separator,
-      // @ts-expect-error web gradient band
-      backgroundImage: `linear-gradient(180deg, ${colors.fillSubtle} 0%, transparent 120px)`,
+      ...webOnlyStyle({
+        backgroundImage: `linear-gradient(180deg, ${colors.fillSubtle} 0%, transparent 120px)`,
+      } as object),
     },
     header: {
       gap: spacing.sm,

@@ -98,13 +98,12 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
 
 export function WebMarketingFooter() {
   const { isWide, isTablet } = useResponsiveLayout();
-  const { colors } = useTheme();
   const linkRow = isWide || isTablet;
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outer: {
       width: '100%' as const,
-      marginTop: spacing.xl * 2,
+      marginTop: spacing.xl * 1.5,
       borderTopWidth: 1,
       borderTopColor: colors.separator,
       backgroundColor: colors.surface,
@@ -125,42 +124,24 @@ export function WebMarketingFooter() {
     main: {
       flexDirection: linkRow ? ('row' as const) : ('column' as const),
       alignItems: linkRow ? ('flex-start' as const) : ('stretch' as const),
-      gap: linkRow ? spacing.xl * 2 : spacing.xl,
+      justifyContent: linkRow ? ('space-between' as const) : ('flex-start' as const),
+      gap: linkRow ? spacing.xl : spacing.xl,
     },
     brandColumn: {
-      flex: linkRow ? 1 : undefined,
-      gap: spacing.md,
-      maxWidth: linkRow ? 380 : undefined,
+      flexShrink: 0,
+      alignItems: 'flex-start' as const,
+      gap: spacing.sm,
+      maxWidth: 280,
     },
     tagline: {
       fontSize: 15,
-      lineHeight: 24,
+      lineHeight: 22,
       color: colors.labelSecondary,
-      maxWidth: 340,
-    },
-    getStarted: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      alignSelf: 'flex-start' as const,
-      gap: 6,
-      marginTop: spacing.xs,
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.sm,
-      marginLeft: -spacing.sm,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    getStartedLabel: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: '600' as const,
-      color: colors.primary,
     },
     linkColumns: {
       flexDirection: linkRow ? ('row' as const) : ('column' as const),
       gap: linkRow ? spacing.xl * 2 : spacing.lg,
       flexShrink: 0,
-      ...(linkRow ? { marginLeft: 'auto' as const } : {}),
     },
     bottom: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
@@ -184,34 +165,10 @@ export function WebMarketingFooter() {
       <View style={styles.inner}>
         <View style={styles.main}>
           <View style={styles.brandColumn}>
-            <ChairsideWordmark variant="small" onPress={navigateToWelcome} />
+            <ChairsideWordmark variant="small" align="left" onPress={navigateToWelcome} />
             <Text style={styles.tagline}>
-              Staffing for Canadian dental clinics and professionals — permanent roles, fill-ins,
-              and hiring in one place.
+              Hiring and same-day fill-ins for dental teams.
             </Text>
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => router.push(ONBOARDING_HREF)}
-              style={({ pressed, hovered }) => [
-                styles.getStarted,
-                webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              {({ hovered }) => (
-                <>
-                  <Text
-                    style={[
-                      styles.getStartedLabel,
-                      webLinkUnderline(hovered, colors.primary) as TextStyle,
-                    ]}
-                  >
-                    Get started free
-                  </Text>
-                  <Text style={styles.getStartedLabel}>→</Text>
-                </>
-              )}
-            </Pressable>
           </View>
 
           <View style={styles.linkColumns}>

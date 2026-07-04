@@ -352,7 +352,7 @@ export function WebLandingAudience() {
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     section: {
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xl * 1.5,
+      paddingVertical: spacing.xl * 2.5,
       maxWidth: CONTENT_MAX_WIDTH.xwide,
       width: '100%' as const,
       alignSelf: 'center' as const,
@@ -404,9 +404,6 @@ export function WebLandingAudience() {
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Built for both sides</Text>
           <Text style={styles.title}>One platform, two audiences</Text>
-          <Text style={styles.subtitle}>
-            Clinics hire faster. Professionals find work on their terms — all in one place.
-          </Text>
         </View>
 
         <AudienceGrid />

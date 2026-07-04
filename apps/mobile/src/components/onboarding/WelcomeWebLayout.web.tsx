@@ -43,8 +43,8 @@ export function WelcomeWebLayout() {
       >
         <WebLandingHero />
         <WebLandingSocialProof />
-        <WebLandingFeatures />
         <WebLandingAudience />
+        <WebLandingFeatures />
         <WebLandingHowItWorks />
         <WebLandingCta />
         <WebMarketingFooter />
