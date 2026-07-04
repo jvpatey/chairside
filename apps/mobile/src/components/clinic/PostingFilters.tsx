@@ -1,7 +1,5 @@
-import { useState } from 'react';
-
-import { FilterSheet, FilterSheetSection } from '@/components/ui/FilterSheet';
-import { FilterTriggerButton } from '@/components/ui/FilterTriggerButton';
+import { FilterSheetSection } from '@/components/ui/FilterSheet';
+import { AdaptiveFilterShell } from '@/components/ui/AdaptiveFilterShell';
 import type { GradientAccent } from '@/theme';
 import {
   JOB_STATUS_FILTER_OPTIONS,
@@ -59,31 +57,23 @@ export function RoleTypeFilters({
   accessibilityLabel = 'Filter by role type',
   sheetTitle = 'Filter by role',
 }: RoleTypeFiltersProps) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   const defaultRoleType: RoleTypeFilter = 'all';
   const activeCount = roleTypeFilter === defaultRoleType ? 0 : 1;
 
   return (
-    <>
-      <FilterTriggerButton
-        activeCount={activeCount}
-        onPress={() => setSheetOpen(true)}
-        accessibilityLabel={accessibilityLabel}
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={() => onRoleTypeChange(defaultRoleType)}
+      title={sheetTitle}
+      accessibilityLabel={accessibilityLabel}
+    >
+      <FilterSheetSection
+        label="Role type"
+        options={ROLE_TYPE_FILTER_OPTIONS}
+        selected={roleTypeFilter}
+        onChange={onRoleTypeChange}
       />
-      <FilterSheet
-        visible={sheetOpen}
-        title={sheetTitle}
-        onClose={() => setSheetOpen(false)}
-        onReset={() => onRoleTypeChange(defaultRoleType)}
-      >
-        <FilterSheetSection
-          label="Role type"
-          options={ROLE_TYPE_FILTER_OPTIONS}
-          selected={roleTypeFilter}
-          onChange={onRoleTypeChange}
-        />
-      </FilterSheet>
-    </>
+    </AdaptiveFilterShell>
   );
 }
 
@@ -116,7 +106,6 @@ export function WorkerRoleBrowseFilters({
   onPayListedFilterChange,
   onMatchTierFilterChange,
 }: WorkerRoleBrowseFiltersProps) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   const defaults = {
     roleTypeFilter: 'all' as RoleTypeFilter,
     sort: 'recommended' as WorkerBrowseSort,
@@ -143,56 +132,49 @@ export function WorkerRoleBrowseFilters({
   };
 
   return (
-    <>
-      <FilterTriggerButton
-        activeCount={activeCount}
-        onPress={() => setSheetOpen(true)}
-        accessibilityLabel="Filter roles"
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={handleReset}
+      title="Filter roles"
+      accessibilityLabel="Filter roles"
+    >
+      <FilterSheetSection
+        label="Sort by"
+        options={WORKER_BROWSE_SORT_OPTIONS}
+        selected={sort}
+        onChange={onSortChange}
       />
-      <FilterSheet
-        visible={sheetOpen}
-        title="Filter roles"
-        onClose={() => setSheetOpen(false)}
-        onReset={handleReset}
-      >
-        <FilterSheetSection
-          label="Sort by"
-          options={WORKER_BROWSE_SORT_OPTIONS}
-          selected={sort}
-          onChange={onSortChange}
-        />
-        <FilterSheetSection
-          label="Distance"
-          options={WORKER_DISTANCE_FILTER_OPTIONS}
-          selected={distanceFilter}
-          onChange={onDistanceFilterChange}
-        />
-        <FilterSheetSection
-          label="Role type"
-          options={ROLE_TYPE_FILTER_OPTIONS}
-          selected={roleTypeFilter}
-          onChange={onRoleTypeChange}
-        />
-        <FilterSheetSection
-          label="Match tier"
-          options={WORKER_MATCH_TIER_FILTER_OPTIONS}
-          selected={matchTierFilter}
-          onChange={onMatchTierFilterChange}
-        />
-        <FilterSheetSection
-          label="Software"
-          options={WORKER_SOFTWARE_FILTER_OPTIONS}
-          selected={softwareFilter}
-          onChange={onSoftwareFilterChange}
-        />
-        <FilterSheetSection
-          label="Pay"
-          options={PAY_LISTED_FILTER_OPTIONS}
-          selected={payListedFilter}
-          onChange={onPayListedFilterChange}
-        />
-      </FilterSheet>
-    </>
+      <FilterSheetSection
+        label="Distance"
+        options={WORKER_DISTANCE_FILTER_OPTIONS}
+        selected={distanceFilter}
+        onChange={onDistanceFilterChange}
+      />
+      <FilterSheetSection
+        label="Role type"
+        options={ROLE_TYPE_FILTER_OPTIONS}
+        selected={roleTypeFilter}
+        onChange={onRoleTypeChange}
+      />
+      <FilterSheetSection
+        label="Match tier"
+        options={WORKER_MATCH_TIER_FILTER_OPTIONS}
+        selected={matchTierFilter}
+        onChange={onMatchTierFilterChange}
+      />
+      <FilterSheetSection
+        label="Software"
+        options={WORKER_SOFTWARE_FILTER_OPTIONS}
+        selected={softwareFilter}
+        onChange={onSoftwareFilterChange}
+      />
+      <FilterSheetSection
+        label="Pay"
+        options={PAY_LISTED_FILTER_OPTIONS}
+        selected={payListedFilter}
+        onChange={onPayListedFilterChange}
+      />
+    </AdaptiveFilterShell>
   );
 }
 
@@ -231,7 +213,6 @@ export function WorkerFillInBrowseFilters({
   onSavedOnlyFilterChange,
   accent = 'secondary',
 }: WorkerFillInBrowseFiltersProps) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   const defaults = {
     roleTypeFilter: 'all' as RoleTypeFilter,
     sort: 'recommended' as WorkerBrowseSort,
@@ -261,71 +242,63 @@ export function WorkerFillInBrowseFilters({
   };
 
   return (
-    <>
-      <FilterTriggerButton
-        activeCount={activeCount}
-        onPress={() => setSheetOpen(true)}
-        accessibilityLabel="Filter fill-ins"
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={handleReset}
+      title="Filter fill-ins"
+      accessibilityLabel="Filter fill-ins"
+      accent={accent}
+    >
+      <FilterSheetSection
+        label="Sort by"
+        options={WORKER_BROWSE_SORT_OPTIONS}
+        selected={sort}
+        onChange={onSortChange}
         accent={accent}
       />
-      <FilterSheet
-        visible={sheetOpen}
-        title="Filter fill-ins"
-        onClose={() => setSheetOpen(false)}
-        onReset={handleReset}
+      <FilterSheetSection
+        label="Distance"
+        options={WORKER_DISTANCE_FILTER_OPTIONS}
+        selected={distanceFilter}
+        onChange={onDistanceFilterChange}
         accent={accent}
-      >
-        <FilterSheetSection
-          label="Sort by"
-          options={WORKER_BROWSE_SORT_OPTIONS}
-          selected={sort}
-          onChange={onSortChange}
-          accent={accent}
-        />
-        <FilterSheetSection
-          label="Distance"
-          options={WORKER_DISTANCE_FILTER_OPTIONS}
-          selected={distanceFilter}
-          onChange={onDistanceFilterChange}
-          accent={accent}
-        />
-        <FilterSheetSection
-          label="Role type"
-          options={ROLE_TYPE_FILTER_OPTIONS}
-          selected={roleTypeFilter}
-          onChange={onRoleTypeChange}
-          accent={accent}
-        />
-        <FilterSheetSection
-          label="Availability"
-          options={WORKER_AVAILABILITY_FILTER_OPTIONS}
-          selected={availabilityFilter}
-          onChange={onAvailabilityFilterChange}
-          accent={accent}
-        />
-        <FilterSheetSection
-          label="Software"
-          options={WORKER_SOFTWARE_FILTER_OPTIONS}
-          selected={softwareFilter}
-          onChange={onSoftwareFilterChange}
-          accent={accent}
-        />
-        <FilterSheetSection
-          label="Pay"
-          options={PAY_LISTED_FILTER_OPTIONS}
-          selected={payListedFilter}
-          onChange={onPayListedFilterChange}
-          accent={accent}
-        />
-        <FilterSheetSection
-          label="Saved"
-          options={SAVED_ONLY_FILTER_OPTIONS}
-          selected={savedOnlyFilter}
-          onChange={onSavedOnlyFilterChange}
-          accent={accent}
-        />
-      </FilterSheet>
-    </>
+      />
+      <FilterSheetSection
+        label="Role type"
+        options={ROLE_TYPE_FILTER_OPTIONS}
+        selected={roleTypeFilter}
+        onChange={onRoleTypeChange}
+        accent={accent}
+      />
+      <FilterSheetSection
+        label="Availability"
+        options={WORKER_AVAILABILITY_FILTER_OPTIONS}
+        selected={availabilityFilter}
+        onChange={onAvailabilityFilterChange}
+        accent={accent}
+      />
+      <FilterSheetSection
+        label="Software"
+        options={WORKER_SOFTWARE_FILTER_OPTIONS}
+        selected={softwareFilter}
+        onChange={onSoftwareFilterChange}
+        accent={accent}
+      />
+      <FilterSheetSection
+        label="Pay"
+        options={PAY_LISTED_FILTER_OPTIONS}
+        selected={payListedFilter}
+        onChange={onPayListedFilterChange}
+        accent={accent}
+      />
+      <FilterSheetSection
+        label="Saved"
+        options={SAVED_ONLY_FILTER_OPTIONS}
+        selected={savedOnlyFilter}
+        onChange={onSavedOnlyFilterChange}
+        accent={accent}
+      />
+    </AdaptiveFilterShell>
   );
 }
 
@@ -335,7 +308,6 @@ export function RolePostingFilters({
   onStatusChange,
   onRoleTypeChange,
 }: RolePostingFiltersProps) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   const defaults = { statusFilter: 'all' as JobStatusFilter, roleTypeFilter: 'all' as RoleTypeFilter };
   const activeCount = countRolePostingFilterChanges(statusFilter, roleTypeFilter, defaults);
 
@@ -345,32 +317,25 @@ export function RolePostingFilters({
   };
 
   return (
-    <>
-      <FilterTriggerButton
-        activeCount={activeCount}
-        onPress={() => setSheetOpen(true)}
-        accessibilityLabel="Filter roles"
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={handleReset}
+      title="Filter roles"
+      accessibilityLabel="Filter roles"
+    >
+      <FilterSheetSection
+        label="Status"
+        options={JOB_STATUS_FILTER_OPTIONS}
+        selected={statusFilter}
+        onChange={onStatusChange}
       />
-      <FilterSheet
-        visible={sheetOpen}
-        title="Filter roles"
-        onClose={() => setSheetOpen(false)}
-        onReset={handleReset}
-      >
-        <FilterSheetSection
-          label="Status"
-          options={JOB_STATUS_FILTER_OPTIONS}
-          selected={statusFilter}
-          onChange={onStatusChange}
-        />
-        <FilterSheetSection
-          label="Role type"
-          options={ROLE_TYPE_FILTER_OPTIONS}
-          selected={roleTypeFilter}
-          onChange={onRoleTypeChange}
-        />
-      </FilterSheet>
-    </>
+      <FilterSheetSection
+        label="Role type"
+        options={ROLE_TYPE_FILTER_OPTIONS}
+        selected={roleTypeFilter}
+        onChange={onRoleTypeChange}
+      />
+    </AdaptiveFilterShell>
   );
 }
 
@@ -420,7 +385,6 @@ export function ShiftPostingFilters({
   includeDateInSheet = true,
   accent = 'secondary',
 }: ShiftPostingFiltersProps) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   const resolvedDefaults: Required<ShiftPostingFilterDefaults> = {
     statusFilter: defaults?.statusFilter ?? 'open',
     roleTypeFilter: defaults?.roleTypeFilter ?? 'all',
@@ -440,46 +404,38 @@ export function ShiftPostingFilters({
   };
 
   return (
-    <>
-      <FilterTriggerButton
-        activeCount={activeCount}
-        onPress={() => setSheetOpen(true)}
-        accessibilityLabel="Filter fill-ins"
-        accent={accent}
-      />
-      <FilterSheet
-        visible={sheetOpen}
-        title="Filter fill-ins"
-        onClose={() => setSheetOpen(false)}
-        onReset={handleReset}
-        accent={accent}
-      >
-        {includeStatusInSheet ? (
-          <FilterSheetSection
-            label="Status"
-            options={statusOptions}
-            selected={statusFilter}
-            onChange={onStatusChange}
-            accent={accent}
-          />
-        ) : null}
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={handleReset}
+      title="Filter fill-ins"
+      accessibilityLabel="Filter fill-ins"
+      accent={accent}
+    >
+      {includeStatusInSheet ? (
         <FilterSheetSection
-          label="Role type"
-          options={ROLE_TYPE_FILTER_OPTIONS}
-          selected={roleTypeFilter}
-          onChange={onRoleTypeChange}
+          label="Status"
+          options={statusOptions}
+          selected={statusFilter}
+          onChange={onStatusChange}
           accent={accent}
         />
-        {includeDateInSheet ? (
-          <FilterSheetSection
-            label="Shift date"
-            options={SHIFT_DATE_FILTER_OPTIONS}
-            selected={shiftDateFilter}
-            onChange={onShiftDateChange}
-            accent={accent}
-          />
-        ) : null}
-      </FilterSheet>
-    </>
+      ) : null}
+      <FilterSheetSection
+        label="Role type"
+        options={ROLE_TYPE_FILTER_OPTIONS}
+        selected={roleTypeFilter}
+        onChange={onRoleTypeChange}
+        accent={accent}
+      />
+      {includeDateInSheet ? (
+        <FilterSheetSection
+          label="Shift date"
+          options={SHIFT_DATE_FILTER_OPTIONS}
+          selected={shiftDateFilter}
+          onChange={onShiftDateChange}
+          accent={accent}
+        />
+      ) : null}
+    </AdaptiveFilterShell>
   );
 }

@@ -10,11 +10,10 @@ import {
   type FillInCoverRequest,
   type ShiftPost,
 } from '@chairside/api';
-import { Ionicons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Alert, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { PageTabBar } from '@/components/ui/PageTabBar';
@@ -23,7 +22,11 @@ import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
+import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -32,6 +35,7 @@ import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   FILL_INS_LIST_MODE_OPTIONS,
+  countActiveFillIns,
   filterShiftPostsForFillInsListMode,
   type FillInsListMode,
 } from '@/lib/fillInFilters';
@@ -46,70 +50,15 @@ import {
   matchesClinicApplicationSearch,
   matchesShiftPostSearch,
 } from '@/lib/clinicListSearch';
-import { CLINIC_SETUP_BASICS, getFindAvailableWorkersRoute, getPostShiftRoute } from '@/lib/routing';
-import { useTheme, useThemedStyles } from '@/theme';
+import {
+  CLINIC_SETUP_BASICS,
+  getFindAvailableWorkersRoute,
+  getPostShiftRoute,
+} from '@/lib/routing';
+import { useThemedStyles } from '@/theme';
 
-function SectionHeader({ title }: { title: string }) {
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    header: { marginBottom: spacing.sm },
-    title: {
-      ...typography.body,
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: typography.subtitle.color,
-    },
-  }));
-
-  return (
-    <View style={styles.header}>
-      <Text style={styles.title}>{title}</Text>
-    </View>
-  );
-}
-
-function EmptyCard({
-  icon,
-  title,
-  body,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  body: string;
-}) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.xl,
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    iconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.fillSubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    title: { ...typography.body, fontWeight: '600', textAlign: 'center' },
-    body: { ...typography.subtitle, fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={24} color={colors.labelSecondary} />
-      </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.body}>{body}</Text>
-    </View>
-  );
+function sectionTitleWithCount(title: string, count: number) {
+  return count > 0 ? `${title} (${count})` : title;
 }
 
 export default function ClinicFillInsScreen() {
@@ -130,6 +79,8 @@ export default function ClinicFillInsScreen() {
   const [coverSearchQuery, setCoverSearchQuery] = useState('');
   const [shiftSearchQuery, setShiftSearchQuery] = useState('');
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const hasLoadedOnce = useRef(false);
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
 
@@ -157,15 +108,24 @@ export default function ClinicFillInsScreen() {
         shiftRoleTypeFilter,
         shiftDateFilter,
       ).filter((shift) => matchesShiftPostSearch(shift, shiftSearchQuery)),
-    [shifts, fillInsListMode, shiftStatusFilter, shiftRoleTypeFilter, shiftDateFilter, shiftSearchQuery],
+    [
+      shifts,
+      fillInsListMode,
+      shiftStatusFilter,
+      shiftRoleTypeFilter,
+      shiftDateFilter,
+      shiftSearchQuery,
+    ],
   );
 
   const filteredCoverRequests = useMemo(
-    () => coverRequests.filter((request) => matchesClinicApplicationSearch(request, coverSearchQuery)),
+    () =>
+      coverRequests.filter((request) => matchesClinicApplicationSearch(request, coverSearchQuery)),
     [coverRequests, coverSearchQuery],
   );
 
   const hasShiftSearch = hasActiveListSearch(shiftSearchQuery);
+  const activeFillInCount = useMemo(() => countActiveFillIns(shifts), [shifts]);
   const hasShiftFilters =
     (fillInsListMode === 'history' &&
       (shiftStatusFilter !== 'all' ||
@@ -190,7 +150,12 @@ export default function ClinicFillInsScreen() {
     if (!user?.id) {
       setCoverRequests([]);
       setShifts([]);
+      setIsLoading(false);
       return;
+    }
+
+    if (!hasLoadedOnce.current) {
+      setIsLoading(true);
     }
 
     try {
@@ -216,11 +181,14 @@ export default function ClinicFillInsScreen() {
       setConfirmedRows(confirmed);
       setUnreadMap(unread);
       await refreshPending();
+      hasLoadedOnce.current = true;
     } catch (error) {
       Alert.alert(
         'Could not load fill-ins',
         error instanceof Error ? error.message : 'Please try again.',
       );
+    } finally {
+      setIsLoading(false);
     }
   }, [refreshPending, user?.id]);
 
@@ -245,30 +213,46 @@ export default function ClinicFillInsScreen() {
     );
   };
 
+  if (isLoading && !hasLoadedOnce.current) {
+    return (
+      <Screen title="Fill-ins" subtitle="Review cover requests and manage your fill-in shifts.">
+        <PageLoadingList message="Loading fill-ins…" />
+      </Screen>
+    );
+  }
+
   return (
     <>
       <Screen title="Fill-ins" subtitle="Review cover requests and manage your fill-in shifts.">
         <View style={styles.wrap}>
-          <OnboardingButton
-            label="Post fill-in"
-            disabled={!isProfileComplete}
-            accent="secondary"
-            onPress={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
-          />
-          <OnboardingButton
-            label="Find available workers"
-            variant="secondary"
-            disabled={!isProfileComplete}
-            onPress={() => guardPosting(getFindAvailableWorkersRoute('fill-ins-tab'))}
+          <DashboardQuickActionsRow
+            actions={[
+              {
+                label: 'Post fill-in',
+                description: 'Temp or urgent shift',
+                icon: 'calendar-outline',
+                variant: 'secondary',
+                onPress: () => guardPosting(getPostShiftRoute('fill-ins-tab')),
+              },
+              {
+                label: 'Find workers',
+                description: 'Browse available staff',
+                icon: 'people-outline',
+                variant: 'primary',
+                onPress: () => guardPosting(getFindAvailableWorkersRoute('fill-ins-tab')),
+              },
+            ]}
           />
 
           <View style={styles.section}>
-            <SectionHeader title="Needs response" />
+            <DashboardSectionHeader
+              title={sectionTitleWithCount('Needs response', coverRequests.length)}
+            />
             {coverRequests.length === 0 ? (
-              <EmptyCard
+              <EmptyState
                 icon="checkmark-circle-outline"
                 title="No pending cover requests"
-                body="New requests from workers will appear here when they apply to cover a fill-in."
+                message="New requests from workers will appear here when they apply to cover a fill-in."
               />
             ) : (
               <View style={styles.list}>
@@ -279,23 +263,25 @@ export default function ClinicFillInsScreen() {
                   accessibilityLabel="Search cover requests"
                 />
                 {filteredCoverRequests.length === 0 ? (
-                  <EmptyCard
+                  <EmptyState
                     icon="search-outline"
                     title="No matching cover requests"
-                    body="Try a different search term."
+                    message="Try a different search term."
                   />
                 ) : (
-                  filteredCoverRequests.map((request) => (
-                    <FillInApplicantCard
-                      key={request.id}
-                      application={request}
-                      clinicId={user?.id ?? ''}
-                      returnTo="fill-ins-tab"
-                      hasUnreadMessages={Boolean(unreadMap[request.id])}
-                      onUpdated={() => void load()}
-                      onConfirmed={(payload) => showCelebration(payload)}
-                    />
-                  ))
+                  <StaggeredList>
+                    {filteredCoverRequests.map((request) => (
+                      <FillInApplicantCard
+                        key={request.id}
+                        application={request}
+                        clinicId={user?.id ?? ''}
+                        returnTo="fill-ins-tab"
+                        hasUnreadMessages={Boolean(unreadMap[request.id])}
+                        onUpdated={() => void load()}
+                        onConfirmed={(payload) => showCelebration(payload)}
+                      />
+                    ))}
+                  </StaggeredList>
                 )}
               </View>
             )}
@@ -303,35 +289,48 @@ export default function ClinicFillInsScreen() {
 
           {confirmedRows.length > 0 ? (
             <View style={styles.section}>
-              <SectionHeader title="Upcoming confirmed" />
+              <DashboardSectionHeader
+                title={sectionTitleWithCount('Upcoming confirmed', confirmedRows.length)}
+              />
               <View style={styles.list}>
-                {confirmedRows.map((row) => (
-                  <ConfirmedFillInCard
-                    key={row.applicationId}
-                    workerName={row.workerName}
-                    workerPhotoStoragePath={row.workerPhotoStoragePath}
-                    shiftDate={row.shiftDate}
-                    startTime={row.startTime}
-                    endTime={row.endTime}
-                    applicationId={row.applicationId}
-                    returnTo="fill-ins-tab"
-                    expanded={expandedConfirmedId === row.applicationId}
-                    onExpandChange={(next) =>
-                      setExpandedConfirmedId(next ? row.applicationId : null)
-                    }
-                  />
-                ))}
+                <StaggeredList>
+                  {confirmedRows.map((row) => (
+                    <ConfirmedFillInCard
+                      key={row.applicationId}
+                      workerName={row.workerName}
+                      workerPhotoStoragePath={row.workerPhotoStoragePath}
+                      shiftDate={row.shiftDate}
+                      startTime={row.startTime}
+                      endTime={row.endTime}
+                      applicationId={row.applicationId}
+                      returnTo="fill-ins-tab"
+                      expanded={expandedConfirmedId === row.applicationId}
+                      onExpandChange={(next) =>
+                        setExpandedConfirmedId(next ? row.applicationId : null)
+                      }
+                    />
+                  ))}
+                </StaggeredList>
               </View>
             </View>
           ) : null}
 
           <View style={styles.section}>
-            <SectionHeader title="Your fill-ins" />
+            <DashboardSectionHeader
+              title={sectionTitleWithCount('Your fill-ins', activeFillInCount)}
+            />
             {shifts.length === 0 ? (
-              <EmptyCard
+              <EmptyState
                 icon="calendar-outline"
                 title="No fill-ins yet"
-                body="Post a fill-in shift when you need temporary or urgent coverage."
+                message="Post a fill-in shift when you need temporary or urgent coverage."
+                ctaLabel={isProfileComplete ? 'Post fill-in' : undefined}
+                onCtaPress={
+                  isProfileComplete
+                    ? () => guardPosting(getPostShiftRoute('fill-ins-tab'))
+                    : undefined
+                }
+                ctaAccent="secondary"
               />
             ) : (
               <View style={styles.sectionBody}>
@@ -382,7 +381,7 @@ export default function ClinicFillInsScreen() {
                   </View>
                 </View>
                 {filteredShifts.length === 0 ? (
-                  <EmptyCard
+                  <EmptyState
                     icon="filter-outline"
                     title={
                       hasShiftSearch || hasShiftFilters
@@ -391,7 +390,7 @@ export default function ClinicFillInsScreen() {
                           ? 'No past fill-ins'
                           : 'No active fill-ins'
                     }
-                    body={
+                    message={
                       hasShiftSearch || hasShiftFilters
                         ? 'Try a different search or filter, or post a new fill-in shift.'
                         : fillInsListMode === 'history'
@@ -401,27 +400,31 @@ export default function ClinicFillInsScreen() {
                   />
                 ) : (
                   <View style={styles.list}>
-                    {filteredShifts.map((shift) => (
-                      <FillInPostingCard
-                        key={shift.id}
-                        shift={shift}
-                        pendingRequestCount={pendingCounts[shift.id] ?? 0}
-                        applicationCount={applicationCounts[shift.id] ?? 0}
-                        clinicId={user?.id}
-                        returnTo="fill-ins-tab"
-                        expanded={expandedShiftId === shift.id}
-                        onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
-                        onShiftUpdated={(updated) =>
-                          setShifts((current) =>
-                            current.map((row) => (row.id === updated.id ? updated : row)),
-                          )
-                        }
-                        onShiftDeleted={() => {
-                          setShifts((current) => current.filter((row) => row.id !== shift.id));
-                          setExpandedShiftId((current) => (current === shift.id ? null : current));
-                        }}
-                      />
-                    ))}
+                    <StaggeredList>
+                      {filteredShifts.map((shift) => (
+                        <FillInPostingCard
+                          key={shift.id}
+                          shift={shift}
+                          pendingRequestCount={pendingCounts[shift.id] ?? 0}
+                          applicationCount={applicationCounts[shift.id] ?? 0}
+                          clinicId={user?.id}
+                          returnTo="fill-ins-tab"
+                          expanded={expandedShiftId === shift.id}
+                          onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
+                          onShiftUpdated={(updated) =>
+                            setShifts((current) =>
+                              current.map((row) => (row.id === updated.id ? updated : row)),
+                            )
+                          }
+                          onShiftDeleted={() => {
+                            setShifts((current) => current.filter((row) => row.id !== shift.id));
+                            setExpandedShiftId((current) =>
+                              current === shift.id ? null : current,
+                            );
+                          }}
+                        />
+                      ))}
+                    </StaggeredList>
                   </View>
                 )}
               </View>

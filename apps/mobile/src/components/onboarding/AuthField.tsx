@@ -57,6 +57,7 @@ export function AuthField({
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const wrapRef = useRef<View>(null);
   const { scrollWrapIntoView } = useFormScroll();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -83,6 +84,16 @@ export function AuthField({
     },
     inputRowInvalid: {
       borderColor: colors.destructive,
+    },
+    inputRowFocused: {
+      borderColor: colors.primary,
+      borderWidth: 1.5,
+      ...(Platform.OS === 'web'
+        ? ({
+            // @ts-expect-error — boxShadow is web-only
+            boxShadow: `0 0 0 3px ${colors.primarySubtle}`,
+          } as const)
+        : {}),
     },
     input: {
       flex: 1,
@@ -131,8 +142,14 @@ export function AuthField({
   const isSecure = Boolean(secureTextEntry) && !passwordVisible;
 
   const handleFocus = (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
+    setIsFocused(true);
     onFocus?.(event);
     scrollWrapIntoView(wrapRef.current);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    onBlur?.();
   };
 
   const visibilityToggle =
@@ -189,6 +206,7 @@ export function AuthField({
       <View
         style={[
           styles.inputRow,
+          isFocused && !invalid && !validated && styles.inputRowFocused,
           validated && styles.inputRowValidated,
           invalid && styles.inputRowInvalid,
           !editable && styles.inputRowDisabled,
@@ -206,7 +224,7 @@ export function AuthField({
           editable={editable}
           multiline={multiline}
           onFocus={handleFocus}
-          onBlur={onBlur}
+          onBlur={handleBlur}
           accessibilityLabel={label}
         />
         {showTrailing ? trailing : null}

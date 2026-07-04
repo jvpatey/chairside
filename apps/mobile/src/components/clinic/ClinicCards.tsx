@@ -8,6 +8,7 @@ import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
@@ -162,6 +163,7 @@ type DashboardOverviewPanelProps = {
   onShiftDeleted?: (shiftId: string) => void;
   onJobPress?: (jobId: string) => void;
   onJobApplicationsPress?: (jobId: string) => void;
+  onViewAllPress?: () => void;
 };
 
 function DashboardListCard({
@@ -247,17 +249,26 @@ export function DashboardOverviewPanel({
   onShiftDeleted,
   onJobPress,
   onJobApplicationsPress,
+  onViewAllPress,
 }: DashboardOverviewPanelProps) {
   const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
   const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
   const styles = useThemedStyles(({ spacing }) => {
     const cardGap = dashboardSectionGap(spacing);
     return {
+      root: {
+        width: '100%',
+        alignSelf: 'stretch' as const,
+      },
       list: {
         gap: cardGap,
+        width: '100%',
+        alignSelf: 'stretch' as const,
       },
       subsection: {
         gap: cardGap,
+        width: '100%',
+        alignSelf: 'stretch' as const,
       },
     };
   });
@@ -268,9 +279,14 @@ export function DashboardOverviewPanel({
   );
 
   return (
-    <View>
-      <DashboardSectionHeader title={OVERVIEW_SECTION_TITLES[selected]} />
-      {selected === 'roles' ? (
+    <View style={styles.root}>
+      <DashboardSectionHeader
+        title={OVERVIEW_SECTION_TITLES[selected]}
+        actionLabel={onViewAllPress ? 'View all' : undefined}
+        onActionPress={onViewAllPress}
+      />
+      <FadeInSection key={selected} delayMs={0}>
+        {selected === 'roles' ? (
         roleJobs.length === 0 ? (
           <DashboardEmptyState
             icon="briefcase-outline"
@@ -392,7 +408,8 @@ export function DashboardOverviewPanel({
             })}
           </View>
         )
-      ) : null}
+        ) : null}
+      </FadeInSection>
     </View>
   );
 }

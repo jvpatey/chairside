@@ -15,6 +15,7 @@ import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useThemedStyles } from '@/theme';
@@ -31,7 +32,6 @@ export default function WorkerSkillsScreen() {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
     section: { gap: spacing.sm },
     label: { ...typography.body, fontWeight: '600' },
     hint: typography.subtitle,
@@ -84,6 +84,7 @@ export default function WorkerSkillsScreen() {
         subtitle="Help clinics understand your fit."
         onBack={() => router.back()}
       />
+      <SetupStepProgress step={3} total={5} />
       <View style={styles.form}>
         <View style={styles.section}>
           <Text style={styles.label}>Software familiarity (optional)</Text>

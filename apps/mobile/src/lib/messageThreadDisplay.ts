@@ -1,4 +1,4 @@
-import type { Message } from '@chairside/api';
+import type { Conversation, Message, MessageDeliveryStatus } from '@chairside/api';
 
 export type ThreadMessageStatus = 'sent' | 'pending' | 'failed';
 
@@ -19,6 +19,40 @@ export type ThreadListItem =
     };
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
+export const MESSAGE_BUBBLE_RADIUS_LARGE = 18;
+export const MESSAGE_BUBBLE_RADIUS_JOINT = 5;
+
+/** iMessage-style corner radii for grouped consecutive bubbles. */
+export function getMessageBubbleRadii(
+  isOwn: boolean,
+  groupedWithPrevious: boolean,
+  groupedWithNext: boolean,
+): {
+  borderTopLeftRadius: number;
+  borderTopRightRadius: number;
+  borderBottomLeftRadius: number;
+  borderBottomRightRadius: number;
+} {
+  const large = MESSAGE_BUBBLE_RADIUS_LARGE;
+  const joint = MESSAGE_BUBBLE_RADIUS_JOINT;
+
+  if (isOwn) {
+    return {
+      borderTopLeftRadius: large,
+      borderTopRightRadius: groupedWithPrevious ? joint : large,
+      borderBottomLeftRadius: large,
+      borderBottomRightRadius: groupedWithNext ? joint : large,
+    };
+  }
+
+  return {
+    borderTopLeftRadius: groupedWithPrevious ? joint : large,
+    borderTopRightRadius: large,
+    borderBottomLeftRadius: groupedWithNext ? joint : large,
+    borderBottomRightRadius: large,
+  };
+}
 
 function startOfDay(date: Date): Date {
   const next = new Date(date);
@@ -56,11 +90,26 @@ function isSameSenderGroup(
   const nextOwn = next.sender_id === viewerId;
   if (previousOwn !== nextOwn) return false;
 
-  const previousTime = new Date(previous.created_at).getTime();
-  const nextTime = new Date(next.created_at).getTime();
-  if (Number.isNaN(previousTime) || Number.isNaN(nextTime)) return false;
+  const previousDate = new Date(previous.created_at);
+  const nextDate = new Date(next.created_at);
+  if (Number.isNaN(previousDate.getTime()) || Number.isNaN(nextDate.getTime())) {
+    return false;
+  }
 
-  return Math.abs(nextTime - previousTime) <= GROUP_WINDOW_MS;
+  if (startOfDay(previousDate).getTime() !== startOfDay(nextDate).getTime()) {
+    return false;
+  }
+
+  return Math.abs(nextDate.getTime() - previousDate.getTime()) <= GROUP_WINDOW_MS;
+}
+
+/** Whether two adjacent thread messages should share a visual bubble group. */
+export function areThreadMessagesGrouped(
+  previous: ThreadMessage,
+  next: ThreadMessage,
+  viewerId: string,
+): boolean {
+  return isSameSenderGroup(previous, next, viewerId);
 }
 
 /** Flatten messages into date separators and grouped bubble rows. */
@@ -136,7 +185,7 @@ export function matchesConversationSearch(conversation: {
 
 /** Find the newest loaded message whose body contains the query. */
 export function findLatestMatchingMessageId(
-  messages: Array<{ id: string; body: string }>,
+  messages: { id: string; body: string }[],
   query: string,
 ): string | undefined {
   const normalized = query.trim().toLowerCase();
@@ -159,6 +208,39 @@ export function findThreadListIndexForMessage(
     (item) => item.type === 'message' && item.message.id === messageId,
   );
 }
+export function getLastOwnMessageDeliveryStatus(
+  conversation: Conversation,
+  role: 'worker' | 'clinic',
+  viewerId: string,
+): MessageDeliveryStatus | null {
+  if (!conversation.last_message_at || conversation.last_sender_id !== viewerId) {
+    return null;
+  }
+
+  const counterpartLastReadAt =
+    role === 'worker' ? conversation.clinic_last_read_at : conversation.worker_last_read_at;
+  if (
+    counterpartLastReadAt &&
+    new Date(conversation.last_message_at).getTime() <= new Date(counterpartLastReadAt).getTime()
+  ) {
+    return 'read';
+  }
+
+  return 'delivered';
+}
+
+export function formatInboxPreviewText(
+  conversation: Conversation,
+  viewerId: string,
+): string {
+  const preview = conversation.last_message_preview ?? 'No messages yet';
+  if (preview === 'No messages yet') return preview;
+  if (conversation.last_sender_id === viewerId) {
+    return `You: ${preview}`;
+  }
+  return preview;
+}
+
 export function formatMessageSearchPreview(
   body: string,
   query: string,

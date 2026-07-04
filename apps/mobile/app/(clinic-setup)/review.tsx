@@ -8,6 +8,7 @@ import { Alert, Text, View } from 'react-native';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { PracticeDoctorReviewValue } from '@/components/clinic/PracticeDoctorList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -51,7 +52,6 @@ export default function ClinicReviewScreen() {
       padding: spacing.lg,
     },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
   }));
 
   const specialtyLabel =
@@ -100,7 +100,7 @@ export default function ClinicReviewScreen() {
         subtitle="Confirm everything looks right before posting."
         onBack={() => router.back()}
       />
-      <Text style={styles.step}>Step 5 of 5</Text>
+      <SetupStepProgress step={5} total={5} showRing />
       <View style={styles.card}>
         <ReviewRow label="Clinic name" value={clinicProfile.clinic_name} />
         <ReviewRow label="Contact" value={clinicProfile.contact_name ?? ''} />

@@ -1,14 +1,19 @@
 import { Text, View } from 'react-native';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import {
+  WELCOME_STAGGER,
+  enterFadeUp,
+} from '@/components/onboarding/onboardingAnimations';
+import { ONBOARDING_SUBTITLE } from '@/constants';
 import { useThemedStyles } from '@/theme';
 
 const MOBILE_HEADLINE = 'Dental staffing, simplified.';
-const MOBILE_SUBTITLE =
-  'Hire staff, find work, and fill same-day shifts in one place.';
 
 export function WelcomeHero() {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const reducedMotion = useReducedMotion();
+  const styles = useThemedStyles(({ spacing, typography }) => ({
     container: {
       alignItems: 'center',
       gap: spacing.md,
@@ -20,10 +25,10 @@ export function WelcomeHero() {
     },
     headline: {
       ...typography.title,
-      fontSize: 28,
-      lineHeight: 34,
+      fontSize: 31,
+      lineHeight: 37,
       textAlign: 'center',
-      letterSpacing: -0.35,
+      letterSpacing: -0.4,
       maxWidth: 320,
       marginTop: spacing.xs,
     },
@@ -34,43 +39,21 @@ export function WelcomeHero() {
       textAlign: 'center',
       maxWidth: 330,
     },
-    audienceRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      gap: spacing.sm,
-      marginTop: spacing.xs,
-    },
-    audiencePill: {
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      backgroundColor: colors.fillSubtle,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-    },
-    audienceText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
   }));
 
   return (
     <View style={styles.container}>
-      <View style={styles.wordmarkWrap}>
+      <Animated.View
+        entering={enterFadeUp(WELCOME_STAGGER.wordmark, reducedMotion)}
+        style={styles.wordmarkWrap}>
         <ChairsideWordmark variant="hero" />
-      </View>
-      <Text style={styles.headline}>{MOBILE_HEADLINE}</Text>
-      <Text style={styles.subtitle}>{MOBILE_SUBTITLE}</Text>
-      <View style={styles.audienceRow}>
-        <View style={styles.audiencePill}>
-          <Text style={styles.audienceText}>For clinics</Text>
-        </View>
-        <View style={styles.audiencePill}>
-          <Text style={styles.audienceText}>For professionals</Text>
-        </View>
-      </View>
+      </Animated.View>
+      <Animated.View entering={enterFadeUp(WELCOME_STAGGER.headline, reducedMotion)}>
+        <Text style={styles.headline}>{MOBILE_HEADLINE}</Text>
+      </Animated.View>
+      <Animated.View entering={enterFadeUp(WELCOME_STAGGER.subtitle, reducedMotion)}>
+        <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+      </Animated.View>
     </View>
   );
 }

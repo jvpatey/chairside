@@ -240,6 +240,8 @@ export {
 export {
   getConversation,
   getConversationByApplicationId,
+  getCounterpartLastReadAt,
+  getMessageDeliveryStatus,
   getOrCreateGeneralConversation,
   getUnreadConversationCount,
   getUnreadConversationMap,
@@ -255,6 +257,7 @@ export {
   type Conversation,
   type ConversationType,
   type Message,
+  type MessageDeliveryStatus,
   type MessageSearchHit,
   type MessageableClinic,
 } from './messages';

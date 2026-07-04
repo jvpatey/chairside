@@ -1,6 +1,7 @@
 import type { ShiftPost } from '@chairside/api';
 import { isMatchableSoftware } from '@chairside/core';
-import { Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, Text, View } from 'react-native';
 
 import {
   DetailProse,
@@ -10,9 +11,10 @@ import {
   RowDivider,
 } from '@/components/clinic/DetailCard';
 import { ShiftPostStatusBadge } from '@/components/clinic/ShiftPostStatusBadge';
+import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { formatShiftPostDateLabel, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { formatTimeRangePreview } from '@/lib/time';
-import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { getHeroBandGradient, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type ShiftPostDetailViewProps = {
   shift: ShiftPost;
@@ -28,9 +30,9 @@ export function ShiftPostDetailView({
   softwareUsed,
   showStatusBadge = true,
   variant = 'full',
-  accent = 'primary',
+  accent = 'secondary',
 }: ShiftPostDetailViewProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const dateLabel = formatShiftPostDateLabel(shift.shift_date);
   const hoursLabel = formatTimeRangePreview(shift.start_time, shift.end_time);
@@ -38,17 +40,24 @@ export function ShiftPostDetailView({
   const matchableSoftware = (softwareUsed ?? []).filter(isMatchableSoftware);
   const softwareLabel =
     matchableSoftware.length > 0 ? matchableSoftware.join(' · ') : null;
+  const heroGradient = getHeroBandGradient(colors, isDark, accent);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.lg,
     },
-    hero: {
+    heroBand: {
       position: 'relative',
-      backgroundColor: colors.surface,
       borderRadius: 16,
+      overflow: 'hidden',
       borderWidth: 1,
       borderColor: colors.separator,
+    },
+    heroGradient: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    hero: {
+      position: 'relative',
       padding: spacing.lg,
       gap: spacing.md,
     },
@@ -120,11 +129,13 @@ export function ShiftPostDetailView({
   if (variant === 'embedded') {
     return (
       <View style={styles.wrap}>
-        {detailSection}
+        <FadeInSection delayMs={0}>{detailSection}</FadeInSection>
         {description ? (
-          <DetailSection title="Notes">
-            <DetailProse text={description} />
-          </DetailSection>
+          <FadeInSection delayMs={80}>
+            <DetailSection title="Notes">
+              <DetailProse text={description} />
+            </DetailSection>
+          </FadeInSection>
         ) : null}
       </View>
     );
@@ -132,24 +143,36 @@ export function ShiftPostDetailView({
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.hero}>
-        {showStatusBadge ? (
-          <ShiftPostStatusBadge
-            status={shift.status}
-            shiftDate={shift.shift_date}
-            style={styles.statusBadge}
+      <FadeInSection delayMs={0}>
+        <View style={styles.heroBand}>
+          <LinearGradient
+            colors={heroGradient}
+            locations={[0, 0.35, 0.65, 0.85, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+            pointerEvents="none"
           />
-        ) : null}
+          <View style={styles.hero}>
+            {showStatusBadge ? (
+              <ShiftPostStatusBadge
+                status={shift.status}
+                shiftDate={shift.shift_date}
+                style={styles.statusBadge}
+              />
+            ) : null}
 
-        <View style={styles.heroTop}>
-          <Text style={styles.overline}>Fill-in shift</Text>
-          <Text style={styles.title}>{formatShiftPostRoleTitle(shift.role_type)}</Text>
+            <View style={styles.heroTop}>
+              <Text style={styles.overline}>Fill-in shift</Text>
+              <Text style={styles.title}>{formatShiftPostRoleTitle(shift.role_type)}</Text>
+            </View>
+
+            <Text style={styles.meta}>{dateLabel}</Text>
+          </View>
         </View>
+      </FadeInSection>
 
-        <Text style={styles.meta}>{dateLabel}</Text>
-      </View>
-
-      {detailSection}
+      <FadeInSection delayMs={80}>{detailSection}</FadeInSection>
     </View>
   );
 }

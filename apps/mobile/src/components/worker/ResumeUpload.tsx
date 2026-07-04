@@ -30,7 +30,11 @@ export function ResumeUpload({ onUploaded, embedded = false }: ResumeUploadProps
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: embedded
-      ? { gap: spacing.sm }
+      ? {
+          alignItems: 'center',
+          gap: spacing.md,
+          paddingTop: spacing.xs,
+        }
       : {
           backgroundColor: colors.surface,
           borderRadius: 12,
@@ -40,6 +44,10 @@ export function ResumeUpload({ onUploaded, embedded = false }: ResumeUploadProps
           gap: spacing.sm,
         },
     row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    embeddedRow: {
+      justifyContent: 'center',
+      maxWidth: '100%',
+    },
     iconWrap: {
       width: 40,
       height: 40,
@@ -52,6 +60,20 @@ export function ResumeUpload({ onUploaded, embedded = false }: ResumeUploadProps
     fileName: { ...typography.body, fontWeight: '600' },
     meta: typography.subtitle,
     actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+    embeddedActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      width: '100%',
+    },
+    embeddedActionsSingle: {
+      alignSelf: 'stretch',
+    },
+    actionEmbeddedSingle: {
+      flex: 1,
+      alignItems: 'center',
+    },
     action: {
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
@@ -67,6 +89,11 @@ export function ResumeUpload({ onUploaded, embedded = false }: ResumeUploadProps
     actionText: { fontSize: 14, fontWeight: '600', color: colors.primary },
     actionTextPrimary: { color: colors.primaryOnPrimary },
     empty: typography.subtitle,
+    embeddedEmpty: {
+      ...typography.subtitle,
+      textAlign: 'center',
+      color: colors.labelSecondary,
+    },
   }));
 
   const handlePick = async () => {
@@ -149,68 +176,85 @@ export function ResumeUpload({ onUploaded, embedded = false }: ResumeUploadProps
   });
   const isBusy = isUploading || isViewing;
 
+  const actionButtons = (
+    <>
+      {hasResume ? (
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.action,
+            webHover(hovered, pressed, styles.actionHovered, isBusy),
+            pressed && { opacity: 0.85 },
+          ]}
+          disabled={isBusy}
+          onPress={() => void handleView()}>
+          <Text style={styles.actionText}>{isViewing ? 'Opening…' : 'View'}</Text>
+        </Pressable>
+      ) : null}
+      <Pressable
+        style={({ pressed, hovered }) => [
+          styles.action,
+          embedded && !hasResume && styles.actionEmbeddedSingle,
+          !hasResume && styles.actionPrimary,
+          webHover(
+            hovered,
+            pressed,
+            !hasResume ? styles.actionPrimaryHovered : styles.actionHovered,
+            isBusy,
+          ),
+          pressed && { opacity: 0.85 },
+        ]}
+        disabled={isBusy}
+        onPress={handlePick}>
+        <Text style={[styles.actionText, !hasResume && styles.actionTextPrimary]}>
+          {hasResume ? 'Replace' : 'Upload PDF'}
+        </Text>
+      </Pressable>
+      {hasResume ? (
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.action,
+            webHover(hovered, pressed, styles.actionHovered, isBusy),
+            pressed && { opacity: 0.85 },
+          ]}
+          disabled={isBusy}
+          onPress={handleRemove}>
+          <Text style={styles.actionText}>Remove</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+
   return (
     <View style={styles.card}>
       {hasResume ? (
-        <View style={styles.row}>
+        <View style={[styles.row, embedded && styles.embeddedRow]}>
           <View style={styles.iconWrap}>
             <Ionicons name="document-text" size={22} color={colors.primary} />
           </View>
-          <View style={styles.textBlock}>
+          <View style={[styles.textBlock, embedded && { flex: 0, flexShrink: 1 }]}>
             <Text style={styles.fileName} numberOfLines={1}>
               {workerProfile?.resume_file_name ?? 'Resume.pdf'}
             </Text>
-            <Text style={styles.meta}>Optional PDF attached to role applications</Text>
+            {!embedded ? (
+              <Text style={styles.meta}>Optional PDF attached to role applications</Text>
+            ) : null}
           </View>
           {isBusy ? <ActivityIndicator color={colors.primary} /> : null}
         </View>
       ) : (
-        <Text style={styles.empty}>No resume uploaded. You can add an optional PDF anytime.</Text>
+        <Text style={embedded ? styles.embeddedEmpty : styles.empty}>
+          {embedded
+            ? 'No resume uploaded yet.'
+            : 'No resume uploaded. You can add an optional PDF anytime.'}
+        </Text>
       )}
 
-      <View style={styles.actions}>
-        {hasResume ? (
-          <Pressable
-            style={({ pressed, hovered }) => [
-              styles.action,
-              webHover(hovered, pressed, styles.actionHovered, isBusy),
-              pressed && { opacity: 0.85 },
-            ]}
-            disabled={isBusy}
-            onPress={() => void handleView()}>
-            <Text style={styles.actionText}>{isViewing ? 'Opening…' : 'View'}</Text>
-          </Pressable>
-        ) : null}
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.action,
-            !hasResume && styles.actionPrimary,
-            webHover(
-              hovered,
-              pressed,
-              !hasResume ? styles.actionPrimaryHovered : styles.actionHovered,
-              isBusy,
-            ),
-            pressed && { opacity: 0.85 },
-          ]}
-          disabled={isBusy}
-          onPress={handlePick}>
-          <Text style={[styles.actionText, !hasResume && styles.actionTextPrimary]}>
-            {hasResume ? 'Replace' : 'Upload PDF'}
-          </Text>
-        </Pressable>
-        {hasResume ? (
-          <Pressable
-            style={({ pressed, hovered }) => [
-              styles.action,
-              webHover(hovered, pressed, styles.actionHovered, isBusy),
-              pressed && { opacity: 0.85 },
-            ]}
-            disabled={isBusy}
-            onPress={handleRemove}>
-            <Text style={styles.actionText}>Remove</Text>
-          </Pressable>
-        ) : null}
+      <View
+        style={[
+          embedded ? styles.embeddedActions : styles.actions,
+          embedded && !hasResume && styles.embeddedActionsSingle,
+        ]}>
+        {actionButtons}
       </View>
     </View>
   );

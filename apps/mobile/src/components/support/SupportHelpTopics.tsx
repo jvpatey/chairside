@@ -8,6 +8,8 @@ import type { LegalSection } from '@/content/legal/types';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
+import { getElevationStyle, radii } from '@/theme/tokens';
+import { getWebShadow } from '@/theme/web';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -198,6 +200,8 @@ function HelpTopicRow({
 export function SupportHelpTopics({ sections }: SupportHelpTopicsProps) {
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(() => new Set());
   const { isCompact } = useResponsiveLayout();
+  const { isDark } = useTheme();
+  const isWeb = Platform.OS === 'web';
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -221,10 +225,13 @@ export function SupportHelpTopics({ sections }: SupportHelpTopicsProps) {
     },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: isCompact ? 12 : 16,
+      borderRadius: isWeb ? radii.xxl : isCompact ? radii.lg : radii.xl,
       borderWidth: 1,
       borderColor: colors.separator,
       overflow: 'hidden' as const,
+      ...(isWeb
+        ? { boxShadow: getWebShadow(isDark, 'raised') }
+        : getElevationStyle({ isDark, level: 'subtle' })),
     },
   }));
 

@@ -8,10 +8,17 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
-import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
@@ -30,6 +37,7 @@ import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { PageTabBar } from '@/components/ui/PageTabBar';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
@@ -63,8 +71,34 @@ import {
   toWorkerMapItemsFromShifts,
 } from '@/lib/workerMapItems';
 import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
-import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { getFillInHeroGradient, useTheme, useThemedStyles } from '@/theme';
+
+function FillInAvailabilityPanelAccent({ children }: { children: ReactNode }) {
+  const { colors, isDark } = useTheme();
+  const gradient = getFillInHeroGradient(colors, isDark);
+  const styles = useThemedStyles(({ radii }) => ({
+    wrap: {
+      borderRadius: radii.lg,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    gradient: StyleSheet.absoluteFillObject,
+  }));
+
+  return (
+    <View style={styles.wrap}>
+      <LinearGradient
+        colors={gradient}
+        locations={[0, 0.55, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+        pointerEvents="none"
+      />
+      {children}
+    </View>
+  );
+}
 
 function navigateToEditSchedule() {
   router.push(WORKER_SETUP_AVAILABILITY_SCHEDULE);
@@ -72,7 +106,6 @@ function navigateToEditSchedule() {
 
 export default function FillInsScreen() {
   useMarkGetStartedBrowseVisit('fillIns');
-  const { colors } = useTheme();
   const { user } = useAuth();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
@@ -212,18 +245,19 @@ export default function FillInsScreen() {
   const pastFillInCount = pastConfirmed.length + pastInProgress.length;
   const activeFillInCount = upcomingConfirmed.length + upcomingInProgress.length;
   const mapGroups = useMemo(
-    () =>
-      groupWorkerMapItemsByClinic(toWorkerMapItemsFromShifts(filteredShifts, savedShiftIds)),
+    () => groupWorkerMapItemsByClinic(toWorkerMapItemsFromShifts(filteredShifts, savedShiftIds)),
     [filteredShifts, savedShiftIds],
   );
-  const unmappableShiftCount = useMemo(() => countUnmappablePosts(filteredShifts), [filteredShifts]);
+  const unmappableShiftCount = useMemo(
+    () => countUnmappablePosts(filteredShifts),
+    [filteredShifts],
+  );
   const workerCoords =
     workerProfile?.latitude != null && workerProfile?.longitude != null
       ? { latitude: workerProfile.latitude, longitude: workerProfile.longitude }
       : null;
   const useMapLayout = selectedMode === 'open' && viewMode === 'map';
-  const showOpenMap =
-    useMapLayout && !isLoading && filteredShifts.length > 0;
+  const showOpenMap = useMapLayout && !isLoading && filteredShifts.length > 0;
 
   const mapPanelHeight = useMemo(
     () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
@@ -266,22 +300,6 @@ export default function FillInsScreen() {
       overflow: 'hidden',
     },
     applicationGroup: { gap: spacing.sm },
-    viewAllRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-      paddingVertical: spacing.sm,
-      borderRadius: 10,
-      ...webPointer(),
-    },
-    viewAllRowHovered: webTextLinkHoverStyles(colors),
-    viewAllLabel: {
-      ...typography.body,
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.primary,
-    },
     daysCardMuted: {
       opacity: 0.55,
     },
@@ -334,21 +352,21 @@ export default function FillInsScreen() {
                 </View>
                 <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
                 <WorkerFillInBrowseFilters
-                    roleTypeFilter={roleTypeFilter}
-                    sort={sort}
-                    distanceFilter={distanceFilter}
-                    softwareFilter={softwareFilter}
-                    payListedFilter={payListedFilter}
-                    availabilityFilter={availabilityFilter}
-                    savedOnlyFilter={savedOnlyFilter}
-                    onRoleTypeChange={setRoleTypeFilter}
-                    onSortChange={setSort}
-                    onDistanceFilterChange={setDistanceFilter}
-                    onSoftwareFilterChange={setSoftwareFilter}
-                    onPayListedFilterChange={setPayListedFilter}
-                    onAvailabilityFilterChange={setAvailabilityFilter}
-                    onSavedOnlyFilterChange={setSavedOnlyFilter}
-                  />
+                  roleTypeFilter={roleTypeFilter}
+                  sort={sort}
+                  distanceFilter={distanceFilter}
+                  softwareFilter={softwareFilter}
+                  payListedFilter={payListedFilter}
+                  availabilityFilter={availabilityFilter}
+                  savedOnlyFilter={savedOnlyFilter}
+                  onRoleTypeChange={setRoleTypeFilter}
+                  onSortChange={setSort}
+                  onDistanceFilterChange={setDistanceFilter}
+                  onSoftwareFilterChange={setSoftwareFilter}
+                  onPayListedFilterChange={setPayListedFilter}
+                  onAvailabilityFilterChange={setAvailabilityFilter}
+                  onSavedOnlyFilterChange={setSavedOnlyFilter}
+                />
               </View>
             ) : null}
           </View>
@@ -377,7 +395,9 @@ export default function FillInsScreen() {
                     <DashboardEmptyState
                       icon="calendar-outline"
                       title={
-                        hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'
+                        hasActiveFillInFilters
+                          ? 'No fill-ins match your search'
+                          : 'No open fill-ins'
                       }
                       message={
                         hasActiveFillInFilters
@@ -387,20 +407,22 @@ export default function FillInsScreen() {
                     />
                   ) : (
                     <View style={styles.cardList}>
-                      {filteredShifts.map((shift) => (
-                        <FillInListingCard
-                          key={shift.id}
-                          shift={shift}
-                          distanceLabel={shift.distanceLabel}
-                          isSaved={savedShiftIds.has(shift.id)}
-                          onToggleSaved={() =>
-                            void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
-                          }
-                          onPress={() =>
-                            router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))
-                          }
-                        />
-                      ))}
+                      <StaggeredList>
+                        {filteredShifts.map((shift) => (
+                          <FillInListingCard
+                            key={shift.id}
+                            shift={shift}
+                            distanceLabel={shift.distanceLabel}
+                            isSaved={savedShiftIds.has(shift.id)}
+                            onToggleSaved={() =>
+                              void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+                            }
+                            onPress={() =>
+                              router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))
+                            }
+                          />
+                        ))}
+                      </StaggeredList>
                     </View>
                   )}
                 </View>
@@ -423,53 +445,50 @@ export default function FillInsScreen() {
                   {upcomingConfirmed.length > 0 ? (
                     <View style={styles.applicationGroup}>
                       <DashboardSectionHeader title="Upcoming confirmed" compact />
-                      {upcomingConfirmed.map((application) => (
-                        <WorkerApplicationListCard
-                          key={application.id}
-                          application={application}
-                          returnTo="fill-ins-tab"
-                        />
-                      ))}
+                      <StaggeredList>
+                        {upcomingConfirmed.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
                     </View>
                   ) : null}
                   {upcomingInProgress.length > 0 ? (
                     <View style={styles.applicationGroup}>
                       <DashboardSectionHeader title="In progress" compact />
-                      {upcomingInProgress.map((application) => (
-                        <WorkerApplicationListCard
-                          key={application.id}
-                          application={application}
-                          returnTo="fill-ins-tab"
-                        />
-                      ))}
+                      <StaggeredList>
+                        {upcomingInProgress.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
                     </View>
                   ) : null}
                 </>
               )}
               {!isLoading && pastFillInCount > 0 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  style={({ pressed, hovered }) => [
-                    styles.viewAllRow,
-                    webHover(hovered, pressed, styles.viewAllRowHovered),
-                    pressed && { opacity: 0.75 },
-                  ]}
-                  onPress={() => router.push(WORKER_PAST_FILLINS)}
-                >
-                  <Text style={styles.viewAllLabel}>
-                    View {pastFillInCount} past fill-in{pastFillInCount === 1 ? '' : 's'}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                </Pressable>
+                <DashboardSectionHeader
+                  title=""
+                  actionLabel={`View ${pastFillInCount} past fill-in${pastFillInCount === 1 ? '' : 's'}`}
+                  onActionPress={() => router.push(WORKER_PAST_FILLINS)}
+                />
               ) : null}
             </View>
           ) : null}
 
           {selectedMode === 'availability' ? (
             <View style={styles.panel}>
-              <SurfaceCard padding="none">
-                <FillInModePanel variant="grouped" />
-              </SurfaceCard>
+              <FillInAvailabilityPanelAccent>
+                <SurfaceCard padding="none">
+                  <FillInModePanel variant="grouped" />
+                </SurfaceCard>
+              </FillInAvailabilityPanelAccent>
               <SurfaceCard
                 padding="md"
                 gap

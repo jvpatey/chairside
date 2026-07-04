@@ -10,6 +10,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
@@ -26,7 +27,6 @@ export default function WorkerBasicsScreen() {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
     section: { gap: spacing.sm },
     label: { ...typography.body, fontWeight: '600' },
   }));
@@ -86,6 +86,7 @@ export default function WorkerBasicsScreen() {
         subtitle="Tell clinics who you are and which roles you are qualified for."
         onBack={() => router.replace(WORKER_HOME)}
       />
+      <SetupStepProgress step={1} total={5} />
       <View style={styles.form}>
         <AuthField
           label="Full name"

@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { ClinicProfileHero } from '@/components/clinic/ClinicProfileHero';
+import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton';
 import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
@@ -41,7 +42,15 @@ export default function ClinicAccountProfileScreen() {
     content: { gap: spacing.xl },
   }));
 
-  if (!isClinicProfileReady) return null;
+  if (!isClinicProfileReady) {
+    return (
+      <ProfileDetailScreen
+        onBack={() => router.replace(CLINIC_HOME)}
+        headerRight={<SignOutHeaderButton />}>
+        <DetailHeroSkeleton />
+      </ProfileDetailScreen>
+    );
+  }
 
   return (
     <ProfileDetailScreen

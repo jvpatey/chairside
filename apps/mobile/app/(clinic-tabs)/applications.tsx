@@ -2,7 +2,7 @@ import { listJobApplicationSummaries, type JobApplicationSummary } from '@chairs
 import { formatJobApplicationSummaryMeta } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ClinicApplicationSummaryFilters } from '@/components/clinic/ClinicApplicationSummaryFilters';
 
@@ -11,10 +11,13 @@ import {
   formatViewApplicantsLabel,
   PostingCardActionButton,
 } from '@/components/clinic/PostingCardActionButton';
+import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -27,7 +30,7 @@ import {
   matchesJobApplicationSummarySearch,
   type ClinicApplicationSummaryFilter,
 } from '@/lib/clinicListSearch';
-import { getClinicRoleApplicationsRoute } from '@/lib/routing';
+import { CLINIC_POST_JOB, getClinicRoleApplicationsRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 function RoleApplicationSummaryRow({
@@ -46,7 +49,7 @@ function RoleApplicationSummaryRow({
   const postedLabel = formatPostedDateLabel(summary.post_created_at);
   const viewLabel = formatViewApplicantsLabel(summary.applicant_count);
 
-  return (
+  const row = (
     <BrowseListRow
       avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
       eyebrow={clinicName}
@@ -68,16 +71,19 @@ function RoleApplicationSummaryRow({
       }
     />
   );
+
+  return hasNewApplicants ? <FadeInSection>{row}</FadeInSection> : row;
 }
 
 export default function ClinicApplicationsScreen() {
   const { user } = useAuth();
+  const { isProfileComplete } = useClinicProfile();
   const [summaries, setSummaries] = useState<JobApplicationSummary[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [summaryFilter, setSummaryFilter] = useState<ClinicApplicationSummaryFilter>('all');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const styles = useThemedStyles(({ typography, spacing }) => ({
-    empty: typography.subtitle,
+  const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.md },
   }));
 
@@ -97,25 +103,41 @@ export default function ClinicApplicationsScreen() {
   const load = useCallback(async () => {
     if (!user?.id) {
       setSummaries([]);
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     try {
       const rows = await listJobApplicationSummaries(user.id);
       setSummaries(rows);
     } catch {
       setSummaries([]);
+    } finally {
+      setIsLoading(false);
     }
   }, [user?.id]);
 
   useRefreshOnFocus(load);
 
+  const postRoleCta = isProfileComplete
+    ? {
+        ctaLabel: 'Post role' as const,
+        onCtaPress: () => router.push(CLINIC_POST_JOB),
+      }
+    : {};
+
   return (
     <Screen title="Applications" subtitle="Open a role to review its applicants.">
-      {summaries.length === 0 ? (
-        <Text style={styles.empty}>
-          No applications yet. They will appear here when workers apply to your roles.
-        </Text>
+      {isLoading ? (
+        <PageLoadingList message="Loading applications…" />
+      ) : summaries.length === 0 ? (
+        <EmptyState
+          icon="document-text-outline"
+          title="No applications yet"
+          message="They will appear here when workers apply to your roles."
+          {...postRoleCta}
+        />
       ) : (
         <View style={styles.content}>
           <ListSearchFilterRow
@@ -131,11 +153,18 @@ export default function ClinicApplicationsScreen() {
             }
           />
           {filteredSummaries.length === 0 ? (
-            <Text style={styles.empty}>
-              {hasSearch || hasActiveFilters
-                ? 'No roles match your search or filter.'
-                : 'No applications yet. They will appear here when workers apply to your roles.'}
-            </Text>
+            <EmptyState
+              icon={hasSearch || hasActiveFilters ? 'search-outline' : 'document-text-outline'}
+              title={
+                hasSearch || hasActiveFilters ? 'No roles match your search' : 'No applications yet'
+              }
+              message={
+                hasSearch || hasActiveFilters
+                  ? 'Try a different search or filter.'
+                  : 'They will appear here when workers apply to your roles.'
+              }
+              {...(hasSearch || hasActiveFilters ? {} : postRoleCta)}
+            />
           ) : (
             <BrowseListGroup>
               {filteredSummaries.map((summary) => (
@@ -143,7 +172,9 @@ export default function ClinicApplicationsScreen() {
                   key={summary.job_post_id}
                   summary={summary}
                   onViewPress={() =>
-                    router.push(getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'))
+                    router.push(
+                      getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'),
+                    )
                   }
                 />
               ))}

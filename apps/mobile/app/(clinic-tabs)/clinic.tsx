@@ -30,7 +30,8 @@ export default function ClinicProfileScreen() {
           title="Practice details"
           subtitle="Location, contact, and practice info."
           actionLabel="Edit"
-          onActionPress={() => router.push(CLINIC_SETUP_BASICS)}>
+          onActionPress={() => router.push(CLINIC_SETUP_BASICS)}
+        >
           <ClinicPracticeView profile={clinicProfile} />
         </ProfileSection>
 
@@ -38,7 +39,8 @@ export default function ClinicProfileScreen() {
           title="About"
           subtitle="Description and website shown to candidates."
           actionLabel="Edit"
-          onActionPress={() => router.push(CLINIC_SETUP_ABOUT)}>
+          onActionPress={() => router.push(CLINIC_SETUP_ABOUT)}
+        >
           <ClinicAboutView profile={clinicProfile} />
         </ProfileSection>
       </View>

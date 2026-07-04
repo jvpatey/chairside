@@ -3,14 +3,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { DashboardIconBadge } from '@/components/dashboard/DashboardIconBadge';
 import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   colorWithAlpha,
-  getPrimaryTileGradient,
-  getSecondaryTileGradient,
   fontBold,
   fontRegular,
+  fontSemibold,
+  getPrimaryTileGradient,
+  getSecondaryTileGradient,
   useTheme,
   useThemedStyles,
 } from '@/theme';
@@ -23,6 +25,7 @@ type DashboardQuickActionTileProps = {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   variant?: DashboardQuickActionVariant;
+  compact?: boolean;
   onPress: () => void;
 };
 
@@ -31,28 +34,32 @@ export function DashboardQuickActionTile({
   description,
   icon,
   variant = 'primary',
+  compact = false,
   onPress,
 }: DashboardQuickActionTileProps) {
   const { colors, isDark } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const isPrimary = variant === 'primary';
-  const showDescription = isTablet;
+  const useStackedLayout = !isTablet;
   const gradientColors = isPrimary
     ? getPrimaryTileGradient(colors, isDark)
     : getSecondaryTileGradient(colors, isDark);
+  const brandColor = isPrimary ? colors.primary : colors.secondary;
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     tile: {
       flex: 1,
       borderRadius: dashboardControlRadii.quickAction,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: useStackedLayout ? spacing.sm + 2 : spacing.md,
+      paddingVertical: useStackedLayout ? spacing.sm + 4 : spacing.md,
       overflow: 'hidden',
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: isPrimary
-        ? colorWithAlpha(colors.primary, isDark ? 0.4 : 0.34)
-        : colorWithAlpha(colors.secondary, isDark ? 0.27 : 0.3),
-      ...elevation('subtle'),
+        ? colorWithAlpha(colors.primary, isDark ? 0.45 : 0.34)
+        : colorWithAlpha(colors.secondary, isDark ? 0.32 : 0.3),
+      minHeight: compact ? 72 : useStackedLayout ? 84 : isTablet ? 108 : 96,
+      justifyContent: 'center',
+      ...elevation('raised'),
       ...webPointer(),
     },
     gradient: {
@@ -62,53 +69,44 @@ export function DashboardQuickActionTile({
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
+      gap: spacing.md,
+    },
+    stacked: {
+      alignItems: 'center',
+      justifyContent: 'center',
       gap: spacing.sm,
     },
     textBlock: {
       flex: 1,
       minWidth: 0,
-      gap: 2,
+      gap: 4,
     },
     tileHovered: webTileHoverStyles(colors, isDark),
     tilePressed: {
       opacity: 0.88,
-      transform: [{ scale: 0.985 }],
+      transform: [{ scale: 0.982 }],
     },
     iconHalo: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center',
-      justifyContent: 'center',
       flexShrink: 0,
-      borderWidth: StyleSheet.hairlineWidth,
-    },
-    iconHaloPrimary: {
-      backgroundColor: colorWithAlpha(colors.primary, isDark ? 0.22 : 0.18),
-      borderColor: colorWithAlpha(colors.primary, isDark ? 0.28 : 0.26),
-    },
-    iconHaloSecondary: {
-      backgroundColor: colorWithAlpha(colors.secondary, isDark ? 0.22 : 0.18),
-      borderColor: colorWithAlpha(colors.secondary, isDark ? 0.28 : 0.26),
     },
     label: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontFamily: fontBold,
-      fontWeight: '600',
+      fontSize: useStackedLayout ? 14 : 16,
+      lineHeight: useStackedLayout ? 18 : 22,
+      fontFamily: useStackedLayout ? fontSemibold : fontBold,
+      fontWeight: useStackedLayout ? '600' : '700',
       color: colors.labelPrimary,
       letterSpacing: -0.2,
+      textAlign: useStackedLayout ? ('center' as const) : ('left' as const),
     },
     description: {
-      fontSize: 12,
-      lineHeight: 16,
+      fontSize: 13,
+      lineHeight: 18,
       fontFamily: fontRegular,
       color: colors.labelSecondary,
     },
     chevron: {
       flexShrink: 0,
-      opacity: 0.35,
-      marginLeft: -spacing.xs,
+      opacity: 0.45,
     },
   }));
 
@@ -127,38 +125,43 @@ export function DashboardQuickActionTile({
       onPress={handlePress}
       style={({ pressed, hovered }) => [
         styles.tile,
-        { minHeight: showDescription ? 92 : 82 },
         isWeb && hovered && !pressed && styles.tileHovered,
         pressed && styles.tilePressed,
       ]}>
       <LinearGradient colors={gradientColors} style={styles.gradient} />
-      <View style={styles.row}>
-        <View style={[styles.iconHalo, isPrimary ? styles.iconHaloPrimary : styles.iconHaloSecondary]}>
-          <Ionicons
-            name={icon}
-            size={20}
-            color={isPrimary ? colors.primary : colors.secondary}
-          />
-        </View>
-        <View style={styles.textBlock}>
+      {useStackedLayout ? (
+        <View style={styles.stacked}>
+          <View style={styles.iconHalo}>
+            <DashboardIconBadge
+              icon={icon}
+              accent={isPrimary ? 'primary' : 'secondary'}
+              size="sm"
+            />
+          </View>
           <Text style={styles.label} numberOfLines={2}>
             {label}
           </Text>
-          {showDescription ? (
-            <Text style={styles.description} numberOfLines={2}>
+        </View>
+      ) : (
+        <View style={styles.row}>
+          <View style={styles.iconHalo}>
+            <DashboardIconBadge
+              icon={icon}
+              accent={isPrimary ? 'primary' : 'secondary'}
+              size="md"
+            />
+          </View>
+          <View style={styles.textBlock}>
+            <Text style={styles.label} numberOfLines={1}>
+              {label}
+            </Text>
+            <Text style={styles.description} numberOfLines={1}>
               {description}
             </Text>
-          ) : null}
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} style={styles.chevron} />
         </View>
-        {isTablet ? (
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={colors.labelTertiary}
-            style={styles.chevron}
-          />
-        ) : null}
-      </View>
+      )}
     </Pressable>
   );
 }

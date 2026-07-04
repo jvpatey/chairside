@@ -14,6 +14,8 @@ import { ShiftDateInput } from '@/components/clinic/ShiftDateInput';
 import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
+import { getClinicSmsUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
+import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
@@ -261,9 +263,12 @@ export default function OutreachComposeScreen() {
         ) : null}
 
         {workerSmsOptIn && billing && !billing.canUseFillInSms ? (
-          <Text style={styles.helper}>
-            SMS fill-in alerts are available on Starter and Pro plans.
-          </Text>
+          <PlanUpgradeCallout
+            compact
+            title="SMS alerts need Starter or Pro"
+            message={getClinicSmsUpgradeMessage()}
+            accent="secondary"
+          />
         ) : null}
 
         {canOfferSms ? (

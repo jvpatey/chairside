@@ -44,6 +44,18 @@ type OnboardingShellProps = {
   backgroundAccessory?: ReactNode;
   /** Lets tab atmosphere show through (used on stack screens with sidebar layouts). */
   transparentBackground?: boolean;
+  /** Stretch content to the scroll viewport height (welcome / landing layouts). */
+  fillViewport?: boolean;
+  /** Web-only: use split-screen auth marketing layout. */
+  authSplit?: boolean;
+  /** Web-only: centered column for decision steps (e.g. role selection). */
+  webLayout?: 'default' | 'centeredDecision';
+  /** Web-only: left panel headline when authSplit is enabled. */
+  brandHeadline?: string;
+  /** Web-only: left panel subtitle when authSplit is enabled. */
+  brandSubtitle?: string;
+  /** Web-only: left panel visual when authSplit is enabled. */
+  brandVisual?: 'appPreview' | 'rolePaths';
 };
 
 const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;
@@ -56,6 +68,7 @@ export function OnboardingShell({
   contentStyle,
   backgroundAccessory,
   transparentBackground = false,
+  fillViewport = false,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset();
@@ -79,6 +92,7 @@ export function OnboardingShell({
   const scrollTimeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [footerHeight, setFooterHeight] = useState(0);
+  const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {
@@ -102,6 +116,7 @@ export function OnboardingShell({
     },
     body: {
       flexGrow: 1,
+      ...(fillViewport ? { flex: 1, minHeight: 0 } : null),
     },
     footer: {
       paddingHorizontal: spacing.lg,
@@ -225,8 +240,11 @@ export function OnboardingShell({
     <ScrollView
       ref={scrollRef}
       style={styles.scroll}
+      scrollEnabled={!fillViewport}
       onLayout={(event) => {
-        viewportHeightRef.current = event.nativeEvent.layout.height;
+        const height = event.nativeEvent.layout.height;
+        viewportHeightRef.current = height;
+        setScrollViewportHeight(height);
       }}
       onScroll={(event) => {
         scrollYRef.current = event.nativeEvent.contentOffset.y;
@@ -234,12 +252,15 @@ export function OnboardingShell({
       scrollEventThrottle={16}
       contentContainerStyle={[
         styles.content,
+        fillViewport && scrollViewportHeight > 0
+          ? { minHeight: scrollViewportHeight }
+          : null,
         {
           paddingTop: insets.top + 16,
           paddingBottom:
             spacing.lg +
             scrollBottomInset +
-            footerScrollClearance +
+            (fillViewport ? 0 : footerScrollClearance) +
             // iOS without a footer uses automaticallyAdjustKeyboardInsets; with a
             // footer, KeyboardAvoidingView handles the inset — avoid double padding.
             (Platform.OS === 'android' && !footer ? keyboardHeight : 0),

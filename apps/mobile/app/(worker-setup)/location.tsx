@@ -12,6 +12,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useThemedStyles } from '@/theme';
@@ -56,7 +57,6 @@ export default function WorkerLocationScreen() {
   const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
   }));
 
   useEffect(() => {
@@ -113,6 +113,7 @@ export default function WorkerLocationScreen() {
         subtitle="Your province determines which roles you can browse."
         onBack={() => router.back()}
       />
+      <SetupStepProgress step={4} total={5} />
       <View style={styles.form}>
         <AddressAutocomplete value={address} onChange={setAddress} />
         <AuthField

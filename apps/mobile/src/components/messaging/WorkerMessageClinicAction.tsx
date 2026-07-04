@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
-import { IS_WEB, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { IS_WEB, webHover, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const MESSAGE_CLINIC_INFO = {
@@ -14,74 +14,74 @@ const MESSAGE_CLINIC_INFO = {
 
 type WorkerMessageClinicActionProps = {
   onPress: () => void;
+  compact?: boolean;
 };
 
-export function WorkerMessageClinicAction({ onPress }: WorkerMessageClinicActionProps) {
+export function WorkerMessageClinicAction({
+  onPress,
+  compact = false,
+}: WorkerMessageClinicActionProps) {
   const { colors } = useTheme();
   const [infoVisible, setInfoVisible] = useState(false);
-  const [cardHovered, setCardHovered] = useState(false);
 
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      overflow: 'hidden',
-    },
-    cardHovered: webTileHoverStyles(colors, isDark),
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingLeft: spacing.md,
-      paddingVertical: spacing.sm,
       gap: spacing.sm,
     },
-    navigatePressable: {
+    primaryButton: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: spacing.xs,
-      flex: 1,
-      flexShrink: 1,
-      paddingVertical: spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    navigatePressed: { opacity: 0.92 },
-    title: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: '500',
-      color: colors.labelPrimary,
-      flex: 1,
-    },
-    infoPressable: {
-      padding: spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    infoPressed: { opacity: 0.65 },
-    chevronPressable: {
+      minHeight: compact ? 40 : 44,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: 8,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
       ...webPointer(),
     },
-    chevronPressed: { opacity: 0.92 },
+    primaryButtonHovered: {
+      opacity: 0.94,
+    },
+    primaryButtonPressed: {
+      opacity: 0.88,
+    },
+    primaryLabel: {
+      ...typography.body,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primaryOnPrimary,
+    },
+    infoButton: {
+      width: compact ? 40 : 44,
+      height: compact ? 40 : 44,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
+      ...webPointer(),
+    },
+    infoButtonPressed: {
+      opacity: 0.75,
+    },
     infoPanel: {
-      borderTopWidth: 1,
-      borderTopColor: colors.separator,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       backgroundColor: colors.backgroundGrouped,
+      gap: spacing.xs,
     },
     infoTitle: {
       ...typography.body,
       fontSize: 14,
       fontWeight: '600',
       color: colors.labelPrimary,
-      marginBottom: spacing.xs,
     },
     infoMessage: {
       ...typography.subtitle,
@@ -105,28 +105,23 @@ export function WorkerMessageClinicAction({ onPress }: WorkerMessageClinicAction
     Alert.alert(MESSAGE_CLINIC_INFO.title, MESSAGE_CLINIC_INFO.message);
   };
 
-  const cardHoverProps = IS_WEB
-    ? {
-        onMouseEnter: () => setCardHovered(true),
-        onMouseLeave: () => setCardHovered(false),
-      }
-    : {};
-
   return (
-    <View
-      style={[styles.card, IS_WEB && cardHovered && styles.cardHovered]}
-      {...cardHoverProps}>
+    <View style={{ gap: 8 }}>
       <View style={styles.row}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Message a clinic"
           accessibilityHint="Browse clinics you can message"
           onPress={handleNavigate}
-          style={({ pressed }) => [
-            styles.navigatePressable,
-            pressed && styles.navigatePressed,
-          ]}>
-          <Text style={styles.title}>Message a clinic</Text>
+          style={({ pressed, hovered }) => [
+            styles.primaryButton,
+            IS_WEB && webHover(hovered, pressed, styles.primaryButtonHovered),
+            pressed && styles.primaryButtonPressed,
+          ]}
+        >
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primaryOnPrimary} />
+          <Text style={styles.primaryLabel}>Message a clinic</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primaryOnPrimary} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -135,18 +130,9 @@ export function WorkerMessageClinicAction({ onPress }: WorkerMessageClinicAction
           accessibilityState={{ expanded: infoVisible }}
           hitSlop={8}
           onPress={showInfo}
-          style={({ pressed }) => [styles.infoPressable, pressed && styles.infoPressed]}>
-          <Ionicons name="information-circle-outline" size={16} color={colors.labelTertiary} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Browse clinics to message"
-          onPress={handleNavigate}
-          style={({ pressed }) => [
-            styles.chevronPressable,
-            pressed && styles.chevronPressed,
-          ]}>
-          <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
+          style={({ pressed }) => [styles.infoButton, pressed && styles.infoButtonPressed]}
+        >
+          <Ionicons name="information-circle-outline" size={18} color={colors.labelTertiary} />
         </Pressable>
       </View>
       {infoVisible ? (

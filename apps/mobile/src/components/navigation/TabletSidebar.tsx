@@ -85,6 +85,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { logoUri } = useClinicLogo();
   const { clinicProfile } = useClinicProfile();
   const { workerProfile } = useWorkerProfile();
+  const isWeb = Platform.OS === 'web';
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outerWeb: {
@@ -198,8 +199,15 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       gap: spacing.md,
       paddingVertical: 11,
       paddingHorizontal: spacing.sm,
-      borderRadius: 10,
+      borderRadius: isWeb ? 12 : 10,
       ...webPointer(),
+      ...(isWeb
+        ? webOnlyStyle({
+            transitionProperty: 'background-color, box-shadow, transform',
+            transitionDuration: '180ms',
+            transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
+          } as ViewStyle)
+        : {}),
     },
     itemCollapsed: {
       justifyContent: 'center',
@@ -286,8 +294,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       ? (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
         'Dental professional'
       : 'Dental Clinic';
-
-  const isWeb = Platform.OS === 'web';
 
   const handleToggleCollapse = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

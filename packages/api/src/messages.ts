@@ -64,7 +64,37 @@ export type MessageableClinic = {
 
 export type Message = MessageRow;
 
+export type MessageDeliveryStatus = 'pending' | 'failed' | 'delivered' | 'read';
+
 const MESSAGE_BODY_MAX_LENGTH = 2000;
+
+/** Counterpart read cursor for the viewer's role. */
+export function getCounterpartLastReadAt(
+  conversation: Pick<ConversationRow, 'worker_last_read_at' | 'clinic_last_read_at'>,
+  role: 'worker' | 'clinic',
+): string | null {
+  return role === 'worker' ? conversation.clinic_last_read_at : conversation.worker_last_read_at;
+}
+
+/** Derive delivery/read state for the viewer's own messages from counterpart read cursor. */
+export function getMessageDeliveryStatus(
+  message: Pick<MessageRow, 'created_at'> & { clientStatus?: 'pending' | 'failed' },
+  role: 'worker' | 'clinic',
+  conversation: Pick<ConversationRow, 'worker_last_read_at' | 'clinic_last_read_at'>,
+): MessageDeliveryStatus {
+  if (message.clientStatus === 'pending') return 'pending';
+  if (message.clientStatus === 'failed') return 'failed';
+
+  const counterpartLastReadAt = getCounterpartLastReadAt(conversation, role);
+  if (
+    counterpartLastReadAt &&
+    new Date(message.created_at).getTime() <= new Date(counterpartLastReadAt).getTime()
+  ) {
+    return 'read';
+  }
+
+  return 'delivered';
+}
 
 const CONVERSATION_UNREAD_SELECT =
   'application_id, last_message_at, last_sender_id, worker_last_read_at, clinic_last_read_at, worker_hidden_at, clinic_hidden_at' as const;

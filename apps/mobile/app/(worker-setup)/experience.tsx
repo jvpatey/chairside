@@ -12,6 +12,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useThemedStyles } from '@/theme';
@@ -31,7 +32,6 @@ export default function WorkerExperienceScreen() {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
     section: { gap: spacing.sm },
     label: { ...typography.body, fontWeight: '600' },
     hint: typography.subtitle,
@@ -110,6 +110,7 @@ export default function WorkerExperienceScreen() {
         subtitle="Clinics will receive this with every application."
         onBack={() => router.back()}
       />
+      <SetupStepProgress step={2} total={5} />
       <View style={styles.form}>
         <AuthField
           label="Years of experience (optional)"

@@ -12,8 +12,12 @@ export { radii, getElevationStyle, type ElevationLevel } from './tokens';
 export {
   colorWithAlpha,
   getAtmosphereGradient,
+  getHeroBandGradient,
   getPrimaryTileGradient,
   getSecondaryTileGradient,
+  getSpotlightGradient,
+  getStatCardIdleGradient,
+  getStatCardSelectedGradient,
   getStatSelectedGradient,
   getStatSelectedSegmentGradient,
   getAppliedRowGradient,

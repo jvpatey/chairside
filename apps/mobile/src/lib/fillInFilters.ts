@@ -100,6 +100,11 @@ export function filterShiftPostsForFillInsListMode(
     });
 }
 
+/** Open, today-or-upcoming fill-ins — excludes history. */
+export function countActiveFillIns(shifts: ShiftPost[]): number {
+  return filterShiftPostsForFillInsListMode(shifts, 'active', 'open', 'all', 'all').length;
+}
+
 export const FILL_INS_LIST_MODE_OPTIONS: { value: FillInsListMode; label: string }[] = [
   { value: 'active', label: 'Active' },
   { value: 'history', label: 'History' },

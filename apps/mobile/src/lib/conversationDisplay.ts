@@ -263,6 +263,34 @@ export function formatConversationShiftMeta(
   });
 }
 
+/** Compact thread-type label for inbox chips. */
+export function getConversationTypeChip(conversation: Conversation): {
+  label: string;
+  tone: 'role' | 'fill_in' | 'general' | 'outreach';
+} {
+  if (conversation.conversation_type === 'general') {
+    return { label: 'General', tone: 'general' };
+  }
+  if (conversation.conversation_type === 'outreach') {
+    return { label: 'Fill-in', tone: 'outreach' };
+  }
+  if (conversation.post_type === 'shift') {
+    return { label: 'Fill-in', tone: 'fill_in' };
+  }
+  return { label: 'Role', tone: 'role' };
+}
+
+const TYPE_CHIP_COLORS = {
+  role: { bg: 'primarySubtle', text: 'primary' },
+  fill_in: { bg: 'secondarySubtle', text: 'secondary' },
+  general: { bg: 'fillSubtle', text: 'labelSecondary' },
+  outreach: { bg: 'secondarySubtle', text: 'secondary' },
+} as const;
+
+export function getConversationTypeChipColors(tone: ReturnType<typeof getConversationTypeChip>['tone']) {
+  return TYPE_CHIP_COLORS[tone];
+}
+
 export function formatMessageableClinicMeta(clinic: {
   city: string | null;
   province: string;

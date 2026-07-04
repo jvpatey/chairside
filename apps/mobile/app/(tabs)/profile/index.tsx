@@ -6,6 +6,7 @@ import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton
 import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { WorkerProfileHero } from '@/components/worker/WorkerProfileHero';
+import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton';
 import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -35,7 +36,15 @@ export default function WorkerProfileScreen() {
     content: { gap: spacing.xl },
   }));
 
-  if (!isWorkerProfileReady) return null;
+  if (!isWorkerProfileReady) {
+    return (
+      <ProfileDetailScreen
+        onBack={() => router.replace(WORKER_HOME)}
+        headerRight={<SignOutHeaderButton />}>
+        <DetailHeroSkeleton />
+      </ProfileDetailScreen>
+    );
+  }
 
   return (
     <ProfileDetailScreen

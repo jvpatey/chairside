@@ -20,10 +20,9 @@ import {
   webHover,
   webIconButtonHoverStyles,
   webListRowHoverStyles,
-  webListRowSelectedStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type ConversationInboxGroupProps = {
   threads: Conversation[];
@@ -79,6 +78,7 @@ type ThreadRowProps = {
   role: 'worker' | 'clinic';
   compact?: boolean;
   selected?: boolean;
+  isFirst?: boolean;
   searchQuery: string;
   messageSearchPreview?: string | null;
   onPress: () => void;
@@ -90,6 +90,7 @@ function ConversationInboxThreadRow({
   role,
   compact = false,
   selected = false,
+  isFirst = false,
   searchQuery,
   messageSearchPreview,
   onPress,
@@ -107,31 +108,21 @@ function ConversationInboxThreadRow({
     messageSearchPreview ?? conversation.last_message_preview ?? 'No messages yet';
   const isEmptyPreview = previewText === 'No messages yet';
 
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
-    card: {
-      borderRadius: cardShellRadii.inner,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colorWithAlpha(colors.separator, isDark ? 0.65 : 0.55),
-      backgroundColor: conversation.unread ? colors.primarySubtle : colors.surfaceElevated,
-      overflow: 'hidden',
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    row: {
       position: 'relative' as const,
+      borderTopColor: colors.separator,
+      backgroundColor: 'transparent',
     },
-    cardSelected: webListRowSelectedStyles(colors),
-    cardHovered: webListRowHoverStyles(colors),
-    selectedAccent: {
-      position: 'absolute' as const,
-      left: 0,
-      top: spacing.xs,
-      bottom: spacing.xs,
-      width: 3,
-      borderRadius: 2,
-      backgroundColor: colors.primary,
+    rowSelected: {
+      backgroundColor: colors.fillSubtle,
     },
+    rowHovered: webListRowHoverStyles(colors),
     pressable: {
-      paddingVertical: compact ? spacing.sm : spacing.sm + 2,
-      paddingHorizontal: compact ? spacing.sm : spacing.md,
+      paddingVertical: spacing.md,
+      paddingLeft: spacing.md + 6,
       paddingRight: spacing.xl + spacing.sm,
-      gap: spacing.xs,
+      gap: 5,
       ...webPointer(),
     },
     pressablePressed: {
@@ -144,10 +135,11 @@ function ConversationInboxThreadRow({
     },
     context: {
       flex: 1,
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 14,
+      lineHeight: 19,
       fontWeight: '600',
       color: colors.labelPrimary,
+      letterSpacing: -0.1,
     },
     timestamp: {
       fontSize: 12,
@@ -225,9 +217,10 @@ function ConversationInboxThreadRow({
     <>
       <View
         style={[
-          styles.card,
-          selected && styles.cardSelected,
-          isWeb && rowHovered && !selected && styles.cardHovered,
+          styles.row,
+          { borderTopWidth: isFirst ? 0 : StyleSheet.hairlineWidth },
+          selected && styles.rowSelected,
+          isWeb && rowHovered && !selected && styles.rowHovered,
         ]}
         {...(isWeb
           ? {
@@ -235,7 +228,6 @@ function ConversationInboxThreadRow({
               onMouseLeave: () => setRowHovered(false),
             }
           : {})}>
-        {selected ? <View style={styles.selectedAccent} /> : null}
         {onDelete ? (
           <Pressable
             accessibilityRole="button"
@@ -341,42 +333,30 @@ export function ConversationInboxGroup({
     }
   }, [selectedConversationId, threads]);
 
-  if (!lead) return null;
-
-  const avatarSize = compact ? 36 : 40;
-  const hasUnread = threads.some((thread) => thread.unread);
-  const unreadCount = threads.filter((thread) => thread.unread).length;
-  const threadLabel = threads.length === 1 ? '1 thread' : `${threads.length} threads`;
-  const leadDisplay = formatConversationDisplay(lead, role);
-  const leadTimestamp = formatNotificationTime(lead.last_message_at ?? undefined);
-  const leadPreview = lead.last_message_preview ?? 'No messages yet';
+  const leadPreview = lead?.last_message_preview ?? 'No messages yet';
   const isEmptyLeadPreview = leadPreview === 'No messages yet';
+  const hasUnread = threads.some((thread) => thread.unread);
 
-  const toggleExpanded = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setExpanded((current) => !current);
-  };
-
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     shell: {
       backgroundColor: colors.surface,
-      borderRadius: cardShellRadii.group,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colorWithAlpha(colors.separator, isDark ? 0.65 : 0.55),
+      borderRadius: compact ? 14 : cardShellRadii.group,
+      borderWidth: 1,
+      borderColor: colors.separator,
       overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
-      paddingHorizontal: compact ? spacing.sm : spacing.md,
-      paddingVertical: compact ? spacing.sm + 2 : spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
       backgroundColor: colors.surface,
       ...webPointer(),
     },
     headerExpanded: {
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colorWithAlpha(colors.separator, isDark ? 0.45 : 0.35),
+      borderBottomColor: colors.separator,
     },
     headerHovered: webListRowHoverStyles(colors),
     headerPressed: {
@@ -408,15 +388,14 @@ export function ConversationInboxGroup({
     },
     threadBadge: {
       alignSelf: 'flex-start',
-      fontSize: 12,
-      lineHeight: 16,
+      fontSize: 11,
+      lineHeight: 14,
       fontWeight: '600',
-      color: colors.labelSecondary,
+      color: colors.labelTertiary,
       backgroundColor: colors.fillSubtle,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
       borderRadius: 999,
-      overflow: 'hidden',
     },
     collapsedContext: {
       fontSize: 13,
@@ -428,7 +407,7 @@ export function ConversationInboxGroup({
       lineHeight: 18,
       color: isEmptyLeadPreview ? colors.labelTertiary : colors.labelSecondary,
       fontStyle: isEmptyLeadPreview ? 'italic' : 'normal',
-      fontWeight: lead.unread ? '600' : '400',
+      fontWeight: lead?.unread ? '600' : '400',
       flex: 1,
     },
     timestamp: {
@@ -464,11 +443,22 @@ export function ConversationInboxGroup({
       color: colors.primaryOnPrimary,
     },
     threads: {
-      gap: spacing.sm,
-      padding: compact ? spacing.sm : spacing.md,
-      backgroundColor: colors.backgroundGrouped,
+      backgroundColor: colors.surface,
     },
   }));
+
+  if (!lead) return null;
+
+  const avatarSize = compact ? 40 : 44;
+  const unreadCount = threads.filter((thread) => thread.unread).length;
+  const threadLabel = threads.length === 1 ? '1 thread' : `${threads.length} threads`;
+  const leadDisplay = formatConversationDisplay(lead, role);
+  const leadTimestamp = formatNotificationTime(lead.last_message_at ?? undefined);
+
+  const toggleExpanded = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setExpanded((current) => !current);
+  };
 
   const headerAccessibilityLabel = [
     lead.counterpart_name,
@@ -542,7 +532,7 @@ export function ConversationInboxGroup({
       </Pressable>
       {expanded ? (
         <View style={styles.threads}>
-          {threads.map((conversation) => {
+          {threads.map((conversation, index) => {
             const hit = messageSearchHits[conversation.id];
             const preview = hit
               ? formatMessageSearchPreview(hit.body, debouncedQuery || searchQuery)
@@ -554,6 +544,7 @@ export function ConversationInboxGroup({
                 conversation={conversation}
                 role={role}
                 compact={compact}
+                isFirst={index === 0}
                 selected={conversation.id === selectedConversationId}
                 searchQuery={searchQuery}
                 messageSearchPreview={preview}
