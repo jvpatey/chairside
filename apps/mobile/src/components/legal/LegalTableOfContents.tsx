@@ -3,48 +3,62 @@ import { Pressable, Text, View } from 'react-native';
 import type { LegalSection } from '@/content/legal/types';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
+import { getElevationStyle, radii } from '@/theme/tokens';
+import { getWebShadow } from '@/theme/web';
 
 type LegalTableOfContentsProps = {
   sections: LegalSection[];
   onSelectSection: (title: string) => void;
+  variant?: 'default' | 'web';
 };
 
-export function LegalTableOfContents({ sections, onSelectSection }: LegalTableOfContentsProps) {
+export function LegalTableOfContents({
+  sections,
+  onSelectSection,
+  variant = 'default',
+}: LegalTableOfContentsProps) {
   const { isCompact } = useResponsiveLayout();
+  const { isDark } = useTheme();
+  const isWebVariant = variant === 'web';
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: isCompact ? 12 : 16,
+      borderRadius: isWebVariant ? radii.xxl : isCompact ? 12 : radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: isCompact ? spacing.md : spacing.lg,
-      marginBottom: isCompact ? spacing.lg : spacing.xl,
-      gap: isCompact ? spacing.sm : spacing.md,
+      padding: isCompact && !isWebVariant ? spacing.md : spacing.lg,
+      marginBottom: isWebVariant ? 0 : isCompact ? spacing.lg : spacing.xl,
+      gap: isCompact && !isWebVariant ? spacing.sm : spacing.md,
+      ...(isWebVariant
+        ? { boxShadow: getWebShadow(isDark, 'raised') }
+        : getElevationStyle({ isDark, level: 'subtle' })),
     },
     heading: {
       ...typography.body,
-      fontSize: isCompact ? 15 : 16,
+      fontSize: isWebVariant ? 14 : isCompact ? 15 : 16,
       fontWeight: '700' as const,
       color: colors.labelPrimary,
+      letterSpacing: isWebVariant ? 0.2 : 0,
     },
     list: {
-      gap: isCompact ? 0 : spacing.xs,
+      gap: isCompact && !isWebVariant ? 0 : spacing.xs,
     },
     itemPressable: {
-      paddingVertical: isCompact ? spacing.xs : spacing.sm,
+      paddingVertical: isCompact && !isWebVariant ? spacing.xs : spacing.sm,
       paddingHorizontal: spacing.sm,
       marginHorizontal: -spacing.sm,
-      borderRadius: 10,
-      minHeight: isCompact ? 40 : undefined,
+      borderRadius: radii.sm,
+      minHeight: isCompact && !isWebVariant ? 40 : undefined,
       justifyContent: 'center' as const,
       ...webPointer(),
     },
     itemHovered: webListRowHoverStyles(colors),
     itemText: {
       ...typography.body,
-      fontSize: isCompact ? 14 : 15,
-      lineHeight: isCompact ? 20 : 22,
+      fontSize: isCompact && !isWebVariant ? 14 : 15,
+      lineHeight: isCompact && !isWebVariant ? 20 : 22,
       color: colors.primary,
       fontWeight: '500' as const,
     },

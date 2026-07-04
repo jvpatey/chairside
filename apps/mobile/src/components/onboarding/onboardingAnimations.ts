@@ -22,6 +22,14 @@ export const AUTH_STAGGER = {
   switchRow: STAGGER_MS * 4,
 } as const;
 
+export const PUBLIC_PAGE_STAGGER = {
+  header: 0,
+  title: STAGGER_MS,
+  toc: STAGGER_MS * 2,
+  content: STAGGER_MS * 3,
+  footer: STAGGER_MS * 4,
+} as const;
+
 /** Per-index delay for lists of cards (e.g. role options). */
 export function authCardDelay(index: number) {
   return AUTH_STAGGER.social + index * STAGGER_MS;

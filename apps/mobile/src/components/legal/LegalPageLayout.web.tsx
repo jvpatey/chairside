@@ -1,21 +1,21 @@
 import { router } from 'expo-router';
 import { useCallback, useRef } from 'react';
-import { ScrollView, Text, View, type View as ViewType } from 'react-native';
+import { Animated, ScrollView, Text, View, type View as ViewType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LegalTableOfContents } from '@/components/legal/LegalTableOfContents';
 import { legalSectionAnchor } from '@/components/legal/legalSectionAnchor';
-import { PublicLegalPageHeader } from '@/components/legal/PublicLegalPageHeader';
-import type { LegalPageContent } from '@/content/legal/types';
-import { LEGAL_LAST_UPDATED, PUBLIC_LEGAL_PATHS } from '@/constants/legal';
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
 import { WebMarketingNav } from '@/components/web/marketing/WebMarketingNav.web';
+import type { LegalPageContent } from '@/content/legal/types';
+import { LEGAL_LAST_UPDATED, PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
+import { radii } from '@/theme/tokens';
 import { useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow, webTypography } from '@/theme/web';
-import { Animated } from 'react-native';
+import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
 type LegalPageLayoutProps = {
   content: LegalPageContent;
@@ -111,7 +111,7 @@ export function LegalPageLayout({
   currentPath: _currentPath,
 }: LegalPageLayoutProps) {
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { isWide } = useResponsiveLayout();
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<ViewType>(null);
@@ -137,13 +137,63 @@ export function LegalPageLayout({
       flex: 1,
       backgroundColor: colors.backgroundGrouped,
     },
+    hero: {
+      position: 'relative' as const,
+      overflow: 'hidden' as const,
+      paddingTop: insets.top + 96,
+      paddingBottom: spacing.lg,
+      paddingHorizontal: spacing.lg,
+    },
+    atmosphere: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      pointerEvents: 'none' as const,
+      // @ts-expect-error web gradient
+      backgroundImage: isDark
+        ? 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(152, 150, 255, 0.12) 0%, transparent 50%)'
+        : 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(88, 86, 214, 0.08) 0%, transparent 50%)',
+    },
+    heroInner: {
+      maxWidth: CONTENT_MAX_WIDTH.xwide,
+      width: '100%' as const,
+      alignSelf: 'center' as const,
+      gap: spacing.md,
+    },
+    eyebrow: webSectionEyebrowStyle(colors),
+    title: {
+      ...(isWide ? webTypography.displaySm : webTypography.headline),
+      color: colors.labelPrimary,
+    },
+    updatedPill: {
+      alignSelf: 'flex-start' as const,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: radii.pill,
+      backgroundColor: colors.fillSubtle,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
+    updatedText: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '500' as const,
+      color: colors.labelTertiary,
+    },
+    intro: {
+      ...webTypography.bodyLg,
+      color: colors.labelSecondary,
+      maxWidth: 640,
+    },
     layout: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
       maxWidth: CONTENT_MAX_WIDTH.xwide,
       width: '100%' as const,
       alignSelf: 'center' as const,
       paddingHorizontal: spacing.lg,
-      paddingTop: insets.top + 96,
+      paddingBottom: spacing.xl,
       gap: spacing.xl,
     },
     tocColumn: {
@@ -162,32 +212,17 @@ export function LegalPageLayout({
       minWidth: 0,
       maxWidth: isWide ? 720 : undefined,
     },
-    title: {
-      ...webTypography.headline,
-      color: colors.labelPrimary,
-      marginBottom: spacing.xs,
-    },
-    updated: {
-      fontSize: 13,
-      color: colors.labelTertiary,
-      marginBottom: spacing.lg,
-    },
-    intro: {
-      ...webTypography.bodyLg,
-      color: colors.labelSecondary,
-      marginBottom: spacing.xl,
-    },
     sectionsStack: {
       gap: spacing.md,
     },
     sectionCard: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.xxl,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.lg,
       gap: spacing.sm,
-      boxShadow: getWebShadow(isDark, 'subtle'),
+      boxShadow: getWebShadow(isDark, 'raised'),
     },
     sectionTitle: {
       fontSize: 18,
@@ -227,48 +262,66 @@ export function LegalPageLayout({
           useNativeDriver: false,
         })}
       >
+        <View style={styles.hero}>
+          <View style={styles.atmosphere} />
+          <WebPageEnter style={styles.heroInner}>
+            <Text style={styles.eyebrow}>Legal</Text>
+            <Text style={styles.title}>{content.title}</Text>
+            <View style={styles.updatedPill}>
+              <Text style={styles.updatedText}>Last updated: {LEGAL_LAST_UPDATED}</Text>
+            </View>
+            {content.intro ? <Text style={styles.intro}>{content.intro}</Text> : null}
+          </WebPageEnter>
+        </View>
+
         <View style={styles.layout}>
-          {content.sections.length >= 4 ? (
+          {isWide && content.sections.length >= 4 ? (
             <View style={styles.tocColumn}>
-              <LegalTableOfContents sections={content.sections} onSelectSection={scrollToSection} />
+              <LegalTableOfContents
+                sections={content.sections}
+                onSelectSection={scrollToSection}
+                variant="web"
+              />
             </View>
           ) : null}
 
-          <View style={styles.article} ref={contentRef}>
-            <PublicLegalPageHeader />
-            <Text style={styles.title}>{content.title}</Text>
-            <Text style={styles.updated}>Last updated: {LEGAL_LAST_UPDATED}</Text>
-            {content.intro ? <Text style={styles.intro}>{content.intro}</Text> : null}
+          <WebPageEnter delayMs={90} style={styles.article}>
+            <View ref={contentRef}>
+              {!isWide && content.sections.length >= 4 ? (
+                <LegalTableOfContents
+                  sections={content.sections}
+                  onSelectSection={scrollToSection}
+                  variant="web"
+                />
+              ) : null}
 
-            {!isWide && content.sections.length >= 4 ? (
-              <LegalTableOfContents sections={content.sections} onSelectSection={scrollToSection} />
-            ) : null}
-
-            <View style={styles.sectionsStack}>
-              {content.sections.map((section) => (
-                <View
-                  key={section.title}
-                  ref={(node) => {
-                    sectionRefs.current[section.title] = node;
-                  }}
-                  nativeID={legalSectionAnchor(section.title)}
-                  style={styles.sectionCard}
-                >
-                  <Text style={styles.sectionTitle}>{section.title}</Text>
-                  {section.paragraphs?.map((paragraph) => (
-                    <LegalBodyText key={paragraph}>{paragraph}</LegalBodyText>
-                  ))}
-                  {section.bullets?.map((bullet) => (
-                    <View key={bullet} style={styles.bulletRow}>
-                      <Text style={styles.bullet}>•</Text>
-                      <Text style={styles.bulletText}>{bullet}</Text>
-                    </View>
-                  ))}
-                </View>
-              ))}
+              <View style={styles.sectionsStack}>
+                {content.sections.map((section) => (
+                  <View
+                    key={section.title}
+                    ref={(node) => {
+                      sectionRefs.current[section.title] = node;
+                    }}
+                    nativeID={legalSectionAnchor(section.title)}
+                    style={styles.sectionCard}
+                  >
+                    <Text style={styles.sectionTitle}>{section.title}</Text>
+                    {section.paragraphs?.map((paragraph) => (
+                      <LegalBodyText key={paragraph}>{paragraph}</LegalBodyText>
+                    ))}
+                    {section.bullets?.map((bullet) => (
+                      <View key={bullet} style={styles.bulletRow}>
+                        <Text style={styles.bullet}>•</Text>
+                        <Text style={styles.bulletText}>{bullet}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
+          </WebPageEnter>
         </View>
+
         <WebMarketingFooter />
       </Animated.ScrollView>
     </View>
