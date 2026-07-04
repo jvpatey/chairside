@@ -44,6 +44,8 @@ type OnboardingShellProps = {
   backgroundAccessory?: ReactNode;
   /** Lets tab atmosphere show through (used on stack screens with sidebar layouts). */
   transparentBackground?: boolean;
+  /** Web-only: use split-screen auth marketing layout. */
+  authSplit?: boolean;
 };
 
 const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;

@@ -173,6 +173,7 @@ export default function SignInScreen() {
 
   return (
     <OnboardingShell
+      authSplit
       footer={
         <View style={styles.footer}>
           <OnboardingButton

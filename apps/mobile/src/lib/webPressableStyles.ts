@@ -109,3 +109,52 @@ export function webFullBleedRowInsets(padding: number): ViewStyle {
     paddingHorizontal: padding,
   };
 }
+
+/** Subtle scale on press for buttons on web. */
+export function webButtonPressScale(pressed: boolean): ViewStyle {
+  return webOnlyStyle({
+    transform: [{ scale: pressed ? 0.98 : 1 }],
+    transitionProperty: 'transform',
+    transitionDuration: '100ms',
+  } as ViewStyle);
+}
+
+/** Card lift on hover for web tiles. */
+export function webCardLiftHover(isDark: boolean, hovered: boolean, pressed: boolean): ViewStyle {
+  if (!IS_WEB || !hovered || pressed) return {};
+  return {
+    transform: [{ translateY: -2 }],
+    boxShadow: isDark
+      ? '0 8px 24px rgba(0, 0, 0, 0.32)'
+      : '0 8px 24px rgba(0, 0, 0, 0.1)',
+  } as ViewStyle;
+}
+
+/** Animated underline for text links on web. */
+export function webLinkUnderline(hovered: boolean, color: string): ViewStyle {
+  return webOnlyStyle({
+    textDecorationLine: hovered ? 'underline' : 'none',
+    textDecorationColor: color,
+    textUnderlineOffset: 3,
+  } as ViewStyle);
+}
+
+/** Focus ring for keyboard navigation on web. */
+export function webFocusRing(primary: string, focused: boolean): ViewStyle {
+  if (!IS_WEB || !focused) return {};
+  return {
+    outlineStyle: 'solid',
+    outlineWidth: 2,
+    outlineColor: primary,
+    outlineOffset: 2,
+  } as ViewStyle;
+}
+
+/** Card lift transition base styles. */
+export function webCardLiftBase(): ViewStyle {
+  return webOnlyStyle({
+    transitionProperty: 'transform, box-shadow',
+    transitionDuration: '220ms',
+    transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
+  } as ViewStyle);
+}

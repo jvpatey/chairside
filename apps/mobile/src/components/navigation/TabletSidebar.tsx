@@ -198,8 +198,15 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       gap: spacing.md,
       paddingVertical: 11,
       paddingHorizontal: spacing.sm,
-      borderRadius: 10,
+      borderRadius: isWeb ? 12 : 10,
       ...webPointer(),
+      ...(isWeb
+        ? webOnlyStyle({
+            transitionProperty: 'background-color, box-shadow, transform',
+            transitionDuration: '180ms',
+            transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
+          } as ViewStyle)
+        : {}),
     },
     itemCollapsed: {
       justifyContent: 'center',

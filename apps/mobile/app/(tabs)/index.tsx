@@ -45,6 +45,8 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { IS_WEB } from '@/lib/webPressableStyles';
+import { WebDashboardGrid } from '@/components/web/dashboard/WebDashboardGrid';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   WORKER_BROWSE,
@@ -64,7 +66,7 @@ export default function WorkerDashboardScreen() {
   const { pendingCount: applicationUpdateCount, fillInPendingCount } = useApplicationTabBadge();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
-  const { isTablet } = useResponsiveLayout();
+  const { isTablet, isWide } = useResponsiveLayout();
   const province = workerProfile?.province ?? 'NS';
   const [counts, setCounts] = useState<WorkerDashboardCounts>({
     openRolesInProvince: 0,
@@ -250,6 +252,116 @@ export default function WorkerDashboardScreen() {
       tabletSubtitle="Roles, fill-ins, and applications at a glance.">
       {isLoading && !hasLoadedOnce.current ? (
         <DashboardLoadingShell />
+      ) : IS_WEB && isWide ? (
+        <WebDashboardGrid
+          main={
+            <View style={styles.content}>
+              {loadError ? (
+                <FadeInSection>
+                  <DashboardErrorBanner onRetry={() => void loadDashboard()} />
+                </FadeInSection>
+              ) : null}
+              <FadeInSection delayMs={40}>
+                <WorkerReadinessChecklist
+                  workerProfile={workerProfile}
+                  jobApplicationCount={jobApplications.length}
+                  shiftApplicationCount={shiftApplications.length}
+                  savedShiftCount={savedShiftIds.size}
+                />
+              </FadeInSection>
+              <FadeInSection delayMs={80}>
+                <View style={styles.quickActionSection}>
+                  <View style={styles.quickActionRow}>
+                    <DashboardQuickActionTile
+                      label="Find jobs"
+                      description="Browse open roles nearby"
+                      icon="briefcase-outline"
+                      variant="primary"
+                      onPress={() => router.push(WORKER_BROWSE)}
+                    />
+                    <DashboardQuickActionTile
+                      label="Find fill-ins"
+                      description="Browse temp shifts nearby"
+                      icon="calendar-outline"
+                      variant="secondary"
+                      onPress={() => router.push(WORKER_FILLINS)}
+                    />
+                  </View>
+                </View>
+              </FadeInSection>
+              <FadeInSection delayMs={200}>
+                <View style={styles.overviewBlock}>
+                  <DashboardStatGrid
+                    selected={selectedOverview}
+                    onSelect={setSelectedOverview}
+                    accent={getDashboardOverviewAccent(selectedOverview)}
+                    segmentAccents={DASHBOARD_OVERVIEW_SEGMENT_ACCENTS}
+                    stats={[
+                      { key: 'roles', label: 'Open roles', value: openJobs.length },
+                      {
+                        key: 'fill-ins',
+                        label: 'Fill-ins',
+                        value: counts.openFillInsInProvince,
+                        badgeCount: fillInPendingCount,
+                      },
+                      {
+                        key: 'applications',
+                        label: 'Applications',
+                        value: counts.pendingApplications,
+                        badgeCount: applicationUpdateCount,
+                      },
+                    ]}
+                  />
+                  <WorkerOverviewPanel
+                    selected={selectedOverview}
+                    jobs={openJobs}
+                    shifts={shifts}
+                    jobApplications={jobApplications}
+                    shiftApplications={shiftApplications}
+                    savedJobIds={savedJobIds}
+                    savedShiftIds={savedShiftIds}
+                    unreadMap={unreadMap}
+                    onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
+                    onShiftPress={(shiftId) =>
+                      router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
+                    }
+                    onToggleSavedJob={(jobId, nextSaved) => void handleToggleSavedJob(jobId, nextSaved)}
+                    onToggleSavedShift={(shiftId, nextSaved) =>
+                      void handleToggleSavedShift(shiftId, nextSaved)
+                    }
+                    onApplicationUpdated={() => void loadDashboard()}
+                  />
+                </View>
+              </FadeInSection>
+            </View>
+          }
+          aside={
+            hasUnreadMessagePreviews ? (
+              <FadeInSection delayMs={120}>
+                <DashboardUnreadMessagesCard
+                  conversations={conversations}
+                  avatarKind="clinic"
+                  role="worker"
+                  onConversationPress={(conversation) => {
+                    const preview = getMessageThreadPreview(conversation, 'worker');
+                    router.push(
+                      getConversationMessagesRoute(
+                        conversation,
+                        'worker',
+                        {
+                          conversationId: conversation.id,
+                          ...preview,
+                        },
+                        'dashboard-applications',
+                      ),
+                    );
+                  }}
+                  onViewAllPress={() => router.push(getWorkerMessagesRoute())}
+                />
+              </FadeInSection>
+            ) : null
+          }
+        />
       ) : (
         <View style={styles.content}>
           {loadError ? (

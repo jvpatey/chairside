@@ -182,6 +182,7 @@ export default function SignUpScreen() {
 
   return (
     <OnboardingShell
+      authSplit
       footer={
         <View style={styles.footer}>
           <OnboardingButton

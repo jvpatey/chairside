@@ -6,6 +6,7 @@ import { Alert, Text, useWindowDimensions, View, type LayoutChangeEvent } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
+import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
@@ -23,6 +24,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { IS_WEB } from '@/lib/webPressableStyles';
 import { ROLES_BROWSE_MODE_OPTIONS, type RolesBrowseMode, type WorkerBrowseViewMode } from '@/lib/postingFilters';
 import {
   DEFAULT_WORKER_ROLE_BROWSE_FILTERS,
@@ -136,6 +139,7 @@ export default function BrowseScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [controlsHeight, setControlsHeight] = useState(132);
   const { height: windowHeight } = useWindowDimensions();
+  const { isWide } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset();
 
@@ -269,6 +273,19 @@ export default function BrowseScreen() {
     jobs.length > 0 &&
     viewMode === 'map' &&
     tabJobs.length > 0;
+
+  const mapElement = (
+    <WorkerBrowseMap
+      groups={mapGroups}
+      workerCoords={workerCoords}
+      province={province}
+      unmappableCount={unmappableJobCount}
+      workerHasCoordinates={workerCoords != null}
+      onSelectItem={(item) => router.push(getWorkerJobDetailRoute(item.id))}
+    />
+  );
+
+  const useWebSplitMap = IS_WEB && isWide && canUseMap && viewMode === 'map' && tabJobs.length > 0;
 
   const mapPanelHeight = useMemo(
     () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
@@ -425,25 +442,18 @@ export default function BrowseScreen() {
         ) : (
           <View style={styles.panel}>
             {browseControls}
-            <WorkerBrowseViewTransition
-              mode={hasMapResults ? 'map' : 'list'}
-              style={
-                hasMapResults ? [styles.mapPanel, { height: mapPanelHeight }] : undefined
-              }
-            >
-              {hasMapResults ? (
-                <WorkerBrowseMap
-                  groups={mapGroups}
-                  workerCoords={workerCoords}
-                  province={province}
-                  unmappableCount={unmappableJobCount}
-                  workerHasCoordinates={workerCoords != null}
-                  onSelectItem={(item) => router.push(getWorkerJobDetailRoute(item.id))}
-                />
-              ) : (
-                listContent
-              )}
-            </WorkerBrowseViewTransition>
+            {useWebSplitMap ? (
+              <WorkerBrowseWebLayout showMap list={listContent} map={mapElement} />
+            ) : (
+              <WorkerBrowseViewTransition
+                mode={hasMapResults ? 'map' : 'list'}
+                style={
+                  hasMapResults ? [styles.mapPanel, { height: mapPanelHeight }] : undefined
+                }
+              >
+                {hasMapResults ? mapElement : listContent}
+              </WorkerBrowseViewTransition>
+            )}
           </View>
         )}
       </View>
