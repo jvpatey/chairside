@@ -1,18 +1,16 @@
 import type { Conversation, MessageSearchHit } from '@chairside/api';
 import { searchMessagesInConversations } from '@chairside/api';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { ConversationInboxFilters } from '@/components/messaging/ConversationInboxFilters';
 import { ConversationInboxGroup } from '@/components/messaging/ConversationInboxGroup';
 import { MessagingEmptyState } from '@/components/messaging/MessagingEmptyState';
-import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
-import { ConversationInboxFilters } from '@/components/messaging/ConversationInboxFilters';
 import { ConversationListItem } from '@/components/messaging/ConversationListItem';
 import { hideConversation } from '@/lib/conversationHide';
 import {
   buildConversationInboxSections,
-  CONVERSATION_INBOX_FILTERS,
   filterConversations,
   getConversationFilterCounts,
   getConversationInboxEmptyMessage,
@@ -22,6 +20,7 @@ import {
   formatMessageSearchPreview,
   matchesConversationSearch,
 } from '@/lib/messageThreadDisplay';
+import { webPointer } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import type { MessageThreadFocus } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -45,7 +44,7 @@ type ConversationInboxListProps = {
 
 function getEmptyStateTitle(filter: ConversationInboxFilter, hasSearch: boolean): string {
   if (hasSearch) return 'No matching conversations';
-  if (filter === 'unread') return 'You’re all caught up';
+  if (filter === 'unread') return "You're all caught up";
   if (filter === 'all') return 'No messages yet';
   return 'No matching conversations';
 }
@@ -56,7 +55,6 @@ export function ConversationInboxList({
   userId,
   avatarKind,
   header,
-  filterBesideHeader = false,
   selectedConversationId,
   compact = false,
   onInboxVisibilityChange,
@@ -69,8 +67,9 @@ export function ConversationInboxList({
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [messageSearchHits, setMessageSearchHits] = useState<Record<string, MessageSearchHit>>({});
   const [isSearchingMessages, setIsSearchingMessages] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, colors, typography }) => ({
+  const styles = useThemedStyles(({ spacing, colors, typography, isDark }) => ({
     content: {
       gap: compact ? spacing.sm : spacing.md,
       flex: compact ? 1 : undefined,
@@ -83,29 +82,28 @@ export function ConversationInboxList({
     scroll: {
       flex: 1,
     },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    headerBlock: {
       gap: spacing.sm,
-    },
-    headerContent: {
-      flex: 1,
-      minWidth: 0,
-    },
-    filterRow: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
+      paddingBottom: spacing.xs,
     },
     searchWrap: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.fillSubtle,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: 'transparent',
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingVertical: 10,
+      minHeight: 42,
+    },
+    searchWrapFocused: {
+      backgroundColor: colors.surface,
+      borderColor: colors.primary,
+    },
+    searchIcon: {
+      flexShrink: 0,
     },
     searchInput: {
       ...typography.body,
@@ -113,11 +111,37 @@ export function ConversationInboxList({
       color: colors.labelPrimary,
       padding: 0,
     },
+    clearButton: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...webPointer(),
+    },
+    searchMeta: {
+      fontSize: 12,
+      color: colors.labelSecondary,
+      paddingHorizontal: spacing.xs,
+    },
     listSections: {
-      gap: compact ? spacing.sm : spacing.md,
+      gap: compact ? spacing.xs : spacing.sm,
+    },
+    standaloneCard: {
+      backgroundColor: colors.surface,
+      borderRadius: compact ? 14 : 16,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      overflow: 'hidden',
+      ...(isDark
+        ? {}
+        : ({
+            // @ts-expect-error — boxShadow is web-only
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+          } as const)),
     },
     chipWrap: {
-      marginTop: spacing.xs,
+      paddingTop: 2,
     },
   }));
 
@@ -177,6 +201,7 @@ export function ConversationInboxList({
   }, [conversations, filter, messageSearchHits, searchQuery]);
 
   const hasSearch = searchQuery.trim().length > 0;
+  const messageMatchCount = hasSearch ? Object.keys(messageSearchHits).length : 0;
 
   const inboxSections = useMemo(
     () =>
@@ -209,22 +234,6 @@ export function ConversationInboxList({
     conversations.length === 0
       ? getConversationInboxEmptyMessage('all', role)
       : getConversationInboxEmptyMessage(filter, role);
-
-  const filterButton =
-    conversations.length > 0 && !compact ? (
-      <ConversationInboxFilters selected={filter} counts={filterCounts} onChange={setFilter} />
-    ) : null;
-
-  const compactFilterOptions = useMemo(
-    () =>
-      CONVERSATION_INBOX_FILTERS.filter((option) => option.value === 'all' || filterCounts[option.value] > 0).map(
-        (option) => ({
-          value: option.value,
-          label: `${option.label}${filterCounts[option.value] > 0 ? ` (${filterCounts[option.value]})` : ''}`,
-        }),
-      ),
-    [filterCounts],
-  );
 
   const isFilteredEmpty = conversations.length > 0 && filteredConversations.length === 0;
 
@@ -275,11 +284,12 @@ export function ConversationInboxList({
             : null;
 
           return (
-            <BrowseListGroup key={conversation.id}>
+            <View key={conversation.id} style={styles.standaloneCard}>
               <ConversationListItem
                 conversation={conversation}
                 avatarKind={avatarKind}
                 role={role}
+                viewerId={userId}
                 compact={compact}
                 selected={conversation.id === selectedConversationId}
                 messageSearchPreview={preview}
@@ -290,55 +300,62 @@ export function ConversationInboxList({
                   onConversationHidden();
                 }}
               />
-            </BrowseListGroup>
+            </View>
           );
         })}
       </View>
     );
 
   const headerContent = (
-    <>
-      {header && filterBesideHeader ? (
-        <View style={styles.headerRow}>
-          <View style={styles.headerContent}>{header}</View>
-          {filterButton}
-        </View>
-      ) : null}
-
-      {header && !filterBesideHeader ? header : null}
-
-      {filterButton && !filterBesideHeader ? (
-        <View style={styles.filterRow}>{filterButton}</View>
-      ) : null}
+    <View style={styles.headerBlock}>
+      {header ? header : null}
 
       {conversations.length > 0 ? (
-        <View style={styles.searchWrap}>
-          <TextInput
-            accessibilityLabel="Search conversations and messages"
-            placeholder="Search name or messages"
-            placeholderTextColor={colors.labelTertiary}
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            clearButtonMode="while-editing"
-          />
-          {isSearchingMessages ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-        </View>
+        <>
+          <View style={[styles.searchWrap, searchFocused && styles.searchWrapFocused]}>
+            <Ionicons
+              name="search"
+              size={17}
+              color={searchFocused ? colors.primary : colors.labelTertiary}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              accessibilityLabel="Search conversations and messages"
+              placeholder="Search name or messages"
+              placeholderTextColor={colors.labelTertiary}
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                onPress={() => setSearchQuery('')}
+                style={styles.clearButton}>
+                <Ionicons name="close-circle" size={18} color={colors.labelTertiary} />
+              </Pressable>
+            ) : null}
+          </View>
+          {hasSearch && debouncedQuery.length >= MESSAGE_SEARCH_MIN_LENGTH ? (
+            <Text style={styles.searchMeta}>
+              {isSearchingMessages
+                ? 'Searching messages…'
+                : messageMatchCount > 0
+                  ? `${messageMatchCount} conversation${messageMatchCount === 1 ? '' : 's'} with matching messages`
+                  : 'No message body matches yet'}
+            </Text>
+          ) : null}
+          <View style={styles.chipWrap}>
+            <ConversationInboxFilters selected={filter} counts={filterCounts} onChange={setFilter} />
+          </View>
+        </>
       ) : null}
-
-      {compact && conversations.length > 0 ? (
-        <View style={styles.chipWrap}>
-          <ChipSelector
-            options={compactFilterOptions}
-            selected={filter}
-            onChange={setFilter}
-            compact
-          />
-        </View>
-      ) : null}
-    </>
+    </View>
   );
 
   if (compact) {

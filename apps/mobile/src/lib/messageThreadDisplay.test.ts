@@ -4,11 +4,14 @@ import {
   buildThreadListItems,
   findLatestMatchingMessageId,
   findThreadListIndexForMessage,
+  formatInboxPreviewText,
   formatMessageDateLabel,
   formatMessageSearchPreview,
+  getLastOwnMessageDeliveryStatus,
   matchesConversationSearch,
   type ThreadMessage,
 } from '@/lib/messageThreadDisplay';
+import type { Conversation } from '@chairside/api';
 
 function makeMessage(overrides: Partial<ThreadMessage>): ThreadMessage {
   return {
@@ -122,5 +125,82 @@ describe('matchesConversationSearch', () => {
         'ortho',
       ),
     ).toBe(false);
+  });
+});
+
+function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
+  return {
+    id: 'conversation-1',
+    application_id: null,
+    conversation_type: 'general',
+    outreach_role_type: null,
+    outreach_shift_date: null,
+    outreach_start_time: null,
+    outreach_end_time: null,
+    worker_id: 'worker-1',
+    clinic_id: 'clinic-1',
+    worker_last_read_at: null,
+    clinic_last_read_at: null,
+    last_message_at: '2026-06-26T12:00:00.000Z',
+    last_message_preview: 'Hello there',
+    last_sender_id: 'worker-1',
+    messaging_closed_at: null,
+    worker_hidden_at: null,
+    clinic_hidden_at: null,
+    worker_account_deleted_at: null,
+    clinic_account_deleted_at: null,
+    created_at: '2026-06-20T12:00:00.000Z',
+    updated_at: '2026-06-26T12:00:00.000Z',
+    application_status: null,
+    post_title: null,
+    post_type: null,
+    post_role_type: null,
+    shift_date: null,
+    shift_start_time: null,
+    shift_end_time: null,
+    counterpart_name: 'Dental Clinic',
+    counterpart_logo_storage_path: null,
+    counterpart_account_deleted: false,
+    unread: false,
+    can_send: true,
+    ...overrides,
+  };
+}
+
+describe('formatInboxPreviewText', () => {
+  it('prefixes own last messages with You:', () => {
+    const preview = formatInboxPreviewText(
+      makeConversation({ last_sender_id: 'worker-1', last_message_preview: 'Sounds good' }),
+      'worker-1',
+    );
+    expect(preview).toBe('You: Sounds good');
+  });
+});
+
+describe('getLastOwnMessageDeliveryStatus', () => {
+  it('returns read when counterpart read cursor is after the message', () => {
+    const status = getLastOwnMessageDeliveryStatus(
+      makeConversation({
+        last_message_at: '2026-06-26T12:00:00.000Z',
+        last_sender_id: 'worker-1',
+        clinic_last_read_at: '2026-06-26T12:05:00.000Z',
+      }),
+      'worker',
+      'worker-1',
+    );
+    expect(status).toBe('read');
+  });
+
+  it('returns delivered when counterpart has not read yet', () => {
+    const status = getLastOwnMessageDeliveryStatus(
+      makeConversation({
+        last_message_at: '2026-06-26T12:00:00.000Z',
+        last_sender_id: 'worker-1',
+        clinic_last_read_at: null,
+      }),
+      'worker',
+      'worker-1',
+    );
+    expect(status).toBe('delivered');
   });
 });

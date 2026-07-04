@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
 import { setProfileRole } from '@chairside/api';
 
 import { AuthScreenHeader, AuthScreenTitle } from '@/components/onboarding/AuthScreenHeader';
@@ -12,9 +12,12 @@ import { ROLE_OPTIONS } from '@/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSignOut } from '@/hooks/useSignOut';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { getHomeRouteForRole } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
+
+const ROLE_TRUST_LINE = 'Same-day fill-ins · Apply in one tap · Start free';
 
 export default function RoleScreen() {
   const { fromAuth } = useLocalSearchParams<{ fromAuth?: string }>();
@@ -24,15 +27,25 @@ export default function RoleScreen() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isPostAuth = fromAuth === '1';
+  const { isWide } = useResponsiveLayout();
+  const useTileCards = Platform.OS === 'web';
+  const cardsRow = useTileCards && isWide;
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     cards: {
+      flexDirection: cardsRow ? ('row' as const) : ('column' as const),
       gap: spacing.md,
-      marginTop: spacing.sm,
+    },
+    trust: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600' as const,
+      letterSpacing: 0.2,
+      color: colors.labelTertiary,
+      textAlign: 'center' as const,
     },
     footer: {
       gap: spacing.md,
-      marginTop: spacing.lg,
     },
   }));
 
@@ -80,6 +93,7 @@ export default function RoleScreen() {
 
   return (
     <OnboardingShell
+      webLayout="centeredDecision"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
@@ -112,9 +126,11 @@ export default function RoleScreen() {
             icon={option.icon}
             selected={selectedRole === option.role}
             onPress={() => setSelectedRole(option.role)}
+            variant={useTileCards ? 'tile' : 'list'}
           />
         ))}
       </View>
+      {useTileCards ? <Text style={styles.trust}>{ROLE_TRUST_LINE}</Text> : null}
     </OnboardingShell>
   );
 }

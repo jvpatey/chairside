@@ -11,6 +11,7 @@ type RoleCardProps = {
   icon: keyof typeof Ionicons.glyphMap;
   selected: boolean;
   onPress: () => void;
+  variant?: 'list' | 'tile';
 };
 
 export function RoleCard({
@@ -19,6 +20,7 @@ export function RoleCard({
   icon,
   selected,
   onPress,
+  variant: _variant = 'list',
 }: RoleCardProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({

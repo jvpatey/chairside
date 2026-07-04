@@ -1,4 +1,4 @@
-import type { Message } from '@chairside/api';
+import type { Conversation, Message, MessageDeliveryStatus } from '@chairside/api';
 
 export type ThreadMessageStatus = 'sent' | 'pending' | 'failed';
 
@@ -136,7 +136,7 @@ export function matchesConversationSearch(conversation: {
 
 /** Find the newest loaded message whose body contains the query. */
 export function findLatestMatchingMessageId(
-  messages: Array<{ id: string; body: string }>,
+  messages: { id: string; body: string }[],
   query: string,
 ): string | undefined {
   const normalized = query.trim().toLowerCase();
@@ -159,6 +159,39 @@ export function findThreadListIndexForMessage(
     (item) => item.type === 'message' && item.message.id === messageId,
   );
 }
+export function getLastOwnMessageDeliveryStatus(
+  conversation: Conversation,
+  role: 'worker' | 'clinic',
+  viewerId: string,
+): MessageDeliveryStatus | null {
+  if (!conversation.last_message_at || conversation.last_sender_id !== viewerId) {
+    return null;
+  }
+
+  const counterpartLastReadAt =
+    role === 'worker' ? conversation.clinic_last_read_at : conversation.worker_last_read_at;
+  if (
+    counterpartLastReadAt &&
+    new Date(conversation.last_message_at).getTime() <= new Date(counterpartLastReadAt).getTime()
+  ) {
+    return 'read';
+  }
+
+  return 'delivered';
+}
+
+export function formatInboxPreviewText(
+  conversation: Conversation,
+  viewerId: string,
+): string {
+  const preview = conversation.last_message_preview ?? 'No messages yet';
+  if (preview === 'No messages yet') return preview;
+  if (conversation.last_sender_id === viewerId) {
+    return `You: ${preview}`;
+  }
+  return preview;
+}
+
 export function formatMessageSearchPreview(
   body: string,
   query: string,

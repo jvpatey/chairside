@@ -46,6 +46,14 @@ type OnboardingShellProps = {
   transparentBackground?: boolean;
   /** Web-only: use split-screen auth marketing layout. */
   authSplit?: boolean;
+  /** Web-only: centered column for decision steps (e.g. role selection). */
+  webLayout?: 'default' | 'centeredDecision';
+  /** Web-only: left panel headline when authSplit is enabled. */
+  brandHeadline?: string;
+  /** Web-only: left panel subtitle when authSplit is enabled. */
+  brandSubtitle?: string;
+  /** Web-only: left panel visual when authSplit is enabled. */
+  brandVisual?: 'appPreview' | 'rolePaths';
 };
 
 const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;

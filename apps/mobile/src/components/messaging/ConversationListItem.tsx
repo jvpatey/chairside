@@ -10,14 +10,21 @@ import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
-import { formatConversationDisplay } from '@/lib/conversationDisplay';
+import {
+  formatConversationDisplay,
+  getConversationTypeChip,
+  getConversationTypeChipColors,
+} from '@/lib/conversationDisplay';
 import { getHideConversationMessage } from '@/lib/conversationHide';
 import { formatNotificationTime } from '@/lib/notificationDisplay';
+import {
+  formatInboxPreviewText,
+  getLastOwnMessageDeliveryStatus,
+} from '@/lib/messageThreadDisplay';
 import {
   webHover,
   webIconButtonHoverStyles,
   webListRowHoverStyles,
-  webListRowSelectedStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -26,13 +33,11 @@ type ConversationListItemProps = {
   conversation: Conversation;
   avatarKind: 'clinic' | 'worker';
   role: 'worker' | 'clinic';
+  viewerId: string;
   onPress: () => void;
   onDelete?: () => void;
-  /** Split-view selection (web/tablet). */
   selected?: boolean;
-  /** When searching messages, show the matching message snippet instead of last preview. */
   messageSearchPreview?: string | null;
-  /** Active inbox search query — used to highlight matched text in previews and names. */
   searchQuery?: string;
   compact?: boolean;
 };
@@ -72,10 +77,26 @@ function ConversationAvatar({
   );
 }
 
+function DeliveryGlyph({
+  status,
+}: {
+  status: ReturnType<typeof getLastOwnMessageDeliveryStatus>;
+}) {
+  const { colors } = useTheme();
+  if (!status || status === 'pending' || status === 'failed') return null;
+
+  const iconName =
+    status === 'read' ? 'checkmark-done' : ('checkmark' as 'checkmark-done' | 'checkmark');
+  const color = status === 'read' ? colors.primary : colors.labelTertiary;
+
+  return <Ionicons name={iconName} size={14} color={color} accessibilityLabel={status} />;
+}
+
 export function ConversationListItem({
   conversation,
   avatarKind,
   role,
+  viewerId,
   onPress,
   onDelete,
   selected = false,
@@ -90,48 +111,51 @@ export function ConversationListItem({
   const isWeb = Platform.OS === 'web';
   const timestamp = formatNotificationTime(conversation.last_message_at ?? undefined);
   const display = formatConversationDisplay(conversation, role);
+  const typeChip = getConversationTypeChip(conversation);
+  const typeChipColors = getConversationTypeChipColors(typeChip.tone);
+  const chipBg = colors[typeChipColors.bg as keyof typeof colors] ?? colors.fillSubtle;
+  const chipText = colors[typeChipColors.text as keyof typeof colors] ?? colors.labelSecondary;
   const activeSearchQuery = searchQuery.trim();
   const previewText =
-    messageSearchPreview ?? conversation.last_message_preview ?? 'No messages yet';
+    messageSearchPreview ??
+    (activeSearchQuery ? conversation.last_message_preview : formatInboxPreviewText(conversation, viewerId)) ??
+    'No messages yet';
   const isEmptyPreview = previewText === 'No messages yet';
+  const ownDeliveryStatus = getLastOwnMessageDeliveryStatus(conversation, role, viewerId);
 
-  const avatarSize = compact ? 36 : 40;
+  const avatarSize = compact ? 40 : 48;
+  const primaryTitle = compact ? display.inboxContextLine : display.cardName;
+  const secondaryLine = compact ? display.cardName : display.cardTitle;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
       flexDirection: 'row',
       alignItems: 'stretch',
-      paddingVertical: compact ? spacing.sm + 2 : spacing.md,
-      paddingHorizontal: compact ? spacing.sm : spacing.md,
+      paddingVertical: compact ? spacing.md : spacing.md,
+      paddingHorizontal: compact ? spacing.md : spacing.md,
       position: 'relative' as const,
-      backgroundColor: conversation.unread ? colors.primarySubtle : 'transparent',
+      backgroundColor: 'transparent',
+      borderRadius: compact ? 14 : 0,
+    },
+    rowSelected: {
+      backgroundColor: colors.fillSubtle,
     },
     rowHovered: webListRowHoverStyles(colors),
-    rowSelected: webListRowSelectedStyles(colors),
-    selectedAccent: {
-      position: 'absolute' as const,
-      left: 0,
-      top: spacing.xs,
-      bottom: spacing.xs,
-      width: 3,
-      borderRadius: 2,
-      backgroundColor: colors.primary,
-    },
     mainPressable: {
       flex: 1,
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
+      alignItems: compact ? 'flex-start' : 'center',
+      gap: compact ? 0 : spacing.md,
       minWidth: 0,
       ...webPointer(),
     },
     mainPressed: {
       opacity: 0.92,
     },
-    textWrap: { flex: 1, gap: 2, minWidth: 0, paddingRight: spacing.xs },
+    textWrap: { flex: 1, gap: compact ? 6 : 4, minWidth: 0, paddingRight: spacing.xs },
     titleRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: spacing.sm,
     },
@@ -140,17 +164,49 @@ export function ConversationListItem({
     },
     name: {
       ...typography.body,
-      fontSize: 17,
-      lineHeight: 22,
-      fontWeight: conversation.unread ? '700' : '600',
+      fontSize: compact ? 15 : 17,
+      lineHeight: compact ? 20 : 22,
+      fontWeight: conversation.unread || selected ? '700' : '600',
       letterSpacing: -0.2,
       color: colors.labelPrimary,
       flex: 1,
+    },
+    counterpart: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.labelTertiary,
+      fontWeight: '500',
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexShrink: 0,
+      paddingTop: 2,
+    },
+    contextRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    typeChip: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      backgroundColor: chipBg,
+    },
+    typeChipText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: chipText,
+      letterSpacing: 0.3,
+      textTransform: 'uppercase' as const,
     },
     context: {
       fontSize: 13,
       lineHeight: 18,
       color: colors.labelSecondary,
+      flexShrink: 1,
     },
     preview: {
       fontSize: 13,
@@ -170,6 +226,11 @@ export function ConversationListItem({
       fontWeight: '700',
       color: colors.labelPrimary,
     },
+    previewRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
     previewRowExpanded: {
       alignItems: 'flex-start',
     },
@@ -179,16 +240,14 @@ export function ConversationListItem({
     },
     timestamp: {
       fontSize: 12,
-      color: colors.labelTertiary,
+      color: conversation.unread ? colors.primary : colors.labelTertiary,
+      fontWeight: conversation.unread ? '600' : '400',
     },
     unreadDot: {
       width: 8,
       height: 8,
       borderRadius: 4,
       backgroundColor: colors.primary,
-    },
-    unreadDotExpanded: {
-      marginTop: 5,
     },
     menuButton: {
       position: 'absolute' as const,
@@ -232,9 +291,10 @@ export function ConversationListItem({
 
   const accessibilityLabel = [
     display.cardName,
+    typeChip.label,
     display.inboxContextLine,
     conversation.unread ? 'Unread' : null,
-    conversation.last_message_preview,
+    previewText,
   ]
     .filter(Boolean)
     .join('. ');
@@ -253,7 +313,6 @@ export function ConversationListItem({
               onMouseLeave: () => setRowHovered(false),
             }
           : {})}>
-        {selected ? <View style={styles.selectedAccent} /> : null}
         {onDelete ? (
           <Pressable
             accessibilityRole="button"
@@ -277,30 +336,48 @@ export function ConversationListItem({
           accessibilityState={{ selected }}
           onPress={onPress}
           style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
-          <ConversationAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
+          {!compact ? (
+            <ConversationAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
+          ) : null}
           <View style={styles.textWrap}>
             <View style={[styles.titleRow, onDelete ? styles.titleRowWithMenu : null]}>
-              {activeSearchQuery ? (
-                <SearchMatchText
-                  text={display.cardName}
-                  query={activeSearchQuery}
-                  style={styles.name}
-                  highlightStyle={styles.nameHighlight}
-                  numberOfLines={1}
-                />
-              ) : (
-                <Text style={styles.name} numberOfLines={1}>
-                  {display.cardName}
-                </Text>
-              )}
-              {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+              <View style={{ flex: 1, gap: compact ? 4 : 0, minWidth: 0 }}>
+                {activeSearchQuery ? (
+                  <SearchMatchText
+                    text={primaryTitle}
+                    query={activeSearchQuery}
+                    style={styles.name}
+                    highlightStyle={styles.nameHighlight}
+                    numberOfLines={compact ? 2 : 1}
+                  />
+                ) : (
+                  <Text style={styles.name} numberOfLines={compact ? 2 : 1}>
+                    {primaryTitle}
+                  </Text>
+                )}
+                {compact && secondaryLine ? (
+                  <Text style={styles.counterpart} numberOfLines={1}>
+                    {secondaryLine}
+                  </Text>
+                ) : null}
+              </View>
+              <View style={styles.metaRow}>
+                {!compact ? (
+                  <View style={styles.typeChip}>
+                    <Text style={styles.typeChipText}>{typeChip.label}</Text>
+                  </View>
+                ) : null}
+                {conversation.unread ? <View style={styles.unreadDot} /> : null}
+                {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+              </View>
             </View>
-            {display.inboxContextLine ? (
-              <Text style={styles.context} numberOfLines={compact ? 1 : 2}>
+            {!compact && display.inboxContextLine ? (
+              <Text style={styles.context} numberOfLines={1}>
                 {display.inboxContextLine}
               </Text>
             ) : null}
-            <View style={[styles.titleRow, activeSearchQuery ? styles.previewRowExpanded : null]}>
+            <View style={[styles.previewRow, activeSearchQuery ? styles.previewRowExpanded : null]}>
+              <DeliveryGlyph status={ownDeliveryStatus} />
               {activeSearchQuery && previewText !== 'No messages yet' ? (
                 <SearchMatchText
                   text={previewText}
@@ -314,14 +391,6 @@ export function ConversationListItem({
                   {previewText}
                 </Text>
               )}
-              {conversation.unread ? (
-                <View
-                  style={[
-                    styles.unreadDot,
-                    activeSearchQuery ? styles.unreadDotExpanded : null,
-                  ]}
-                />
-              ) : null}
             </View>
           </View>
           {isWeb && !compact ? (

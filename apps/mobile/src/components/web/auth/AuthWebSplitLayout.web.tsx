@@ -4,19 +4,33 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel.web';
+import { AuthWebRolePathsVisual } from '@/components/web/auth/AuthWebRolePathsVisual.web';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webTypography } from '@/theme/web';
 
+type AuthWebBrandVisual = 'appPreview' | 'rolePaths';
+
 type AuthWebBrandPanelProps = {
   headline?: string;
   subtitle?: string;
+  visual?: AuthWebBrandVisual;
 };
+
+function AuthWebBrandVisualPanel({ visual }: { visual: AuthWebBrandVisual }) {
+  if (visual === 'rolePaths') {
+    return <AuthWebRolePathsVisual />;
+  }
+
+  return <WelcomeHeroAppPanel />;
+}
 
 export function AuthWebBrandPanel({
   headline = 'Staffing for dental clinics, simplified.',
   subtitle = 'Hire staff, find work, and fill same-day shifts — all in one place.',
+  visual = 'appPreview',
 }: AuthWebBrandPanelProps) {
   const { colors, isDark } = useTheme();
   const { isWide } = useResponsiveLayout();
@@ -60,7 +74,7 @@ export function AuthWebBrandPanel({
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
       <View style={styles.visual}>
-        <WelcomeHeroAppPanel />
+        <AuthWebBrandVisualPanel visual={visual} />
       </View>
     </View>
   );
@@ -80,21 +94,28 @@ export function AuthWebFormPanel({ children, footer }: AuthWebFormPanelProps) {
       flex: 1,
       backgroundColor: colors.backgroundGrouped,
       minWidth: 0,
+      minHeight: 0,
     },
     scroll: {
       flex: 1,
+      minHeight: 0,
     },
     inner: {
       flexGrow: 1,
       paddingHorizontal: spacing.xl,
       paddingTop: insets.top + spacing.xl,
-      paddingBottom: spacing.lg,
-      justifyContent: 'center' as const,
+      paddingBottom: insets.bottom + spacing.xl,
       alignItems: 'center' as const,
+      ...webOnlyStyle({ minHeight: '100%' } as object),
+    },
+    stack: {
+      width: '100%' as const,
+      maxWidth: 440,
+      gap: spacing.md,
+      ...webOnlyStyle({ marginTop: 'auto', marginBottom: 'auto' } as object),
     },
     card: {
       width: '100%' as const,
-      maxWidth: 440,
       borderRadius: 24,
       padding: spacing.xl,
       backgroundColor: colors.surface,
@@ -106,11 +127,7 @@ export function AuthWebFormPanel({ children, footer }: AuthWebFormPanelProps) {
     },
     footer: {
       width: '100%' as const,
-      maxWidth: 440,
-      paddingTop: spacing.md,
-      paddingBottom: insets.bottom + spacing.lg,
-      paddingHorizontal: spacing.xl,
-      alignSelf: 'center' as const,
+      gap: spacing.md,
     },
   }));
 
@@ -122,9 +139,11 @@ export function AuthWebFormPanel({ children, footer }: AuthWebFormPanelProps) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>{children}</View>
+        <View style={styles.stack}>
+          <View style={styles.card}>{children}</View>
+          {footer ? <View style={styles.footer}>{footer}</View> : null}
+        </View>
       </ScrollView>
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
     </View>
   );
 }
@@ -134,6 +153,7 @@ type AuthWebSplitLayoutProps = {
   footer?: ReactNode;
   brandHeadline?: string;
   brandSubtitle?: string;
+  brandVisual?: AuthWebBrandVisual;
 };
 
 export function AuthWebSplitLayout({
@@ -141,12 +161,14 @@ export function AuthWebSplitLayout({
   footer,
   brandHeadline,
   brandSubtitle,
+  brandVisual = 'appPreview',
 }: AuthWebSplitLayoutProps) {
   const { isWide } = useResponsiveLayout();
 
   const styles = useThemedStyles(() => ({
     root: {
       flex: 1,
+      minHeight: 0,
       flexDirection: isWide ? ('row' as const) : ('column' as const),
     },
     brand: {
@@ -156,13 +178,18 @@ export function AuthWebSplitLayout({
     form: {
       flex: isWide ? 1 : undefined,
       minWidth: isWide ? 480 : undefined,
+      minHeight: 0,
     },
   }));
 
   return (
     <View style={styles.root}>
       <View style={styles.brand}>
-        <AuthWebBrandPanel headline={brandHeadline} subtitle={brandSubtitle} />
+        <AuthWebBrandPanel
+          headline={brandHeadline}
+          subtitle={brandSubtitle}
+          visual={brandVisual}
+        />
       </View>
       <View style={styles.form}>
         <AuthWebFormPanel footer={footer}>{children}</AuthWebFormPanel>

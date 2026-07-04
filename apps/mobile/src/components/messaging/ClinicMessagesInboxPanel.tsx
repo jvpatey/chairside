@@ -2,18 +2,20 @@ import type { Conversation } from '@chairside/api';
 import { listConversationsForClinic } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ClinicMessagingPreferences } from '@/components/clinic/ClinicMessagingPreferences';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { ConversationInboxList } from '@/components/messaging/ConversationInboxList';
-import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { MessagingInboxSkeleton } from '@/components/messaging/MessagingSkeleton';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useInboxConversationRealtime } from '@/hooks/useConversationRealtime';
 import { useInboxRealtime } from '@/hooks/useInboxRealtime';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { patchConversationFromRealtimeUpdate } from '@/lib/conversationRealtime';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { getConversationMessagesRoute } from '@/lib/routing';
 import type { MessageThreadFocus } from '@/lib/routing';
@@ -58,15 +60,10 @@ export function ClinicMessagesInboxPanel({
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(() => ({
     content: {
-      gap: spacing.md,
       flex: compact ? 1 : undefined,
       minHeight: compact ? 0 : undefined,
-    },
-    loadingWrap: {
-      paddingVertical: spacing.md,
-      alignItems: 'center',
     },
   }));
 
@@ -102,6 +99,21 @@ export function ClinicMessagesInboxPanel({
   }, [publishConversations, refreshClinicProfile, refreshUnread, user?.id]);
 
   useRefreshOnFocus(load);
+
+  useInboxConversationRealtime(user?.id, 'clinic', (update) => {
+    if (!user?.id) return;
+    setConversations((current) => {
+      const index = current.findIndex((row) => row.id === update.id);
+      if (index === -1) return current;
+
+      const next = [...current];
+      next[index] = patchConversationFromRealtimeUpdate(next[index]!, update, user.id, 'clinic');
+      const sorted = sortConversations(next);
+      onConversationsChange?.(sorted);
+      return sorted;
+    });
+    void refreshUnread();
+  });
 
   useInboxRealtime(user?.id, 'clinic', (message) => {
     setConversations((current) => {
@@ -182,13 +194,7 @@ export function ClinicMessagesInboxPanel({
         ) : null}
 
         {isLoading && conversations.length === 0 ? (
-          compact ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator size="small" />
-            </View>
-          ) : (
-            <PageLoadingList message="Loading conversations…" />
-          )
+          <MessagingInboxSkeleton compact={compact} />
         ) : (
           <ConversationInboxList
             conversations={conversations}
@@ -198,7 +204,6 @@ export function ClinicMessagesInboxPanel({
             compact={compact}
             selectedConversationId={selectedConversationId}
             header={<ClinicMessagingPreferences variant="compact" />}
-            filterBesideHeader
             onInboxVisibilityChange={onInboxVisibilityChange}
             onConversationPress={handleConversationPress}
             onConversationHidden={load}

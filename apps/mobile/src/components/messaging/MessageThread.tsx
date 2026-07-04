@@ -1,10 +1,12 @@
 import {
   getConversation,
+  getMessageDeliveryStatus,
   listMessages,
   markConversationRead,
   sendMessage,
   type Conversation,
 } from '@chairside/api';
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,6 +17,8 @@ import {
   Pressable,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,13 +26,16 @@ import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanne
 import { MessageBubble } from '@/components/messaging/MessageBubble';
 import { MessageComposeBar } from '@/components/messaging/MessageComposeBar';
 import { MessageDateSeparator } from '@/components/messaging/MessageDateSeparator';
+import { MessageThreadHeader } from '@/components/messaging/MessageThreadHeader';
 import { MessagingEmptyState } from '@/components/messaging/MessagingEmptyState';
-import { MessageThreadLoadingBody } from '@/components/messaging/MessageThreadLoadingBody';
+import { MessagingThreadSkeleton } from '@/components/messaging/MessagingSkeleton';
+import { TypingIndicator } from '@/components/messaging/TypingIndicator';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useConversationRealtime } from '@/hooks/useConversationRealtime';
 import { useMessageRealtime } from '@/hooks/useMessageRealtime';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import {
   buildThreadListItems,
@@ -40,10 +47,12 @@ import {
 } from '@/lib/messageThreadDisplay';
 import { webPointer } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 const MESSAGE_PAGE_SIZE = 50;
 const SEARCH_HIGHLIGHT_DURATION_MS = 2800;
+const SCROLL_NEAR_BOTTOM_THRESHOLD = 120;
+const SCROLL_LOAD_EARLIER_THRESHOLD = 48;
 
 type MessageThreadProps = {
   userId: string;
@@ -53,6 +62,8 @@ type MessageThreadProps = {
   subtitle: string;
   /** When true, omits back navigation (split-view detail pane). */
   embedded?: boolean;
+  /** When false, thread header shows only the counterpart name (web context panel shows details). */
+  showContextDetails?: boolean;
   /** Scroll to and briefly highlight a message opened from inbox search. */
   scrollToMessageId?: string;
   /** Highlight matching text inside the focused message bubble. */
@@ -109,11 +120,13 @@ export function MessageThread({
   title,
   subtitle,
   embedded = false,
+  showContextDetails = true,
   scrollToMessageId,
   highlightQuery,
   onBack,
   onConversationChange,
 }: MessageThreadProps) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset({ enabled: !embedded });
   const { refreshUnread } = useMessageUnread();
@@ -128,6 +141,8 @@ export function MessageThread({
   const [composeHeight, setComposeHeight] = useState(72);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [isResolvingSearchFocus, setIsResolvingSearchFocus] = useState(false);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [newMessageCount, setNewMessageCount] = useState(0);
   const containerRef = useRef<View>(null);
   const listRef = useRef<FlatList<ThreadListItem>>(null);
   const seenMessageIds = useRef(new Set<string>());
@@ -194,6 +209,43 @@ export function MessageThread({
       borderTopWidth: 1,
       borderTopColor: colors.separator,
       backgroundColor: colors.background,
+    },
+    scrollToLatest: {
+      position: 'absolute',
+      right: spacing.lg,
+      bottom: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 999,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      ...webPointer(),
+    },
+    scrollToLatestPressed: {
+      opacity: 0.9,
+    },
+    scrollToLatestText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    scrollToLatestBadge: {
+      minWidth: 20,
+      height: 20,
+      borderRadius: 10,
+      paddingHorizontal: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+    },
+    scrollToLatestBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primaryOnPrimary,
     },
   }));
 
@@ -291,9 +343,13 @@ export function MessageThread({
       if (seenMessageIds.current.has(message.id)) return;
       seenMessageIds.current.add(message.id);
       setMessages((current) => [...current, message]);
-      scrollToLatest(true);
+      if (isNearBottom) {
+        scrollToLatest(true);
+      } else if (message.sender_id !== userId) {
+        setNewMessageCount((count) => count + 1);
+      }
     },
-    [scrollToLatest],
+    [isNearBottom, scrollToLatest, userId],
   );
 
   const replaceMessage = useCallback((messageId: string, nextMessage: ThreadMessage) => {
@@ -353,7 +409,32 @@ export function MessageThread({
     searchFocusAttemptedRef.current = false;
     suppressAutoScrollRef.current = Boolean(scrollToMessageId || highlightQuery?.trim());
     setHighlightedMessageId(null);
+    setIsNearBottom(true);
+    setNewMessageCount(0);
   }, [conversationId, highlightQuery, scrollToMessageId]);
+
+  const { counterpartIsTyping, notifyTyping } = useTypingIndicator(
+    conversationId,
+    userId,
+    Boolean(conversation?.can_send),
+  );
+
+  useConversationRealtime(conversationId, (update) => {
+    setConversation((current) => {
+      if (!current) return current;
+      const updated: Conversation = {
+        ...current,
+        last_message_at: update.last_message_at,
+        last_message_preview: update.last_message_preview,
+        last_sender_id: update.last_sender_id,
+        worker_last_read_at: update.worker_last_read_at,
+        clinic_last_read_at: update.clinic_last_read_at,
+        messaging_closed_at: update.messaging_closed_at,
+      };
+      onConversationChangeRef.current?.(updated);
+      return updated;
+    });
+  });
 
   useEffect(() => {
     if (isLoading || isResolvingSearchFocus || searchFocusAttemptedRef.current) return;
@@ -434,6 +515,29 @@ export function MessageThread({
       setIsLoadingEarlier(false);
     }
   }, [conversationId, hasMoreMessages, isLoadingEarlier, messages]);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      const distanceFromBottom =
+        contentSize.height - layoutMeasurement.height - contentOffset.y;
+      const nearBottom = distanceFromBottom <= SCROLL_NEAR_BOTTOM_THRESHOLD;
+      setIsNearBottom(nearBottom);
+      if (nearBottom) {
+        setNewMessageCount(0);
+      }
+
+      if (
+        contentOffset.y <= SCROLL_LOAD_EARLIER_THRESHOLD &&
+        hasMoreMessages &&
+        !isLoadingEarlier &&
+        !isLoading
+      ) {
+        void loadEarlierMessages();
+      }
+    },
+    [hasMoreMessages, isLoading, isLoadingEarlier, loadEarlierMessages],
+  );
 
   useMessageRealtime(conversationId, (message) => {
     appendMessage(message);
@@ -527,9 +631,17 @@ export function MessageThread({
   const headerSubtitle = headerDisplay?.threadSubtitle ?? subtitle;
   const listItems = useMemo(() => buildThreadListItems(messages, userId), [messages, userId]);
   const emptyCopy = getEmptyStateCopy(conversation, canSend);
+  const lastOwnMessageId = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message?.sender_id === userId) return message.id;
+    }
+    return null;
+  }, [messages, userId]);
 
   const composeBottom = keyboardLift > 0 ? keyboardLift : tabDockInset;
   const listBottomPadding = canSend ? composeHeight + composeBottom + 8 : composeBottom + 16;
+  const showScrollToLatest = !isNearBottom && (newMessageCount > 0 || messages.length > 0);
 
   const renderListItem = ({ item }: { item: ThreadListItem }) => {
     if (item.type === 'date') {
@@ -539,6 +651,11 @@ export function MessageThread({
     const { message, isOwn, showTimestamp, groupedWithPrevious, groupedWithNext } = item;
     const status = message.clientStatus ?? 'sent';
     const isHighlighted = highlightedMessageId === message.id;
+    const showDeliveryStatus = isOwn && message.id === lastOwnMessageId;
+    const deliveryStatus =
+      conversation && showDeliveryStatus
+        ? getMessageDeliveryStatus(message, role, conversation)
+        : null;
     const bubble = (
       <MessageBubble
         body={message.body}
@@ -548,8 +665,11 @@ export function MessageThread({
         groupedWithPrevious={groupedWithPrevious}
         groupedWithNext={groupedWithNext}
         status={status}
+        deliveryStatus={deliveryStatus}
+        showDeliveryStatus={showDeliveryStatus}
         highlighted={isHighlighted}
         highlightQuery={isHighlighted ? highlightQuery : undefined}
+        animateEntry={message.clientStatus !== 'pending'}
       />
     );
 
@@ -572,10 +692,13 @@ export function MessageThread({
   const threadBody = (
     <>
       <View style={styles.header}>
-        <AuthScreenHeader
+        <MessageThreadHeader
+          conversation={conversation}
+          role={role}
           title={headerTitle}
           subtitle={headerSubtitle}
           compact={embedded}
+          showContextDetails={showContextDetails}
           onBack={embedded ? undefined : onBack}
         />
       </View>
@@ -592,7 +715,7 @@ export function MessageThread({
       ) : null}
 
       {isLoading ? (
-        <MessageThreadLoadingBody />
+        <MessagingThreadSkeleton />
       ) : (
         <FlatList
           ref={listRef}
@@ -604,20 +727,24 @@ export function MessageThread({
           ListHeaderComponent={
             hasMoreMessages ? (
               <View style={styles.loadEarlierWrap}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Load earlier messages"
-                  disabled={isLoadingEarlier}
-                  onPress={() => {
-                    void loadEarlierMessages();
-                  }}
-                  style={styles.loadEarlierButton}>
-                  {isLoadingEarlier ? (
-                    <ActivityIndicator size="small" />
-                  ) : (
-                    <Text style={styles.loadEarlierText}>Load earlier messages</Text>
-                  )}
-                </Pressable>
+                {Platform.OS === 'web' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Load earlier messages"
+                    disabled={isLoadingEarlier}
+                    onPress={() => {
+                      void loadEarlierMessages();
+                    }}
+                    style={styles.loadEarlierButton}>
+                    {isLoadingEarlier ? (
+                      <ActivityIndicator size="small" />
+                    ) : (
+                      <Text style={styles.loadEarlierText}>Load earlier messages</Text>
+                    )}
+                  </Pressable>
+                ) : isLoadingEarlier ? (
+                  <ActivityIndicator size="small" />
+                ) : null}
               </View>
             ) : null
           }
@@ -631,6 +758,8 @@ export function MessageThread({
           maintainVisibleContentPosition={
             Platform.OS === 'ios' ? { minIndexForVisible: 1, autoscrollToTopThreshold: 24 } : undefined
           }
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           onScrollToIndexFailed={({ index }) => {
             requestAnimationFrame(() => {
               listRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0.5 });
@@ -645,6 +774,31 @@ export function MessageThread({
         />
       )}
 
+      {showScrollToLatest ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Scroll to latest messages"
+          onPress={() => {
+            setNewMessageCount(0);
+            scrollToLatest(true);
+          }}
+          style={({ pressed }) => [
+            styles.scrollToLatest,
+            { bottom: listBottomPadding + 12 },
+            pressed && styles.scrollToLatestPressed,
+          ]}>
+          <Ionicons name="chevron-down" size={16} color={colors.primary} />
+          <Text style={styles.scrollToLatestText}>Latest</Text>
+          {newMessageCount > 0 ? (
+            <View style={styles.scrollToLatestBadge}>
+              <Text style={styles.scrollToLatestBadgeText}>
+                {newMessageCount > 9 ? '9+' : newMessageCount}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
+      ) : null}
+
       {!canSend && conversation ? (
         <View style={[styles.closedBanner, { marginBottom: listBottomPadding }]}>
           <Text style={styles.closedText}>{getClosedBannerMessage(conversation)}</Text>
@@ -657,9 +811,12 @@ export function MessageThread({
           onLayout={(event) => {
             setComposeHeight(event.nativeEvent.layout.height);
           }}>
+          <TypingIndicator visible={counterpartIsTyping} />
           <MessageComposeBar
+            conversationId={conversationId}
             sending={isSending}
             onFocus={() => scrollToLatest(true)}
+            onChangeText={() => notifyTyping()}
             onSend={handleSend}
           />
         </View>

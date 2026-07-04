@@ -7,6 +7,7 @@ import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthWebSplitLayout } from '@/components/web/auth/AuthWebSplitLayout.web';
+import { OnboardingWebCenteredLayout } from '@/components/onboarding/OnboardingWebCenteredLayout.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -29,6 +30,11 @@ type OnboardingShellProps = {
   backgroundAccessory?: ReactNode;
   transparentBackground?: boolean;
   authSplit?: boolean;
+  /** Web-only layout mode. `centeredDecision` for choice screens; `authSplit` for auth forms. */
+  webLayout?: 'default' | 'centeredDecision';
+  brandHeadline?: string;
+  brandSubtitle?: string;
+  brandVisual?: 'appPreview' | 'rolePaths';
 };
 
 /** Web onboarding shell — auth split layout or polished scroll form. */
@@ -37,6 +43,10 @@ export function OnboardingShell({
   footer,
   contentStyle,
   authSplit = false,
+  webLayout = 'default',
+  brandHeadline,
+  brandSubtitle,
+  brandVisual,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -72,11 +82,25 @@ export function OnboardingShell({
     </View>
   );
 
-  if (authSplit) {
-    const footerNode = footer ? <View style={styles.footerInner}>{footer}</View> : undefined;
+  if (webLayout === 'centeredDecision') {
     return (
       <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
-        <AuthWebSplitLayout footer={footerNode}>{body}</AuthWebSplitLayout>
+        <OnboardingWebCenteredLayout footer={footer}>{body}</OnboardingWebCenteredLayout>
+      </FormScrollContext.Provider>
+    );
+  }
+
+  if (authSplit) {
+    return (
+      <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
+        <AuthWebSplitLayout
+          footer={footer}
+          brandHeadline={brandHeadline}
+          brandSubtitle={brandSubtitle}
+          brandVisual={brandVisual}
+        >
+          {body}
+        </AuthWebSplitLayout>
       </FormScrollContext.Provider>
     );
   }

@@ -2,17 +2,19 @@ import type { Conversation } from '@chairside/api';
 import { listConversationsForWorker } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { ConversationInboxList } from '@/components/messaging/ConversationInboxList';
+import { MessagingInboxSkeleton } from '@/components/messaging/MessagingSkeleton';
 import { WorkerMessageClinicAction } from '@/components/messaging/WorkerMessageClinicAction';
-import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useInboxConversationRealtime } from '@/hooks/useConversationRealtime';
 import { useInboxRealtime } from '@/hooks/useInboxRealtime';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { patchConversationFromRealtimeUpdate } from '@/lib/conversationRealtime';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { getConversationMessagesRoute, getWorkerMessageClinicsRoute } from '@/lib/routing';
 import type { MessageThreadFocus } from '@/lib/routing';
@@ -58,15 +60,10 @@ export function WorkerMessagesInboxPanel({
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(() => ({
     content: {
-      gap: spacing.md,
       flex: compact ? 1 : undefined,
       minHeight: compact ? 0 : undefined,
-    },
-    loadingWrap: {
-      paddingVertical: spacing.md,
-      alignItems: 'center',
     },
   }));
 
@@ -101,6 +98,21 @@ export function WorkerMessagesInboxPanel({
   }, [publishConversations, refreshUnread, user?.id]);
 
   useRefreshOnFocus(load);
+
+  useInboxConversationRealtime(user?.id, 'worker', (update) => {
+    if (!user?.id) return;
+    setConversations((current) => {
+      const index = current.findIndex((row) => row.id === update.id);
+      if (index === -1) return current;
+
+      const next = [...current];
+      next[index] = patchConversationFromRealtimeUpdate(next[index]!, update, user.id, 'worker');
+      const sorted = sortConversations(next);
+      onConversationsChange?.(sorted);
+      return sorted;
+    });
+    void refreshUnread();
+  });
 
   useInboxRealtime(user?.id, 'worker', (message) => {
     setConversations((current) => {
@@ -181,13 +193,7 @@ export function WorkerMessagesInboxPanel({
         ) : null}
 
         {isLoading && conversations.length === 0 ? (
-          compact ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator size="small" />
-            </View>
-          ) : (
-            <PageLoadingList message="Loading conversations…" />
-          )
+          <MessagingInboxSkeleton compact={compact} />
         ) : (
           <ConversationInboxList
             conversations={conversations}
@@ -198,6 +204,7 @@ export function WorkerMessagesInboxPanel({
             selectedConversationId={selectedConversationId}
             header={
               <WorkerMessageClinicAction
+                compact={compact}
                 onPress={() => {
                   if (onMessageClinicPress) {
                     onMessageClinicPress();
@@ -207,7 +214,6 @@ export function WorkerMessagesInboxPanel({
                 }}
               />
             }
-            filterBesideHeader
             onInboxVisibilityChange={onInboxVisibilityChange}
             onConversationPress={handleConversationPress}
             onConversationHidden={load}
