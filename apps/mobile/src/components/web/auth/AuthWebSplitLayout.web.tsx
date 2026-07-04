@@ -33,17 +33,20 @@ export function AuthWebBrandPanel({
   subtitle = ONBOARDING_SUBTITLE,
   visual = 'appPreview',
 }: AuthWebBrandPanelProps) {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { isWide } = useResponsiveLayout();
+  const insets = useSafeAreaInsets();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     panel: {
-      flex: 1,
-      padding: spacing.xl * 1.5,
+      flex: isWide ? 1 : undefined,
+      paddingTop: isWide ? spacing.xl * 1.5 : insets.top + spacing.lg,
+      paddingBottom: isWide ? spacing.xl * 1.5 : spacing.lg,
+      paddingHorizontal: isWide ? spacing.xl * 1.5 : spacing.lg,
       justifyContent: 'center' as const,
-      gap: spacing.xl,
+      gap: isWide ? spacing.xl : spacing.md,
       position: 'relative' as const,
-      overflow: 'hidden' as const,
+      overflow: isWide ? ('hidden' as const) : ('visible' as const),
       // @ts-expect-error web gradient
       backgroundImage: isDark
         ? 'linear-gradient(160deg, rgba(74, 154, 255, 0.14) 0%, rgba(152, 150, 255, 0.08) 40%, rgba(12, 12, 14, 1) 100%)'
@@ -74,9 +77,11 @@ export function AuthWebBrandPanel({
         <Text style={styles.headline}>{headline}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
-      <View style={styles.visual}>
-        <AuthWebBrandVisualPanel visual={visual} />
-      </View>
+      {isWide ? (
+        <View style={styles.visual}>
+          <AuthWebBrandVisualPanel visual={visual} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -84,18 +89,20 @@ export function AuthWebBrandPanel({
 type AuthWebFormPanelProps = {
   children: ReactNode;
   footer?: ReactNode;
+  /** When false, content flows in a parent ScrollView (narrow auth layout). */
+  scrollable?: boolean;
 };
 
-export function AuthWebFormPanel({ children, footer }: AuthWebFormPanelProps) {
+export function AuthWebFormPanel({ children, footer, scrollable = true }: AuthWebFormPanelProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outer: {
-      flex: 1,
+      flex: scrollable ? 1 : undefined,
       backgroundColor: colors.backgroundGrouped,
       minWidth: 0,
-      minHeight: 0,
+      minHeight: scrollable ? 0 : undefined,
     },
     scroll: {
       flex: 1,
@@ -104,16 +111,16 @@ export function AuthWebFormPanel({ children, footer }: AuthWebFormPanelProps) {
     inner: {
       flexGrow: 1,
       paddingHorizontal: spacing.xl,
-      paddingTop: insets.top + spacing.xl,
+      paddingTop: scrollable ? insets.top + spacing.xl : spacing.lg,
       paddingBottom: insets.bottom + spacing.xl,
       alignItems: 'center' as const,
-      ...webOnlyStyle({ minHeight: '100%' } as object),
+      ...(scrollable ? webOnlyStyle({ minHeight: '100%' } as object) : {}),
     },
     stack: {
       width: '100%' as const,
       maxWidth: 440,
       gap: spacing.md,
-      ...webOnlyStyle({ marginTop: 'auto', marginBottom: 'auto' } as object),
+      ...(scrollable ? webOnlyStyle({ marginTop: 'auto', marginBottom: 'auto' } as object) : {}),
     },
     card: {
       width: '100%' as const,
@@ -132,6 +139,21 @@ export function AuthWebFormPanel({ children, footer }: AuthWebFormPanelProps) {
     },
   }));
 
+  const formBody = (
+    <View style={styles.stack}>
+      <View style={styles.card}>{children}</View>
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
+    </View>
+  );
+
+  if (!scrollable) {
+    return (
+      <View style={styles.outer}>
+        <View style={styles.inner}>{formBody}</View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.outer}>
       <ScrollView
@@ -140,10 +162,7 @@ export function AuthWebFormPanel({ children, footer }: AuthWebFormPanelProps) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.stack}>
-          <View style={styles.card}>{children}</View>
-          {footer ? <View style={styles.footer}>{footer}</View> : null}
-        </View>
+        {formBody}
       </ScrollView>
     </View>
   );
@@ -165,16 +184,24 @@ export function AuthWebSplitLayout({
   brandVisual = 'appPreview',
 }: AuthWebSplitLayoutProps) {
   const { isWide } = useResponsiveLayout();
+  const insets = useSafeAreaInsets();
 
-  const styles = useThemedStyles(() => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     root: {
       flex: 1,
       minHeight: 0,
       flexDirection: isWide ? ('row' as const) : ('column' as const),
     },
+    narrowScroll: {
+      flex: 1,
+      backgroundColor: colors.backgroundGrouped,
+    },
+    narrowScrollContent: {
+      flexGrow: 1,
+      paddingBottom: insets.bottom + spacing.md,
+    },
     brand: {
       flex: isWide ? 1 : undefined,
-      minHeight: isWide ? undefined : 280,
     },
     form: {
       flex: isWide ? 1 : undefined,
@@ -183,18 +210,38 @@ export function AuthWebSplitLayout({
     },
   }));
 
+  const brandPanel = (
+    <AuthWebBrandPanel
+      headline={brandHeadline}
+      subtitle={brandSubtitle}
+      visual={brandVisual}
+    />
+  );
+
+  const formPanel = (
+    <AuthWebFormPanel scrollable={isWide} footer={footer}>
+      {children}
+    </AuthWebFormPanel>
+  );
+
+  if (!isWide) {
+    return (
+      <ScrollView
+        style={[styles.narrowScroll, webScrollbarStyles()]}
+        contentContainerStyle={styles.narrowScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {brandPanel}
+        {formPanel}
+      </ScrollView>
+    );
+  }
+
   return (
     <View style={styles.root}>
-      <View style={styles.brand}>
-        <AuthWebBrandPanel
-          headline={brandHeadline}
-          subtitle={brandSubtitle}
-          visual={brandVisual}
-        />
-      </View>
-      <View style={styles.form}>
-        <AuthWebFormPanel footer={footer}>{children}</AuthWebFormPanel>
-      </View>
+      <View style={styles.brand}>{brandPanel}</View>
+      <View style={styles.form}>{formPanel}</View>
     </View>
   );
 }

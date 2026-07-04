@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useThemedStyles } from '@/theme';
 
 type OnboardingWebCenteredLayoutProps = {
@@ -17,6 +18,7 @@ export function OnboardingWebCenteredLayout({
   footer,
 }: OnboardingWebCenteredLayoutProps) {
   const insets = useSafeAreaInsets();
+  const { isCompact } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     page: {
@@ -37,7 +39,7 @@ export function OnboardingWebCenteredLayout({
       paddingTop: insets.top + spacing.xl,
       paddingBottom: insets.bottom + spacing.xl * 2,
       alignItems: 'center' as const,
-      justifyContent: 'center' as const,
+      justifyContent: isCompact ? ('flex-start' as const) : ('center' as const),
     },
     column: {
       width: '100%' as const,

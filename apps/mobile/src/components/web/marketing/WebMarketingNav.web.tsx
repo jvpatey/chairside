@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { navigateToWelcome } from '@/lib/publicRoutes';
 import {
@@ -23,6 +24,9 @@ type WebMarketingNavProps = {
 export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const { width } = useResponsiveLayout();
+  // Below this width the wordmark + both CTAs no longer fit on one row.
+  const isNarrow = width < 480;
   const [condensed, setCondensed] = useState(false);
 
   useEffect(() => {
@@ -41,7 +45,7 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
       zIndex: 100,
       paddingTop: insets.top + (condensed ? 8 : 12),
       paddingBottom: condensed ? 8 : 12,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: isNarrow ? spacing.md : spacing.lg,
       ...webTransition(['padding', 'background-color', 'box-shadow', 'backdrop-filter']),
       ...(condensed ? webGlassSurface(colors, isDark) : {}),
     },
@@ -74,7 +78,7 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
       alignSelf: 'auto' as const,
       flexShrink: 0,
       paddingVertical: 14,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: isNarrow ? spacing.md : spacing.lg,
       minHeight: 48,
     },
   }));
@@ -84,17 +88,19 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
       <View style={styles.inner}>
         <ChairsideWordmark variant="small" onPress={navigateToWelcome} />
         <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push('/(onboarding)/sign-in')}
-            style={({ pressed, hovered }) => [
-              styles.signIn,
-              webHover(hovered, pressed, styles.signInHovered),
-              pressed && { opacity: 0.8 },
-            ]}
-          >
-            <Text style={styles.signInText}>Sign in</Text>
-          </Pressable>
+          {!isNarrow ? (
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push('/(onboarding)/sign-in')}
+              style={({ pressed, hovered }) => [
+                styles.signIn,
+                webHover(hovered, pressed, styles.signInHovered),
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={styles.signInText}>Sign in</Text>
+            </Pressable>
+          ) : null}
           <OnboardingButton
             label="Get started"
             onPress={() => router.push('/(onboarding)/role')}
