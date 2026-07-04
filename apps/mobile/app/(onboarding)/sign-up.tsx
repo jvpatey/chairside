@@ -10,10 +10,15 @@ import {
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import {
+  AUTH_STAGGER,
+  enterFadeUp,
+} from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
@@ -40,6 +45,7 @@ export default function SignUpScreen() {
   const role = parseRole(roleParam);
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
+  const reducedMotion = useReducedMotion();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -187,11 +193,13 @@ export default function SignUpScreen() {
       backgroundAccessory={<AuthHeroGlow />}
       footer={
         <View style={styles.footer}>
-          <OnboardingButton
-            label={isSubmitting ? 'Creating account…' : 'Create account'}
-            disabled={isSubmitting}
-            onPress={handleCreateAccount}
-          />
+          <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
+            <OnboardingButton
+              label={isSubmitting ? 'Creating account…' : 'Create account'}
+              disabled={isSubmitting}
+              onPress={handleCreateAccount}
+            />
+          </Animated.View>
           <View style={styles.switchRow}>
             <Text style={styles.switchMuted}>Already have an account?</Text>
             <Pressable
@@ -207,17 +215,23 @@ export default function SignUpScreen() {
           </View>
         </View>
       }>
-      <AuthScreenHeader
-        title="Create your account"
-        subtitle="A few details to get you into Chairside."
-        onBack={() => router.back()}
-      />
-      <SocialAuthButtons
-        disabled={isSubmitting}
-        onApplePress={() => runSocialSignIn(signInWithApple)}
-        onGooglePress={() => runSocialSignIn(signInWithGoogle)}
-      />
-      <View style={styles.form}>
+      <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
+        <AuthScreenHeader
+          title="Create your account"
+          subtitle="A few details to get you into Chairside."
+          onBack={() => router.back()}
+        />
+      </Animated.View>
+      <Animated.View entering={enterFadeUp(AUTH_STAGGER.social, reducedMotion)}>
+        <SocialAuthButtons
+          disabled={isSubmitting}
+          onApplePress={() => runSocialSignIn(signInWithApple)}
+          onGooglePress={() => runSocialSignIn(signInWithGoogle)}
+        />
+      </Animated.View>
+      <Animated.View
+        entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)}
+        style={styles.form}>
         <FormErrorBanner message={formError} />
         <AuthField
           label="Email"
@@ -245,7 +259,7 @@ export default function SignUpScreen() {
           onChangeText={setConfirmPassword}
           editable={!isSubmitting}
         />
-      </View>
+      </Animated.View>
     </OnboardingShell>
   );
 }

@@ -1,9 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+
+const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
 
 type RoleCardProps = {
   title: string;
@@ -12,6 +19,8 @@ type RoleCardProps = {
   selected: boolean;
   onPress: () => void;
   variant?: 'list' | 'tile';
+  /** Brand accent when selected — clinics use primary, professionals secondary. */
+  accent?: GradientAccent;
 };
 
 export function RoleCard({
@@ -21,15 +30,21 @@ export function RoleCard({
   selected,
   onPress,
   variant: _variant = 'list',
+  accent = 'primary',
 }: RoleCardProps) {
   const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
+  const scale = useSharedValue(1);
+  const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const accentSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const accentOn = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
+
+  const styles = useThemedStyles(({ colors, spacing, typography, radii, isDark }) => ({
     card: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
       gap: spacing.md,
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: radii.lg,
       borderWidth: 2,
       borderColor: colors.separator,
       padding: spacing.lg,
@@ -37,8 +52,8 @@ export function RoleCard({
       ...webPointer(),
     },
     cardSelected: {
-      backgroundColor: colors.primarySubtle,
-      borderColor: colors.primary,
+      backgroundColor: accentSubtle,
+      borderColor: accentColor,
     },
     cardHovered: webOnlyStyle({
       backgroundColor: colors.backgroundGrouped,
@@ -48,21 +63,21 @@ export function RoleCard({
         : '0 4px 14px rgba(0, 0, 0, 0.08)',
     } as ViewStyle),
     cardSelectedHovered: webOnlyStyle({
-      borderColor: colors.primary,
+      borderColor: accentColor,
       boxShadow: isDark
         ? '0 6px 18px rgba(74, 154, 255, 0.18)'
         : '0 4px 14px rgba(26, 111, 212, 0.14)',
     } as ViewStyle),
     iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 10,
+      width: 44,
+      height: 44,
+      borderRadius: radii.md,
       backgroundColor: colors.fillSubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     iconWrapSelected: {
-      backgroundColor: colors.primary,
+      backgroundColor: accentColor,
     },
     textBlock: {
       flex: 1,
@@ -70,13 +85,32 @@ export function RoleCard({
     },
     title: {
       ...typography.body,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       color: colors.labelPrimary,
     },
     description: {
       ...typography.subtitle,
       minHeight: typography.subtitle.lineHeight * 2,
     },
+    check: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: accentColor,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    checkPlaceholder: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: colors.separator,
+    },
+  }));
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
   }));
 
   const handlePress = () => {
@@ -87,28 +121,45 @@ export function RoleCard({
   const isWeb = Platform.OS === 'web';
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${title}. ${description}`}
-      onPress={handlePress}
-      style={({ pressed, hovered }) => [
-        styles.card,
-        selected && styles.cardSelected,
-        isWeb && hovered && !pressed && (selected ? styles.cardSelectedHovered : styles.cardHovered),
-        pressed && { opacity: 0.85 },
-      ]}>
-      <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
-        <Ionicons
-          name={icon}
-          size={22}
-          color={selected ? colors.primaryOnPrimary : colors.labelSecondary}
-        />
-      </View>
-      <View style={styles.textBlock}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
-      </View>
-    </Pressable>
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        accessibilityLabel={`${title}. ${description}`}
+        onPress={handlePress}
+        onPressIn={() => {
+          scale.value = withSpring(0.98, PRESS_SPRING);
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, PRESS_SPRING);
+        }}
+        style={({ pressed, hovered }) => [
+          styles.card,
+          selected && styles.cardSelected,
+          isWeb &&
+            hovered &&
+            !pressed &&
+            (selected ? styles.cardSelectedHovered : styles.cardHovered),
+        ]}>
+        <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
+          <Ionicons
+            name={icon}
+            size={22}
+            color={selected ? accentOn : colors.labelSecondary}
+          />
+        </View>
+        <View style={styles.textBlock}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.description}>{description}</Text>
+        </View>
+        {selected ? (
+          <View style={styles.check}>
+            <Ionicons name="checkmark" size={15} color={accentOn} />
+          </View>
+        ) : (
+          <View style={styles.checkPlaceholder} />
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }

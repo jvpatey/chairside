@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 const SITE_TITLE = 'Chairside — Dental staffing, simplified';
 const SITE_DESCRIPTION =
-  'Hire staff, find work, and fill same-day shifts for Canadian dental clinics and professionals.';
+  'One platform for Canadian dental clinics hiring and professionals finding work.';
 const THEME_COLOR_LIGHT = '#F2F2F7';
 const THEME_COLOR_DARK = '#0C0C0E';
 const PRIMARY_COLOR = '#1A6FD4';

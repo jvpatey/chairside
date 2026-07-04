@@ -13,6 +13,8 @@ type RoleCardProps = {
   selected: boolean;
   onPress: () => void;
   variant?: 'list' | 'tile';
+  /** Accepted for parity with the native card; web styling stays neutral. */
+  accent?: 'primary' | 'secondary';
 };
 
 export function RoleCard({

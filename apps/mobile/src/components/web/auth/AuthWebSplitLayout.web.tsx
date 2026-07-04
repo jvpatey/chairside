@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel.web';
 import { AuthWebRolePathsVisual } from '@/components/web/auth/AuthWebRolePathsVisual.web';
+import { ONBOARDING_SUBTITLE } from '@/constants';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
@@ -29,7 +30,7 @@ function AuthWebBrandVisualPanel({ visual }: { visual: AuthWebBrandVisual }) {
 
 export function AuthWebBrandPanel({
   headline = 'Staffing for dental clinics, simplified.',
-  subtitle = 'Hire staff, find work, and fill same-day shifts — all in one place.',
+  subtitle = ONBOARDING_SUBTITLE,
   visual = 'appPreview',
 }: AuthWebBrandPanelProps) {
   const { colors, isDark } = useTheme();

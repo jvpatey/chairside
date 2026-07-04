@@ -9,10 +9,15 @@ import {
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import {
+  AUTH_STAGGER,
+  enterFadeUp,
+} from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
@@ -31,6 +36,7 @@ import { useThemedStyles } from '@/theme';
 export default function SignInScreen() {
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
+  const reducedMotion = useReducedMotion();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -178,11 +184,13 @@ export default function SignInScreen() {
       backgroundAccessory={<AuthHeroGlow />}
       footer={
         <View style={styles.footer}>
-          <OnboardingButton
-            label={isSubmitting ? 'Signing in…' : 'Sign in'}
-            disabled={formBusy}
-            onPress={handleSignIn}
-          />
+          <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
+            <OnboardingButton
+              label={isSubmitting ? 'Signing in…' : 'Sign in'}
+              disabled={formBusy}
+              onPress={handleSignIn}
+            />
+          </Animated.View>
           <View style={styles.switchRow}>
             <Text style={styles.switchMuted}>New to Chairside?</Text>
             <Pressable
@@ -198,17 +206,23 @@ export default function SignInScreen() {
           </View>
         </View>
       }>
-      <AuthScreenHeader
-        title="Welcome back"
-        subtitle="Sign in to pick up where you left off."
-        onBack={() => router.back()}
-      />
-      <SocialAuthButtons
-        disabled={formBusy}
-        onApplePress={() => runSocialSignIn(signInWithApple)}
-        onGooglePress={() => runSocialSignIn(signInWithGoogle)}
-      />
-      <View style={styles.form}>
+      <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
+        <AuthScreenHeader
+          title="Welcome back"
+          subtitle="Sign in to pick up where you left off."
+          onBack={() => router.back()}
+        />
+      </Animated.View>
+      <Animated.View entering={enterFadeUp(AUTH_STAGGER.social, reducedMotion)}>
+        <SocialAuthButtons
+          disabled={formBusy}
+          onApplePress={() => runSocialSignIn(signInWithApple)}
+          onGooglePress={() => runSocialSignIn(signInWithGoogle)}
+        />
+      </Animated.View>
+      <Animated.View
+        entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)}
+        style={styles.form}>
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
         {resetLinkSent ? <FormSuccessBanner message={PASSWORD_RESET_SENT_MESSAGE} /> : null}
         <AuthField
@@ -250,7 +264,7 @@ export default function SignInScreen() {
             {isSendingReset ? 'Sending reset link…' : 'Forgot password?'}
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
     </OnboardingShell>
   );
 }
