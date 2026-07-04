@@ -50,7 +50,7 @@ function WorkerTabNavigator() {
           title: 'Fill-ins',
           tabBarBadge: fillInPendingCount > 0 ? fillInPendingCount : undefined,
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={22} color={color} />
+            <Ionicons name={focused ? 'flash' : 'flash-outline'} size={22} color={color} />
           ),
         }}
       />

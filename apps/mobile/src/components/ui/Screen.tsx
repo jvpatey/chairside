@@ -3,23 +3,32 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Text,
+  StyleSheet,
   View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { AppText } from '@/components/ui/AppText';
+import { ThemedRefreshControl } from '@/components/ui/ThemedRefreshControl';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, colorWithAlpha, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type ScreenProps = {
   title?: string;
@@ -44,6 +53,11 @@ type ScreenProps = {
   /** When true, the screen background is transparent (for layered dashboard atmosphere). */
   transparentBackground?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  refreshAccent?: GradientAccent;
+  /** Collapse the large title into a compact bar while scrolling. */
+  collapseHeader?: boolean;
 };
 
 export function Screen({
@@ -62,9 +76,37 @@ export function Screen({
   animateEntry = true,
   transparentBackground = false,
   contentContainerStyle,
+  refreshing = false,
+  onRefresh,
+  refreshAccent,
+  collapseHeader = true,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
+  const collapseLargeTitle = collapseHeader && showHeader && Boolean(title);
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+  const largeTitleStyle = useAnimatedStyle(() => ({
+    opacity: collapseLargeTitle
+      ? interpolate(scrollY.value, [0, 48, 96], [1, 0.4, 0], Extrapolation.CLAMP)
+      : 1,
+    transform: [
+      {
+        translateY: collapseLargeTitle
+          ? interpolate(scrollY.value, [0, 96], [0, -6], Extrapolation.CLAMP)
+          : 0,
+      },
+    ],
+  }));
+  const compactHeaderStyle = useAnimatedStyle(() => ({
+    opacity: collapseLargeTitle
+      ? interpolate(scrollY.value, [56, 112], [0, 1], Extrapolation.CLAMP)
+      : 0,
+  }));
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
@@ -149,7 +191,33 @@ export function Screen({
     backText: {
       fontSize: 16,
       fontWeight: '600',
+      fontFamily: fontSemibold,
       color: colors.primary,
+    },
+    compactHeader: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 20,
+      paddingTop: insets.top + spacing.xs,
+      paddingBottom: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      gap: spacing.sm,
+      backgroundColor: colorWithAlpha(colors.backgroundGrouped, 0.92),
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.separator,
+    },
+    compactTitle: {
+      flex: 1,
+      fontSize: 17,
+      lineHeight: 22,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelPrimary,
     },
   }));
 
@@ -158,14 +226,8 @@ export function Screen({
     paddingBottom: spacing.lg + tabDockInset,
   };
 
-  const headerBlock = (
-    <View
-      style={[
-        styles.header,
-        !showTopBar && styles.headerHidden,
-        !showHeader && showTopBar && styles.headerCompact,
-      ]}
-    >
+  const headerInner = (
+    <>
       {onBack ? (
         <Pressable
           accessibilityRole="button"
@@ -177,14 +239,16 @@ export function Screen({
             pressed && { opacity: 0.75 },
           ]}
         >
-          <Text style={styles.backText}>{backLabel}</Text>
+          <AppText style={styles.backText}>{backLabel}</AppText>
         </Pressable>
       ) : null}
       {showTopBar ? (
         <>
           <View style={styles.headerRow}>
             {showHeader && title ? (
-              <Text style={[styles.title, styles.titleFlex]}>{title}</Text>
+              <AppText variant="title" style={[styles.title, styles.titleFlex]}>
+                {title}
+              </AppText>
             ) : (
               <View style={styles.headerText} />
             )}
@@ -195,11 +259,37 @@ export function Screen({
               </View>
             ) : null}
           </View>
-          {showHeader && subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          {showHeader && subtitle ? (
+            <AppText variant="subtitle" style={styles.subtitle}>
+              {subtitle}
+            </AppText>
+          ) : null}
         </>
       ) : null}
-    </View>
+    </>
   );
+
+  const headerBaseStyle = [
+    styles.header,
+    !showTopBar && styles.headerHidden,
+    !showHeader && showTopBar && styles.headerCompact,
+  ];
+
+  const headerBlock = collapseLargeTitle ? (
+    <Animated.View style={[...headerBaseStyle, largeTitleStyle]}>{headerInner}</Animated.View>
+  ) : (
+    <View style={headerBaseStyle}>{headerInner}</View>
+  );
+
+  const compactHeader =
+    collapseHeader && showHeader && title ? (
+      <Animated.View style={[styles.compactHeader, compactHeaderStyle]} pointerEvents="none">
+        <AppText style={styles.compactTitle} numberOfLines={1}>
+          {title}
+        </AppText>
+        {showNotifications ? <NotificationBell /> : null}
+      </Animated.View>
+    ) : null;
 
   if (!scroll) {
     return (
@@ -231,22 +321,41 @@ export function Screen({
     );
   }
 
+  const scrollViewProps = {
+    scrollEnabled,
+    refreshControl: onRefresh ? (
+      <ThemedRefreshControl
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        accent={refreshAccent}
+      />
+    ) : undefined,
+    style: [
+      { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
+      webScrollbarStyles(),
+    ] as StyleProp<ViewStyle>,
+    contentContainerStyle: [styles.content, paddingStyle, contentContainerStyle],
+    children: (
+      <WebPageEnter animate={animateEntry}>
+        {headerBlock}
+        {children}
+      </WebPageEnter>
+    ),
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: containerBackground }]}>
       {atmosphereLayer}
-      <ScrollView
-        scrollEnabled={scrollEnabled}
-        style={[
-          { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
-          webScrollbarStyles(),
-        ]}
-        contentContainerStyle={[styles.content, paddingStyle, contentContainerStyle]}
-      >
-        <WebPageEnter animate={animateEntry}>
-          {headerBlock}
-          {children}
-        </WebPageEnter>
-      </ScrollView>
+      {compactHeader}
+      {collapseLargeTitle ? (
+        <Animated.ScrollView
+          {...scrollViewProps}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+        />
+      ) : (
+        <ScrollView {...scrollViewProps} />
+      )}
     </View>
   );
 }

@@ -1,6 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import {
   buildCalendarCells,
@@ -15,7 +21,62 @@ import {
 } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+type CalendarDayCellProps = {
+  date: Date;
+  selected: boolean;
+  isToday: boolean;
+  onSelectDate: (date: Date) => void;
+  styles: ReturnType<typeof useThemedStyles<Record<string, object>>>;
+  colors: ReturnType<typeof useTheme>['colors'];
+  dots: React.ReactNode;
+};
+
+function CalendarDayCell({
+  date,
+  selected,
+  isToday,
+  onSelectDate,
+  styles,
+  colors,
+  dots,
+}: CalendarDayCellProps) {
+  const dayScale = useSharedValue(selected ? 1.06 : 1);
+
+  useEffect(() => {
+    dayScale.value = withSpring(selected ? 1.06 : 1, { damping: 14, stiffness: 320 });
+  }, [dayScale, selected]);
+
+  const dayAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: dayScale.value }],
+  }));
+
+  return (
+    <View style={styles.dayCell}>
+      <AnimatedPressable
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        onPress={() => {
+          void Haptics.selectionAsync();
+          onSelectDate(date);
+        }}
+        style={({ pressed, hovered }) => [
+          styles.dayButton,
+          dayAnimatedStyle,
+          selected && styles.dayButtonSelected,
+          !selected && isToday && styles.dayButtonToday,
+          !selected && webHover(hovered, pressed, webListRowHoverStyles(colors)),
+          pressed && { opacity: 0.85 },
+        ]}>
+        <Text style={[styles.dayText, selected && styles.dayTextSelected]}>{date.getDate()}</Text>
+      </AnimatedPressable>
+      {dots}
+    </View>
+  );
+}
 
 type ScheduleCalendarPanelProps = {
   selectedDate: Date;
@@ -41,14 +102,15 @@ export function ScheduleCalendarPanel({
     setViewMonth(monthStart(selectedDate));
   }, [selectedDate]);
 
-  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
     panel: {
       backgroundColor: colors.surface,
       borderRadius: radii.lg,
-      borderWidth: 1,
+      borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
       borderColor: colors.separator,
       padding: spacing.md,
       gap: spacing.sm,
+      ...elevation('subtle'),
     },
     monthHeader: {
       flexDirection: 'row',
@@ -269,24 +331,16 @@ export function ScheduleCalendarPanel({
           const isToday = isSameDay(date, today);
 
           return (
-            <View key={toISODate(date)} style={styles.dayCell}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                onPress={() => onSelectDate(date)}
-                style={({ pressed, hovered }) => [
-                  styles.dayButton,
-                  selected && styles.dayButtonSelected,
-                  !selected && isToday && styles.dayButtonToday,
-                  !selected && webHover(hovered, pressed, webListRowHoverStyles(colors)),
-                  pressed && { opacity: 0.85 },
-                ]}>
-                <Text style={[styles.dayText, selected && styles.dayTextSelected]}>
-                  {date.getDate()}
-                </Text>
-              </Pressable>
-              {renderDots(date)}
-            </View>
+            <CalendarDayCell
+              key={toISODate(date)}
+              date={date}
+              selected={selected}
+              isToday={isToday}
+              onSelectDate={onSelectDate}
+              styles={styles}
+              colors={colors}
+              dots={renderDots(date)}
+            />
           );
         })}
       </View>

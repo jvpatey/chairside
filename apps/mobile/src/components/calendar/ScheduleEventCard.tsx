@@ -1,9 +1,10 @@
 import type { CalendarEvent } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import {
@@ -100,29 +101,6 @@ export function ScheduleAgendaList({
       color: colors.labelSecondary,
     },
     list: { gap: spacing.sm },
-    empty: {
-      gap: spacing.sm,
-      paddingVertical: spacing.md,
-    },
-    emptyTitle: {
-      ...typography.label,
-      color: colors.labelPrimary,
-    },
-    emptyMessage: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-    emptyCta: {
-      alignSelf: 'flex-start',
-      paddingVertical: spacing.xs,
-    },
-    emptyCtaLabel: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.primary,
-    },
   }));
 
   const dateLabel = formatShiftDateLabel(selectedDate);
@@ -139,18 +117,13 @@ export function ScheduleAgendaList({
       </View>
 
       {events.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-          <Text style={styles.emptyMessage}>{emptyMessage}</Text>
-          {emptyCtaLabel && onEmptyCtaPress ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={onEmptyCtaPress}
-              style={styles.emptyCta}>
-              <Text style={styles.emptyCtaLabel}>{emptyCtaLabel}</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        <EmptyState
+          icon="calendar-outline"
+          title={emptyTitle}
+          message={emptyMessage}
+          ctaLabel={emptyCtaLabel}
+          onCtaPress={onEmptyCtaPress}
+        />
       ) : (
         <View style={styles.list}>
           <StaggeredList>

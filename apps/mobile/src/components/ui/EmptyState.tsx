@@ -35,7 +35,7 @@ export function EmptyState({
     card: {
       backgroundColor: colors.surface,
       borderRadius: radii.lg,
-      borderWidth: 1,
+      borderWidth: isDark ? 1 : 0,
       borderColor: colors.separator,
       padding: spacing.xl,
       alignItems: 'center',

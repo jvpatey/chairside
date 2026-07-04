@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { ScheduleCalendarView } from '@/components/calendar/ScheduleCalendarView';
 import { parseInitialCalendarDate } from '@/lib/calendarEvents';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   getClinicApplicationRoute,
@@ -22,6 +23,7 @@ type ScheduleCalendarScreenPanelProps = {
   emptyCtaLabel?: string;
   onEmptyCtaPress?: () => void;
   applicationReturnTo?: 'applications-tab' | 'fill-ins-tab' | 'calendar-tab';
+  onRefreshStateChange?: (state: { refreshing: boolean; onRefresh: () => void }) => void;
 };
 
 export function ScheduleCalendarScreenPanel({
@@ -31,6 +33,7 @@ export function ScheduleCalendarScreenPanel({
   emptyCtaLabel,
   onEmptyCtaPress,
   applicationReturnTo = 'calendar-tab',
+  onRefreshStateChange,
 }: ScheduleCalendarScreenPanelProps) {
   const [selectedDate, setSelectedDate] = useState(() => parseInitialCalendarDate(initialDate));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -64,6 +67,11 @@ export function ScheduleCalendarScreenPanel({
   }, [role, userId]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
+
+  useEffect(() => {
+    onRefreshStateChange?.({ refreshing, onRefresh });
+  }, [onRefresh, onRefreshStateChange, refreshing]);
 
   useEffect(() => {
     void load();

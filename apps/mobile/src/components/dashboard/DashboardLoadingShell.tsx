@@ -75,7 +75,7 @@ export function DashboardLoadingShell() {
 
       <View style={styles.overviewBlock}>
         <View style={styles.section}>
-          <DashboardSectionHeader title="Open roles near you" />
+          <DashboardSectionHeader title="Overview" />
           <ShimmerBlock height={132} width="100%" borderRadius={16} style={styles.listCard} />
           <ShimmerBlock height={132} width="100%" borderRadius={16} style={styles.listCard} />
         </View>

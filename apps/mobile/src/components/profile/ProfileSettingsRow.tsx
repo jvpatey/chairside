@@ -14,6 +14,8 @@ type ProfileSettingsRowProps = {
   title: string;
   subtitle?: string;
   onPress: () => void;
+  iconColor?: string;
+  iconBackgroundColor?: string;
   /** When nested inside ProfileSettingsCard — no negative bleed margins. */
   embedded?: boolean;
 };
@@ -23,6 +25,8 @@ export function ProfileSettingsRow({
   title,
   subtitle,
   onPress,
+  iconColor,
+  iconBackgroundColor,
   embedded = false,
 }: ProfileSettingsRowProps) {
   const { colors } = useTheme();
@@ -75,8 +79,12 @@ export function ProfileSettingsRow({
         webHover(hovered, pressed, styles.rowHovered),
         pressed && styles.rowPressed,
       ]}>
-      <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={20} color={colors.primary} />
+      <View
+        style={[
+          styles.iconWrap,
+          iconBackgroundColor ? { backgroundColor: iconBackgroundColor } : null,
+        ]}>
+        <Ionicons name={icon} size={20} color={iconColor ?? colors.primary} />
       </View>
       <View style={styles.textBlock}>
         <Text style={styles.title}>{title}</Text>

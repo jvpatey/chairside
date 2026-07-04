@@ -56,7 +56,7 @@ function ClinicTabNavigator() {
             title: 'Fill-ins',
             tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={22} color={color} />
+              <Ionicons name={focused ? 'flash' : 'flash-outline'} size={22} color={color} />
             ),
           }}
         />

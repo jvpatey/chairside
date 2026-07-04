@@ -32,6 +32,7 @@ import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   countHistoryJobs,
@@ -132,6 +133,7 @@ export default function ClinicPostingsScreen() {
   }, [user?.id]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
 
   const handleJobUpdated = useCallback((updated: JobPost) => {
     setJobs((prev) => prev.map((job) => (job.id === updated.id ? updated : job)));
@@ -150,7 +152,11 @@ export default function ClinicPostingsScreen() {
   const historyDetail = `${historyCounts.archived === 1 ? '1 archived' : `${historyCounts.archived} archived`} · ${historyCounts.filled === 1 ? '1 filled' : `${historyCounts.filled} filled`}`;
 
   return (
-    <Screen title="Postings" subtitle="Open roles at your clinic.">
+    <Screen
+      title="Postings"
+      subtitle="Open roles at your clinic."
+      refreshing={refreshing}
+      onRefresh={onRefresh}>
       <View style={styles.wrap}>
         <DashboardQuickActionTile
           label="Post role"

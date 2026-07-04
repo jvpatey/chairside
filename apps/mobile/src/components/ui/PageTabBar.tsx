@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
@@ -31,6 +31,7 @@ export function PageTabBar<T extends string>({
   const resolvedAccent = accent ?? tabAccent;
   const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
   const isCompact = density === 'compact';
+  const useSlidingIndicator = Platform.OS === 'web';
 
   const selectedIndex = options.findIndex((option) => option.value === selected);
   const resolvedSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
@@ -78,6 +79,14 @@ export function PageTabBar<T extends string>({
       height: UNDERLINE_HEIGHT,
       borderRadius: 1,
     },
+    nativeIndicator: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: UNDERLINE_HEIGHT,
+      borderRadius: 1,
+    },
   }));
 
   const accentStyle = { color: brandColor };
@@ -91,10 +100,12 @@ export function PageTabBar<T extends string>({
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
-        <SlidingSegmentIndicator
-          animatedStyle={indicatorStyle}
-          style={[styles.indicator, indicatorAccentStyle]}
-        />
+        {useSlidingIndicator ? (
+          <SlidingSegmentIndicator
+            animatedStyle={indicatorStyle}
+            style={[styles.indicator, indicatorAccentStyle]}
+          />
+        ) : null}
         {options.map((option, index) => {
           const isSelected = selected === option.value;
 
@@ -102,10 +113,14 @@ export function PageTabBar<T extends string>({
             <View
               key={option.value}
               style={{ flex: 1 }}
-              onLayout={(event) => {
-                const { x, y, width, height } = event.nativeEvent.layout;
-                onSegmentLayout(index, { x, y, width, height });
-              }}>
+              onLayout={
+                useSlidingIndicator
+                  ? (event) => {
+                      const { x, y, width, height } = event.nativeEvent.layout;
+                      onSegmentLayout(index, { x, y, width, height });
+                    }
+                  : undefined
+              }>
               <Pressable
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isSelected }}
@@ -123,6 +138,9 @@ export function PageTabBar<T extends string>({
                   minimumFontScale={0.85}>
                   {option.label}
                 </Text>
+                {!useSlidingIndicator && isSelected ? (
+                  <View style={[styles.nativeIndicator, indicatorAccentStyle]} />
+                ) : null}
               </Pressable>
             </View>
           );

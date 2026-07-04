@@ -1,6 +1,4 @@
-import { Children, isValidElement, type ReactNode } from 'react';
-
-import { FadeInSection } from '@/components/dashboard/FadeInSection';
+import { Children, Fragment, isValidElement, type ReactNode } from 'react';
 
 type StaggeredListProps = {
   children: ReactNode;
@@ -10,20 +8,14 @@ type StaggeredListProps = {
   stepDelayMs?: number;
 };
 
-/** Applies staggered spring entrances to list children without hand-numbering delays. */
-export function StaggeredList({
-  children,
-  baseDelayMs = 0,
-  stepDelayMs = 40,
-}: StaggeredListProps) {
+/** List passthrough — keeps parent `gap` layout; entrance motion disabled to avoid Reanimated crashes. */
+export function StaggeredList({ children }: StaggeredListProps) {
   const items = Children.toArray(children).filter(isValidElement);
 
   return (
     <>
       {items.map((child, index) => (
-        <FadeInSection key={child.key ?? index} delayMs={baseDelayMs + index * stepDelayMs}>
-          {child}
-        </FadeInSection>
+        <Fragment key={child.key ?? index}>{child}</Fragment>
       ))}
     </>
   );

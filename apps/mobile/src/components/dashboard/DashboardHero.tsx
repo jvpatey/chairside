@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { type Href } from 'expo-router';
-import { Platform, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -21,6 +22,7 @@ import { IS_WEB } from '@/lib/webPressableStyles';
 import {
   colorWithAlpha,
   fontRegular,
+  fontSemibold,
   getHeroBandGradient,
   useTheme,
   useThemedStyles,
@@ -66,6 +68,9 @@ export function DashboardHero({
       -1,
       true,
     );
+    return () => {
+      cancelAnimation(drift);
+    };
   }, [drift]);
 
   const orbStyle = useAnimatedStyle(() => ({
@@ -119,12 +124,29 @@ export function DashboardHero({
       fontFamily: fontRegular,
       color: colors.labelSecondary,
     },
-    context: {
-      fontSize: 13,
-      lineHeight: 18,
-      fontFamily: fontRegular,
-      color: colors.labelTertiary,
+    contextRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
       marginTop: spacing.xs,
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 6,
+      borderRadius: radii.pill,
+      backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.16 : 0.72),
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colorWithAlpha(colors.primaryOnPrimary, isDark ? 0.18 : 0.35),
+    },
+    chipLabel: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: isDark ? colors.labelPrimary : colors.labelPrimary,
     },
   }));
 
@@ -144,7 +166,11 @@ export function DashboardHero({
             namePlaceholder={namePlaceholder}
           />
           <DashboardHeroSubtitle subtitle={subtitle} />
-          <Text style={styles.context}>{contextLine ?? formatDashboardDate()}</Text>
+          <View style={styles.contextRow}>
+            <View style={styles.chip}>
+              <Text style={styles.chipLabel}>{contextLine ?? formatDashboardDate()}</Text>
+            </View>
+          </View>
         </View>
         {showActions ? (
           <DashboardHeroActions

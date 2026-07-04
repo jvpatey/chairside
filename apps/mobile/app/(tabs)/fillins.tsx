@@ -45,6 +45,7 @@ import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
@@ -176,6 +177,7 @@ export default function FillInsScreen() {
   }, [checkApplications, markApplicationsSeen, markShiftPostsSeen, province, user?.id]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
   useRefreshOnForeground(load);
 
   useEffect(() => {
@@ -347,6 +349,9 @@ export default function FillInsScreen() {
         subtitle="Temp shifts and your availability."
         scroll
         scrollEnabled={!showOpenMap}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        refreshAccent="secondary"
       >
         <View style={styles.content}>
           <View style={styles.controlsBlock} onLayout={handleControlsLayout}>

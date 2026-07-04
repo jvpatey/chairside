@@ -32,6 +32,16 @@ export function usePillBadgeStyles(size: PillBadgeSize = 'md') {
       fontWeight: '600',
       lineHeight: size === 'sm' ? 16 : 18,
     },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
   }));
 }
 
@@ -40,6 +50,7 @@ type PillBadgeProps = {
   color: string;
   backgroundColor: string;
   borderColor?: string;
+  showDot?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;
   size?: PillBadgeSize;
@@ -51,6 +62,7 @@ export function PillBadge({
   color,
   backgroundColor,
   borderColor,
+  showDot = false,
   onPress,
   accessibilityLabel,
   size = 'md',
@@ -65,14 +77,17 @@ export function PillBadge({
     style,
   ];
 
+  const content = (
+    <View style={styles.row}>
+      {showDot ? <View style={[styles.dot, { backgroundColor: color }]} /> : null}
+      <Text style={[styles.label, { color }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+
   if (!onPress) {
-    return (
-      <View style={badgeStyle}>
-        <Text style={[styles.label, { color }]} numberOfLines={1}>
-          {label}
-        </Text>
-      </View>
-    );
+    return <View style={badgeStyle}>{content}</View>;
   }
 
   return (
@@ -89,9 +104,7 @@ export function PillBadge({
         webHover(hovered, pressed, webListRowHoverStyles(colors)),
         pressed && { opacity: 0.88 },
       ]}>
-      <Text style={[styles.label, { color }]} numberOfLines={1}>
-        {label}
-      </Text>
+      {content}
     </Pressable>
   );
 }

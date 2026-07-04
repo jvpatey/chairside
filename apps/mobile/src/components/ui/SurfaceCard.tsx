@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Pressable,
   StyleSheet,
@@ -14,8 +15,10 @@ import {
   webTileHoverStyles,
 } from '@/lib/webPressableStyles';
 import {
+  getSurfaceGradient,
   radii,
   type ElevationLevel,
+  useTheme,
   useThemedStyles,
 } from '@/theme';
 
@@ -35,30 +38,57 @@ type SurfaceCardProps = {
   contentStyle?: StyleProp<ViewStyle>;
 };
 
+function SurfaceCardContent({
+  children,
+  gap,
+  contentStyle,
+  styles,
+}: {
+  children: ReactNode;
+  gap: boolean;
+  contentStyle?: StyleProp<ViewStyle>;
+  styles: ReturnType<typeof useThemedStyles<{ content: ViewStyle }>>;
+}) {
+  return <View style={[gap && styles.content, contentStyle]}>{children}</View>;
+}
+
 export function SurfaceCard({
   children,
   variant = 'default',
   padding = 'md',
   gap = false,
-  elevationLevel = 'none',
+  elevationLevel = 'subtle',
   minHeight,
   onPress,
   style,
   contentStyle,
 }: SurfaceCardProps) {
+  const { colors, isDark } = useTheme();
+  const surfaceGradient = getSurfaceGradient(colors, isDark);
+  const showGradient = isDark && variant === 'default';
+
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     card: {
-      backgroundColor:
-        variant === 'success' ? `${colors.success}10` : colors.surface,
       borderRadius: radii.lg,
-      borderWidth: StyleSheet.hairlineWidth,
+      overflow: 'hidden',
+      borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
       borderColor:
-        variant === 'success' ? `${colors.success}40` : colors.separator,
+        variant === 'success'
+          ? `${colors.success}40`
+          : isDark
+            ? colors.separator
+            : 'transparent',
       ...(padding === 'none' ? null : { padding: padding === 'lg' ? spacing.lg : spacing.md }),
       ...(gap ? { gap: spacing.sm } : null),
       ...(minHeight != null ? { minHeight } : null),
       ...(elevationLevel !== 'none' ? elevation(elevationLevel) : null),
       ...webPointer(onPress ? 'pointer' : 'default'),
+    },
+    cardDefault: {
+      backgroundColor: variant === 'success' ? `${colors.success}10` : colors.surface,
+    },
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
     },
     cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: {
@@ -69,14 +99,21 @@ export function SurfaceCard({
     },
   }));
 
-  const cardStyle = [styles.card, style];
+  const cardStyle = [styles.card, styles.cardDefault, style];
+
+  const inner = (
+    <>
+      {showGradient ? (
+        <LinearGradient colors={surfaceGradient} style={styles.gradient} pointerEvents="none" />
+      ) : null}
+      <SurfaceCardContent gap={gap} contentStyle={contentStyle} styles={styles}>
+        {children}
+      </SurfaceCardContent>
+    </>
+  );
 
   if (!onPress) {
-    return (
-      <View style={cardStyle}>
-        <View style={[gap && styles.content, contentStyle]}>{children}</View>
-      </View>
-    );
+    return <View style={cardStyle}>{inner}</View>;
   }
 
   return (
@@ -91,7 +128,7 @@ export function SurfaceCard({
         webHover(hovered, pressed, styles.cardHovered),
         pressed && styles.cardPressed,
       ]}>
-      <View style={[gap && styles.content, contentStyle]}>{children}</View>
+      {inner}
     </Pressable>
   );
 }

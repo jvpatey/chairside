@@ -77,11 +77,10 @@ export function OnboardingShell({
   const { colors } = useTheme();
   const showTabAtmosphere = tabAtmosphere !== 'none';
   const containerBackground =
-    transparentBackground && showTabAtmosphere ? 'transparent' : colors.background;
-  const atmosphereLayer =
-    transparentBackground && showTabAtmosphere && Platform.OS === 'web' ? (
-      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
-    ) : null;
+    transparentBackground && showTabAtmosphere ? 'transparent' : colors.backgroundGrouped;
+  const atmosphereLayer = showTabAtmosphere ? (
+    <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+  ) : null;
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const scrollYRef = useRef(0);
@@ -121,7 +120,7 @@ export function OnboardingShell({
     footer: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
-      backgroundColor: colors.background,
+      backgroundColor: colors.backgroundGrouped,
     },
   }));
 

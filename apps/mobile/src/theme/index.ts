@@ -7,7 +7,7 @@ import { radii, getElevationStyle, type ElevationLevel } from './tokens';
 
 export { Colors, darkColors, getColors, lightColors } from './colors';
 export { getGlassTokens, type GlassTokens } from './glass';
-export { fontBold, fontRegular, fontSemibold, fontWordmark } from './fonts';
+export { fontBold, fontExtraBold, fontRegular, fontSemibold, fontWordmark } from './fonts';
 export { radii, getElevationStyle, type ElevationLevel } from './tokens';
 export {
   colorWithAlpha,
@@ -22,6 +22,8 @@ export {
   getStatSelectedSegmentGradient,
   getAppliedRowGradient,
   getFillInHeroGradient,
+  getSurfaceGradient,
+  getTabIndicatorGradient,
   type GradientAccent,
 } from './gradients';
 export {

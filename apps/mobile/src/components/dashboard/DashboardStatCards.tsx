@@ -6,7 +6,8 @@ import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   colorWithAlpha,
-  fontBold,
+  fontExtraBold,
+  fontRegular,
   fontSemibold,
   getStatCardIdleGradient,
   getStatCardSelectedGradient,
@@ -35,11 +36,12 @@ function StatCardValue({ value }: { value: number }) {
     value: {
       fontSize: 28,
       lineHeight: 32,
-      fontFamily: fontBold,
-      fontWeight: '700',
+      fontFamily: fontExtraBold,
+      fontWeight: '800',
       color: colors.labelPrimary,
       letterSpacing: -0.8,
       textAlign: 'center' as const,
+      fontVariant: ['tabular-nums'] as const,
     },
   }));
 
@@ -68,7 +70,7 @@ export function DashboardStatCards<T extends string = string>({
       minWidth: 0,
       borderRadius: radii.lg,
       overflow: 'hidden',
-      borderWidth: StyleSheet.hairlineWidth,
+      borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
       borderColor: colors.separator,
       minHeight: isTablet ? 96 : 88,
       ...elevation('subtle'),
@@ -76,6 +78,7 @@ export function DashboardStatCards<T extends string = string>({
       ...(isWeb ? { width: 0 } : null),
     },
     cardSelected: {
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colorWithAlpha(colors.primary, isDark ? 0.42 : 0.28),
       ...elevation('raised'),
     },

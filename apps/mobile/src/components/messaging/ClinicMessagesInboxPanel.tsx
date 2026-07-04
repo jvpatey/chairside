@@ -14,6 +14,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useInboxConversationRealtime } from '@/hooks/useConversationRealtime';
 import { useInboxRealtime } from '@/hooks/useInboxRealtime';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { patchConversationFromRealtimeUpdate } from '@/lib/conversationRealtime';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
@@ -99,6 +100,7 @@ export function ClinicMessagesInboxPanel({
   }, [publishConversations, refreshClinicProfile, refreshUnread, user?.id]);
 
   useRefreshOnFocus(load);
+  const { refreshing, onRefresh } = usePullToRefresh(load);
 
   useInboxConversationRealtime(user?.id, 'clinic', (update) => {
     if (!user?.id) return;
@@ -170,6 +172,8 @@ export function ClinicMessagesInboxPanel({
         scroll={scroll ?? !compact}
         fillsContainer={fillsContainer}
         animateEntry={false}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -182,6 +186,8 @@ export function ClinicMessagesInboxPanel({
       scroll={scroll ?? !compact}
       fillsContainer={fillsContainer}
       animateEntry={false}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
     >
       <View style={styles.content}>
         {loadError ? (

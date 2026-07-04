@@ -12,11 +12,14 @@ import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWo
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { getClinicOutreachUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
+import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
-import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
@@ -177,7 +180,7 @@ export default function FindAvailableWorkersScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell transparentBackground>
+      <OnboardingShell backgroundAccessory={<AuthHeroGlow accent={FILL_IN_ACCENT} />}>
       <View style={styles.form}>
         <AuthScreenHeader
           title="Find available workers"
@@ -220,33 +223,47 @@ export default function FindAvailableWorkersScreen() {
         {formError ? <FormErrorBanner message={formError} /> : null}
 
         {!isProfileComplete ? (
-          <Text style={styles.empty}>Complete your clinic profile to browse available workers.</Text>
+          <EmptyState
+            icon="person-outline"
+            title="Complete your profile"
+            message="Finish your clinic profile to browse available workers."
+            accent={FILL_IN_ACCENT}
+          />
         ) : isOutreachLocked ? null : isLoading ? (
-          <PageLoadingDetail />
+          <PageLoadingList rowCount={4} message="Loading available workers…" />
         ) : workers.length === 0 ? (
-          <Text style={styles.empty}>
-            No workers are open to clinic outreach for {filteredRoleLabel} in{' '}
-            {clinicProfile?.province ?? 'your province'} yet.
-          </Text>
+          <EmptyState
+            icon="people-outline"
+            title="No workers available"
+            message={`No workers are open to clinic outreach for ${filteredRoleLabel} in ${clinicProfile?.province ?? 'your province'} yet.`}
+            accent={FILL_IN_ACCENT}
+          />
         ) : filteredWorkers.length === 0 ? (
-          <Text style={styles.empty}>
-            {hasSearch
-              ? 'No workers match your search.'
-              : `No workers are open to clinic outreach for ${filteredRoleLabel} in ${clinicProfile?.province ?? 'your province'} yet.`}
-          </Text>
+          <EmptyState
+            icon="search-outline"
+            title={hasSearch ? 'No matches' : 'No workers available'}
+            message={
+              hasSearch
+                ? 'No workers match your search.'
+                : `No workers are open to clinic outreach for ${filteredRoleLabel} in ${clinicProfile?.province ?? 'your province'} yet.`
+            }
+            accent={FILL_IN_ACCENT}
+          />
         ) : (
           <>
             <Text style={styles.count}>
               {filteredWorkers.length} worker{filteredWorkers.length === 1 ? '' : 's'} available
             </Text>
             <View style={styles.list}>
-              {filteredWorkers.map((worker) => (
-                <AvailableFillInWorkerCard
-                  key={worker.workerId}
-                  worker={worker}
-                  onMessage={() => handleMessage(worker)}
-                />
-              ))}
+              <StaggeredList>
+                {filteredWorkers.map((worker) => (
+                  <AvailableFillInWorkerCard
+                    key={worker.workerId}
+                    worker={worker}
+                    onMessage={() => handleMessage(worker)}
+                  />
+                ))}
+              </StaggeredList>
             </View>
           </>
         )}

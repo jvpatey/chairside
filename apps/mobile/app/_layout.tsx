@@ -2,6 +2,7 @@ import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { ThemeProvider } from '@react-navigation/native';
@@ -14,6 +15,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { getColors } from '@/theme/colors';
 import { getAppNavigationTheme } from '@/theme/navigationTheme';
+
+import { ToastProvider } from '@/contexts/ToastContext';
 
 import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
@@ -44,6 +47,7 @@ export default function RootLayout() {
     PlusJakartaSans_400Regular,
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
 
   const fontsReady = fontsLoaded || !!fontError;
@@ -73,6 +77,7 @@ export default function RootLayout() {
             <NotificationProvider>
               <ResumePreviewProvider>
                 <OnboardingProvider>
+                  <ToastProvider>
                   <PushRegistration />
                   <ConfirmActionSheetHost />
                   <VercelAnalytics />
@@ -93,6 +98,7 @@ export default function RootLayout() {
                   <Stack.Screen name="support" options={{ headerShown: false }} />
                   <Stack.Screen name="terms" options={{ headerShown: false }} />
                   </Stack>
+                  </ToastProvider>
                 </OnboardingProvider>
               </ResumePreviewProvider>
             </NotificationProvider>
