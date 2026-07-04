@@ -31,11 +31,20 @@ export function NotificationBell({
   const { unreadCount, isReady } = useNotifications();
   const [open, setOpen] = useState(false);
   const inHero = placement === 'hero';
+  const isCompact = size <= 32;
+  const isSmall = size <= 28;
 
-  const iconSize = Math.round(size * 0.55);
-  const badgeSize = Math.max(14, Math.round(size * 0.45));
+  const iconSize = Math.round(size * (isCompact ? 0.52 : 0.55));
+  /** Tiny hero buttons can't fit a count pill inside the clipped glass cluster. */
+  const useDotBadge = isSmall && embedded;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
+    hitArea: {
+      width: size,
+      height: size,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     button: {
       width: size,
       height: size,
@@ -56,24 +65,36 @@ export function NotificationBell({
       backgroundColor: colors.separator,
       opacity: 0.9,
     },
-    badge: {
+    dotBadge: {
       position: 'absolute',
-      top: size <= 32 ? 1 : 2,
-      right: size <= 32 ? 1 : 2,
-      minWidth: badgeSize,
-      height: badgeSize,
-      borderRadius: badgeSize / 2,
+      top: isCompact ? 3 : 4,
+      right: isCompact ? 3 : 4,
+      width: isCompact ? 8 : 10,
+      height: isCompact ? 8 : 10,
+      borderRadius: isCompact ? 4 : 5,
+      backgroundColor: colors.destructive,
+      borderWidth: 1.5,
+      borderColor: embedded ? colors.surface : colors.backgroundGrouped,
+    },
+    countBadge: {
+      position: 'absolute',
+      top: isCompact ? 1 : 2,
+      right: isCompact ? 1 : 2,
+      minWidth: isCompact ? 15 : 18,
+      height: isCompact ? 15 : 18,
+      borderRadius: isCompact ? 8 : 9,
       backgroundColor: colors.destructive,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 5,
-      borderWidth: 2,
+      paddingHorizontal: isCompact ? 3 : 5,
+      borderWidth: isCompact ? 1.5 : 2,
       borderColor: embedded ? colors.surface : colors.backgroundGrouped,
     },
     badgeText: {
       color: colors.primaryOnPrimary,
-      fontSize: 11,
+      fontSize: isCompact ? 9 : 11,
       fontWeight: '700',
+      lineHeight: isCompact ? 11 : 13,
     },
   }));
 
@@ -81,32 +102,38 @@ export function NotificationBell({
 
   return (
     <>
-      <Pressable
-        style={({ pressed, hovered }) => [
-          styles.button,
-          webHover(hovered, pressed, styles.buttonHovered, !isReady),
-          pressed && styles.buttonPressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={
-          unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'
-        }
-        onPress={() => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          setOpen(true);
-        }}
-        disabled={!isReady}>
-        <Ionicons
-          name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
-          size={iconSize}
-          color={colors.labelPrimary}
-        />
-        {unreadCount > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-          </View>
-        ) : null}
-      </Pressable>
+      <View style={styles.hitArea}>
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.button,
+            webHover(hovered, pressed, styles.buttonHovered, !isReady),
+            pressed && styles.buttonPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'
+          }
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setOpen(true);
+          }}
+          disabled={!isReady}>
+          <Ionicons
+            name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
+            size={iconSize}
+            color={colors.labelPrimary}
+          />
+          {unreadCount > 0 ? (
+            useDotBadge ? (
+              <View style={styles.dotBadge} accessibilityElementsHidden importantForAccessibility="no" />
+            ) : (
+              <View style={styles.countBadge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )
+          ) : null}
+        </Pressable>
+      </View>
       <NotificationsFeedModal visible={open} onClose={() => setOpen(false)} />
     </>
   );

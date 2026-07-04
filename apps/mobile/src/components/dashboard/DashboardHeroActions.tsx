@@ -26,17 +26,17 @@ export function DashboardHeroActions({
   const name = displayName?.trim();
   const showSignOut = Platform.OS === 'web';
 
-  const buttonSize = compact ? 28 : 40;
+  const buttonSize = compact ? 32 : 40;
 
   const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
     actionsCluster: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: compact ? 3 : spacing.xs,
-      paddingHorizontal: compact ? 5 : spacing.sm,
-      paddingVertical: compact ? 3 : spacing.xs + 2,
+      gap: compact ? 4 : spacing.xs,
+      paddingHorizontal: compact ? 6 : spacing.sm,
+      paddingVertical: compact ? 5 : spacing.xs + 2,
       flexShrink: 0,
-      minHeight: compact ? 34 : 48,
+      minHeight: compact ? 42 : 48,
     },
     avatarRing: {
       borderRadius: radii.pill,
