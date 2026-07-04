@@ -1,5 +1,13 @@
 import { ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
@@ -12,7 +20,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
-import { webGlassSurface, webTypography } from '@/theme/web';
+import { webTypography } from '@/theme/web';
 
 type ScreenProps = {
   title?: string;
@@ -32,7 +40,7 @@ type ScreenProps = {
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
-/** Web Screen with sticky glass header and refined typography. */
+/** Web Screen with sticky header and refined typography. */
 export function Screen({
   title,
   subtitle,
@@ -51,16 +59,16 @@ export function Screen({
   contentContainerStyle,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
-  const { colors, spacing, isDark } = useTheme();
+  const { colors, spacing } = useTheme();
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
   const showAtmosphere = tabAtmosphere !== 'none';
   const atmosphereLayer =
-    showAtmosphere && Platform.OS === 'web'
-      ? <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
-      : null;
+    showAtmosphere && Platform.OS === 'web' ? (
+      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+    ) : null;
   const containerBackground =
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
@@ -79,9 +87,7 @@ export function Screen({
       paddingTop: insets.top + spacing.sm,
       paddingBottom: spacing.sm,
       paddingHorizontal: spacing.lg,
-      ...webGlassSurface(colors, isDark),
-      borderBottomWidth: 1,
-      borderBottomColor: colors.separator,
+      backgroundColor: 'transparent',
     },
     stickyInner: {
       flexDirection: 'row' as const,
