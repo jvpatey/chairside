@@ -10,7 +10,6 @@ import {
   updateApplicationStatus,
   type ClinicApplication,
 } from '@chairside/api';
-import { getRoleTypeLabel } from '@chairside/config';
 import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
@@ -24,6 +23,7 @@ import {
   formatRoleTypesLabel,
   resolveWorkerRoleTypes,
   getSpecialtyLabel,
+  getRoleTypeLabel,
 } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,6 +46,7 @@ import {
   ClinicWorkerCrmSection,
   ClinicWorkerCrmSheet,
 } from '@/components/clinic/ClinicWorkerCrmSheet';
+import { ApplicationPdfPacketPreviewModal } from '@/components/clinic/ApplicationPdfPacketPreviewModal';
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
 import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
@@ -67,12 +68,20 @@ import {
   openInterviewCalendarInvite,
 } from '@/lib/calendarInvite';
 import { buildResumeFileName } from '@/lib/openResumePreview';
+import {
+  canGenerateApplicationPdfPacket,
+  generateApplicationPdfPacket,
+  type ApplicationPdfPacketResult,
+} from '@/lib/applicationPdfPacket';
 import { getClinicCalendarRoute } from '@/lib/calendarNavigation';
 import {
   getClinicApplicationMessagesRoute,
   type ClinicApplicationReturnTarget,
 } from '@/lib/routing';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
+import { getClinicApplicantBadgeVisibility } from '@/lib/applicationPipeline';
+import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
 import { fontSemibold, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 function useBrandColors(accent: GradientAccent) {
@@ -82,9 +91,6 @@ function useBrandColors(accent: GradientAccent) {
     brandSubtle: accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle,
   };
 }
-import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
-import { getClinicApplicantBadgeVisibility } from '@/lib/applicationPipeline';
-import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
 
 type ClinicApplicationDetailCardProps = {
   application: ClinicApplication;
@@ -108,6 +114,7 @@ type ActionButtonSpec = {
   label: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
   onPress: () => void;
+  disabled?: boolean;
 };
 
 type SectionIcon = React.ComponentProps<typeof Ionicons>['name'];
@@ -535,6 +542,7 @@ function ActionPanel({
   secondary,
   destructive,
   messageAction,
+  summaryAction,
   removeAction,
   accent = 'primary',
 }: {
@@ -542,6 +550,7 @@ function ActionPanel({
   secondary: ActionButtonSpec[];
   destructive: ActionButtonSpec[];
   messageAction: ActionButtonSpec;
+  summaryAction?: ActionButtonSpec | null;
   removeAction: ActionButtonSpec | null;
   accent?: GradientAccent;
 }) {
@@ -568,6 +577,15 @@ function ActionPanel({
       <View style={styles.actionStack}>
         {hasWorkflow ? <ApplicationActionButtons actions={workflowActions} accent={accent} /> : null}
         {hasWorkflow ? <View style={styles.divider} /> : null}
+        {summaryAction ? (
+          <OnboardingButton
+            label={summaryAction.label}
+            variant="secondary"
+            accent={accent}
+            disabled={summaryAction.disabled}
+            onPress={summaryAction.onPress}
+          />
+        ) : null}
         <OnboardingButton
           label={messageAction.label}
           accent={accent}
@@ -608,6 +626,10 @@ export function ClinicApplicationDetailCard({
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const [crmSheetVisible, setCrmSheetVisible] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfPreviewVisible, setPdfPreviewVisible] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState<ApplicationPdfPacketResult | null>(null);
+  const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
   const isJob = application.post_type === 'job';
   const accent: GradientAccent = isJob ? 'primary' : 'secondary';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
@@ -836,6 +858,34 @@ export function ClinicApplicationDetailCard({
 
   const handleMessage = () => {
     router.push(getClinicApplicationMessagesRoute(application.id, returnTo));
+  };
+
+  const handleOpenCandidatePacket = async () => {
+    if (!canGenerateApplicationPdfPacket(application) || isGeneratingPdf) return;
+
+    setIsGeneratingPdf(true);
+    setPdfPreviewError(null);
+    try {
+      const result = await generateApplicationPdfPacket({
+        application,
+        clinicName,
+      });
+      setPdfPreview(result);
+      setPdfPreviewVisible(true);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      if (result.resumeMergeWarning) {
+        Alert.alert('Candidate packet ready', result.resumeMergeWarning);
+      }
+    } catch (error) {
+      setPdfPreview(null);
+      setPdfPreviewError(
+        error instanceof Error ? error.message : 'Could not create candidate packet.',
+      );
+      setPdfPreviewVisible(true);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handleAcceptFillIn = () => {
@@ -1078,6 +1128,16 @@ export function ClinicApplicationDetailCard({
               label: hasUnreadMessages ? 'Message applicant · New' : 'Message applicant',
               onPress: handleMessage,
             }}
+            summaryAction={
+              canGenerateApplicationPdfPacket(application)
+                ? {
+                    key: 'candidate-summary',
+                    label: isGeneratingPdf ? 'Preparing summary…' : 'Candidate summary',
+                    onPress: () => void handleOpenCandidatePacket(),
+                    disabled: isGeneratingPdf,
+                  }
+                : null
+            }
             removeAction={
               canRemoveFromList
                 ? {
@@ -1220,6 +1280,20 @@ export function ClinicApplicationDetailCard({
           onClose={() => setCrmSheetVisible(false)}
         />
       ) : null}
+
+      <ApplicationPdfPacketPreviewModal
+        visible={pdfPreviewVisible}
+        candidateName={applicantName}
+        packet={pdfPreview}
+        isLoading={isGeneratingPdf}
+        error={pdfPreviewError}
+        onClose={() => {
+          setPdfPreviewVisible(false);
+          setPdfPreviewError(null);
+        }}
+        onRetry={() => void handleOpenCandidatePacket()}
+        onPdfError={(message) => setPdfPreviewError(message)}
+      />
     </>
   );
 }
