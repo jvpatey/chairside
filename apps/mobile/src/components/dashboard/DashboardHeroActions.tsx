@@ -12,6 +12,7 @@ type DashboardHeroActionsProps = {
   avatarKind: 'worker' | 'clinic';
   displayName?: string | null;
   photoUri?: string | null;
+  compact?: boolean;
 };
 
 export function DashboardHeroActions({
@@ -19,24 +20,28 @@ export function DashboardHeroActions({
   avatarKind,
   displayName,
   photoUri,
+  compact = false,
 }: DashboardHeroActionsProps) {
   const { colors, isDark } = useTheme();
   const name = displayName?.trim();
   const showSignOut = Platform.OS === 'web';
 
+  const buttonSize = compact ? 28 : 40;
+
   const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
     actionsCluster: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: spacing.xs,
+      gap: compact ? 3 : spacing.xs,
+      paddingHorizontal: compact ? 5 : spacing.sm,
+      paddingVertical: compact ? 3 : spacing.xs + 2,
       flexShrink: 0,
+      minHeight: compact ? 34 : 48,
     },
     avatarRing: {
       borderRadius: radii.pill,
-      padding: 2,
-      borderWidth: 2,
+      padding: compact ? 1 : 2,
+      borderWidth: compact ? 1.5 : 2,
       borderColor: colorWithAlpha(colors.primary, isDark ? 0.55 : 0.4),
       backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.5 : 0.88),
     },
@@ -47,7 +52,7 @@ export function DashboardHeroActions({
 
   return (
     <LiquidGlassSurface
-      borderRadius={22}
+      borderRadius={compact ? 18 : 22}
       style={styles.actionsCluster}
       overlayColor={colorWithAlpha(colors.surface, isDark ? 0.58 : 0.84)}>
       <View style={styles.avatarRing}>
@@ -57,9 +62,10 @@ export function DashboardHeroActions({
           avatarKind={avatarKind}
           displayName={name}
           photoUri={photoUri}
+          size={buttonSize}
         />
       </View>
-      <NotificationBell placement="hero" embedded />
+      <NotificationBell placement="hero" embedded size={buttonSize} />
       {showSignOut ? (
         <View style={styles.signOutWrap}>
           <SignOutHeaderButton />

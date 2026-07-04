@@ -18,11 +18,13 @@ type NotificationBellProps = {
   placement?: 'header' | 'hero';
   /** Transparent button when nested inside a glass hero cluster */
   embedded?: boolean;
+  size?: number;
 };
 
 export function NotificationBell({
   placement = 'header',
   embedded = false,
+  size = 40,
 }: NotificationBellProps) {
   const { colors, isDark } = useTheme();
   const clientId = getPingramClientId();
@@ -30,11 +32,14 @@ export function NotificationBell({
   const [open, setOpen] = useState(false);
   const inHero = placement === 'hero';
 
+  const iconSize = Math.round(size * 0.55);
+  const badgeSize = Math.max(14, Math.round(size * 0.45));
+
   const styles = useThemedStyles(({ colors, spacing }) => ({
     button: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: size,
+      height: size,
+      borderRadius: size / 2,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: inHero ? 0 : spacing.sm,
@@ -53,11 +58,11 @@ export function NotificationBell({
     },
     badge: {
       position: 'absolute',
-      top: 2,
-      right: 2,
-      minWidth: 18,
-      height: 18,
-      borderRadius: 9,
+      top: size <= 32 ? 1 : 2,
+      right: size <= 32 ? 1 : 2,
+      minWidth: badgeSize,
+      height: badgeSize,
+      borderRadius: badgeSize / 2,
       backgroundColor: colors.destructive,
       alignItems: 'center',
       justifyContent: 'center',
@@ -93,7 +98,7 @@ export function NotificationBell({
         disabled={!isReady}>
         <Ionicons
           name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
-          size={22}
+          size={iconSize}
           color={colors.labelPrimary}
         />
         {unreadCount > 0 ? (

@@ -178,6 +178,7 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
     cell: {
       flex: 1,
       minWidth: 0,
+      alignSelf: 'stretch',
     },
   }));
 
@@ -202,7 +203,13 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
   );
 }
 
-function renderActionButtons(actions: ActionButtonSpec[], accent: GradientAccent = 'primary') {
+function ApplicationActionButtons({
+  actions,
+  accent = 'primary',
+}: {
+  actions: ActionButtonSpec[];
+  accent?: GradientAccent;
+}) {
   if (actions.length === 0) return null;
 
   const chunks: ActionButtonSpec[][] = [];
@@ -220,6 +227,7 @@ function renderActionButtons(actions: ActionButtonSpec[], accent: GradientAccent
             variant={chunk[0].variant ?? 'primary'}
             accent={accent}
             onPress={chunk[0].onPress}
+            disabled={chunk[0].disabled}
           />
         ) : (
           <ApplicationActionRow key={chunk.map((action) => action.key).join('-')}>
@@ -230,6 +238,8 @@ function renderActionButtons(actions: ActionButtonSpec[], accent: GradientAccent
                 variant={action.variant ?? 'primary'}
                 accent={accent}
                 onPress={action.onPress}
+                disabled={action.disabled}
+                split
               />
             ))}
           </ApplicationActionRow>
@@ -536,60 +546,42 @@ function ActionPanel({
   accent?: GradientAccent;
 }) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    wrap: {
-      gap: 0,
-    },
-    primaryBlock: {
+    actionStack: {
       gap: spacing.sm,
+      alignSelf: 'stretch',
     },
-    utilityBlock: {
-      gap: spacing.sm,
-      marginTop: spacing.md,
-      paddingTop: spacing.md,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.separator,
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
     },
   }));
 
-  const hasWorkflow = primary.length > 0 || secondary.length > 0 || destructive.length > 0;
+  const workflowActions = [
+    ...primary,
+    ...secondary.map((action) => ({ ...action, variant: action.variant ?? 'secondary' })),
+    ...destructive.map((action) => ({ ...action, variant: action.variant ?? 'destructive' })),
+  ];
+  const hasWorkflow = workflowActions.length > 0;
 
   return (
-    <SurfaceCard padding="md" gap>
-      <View style={styles.wrap}>
-        {hasWorkflow ? (
-          <View style={styles.primaryBlock}>
-            {renderActionButtons(primary, accent)}
-            {renderActionButtons(
-              secondary.map((a) => ({ ...a, variant: a.variant ?? 'secondary' })),
-              accent,
-            )}
-            {renderActionButtons(
-              destructive.map((a) => ({ ...a, variant: a.variant ?? 'destructive' })),
-              accent,
-            )}
-          </View>
-        ) : null}
-
-        <View
-          style={[
-            styles.utilityBlock,
-            !hasWorkflow && { borderTopWidth: 0, marginTop: 0, paddingTop: 0 },
-          ]}>
+    <SurfaceCard padding="md">
+      <View style={styles.actionStack}>
+        {hasWorkflow ? <ApplicationActionButtons actions={workflowActions} accent={accent} /> : null}
+        {hasWorkflow ? <View style={styles.divider} /> : null}
+        <OnboardingButton
+          label={messageAction.label}
+          accent={accent}
+          solid
+          onPress={messageAction.onPress}
+        />
+        {removeAction ? (
           <OnboardingButton
-            label={messageAction.label}
+            label={removeAction.label}
+            variant="ghost"
             accent={accent}
-            solid
-            onPress={messageAction.onPress}
+            onPress={removeAction.onPress}
           />
-          {removeAction ? (
-            <OnboardingButton
-              label={removeAction.label}
-              variant="ghost"
-              accent={accent}
-              onPress={removeAction.onPress}
-            />
-          ) : null}
-        </View>
+        ) : null}
       </View>
     </SurfaceCard>
   );

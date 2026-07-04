@@ -2,7 +2,7 @@ import { resolveAuthProfile } from '@chairside/api';
 import { router } from 'expo-router';
 
 import { isPasswordRecoveryPending } from '@/lib/authRecoveryState';
-import { getHomeRouteForRole } from '@/lib/routing';
+import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import type { UserRole } from '@/types';
 
 export async function handleAuthSuccess(
@@ -16,13 +16,17 @@ export async function handleAuthSuccess(
   }
 
   const profile = await resolveAuthProfile(userId);
-  await refreshProfile();
+  const refreshed = await refreshProfile();
 
-  if (!profile?.role) {
-    router.replace('/(onboarding)/role?fromAuth=1');
-    return;
+  const { href, role } = await resolveAuthenticatedRoute({
+    userId,
+    profile: profile ?? refreshed,
+    refreshProfile,
+  });
+
+  if (role) {
+    await completeOnboarding(role);
   }
 
-  await completeOnboarding(profile.role);
-  router.replace(getHomeRouteForRole(profile.role));
+  router.replace(href);
 }

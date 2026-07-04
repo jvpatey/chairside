@@ -62,6 +62,7 @@ export function DashboardHero({
   const { colors, isDark } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const reducedMotion = useReducedMotion();
+  const overlayActions = !isTablet && showActions;
   const drift = useSharedValue(0);
 
   const startOrbMotion = useCallback(() => {
@@ -99,11 +100,21 @@ export function DashboardHero({
     band: {
       borderRadius: radii.hero,
       overflow: 'hidden',
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.lg + 4,
       borderWidth: Platform.OS === 'web' ? 1 : 0,
       borderColor: colorWithAlpha(colors.primary, isDark ? 0.22 : 0.12),
+      position: 'relative' as const,
       ...elevation('subtle'),
+      ...(overlayActions
+        ? null
+        : {
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.lg + 4,
+          }),
+    },
+    bandContent: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg + 4,
+      paddingTop: spacing.lg + 4,
     },
     gradient: {
       position: 'absolute' as const,
@@ -122,14 +133,25 @@ export function DashboardHero({
       backgroundColor: colorWithAlpha(colors.secondary, isDark ? 0.22 : 0.18),
     },
     row: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
+      position: 'relative' as const,
+      ...(overlayActions
+        ? null
+        : {
+            flexDirection: 'row' as const,
+            alignItems: 'flex-start' as const,
+            gap: spacing.md,
+          }),
     },
     identity: {
       flex: 1,
       minWidth: 0,
       gap: spacing.xs,
+    },
+    actionsCorner: {
+      position: 'absolute' as const,
+      top: spacing.xs,
+      right: spacing.xs,
+      zIndex: 2,
     },
     greeting: {
       fontSize: IS_WEB && isTablet ? 16 : 15,
@@ -168,35 +190,73 @@ export function DashboardHero({
     <View style={styles.band}>
       <LinearGradient colors={gradientColors} style={styles.gradient} />
       <Animated.View style={[styles.orb, orbStyle]} pointerEvents="none" />
-      <View style={styles.row}>
-        <View style={styles.identity}>
-          <Text style={styles.greeting} accessibilityRole="text">
-            {getTimeOfDayGreeting()}
-          </Text>
-          <DashboardHeroName
-            displayName={displayName}
-            namePlaceholder={namePlaceholder}
-          />
-          <DashboardHeroSubtitle
-            subtitle={subtitle}
-            trailing={contextLine ? undefined : formatDashboardDate()}
-          />
-          {contextLine ? (
-            <View style={styles.contextRow}>
-              <View style={styles.chip}>
-                <Text style={styles.chipLabel}>{contextLine}</Text>
-              </View>
-            </View>
-          ) : null}
-        </View>
-        {showActions ? (
+      {overlayActions && showActions ? (
+        <View style={styles.actionsCorner}>
           <DashboardHeroActions
             profileHref={profileHref}
             avatarKind={avatarKind}
             displayName={displayName}
             photoUri={photoUri}
+            compact
           />
-        ) : null}
+        </View>
+      ) : null}
+      <View style={overlayActions ? styles.bandContent : undefined}>
+        <View style={styles.row}>
+          {overlayActions ? (
+            <View style={styles.identity}>
+              <Text style={styles.greeting} accessibilityRole="text">
+                {getTimeOfDayGreeting()}
+              </Text>
+              <DashboardHeroName
+                displayName={displayName}
+                namePlaceholder={namePlaceholder}
+              />
+              <DashboardHeroSubtitle
+                subtitle={subtitle}
+                trailing={contextLine ? undefined : formatDashboardDate()}
+              />
+              {contextLine ? (
+                <View style={styles.contextRow}>
+                  <View style={styles.chip}>
+                    <Text style={styles.chipLabel}>{contextLine}</Text>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          ) : (
+          <>
+            <View style={styles.identity}>
+              <Text style={styles.greeting} accessibilityRole="text">
+                {getTimeOfDayGreeting()}
+              </Text>
+              <DashboardHeroName
+                displayName={displayName}
+                namePlaceholder={namePlaceholder}
+              />
+              <DashboardHeroSubtitle
+                subtitle={subtitle}
+                trailing={contextLine ? undefined : formatDashboardDate()}
+              />
+              {contextLine ? (
+                <View style={styles.contextRow}>
+                  <View style={styles.chip}>
+                    <Text style={styles.chipLabel}>{contextLine}</Text>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+            {showActions ? (
+              <DashboardHeroActions
+                profileHref={profileHref}
+                avatarKind={avatarKind}
+                displayName={displayName}
+                photoUri={photoUri}
+              />
+            ) : null}
+          </>
+        )}
+        </View>
       </View>
     </View>
   );

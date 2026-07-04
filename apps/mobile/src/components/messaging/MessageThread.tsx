@@ -153,6 +153,12 @@ export function MessageThread({
   const searchFocusAttemptedRef = useRef(false);
   onConversationChangeRef.current = onConversationChange;
 
+  useEffect(() => {
+    if (conversation) {
+      onConversationChangeRef.current?.(conversation);
+    }
+  }, [conversation]);
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       flex: 1,
@@ -334,7 +340,6 @@ export function MessageThread({
           role === 'clinic' ? new Date().toISOString() : nextConversation.clinic_last_read_at,
       };
       setConversation(updated);
-      onConversationChangeRef.current?.(updated);
     },
     [role],
   );
@@ -390,7 +395,6 @@ export function MessageThread({
       loadedConversationIdRef.current = conversationId;
       seenMessageIds.current = new Set(nextMessages.map((message) => message.id));
       setConversation(nextConversation);
-      onConversationChangeRef.current?.(nextConversation);
       setMessages(nextMessages);
       setHasMoreMessages(nextMessages.length >= MESSAGE_PAGE_SIZE);
       setLoadError(null);
@@ -434,7 +438,6 @@ export function MessageThread({
         clinic_last_read_at: update.clinic_last_read_at,
         messaging_closed_at: update.messaging_closed_at,
       };
-      onConversationChangeRef.current?.(updated);
       return updated;
     });
   });
@@ -557,7 +560,6 @@ export function MessageThread({
             clinic_last_read_at:
               role === 'clinic' ? new Date().toISOString() : current.clinic_last_read_at,
           };
-          onConversationChangeRef.current?.(updated);
           return updated;
         });
       });
@@ -593,7 +595,6 @@ export function MessageThread({
             last_sender_id: userId,
             unread: false,
           };
-          onConversationChangeRef.current?.(updated);
           return updated;
         });
         await refreshUnread();

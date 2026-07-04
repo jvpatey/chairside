@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs, router } from 'expo-router';
 
 import { renderWorkerTabBar } from '@/components/navigation/AdaptiveTabBar';
+import { WorkerSetupGate } from '@/components/onboarding/SetupGate';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
@@ -117,7 +118,9 @@ export default function TabLayout() {
       <MessageUnreadProvider role="worker">
         <ApplicationTabBadgeProvider role="worker">
           <TabAtmosphereShell role="worker">
-            <WorkerTabNavigator />
+            <WorkerSetupGate>
+              <WorkerTabNavigator />
+            </WorkerSetupGate>
           </TabAtmosphereShell>
         </ApplicationTabBadgeProvider>
       </MessageUnreadProvider>

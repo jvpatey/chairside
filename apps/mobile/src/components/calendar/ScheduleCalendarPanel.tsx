@@ -1,12 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import {
   buildCalendarCells,
@@ -21,9 +16,32 @@ import {
 } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+function selectedDayCircleStyle(
+  colors: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+): ViewStyle {
+  return {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.primaryOnPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web'
+      ? { boxShadow: `0 3px 10px ${isDark ? 'rgba(74, 154, 255, 0.45)' : 'rgba(26, 111, 212, 0.4)'}` }
+      : {
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: isDark ? 0.5 : 0.38,
+          shadowRadius: 8,
+          elevation: 6,
+        }),
+  };
+}
 
 type CalendarDayCellProps = {
   date: Date;
@@ -32,6 +50,7 @@ type CalendarDayCellProps = {
   onSelectDate: (date: Date) => void;
   styles: ReturnType<typeof useThemedStyles<Record<string, object>>>;
   colors: ReturnType<typeof useTheme>['colors'];
+  isDark: boolean;
   dots: React.ReactNode;
 };
 
@@ -42,21 +61,12 @@ function CalendarDayCell({
   onSelectDate,
   styles,
   colors,
+  isDark,
   dots,
 }: CalendarDayCellProps) {
-  const dayScale = useSharedValue(selected ? 1.06 : 1);
-
-  useEffect(() => {
-    dayScale.value = withSpring(selected ? 1.06 : 1, { damping: 14, stiffness: 320 });
-  }, [dayScale, selected]);
-
-  const dayAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: dayScale.value }],
-  }));
-
   return (
     <View style={styles.dayCell}>
-      <AnimatedPressable
+      <Pressable
         accessibilityRole="button"
         accessibilityState={{ selected }}
         onPress={() => {
@@ -64,15 +74,26 @@ function CalendarDayCell({
           onSelectDate(date);
         }}
         style={({ pressed, hovered }) => [
-          styles.dayButton,
-          dayAnimatedStyle,
-          selected && styles.dayButtonSelected,
-          !selected && isToday && styles.dayButtonToday,
+          styles.dayPressable,
           !selected && webHover(hovered, pressed, webListRowHoverStyles(colors)),
           pressed && { opacity: 0.85 },
         ]}>
-        <Text style={[styles.dayText, selected && styles.dayTextSelected]}>{date.getDate()}</Text>
-      </AnimatedPressable>
+        <View
+          style={[
+            styles.dayButton,
+            selected && selectedDayCircleStyle(colors, isDark),
+            !selected && isToday && styles.dayButtonToday,
+          ]}>
+          <Text
+            style={[
+              styles.dayText,
+              !selected && isToday && styles.dayTextToday,
+              selected && styles.dayTextSelected,
+            ]}>
+            {date.getDate()}
+          </Text>
+        </View>
+      </Pressable>
       {dots}
     </View>
   );
@@ -94,7 +115,7 @@ export function ScheduleCalendarPanel({
   eventDateKeys,
   eventIndicatorsByDate,
 }: ScheduleCalendarPanelProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const today = useMemo(() => startOfDay(new Date()), []);
   const [viewMonth, setViewMonth] = useState(() => monthStart(selectedDate));
 
@@ -178,6 +199,10 @@ export function ScheduleCalendarPanel({
       minHeight: 52,
       gap: 4,
     },
+    dayPressable: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     dayButton: {
       width: 38,
       height: 38,
@@ -185,21 +210,24 @@ export function ScheduleCalendarPanel({
       alignItems: 'center',
       justifyContent: 'center',
     },
-    dayButtonSelected: {
-      backgroundColor: colors.primary,
-    },
     dayButtonToday: {
-      borderWidth: 1,
+      borderWidth: 2,
       borderColor: colors.primary,
+      backgroundColor: colors.primarySubtle,
     },
     dayText: {
       fontSize: 15,
       fontWeight: '500',
       color: colors.labelPrimary,
     },
+    dayTextToday: {
+      color: colors.primary,
+      fontWeight: '700',
+    },
     dayTextSelected: {
       color: colors.primaryOnPrimary,
-      fontWeight: '700',
+      fontWeight: '800',
+      fontSize: 16,
     },
     dotRow: {
       flexDirection: 'row',
@@ -242,8 +270,11 @@ export function ScheduleCalendarPanel({
   });
   const cells = buildCalendarCells(viewMonth);
 
-  const renderDots = (date: Date) => {
+  const renderDots = (date: Date, selected: boolean) => {
     const dateKey = toISODate(date);
+    const dotOnSelected = colors.primaryOnPrimary;
+    const fillInOnSelected = isDark ? '#B8F5C8' : '#E8FCEF';
+
     if (!eventDateKeys.has(dateKey)) {
       return <View style={styles.dotRow} />;
     }
@@ -253,15 +284,34 @@ export function ScheduleCalendarPanel({
     if (!indicators?.hasInterview && !indicators?.hasConfirmedFillIn) {
       return (
         <View style={styles.dotRow}>
-          <View style={[styles.dot, { backgroundColor: colors.labelTertiary }]} />
+          <View
+            style={[
+              styles.dot,
+              { backgroundColor: selected ? dotOnSelected : colors.labelTertiary },
+            ]}
+          />
         </View>
       );
     }
 
     return (
       <View style={styles.dotRow}>
-        {indicators?.hasInterview ? <View style={[styles.dot, styles.dotInterview]} /> : null}
-        {indicators?.hasConfirmedFillIn ? <View style={[styles.dot, styles.dotFillIn]} /> : null}
+        {indicators?.hasInterview ? (
+          <View
+            style={[
+              styles.dot,
+              selected ? { backgroundColor: dotOnSelected } : styles.dotInterview,
+            ]}
+          />
+        ) : null}
+        {indicators?.hasConfirmedFillIn ? (
+          <View
+            style={[
+              styles.dot,
+              selected ? { backgroundColor: fillInOnSelected } : styles.dotFillIn,
+            ]}
+          />
+        ) : null}
       </View>
     );
   };
@@ -339,7 +389,8 @@ export function ScheduleCalendarPanel({
               onSelectDate={onSelectDate}
               styles={styles}
               colors={colors}
-              dots={renderDots(date)}
+              isDark={isDark}
+              dots={renderDots(date, selected)}
             />
           );
         })}
