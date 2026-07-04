@@ -2,6 +2,7 @@ import { Redirect } from 'expo-router';
 import type { ReactNode } from 'react';
 
 import { PageLoadingSpinner } from '@/components/ui/PageLoadingState';
+import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import {
@@ -11,7 +12,12 @@ import {
 import { CLINIC_SETUP_BASICS, WORKER_SETUP_BASICS } from '@/lib/routing';
 
 export function ClinicSetupGate({ children }: { children: ReactNode }) {
+  const { session, isAuthReady } = useAuth();
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+
+  if (!isAuthReady || !session) {
+    return <PageLoadingSpinner />;
+  }
 
   if (!isClinicProfileReady) {
     return <PageLoadingSpinner />;
@@ -25,7 +31,12 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
 }
 
 export function WorkerSetupGate({ children }: { children: ReactNode }) {
+  const { session, isAuthReady } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+
+  if (!isAuthReady || !session) {
+    return <PageLoadingSpinner />;
+  }
 
   if (!isWorkerProfileReady) {
     return <PageLoadingSpinner />;
