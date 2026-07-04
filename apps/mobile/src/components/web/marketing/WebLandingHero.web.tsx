@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel.web';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { WebLandingHeroHeadline } from '@/components/web/marketing/WebLandingHeroHeadline.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { ONBOARDING_SUBTITLE } from '@/constants';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -55,9 +56,6 @@ export function WebLandingHero() {
       ...(isWide ? webTypography.displaySm : webTypography.headline),
       color: colors.labelPrimary,
     },
-    highlight: {
-      color: colors.primary,
-    },
     subtitle: {
       ...webTypography.subtitle,
       color: colors.labelSecondary,
@@ -85,10 +83,7 @@ export function WebLandingHero() {
       <View style={styles.inner}>
         <WebPageEnter style={styles.copy}>
           <Text style={styles.eyebrow}>Dental staffing platform</Text>
-          <Text style={styles.headline}>
-            Staffing for dental clinics,{' '}
-            <Text style={styles.highlight}>simplified.</Text>
-          </Text>
+          <WebLandingHeroHeadline style={styles.headline} />
           <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
           <View style={styles.ctaRow}>
             <OnboardingButton

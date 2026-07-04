@@ -89,6 +89,15 @@ body,
   }
 }
 
+@keyframes chairside-headline-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -20% 0;
+  }
+}
+
 *:focus {
   outline: none;
 }

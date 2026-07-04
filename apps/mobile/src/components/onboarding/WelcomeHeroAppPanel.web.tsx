@@ -10,7 +10,7 @@ import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressable
 import { useThemedStyles } from '@/theme';
 
 const WEB_SCREENSHOT = require('../../../assets/images/web_screenshot.png');
-const SCREENSHOT_ASPECT_RATIO = 3008 / 1602;
+const SCREENSHOT_ASPECT_RATIO = 1556 / 890;
 
 type WelcomeHeroAppPanelProps = {
   enterDelayMs?: number;
