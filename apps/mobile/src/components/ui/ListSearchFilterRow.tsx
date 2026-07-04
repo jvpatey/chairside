@@ -9,6 +9,7 @@ type ListSearchFilterRowProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   accessibilityLabel?: string;
+  disabled?: boolean;
   filter?: ReactNode;
 };
 
@@ -17,6 +18,7 @@ export function ListSearchFilterRow({
   onChange,
   placeholder = 'Search',
   accessibilityLabel = 'Search',
+  disabled = false,
   filter,
 }: ListSearchFilterRowProps) {
   const styles = useThemedStyles(({ spacing }) => ({
@@ -39,6 +41,7 @@ export function ListSearchFilterRow({
           onChange={onChange}
           placeholder={placeholder}
           accessibilityLabel={accessibilityLabel}
+          disabled={disabled}
         />
       </View>
       {filter}

@@ -98,6 +98,42 @@ export function useEnterAnimation(delayMs = 0) {
   return { opacity, translateY };
 }
 
+/** Scale + fade entrance for centered web dialogs. */
+export function useDialogEnter(visible: boolean) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.96)).current;
+
+  useEffect(() => {
+    if (!visible) {
+      opacity.setValue(0);
+      scale.setValue(0.96);
+      return;
+    }
+
+    if (prefersReducedMotion()) {
+      opacity.setValue(1);
+      scale.setValue(1);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        tension: 280,
+        friction: 22,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [opacity, scale, visible]);
+
+  return { opacity, scale };
+}
+
 /** Horizontal shimmer sweep for skeleton placeholders. */
 export function useShimmerTranslate(containerWidth = 280) {
   const translateX = useRef(new Animated.Value(-containerWidth)).current;

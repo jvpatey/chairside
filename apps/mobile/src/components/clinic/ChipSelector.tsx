@@ -11,6 +11,7 @@ type ChipSelectorProps<T extends string> = {
   horizontal?: boolean;
   compact?: boolean;
   accent?: GradientAccent;
+  disabled?: boolean;
   onChange: (value: T | T[]) => void;
 };
 
@@ -21,6 +22,7 @@ export function ChipSelector<T extends string>({
   horizontal = true,
   compact = false,
   accent,
+  disabled = false,
   onChange,
 }: ChipSelectorProps<T>) {
   const { colors } = useTheme();
@@ -57,6 +59,9 @@ export function ChipSelector<T extends string>({
       fontSize: compact ? 13 : 14,
       color: colors.labelPrimary,
     },
+    disabled: {
+      opacity: 0.42,
+    },
   }));
 
   const chipSelectedStyle = {
@@ -78,6 +83,7 @@ export function ChipSelector<T extends string>({
     multiple ? selectedItems.includes(value) : selected === value;
 
   const handlePress = (value: T) => {
+    if (disabled) return;
     if (multiple) {
       if (selectedItems.includes(value)) {
         onChange(selectedItems.filter((item) => item !== value));
@@ -95,13 +101,14 @@ export function ChipSelector<T extends string>({
       <Pressable
         key={option.value}
         accessibilityRole="button"
-        accessibilityState={{ selected: active }}
+        accessibilityState={{ selected: active, disabled }}
+        disabled={disabled}
         onPress={() => handlePress(option.value)}
         style={({ pressed, hovered }) => [
           styles.chip,
           active && chipSelectedStyle,
-          !active && webHover(hovered, pressed, styles.chipHovered),
-          pressed && styles.chipPressed,
+          !disabled && !active && webHover(hovered, pressed, styles.chipHovered),
+          !disabled && pressed && styles.chipPressed,
         ]}
       >
         <Text style={[styles.label, active && labelSelectedStyle]}>{option.label}</Text>
@@ -114,11 +121,12 @@ export function ChipSelector<T extends string>({
       horizontal
       nestedScrollEnabled
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.horizontalContent}
+      contentContainerStyle={[styles.horizontalContent, disabled && styles.disabled]}
+      scrollEnabled={!disabled}
     >
       {chips}
     </ScrollView>
   ) : (
-    <View style={styles.wrap}>{chips}</View>
+    <View style={[styles.wrap, disabled && styles.disabled]}>{chips}</View>
   );
 }

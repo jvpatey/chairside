@@ -10,12 +10,13 @@ import { Alert, Text, View } from 'react-native';
 
 import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWorkerCard';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
+import { getClinicOutreachUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
@@ -68,6 +69,12 @@ export default function FindAvailableWorkersScreen() {
       color: colors.labelSecondary,
       paddingVertical: spacing.lg,
     },
+    lockedLabel: {
+      ...typography.body,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.labelTertiary,
+    },
     count: { ...typography.subtitle, fontSize: 13, color: colors.labelSecondary },
   }));
 
@@ -82,6 +89,7 @@ export default function FindAvailableWorkersScreen() {
   );
 
   const hasSearch = hasActiveListSearch(searchQuery);
+  const isOutreachLocked = Boolean(billing && !billing.canUseFillInOutreach);
 
   const loadWorkers = useCallback(async () => {
     if (!user?.id) {
@@ -93,6 +101,13 @@ export default function FindAvailableWorkersScreen() {
     if (!isProfileComplete) {
       setWorkers([]);
       setIsLoading(false);
+      return;
+    }
+
+    if (isOutreachLocked) {
+      setWorkers([]);
+      setIsLoading(false);
+      setFormError(null);
       return;
     }
 
@@ -109,7 +124,7 @@ export default function FindAvailableWorkersScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [isProfileComplete, roleFilter, user?.id]);
+  }, [isOutreachLocked, isProfileComplete, roleFilter, user?.id]);
 
   useEffect(() => {
     void loadWorkers();
@@ -171,22 +186,34 @@ export default function FindAvailableWorkersScreen() {
           onBack={handleBack}
         />
 
+        {isProfileComplete && isOutreachLocked ? (
+          <PlanUpgradeCallout
+            title="Upgrade to message workers"
+            message={getClinicOutreachUpgradeMessage()}
+            accent={FILL_IN_ACCENT}
+          />
+        ) : null}
+
         <View style={styles.section}>
-          <Text style={styles.label}>Filter by role</Text>
+          <Text style={[styles.label, isOutreachLocked && styles.lockedLabel]}>
+            Filter by role
+          </Text>
           <ChipSelector
             options={ROLE_FILTER_OPTIONS}
             selected={roleFilter}
             onChange={(value) => setRoleFilter(value as RoleFilter)}
             accent={FILL_IN_ACCENT}
+            disabled={isOutreachLocked}
           />
         </View>
 
-        {!isProfileComplete ? null : isLoading ? null : workers.length > 0 ? (
+        {isProfileComplete ? (
           <ListSearchFilterRow
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Search worker name or city"
             accessibilityLabel="Search available workers"
+            disabled={isOutreachLocked}
           />
         ) : null}
 
@@ -194,14 +221,7 @@ export default function FindAvailableWorkersScreen() {
 
         {!isProfileComplete ? (
           <Text style={styles.empty}>Complete your clinic profile to browse available workers.</Text>
-        ) : billing && !billing.canUseFillInOutreach ? (
-          <>
-            <Text style={styles.empty}>
-              Direct fill-in outreach is available on Starter and Pro plans.
-            </Text>
-            <OnboardingButton label="View plans" onPress={showOutreachUpgrade} />
-          </>
-        ) : isLoading ? (
+        ) : isOutreachLocked ? null : isLoading ? (
           <PageLoadingDetail />
         ) : workers.length === 0 ? (
           <Text style={styles.empty}>

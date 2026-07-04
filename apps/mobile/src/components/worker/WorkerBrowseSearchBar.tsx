@@ -8,6 +8,7 @@ type WorkerBrowseSearchBarProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   accessibilityLabel?: string;
+  disabled?: boolean;
 };
 
 export function WorkerBrowseSearchBar({
@@ -15,6 +16,7 @@ export function WorkerBrowseSearchBar({
   onChange,
   placeholder = 'Search',
   accessibilityLabel = 'Search',
+  disabled = false,
 }: WorkerBrowseSearchBarProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
@@ -36,18 +38,23 @@ export function WorkerBrowseSearchBar({
       color: colors.labelPrimary,
       padding: 0,
     },
+    disabled: {
+      opacity: 0.42,
+    },
   }));
 
   return (
-    <View style={styles.searchWrap}>
+    <View style={[styles.searchWrap, disabled && styles.disabled]}>
       <Ionicons name="search-outline" size={18} color={colors.labelTertiary} />
       <TextInput
         accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ disabled }}
         placeholder={placeholder}
         placeholderTextColor={colors.labelTertiary}
         style={styles.searchInput}
         value={value}
         onChangeText={onChange}
+        editable={!disabled}
         autoCapitalize="none"
         autoCorrect={false}
         clearButtonMode="while-editing"

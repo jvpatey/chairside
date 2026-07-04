@@ -35,6 +35,7 @@ import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   FILL_INS_LIST_MODE_OPTIONS,
+  countActiveFillIns,
   filterShiftPostsForFillInsListMode,
   type FillInsListMode,
 } from '@/lib/fillInFilters';
@@ -124,6 +125,7 @@ export default function ClinicFillInsScreen() {
   );
 
   const hasShiftSearch = hasActiveListSearch(shiftSearchQuery);
+  const activeFillInCount = useMemo(() => countActiveFillIns(shifts), [shifts]);
   const hasShiftFilters =
     (fillInsListMode === 'history' &&
       (shiftStatusFilter !== 'all' ||
@@ -314,7 +316,9 @@ export default function ClinicFillInsScreen() {
           ) : null}
 
           <View style={styles.section}>
-            <DashboardSectionHeader title={sectionTitleWithCount('Your fill-ins', shifts.length)} />
+            <DashboardSectionHeader
+              title={sectionTitleWithCount('Your fill-ins', activeFillInCount)}
+            />
             {shifts.length === 0 ? (
               <EmptyState
                 icon="calendar-outline"

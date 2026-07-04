@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
+import { useWebEscapeKey } from '@/hooks/useWebEscapeKey';
 import {
   webHover,
   webListRowHoverStyles,
@@ -26,7 +27,7 @@ export type ActionMenuSheetItem = {
   onPress: () => void;
 };
 
-type ActionMenuSheetProps = {
+export type ActionMenuSheetProps = {
   visible: boolean;
   title?: string;
   message?: string;
@@ -34,7 +35,8 @@ type ActionMenuSheetProps = {
   onClose: () => void;
 };
 
-export function ActionMenuSheet({
+/** Bottom-anchored action sheet — native and mobile web. */
+export function ActionMenuSheetBottom({
   visible,
   title,
   message,
@@ -42,6 +44,7 @@ export function ActionMenuSheet({
   onClose,
 }: ActionMenuSheetProps) {
   const insets = useSafeAreaInsets();
+  useWebEscapeKey(onClose, visible);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     root: {
@@ -207,4 +210,8 @@ export function ActionMenuSheet({
       </View>
     </Modal>
   );
+}
+
+export function ActionMenuSheet(props: ActionMenuSheetProps) {
+  return <ActionMenuSheetBottom {...props} />;
 }

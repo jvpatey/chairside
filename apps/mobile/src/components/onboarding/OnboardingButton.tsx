@@ -159,7 +159,7 @@ export function OnboardingButton({
   };
 
   return (
-    <Animated.View style={[styles.outer, animatedStyle]}>
+    <Animated.View style={[styles.outer, animatedStyle, style]}>
       <Pressable
         accessibilityRole="button"
         disabled={disabled}
@@ -192,7 +192,6 @@ export function OnboardingButton({
             isWeb && hovered && !pressed && styles.destructiveHovered,
             pressed && styles.destructivePressed,
           ],
-          style,
         ]}>
         {isPrimary && !disabled ? (
           <LinearGradient colors={primaryGradient} style={styles.gradient} />

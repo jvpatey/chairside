@@ -1,7 +1,5 @@
-import { useState } from 'react';
-
-import { FilterSheet, FilterSheetSection } from '@/components/ui/FilterSheet';
-import { FilterTriggerButton } from '@/components/ui/FilterTriggerButton';
+import { FilterSheetSection } from '@/components/ui/FilterSheet';
+import { AdaptiveFilterShell } from '@/components/ui/AdaptiveFilterShell';
 import {
   CLINIC_APPLICATION_SUMMARY_FILTER_OPTIONS,
   type ClinicApplicationSummaryFilter,
@@ -16,29 +14,21 @@ export function ClinicApplicationSummaryFilters({
   selected,
   onChange,
 }: ClinicApplicationSummaryFiltersProps) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   const activeCount = selected === 'all' ? 0 : 1;
 
   return (
-    <>
-      <FilterTriggerButton
-        activeCount={activeCount}
-        onPress={() => setSheetOpen(true)}
-        accessibilityLabel="Filter applications"
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={() => onChange('all')}
+      title="Filter applications"
+      accessibilityLabel="Filter applications"
+    >
+      <FilterSheetSection
+        label="Show"
+        options={CLINIC_APPLICATION_SUMMARY_FILTER_OPTIONS}
+        selected={selected}
+        onChange={onChange}
       />
-      <FilterSheet
-        visible={sheetOpen}
-        title="Filter applications"
-        onClose={() => setSheetOpen(false)}
-        onReset={() => onChange('all')}
-      >
-        <FilterSheetSection
-          label="Show"
-          options={CLINIC_APPLICATION_SUMMARY_FILTER_OPTIONS}
-          selected={selected}
-          onChange={onChange}
-        />
-      </FilterSheet>
-    </>
+    </AdaptiveFilterShell>
   );
 }
