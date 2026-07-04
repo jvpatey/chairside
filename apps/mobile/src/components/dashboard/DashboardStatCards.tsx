@@ -3,7 +3,6 @@ import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
-import { useCountUp } from '@/hooks/useCountUp';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   colorWithAlpha,
@@ -31,10 +30,7 @@ type DashboardStatCardsProps<T extends string = string> = {
   onSelect: (key: T) => void;
 };
 
-function StatCardValue({ value, selected }: { value: number; selected: boolean }) {
-  const animated = useCountUp(value, { durationMs: 680, enabled: selected });
-  const display = selected ? animated : value;
-
+function StatCardValue({ value }: { value: number }) {
   const styles = useThemedStyles(({ colors }) => ({
     value: {
       fontSize: 28,
@@ -47,7 +43,7 @@ function StatCardValue({ value, selected }: { value: number; selected: boolean }
     },
   }));
 
-  return <Text style={styles.value}>{display}</Text>;
+  return <Text style={styles.value}>{value}</Text>;
 }
 
 export function DashboardStatCards<T extends string = string>({
@@ -62,7 +58,7 @@ export function DashboardStatCards<T extends string = string>({
   const styles = useThemedStyles(({ colors, spacing, radii, elevation, isDark }) => ({
     row: {
       flexDirection: 'row',
-      gap: spacing.sm,
+      gap: spacing.md,
       width: '100%',
       alignSelf: 'stretch',
     },
@@ -152,7 +148,7 @@ export function DashboardStatCards<T extends string = string>({
                   <NotificationCountBadge count={badgeCount} />
                 </View>
               ) : null}
-              <StatCardValue value={stat.value} selected={isSelected} />
+              <StatCardValue value={stat.value} />
               <Text style={[styles.label, isSelected && styles.labelSelected]} numberOfLines={2}>
                 {stat.label}
               </Text>

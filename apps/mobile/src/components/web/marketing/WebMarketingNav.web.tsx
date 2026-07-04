@@ -77,9 +77,6 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
     getStarted: {
       alignSelf: 'auto' as const,
       flexShrink: 0,
-      paddingVertical: 14,
-      paddingHorizontal: isNarrow ? spacing.md : spacing.lg,
-      minHeight: 48,
     },
   }));
 

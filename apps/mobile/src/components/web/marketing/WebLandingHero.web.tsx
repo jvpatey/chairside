@@ -72,9 +72,6 @@ export function WebLandingHero() {
     ctaButton: {
       alignSelf: 'auto' as const,
       flexShrink: 0,
-      paddingVertical: 14,
-      paddingHorizontal: spacing.lg,
-      minHeight: 48,
     },
     visual: {
       flex: isWide ? 1.1 : undefined,

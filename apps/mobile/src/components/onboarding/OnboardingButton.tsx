@@ -23,7 +23,10 @@ type OnboardingButtonProps = {
   variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
   disabled?: boolean;
   onPress?: () => void;
+  /** Layout on the animated wrapper (e.g. flex: 1 in dialog rows). */
   style?: StyleProp<ViewStyle>;
+  /** Visual styles on the pressable button surface (padding, minHeight). */
+  buttonStyle?: StyleProp<ViewStyle>;
   accent?: GradientAccent;
 };
 
@@ -33,6 +36,7 @@ export function OnboardingButton({
   disabled,
   onPress,
   style,
+  buttonStyle,
   accent = 'primary',
 }: OnboardingButtonProps) {
   const { colors, isDark } = useTheme();
@@ -56,11 +60,11 @@ export function OnboardingButton({
     base: {
       alignSelf: 'stretch',
       borderRadius: 12,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.sm,
+      paddingVertical: 14,
+      paddingHorizontal: spacing.lg,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      minHeight: 52,
+      minHeight: 48,
       overflow: 'hidden' as const,
     },
     gradient: {
@@ -168,6 +172,7 @@ export function OnboardingButton({
         onPressOut={handlePressOut}
         style={({ pressed, hovered }) => [
           styles.base,
+          buttonStyle,
           isWeb && (disabled ? styles.webDisabled : styles.webInteractive),
           variant === 'primary' &&
             (disabled

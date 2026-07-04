@@ -52,9 +52,6 @@ export function WebLandingCta() {
     ctaButton: {
       alignSelf: 'auto' as const,
       flexShrink: 0,
-      paddingVertical: 14,
-      paddingHorizontal: spacing.lg,
-      minHeight: 48,
     },
   }));
 
