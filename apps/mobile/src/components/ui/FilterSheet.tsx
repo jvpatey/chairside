@@ -6,15 +6,14 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, { SlideInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
-
-const SHEET_SPRING = SlideInDown.springify().damping(22).stiffness(280);
 
 export function FilterSheetSection<T extends string>({
   label,
@@ -124,7 +123,7 @@ export function FilterSheet({
     <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         {visible ? (
-          <Animated.View entering={SHEET_SPRING} style={styles.sheetWrap}>
+          <Animated.View entering={SHEET_ENTER} style={styles.sheetWrap}>
             <Pressable onPress={(event) => event.stopPropagation()}>
               <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
                 <View style={styles.handle} />

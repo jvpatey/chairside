@@ -6,10 +6,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, { SlideInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
 import {
   webHover,
   webListRowHoverStyles,
@@ -17,8 +18,6 @@ import {
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
-
-const SHEET_SPRING = SlideInDown.springify().damping(22).stiffness(280);
 
 export type ActionMenuSheetItem = {
   label: string;
@@ -151,7 +150,7 @@ export function ActionMenuSheet({
           accessibilityLabel="Close menu"
         />
         {visible ? (
-          <Animated.View entering={SHEET_SPRING}>
+          <Animated.View entering={SHEET_ENTER}>
             <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
               <View style={styles.handle} />
               {title || message ? (
