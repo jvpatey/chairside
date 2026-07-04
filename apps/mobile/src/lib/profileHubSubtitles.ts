@@ -69,8 +69,8 @@ export function getClinicAboutSubtitle(profile: ClinicProfile | null): string {
 
 export function getClinicMessagingSubtitle(profile: ClinicProfile | null): string {
   return profile?.accepts_general_candidate_messages
-    ? 'General candidate messages on'
-    : 'General candidate messages off';
+    ? 'Candidates can message you'
+    : "Candidates can't message you";
 }
 
 export function getClinicNotificationsSubtitle(): string {

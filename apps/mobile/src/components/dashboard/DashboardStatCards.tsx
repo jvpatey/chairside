@@ -31,14 +31,14 @@ type DashboardStatCardsProps<T extends string = string> = {
   onSelect: (key: T) => void;
 };
 
-function StatCardValue({ value }: { value: number }) {
+function StatCardValue({ value, color }: { value: number; color?: string }) {
   const styles = useThemedStyles(({ colors }) => ({
     value: {
       fontSize: 28,
       lineHeight: 32,
       fontFamily: fontExtraBold,
       fontWeight: '800',
-      color: colors.labelPrimary,
+      color: color ?? colors.labelPrimary,
       letterSpacing: -0.8,
       textAlign: 'center' as const,
       fontVariant: ['tabular-nums'] as const,
@@ -126,6 +126,12 @@ export function DashboardStatCards<T extends string = string>({
       {stats.map((stat) => {
         const isSelected = selected === stat.key;
         const accent = stat.accent ?? 'primary';
+        const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
+        const selectedForeground = isSelected
+          ? isDark
+            ? colors.labelPrimary
+            : accentColor
+          : undefined;
         const gradientColors = isSelected
           ? getStatCardSelectedGradient(colors, isDark, accent)
           : getStatCardIdleGradient(colors, isDark);
@@ -151,8 +157,15 @@ export function DashboardStatCards<T extends string = string>({
                   <NotificationCountBadge count={badgeCount} />
                 </View>
               ) : null}
-              <StatCardValue value={stat.value} />
-              <Text style={[styles.label, isSelected && styles.labelSelected]} numberOfLines={2}>
+              <StatCardValue value={stat.value} color={selectedForeground} />
+              <Text
+                style={[
+                  styles.label,
+                  isSelected && styles.labelSelected,
+                  selectedForeground ? { color: selectedForeground } : null,
+                ]}
+                numberOfLines={2}
+              >
                 {stat.label}
               </Text>
             </View>

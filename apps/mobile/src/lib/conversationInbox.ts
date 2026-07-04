@@ -84,11 +84,11 @@ export function getConversationInboxEmptyMessage(
   if (filter === 'general') {
     return role === 'worker'
       ? 'No general clinic inquiries yet. Use Message a clinic above to start one.'
-      : 'No general candidate inquiries yet. Turn on general messages above to receive them.';
+      : 'No direct inquiries yet. Turn on letting candidates message you above to receive them.';
   }
   return role === 'worker'
     ? 'No conversations yet. Message a clinic from an application or use Message a clinic above.'
-    : 'No conversations yet. Message an applicant from their application details, or turn on general candidate messages above.';
+    : 'No conversations yet. Message an applicant from their application details, or turn on letting candidates message you above.';
 }
 
 export type ConversationInboxGroupVariant = 'standalone' | 'group-lead' | 'group-thread';

@@ -22,6 +22,28 @@ import { fontSemibold, getGlassTokens, getTabIndicatorGradient, useTheme, useThe
 
 const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
 const ICON_ONLY_BREAKPOINT = 360;
+/** Outer glass shell — end tabs use a matching inner radius on the dock-facing edge. */
+const DOCK_SHELL_RADIUS = 30;
+const TAB_INDICATOR_RADIUS = 18;
+
+function getDockIndicatorCornerRadii(
+  index: number,
+  count: number,
+  tabRadius: number,
+  endRadius: number,
+) {
+  const isFirst = index <= 0;
+  const isLast = index >= count - 1;
+  const leftRadius = isFirst ? endRadius : tabRadius;
+  const rightRadius = isLast ? endRadius : tabRadius;
+
+  return {
+    borderTopLeftRadius: leftRadius,
+    borderBottomLeftRadius: leftRadius,
+    borderTopRightRadius: rightRadius,
+    borderBottomRightRadius: rightRadius,
+  };
+}
 
 type MobileTabDockProps = BottomTabBarProps & {
   role: 'worker' | 'clinic';
@@ -137,7 +159,7 @@ function DockTabItem({
 }
 
 export function MobileTabDock({ state, descriptors, navigation, insets, role }: MobileTabDockProps) {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, spacing } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const showLabels = windowWidth >= ICON_ONLY_BREAKPOINT;
   const isWeb = Platform.OS === 'web';
@@ -150,8 +172,19 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
   const focusedRoute = visibleRoutes[indicatorIndex];
   const focusedAccent = focusedRoute ? getTabAccentForName(focusedRoute.name) : 'primary';
   const indicatorGradient = getTabIndicatorGradient(colors, isDark, focusedAccent);
+  const dockInset = spacing.xs;
+  const dockEndRadius = DOCK_SHELL_RADIUS - dockInset;
+  const indicatorCornerStyle = getDockIndicatorCornerRadii(
+    indicatorIndex,
+    visibleRoutes.length,
+    TAB_INDICATOR_RADIUS,
+    dockEndRadius,
+  );
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => {
+    const dockInset = spacing.xs;
+
+    return {
     outer: {
       paddingHorizontal: spacing.sm,
       paddingTop: spacing.sm,
@@ -181,9 +214,8 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
     }),
     indicator: {
       position: 'absolute',
-      top: spacing.xs,
+      top: dockInset,
       left: 0,
-      borderRadius: 18,
       overflow: 'hidden',
     },
     indicatorGradient: {
@@ -194,7 +226,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       minHeight: 54,
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: 18,
+      borderRadius: TAB_INDICATOR_RADIUS,
       paddingHorizontal: 4,
       paddingVertical: spacing.xs,
       gap: 2,
@@ -239,15 +271,19 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       fontWeight: '700',
       color: '#FFFFFF',
     },
-  }));
+  };
+  });
 
   return (
     <View
       style={styles.outer}
       pointerEvents="box-none"
       onLayout={(event) => onHeightChange?.(event.nativeEvent.layout.height)}>
-      <LiquidGlassSurface borderRadius={30} style={[styles.dock, styles.dockElevated]}>
-        <SlidingSegmentIndicator animatedStyle={indicatorStyle} style={styles.indicator}>
+      <LiquidGlassSurface borderRadius={DOCK_SHELL_RADIUS} style={[styles.dock, styles.dockElevated]}>
+        <SlidingSegmentIndicator
+          animatedStyle={indicatorStyle}
+          style={[styles.indicator, indicatorCornerStyle]}
+        >
           <LinearGradient colors={indicatorGradient} style={styles.indicatorGradient} />
         </SlidingSegmentIndicator>
         {visibleRoutes.map((route, index) => {

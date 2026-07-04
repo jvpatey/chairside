@@ -10,8 +10,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
-import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
-import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -200,7 +198,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       flex: 1,
       gap: spacing.sm,
       paddingTop: spacing.xs,
-      position: 'relative',
     },
     navCollapsed: {
       alignItems: 'center',
@@ -218,13 +215,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingHorizontal: spacing.sm,
       paddingTop: spacing.xs,
       paddingBottom: 2,
-    },
-    navIndicator: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: spacing.xs,
-      borderRadius: 10,
     },
     footer: {
       flexShrink: 0,
@@ -334,15 +324,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   }));
 
   const visibleRoutes = getSidebarRoutes(state, descriptors, role);
-  const { indicatorIndex, isRouteFocused } = useResolvedTabBarFocus(state, visibleRoutes, role);
-  const { animatedStyle: navIndicatorStyle, onSegmentLayout } = useSlidingSegmentIndicator(
-    indicatorIndex,
-    'vertical',
-  );
-  const focusedRoute = visibleRoutes[indicatorIndex];
-  const focusedAccent = focusedRoute ? getTabAccentForName(focusedRoute.name) : 'primary';
-  const focusedIndicatorColor =
-    focusedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const { isRouteFocused } = useResolvedTabBarFocus(state, visibleRoutes, role);
   const profileHref = role === 'worker' ? WORKER_PROFILE : CLINIC_PROFILE;
   const isProfileActive = pathname.includes('/profile');
 
@@ -393,12 +375,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const sidebarSections = groupSidebarRoutes(visibleRoutes, role, isWeb && !isCollapsed);
 
-  const renderSidebarNavItem = (route: SidebarRoute, index: number) => {
+  const renderSidebarNavItem = (route: SidebarRoute) => {
     const { options } = descriptors[route.key];
     const routeIndex = state.routes.findIndex((r) => r.key === route.key);
     const isFocused = isRouteFocused(route.name, routeIndex);
     const tabAccent = getTabAccentForName(route.name);
     const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
+    const activeBackground =
+      tabAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
     const color = isFocused ? activeColor : colors.tabInactive;
     const itemLabel = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
     const titleLabel = options.title ?? route.name;
@@ -432,11 +416,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     return (
       <Pressable
         key={route.key}
-        onLayout={(event) => {
-          if (isCollapsed) return;
-          const { x, y, width, height } = event.nativeEvent.layout;
-          onSegmentLayout(index, { x, y, width, height });
-        }}
         accessibilityRole="button"
         accessibilityState={isFocused ? { selected: true } : {}}
         accessibilityLabel={itemLabel}
@@ -448,7 +427,21 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         style={({ pressed, hovered }) => [
           styles.item,
           isCollapsed && styles.itemCollapsed,
+          !isCollapsed && isFocused && { backgroundColor: activeBackground },
           isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
+          isWeb &&
+            hovered &&
+            !pressed &&
+            isFocused &&
+            !isCollapsed &&
+            (tabAccent === 'secondary'
+              ? webOnlyStyle({
+                  backgroundColor: colors.secondarySubtle,
+                  boxShadow: isDark
+                    ? '0 4px 12px rgba(139, 92, 246, 0.12)'
+                    : '0 4px 12px rgba(88, 86, 214, 0.1)',
+                } as ViewStyle)
+              : styles.itemActiveHovered),
           pressed && styles.itemPressed,
         ]}
       >
@@ -513,21 +506,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       </View>
 
       <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
-        {!isCollapsed ? (
-          <SlidingSegmentIndicator
-            animatedStyle={navIndicatorStyle}
-            style={[styles.navIndicator, { backgroundColor: focusedIndicatorColor }]}
-          />
-        ) : null}
         {sidebarSections.map((section) => (
           <View key={section.label ?? 'ungrouped'} style={styles.sectionGroup}>
             {!isCollapsed && section.label ? (
               <Text style={styles.sectionLabel}>{section.label}</Text>
             ) : null}
-            {section.routes.map((route) => {
-              const index = visibleRoutes.findIndex((item) => item.key === route.key);
-              return renderSidebarNavItem(route, index);
-            })}
+            {section.routes.map((route) => renderSidebarNavItem(route))}
           </View>
         ))}
       </View>
