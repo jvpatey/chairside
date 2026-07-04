@@ -1,7 +1,14 @@
-import { Platform, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Platform, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
+import {
+  getPrimaryTileGradient,
+  getSecondaryTileGradient,
+  useTheme,
+  useThemedStyles,
+  type GradientAccent,
+} from '@/theme';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type OnboardingButtonProps = {
   label: string;
@@ -24,6 +31,10 @@ export function OnboardingButton({
   const brandBg = accent === 'secondary' ? colors.secondary : colors.primary;
   const brandPressed = accent === 'secondary' ? colors.secondaryPressed : colors.primaryPressed;
   const brandOn = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
+  const primaryGradient =
+    accent === 'secondary'
+      ? getSecondaryTileGradient(colors, isDark)
+      : getPrimaryTileGradient(colors, isDark);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     base: {
@@ -34,6 +45,10 @@ export function OnboardingButton({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       minHeight: 52,
+      overflow: 'hidden' as const,
+    },
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
     },
     webInteractive: webPointer(),
     webDisabled: webPointer('default'),
@@ -46,6 +61,10 @@ export function OnboardingButton({
     },
     primaryDisabled: {
       backgroundColor: colors.fillSubtle,
+    },
+    primaryPressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.982 }],
     },
     secondary: {
       backgroundColor: colors.surface,
@@ -98,7 +117,6 @@ export function OnboardingButton({
   const primaryBg = { backgroundColor: brandBg };
   const primaryPressedStyle = { backgroundColor: brandPressed };
   const primaryHoveredStyle = webOnlyStyle({
-    backgroundColor: brandPressed,
     transform: [{ translateY: -1 }],
     boxShadow: isDark
       ? accent === 'secondary'
@@ -124,6 +142,7 @@ export function OnboardingButton({
             : [
                 primaryBg,
                 isWeb && hovered && !pressed && primaryHoveredStyle,
+                pressed && styles.primaryPressed,
                 pressed && primaryPressedStyle,
               ]),
         variant === 'secondary' && [
@@ -143,6 +162,9 @@ export function OnboardingButton({
         style,
       ]}
     >
+      {isPrimary && !disabled ? (
+        <LinearGradient colors={primaryGradient} style={styles.gradient} />
+      ) : null}
       <Text
         style={[
           styles.label,

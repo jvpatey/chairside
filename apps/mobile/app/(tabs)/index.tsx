@@ -42,6 +42,7 @@ import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSpotlights';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
@@ -85,6 +86,11 @@ export default function WorkerDashboardScreen() {
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
   const { markVisited: markGetStartedBrowseVisited } = useGetStartedBrowseProgress();
+  const {
+    isHydrated: isSpotlightDismissHydrated,
+    dismissedIds: dismissedSpotlightIds,
+    dismiss: dismissSpotlight,
+  } = useDismissedDashboardSpotlights('worker');
 
   const loadDashboard = useCallback(async () => {
     if (!user?.id) return;
@@ -238,27 +244,32 @@ export default function WorkerDashboardScreen() {
 
   const spotlight = useMemo(
     () =>
-      pickWorkerSpotlight({
-        conversations,
-        jobApplications,
-        shiftApplications,
-        openJobs,
-        unreadMap,
-        onOpenConversation: openConversation,
-        onOpenApplication: (application) => {
-          router.push(
-            getWorkerApplicationRoute(
-              application.id,
-              application.post_type === 'shift' ? 'dashboard-fill-ins' : 'dashboard-applications',
-            ),
-          );
-        },
-        onOpenJob: (jobId) => router.push(getWorkerJobDetailRoute(jobId)),
-        onOpenApplicationsTab: () => router.push(WORKER_APPLICATIONS),
-        onOpenMessages: () => router.push(getWorkerMessagesRoute()),
-      }),
+      isSpotlightDismissHydrated
+        ? pickWorkerSpotlight({
+            conversations,
+            jobApplications,
+            shiftApplications,
+            openJobs,
+            unreadMap,
+            dismissedIds: dismissedSpotlightIds,
+            onOpenConversation: openConversation,
+            onOpenApplication: (application) => {
+              router.push(
+                getWorkerApplicationRoute(
+                  application.id,
+                  application.post_type === 'shift' ? 'dashboard-fill-ins' : 'dashboard-applications',
+                ),
+              );
+            },
+            onOpenJob: (jobId) => router.push(getWorkerJobDetailRoute(jobId)),
+            onOpenApplicationsTab: () => router.push(WORKER_APPLICATIONS),
+            onOpenMessages: () => router.push(getWorkerMessagesRoute()),
+          })
+        : null,
     [
       conversations,
+      dismissedSpotlightIds,
+      isSpotlightDismissHydrated,
       jobApplications,
       openConversation,
       openJobs,
@@ -308,7 +319,10 @@ export default function WorkerDashboardScreen() {
       spotlight={
         spotlight ? (
           <FadeInSection delayMs={60}>
-            <DashboardSpotlightCard item={spotlight} />
+            <DashboardSpotlightCard
+              item={spotlight}
+              onDismiss={() => void dismissSpotlight(spotlight.id)}
+            />
           </FadeInSection>
         ) : null
       }
@@ -322,7 +336,6 @@ export default function WorkerDashboardScreen() {
                 key: 'roles',
                 label: 'Open roles',
                 value: openJobs.length,
-                icon: 'briefcase-outline',
                 accent: 'primary',
               },
               {
@@ -330,7 +343,6 @@ export default function WorkerDashboardScreen() {
                 label: 'Fill-ins',
                 value: counts.openFillInsInProvince,
                 badgeCount: fillInPendingCount,
-                icon: 'calendar-outline',
                 accent: 'secondary',
               },
               {
@@ -338,7 +350,6 @@ export default function WorkerDashboardScreen() {
                 label: 'Applications',
                 value: counts.pendingApplications,
                 badgeCount: applicationUpdateCount,
-                icon: 'document-text-outline',
                 accent: 'primary',
               },
             ]}

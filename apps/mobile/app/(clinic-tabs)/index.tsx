@@ -42,6 +42,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSpotlights';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { pickClinicSpotlight } from '@/lib/dashboardSpotlight';
@@ -88,6 +89,11 @@ export default function ClinicDashboardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
+  const {
+    isHydrated: isSpotlightDismissHydrated,
+    dismissedIds: dismissedSpotlightIds,
+    dismiss: dismissSpotlight,
+  } = useDismissedDashboardSpotlights('clinic');
 
   const loadDashboard = useCallback(async () => {
     if (!user?.id) return;
@@ -229,22 +235,27 @@ export default function ClinicDashboardScreen() {
 
   const spotlight = useMemo(
     () =>
-      pickClinicSpotlight({
-        fillInUpdateCount,
-        applicationUpdateCount,
-        confirmedFillIns,
-        jobs,
-        jobApplicationSummaries,
-        onOpenFillIns: () => router.push(CLINIC_FILL_INS),
-        onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
-        onOpenConfirmedFillIn: () => router.push(CLINIC_FILL_INS),
-        onOpenJobApplicants: (jobId) =>
-          router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications')),
-      }),
+      isSpotlightDismissHydrated
+        ? pickClinicSpotlight({
+            fillInUpdateCount,
+            applicationUpdateCount,
+            confirmedFillIns,
+            jobs,
+            jobApplicationSummaries,
+            dismissedIds: dismissedSpotlightIds,
+            onOpenFillIns: () => router.push(CLINIC_FILL_INS),
+            onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
+            onOpenConfirmedFillIn: () => router.push(CLINIC_FILL_INS),
+            onOpenJobApplicants: (jobId) =>
+              router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications')),
+          })
+        : null,
     [
       applicationUpdateCount,
       confirmedFillIns,
+      dismissedSpotlightIds,
       fillInUpdateCount,
+      isSpotlightDismissHydrated,
       jobApplicationSummaries,
       jobs,
     ],
@@ -287,7 +298,10 @@ export default function ClinicDashboardScreen() {
       spotlight={
         spotlight ? (
           <FadeInSection delayMs={60}>
-            <DashboardSpotlightCard item={spotlight} />
+            <DashboardSpotlightCard
+              item={spotlight}
+              onDismiss={() => void dismissSpotlight(spotlight.id)}
+            />
           </FadeInSection>
         ) : null
       }
@@ -301,7 +315,6 @@ export default function ClinicDashboardScreen() {
                 key: 'roles',
                 label: 'Open roles',
                 value: counts.openRoles,
-                icon: 'briefcase-outline',
                 accent: 'primary',
               },
               {
@@ -309,7 +322,6 @@ export default function ClinicDashboardScreen() {
                 label: 'Fill-ins',
                 value: counts.fillInsPosted,
                 badgeCount: fillInUpdateCount,
-                icon: 'calendar-outline',
                 accent: 'secondary',
               },
               {
@@ -317,7 +329,6 @@ export default function ClinicDashboardScreen() {
                 label: 'Applications',
                 value: counts.totalApplications,
                 badgeCount: applicationUpdateCount,
-                icon: 'document-text-outline',
                 accent: 'primary',
               },
             ]}

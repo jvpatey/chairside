@@ -19,7 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { clearMessageDraft, getMessageDraft, setMessageDraft } from '@/lib/messageDrafts';
-import { webHover, webPointer } from '@/lib/webPressableStyles';
+import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const MESSAGE_BODY_MAX_LENGTH = 2000;
@@ -37,7 +37,7 @@ type MessageComposeBarProps = {
   onSend: (body: string) => Promise<void>;
 };
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedView = Animated.createAnimatedComponent(View);
 
 export function MessageComposeBar({
   conversationId,
@@ -70,12 +70,11 @@ export function MessageComposeBar({
     },
     row: {
       flexDirection: 'row',
-      alignItems: 'flex-end',
+      alignItems: 'center',
       gap: spacing.sm,
     },
     inputColumn: {
       flex: 1,
-      gap: spacing.xs,
     },
     inputWrap: {
       minHeight: 44,
@@ -131,13 +130,20 @@ export function MessageComposeBar({
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primary,
+      flexShrink: 0,
+      overflow: 'hidden' as const,
       ...webPointer('default'),
-    },
-    sendButtonHovered: {
-      opacity: 0.92,
+      ...webOnlyStyle({
+        boxShadow: `0 4px 12px ${colors.primary}44`,
+      }),
     },
     sendButtonDisabled: {
-      opacity: 0.45,
+      backgroundColor: colors.backgroundGrouped,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      ...webOnlyStyle({
+        boxShadow: 'none',
+      }),
     },
   }));
 
@@ -224,65 +230,69 @@ export function MessageComposeBar({
   return (
     <View style={styles.container}>
       <View style={styles.row}>
-        <View style={styles.inputColumn}>
-          <View style={[styles.inputWrap, isFocused && styles.inputWrapFocused]}>
-            <TextInput
-              ref={inputRef}
-              style={styles.input}
-              value={draft}
-              onChangeText={handleDraftChange}
-              onFocus={() => {
-                setIsFocused(true);
-                onFocus?.();
-              }}
-              onBlur={() => {
-                setIsFocused(false);
-                onBlur?.();
-              }}
-              onKeyPress={handleKeyPress}
-              placeholder={placeholder}
-              placeholderTextColor={colors.labelTertiary}
-              multiline
-              editable={!sending}
-              maxLength={MESSAGE_BODY_MAX_LENGTH}
-              autoCorrect
-              spellCheck
-              autoCapitalize="sentences"
-              blurOnSubmit={false}
-              textAlignVertical="center"
-            />
-          </View>
-          {showCharCount ? (
-            <Text
-              style={[
-                styles.charCount,
-                draft.length >= MESSAGE_BODY_MAX_LENGTH && styles.charCountNearLimit,
-              ]}>
-              {draft.length}/{MESSAGE_BODY_MAX_LENGTH}
-            </Text>
-          ) : null}
+        <View style={[styles.inputColumn, styles.inputWrap, isFocused && styles.inputWrapFocused]}>
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            value={draft}
+            onChangeText={handleDraftChange}
+            onFocus={() => {
+              setIsFocused(true);
+              onFocus?.();
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+              onBlur?.();
+            }}
+            onKeyPress={handleKeyPress}
+            placeholder={placeholder}
+            placeholderTextColor={colors.labelTertiary}
+            multiline
+            editable={!sending}
+            maxLength={MESSAGE_BODY_MAX_LENGTH}
+            autoCorrect
+            spellCheck
+            autoCapitalize="sentences"
+            blurOnSubmit={false}
+            textAlignVertical="center"
+          />
         </View>
-        <AnimatedPressable
-          accessibilityRole="button"
-          accessibilityLabel="Send message"
-          disabled={!canSend}
-          onPress={() => {
-            void handleSend();
-          }}
-          style={({ pressed, hovered }) => [
-            styles.sendButton,
-            sendButtonAnimatedStyle,
-            canSend && webPointer(),
-            canSend && webHover(hovered, pressed, styles.sendButtonHovered),
-            !canSend && styles.sendButtonDisabled,
-          ]}>
-          {sending ? (
-            <ActivityIndicator color={colors.primaryOnPrimary} size="small" />
-          ) : (
-            <Ionicons name="send" size={18} color={colors.primaryOnPrimary} />
-          )}
-        </AnimatedPressable>
+        <AnimatedView style={sendButtonAnimatedStyle}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            disabled={!canSend}
+            onPress={() => {
+              void handleSend();
+            }}
+            style={({ pressed, hovered }) => [
+              styles.sendButton,
+              !canSend && styles.sendButtonDisabled,
+              canSend && webPointer(),
+              canSend && pressed && { opacity: 0.9 },
+              canSend && hovered && { opacity: 0.92 },
+            ]}>
+            {sending ? (
+              <ActivityIndicator color={colors.primaryOnPrimary} size="small" />
+            ) : (
+              <Ionicons
+                name="send"
+                size={18}
+                color={canSend ? colors.primaryOnPrimary : colors.labelTertiary}
+              />
+            )}
+          </Pressable>
+        </AnimatedView>
       </View>
+      {showCharCount ? (
+        <Text
+          style={[
+            styles.charCount,
+            draft.length >= MESSAGE_BODY_MAX_LENGTH && styles.charCountNearLimit,
+          ]}>
+          {draft.length}/{MESSAGE_BODY_MAX_LENGTH}
+        </Text>
+      ) : null}
     </View>
   );
 }

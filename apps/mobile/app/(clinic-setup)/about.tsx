@@ -7,6 +7,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useThemedStyles } from '@/theme';
@@ -21,7 +22,6 @@ export default function ClinicAboutScreen() {
   const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
   }));
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function ClinicAboutScreen() {
         subtitle="Optional details that help candidates learn more."
         onBack={() => router.back()}
       />
-      <Text style={styles.step}>Step 4 of 5</Text>
+      <SetupStepProgress step={4} total={5} />
       <View style={styles.form}>
         <AuthField
           label="Description"

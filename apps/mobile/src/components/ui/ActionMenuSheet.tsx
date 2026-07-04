@@ -6,8 +6,10 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import {
   webHover,
   webListRowHoverStyles,
@@ -15,6 +17,8 @@ import {
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
+
+const SHEET_SPRING = SlideInDown.springify().damping(22).stiffness(280);
 
 export type ActionMenuSheetItem = {
   label: string;
@@ -50,9 +54,6 @@ export function ActionMenuSheet({
       backgroundColor: 'rgba(0,0,0,0.45)',
     },
     sheet: {
-      backgroundColor: colors.surface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
       paddingBottom: Math.max(insets.bottom, spacing.lg),
@@ -141,7 +142,7 @@ export function ActionMenuSheet({
   }));
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
       <View style={styles.root}>
         <Pressable
           style={styles.backdrop}
@@ -149,57 +150,61 @@ export function ActionMenuSheet({
           accessibilityRole="button"
           accessibilityLabel="Close menu"
         />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-          {title || message ? (
-            <View style={styles.header}>
-              {title ? <Text style={styles.title}>{title}</Text> : null}
-              {message ? <Text style={styles.message}>{message}</Text> : null}
-            </View>
-          ) : null}
-          <View style={styles.actions}>
-            {actions.map((action, index) => (
-              <Pressable
-                key={action.label}
-                accessibilityRole="button"
-                onPress={() => {
-                  onClose();
-                  action.onPress();
-                }}
-                style={({ pressed, hovered }) => [
-                  styles.action,
-                  index > 0 && styles.actionDivider,
-                  webHover(hovered, pressed, styles.actionHovered),
-                  pressed && styles.actionPressed,
-                ]}
-              >
-                <View style={styles.actionContent}>
-                  {action.icon ? <View style={styles.actionIcon}>{action.icon}</View> : null}
-                  <Text
-                    style={[
-                      styles.actionLabel,
-                      action.destructive && styles.actionDestructive,
+        {visible ? (
+          <Animated.View entering={SHEET_SPRING}>
+            <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
+              <View style={styles.handle} />
+              {title || message ? (
+                <View style={styles.header}>
+                  {title ? <Text style={styles.title}>{title}</Text> : null}
+                  {message ? <Text style={styles.message}>{message}</Text> : null}
+                </View>
+              ) : null}
+              <View style={styles.actions}>
+                {actions.map((action, index) => (
+                  <Pressable
+                    key={action.label}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      onClose();
+                      action.onPress();
+                    }}
+                    style={({ pressed, hovered }) => [
+                      styles.action,
+                      index > 0 && styles.actionDivider,
+                      webHover(hovered, pressed, styles.actionHovered),
+                      pressed && styles.actionPressed,
                     ]}
                   >
-                    {action.label}
-                  </Text>
-                </View>
+                    <View style={styles.actionContent}>
+                      {action.icon ? <View style={styles.actionIcon}>{action.icon}</View> : null}
+                      <Text
+                        style={[
+                          styles.actionLabel,
+                          action.destructive && styles.actionDestructive,
+                        ]}
+                      >
+                        {action.label}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+                onPress={onClose}
+                style={({ pressed, hovered }) => [
+                  styles.cancel,
+                  webHover(hovered, pressed, styles.cancelHovered),
+                  pressed && styles.cancelPressed,
+                ]}
+              >
+                <Text style={styles.cancelLabel}>Cancel</Text>
               </Pressable>
-            ))}
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Cancel"
-            onPress={onClose}
-            style={({ pressed, hovered }) => [
-              styles.cancel,
-              webHover(hovered, pressed, styles.cancelHovered),
-              pressed && styles.cancelPressed,
-            ]}
-          >
-            <Text style={styles.cancelLabel}>Cancel</Text>
-          </Pressable>
-        </View>
+            </LiquidGlassSurface>
+          </Animated.View>
+        ) : null}
       </View>
     </Modal>
   );

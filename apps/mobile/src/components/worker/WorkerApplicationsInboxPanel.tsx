@@ -1,14 +1,17 @@
 import { getUnreadConversationMap, listWorkerJobApplications } from '@chairside/api';
 import { canWorkerHideApplication } from '@chairside/config';
+import { router, usePathname } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
-import { usePathname } from 'expo-router';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { PageTabBar } from '@/components/ui/PageTabBar';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
@@ -43,14 +46,16 @@ function ApplicationList({
 
   return (
     <View style={styles.list}>
-      {applications.map((application) => (
-        <WorkerApplicationListCard
-          key={application.id}
-          application={application}
-          hasUnreadMessages={Boolean(unreadMap[application.id])}
-          returnTo="applications-tab"
-        />
-      ))}
+      <StaggeredList>
+        {applications.map((application) => (
+          <WorkerApplicationListCard
+            key={application.id}
+            application={application}
+            hasUnreadMessages={Boolean(unreadMap[application.id])}
+            returnTo="applications-tab"
+          />
+        ))}
+      </StaggeredList>
     </View>
   );
 }
@@ -66,6 +71,7 @@ export function WorkerApplicationsInboxPanel({
   const [selectedMode, setSelectedMode] = useState<ApplicationsTabMode>('active');
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
   const {
     celebrationVisible,
@@ -88,7 +94,6 @@ export function WorkerApplicationsInboxPanel({
   const styles = useThemedStyles(({ spacing, colors, typography }) => ({
     content: { gap: spacing.lg },
     panel: { gap: spacing.md },
-    empty: typography.subtitle,
     clearAllRow: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
@@ -111,9 +116,11 @@ export function WorkerApplicationsInboxPanel({
   const load = useCallback(async () => {
     if (!user?.id) {
       setApplications([]);
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     try {
       const [rows, unread] = await Promise.all([
         listWorkerJobApplications(user.id, 'active'),
@@ -130,6 +137,8 @@ export function WorkerApplicationsInboxPanel({
       if (Platform.OS !== 'web') {
         Alert.alert('Could not load applications', message);
       }
+    } finally {
+      setIsLoading(false);
     }
   }, [checkApplications, user?.id]);
 
@@ -157,10 +166,16 @@ export function WorkerApplicationsInboxPanel({
         showHeader={!compact}
         constrainWidth={!compact}>
         <FormErrorBanner message={formError} />
-        {!hasAnyApplications ? (
-          <Text style={styles.empty}>
-            No role applications yet. Browse open roles to get started.
-          </Text>
+        {isLoading ? (
+          <PageLoadingList rowCount={3} message="Loading applications…" />
+        ) : !hasAnyApplications ? (
+          <EmptyState
+            icon="document-text-outline"
+            title="No applications yet"
+            message="Browse open roles and apply to track your progress here."
+            ctaLabel="Browse roles"
+            onCtaPress={() => router.push('/(tabs)/browse')}
+          />
         ) : (
           <View style={styles.content}>
             <PageTabBar

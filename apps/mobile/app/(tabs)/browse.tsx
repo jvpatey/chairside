@@ -1,8 +1,7 @@
 import { listLiveJobPosts, listWorkerAppliedJobPostIds, getWorkerSavedJobPostIds, saveJobPost, unsaveJobPost, type LiveJobPost } from '@chairside/api';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { Alert, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
@@ -15,7 +14,9 @@ import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseView
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { Screen } from '@/components/ui/Screen';
 import { PageTabBar } from '@/components/ui/PageTabBar';
 import { WorkerClinicsDirectoryIconButton } from '@/components/worker/WorkerClinicsDirectoryEntryCard';
@@ -40,51 +41,7 @@ import {
   toWorkerMapItemsFromJobs,
 } from '@/lib/workerMapItems';
 import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
-import { useTheme, useThemedStyles } from '@/theme';
-
-function BrowseEmptyState({
-  icon,
-  title,
-  body,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  body: string;
-}) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.xl,
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    iconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.fillSubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.xs,
-    },
-    title: { ...typography.body, fontWeight: '600', textAlign: 'center' },
-    body: { ...typography.subtitle, fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={24} color={colors.labelSecondary} />
-      </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.body}>{body}</Text>
-    </View>
-  );
-}
+import { useThemedStyles } from '@/theme';
 
 function renderRoleListingCards(
   jobs: EnrichedLiveJobPost[],
@@ -93,19 +50,23 @@ function renderRoleListingCards(
   workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
   onToggleSaved: (jobId: string, nextSaved: boolean) => void,
 ) {
-  return jobs.map((job) => (
-    <RoleListingCard
-      key={job.id}
-      job={job}
-      hasApplied={appliedJobIds.has(job.id)}
-      isSaved={savedJobIds.has(job.id)}
-      onToggleSaved={() => onToggleSaved(job.id, !savedJobIds.has(job.id))}
-      distanceLabel={job.distanceLabel}
-      jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
-      matchContext={workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined}
-      onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
-    />
-  ));
+  return (
+    <StaggeredList>
+      {jobs.map((job) => (
+        <RoleListingCard
+          key={job.id}
+          job={job}
+          hasApplied={appliedJobIds.has(job.id)}
+          isSaved={savedJobIds.has(job.id)}
+          onToggleSaved={() => onToggleSaved(job.id, !savedJobIds.has(job.id))}
+          distanceLabel={job.distanceLabel}
+          jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
+          matchContext={workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined}
+          onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
+        />
+      ))}
+    </StaggeredList>
+  );
 }
 
 export default function BrowseScreen() {
@@ -396,10 +357,10 @@ export default function BrowseScreen() {
 
   const listContent =
     filteredJobs.length === 0 ? (
-      <BrowseEmptyState
+      <EmptyState
         icon="filter-outline"
         title="No roles match your search"
-        body={
+        message={
           hasActiveFilters
             ? 'Try a different search term or adjust your filters.'
             : 'Check back soon for new opportunities.'
@@ -434,10 +395,10 @@ export default function BrowseScreen() {
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
         ) : jobs.length === 0 ? (
-          <BrowseEmptyState
+          <EmptyState
             icon="briefcase-outline"
             title="No open roles"
-            body="Check back soon for new opportunities in your province."
+            message="Check back soon for new opportunities in your province."
           />
         ) : (
           <View style={styles.panel}>

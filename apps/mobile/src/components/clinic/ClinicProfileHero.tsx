@@ -1,13 +1,14 @@
 import type { ClinicProfile } from '@chairside/api';
 import { getProvinceLabel, SPECIALTY_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
-import { useTheme, useThemedStyles } from '@/theme';
+import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
 
 type ClinicProfileHeroProps = {
   email?: string | null;
@@ -20,7 +21,7 @@ export function ClinicProfileHero({
   profile,
   editable = false,
 }: ClinicProfileHeroProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { logoUri, isUploading, pickLogo } = useClinicLogo();
   const name = profile?.clinic_name?.trim() || 'Your practice';
   const specialtyLabel =
@@ -34,12 +35,20 @@ export function ClinicProfileHero({
       ? `${specialtyLabel} · ${location}`
       : specialtyLabel ?? location ?? 'Complete your clinic profile to get started';
 
+  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
-      backgroundColor: colors.surface,
       borderRadius: 20,
+      overflow: 'hidden',
       borderWidth: 1,
       borderColor: colors.separator,
+      position: 'relative',
+    },
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    content: {
       padding: spacing.lg,
       alignItems: 'center',
       gap: spacing.sm,
@@ -92,28 +101,38 @@ export function ClinicProfileHero({
 
   return (
     <View style={styles.card}>
-      <View style={styles.avatarWrap}>
-        {editable ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Change clinic logo"
-            disabled={isUploading}
-            onPress={() => void pickLogo()}>
-            {avatar}
-            <View style={styles.editBadge}>
-              <Ionicons name="camera" size={14} color={colors.primaryOnPrimary} />
-            </View>
-          </Pressable>
-        ) : (
-          avatar
-        )}
+      <LinearGradient
+        colors={heroGradient}
+        locations={[0, 0.35, 0.65, 0.85, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.gradient}
+        pointerEvents="none"
+      />
+      <View style={styles.content}>
+        <View style={styles.avatarWrap}>
+          {editable ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Change clinic logo"
+              disabled={isUploading}
+              onPress={() => void pickLogo()}>
+              {avatar}
+              <View style={styles.editBadge}>
+                <Ionicons name="camera" size={14} color={colors.primaryOnPrimary} />
+              </View>
+            </Pressable>
+          ) : (
+            avatar
+          )}
+        </View>
+        <Text style={styles.name} numberOfLines={2}>
+          {name}
+        </Text>
+        {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
+        <Text style={styles.meta}>{metaLine}</Text>
+        <AccountTypeBadge label={getAccountTypeLabel('clinic')} />
       </View>
-      <Text style={styles.name} numberOfLines={2}>
-        {name}
-      </Text>
-      {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
-      <Text style={styles.meta}>{metaLine}</Text>
-      <AccountTypeBadge label={getAccountTypeLabel('clinic')} />
     </View>
   );
 }

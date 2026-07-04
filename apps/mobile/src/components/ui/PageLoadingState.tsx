@@ -1,8 +1,10 @@
-import { ActivityIndicator, Animated, Text, View } from 'react-native';
+import { Animated, Text, View } from 'react-native';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton';
+import { ListCardSkeleton } from '@/components/ui/skeletons/ListCardSkeleton';
 import { useEnterAnimation, usePulseOpacity } from '@/lib/motion';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 type PageLoadingSpinnerProps = {
   message?: string;
@@ -11,6 +13,8 @@ type PageLoadingSpinnerProps = {
 type PageLoadingListProps = {
   message?: string;
   rowCount?: number;
+  rowHeight?: number;
+  compact?: boolean;
 };
 
 function LoadingDots({ pulse }: { pulse: Animated.Value }) {
@@ -86,29 +90,20 @@ export function PageLoadingSpinner({ message }: PageLoadingSpinnerProps) {
 }
 
 /** Inline list loading placeholder for tab screens. */
-export function PageLoadingList({ message = 'Loading…', rowCount: _rowCount = 4 }: PageLoadingListProps) {
-  const styles = useThemedStyles(({ typography }) => ({
-    message: typography.subtitle,
-  }));
-
-  return <Text style={styles.message}>{message}</Text>;
+export function PageLoadingList({
+  message = 'Loading…',
+  rowCount = 4,
+  rowHeight = 132,
+  compact = false,
+}: PageLoadingListProps) {
+  return (
+    <View accessibilityRole="progressbar" accessibilityLabel={message}>
+      <ListCardSkeleton rowCount={rowCount} rowHeight={rowHeight} compact={compact} />
+    </View>
+  );
 }
 
 /** Detail/form loading body for stack screens inside OnboardingShell. */
 export function PageLoadingDetail() {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ spacing }) => ({
-    container: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingTop: spacing.xl,
-    },
-  }));
-
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator color={colors.primary} size="small" />
-    </View>
-  );
+  return <DetailHeroSkeleton />;
 }

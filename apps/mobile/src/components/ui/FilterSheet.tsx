@@ -6,11 +6,15 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+
+const SHEET_SPRING = SlideInDown.springify().damping(22).stiffness(280);
 
 export function FilterSheetSection<T extends string>({
   label,
@@ -75,15 +79,14 @@ export function FilterSheet({
       backgroundColor: 'rgba(0,0,0,0.45)',
       justifyContent: 'flex-end',
     },
+    sheetWrap: {
+      maxHeight: '80%',
+    },
     sheet: {
-      backgroundColor: colors.surface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
       paddingBottom: Math.max(insets.bottom, spacing.lg),
       gap: spacing.lg,
-      maxHeight: '80%',
     },
     handle: {
       alignSelf: 'center',
@@ -118,23 +121,29 @@ export function FilterSheet({
   }));
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
-          <View style={styles.handle} />
-          <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
-            <Pressable onPress={onReset} accessibilityRole="button" accessibilityLabel="Reset filters">
-              <Text style={styles.reset}>Reset</Text>
+        {visible ? (
+          <Animated.View entering={SHEET_SPRING} style={styles.sheetWrap}>
+            <Pressable onPress={(event) => event.stopPropagation()}>
+              <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
+                <View style={styles.handle} />
+                <View style={styles.header}>
+                  <Text style={styles.title}>{title}</Text>
+                  <Pressable onPress={onReset} accessibilityRole="button" accessibilityLabel="Reset filters">
+                    <Text style={styles.reset}>Reset</Text>
+                  </Pressable>
+                </View>
+                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                  {children}
+                </ScrollView>
+                <View style={styles.footer}>
+                  <OnboardingButton label="Done" accent={accent} onPress={onClose} />
+                </View>
+              </LiquidGlassSurface>
             </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-            {children}
-          </ScrollView>
-          <View style={styles.footer}>
-            <OnboardingButton label="Done" accent={accent} onPress={onClose} />
-          </View>
-        </Pressable>
+          </Animated.View>
+        ) : null}
       </Pressable>
     </Modal>
   );

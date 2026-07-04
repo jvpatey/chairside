@@ -1,153 +1,162 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DashboardIconBadge } from '@/components/dashboard/DashboardIconBadge';
 import type { DashboardSpotlightItem } from '@/lib/dashboardSpotlight';
-import { webOnlyStyle, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 import {
-  colorWithAlpha,
   fontBold,
   fontRegular,
   fontSemibold,
-  getSpotlightGradient,
   useTheme,
   useThemedStyles,
 } from '@/theme';
 
 type DashboardSpotlightCardProps = {
   item: DashboardSpotlightItem;
+  onDismiss?: () => void;
 };
 
-/** Prominent "Up next" card surfacing the highest-priority dashboard action. */
-export function DashboardSpotlightCard({ item }: DashboardSpotlightCardProps) {
+/** Priority spotlight card surfacing the highest-value dashboard action. */
+export function DashboardSpotlightCard({ item, onDismiss }: DashboardSpotlightCardProps) {
   const { colors, isDark } = useTheme();
   const brandColor = item.accent === 'secondary' ? colors.secondary : colors.primary;
-  const gradientColors = getSpotlightGradient(colors, isDark, item.accent);
+  const brandSubtle = item.accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
 
   const styles = useThemedStyles(({ colors, spacing, radii, elevation, isDark }) => ({
     card: {
-      borderRadius: radii.xl,
+      borderRadius: radii.lg,
       overflow: 'hidden',
+      backgroundColor: colors.surface,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colorWithAlpha(brandColor, isDark ? 0.34 : 0.22),
+      borderColor: colors.separator,
       ...elevation('raised'),
-      ...webPointer(),
     },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    content: {
-      padding: spacing.lg,
-      gap: spacing.md,
-    },
-    topRow: {
+    topBar: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
-    },
-    iconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
       alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colorWithAlpha(brandColor, isDark ? 0.24 : 0.16),
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colorWithAlpha(brandColor, isDark ? 0.32 : 0.24),
-      flexShrink: 0,
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      paddingTop: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.xs,
     },
-    textBlock: {
-      flex: 1,
-      minWidth: 0,
-      gap: spacing.xs,
-    },
-    eyebrow: {
+    label: {
       fontSize: 12,
       lineHeight: 16,
       fontFamily: fontSemibold,
       fontWeight: '600',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase' as const,
       color: brandColor,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      borderRadius: radii.pill,
+      backgroundColor: brandSubtle,
+      overflow: 'hidden',
+    },
+    dismissButton: {
+      width: 28,
+      height: 28,
+      borderRadius: radii.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.fillSubtle,
+      ...webPointer(),
+    },
+    mainPressable: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.md + 2,
+      paddingHorizontal: spacing.lg,
+      minWidth: 0,
+      ...webPointer(),
+    },
+    textColumn: {
+      flex: 1,
+      minWidth: 0,
+      gap: 3,
     },
     headline: {
-      fontSize: 20,
-      lineHeight: 26,
+      fontSize: 16,
+      lineHeight: 21,
       fontFamily: fontBold,
       fontWeight: '700',
       color: colors.labelPrimary,
-      letterSpacing: -0.4,
+      letterSpacing: -0.25,
     },
     body: {
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: 14,
+      lineHeight: 19,
       fontFamily: fontRegular,
       color: colors.labelSecondary,
     },
-    ctaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    cta: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontFamily: fontSemibold,
-      fontWeight: '600',
-      color: brandColor,
+    chevron: {
+      flexShrink: 0,
+      opacity: 0.35,
     },
     cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: {
-      opacity: 0.92,
-      transform: [{ scale: 0.985 }],
+      opacity: 0.94,
+      transform: [{ scale: 0.99 }],
     },
-    focusRing: webOnlyStyle({
-      outlineStyle: 'solid',
-      outlineWidth: 2,
-      outlineColor: colorWithAlpha(brandColor, 0.45),
-      outlineOffset: 2,
-    }),
   }));
 
   const handlePress = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     item.onPress();
+  };
+
+  const handleDismiss = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onDismiss?.();
   };
 
   const isWeb = Platform.OS === 'web';
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${item.eyebrow}. ${item.headline}. ${item.body}`}
-      onPress={handlePress}
-      style={({ pressed, hovered }) => [
-        styles.card,
-        isWeb && hovered && !pressed && styles.cardHovered,
-        pressed && styles.cardPressed,
-      ]}>
-      <LinearGradient colors={gradientColors} style={styles.gradient} />
-      <View style={styles.content}>
-        <View style={styles.topRow}>
-          <View style={styles.iconWrap}>
-            <Ionicons name={item.icon} size={22} color={brandColor} />
-          </View>
-          <View style={styles.textBlock}>
-            <Text style={styles.eyebrow}>{item.eyebrow}</Text>
-            <Text style={styles.headline} numberOfLines={2}>
-              {item.headline}
-            </Text>
-            <Text style={styles.body} numberOfLines={3}>
-              {item.body}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.ctaRow}>
-          <Text style={styles.cta}>{item.ctaLabel}</Text>
-          <Ionicons name="arrow-forward" size={16} color={brandColor} />
-        </View>
+    <View style={styles.card}>
+      <View style={styles.topBar}>
+        <Text style={styles.label}>{item.eyebrow}</Text>
+        {onDismiss ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss"
+            accessibilityHint="Hides this update from your dashboard"
+            hitSlop={8}
+            onPress={handleDismiss}
+            style={styles.dismissButton}>
+            <Ionicons name="close" size={14} color={colors.labelSecondary} />
+          </Pressable>
+        ) : null}
       </View>
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${item.headline}. ${item.body}`}
+        accessibilityHint={item.ctaLabel}
+        onPress={handlePress}
+        style={({ pressed, hovered }) => [
+          styles.mainPressable,
+          isWeb && hovered && !pressed && styles.cardHovered,
+          pressed && styles.cardPressed,
+        ]}>
+        <DashboardIconBadge icon={item.icon} accent={item.accent} size="md" />
+        <View style={styles.textColumn}>
+          <Text style={styles.headline} numberOfLines={2}>
+            {item.headline}
+          </Text>
+          <Text style={styles.body} numberOfLines={2}>
+            {item.body}
+          </Text>
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={colors.labelTertiary}
+          style={styles.chevron}
+        />
+      </Pressable>
+    </View>
   );
 }

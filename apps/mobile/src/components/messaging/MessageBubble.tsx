@@ -4,6 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SearchMatchText } from '@/components/messaging/SearchMatchText';
 import { copyMessageText } from '@/lib/copyText';
+import { getMessageBubbleRadii } from '@/lib/messageThreadDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type MessageBubbleProps = {
@@ -51,75 +52,67 @@ export function MessageBubble({
   animateEntry = true,
 }: MessageBubbleProps) {
   const { colors } = useTheme();
+  const bubbleRadii = getMessageBubbleRadii(isOwn, groupedWithPrevious, groupedWithNext);
+  const showMeta = showTimestamp || status !== 'sent' || showDeliveryStatus;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => {
-    const ownRadius = {
-      borderTopLeftRadius: 18,
-      borderTopRightRadius: groupedWithPrevious ? 8 : 18,
-      borderBottomLeftRadius: 18,
-      borderBottomRightRadius: groupedWithNext ? 8 : 18,
-    };
-    const otherRadius = {
-      borderTopLeftRadius: groupedWithPrevious ? 8 : 18,
-      borderTopRightRadius: 18,
-      borderBottomLeftRadius: groupedWithNext ? 8 : 18,
-      borderBottomRightRadius: 18,
-    };
-
-    return {
-      row: {
-        flexDirection: 'row',
-        justifyContent: isOwn ? 'flex-end' : 'flex-start',
-        marginTop: groupedWithPrevious ? 2 : spacing.xs,
-      },
-      bubble: {
-        maxWidth: '82%',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        backgroundColor: isOwn ? colors.primary : colors.surface,
-        borderWidth: isOwn ? 0 : 1,
-        borderColor: colors.separator,
-        gap: spacing.xs,
-        opacity: status === 'pending' ? 0.72 : 1,
-        ...(isOwn ? ownRadius : otherRadius),
-      },
-      bubbleHighlighted: {
-        borderWidth: 2,
-        borderColor: isOwn ? colors.primaryOnPrimary : colors.primary,
-        ...(isOwn
-          ? { backgroundColor: colors.primary }
-          : { backgroundColor: colors.primarySubtle }),
-      },
-      body: {
-        ...typography.body,
-        color: isOwn ? colors.primaryOnPrimary : colors.labelPrimary,
-      },
-      bodyHighlight: {
-        fontWeight: '700',
-        color: isOwn ? colors.primaryOnPrimary : colors.labelPrimary,
-      },
-      metaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.xs,
-        alignSelf: isOwn ? 'flex-end' : 'flex-start',
-      },
-      timestamp: {
-        fontSize: 11,
-        color: isOwn ? `${colors.primaryOnPrimary}CC` : colors.labelTertiary,
-      },
-      statusFailed: {
-        fontSize: 11,
-        color: isOwn ? `${colors.primaryOnPrimary}CC` : colors.destructive,
-        fontWeight: '600',
-      },
-      deliveryStatus: {
-        fontSize: 11,
-        color: isOwn ? `${colors.primaryOnPrimary}CC` : colors.labelTertiary,
-        fontWeight: deliveryStatus === 'read' ? '600' : '500',
-      },
-    };
-  });
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    row: {
+      width: '100%',
+      flexDirection: 'row',
+      justifyContent: isOwn ? 'flex-end' : 'flex-start',
+      marginTop: groupedWithPrevious ? 3 : spacing.sm,
+    },
+    column: {
+      maxWidth: '78%',
+      alignItems: isOwn ? 'flex-end' : 'flex-start',
+    },
+    bubble: {
+      paddingHorizontal: spacing.md,
+      paddingTop: groupedWithPrevious ? 6 : spacing.sm,
+      paddingBottom: groupedWithNext ? 6 : spacing.sm,
+      backgroundColor: isOwn ? colors.primary : colors.surface,
+      borderWidth: isOwn ? 0 : 1,
+      borderColor: colors.separator,
+      opacity: status === 'pending' ? 0.72 : 1,
+      overflow: 'hidden' as const,
+      ...bubbleRadii,
+    },
+    bubbleHighlighted: {
+      borderWidth: 2,
+      borderColor: isOwn ? colors.primaryOnPrimary : colors.primary,
+      ...(isOwn
+        ? undefined
+        : { backgroundColor: colors.primarySubtle }),
+    },
+    body: {
+      ...typography.body,
+      color: isOwn ? colors.primaryOnPrimary : colors.labelPrimary,
+    },
+    bodyHighlight: {
+      fontWeight: '700',
+      color: isOwn ? colors.primaryOnPrimary : colors.labelPrimary,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: 4,
+    },
+    timestamp: {
+      fontSize: 11,
+      color: colors.labelTertiary,
+    },
+    statusFailed: {
+      fontSize: 11,
+      color: colors.destructive,
+      fontWeight: '600',
+    },
+    deliveryStatus: {
+      fontSize: 11,
+      color: deliveryStatus === 'read' ? colors.primary : colors.labelTertiary,
+      fontWeight: deliveryStatus === 'read' ? '600' : '500',
+    },
+  }));
 
   const timestamp = formatBubbleTime(createdAt);
   const activeHighlightQuery = highlightQuery?.trim();
@@ -146,41 +139,44 @@ export function MessageBubble({
     });
   };
 
-  const bubbleContent = (
-    <Pressable
-      onLongPress={handleLongPress}
-      delayLongPress={350}
-      style={[styles.bubble, highlighted && styles.bubbleHighlighted]}>
-      {activeHighlightQuery ? (
-        <SearchMatchText
-          text={body}
-          query={activeHighlightQuery}
-          style={styles.body}
-          highlightStyle={styles.bodyHighlight}
-        />
-      ) : (
-        <Text style={styles.body} selectable>
-          {body}
-        </Text>
-      )}
-      {showTimestamp || status !== 'sent' || showDeliveryStatus ? (
-        <View style={styles.metaRow}>
-          {status === 'pending' ? (
-            <ActivityIndicator color={isOwn ? colors.primaryOnPrimary : colors.primary} size={10} />
-          ) : null}
-          {showTimestamp && timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
-          {status === 'failed' ? <Text style={styles.statusFailed}>Failed to send</Text> : null}
-          {showDeliveryStatus && isOwn && status === 'sent' ? (
-            <Text style={styles.deliveryStatus}>{formatDeliveryLabel(resolvedDeliveryStatus)}</Text>
-          ) : null}
-        </View>
-      ) : null}
+  const bubbleBody = activeHighlightQuery ? (
+    <SearchMatchText
+      text={body}
+      query={activeHighlightQuery}
+      style={styles.body}
+      highlightStyle={styles.bodyHighlight}
+    />
+  ) : (
+    <Text style={styles.body} selectable>
+      {body}
+    </Text>
+  );
+
+  const bubbleStyle = [styles.bubble, highlighted && styles.bubbleHighlighted];
+
+  const bubble = (
+    <Pressable onLongPress={handleLongPress} delayLongPress={350} style={bubbleStyle}>
+      {bubbleBody}
     </Pressable>
   );
 
   const content = (
     <View style={styles.row} accessibilityRole="text" accessibilityLabel={accessibilityLabel}>
-      {bubbleContent}
+      <View style={styles.column}>
+        {bubble}
+        {showMeta ? (
+          <View style={styles.metaRow}>
+            {status === 'pending' ? (
+              <ActivityIndicator color={colors.primary} size={10} />
+            ) : null}
+            {showTimestamp && timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+            {status === 'failed' ? <Text style={styles.statusFailed}>Failed to send</Text> : null}
+            {showDeliveryStatus && isOwn && status === 'sent' ? (
+              <Text style={styles.deliveryStatus}>{formatDeliveryLabel(resolvedDeliveryStatus)}</Text>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 

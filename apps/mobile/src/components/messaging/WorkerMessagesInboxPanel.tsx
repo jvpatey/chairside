@@ -54,9 +54,9 @@ export function WorkerMessagesInboxPanel({
 }: WorkerMessagesInboxPanelProps) {
   const { user } = useAuth();
   const { refreshUnread } = useMessageUnread();
-  const [conversations, setConversations] = useState<Awaited<
-    ReturnType<typeof listConversationsForWorker>
-  >>([]);
+  const [conversations, setConversations] = useState<
+    Awaited<ReturnType<typeof listConversationsForWorker>>
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 

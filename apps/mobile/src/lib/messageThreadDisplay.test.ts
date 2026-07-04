@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import {
+import * as messageThreadDisplay from '@/lib/messageThreadDisplay';
+import type { Conversation } from '@chairside/api';
+import type { ThreadMessage } from '@/lib/messageThreadDisplay';
+
+const {
+  areThreadMessagesGrouped,
   buildThreadListItems,
   findLatestMatchingMessageId,
   findThreadListIndexForMessage,
@@ -8,10 +13,11 @@ import {
   formatMessageDateLabel,
   formatMessageSearchPreview,
   getLastOwnMessageDeliveryStatus,
+  getMessageBubbleRadii,
   matchesConversationSearch,
-  type ThreadMessage,
-} from '@/lib/messageThreadDisplay';
-import type { Conversation } from '@chairside/api';
+  MESSAGE_BUBBLE_RADIUS_JOINT,
+  MESSAGE_BUBBLE_RADIUS_LARGE,
+} = messageThreadDisplay;
 
 function makeMessage(overrides: Partial<ThreadMessage>): ThreadMessage {
   return {
@@ -51,6 +57,55 @@ describe('buildThreadListItems', () => {
     const messageItems = items.filter((item) => item.type === 'message');
     expect(messageItems[0]?.type === 'message' && messageItems[0].groupedWithNext).toBe(true);
     expect(messageItems[1]?.type === 'message' && messageItems[1].groupedWithPrevious).toBe(true);
+  });
+
+  it('does not group messages on different calendar days', () => {
+    expect(
+      areThreadMessagesGrouped(
+        makeMessage({ id: '1', created_at: '2026-06-26T12:00:00.000Z' }),
+        makeMessage({ id: '2', created_at: '2026-06-27T12:00:00.000Z' }),
+        'worker-1',
+      ),
+    ).toBe(false);
+  });
+
+  it('does not group messages more than five minutes apart', () => {
+    expect(
+      areThreadMessagesGrouped(
+        makeMessage({ id: '1', created_at: '2026-06-26T12:00:00.000Z' }),
+        makeMessage({ id: '2', created_at: '2026-06-26T12:06:00.000Z' }),
+        'worker-1',
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('getMessageBubbleRadii', () => {
+  it('rounds all corners on a standalone bubble', () => {
+    expect(getMessageBubbleRadii(true, false, false)).toEqual({
+      borderTopLeftRadius: MESSAGE_BUBBLE_RADIUS_LARGE,
+      borderTopRightRadius: MESSAGE_BUBBLE_RADIUS_LARGE,
+      borderBottomLeftRadius: MESSAGE_BUBBLE_RADIUS_LARGE,
+      borderBottomRightRadius: MESSAGE_BUBBLE_RADIUS_LARGE,
+    });
+  });
+
+  it('flattens trailing corners on grouped own messages', () => {
+    expect(getMessageBubbleRadii(true, true, true)).toEqual({
+      borderTopLeftRadius: MESSAGE_BUBBLE_RADIUS_LARGE,
+      borderTopRightRadius: MESSAGE_BUBBLE_RADIUS_JOINT,
+      borderBottomLeftRadius: MESSAGE_BUBBLE_RADIUS_LARGE,
+      borderBottomRightRadius: MESSAGE_BUBBLE_RADIUS_JOINT,
+    });
+  });
+
+  it('flattens leading corners on grouped other messages', () => {
+    expect(getMessageBubbleRadii(false, true, true)).toEqual({
+      borderTopLeftRadius: MESSAGE_BUBBLE_RADIUS_JOINT,
+      borderTopRightRadius: MESSAGE_BUBBLE_RADIUS_LARGE,
+      borderBottomLeftRadius: MESSAGE_BUBBLE_RADIUS_JOINT,
+      borderBottomRightRadius: MESSAGE_BUBBLE_RADIUS_LARGE,
+    });
   });
 });
 

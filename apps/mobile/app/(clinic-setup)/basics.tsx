@@ -10,6 +10,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
@@ -26,7 +27,6 @@ export default function ClinicBasicsScreen() {
   const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
   }));
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function ClinicBasicsScreen() {
         subtitle="Tell us about your practice."
         onBack={() => router.replace(CLINIC_HOME)}
       />
-      <Text style={styles.step}>Step 1 of 5</Text>
+      <SetupStepProgress step={1} total={5} />
       <View style={styles.form}>
         <AuthField
           label="Clinic name"

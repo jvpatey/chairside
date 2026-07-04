@@ -15,6 +15,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -183,6 +184,7 @@ export default function SignUpScreen() {
   return (
     <OnboardingShell
       authSplit
+      backgroundAccessory={<AuthHeroGlow />}
       footer={
         <View style={styles.footer}>
           <OnboardingButton

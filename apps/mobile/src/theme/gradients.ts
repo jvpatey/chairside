@@ -68,7 +68,7 @@ export function getHeroBandGradient(
   ];
 }
 
-/** Spotlight card gradient — bold brand wash with depth. */
+/** Spotlight card gradient — soft surface wash, not a bold banner. */
 export function getSpotlightGradient(
   colors: Colors,
   isDark: boolean,
@@ -79,11 +79,15 @@ export function getSpotlightGradient(
 
   return isDark
     ? [
-        colorWithAlpha(brand, 0.42),
-        colorWithAlpha(brand, 0.18),
-        colorWithAlpha(colors.surfaceElevated, 0.92),
+        colorWithAlpha(brand, 0.12),
+        colorWithAlpha(brand, 0.05),
+        colorWithAlpha(colors.surfaceElevated, 0.98),
       ]
-    : [colorWithAlpha(brand, 0.34), colorWithAlpha(subtle, 0.95), colors.surface];
+    : [
+        colorWithAlpha(brand, 0.08),
+        colorWithAlpha(subtle, 0.45),
+        colors.surface,
+      ];
 }
 
 /** Selected stat card fill gradient. */

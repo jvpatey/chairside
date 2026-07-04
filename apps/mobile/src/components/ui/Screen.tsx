@@ -1,5 +1,13 @@
 import { ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
@@ -64,9 +72,9 @@ export function Screen({
   const showAtmosphere = tabAtmosphere !== 'none';
   // Web tab scenes are opaque (see useAdaptiveTabScreenOptions); paint atmosphere per screen.
   const atmosphereLayer =
-    showAtmosphere && Platform.OS === 'web'
-      ? <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
-      : null;
+    showAtmosphere && Platform.OS === 'web' ? (
+      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+    ) : null;
   const containerBackground =
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
@@ -167,7 +175,8 @@ export function Screen({
             styles.back,
             webHover(hovered, pressed, styles.backHovered),
             pressed && { opacity: 0.75 },
-          ]}>
+          ]}
+        >
           <Text style={styles.backText}>{backLabel}</Text>
         </Pressable>
       ) : null}
@@ -199,11 +208,13 @@ export function Screen({
           styles.container,
           { backgroundColor: containerBackground },
           fillsContainer && { minHeight: 0 },
-        ]}>
+        ]}
+      >
         {atmosphereLayer}
         <WebPageEnter
           animate={animateEntry}
-          style={fillsContainer ? { flex: 1, minHeight: 0 } : { flex: 1 }}>
+          style={fillsContainer ? { flex: 1, minHeight: 0 } : { flex: 1 }}
+        >
           <View
             style={[
               styles.content,

@@ -54,9 +54,9 @@ export function ClinicMessagesInboxPanel({
   const { user } = useAuth();
   const { refreshClinicProfile } = useClinicProfile();
   const { refreshUnread } = useMessageUnread();
-  const [conversations, setConversations] = useState<Awaited<
-    ReturnType<typeof listConversationsForClinic>
-  >>([]);
+  const [conversations, setConversations] = useState<
+    Awaited<ReturnType<typeof listConversationsForClinic>>
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 

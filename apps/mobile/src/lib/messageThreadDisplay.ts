@@ -20,6 +20,40 @@ export type ThreadListItem =
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
+export const MESSAGE_BUBBLE_RADIUS_LARGE = 18;
+export const MESSAGE_BUBBLE_RADIUS_JOINT = 5;
+
+/** iMessage-style corner radii for grouped consecutive bubbles. */
+export function getMessageBubbleRadii(
+  isOwn: boolean,
+  groupedWithPrevious: boolean,
+  groupedWithNext: boolean,
+): {
+  borderTopLeftRadius: number;
+  borderTopRightRadius: number;
+  borderBottomLeftRadius: number;
+  borderBottomRightRadius: number;
+} {
+  const large = MESSAGE_BUBBLE_RADIUS_LARGE;
+  const joint = MESSAGE_BUBBLE_RADIUS_JOINT;
+
+  if (isOwn) {
+    return {
+      borderTopLeftRadius: large,
+      borderTopRightRadius: groupedWithPrevious ? joint : large,
+      borderBottomLeftRadius: large,
+      borderBottomRightRadius: groupedWithNext ? joint : large,
+    };
+  }
+
+  return {
+    borderTopLeftRadius: groupedWithPrevious ? joint : large,
+    borderTopRightRadius: large,
+    borderBottomLeftRadius: groupedWithNext ? joint : large,
+    borderBottomRightRadius: large,
+  };
+}
+
 function startOfDay(date: Date): Date {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -56,11 +90,26 @@ function isSameSenderGroup(
   const nextOwn = next.sender_id === viewerId;
   if (previousOwn !== nextOwn) return false;
 
-  const previousTime = new Date(previous.created_at).getTime();
-  const nextTime = new Date(next.created_at).getTime();
-  if (Number.isNaN(previousTime) || Number.isNaN(nextTime)) return false;
+  const previousDate = new Date(previous.created_at);
+  const nextDate = new Date(next.created_at);
+  if (Number.isNaN(previousDate.getTime()) || Number.isNaN(nextDate.getTime())) {
+    return false;
+  }
 
-  return Math.abs(nextTime - previousTime) <= GROUP_WINDOW_MS;
+  if (startOfDay(previousDate).getTime() !== startOfDay(nextDate).getTime()) {
+    return false;
+  }
+
+  return Math.abs(nextDate.getTime() - previousDate.getTime()) <= GROUP_WINDOW_MS;
+}
+
+/** Whether two adjacent thread messages should share a visual bubble group. */
+export function areThreadMessagesGrouped(
+  previous: ThreadMessage,
+  next: ThreadMessage,
+  viewerId: string,
+): boolean {
+  return isSameSenderGroup(previous, next, viewerId);
 }
 
 /** Flatten messages into date separators and grouped bubble rows. */

@@ -1,24 +1,33 @@
-import { listJobPosts, getJobPostApplicationCountsMap, type JobPost } from '@chairside/api';
+import {
+  getMissingClinicProfileFields,
+  listJobPosts,
+  getJobPostApplicationCountsMap,
+  type JobPost,
+} from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
+import type { Href } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
+  CLINIC_SETUP_BASICS,
   getClinicRoleApplicationsRoute,
   getJobDetailRoute,
   getRoleHistoryRoute,
 } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
-import { PostingCardActionButton } from '@/components/clinic/PostingCardActionButton';
+import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
+import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,63 +42,10 @@ import {
 import { hasActiveListSearch, matchesJobPostSearch } from '@/lib/clinicListSearch';
 import { useTheme, useThemedStyles } from '@/theme';
 
-function PostingListEmptyState({
-  icon,
-  title,
-  body,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  body: string;
-}) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.xl,
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    iconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.fillSubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.xs,
-    },
-    title: {
-      ...typography.body,
-      fontWeight: '600',
-      textAlign: 'center',
-    },
-    body: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      textAlign: 'center',
-    },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={24} color={colors.labelSecondary} />
-      </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.body}>{body}</Text>
-    </View>
-  );
-}
-
 export default function ClinicPostingsScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const { isProfileComplete } = useClinicProfile();
+  const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
@@ -128,6 +84,25 @@ export default function ClinicPostingsScreen() {
       gap: dashboardSectionGap(spacing),
     },
   }));
+
+  const guardPosting = (target: Href) => {
+    if (isProfileComplete) {
+      router.push(target);
+      return;
+    }
+
+    const missing = getMissingClinicProfileFields(clinicProfile);
+    Alert.alert(
+      'Complete your clinic profile',
+      missing.length > 0
+        ? `Add the following before posting: ${missing.join(', ')}`
+        : 'Finish your clinic profile to start posting.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Continue setup', onPress: () => router.push(CLINIC_SETUP_BASICS) },
+      ],
+    );
+  };
 
   const load = useCallback(async () => {
     if (!user?.id) {
@@ -171,19 +146,18 @@ export default function ClinicPostingsScreen() {
     });
   }, []);
 
-  const postTarget = CLINIC_POST_JOB;
-  const postLabel = 'Post role';
   const showRoleControls = !isLoading && mainListJobs.length > 0;
+  const historyDetail = `${historyCounts.archived === 1 ? '1 archived' : `${historyCounts.archived} archived`} · ${historyCounts.filled === 1 ? '1 filled' : `${historyCounts.filled} filled`}`;
 
   return (
-    <Screen
-      title="Postings"
-      subtitle="Open roles at your clinic.">
+    <Screen title="Postings" subtitle="Open roles at your clinic.">
       <View style={styles.wrap}>
-        <OnboardingButton
-          label={postLabel}
-          disabled={!isProfileComplete}
-          onPress={() => router.push(postTarget)}
+        <DashboardQuickActionTile
+          label="Post role"
+          description="Publish a new opening"
+          icon="briefcase-outline"
+          variant="primary"
+          onPress={() => guardPosting(CLINIC_POST_JOB)}
         />
 
         {showRoleControls ? (
@@ -208,22 +182,26 @@ export default function ClinicPostingsScreen() {
         ) : (
           <>
             {jobs.length === 0 ? (
-              <PostingListEmptyState
+              <EmptyState
                 icon="briefcase-outline"
                 title="No roles yet"
-                body="Post your first role to start receiving applications from candidates."
+                message="Post your first role to start receiving applications from candidates."
               />
             ) : mainListJobs.length === 0 ? (
-              <PostingListEmptyState
+              <EmptyState
                 icon="briefcase-outline"
                 title="No active roles"
-                body="Paused and live roles appear here. View role history for archived and filled postings."
+                message="Paused and live roles appear here. View role history for archived and filled postings."
               />
             ) : filteredJobs.length === 0 ? (
-              <PostingListEmptyState
+              <EmptyState
                 icon="filter-outline"
-                title={hasSearch || hasActiveFilters ? 'No roles match your search' : 'No roles in this filter'}
-                body={
+                title={
+                  hasSearch || hasActiveFilters
+                    ? 'No roles match your search'
+                    : 'No roles in this filter'
+                }
+                message={
                   hasSearch || hasActiveFilters
                     ? 'Try a different search or filter, or publish a new role.'
                     : 'Try a different filter or publish a new role.'
@@ -231,63 +209,63 @@ export default function ClinicPostingsScreen() {
               />
             ) : (
               <View style={styles.cardList}>
-                {filteredJobs.map((job) => (
-                  <RolePostingCard
-                    key={job.id}
-                    job={job}
-                    applicantCount={applicantCounts[job.id] ?? 0}
-                    onPress={() => router.push(getJobDetailRoute(job.id))}
-                    onApplicantsPress={
-                      (applicantCounts[job.id] ?? 0) > 0
-                        ? () =>
-                            router.push(
-                              getClinicRoleApplicationsRoute(job.id, 'postings-tab'),
-                            )
-                        : undefined
-                    }
-                    manage={
-                      user?.id
-                        ? {
-                            clinicId: user.id,
-                            onUpdated: handleJobUpdated,
-                            onDeleted: () => handleJobDeleted(job.id),
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
+                <StaggeredList>
+                  {filteredJobs.map((job) => (
+                    <RolePostingCard
+                      key={job.id}
+                      job={job}
+                      applicantCount={applicantCounts[job.id] ?? 0}
+                      onPress={() => router.push(getJobDetailRoute(job.id))}
+                      onApplicantsPress={
+                        (applicantCounts[job.id] ?? 0) > 0
+                          ? () =>
+                              router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
+                          : undefined
+                      }
+                      manage={
+                        user?.id
+                          ? {
+                              clinicId: user.id,
+                              onUpdated: handleJobUpdated,
+                              onDeleted: () => handleJobDeleted(job.id),
+                            }
+                          : undefined
+                      }
+                    />
+                  ))}
+                </StaggeredList>
               </View>
             )}
 
             {hasRoleHistory ? (
-              <BrowseListGroup>
-                <BrowseListRow
-                  avatar={
-                    <View
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: colors.fillSubtle,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                      <Ionicons name="time-outline" size={20} color={colors.labelSecondary} />
-                    </View>
-                  }
+              <>
+                <DashboardSectionHeader
                   title="Role history"
-                  headerDetail={`${historyCounts.archived === 1 ? '1 archived' : `${historyCounts.archived} archived`} · ${historyCounts.filled === 1 ? '1 filled' : `${historyCounts.filled} filled`}`}
-                  showChevron={false}
-                  action={
-                    <PostingCardActionButton
-                      label="View role history"
-                      variant="primary"
-                      fullWidth
-                      onPress={() => router.push(getRoleHistoryRoute())}
-                    />
-                  }
+                  actionLabel="View all"
+                  onActionPress={() => router.push(getRoleHistoryRoute())}
                 />
-              </BrowseListGroup>
+                <BrowseListGroup>
+                  <BrowseListRow
+                    avatar={
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          backgroundColor: colors.fillSubtle,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Ionicons name="time-outline" size={20} color={colors.labelSecondary} />
+                      </View>
+                    }
+                    title="Archived & filled roles"
+                    headerDetail={historyDetail}
+                    onPress={() => router.push(getRoleHistoryRoute())}
+                  />
+                </BrowseListGroup>
+              </>
             ) : null}
           </>
         )}

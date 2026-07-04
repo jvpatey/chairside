@@ -11,6 +11,7 @@ import {
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useThemedStyles } from '@/theme';
@@ -52,7 +53,6 @@ export default function ClinicLocationScreen() {
   const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
     footer: { gap: spacing.md, marginTop: spacing.lg },
-    step: { marginBottom: spacing.sm },
   }));
 
   useEffect(() => {
@@ -107,7 +107,7 @@ export default function ClinicLocationScreen() {
         subtitle="Where is your practice located?"
         onBack={() => router.back()}
       />
-      <Text style={styles.step}>Step 2 of 5</Text>
+      <SetupStepProgress step={2} total={5} />
       <View style={styles.form}>
         <AddressAutocomplete value={address} onChange={setAddress} />
       </View>

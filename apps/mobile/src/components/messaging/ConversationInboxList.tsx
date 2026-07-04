@@ -8,6 +8,7 @@ import { ConversationInboxFilters } from '@/components/messaging/ConversationInb
 import { ConversationInboxGroup } from '@/components/messaging/ConversationInboxGroup';
 import { MessagingEmptyState } from '@/components/messaging/MessagingEmptyState';
 import { ConversationListItem } from '@/components/messaging/ConversationListItem';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { hideConversation } from '@/lib/conversationHide';
 import {
   buildConversationInboxSections,
@@ -16,10 +17,7 @@ import {
   getConversationInboxEmptyMessage,
   type ConversationInboxFilter,
 } from '@/lib/conversationInbox';
-import {
-  formatMessageSearchPreview,
-  matchesConversationSearch,
-} from '@/lib/messageThreadDisplay';
+import { formatMessageSearchPreview, matchesConversationSearch } from '@/lib/messageThreadDisplay';
 import { webPointer } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import type { MessageThreadFocus } from '@/lib/routing';
@@ -71,20 +69,22 @@ export function ConversationInboxList({
 
   const styles = useThemedStyles(({ spacing, colors, typography, isDark }) => ({
     content: {
-      gap: compact ? spacing.sm : spacing.md,
       flex: compact ? 1 : undefined,
       minHeight: compact ? 0 : undefined,
     },
     scrollContent: {
-      gap: compact ? spacing.sm : spacing.md,
+      gap: spacing.md,
       paddingBottom: spacing.md,
     },
     scroll: {
       flex: 1,
     },
     headerBlock: {
-      gap: spacing.sm,
-      paddingBottom: spacing.xs,
+      gap: spacing.md,
+      paddingBottom: spacing.md,
+    },
+    searchSection: {
+      gap: spacing.xs,
     },
     searchWrap: {
       flexDirection: 'row',
@@ -125,7 +125,7 @@ export function ConversationInboxList({
       paddingHorizontal: spacing.xs,
     },
     listSections: {
-      gap: compact ? spacing.xs : spacing.sm,
+      gap: spacing.md,
     },
     standaloneCard: {
       backgroundColor: colors.surface,
@@ -139,9 +139,6 @@ export function ConversationInboxList({
             // @ts-expect-error — boxShadow is web-only
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
           } as const)),
-    },
-    chipWrap: {
-      paddingTop: 2,
     },
   }));
 
@@ -219,7 +216,8 @@ export function ConversationInboxList({
     if (hit) {
       return {
         scrollToMessageId: hit.id,
-        highlightQuery: debouncedQuery.length >= MESSAGE_SEARCH_MIN_LENGTH ? debouncedQuery : trimmed,
+        highlightQuery:
+          debouncedQuery.length >= MESSAGE_SEARCH_MIN_LENGTH ? debouncedQuery : trimmed,
       };
     }
 
@@ -246,113 +244,118 @@ export function ConversationInboxList({
       <MessagingEmptyState
         compact={compact}
         title={getEmptyStateTitle(filter, hasSearch)}
-        body={
-          hasSearch
-            ? 'Try a different name, message text, or role title.'
-            : emptyMessage
-        }
+        body={hasSearch ? 'Try a different name, message text, or role title.' : emptyMessage}
       />
     ) : (
       <View style={styles.listSections}>
-        {inboxSections.map((section) => {
-          if (section.kind === 'group') {
+        <StaggeredList>
+          {inboxSections.map((section) => {
+            if (section.kind === 'group') {
+              return (
+                <ConversationInboxGroup
+                  key={`group-${section.threads[0]?.id ?? 'unknown'}`}
+                  threads={section.threads}
+                  avatarKind={avatarKind}
+                  role={role}
+                  compact={compact}
+                  selectedConversationId={selectedConversationId}
+                  searchQuery={searchQuery}
+                  messageSearchHits={messageSearchHits}
+                  debouncedQuery={debouncedQuery}
+                  onConversationPress={onConversationPress}
+                  getConversationFocus={getConversationFocus}
+                  onDelete={async (conversation) => {
+                    await hideConversation(conversation, role, userId);
+                    onConversationHidden();
+                  }}
+                />
+              );
+            }
+
+            const conversation = section.conversation;
+            const hit = messageSearchHits[conversation.id];
+            const preview = hit
+              ? formatMessageSearchPreview(hit.body, debouncedQuery || searchQuery)
+              : null;
+
             return (
-              <ConversationInboxGroup
-                key={`group-${section.threads[0]?.id ?? 'unknown'}`}
-                threads={section.threads}
-                avatarKind={avatarKind}
-                role={role}
-                compact={compact}
-                selectedConversationId={selectedConversationId}
-                searchQuery={searchQuery}
-                messageSearchHits={messageSearchHits}
-                debouncedQuery={debouncedQuery}
-                onConversationPress={onConversationPress}
-                getConversationFocus={getConversationFocus}
-                onDelete={async (conversation) => {
-                  await hideConversation(conversation, role, userId);
-                  onConversationHidden();
-                }}
-              />
+              <View key={conversation.id} style={styles.standaloneCard}>
+                <ConversationListItem
+                  conversation={conversation}
+                  avatarKind={avatarKind}
+                  role={role}
+                  viewerId={userId}
+                  compact={compact}
+                  selected={conversation.id === selectedConversationId}
+                  messageSearchPreview={preview}
+                  searchQuery={searchQuery}
+                  onPress={() =>
+                    onConversationPress(conversation, getConversationFocus(conversation))
+                  }
+                  onDelete={async () => {
+                    await hideConversation(conversation, role, userId);
+                    onConversationHidden();
+                  }}
+                />
+              </View>
             );
-          }
-
-          const conversation = section.conversation;
-          const hit = messageSearchHits[conversation.id];
-          const preview = hit
-            ? formatMessageSearchPreview(hit.body, debouncedQuery || searchQuery)
-            : null;
-
-          return (
-            <View key={conversation.id} style={styles.standaloneCard}>
-              <ConversationListItem
-                conversation={conversation}
-                avatarKind={avatarKind}
-                role={role}
-                viewerId={userId}
-                compact={compact}
-                selected={conversation.id === selectedConversationId}
-                messageSearchPreview={preview}
-                searchQuery={searchQuery}
-                onPress={() => onConversationPress(conversation, getConversationFocus(conversation))}
-                onDelete={async () => {
-                  await hideConversation(conversation, role, userId);
-                  onConversationHidden();
-                }}
-              />
-            </View>
-          );
-        })}
+          })}
+        </StaggeredList>
       </View>
     );
 
   const headerContent = (
     <View style={styles.headerBlock}>
-      {header ? header : null}
+      {header ?? null}
 
       {conversations.length > 0 ? (
         <>
-          <View style={[styles.searchWrap, searchFocused && styles.searchWrapFocused]}>
-            <Ionicons
-              name="search"
-              size={17}
-              color={searchFocused ? colors.primary : colors.labelTertiary}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              accessibilityLabel="Search conversations and messages"
-              placeholder="Search name or messages"
-              placeholderTextColor={colors.labelTertiary}
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {searchQuery.length > 0 ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Clear search"
-                onPress={() => setSearchQuery('')}
-                style={styles.clearButton}>
-                <Ionicons name="close-circle" size={18} color={colors.labelTertiary} />
-              </Pressable>
+          <View style={styles.searchSection}>
+            <View style={[styles.searchWrap, searchFocused && styles.searchWrapFocused]}>
+              <Ionicons
+                name="search"
+                size={17}
+                color={searchFocused ? colors.primary : colors.labelTertiary}
+                style={styles.searchIcon}
+              />
+              <TextInput
+                accessibilityLabel="Search conversations and messages"
+                placeholder="Search name or messages"
+                placeholderTextColor={colors.labelTertiary}
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                  onPress={() => setSearchQuery('')}
+                  style={styles.clearButton}
+                >
+                  <Ionicons name="close-circle" size={18} color={colors.labelTertiary} />
+                </Pressable>
+              ) : null}
+            </View>
+            {hasSearch && debouncedQuery.length >= MESSAGE_SEARCH_MIN_LENGTH ? (
+              <Text style={styles.searchMeta}>
+                {isSearchingMessages
+                  ? 'Searching messages…'
+                  : messageMatchCount > 0
+                    ? `${messageMatchCount} conversation${messageMatchCount === 1 ? '' : 's'} with matching messages`
+                    : 'No message body matches yet'}
+              </Text>
             ) : null}
           </View>
-          {hasSearch && debouncedQuery.length >= MESSAGE_SEARCH_MIN_LENGTH ? (
-            <Text style={styles.searchMeta}>
-              {isSearchingMessages
-                ? 'Searching messages…'
-                : messageMatchCount > 0
-                  ? `${messageMatchCount} conversation${messageMatchCount === 1 ? '' : 's'} with matching messages`
-                  : 'No message body matches yet'}
-            </Text>
-          ) : null}
-          <View style={styles.chipWrap}>
-            <ConversationInboxFilters selected={filter} counts={filterCounts} onChange={setFilter} />
-          </View>
+          <ConversationInboxFilters
+            selected={filter}
+            counts={filterCounts}
+            onChange={setFilter}
+          />
         </>
       ) : null}
     </View>
@@ -366,7 +369,8 @@ export function ConversationInboxList({
           style={[styles.scroll, webScrollbarStyles()]}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator>
+          showsVerticalScrollIndicator
+        >
           {listBody}
         </ScrollView>
       </View>

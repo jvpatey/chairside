@@ -17,7 +17,10 @@ type WorkerMessageClinicActionProps = {
   compact?: boolean;
 };
 
-export function WorkerMessageClinicAction({ onPress, compact = false }: WorkerMessageClinicActionProps) {
+export function WorkerMessageClinicAction({
+  onPress,
+  compact = false,
+}: WorkerMessageClinicActionProps) {
   const { colors } = useTheme();
   const [infoVisible, setInfoVisible] = useState(false);
 
@@ -114,7 +117,8 @@ export function WorkerMessageClinicAction({ onPress, compact = false }: WorkerMe
             styles.primaryButton,
             IS_WEB && webHover(hovered, pressed, styles.primaryButtonHovered),
             pressed && styles.primaryButtonPressed,
-          ]}>
+          ]}
+        >
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primaryOnPrimary} />
           <Text style={styles.primaryLabel}>Message a clinic</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.primaryOnPrimary} />
@@ -126,7 +130,8 @@ export function WorkerMessageClinicAction({ onPress, compact = false }: WorkerMe
           accessibilityState={{ expanded: infoVisible }}
           hitSlop={8}
           onPress={showInfo}
-          style={({ pressed }) => [styles.infoButton, pressed && styles.infoButtonPressed]}>
+          style={({ pressed }) => [styles.infoButton, pressed && styles.infoButtonPressed]}
+        >
           <Ionicons name="information-circle-outline" size={18} color={colors.labelTertiary} />
         </Pressable>
       </View>

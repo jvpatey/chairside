@@ -13,6 +13,7 @@ import { Alert, Text, View } from 'react-native';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useThemedStyles } from '@/theme';
@@ -108,6 +109,7 @@ export default function WorkerReviewScreen() {
         subtitle="Confirm your professional background before browsing roles."
         onBack={() => router.back()}
       />
+      <SetupStepProgress step={5} total={5} showRing />
       <View style={styles.card}>
         <ReviewRow
           label="Roles"

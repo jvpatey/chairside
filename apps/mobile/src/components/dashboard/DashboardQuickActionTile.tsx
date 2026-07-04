@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DashboardIconBadge } from '@/components/dashboard/DashboardIconBadge';
 import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
@@ -86,15 +87,7 @@ export function DashboardQuickActionTile({
       transform: [{ scale: 0.982 }],
     },
     iconHalo: {
-      width: useStackedLayout ? 36 : 42,
-      height: useStackedLayout ? 36 : 42,
-      borderRadius: useStackedLayout ? 18 : 21,
-      alignItems: 'center',
-      justifyContent: 'center',
       flexShrink: 0,
-      borderWidth: StyleSheet.hairlineWidth,
-      backgroundColor: colorWithAlpha(brandColor, isDark ? 0.24 : 0.18),
-      borderColor: colorWithAlpha(brandColor, isDark ? 0.34 : 0.26),
     },
     label: {
       fontSize: useStackedLayout ? 14 : 16,
@@ -139,7 +132,11 @@ export function DashboardQuickActionTile({
       {useStackedLayout ? (
         <View style={styles.stacked}>
           <View style={styles.iconHalo}>
-            <Ionicons name={icon} size={20} color={brandColor} />
+            <DashboardIconBadge
+              icon={icon}
+              accent={isPrimary ? 'primary' : 'secondary'}
+              size="sm"
+            />
           </View>
           <Text style={styles.label} numberOfLines={2}>
             {label}
@@ -148,7 +145,11 @@ export function DashboardQuickActionTile({
       ) : (
         <View style={styles.row}>
           <View style={styles.iconHalo}>
-            <Ionicons name={icon} size={22} color={brandColor} />
+            <DashboardIconBadge
+              icon={icon}
+              accent={isPrimary ? 'primary' : 'secondary'}
+              size="md"
+            />
           </View>
           <View style={styles.textBlock}>
             <Text style={styles.label} numberOfLines={1}>

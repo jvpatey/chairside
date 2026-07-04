@@ -6,7 +6,7 @@ import {
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { ApplicantFilterBar } from '@/components/clinic/ApplicantFilterBar';
 import {
@@ -15,8 +15,10 @@ import {
 import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
+import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -38,7 +40,7 @@ const FILTER_EMPTY_MESSAGES: Record<Exclude<ApplicantListFilter, 'all'>, string>
   interview: 'No interview invitations yet. Send one from a shortlisted applicant.',
   decided: 'No decided applicants yet. Mark applicants as hired or not moving forward.',
   follow_up:
-    'No follow-up reminders yet. Add a follow-up date from an applicant’s private notes.',
+    "No follow-up reminders yet. Add a follow-up date from an applicant's private notes.",
 };
 
 export default function ClinicRoleApplicationsScreen() {
@@ -66,11 +68,10 @@ export default function ClinicRoleApplicationsScreen() {
     Partial<Record<ApplicantPipelineSectionId, boolean>>
   >({});
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.md },
     filterAndSections: { gap: spacing.md },
     sections: { gap: spacing.lg },
-    empty: typography.subtitle,
   }));
 
   const load = useCallback(async () => {
@@ -149,16 +150,19 @@ export default function ClinicRoleApplicationsScreen() {
     }));
   };
 
-  const renderApplicationCards = (rows: ClinicApplication[]) =>
-    rows.map((application) => (
-      <ClinicApplicationCard
-        key={application.id}
-        application={application}
-        returnTo={resolvedReturnTo ?? 'applications-tab'}
-        roleJobId={resolvedJobId}
-        hasUnreadMessages={Boolean(unreadMap[application.id])}
-      />
-    ));
+  const renderApplicationCards = (rows: ClinicApplication[]) => (
+    <StaggeredList>
+      {rows.map((application) => (
+        <ClinicApplicationCard
+          key={application.id}
+          application={application}
+          returnTo={resolvedReturnTo ?? 'applications-tab'}
+          roleJobId={resolvedJobId}
+          hasUnreadMessages={Boolean(unreadMap[application.id])}
+        />
+      ))}
+    </StaggeredList>
+  );
 
   const hasAnyApplicants = applications.length > 0 || archivedApplications.length > 0;
   const hasVisibleApplicants =
@@ -188,7 +192,11 @@ export default function ClinicRoleApplicationsScreen() {
           count={filteredApplications.length}
           expanded>
           {filteredApplications.length === 0 ? (
-            <Text style={styles.empty}>{FILTER_EMPTY_MESSAGES[listFilter]}</Text>
+            <EmptyState
+              icon="people-outline"
+              title={`No ${sectionTitle.toLowerCase()} applicants`}
+              message={FILTER_EMPTY_MESSAGES[listFilter]}
+            />
           ) : (
             renderApplicationCards(filteredApplications)
           )}
@@ -210,11 +218,19 @@ export default function ClinicRoleApplicationsScreen() {
         {isLoading ? (
           <PageLoadingList />
         ) : !hasAnyApplicants ? (
-          <Text style={styles.empty}>No applicants for this role yet.</Text>
+          <EmptyState
+            icon="people-outline"
+            title="No applicants yet"
+            message="No applicants for this role yet."
+          />
         ) : !hasVisibleApplicants ? (
-          <Text style={styles.empty}>
-            {hasSearch ? 'No applicants match your search.' : 'No applicants for this role yet.'}
-          </Text>
+          <EmptyState
+            icon={hasSearch ? 'search-outline' : 'people-outline'}
+            title={hasSearch ? 'No matching applicants' : 'No applicants yet'}
+            message={
+              hasSearch ? 'No applicants match your search.' : 'No applicants for this role yet.'
+            }
+          />
         ) : (
           <>
             <View style={styles.filterAndSections}>
@@ -233,7 +249,11 @@ export default function ClinicRoleApplicationsScreen() {
               {listFilter === 'all' ? (
                 sections.length === 0 ? (
                   <>
-                    <Text style={styles.empty}>No active applicants for this role.</Text>
+                    <EmptyState
+                      icon="people-outline"
+                      title="No active applicants"
+                      message="No active applicants for this role."
+                    />
                     {renderArchivedSection()}
                   </>
                 ) : (

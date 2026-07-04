@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -23,7 +22,6 @@ export type DashboardStatCardItem<T extends string = string> = {
   label: string;
   value: number;
   badgeCount?: number;
-  icon: keyof typeof Ionicons.glyphMap;
   accent?: GradientAccent;
 };
 
@@ -45,6 +43,7 @@ function StatCardValue({ value, selected }: { value: number; selected: boolean }
       fontWeight: '700',
       color: colors.labelPrimary,
       letterSpacing: -0.8,
+      textAlign: 'center' as const,
     },
   }));
 
@@ -75,7 +74,7 @@ export function DashboardStatCards<T extends string = string>({
       overflow: 'hidden',
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      minHeight: isTablet ? 112 : 104,
+      minHeight: isTablet ? 96 : 88,
       ...elevation('subtle'),
       ...webPointer(),
       ...(isWeb ? { width: 0 } : null),
@@ -89,24 +88,16 @@ export function DashboardStatCards<T extends string = string>({
     },
     inner: {
       flex: 1,
-      paddingHorizontal: spacing.sm + 2,
+      paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm + 4,
-      gap: spacing.xs,
-      justifyContent: 'space-between',
-    },
-    topRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.xs,
-    },
-    iconWrap: {
-      width: 34,
-      height: 34,
-      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
-      borderWidth: StyleSheet.hairlineWidth,
+      gap: spacing.xs,
+    },
+    badgeAnchor: {
+      position: 'absolute',
+      top: spacing.xs,
+      right: spacing.xs,
     },
     label: {
       fontSize: 11.5,
@@ -114,7 +105,7 @@ export function DashboardStatCards<T extends string = string>({
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelSecondary,
-      textAlign: 'left',
+      textAlign: 'center' as const,
     },
     labelSelected: {
       color: colors.labelPrimary,
@@ -136,7 +127,6 @@ export function DashboardStatCards<T extends string = string>({
       {stats.map((stat) => {
         const isSelected = selected === stat.key;
         const accent = stat.accent ?? 'primary';
-        const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
         const gradientColors = isSelected
           ? getStatCardSelectedGradient(colors, isDark, accent)
           : getStatCardIdleGradient(colors, isDark);
@@ -157,23 +147,11 @@ export function DashboardStatCards<T extends string = string>({
             ]}>
             <LinearGradient colors={gradientColors} style={styles.gradient} />
             <View style={styles.inner}>
-              <View style={styles.topRow}>
-                <View
-                  style={[
-                    styles.iconWrap,
-                    {
-                      backgroundColor: colorWithAlpha(brandColor, isDark ? 0.2 : 0.12),
-                      borderColor: colorWithAlpha(brandColor, isDark ? 0.28 : 0.18),
-                    },
-                  ]}>
-                  <Ionicons
-                    name={stat.icon}
-                    size={18}
-                    color={isSelected ? brandColor : colors.labelSecondary}
-                  />
+              {badgeCount > 0 ? (
+                <View style={styles.badgeAnchor}>
+                  <NotificationCountBadge count={badgeCount} />
                 </View>
-                {badgeCount > 0 ? <NotificationCountBadge count={badgeCount} /> : null}
-              </View>
+              ) : null}
               <StatCardValue value={stat.value} selected={isSelected} />
               <Text style={[styles.label, isSelected && styles.labelSelected]} numberOfLines={2}>
                 {stat.label}
