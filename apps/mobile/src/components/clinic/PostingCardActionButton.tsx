@@ -33,7 +33,7 @@ export function PostingCardActionButton({
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     button: {
-      ...(fullWidth ? { alignSelf: 'stretch' as const } : { flex: 1 }),
+      ...(fullWidth ? { alignSelf: 'stretch' as const, flexGrow: 1, flexBasis: 0 } : { flex: 1 }),
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -135,19 +135,22 @@ export function PostingCardActionRow({
   }));
 
   const hasApplicants = applicantCount > 0;
-  const applicantsLabel = hasApplicants
-    ? formatViewApplicantsLabel(applicantCount)
-    : 'View applicants';
+  const showApplicantsButton = hasApplicants && Boolean(onViewApplicants);
 
   return (
     <View style={styles.row}>
-      <PostingCardActionButton label="View post" onPress={onViewPost} />
       <PostingCardActionButton
-        label={applicantsLabel}
-        variant="primary"
-        onPress={onViewApplicants}
-        disabled={!hasApplicants}
+        label="View post"
+        onPress={onViewPost}
+        fullWidth={!showApplicantsButton}
       />
+      {showApplicantsButton ? (
+        <PostingCardActionButton
+          label={formatViewApplicantsLabel(applicantCount)}
+          variant="primary"
+          onPress={onViewApplicants}
+        />
+      ) : null}
     </View>
   );
 }

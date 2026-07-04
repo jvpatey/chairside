@@ -114,6 +114,9 @@ export function DashboardStatCards<T extends string = string>({
       opacity: 0.9,
       transform: [{ scale: 0.98 }],
     },
+    cardEmpty: {
+      opacity: 0.68,
+    },
   }));
 
   const handleSelect = (key: T) => {
@@ -125,6 +128,7 @@ export function DashboardStatCards<T extends string = string>({
     <View style={styles.row} accessibilityRole="tablist">
       {stats.map((stat) => {
         const isSelected = selected === stat.key;
+        const isEmpty = stat.value === 0;
         const accent = stat.accent ?? 'primary';
         const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
         const selectedForeground = isSelected
@@ -147,6 +151,7 @@ export function DashboardStatCards<T extends string = string>({
             style={({ pressed, hovered }) => [
               styles.card,
               isSelected && styles.cardSelected,
+              isEmpty && !isSelected && styles.cardEmpty,
               isWeb && hovered && !pressed && styles.cardHovered,
               pressed && styles.cardPressed,
             ]}>

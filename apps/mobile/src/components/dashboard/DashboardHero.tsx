@@ -1,15 +1,16 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { type Href } from 'expo-router';
+import { useFocusEffect, type Href } from 'expo-router';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
 import {
@@ -60,18 +61,30 @@ export function DashboardHero({
 }: DashboardHeroProps) {
   const { colors, isDark } = useTheme();
   const { isTablet } = useResponsiveLayout();
+  const reducedMotion = useReducedMotion();
   const drift = useSharedValue(0);
 
-  useEffect(() => {
+  const startOrbMotion = useCallback(() => {
+    if (reducedMotion) {
+      drift.value = 0;
+      return;
+    }
     drift.value = withRepeat(
       withTiming(1, { duration: 12000, easing: Easing.inOut(Easing.sin) }),
       -1,
       true,
     );
-    return () => {
-      cancelAnimation(drift);
-    };
-  }, [drift]);
+  }, [drift, reducedMotion]);
+
+  useFocusEffect(
+    useCallback(() => {
+      startOrbMotion();
+      return () => {
+        cancelAnimation(drift);
+        drift.value = 0;
+      };
+    }, [drift, startOrbMotion]),
+  );
 
   const orbStyle = useAnimatedStyle(() => ({
     transform: [
@@ -128,7 +141,6 @@ export function DashboardHero({
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: spacing.xs,
-      marginTop: spacing.xs,
     },
     chip: {
       flexDirection: 'row',
@@ -165,12 +177,17 @@ export function DashboardHero({
             displayName={displayName}
             namePlaceholder={namePlaceholder}
           />
-          <DashboardHeroSubtitle subtitle={subtitle} />
-          <View style={styles.contextRow}>
-            <View style={styles.chip}>
-              <Text style={styles.chipLabel}>{contextLine ?? formatDashboardDate()}</Text>
+          <DashboardHeroSubtitle
+            subtitle={subtitle}
+            trailing={contextLine ? undefined : formatDashboardDate()}
+          />
+          {contextLine ? (
+            <View style={styles.contextRow}>
+              <View style={styles.chip}>
+                <Text style={styles.chipLabel}>{contextLine}</Text>
+              </View>
             </View>
-          </View>
+          ) : null}
         </View>
         {showActions ? (
           <DashboardHeroActions

@@ -222,11 +222,8 @@ export default function ClinicPostingsScreen() {
                       job={job}
                       applicantCount={applicantCounts[job.id] ?? 0}
                       onPress={() => router.push(getJobDetailRoute(job.id))}
-                      onApplicantsPress={
-                        (applicantCounts[job.id] ?? 0) > 0
-                          ? () =>
-                              router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
-                          : undefined
+                      onApplicantsPress={() =>
+                        router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
                       }
                       manage={
                         user?.id

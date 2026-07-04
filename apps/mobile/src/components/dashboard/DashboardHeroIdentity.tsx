@@ -55,19 +55,43 @@ export function DashboardHeroName({ displayName, namePlaceholder }: DashboardHer
 
 type DashboardHeroSubtitleProps = {
   subtitle: string;
+  /** Appended after subtitle with a middle dot (e.g. today's date). */
+  trailing?: string;
 };
 
-export function DashboardHeroSubtitle({ subtitle }: DashboardHeroSubtitleProps) {
+export function DashboardHeroSubtitle({ subtitle, trailing }: DashboardHeroSubtitleProps) {
   const styles = useThemedStyles(({ colors, typography }) => ({
-    subtitle: {
+    metaLine: {
       ...typography.subtitle,
       fontSize: 15,
       lineHeight: 20,
+    },
+    subtitle: {
       color: colors.labelSecondary,
+    },
+    metaSeparator: {
+      color: colors.labelTertiary,
+    },
+    trailing: {
+      color: colors.labelTertiary,
     },
   }));
 
-  return <Text style={styles.subtitle}>{subtitle}</Text>;
+  if (!trailing) {
+    return (
+      <Text style={[styles.metaLine, styles.subtitle]} numberOfLines={2}>
+        {subtitle}
+      </Text>
+    );
+  }
+
+  return (
+    <Text style={styles.metaLine} numberOfLines={2} accessibilityRole="text">
+      <Text style={styles.subtitle}>{subtitle}</Text>
+      <Text style={styles.metaSeparator}> · </Text>
+      <Text style={styles.trailing}>{trailing}</Text>
+    </Text>
+  );
 }
 
 type DashboardHeroIdentityProps = {

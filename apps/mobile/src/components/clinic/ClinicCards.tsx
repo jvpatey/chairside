@@ -302,9 +302,7 @@ export function DashboardOverviewPanel({
                   applicantCount={applicantCounts?.[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                   onApplicantsPress={
-                    onJobApplicationsPress && (applicantCounts?.[job.id] ?? 0) > 0
-                      ? () => onJobApplicationsPress(job.id)
-                      : undefined
+                    onJobApplicationsPress ? () => onJobApplicationsPress(job.id) : undefined
                   }
                   manage={
                     clinicId && onJobUpdated && onJobDeleted
