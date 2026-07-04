@@ -135,7 +135,7 @@ export default function WorkerJobDetailScreen() {
     : null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="subtle"
       footer={
         <View style={styles.footer}>
           <OnboardingButton

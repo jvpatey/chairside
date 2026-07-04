@@ -20,9 +20,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
+import { PageHeroGlow, type PageHeroGlowVariant } from '@/components/ui/PageHeroGlow';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
-import { useTheme, useThemedStyles, spacing } from '@/theme';
+import { useTheme, useThemedStyles, spacing, type GradientAccent } from '@/theme';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 
 type FormScrollContextValue = {
@@ -40,8 +41,11 @@ type OnboardingShellProps = {
   children: ReactNode;
   footer?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
-  /** Renders behind scroll content (e.g. welcome screen top glow). */
+  /** Renders behind scroll content (e.g. welcome screen top glow). Overrides `atmosphere`. */
   backgroundAccessory?: ReactNode;
+  /** Built-in orb backdrop when no custom `backgroundAccessory` is provided. */
+  atmosphere?: PageHeroGlowVariant | 'none';
+  atmosphereAccent?: GradientAccent;
   /** Lets tab atmosphere show through (used on stack screens with sidebar layouts). */
   transparentBackground?: boolean;
   /** Stretch content to the scroll viewport height (welcome / landing layouts). */
@@ -69,6 +73,8 @@ export function OnboardingShell({
   backgroundAccessory,
   transparentBackground = false,
   fillViewport = false,
+  atmosphere = 'none',
+  atmosphereAccent = 'primary',
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset();
@@ -81,6 +87,11 @@ export function OnboardingShell({
   const atmosphereLayer = showTabAtmosphere ? (
     <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
   ) : null;
+  const resolvedBackgroundAccessory =
+    backgroundAccessory ??
+    (atmosphere !== 'none' ? (
+      <PageHeroGlow variant={atmosphere} accent={atmosphereAccent} />
+    ) : null);
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const scrollYRef = useRef(0);
@@ -302,8 +313,8 @@ export function OnboardingShell({
     <FormScrollContext.Provider value={{ scrollWrapIntoView: scheduleScrollIntoView }}>
       <View style={[styles.container, { backgroundColor: containerBackground }]}>
         {atmosphereLayer}
-        {backgroundAccessory ? (
-          <View style={styles.backgroundLayer}>{backgroundAccessory}</View>
+        {resolvedBackgroundAccessory ? (
+          <View style={styles.backgroundLayer}>{resolvedBackgroundAccessory}</View>
         ) : null}
         {shell}
       </View>

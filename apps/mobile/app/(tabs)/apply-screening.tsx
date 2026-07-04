@@ -147,7 +147,7 @@ export default function ApplyScreeningScreen() {
 
   if (isLoading || !currentPage) {
     return (
-      <OnboardingShell>
+      <OnboardingShell atmosphere="form">
         <AuthScreenHeader
           title="Screening questions"
           subtitle={isLoading ? undefined : 'Unavailable'}
@@ -167,7 +167,7 @@ export default function ApplyScreeningScreen() {
       : 'Continue';
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton

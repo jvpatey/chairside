@@ -73,7 +73,7 @@ import {
   toWorkerMapItemsFromShifts,
 } from '@/lib/workerMapItems';
 import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
-import { getFillInHeroGradient, useTheme, useThemedStyles } from '@/theme';
+import { getFillInHeroGradient, FILL_IN_HERO_GRADIENT_LOCATIONS, useTheme, useThemedStyles } from '@/theme';
 
 function FillInAvailabilityPanelAccent({ children }: { children: ReactNode }) {
   const { colors, isDark } = useTheme();
@@ -91,9 +91,9 @@ function FillInAvailabilityPanelAccent({ children }: { children: ReactNode }) {
     <View style={styles.wrap}>
       <LinearGradient
         colors={gradient}
-        locations={[0, 0.55, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
         style={styles.gradient}
         pointerEvents="none"
       />

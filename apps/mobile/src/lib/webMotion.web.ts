@@ -85,11 +85,10 @@ export function useEnterAnimation(delayMs = 0) {
         delay: delayMs,
         useNativeDriver: true,
       }),
-      Animated.spring(translateY, {
+      Animated.timing(translateY, {
         toValue: 0,
+        duration: 320,
         delay: delayMs,
-        tension: 72,
-        friction: 11,
         useNativeDriver: true,
       }),
     ]).start();

@@ -229,21 +229,28 @@ export function getAppliedRowGradient(
     : [colorWithAlpha(colors.primary, 0.2), colorWithAlpha(colors.primary, 0.09), 'transparent'];
 }
 
+/** Location stops for fill-in hero washes — long tail avoids a harsh bottom edge. */
+export const FILL_IN_HERO_GRADIENT_LOCATIONS = [0, 0.28, 0.55, 0.78, 1] as const;
+
 /** Fill-in availability hero wash (matches dashboard fill-in accent). */
 export function getFillInHeroGradient(
   colors: Colors,
   isDark: boolean,
-): readonly [string, string, string] {
+): readonly [string, string, string, string, string] {
   const end = GRADIENT_HUE_SHIFT.secondaryEnd;
   return isDark
     ? [
-        colorWithAlpha(colors.secondary, 0.3),
-        colorWithAlpha(end, 0.12),
+        colorWithAlpha(colors.secondary, 0.24),
+        colorWithAlpha(end, 0.11),
+        colorWithAlpha(end, 0.045),
+        colorWithAlpha(colors.secondary, 0.012),
         'transparent',
       ]
     : [
-        colorWithAlpha(colors.secondary, 0.28),
-        colorWithAlpha(end, 0.14),
+        colorWithAlpha(colors.secondary, 0.2),
+        colorWithAlpha(end, 0.09),
+        colorWithAlpha(end, 0.035),
+        colorWithAlpha(colors.secondary, 0.01),
         'transparent',
       ];
 }

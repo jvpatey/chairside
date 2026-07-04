@@ -6,6 +6,7 @@ import { NotificationCategoryPreferences } from '@/components/notifications/Noti
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { profileSettingsHintStyle } from '@/components/profile/ProfileDetailBlocks';
 import { NOTIFICATION_PREFERENCE_CATEGORIES } from '@chairside/config';
+import { navigateToClinicProfileHub } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 const pushAlertsTitle = Platform.OS === 'web' ? 'In-app alerts' : 'Push alerts';
@@ -23,7 +24,7 @@ export default function ClinicProfileNotificationsScreen() {
           ? 'Choose which events show in-app alerts. Notification history stays available.'
           : 'Choose which alerts send push notifications. In-app history stays available.'
       }
-      onBack={() => router.back()}>
+      onBack={() => navigateToClinicProfileHub(router)}>
       <ProfileSettingsCard title={pushAlertsTitle} icon="notifications-outline">
         <NotificationCategoryPreferences
           categories={[

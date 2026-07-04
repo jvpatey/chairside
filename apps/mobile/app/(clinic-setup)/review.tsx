@@ -1,6 +1,6 @@
 import { completeClinicSetup, getMissingClinicProfileFields } from '@chairside/api';
 import { SPECIALTY_OPTIONS, getTeamSizeRangeLabel } from '@chairside/config';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { CLINIC_HOME } from '@/lib/routing';
 import { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -12,6 +12,7 @@ import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { PracticeDoctorReviewValue } from '@/components/clinic/PracticeDoctorList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -41,6 +42,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 export default function ClinicReviewScreen() {
   const { user } = useAuth();
   const { clinicProfile, isClinicProfileReady, refreshClinicProfile } = useClinicProfile();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -84,8 +86,12 @@ export default function ClinicReviewScreen() {
 
   if (!isClinicProfileReady || !clinicProfile) return null;
 
+  if (isEditMode) {
+    return <Redirect href={exitHref} />;
+  }
+
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton

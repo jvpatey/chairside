@@ -112,7 +112,7 @@ export default function WorkerClinicProfileScreen() {
   }
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="subtle"
       footer={
         canMessage ? (
           <View style={styles.footer}>

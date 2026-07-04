@@ -131,7 +131,7 @@ export default function WorkerShiftDetailScreen() {
   const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="subtle"
       footer={
         <OnboardingButton
           label={hasApplied ? 'Requested' : 'Request to cover'}

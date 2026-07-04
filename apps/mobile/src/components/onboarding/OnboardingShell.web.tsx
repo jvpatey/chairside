@@ -3,14 +3,15 @@ import {
   ReactNode,
   useContext,
 } from 'react';
-import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthWebSplitLayout } from '@/components/web/auth/AuthWebSplitLayout.web';
 import { OnboardingWebCenteredLayout } from '@/components/onboarding/OnboardingWebCenteredLayout.web';
+import { PageHeroGlow, type PageHeroGlowVariant } from '@/components/ui/PageHeroGlow';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type FormScrollContextValue = {
   scrollWrapIntoView: (wrapRef: View | null) => void;
@@ -29,6 +30,9 @@ type OnboardingShellProps = {
   contentStyle?: StyleProp<ViewStyle>;
   backgroundAccessory?: ReactNode;
   transparentBackground?: boolean;
+  fillViewport?: boolean;
+  atmosphere?: PageHeroGlowVariant | 'none';
+  atmosphereAccent?: GradientAccent;
   authSplit?: boolean;
   /** Web-only layout mode. `centeredDecision` for choice screens; `authSplit` for auth forms. */
   webLayout?: 'default' | 'centeredDecision';
@@ -42,6 +46,9 @@ export function OnboardingShell({
   children,
   footer,
   contentStyle,
+  backgroundAccessory,
+  atmosphere = 'none',
+  atmosphereAccent = 'primary',
   authSplit = false,
   webLayout = 'default',
   brandHeadline,
@@ -50,10 +57,21 @@ export function OnboardingShell({
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const resolvedBackgroundAccessory =
+    backgroundAccessory ??
+    (atmosphere !== 'none' ? (
+      <PageHeroGlow variant={atmosphere} accent={atmosphereAccent} />
+    ) : null);
+
   const styles = useThemedStyles(({ spacing }) => ({
     container: {
       flex: 1,
       backgroundColor: colors.backgroundGrouped,
+      overflow: 'hidden',
+    },
+    backgroundLayer: {
+      ...StyleSheet.absoluteFillObject,
+      pointerEvents: 'none',
     },
     scroll: {
       flex: 1,
@@ -72,7 +90,7 @@ export function OnboardingShell({
       gap: spacing.md,
       paddingHorizontal: spacing.lg,
       paddingBottom: insets.bottom + spacing.md,
-      backgroundColor: colors.background,
+      backgroundColor: colors.backgroundGrouped,
     },
   }));
 
@@ -82,10 +100,17 @@ export function OnboardingShell({
     </View>
   );
 
+  const backgroundLayer = resolvedBackgroundAccessory ? (
+    <View style={styles.backgroundLayer}>{resolvedBackgroundAccessory}</View>
+  ) : null;
+
   if (webLayout === 'centeredDecision') {
     return (
       <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
-        <OnboardingWebCenteredLayout footer={footer}>{body}</OnboardingWebCenteredLayout>
+        <View style={styles.container}>
+          {backgroundLayer}
+          <OnboardingWebCenteredLayout footer={footer}>{body}</OnboardingWebCenteredLayout>
+        </View>
       </FormScrollContext.Provider>
     );
   }
@@ -93,14 +118,17 @@ export function OnboardingShell({
   if (authSplit) {
     return (
       <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
-        <AuthWebSplitLayout
-          footer={footer}
-          brandHeadline={brandHeadline}
-          brandSubtitle={brandSubtitle}
-          brandVisual={brandVisual}
-        >
-          {body}
-        </AuthWebSplitLayout>
+        <View style={styles.container}>
+          {backgroundLayer}
+          <AuthWebSplitLayout
+            footer={footer}
+            brandHeadline={brandHeadline}
+            brandSubtitle={brandSubtitle}
+            brandVisual={brandVisual}
+          >
+            {body}
+          </AuthWebSplitLayout>
+        </View>
       </FormScrollContext.Provider>
     );
   }
@@ -108,6 +136,7 @@ export function OnboardingShell({
   return (
     <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
       <View style={styles.container}>
+        {backgroundLayer}
         <ScrollView
           style={[styles.scroll, webScrollbarStyles()]}
           contentContainerStyle={styles.content}

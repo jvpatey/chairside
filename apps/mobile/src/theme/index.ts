@@ -21,6 +21,7 @@ export {
   getStatSelectedGradient,
   getStatSelectedSegmentGradient,
   getAppliedRowGradient,
+  FILL_IN_HERO_GRADIENT_LOCATIONS,
   getFillInHeroGradient,
   getSurfaceGradient,
   getTabIndicatorGradient,

@@ -12,7 +12,6 @@ import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWo
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { getClinicOutreachUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
-import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -180,7 +179,7 @@ export default function FindAvailableWorkersScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell backgroundAccessory={<AuthHeroGlow accent={FILL_IN_ACCENT} />}>
+      <OnboardingShell atmosphere="form" atmosphereAccent={FILL_IN_ACCENT}>
       <View style={styles.form}>
         <AuthScreenHeader
           title="Find available workers"

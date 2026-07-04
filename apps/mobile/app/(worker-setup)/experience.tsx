@@ -15,6 +15,7 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -22,6 +23,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 export default function WorkerExperienceScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [graduationYear, setGraduationYear] = useState('');
   const [degreeType, setDegreeType] = useState<EducationDegreeType | null>(null);
@@ -81,7 +83,11 @@ export default function WorkerExperienceScreen() {
         education_institution: institution.trim() || null,
         education: null,
       });
-      router.push(WORKER_SETUP_SKILLS);
+      if (isEditMode) {
+        router.replace(exitHref);
+      } else {
+        router.push(WORKER_SETUP_SKILLS);
+      }
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -95,11 +101,11 @@ export default function WorkerExperienceScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Continue'}
+            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
             onPress={handleContinue}
           />
@@ -108,9 +114,9 @@ export default function WorkerExperienceScreen() {
       <AuthScreenHeader
         title="Professional background · Experience & education"
         subtitle="Clinics will receive this with every application."
-        onBack={() => router.back()}
+        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />
-      <SetupStepProgress step={2} total={5} />
+      {!isEditMode ? <SetupStepProgress step={2} total={5} /> : null}
       <View style={styles.form}>
         <AuthField
           label="Years of experience (optional)"

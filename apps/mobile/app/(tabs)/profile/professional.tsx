@@ -2,8 +2,9 @@ import { router } from 'expo-router';
 
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { WorkerProfessionalView } from '@/components/worker/WorkerProfessionalView';
+import { getSetupEditRoute } from '@/hooks/useSetupEditMode';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { WORKER_SETUP_BASICS } from '@/lib/routing';
+import { navigateToWorkerProfileHub } from '@/lib/routing';
 
 export default function WorkerProfileProfessionalScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
@@ -15,8 +16,10 @@ export default function WorkerProfileProfessionalScreen() {
       title="Professional background"
       subtitle="Role, experience, location, and skills."
       actionLabel="Edit"
-      onActionPress={() => router.push(WORKER_SETUP_BASICS)}
-      onBack={() => router.back()}>
+      onActionPress={() =>
+        router.push(getSetupEditRoute('/(worker-setup)/basics', 'worker-professional'))
+      }
+      onBack={() => navigateToWorkerProfileHub(router)}>
       <WorkerProfessionalView profile={workerProfile} />
     </ProfileDetailScreen>
   );

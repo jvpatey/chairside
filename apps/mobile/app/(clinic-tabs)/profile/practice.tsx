@@ -2,8 +2,9 @@ import { router } from 'expo-router';
 
 import { ClinicPracticeView } from '@/components/clinic/ClinicPracticeView';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
+import { getSetupEditRoute } from '@/hooks/useSetupEditMode';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { CLINIC_SETUP_BASICS } from '@/lib/routing';
+import { navigateToClinicProfileHub } from '@/lib/routing';
 
 export default function ClinicProfilePracticeScreen() {
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
@@ -15,8 +16,10 @@ export default function ClinicProfilePracticeScreen() {
       title="Practice details"
       subtitle="Location, contact, and practice info."
       actionLabel="Edit"
-      onActionPress={() => router.push(CLINIC_SETUP_BASICS)}
-      onBack={() => router.back()}>
+      onActionPress={() =>
+        router.push(getSetupEditRoute('/(clinic-setup)/basics', 'clinic-practice'))
+      }
+      onBack={() => navigateToClinicProfileHub(router)}>
       <ClinicPracticeView profile={clinicProfile} />
     </ProfileDetailScreen>
   );

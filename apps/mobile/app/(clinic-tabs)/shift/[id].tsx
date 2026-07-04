@@ -97,7 +97,7 @@ export default function ShiftDetailScreen() {
   }
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="subtle"
       footer={
         <View style={styles.footer}>
           {applicationCount > 0 ? (

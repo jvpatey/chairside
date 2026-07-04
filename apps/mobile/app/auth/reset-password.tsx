@@ -122,7 +122,7 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton

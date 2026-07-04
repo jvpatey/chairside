@@ -18,11 +18,13 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
+import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerSkillsScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
+  const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
   const [practiceTypes, setPracticeTypes] = useState<string[]>([]);
   const [preferredEmployment, setPreferredEmployment] = useState<string[]>([]);
@@ -55,7 +57,11 @@ export default function WorkerSkillsScreen() {
         travel_radius_range: travelRadiusRange,
         travel_radius_km: null,
       });
-      router.push(WORKER_SETUP_LOCATION);
+      if (isEditMode) {
+        router.replace(exitHref);
+      } else {
+        router.push(WORKER_SETUP_LOCATION);
+      }
     } catch (error) {
       Alert.alert(
         'Could not save',
@@ -69,11 +75,11 @@ export default function WorkerSkillsScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Continue'}
+            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
             onPress={handleContinue}
           />
@@ -82,9 +88,9 @@ export default function WorkerSkillsScreen() {
       <AuthScreenHeader
         title="Professional background · Skills & preferences"
         subtitle="Help clinics understand your fit."
-        onBack={() => router.back()}
+        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />
-      <SetupStepProgress step={3} total={5} />
+      {!isEditMode ? <SetupStepProgress step={3} total={5} /> : null}
       <View style={styles.form}>
         <View style={styles.section}>
           <Text style={styles.label}>Software familiarity (optional)</Text>

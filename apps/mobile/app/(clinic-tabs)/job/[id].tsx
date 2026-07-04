@@ -77,7 +77,7 @@ export default function JobDetailScreen() {
   }
 
   return (
-    <OnboardingShell
+    <OnboardingShell atmosphere="subtle"
       footer={
         <View style={styles.footer}>
           {user?.id ? (
