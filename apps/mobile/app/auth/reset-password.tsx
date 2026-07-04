@@ -15,15 +15,17 @@ import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
 import { useThemedStyles } from '@/theme';
 
 const MIN_PASSWORD_LENGTH = 6;
+const SESSION_HYDRATION_MS = 1500;
 
 export default function ResetPasswordScreen() {
-  const { session, refreshProfile } = useAuth();
+  const { session, refreshProfile, clearPasswordRecoveryPending } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [recoveryUser, setRecoveryUser] = useState<User | null>(null);
+  const [linkExpired, setLinkExpired] = useState(false);
 
   const styles = useThemedStyles(({ spacing, colors, typography }) => ({
     form: {
@@ -47,6 +49,11 @@ export default function ResetPasswordScreen() {
       fontWeight: '500',
     },
     hint: typography.subtitle,
+    expiredCopy: {
+      ...typography.subtitle,
+      fontSize: 15,
+      lineHeight: 22,
+    },
   }));
 
   useEffect(() => {
@@ -79,8 +86,16 @@ export default function ResetPasswordScreen() {
 
   useEffect(() => {
     if (!sessionChecked || user) return;
-    router.replace('/(onboarding)/sign-in');
-  }, [sessionChecked, user]);
+
+    const timeoutId = setTimeout(() => {
+      setLinkExpired(true);
+      void clearPasswordRecoveryPending();
+    }, SESSION_HYDRATION_MS);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [clearPasswordRecoveryPending, sessionChecked, user]);
 
   const passwordsMatch = password === confirmPassword;
   const meetsMinLength = password.length >= MIN_PASSWORD_LENGTH;
@@ -105,11 +120,12 @@ export default function ResetPasswordScreen() {
 
     setIsSubmitting(true);
     try {
-        await updatePassword(password);
-        if (Platform.OS !== 'web') {
-          Alert.alert('Password updated', 'Your new password is ready to use.');
-        }
-        await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
+      await updatePassword(password);
+      await clearPasswordRecoveryPending();
+      if (Platform.OS !== 'web') {
+        Alert.alert('Password updated', 'Your new password is ready to use.');
+      }
+      await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
     } catch (error) {
       Alert.alert('Could not update password', getAuthErrorMessage(error));
     } finally {
@@ -117,12 +133,38 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  if (!sessionChecked || !user) {
+  const handleReturnToSignIn = () => {
+    void clearPasswordRecoveryPending();
+    router.replace('/(onboarding)/sign-in');
+  };
+
+  if (!sessionChecked || (!user && !linkExpired)) {
     return <PageLoadingSpinner message="Verifying reset link…" />;
   }
 
+  if (linkExpired && !user) {
+    return (
+      <OnboardingShell
+        atmosphere="form"
+        footer={
+          <View style={styles.footer}>
+            <OnboardingButton label="Back to sign in" onPress={handleReturnToSignIn} />
+          </View>
+        }>
+        <AuthScreenHeader
+          title="Reset link expired"
+          subtitle="This password reset link is invalid or has expired. Request a new one from the sign-in screen."
+        />
+        <Text style={styles.expiredCopy}>
+          If you already updated your password, try signing in with your new password.
+        </Text>
+      </OnboardingShell>
+    );
+  }
+
   return (
-    <OnboardingShell atmosphere="form"
+    <OnboardingShell
+      atmosphere="form"
       footer={
         <View style={styles.footer}>
           <OnboardingButton

@@ -7,6 +7,15 @@ export {
   type ClinicSubscriptionStatus,
 } from './billing';
 export { createSupabaseClient, getSupabaseClient } from './client';
+export { getAuthStorage, isWebAuth } from './authStorage';
+export {
+  getWebAuthCallbackHref,
+  hasAuthCallbackParams,
+  isAuthCallbackPath,
+  isPasswordRecoveryRedirect,
+  isPasswordRecoveryUrl,
+  parseAuthRedirectUrl,
+} from './parseAuthRedirectUrl';
 export { getErrorMessage, throwWithMessage } from './errors';
 export {
   listFillInOutreachWorkersForClinic,
