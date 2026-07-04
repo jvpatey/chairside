@@ -170,6 +170,15 @@ export {
   uploadWorkerPhotoFromBase64,
 } from './workerPhoto';
 export {
+  clinicApplicationToCalendarEvents,
+  listClinicCalendarEvents,
+  listWorkerCalendarEvents,
+  workerApplicationToCalendarEvents,
+  type CalendarEvent,
+  type CalendarEventKind,
+  type CalendarEventRange,
+} from './calendarEvents';
+export {
   createApplication,
   deleteApplication,
   getJobPostApplicationCountsMap,

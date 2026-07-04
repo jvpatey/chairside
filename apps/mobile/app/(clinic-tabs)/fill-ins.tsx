@@ -11,12 +11,11 @@ import {
   type ShiftPost,
 } from '@chairside/api';
 import type { Href } from 'expo-router';
-import { router } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
-import { PageTabBar } from '@/components/ui/PageTabBar';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
@@ -26,6 +25,7 @@ import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickA
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { PageTabBar } from '@/components/ui/PageTabBar';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +39,7 @@ import {
   filterShiftPostsForFillInsListMode,
   type FillInsListMode,
 } from '@/lib/fillInFilters';
+import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import {
   HISTORY_SHIFT_STATUS_FILTER_OPTIONS,
   type RoleTypeFilter,
@@ -63,6 +64,7 @@ function sectionTitleWithCount(title: string, count: number) {
 
 export default function ClinicFillInsScreen() {
   const { user } = useAuth();
+  const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { refreshPending } = useFillInPending();
   const [coverRequests, setCoverRequests] = useState<FillInCoverRequest[]>([]);
@@ -191,6 +193,17 @@ export default function ClinicFillInsScreen() {
       setIsLoading(false);
     }
   }, [refreshPending, user?.id]);
+
+  useEffect(() => {
+    const redirect = redirectEmbeddedCalendarDeepLink(
+      params.mode,
+      typeof params.date === 'string' ? params.date : undefined,
+      'clinic',
+    );
+    if (redirect) {
+      router.replace(redirect);
+    }
+  }, [params.date, params.mode]);
 
   useRefreshOnFocus(load);
 

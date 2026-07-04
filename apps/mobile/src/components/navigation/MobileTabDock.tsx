@@ -2,8 +2,13 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BottomTabBarHeightCallbackContext } from '@react-navigation/bottom-tabs';
 import { CommonActions } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { useContext } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { useContext, useEffect } from 'react';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { MOBILE_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
@@ -13,6 +18,9 @@ import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { webPointer } from '@/lib/webPressableStyles';
 import { getGlassTokens, useTheme, useThemedStyles } from '@/theme';
+
+const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
+const ICON_ONLY_BREAKPOINT = 360;
 
 type MobileTabDockProps = BottomTabBarProps & {
   role: 'worker' | 'clinic';
@@ -42,8 +50,92 @@ function formatBadge(value: number | string): string {
   return String(value);
 }
 
+type DockTabItemProps = {
+  route: BottomTabBarProps['state']['routes'][number];
+  index: number;
+  isFocused: boolean;
+  showLabels: boolean;
+  options: BottomTabBarProps['descriptors'][string]['options'];
+  colors: ReturnType<typeof useTheme>['colors'];
+  styles: ReturnType<typeof useThemedStyles<Record<string, object>>>;
+  onSegmentLayout: (index: number, layout: { x: number; y: number; width: number; height: number }) => void;
+  onPress: () => void;
+  onLongPress: () => void;
+  isWeb: boolean;
+};
+
+function DockTabItem({
+  route,
+  index,
+  isFocused,
+  showLabels,
+  options,
+  colors,
+  styles,
+  onSegmentLayout,
+  onPress,
+  onLongPress,
+  isWeb,
+}: DockTabItemProps) {
+  const tabAccent = getTabAccentForName(route.name);
+  const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
+  const color = isFocused ? activeColor : colors.tabInactive;
+  const accessibilityLabel = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
+  const label = options.title ?? route.name;
+  const badge = options.tabBarBadge;
+  const hasBadge = badge != null && badge !== 0 && badge !== '0';
+  const iconScale = useSharedValue(isFocused ? 1.08 : 1);
+
+  useEffect(() => {
+    iconScale.value = withSpring(isFocused ? 1.08 : 1, PRESS_SPRING);
+  }, [iconScale, isFocused]);
+
+  const iconAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: iconScale.value }],
+  }));
+
+  return (
+    <Pressable
+      key={route.key}
+      onLayout={(event) => {
+        const { x, y, width, height } = event.nativeEvent.layout;
+        onSegmentLayout(index, { x, y, width, height });
+      }}
+      accessibilityRole="button"
+      accessibilityState={isFocused ? { selected: true } : {}}
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={({ pressed, hovered }) => [
+        styles.item,
+        isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
+        pressed && styles.itemPressed,
+      ]}>
+      <Animated.View style={[styles.iconWrap, iconAnimatedStyle]}>
+        {options.tabBarIcon?.({ focused: isFocused, color, size: 20 })}
+        {hasBadge ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{formatBadge(badge)}</Text>
+          </View>
+        ) : null}
+      </Animated.View>
+      {showLabels ? (
+        <Text
+          style={[styles.label, isFocused && [styles.labelActive, { color: activeColor }]]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}>
+          {label}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
 export function MobileTabDock({ state, descriptors, navigation, insets, role }: MobileTabDockProps) {
   const { colors } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  const showLabels = windowWidth >= ICON_ONLY_BREAKPOINT;
   const isWeb = Platform.OS === 'web';
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const visibleRoutes = getVisibleRoutes(state, descriptors, role);
@@ -58,7 +150,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outer: {
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: spacing.sm,
       paddingTop: spacing.sm,
       paddingBottom: Math.max(insets.bottom, spacing.sm),
       backgroundColor: 'transparent',
@@ -67,7 +159,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: spacing.xs,
+      gap: 4,
       paddingHorizontal: spacing.xs,
       paddingVertical: spacing.xs,
       position: 'relative',
@@ -76,15 +168,15 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       position: 'absolute',
       top: spacing.xs,
       left: 0,
-      borderRadius: 20,
+      borderRadius: 18,
     },
     item: {
       flex: 1,
-      minHeight: 52,
+      minHeight: 54,
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: 20,
-      paddingHorizontal: spacing.xs,
+      borderRadius: 18,
+      paddingHorizontal: 4,
       paddingVertical: spacing.xs,
       gap: 2,
       ...webPointer(),
@@ -135,7 +227,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       style={styles.outer}
       pointerEvents="box-none"
       onLayout={(event) => onHeightChange?.(event.nativeEvent.layout.height)}>
-      <LiquidGlassSurface borderRadius={28} style={styles.dock}>
+      <LiquidGlassSurface borderRadius={30} style={styles.dock}>
         <SlidingSegmentIndicator
           animatedStyle={indicatorStyle}
           style={[styles.indicator, { backgroundColor: focusedIndicatorColor }]}
@@ -144,14 +236,6 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
           const { options } = descriptors[route.key];
           const routeIndex = state.routes.findIndex((item) => item.key === route.key);
           const isFocused = isRouteFocused(route.name, routeIndex);
-          const tabAccent = getTabAccentForName(route.name);
-          const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
-          const color = isFocused ? activeColor : colors.tabInactive;
-          const accessibilityLabel =
-            options.tabBarAccessibilityLabel ?? options.title ?? route.name;
-          const label = options.title ?? route.name;
-          const badge = options.tabBarBadge;
-          const hasBadge = badge != null && badge !== 0 && badge !== '0';
 
           const onPress = () => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -177,45 +261,20 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
           };
 
           return (
-            <Pressable
+            <DockTabItem
               key={route.key}
-              onLayout={(event) => {
-                const { x, y, width, height } = event.nativeEvent.layout;
-                onSegmentLayout(index, { x, y, width, height });
-              }}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={accessibilityLabel}
+              route={route}
+              index={index}
+              isFocused={isFocused}
+              showLabels={showLabels}
+              options={options}
+              colors={colors}
+              styles={styles}
+              onSegmentLayout={onSegmentLayout}
               onPress={onPress}
               onLongPress={onLongPress}
-              style={({ pressed, hovered }) => [
-                styles.item,
-                isWeb &&
-                  hovered &&
-                  !pressed &&
-                  !isFocused &&
-                  styles.itemHovered,
-                pressed && styles.itemPressed,
-              ]}>
-              <View style={styles.iconWrap}>
-                {options.tabBarIcon?.({ focused: isFocused, color, size: 20 })}
-                {hasBadge ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{formatBadge(badge)}</Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text
-                style={[
-                  styles.label,
-                  isFocused && [styles.labelActive, { color: activeColor }],
-                ]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}>
-                {label}
-              </Text>
-            </Pressable>
+              isWeb={isWeb}
+            />
           );
         })}
       </LiquidGlassSurface>

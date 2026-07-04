@@ -60,6 +60,7 @@ import {
   openInterviewCalendarInvite,
 } from '@/lib/calendarInvite';
 import { buildResumeFileName } from '@/lib/openResumePreview';
+import { getWorkerCalendarRoute } from '@/lib/calendarNavigation';
 import {
   getWorkerApplicationMessagesRoute,
   getWorkerClinicProfileRoute,
@@ -560,6 +561,7 @@ function WorkerActionPanel({
           ]}>
           <OnboardingButton
             label={messageAction.label}
+            solid
             onPress={messageAction.onPress}
           />
           {postingAction ? (
@@ -898,6 +900,14 @@ export function WorkerApplicationDetailCard({
           key: 'calendar',
           label: 'Add to calendar',
           onPress: handleAddInterviewToCalendar,
+        });
+        secondary.push({
+          key: 'view-calendar',
+          label: 'View on calendar',
+          onPress: () =>
+            router.push(
+              getWorkerCalendarRoute(application.interview_at?.slice(0, 10) ?? undefined),
+            ),
         });
         secondary.push({
           key: 'reschedule',

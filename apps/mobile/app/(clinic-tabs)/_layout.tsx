@@ -61,6 +61,15 @@ function ClinicTabNavigator() {
           }}
         />
         <Tabs.Screen
+          name="calendar"
+          options={{
+            title: 'Calendar',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'today' : 'today-outline'} size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="messages"
           options={{
             title: 'Messages',

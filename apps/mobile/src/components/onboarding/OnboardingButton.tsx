@@ -28,6 +28,8 @@ type OnboardingButtonProps = {
   /** Visual styles on the pressable button surface (padding, minHeight). */
   buttonStyle?: StyleProp<ViewStyle>;
   accent?: GradientAccent;
+  /** Use a flat brand fill instead of the primary tile gradient. */
+  solid?: boolean;
 };
 
 export function OnboardingButton({
@@ -38,6 +40,7 @@ export function OnboardingButton({
   style,
   buttonStyle,
   accent = 'primary',
+  solid = false,
 }: OnboardingButtonProps) {
   const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
@@ -198,7 +201,7 @@ export function OnboardingButton({
             pressed && styles.destructivePressed,
           ],
         ]}>
-        {isPrimary && !disabled ? (
+        {isPrimary && !disabled && !solid ? (
           <LinearGradient colors={primaryGradient} style={styles.gradient} />
         ) : null}
         <Text

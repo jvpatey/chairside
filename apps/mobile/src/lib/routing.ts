@@ -10,6 +10,7 @@ export type ApplicantReturnTarget =
   | 'role-history';
 export type WorkerApplicationReturnTarget =
   | 'applications-tab'
+  | 'calendar-tab'
   | 'dashboard-applications'
   | 'dashboard-fill-ins'
   | 'fill-ins-tab'
@@ -23,6 +24,7 @@ export type WorkerShiftReturnTarget =
   | 'browse-tab';
 export type ClinicApplicationReturnTarget =
   | ApplicantReturnTarget
+  | 'calendar-tab'
   | 'messages-tab'
   | 'fill-ins-tab'
   | FillInReturnTarget;
@@ -118,6 +120,20 @@ export function getClinicOutreachComposeRoute(params: {
 
 export function getClinicFillInsRoute(): Href {
   return CLINIC_FILL_INS;
+}
+
+export function getWorkerCalendarSidebarRoute(date?: string): Href {
+  return {
+    pathname: '/(tabs)/calendar',
+    params: date ? { date } : {},
+  } as unknown as Href;
+}
+
+export function getClinicCalendarSidebarRoute(date?: string): Href {
+  return {
+    pathname: '/(clinic-tabs)/calendar',
+    params: date ? { date } : {},
+  } as unknown as Href;
 }
 
 export function getWorkerBrowseRoute(tab?: WorkerBrowseTabParam): Href {
@@ -338,6 +354,10 @@ export function navigateAfterClinicApplication(
     router.replace(getClinicMessagesRoute());
     return;
   }
+  if (returnTo === 'calendar-tab') {
+    router.replace(getClinicCalendarSidebarRoute());
+    return;
+  }
   router.replace(CLINIC_APPLICATIONS);
 }
 
@@ -524,6 +544,10 @@ export function navigateAfterWorkerApplication(
     router.replace(getWorkerMessagesRoute());
     return;
   }
+  if (returnTo === 'calendar-tab') {
+    router.replace(getWorkerCalendarSidebarRoute());
+    return;
+  }
   router.replace(WORKER_APPLICATIONS);
 }
 
@@ -603,6 +627,7 @@ const NOTIFICATION_TAB_ROOT_ROUTES = new Set([
   '/(tabs)',
   '/(tabs)/browse',
   '/(tabs)/applications',
+  '/(tabs)/calendar',
   '/(tabs)/fillins',
   '/(tabs)/open-fill-ins',
   '/(tabs)/past-fill-ins',
@@ -612,6 +637,7 @@ const NOTIFICATION_TAB_ROOT_ROUTES = new Set([
   '/(clinic-tabs)/postings',
   '/(clinic-tabs)/fill-ins',
   '/(clinic-tabs)/applications',
+  '/(clinic-tabs)/calendar',
   '/(clinic-tabs)/messages',
   '/(clinic-tabs)/clinic',
   '/(clinic-tabs)/profile',

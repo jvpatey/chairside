@@ -16,6 +16,7 @@ import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { StaggeredList } from '@/components/ui/StaggeredList';
@@ -31,6 +32,7 @@ import {
 } from '@/lib/applicationPipeline';
 import { hasActiveListSearch, matchesClinicApplicationSearch } from '@/lib/clinicListSearch';
 import { navigateAfterRoleApplicants } from '@/lib/routing';
+import { getClinicCalendarRoute } from '@/lib/calendarNavigation';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { useThemedStyles } from '@/theme';
 
@@ -138,6 +140,11 @@ export default function ClinicRoleApplicationsScreen() {
     [searchedApplications, listFilter],
   );
 
+  const scheduledInterviewCount = useMemo(
+    () => searchedApplications.filter((application) => application.status === 'interview_scheduled').length,
+    [searchedApplications],
+  );
+
   const hasSearch = hasActiveListSearch(searchQuery);
 
   const isSectionExpanded = (sectionId: ApplicantPipelineSectionId, defaultExpanded: boolean) =>
@@ -187,6 +194,14 @@ export default function ClinicRoleApplicationsScreen() {
 
     return (
       <View style={styles.sections}>
+        {listFilter === 'interview' && scheduledInterviewCount > 0 ? (
+          <DashboardSectionHeader
+            title={`${scheduledInterviewCount} scheduled interview${scheduledInterviewCount === 1 ? '' : 's'}`}
+            actionLabel="View calendar"
+            onActionPress={() => router.push(getClinicCalendarRoute())}
+            compact
+          />
+        ) : null}
         <ApplicantPipelineSectionBlock
           title={sectionTitle}
           count={filteredApplications.length}

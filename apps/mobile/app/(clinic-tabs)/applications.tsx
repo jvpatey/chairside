@@ -1,11 +1,10 @@
 import { listJobApplicationSummaries, type JobApplicationSummary } from '@chairside/api';
 import { formatJobApplicationSummaryMeta } from '@chairside/config';
-import { router } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { ClinicApplicationSummaryFilters } from '@/components/clinic/ClinicApplicationSummaryFilters';
-
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import {
   formatViewApplicantsLabel,
@@ -24,6 +23,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { formatPostedDateLabel } from '@/lib/dates';
+import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import {
   hasActiveListSearch,
   matchesClinicApplicationSummaryFilter,
@@ -77,6 +77,7 @@ function RoleApplicationSummaryRow({
 
 export default function ClinicApplicationsScreen() {
   const { user } = useAuth();
+  const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { isProfileComplete } = useClinicProfile();
   const [summaries, setSummaries] = useState<JobApplicationSummary[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,6 +121,17 @@ export default function ClinicApplicationsScreen() {
 
   useRefreshOnFocus(load);
 
+  useEffect(() => {
+    const redirect = redirectEmbeddedCalendarDeepLink(
+      params.mode,
+      typeof params.date === 'string' ? params.date : undefined,
+      'clinic',
+    );
+    if (redirect) {
+      router.replace(redirect);
+    }
+  }, [params.date, params.mode]);
+
   const postRoleCta = isProfileComplete
     ? {
         ctaLabel: 'Post role' as const,
@@ -128,60 +140,64 @@ export default function ClinicApplicationsScreen() {
     : {};
 
   return (
-    <Screen title="Applications" subtitle="Open a role to review its applicants.">
-      {isLoading ? (
-        <PageLoadingList message="Loading applications…" />
-      ) : summaries.length === 0 ? (
-        <EmptyState
-          icon="document-text-outline"
-          title="No applications yet"
-          message="They will appear here when workers apply to your roles."
-          {...postRoleCta}
-        />
-      ) : (
-        <View style={styles.content}>
-          <ListSearchFilterRow
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search role title"
-            accessibilityLabel="Search applications"
-            filter={
-              <ClinicApplicationSummaryFilters
-                selected={summaryFilter}
-                onChange={setSummaryFilter}
-              />
-            }
+    <Screen title="Applications" subtitle="Review applicants and your interview schedule.">
+      <View style={styles.content}>
+        {isLoading ? (
+          <PageLoadingList message="Loading applications…" />
+        ) : summaries.length === 0 ? (
+          <EmptyState
+            icon="document-text-outline"
+            title="No applications yet"
+            message="They will appear here when workers apply to your roles."
+            {...postRoleCta}
           />
-          {filteredSummaries.length === 0 ? (
-            <EmptyState
-              icon={hasSearch || hasActiveFilters ? 'search-outline' : 'document-text-outline'}
-              title={
-                hasSearch || hasActiveFilters ? 'No roles match your search' : 'No applications yet'
-              }
-              message={
-                hasSearch || hasActiveFilters
-                  ? 'Try a different search or filter.'
-                  : 'They will appear here when workers apply to your roles.'
-              }
-              {...(hasSearch || hasActiveFilters ? {} : postRoleCta)}
-            />
-          ) : (
-            <BrowseListGroup>
-              {filteredSummaries.map((summary) => (
-                <RoleApplicationSummaryRow
-                  key={summary.job_post_id}
-                  summary={summary}
-                  onViewPress={() =>
-                    router.push(
-                      getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'),
-                    )
-                  }
+        ) : (
+          <>
+            <ListSearchFilterRow
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search role title"
+              accessibilityLabel="Search applications"
+              filter={
+                <ClinicApplicationSummaryFilters
+                  selected={summaryFilter}
+                  onChange={setSummaryFilter}
                 />
-              ))}
-            </BrowseListGroup>
-          )}
-        </View>
-      )}
+              }
+            />
+            {filteredSummaries.length === 0 ? (
+              <EmptyState
+                icon={hasSearch || hasActiveFilters ? 'search-outline' : 'document-text-outline'}
+                title={
+                  hasSearch || hasActiveFilters
+                    ? 'No roles match your search'
+                    : 'No applications yet'
+                }
+                message={
+                  hasSearch || hasActiveFilters
+                    ? 'Try a different search or filter.'
+                    : 'They will appear here when workers apply to your roles.'
+                }
+                {...(hasSearch || hasActiveFilters ? {} : postRoleCta)}
+              />
+            ) : (
+              <BrowseListGroup>
+                {filteredSummaries.map((summary) => (
+                  <RoleApplicationSummaryRow
+                    key={summary.job_post_id}
+                    summary={summary}
+                    onViewPress={() =>
+                      router.push(
+                        getClinicRoleApplicationsRoute(summary.job_post_id, 'applications-tab'),
+                      )
+                    }
+                  />
+                ))}
+              </BrowseListGroup>
+            )}
+          </>
+        )}
+      </View>
     </Screen>
   );
 }
