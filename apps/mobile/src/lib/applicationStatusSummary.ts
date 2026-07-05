@@ -15,7 +15,7 @@ export type ApplicationStatusSummaryInput = {
   applicationKitSubmittedAt?: string | null;
   interviewProposedAt?: string | null;
   statusNote?: string | null;
-  statusClosedBy?: 'clinic' | 'worker' | null;
+  statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
   workerAccountDeleted?: boolean;
   clinicAccountDeleted?: boolean;
 };
@@ -38,6 +38,20 @@ function cancelledFillInSummary(
     !application.statusClosedBy
   ) {
     return null;
+  }
+
+  if (application.statusClosedBy === 'clinic_deleted') {
+    return audience === 'worker'
+      ? {
+          headline: 'Fill-in removed by clinic',
+          description: note ?? 'The clinic removed this confirmed fill-in.',
+          variant: 'warning',
+        }
+      : {
+          headline: 'Fill-in removed',
+          description: note ?? 'You removed this confirmed fill-in.',
+          variant: 'default',
+        };
   }
 
   if (application.statusClosedBy === 'clinic') {

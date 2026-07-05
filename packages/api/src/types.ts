@@ -475,6 +475,10 @@ export type Database = {
         Args: { application_id: string; message?: string | null };
         Returns: ApplicationRow;
       };
+      delete_confirmed_fill_in: {
+        Args: { application_id: string; message: string };
+        Returns: ApplicationRow;
+      };
       re_request_shift_cover: {
         Args: { p_shift_post_id: string; p_cover_message?: string | null };
         Returns: ApplicationRow;

@@ -623,6 +623,22 @@ async function sendWorkerStatusNotification(
   let notification = template;
 
   if (status === 'rejected' && isShift) {
+    const closedBy = application.status_closed_by as string | null;
+    const statusNote = application.status_note as string | null;
+    if (closedBy === 'clinic_deleted') {
+      notification = {
+        pingramType: PINGRAM_TYPES.applicationRejected,
+        title: 'Fill-in removed',
+        message: 'A clinic removed a confirmed fill-in you were scheduled for.',
+      };
+    } else if (closedBy === 'clinic' && statusNote) {
+      notification = {
+        pingramType: PINGRAM_TYPES.applicationRejected,
+        title: 'Fill-in cancelled',
+        message: 'A clinic cancelled your confirmed fill-in.',
+      };
+    }
+
     const shiftPostId = application.shift_post_id as string | null;
     if (shiftPostId) {
       const { data: shift } = await supabase

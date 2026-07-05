@@ -23,6 +23,8 @@ type ShiftPostDetailViewProps = {
   /** Compact labeled rows for inline expandable cards (no hero). */
   variant?: 'full' | 'embedded';
   accent?: GradientAccent;
+  /** Render only the role hero, only shift details, or both (default). */
+  section?: 'full' | 'hero' | 'details';
 };
 
 export function ShiftPostDetailView({
@@ -31,6 +33,7 @@ export function ShiftPostDetailView({
   showStatusBadge = true,
   variant = 'full',
   accent = 'secondary',
+  section = 'full',
 }: ShiftPostDetailViewProps) {
   const { colors, isDark } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
@@ -141,37 +144,52 @@ export function ShiftPostDetailView({
     );
   }
 
+  const heroSection = (
+    <FadeInSection delayMs={0}>
+      <View style={styles.heroBand}>
+        <LinearGradient
+          colors={heroGradient}
+          locations={[0, 0.35, 0.65, 0.85, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroGradient}
+          pointerEvents="none"
+        />
+        <View style={styles.hero}>
+          {showStatusBadge ? (
+            <ShiftPostStatusBadge
+              status={shift.status}
+              shiftDate={shift.shift_date}
+              style={styles.statusBadge}
+            />
+          ) : null}
+
+          <View style={styles.heroTop}>
+            <Text style={styles.overline}>Fill-in shift</Text>
+            <Text style={styles.title}>{formatShiftPostRoleTitle(shift.role_type)}</Text>
+          </View>
+
+          <Text style={styles.meta}>{dateLabel}</Text>
+        </View>
+      </View>
+    </FadeInSection>
+  );
+
+  if (section === 'hero') {
+    return <View style={styles.wrap}>{heroSection}</View>;
+  }
+
+  if (section === 'details') {
+    return (
+      <View style={styles.wrap}>
+        <FadeInSection delayMs={0}>{detailSection}</FadeInSection>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap}>
-      <FadeInSection delayMs={0}>
-        <View style={styles.heroBand}>
-          <LinearGradient
-            colors={heroGradient}
-            locations={[0, 0.35, 0.65, 0.85, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-            pointerEvents="none"
-          />
-          <View style={styles.hero}>
-            {showStatusBadge ? (
-              <ShiftPostStatusBadge
-                status={shift.status}
-                shiftDate={shift.shift_date}
-                style={styles.statusBadge}
-              />
-            ) : null}
-
-            <View style={styles.heroTop}>
-              <Text style={styles.overline}>Fill-in shift</Text>
-              <Text style={styles.title}>{formatShiftPostRoleTitle(shift.role_type)}</Text>
-            </View>
-
-            <Text style={styles.meta}>{dateLabel}</Text>
-          </View>
-        </View>
-      </FadeInSection>
-
+      {heroSection}
       <FadeInSection delayMs={80}>{detailSection}</FadeInSection>
     </View>
   );

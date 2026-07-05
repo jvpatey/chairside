@@ -24,7 +24,6 @@ import {
   getWorkerShiftDetailRoute,
   navigateAfterWorkerApplication,
 } from '@/lib/routing';
-import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerApplicationDetailScreen() {
@@ -124,12 +123,9 @@ export default function WorkerApplicationDetailScreen() {
   const isConfirmedFillIn =
     application?.post_type === 'shift' && application.status === 'hired' && confirmedShift;
 
-  const shiftDisplay =
-    application?.post_type === 'shift' ? getWorkerShiftApplicationCardDisplay(application) : null;
-
   const headerTitle = isConfirmedFillIn ? 'Confirmed fill-in' : 'Your application';
   const headerSubtitle = isConfirmedFillIn
-    ? shiftDisplay?.title ?? application?.clinic_name
+    ? application?.clinic_name
     : undefined;
 
   const detail = (

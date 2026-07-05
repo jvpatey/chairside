@@ -92,6 +92,13 @@ export function WorkerConfirmedFillInDetail({
 
   return (
     <View style={styles.wrap}>
+      <ShiftPostDetailView
+        shift={shift}
+        softwareUsed={shift.clinic.software_used}
+        showStatusBadge={false}
+        section="hero"
+      />
+
       <View style={styles.heroCard}>
         <ClinicPostHeader
           clinicName={shift.clinic.clinic_name}
@@ -114,6 +121,7 @@ export function WorkerConfirmedFillInDetail({
         shift={shift}
         softwareUsed={shift.clinic.software_used}
         showStatusBadge={false}
+        section="details"
       />
 
       <WorkerClinicDetailView clinic={shift.clinic} />

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
-import { filterUncelebratedApplicationIds } from '@/lib/hiringCelebrationStorage';
+import { filterUncelebratedCelebrationCandidates } from '@/lib/hiringCelebrationStorage';
 
 type CelebrationCandidate = {
   id: string;
@@ -32,13 +32,10 @@ export function useWorkerHiringCelebration(
         return bTime - aTime;
       });
 
-      const uncelebrated = await filterUncelebratedApplicationIds(
-        'worker',
-        sorted.map((item) => item.id),
-      );
+      const uncelebrated = await filterUncelebratedCelebrationCandidates('worker', sorted);
       if (uncelebrated.length === 0) return;
 
-      const next = sorted.find((item) => uncelebrated.includes(item.id));
+      const next = uncelebrated[0];
       if (!next) return;
 
       showCelebration({
@@ -48,6 +45,7 @@ export function useWorkerHiringCelebration(
         counterpartName: next.counterpartName,
         postTitle: next.postTitle,
         shiftDateLabel: next.shiftDateLabel,
+        applicationUpdatedAt: next.updatedAt,
       });
     },
     [showCelebration],

@@ -5,7 +5,7 @@ import {
   cancelScheduledApplicationInterview,
   confirmFillInApplicant,
   declineApplicationInterviewUpdate,
-  deleteShiftPost,
+  deleteConfirmedFillIn,
   FILL_IN_PENDING_STATUSES,
   getApplicantDisplayName,
   requestApplicationKit,
@@ -640,6 +640,7 @@ export function ClinicApplicationDetailCard({
   const [pdfPreview, setPdfPreview] = useState<ApplicationPdfPacketResult | null>(null);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
   const [cancelFillInSheetVisible, setCancelFillInSheetVisible] = useState(false);
+  const [deleteFillInSheetVisible, setDeleteFillInSheetVisible] = useState(false);
   const { isHydrated: screeningDismissHydrated, dismissedIds: dismissedScreeningReviewIds, dismiss: dismissScreeningReviewBadge } =
     useDismissedScreeningReviews();
   const isJob = application.post_type === 'job';
@@ -911,7 +912,7 @@ export function ClinicApplicationDetailCard({
       confirmLabel: 'Accept',
       onConfirm: async () => {
         try {
-          await confirmFillInApplicant(clinicId, application.id);
+          const confirmed = await confirmFillInApplicant(clinicId, application.id);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           onConfirmed?.({
             applicationId: application.id,
@@ -920,6 +921,7 @@ export function ClinicApplicationDetailCard({
             counterpartName: applicantName,
             postTitle: getRoleTypeLabel(application.post_role_type),
             shiftDateLabel: application.post_title.replace(/^Fill-in · /, ''),
+            applicationUpdatedAt: confirmed.updated_at,
           });
           onUpdated?.();
         } catch (error) {
@@ -939,27 +941,15 @@ export function ClinicApplicationDetailCard({
     onDecided?.();
   };
 
+  const handleSubmitDeleteConfirmedFillIn = async (message: string) => {
+    await deleteConfirmedFillIn(application.id, { message });
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onRemoved?.();
+  };
+
   const handleDeleteConfirmedFillIn = () => {
     if (!application.shift_post_id) return;
-
-    showConfirmActionSheet({
-      title: 'Delete fill-in?',
-      message: `Permanently delete this fill-in and remove the confirmed record with ${applicantName}?`,
-      confirmLabel: 'Delete fill-in',
-      destructive: true,
-      onConfirm: async () => {
-        try {
-          await deleteShiftPost(clinicId, application.shift_post_id!);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onRemoved?.();
-        } catch (error) {
-          Alert.alert(
-            'Could not delete fill-in',
-            error instanceof Error ? error.message : 'Please try again.',
-          );
-        }
-      },
-    });
+    setDeleteFillInSheetVisible(true);
   };
 
   const showNewBadge = hasNewApplication;
@@ -1386,12 +1376,21 @@ export function ClinicApplicationDetailCard({
       />
 
       {isConfirmedFillIn ? (
-        <CancelFillInSheet
-          visible={cancelFillInSheetVisible}
-          workerName={applicantName}
-          onClose={() => setCancelFillInSheetVisible(false)}
-          onSubmit={handleSubmitCancelConfirmedFillIn}
-        />
+        <>
+          <CancelFillInSheet
+            visible={cancelFillInSheetVisible}
+            workerName={applicantName}
+            onClose={() => setCancelFillInSheetVisible(false)}
+            onSubmit={handleSubmitCancelConfirmedFillIn}
+          />
+          <CancelFillInSheet
+            visible={deleteFillInSheetVisible}
+            workerName={applicantName}
+            mode="delete"
+            onClose={() => setDeleteFillInSheetVisible(false)}
+            onSubmit={handleSubmitDeleteConfirmedFillIn}
+          />
+        </>
       ) : null}
     </>
   );

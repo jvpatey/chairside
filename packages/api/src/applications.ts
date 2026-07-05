@@ -99,7 +99,11 @@ export type Application = {
   interview_proposed_by: 'clinic' | 'worker' | null;
   interview_offer_closed_by: 'clinic' | 'worker' | null;
   status_note: string | null;
-  status_closed_by: 'clinic' | 'worker' | null;
+  status_closed_by: 'clinic' | 'worker' | 'clinic_deleted' | null;
+  shift_date: string | null;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
+  shift_role_type: string | null;
   worker_hidden_at: string | null;
   clinic_hidden_at: string | null;
   clinic_name: string | null;
@@ -231,6 +235,46 @@ function resolveWorkerClinicFields(
     clinic_logo_storage_path:
       clinic?.logo_storage_path ?? application.clinic_logo_storage_path ?? null,
     clinic_account_deleted: false,
+  };
+}
+
+function buildWorkerShiftApplication(
+  application: Application,
+  shift?: {
+    role_type: string;
+    shift_date: string;
+    start_time: string | null;
+    end_time: string | null;
+    clinic_id: string;
+    status?: string | null;
+  } | null,
+  clinic?: {
+    clinic_name?: string | null;
+    city?: string | null;
+    province?: string | null;
+    address_line1?: string | null;
+    logo_storage_path?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null,
+): WorkerApplication | null {
+  const shiftDate = shift?.shift_date ?? application.shift_date;
+  if (!shiftDate) return null;
+
+  const roleType = shift?.role_type ?? application.shift_role_type ?? 'other';
+
+  return {
+    ...application,
+    post_title: `Fill-in · ${shiftDate}`,
+    post_type: 'shift',
+    post_status: shift?.status ?? null,
+    post_role_type: roleType,
+    shift_date: shiftDate,
+    shift_start_time: shift?.start_time ?? application.shift_start_time ?? null,
+    shift_end_time: shift?.end_time ?? application.shift_end_time ?? null,
+    clinic_id: shift?.clinic_id ?? null,
+    ...resolveWorkerClinicFields(application, clinic),
+    screening: null,
   };
 }
 
@@ -508,20 +552,22 @@ export async function listWorkerApplications(
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
       const clinic = clinicMap.get(shift.clinic_id);
-      const clinicFields = resolveWorkerClinicFields(application, clinic);
-      applications.push({
-        ...application,
-        post_title: shift.title,
-        post_type: 'shift',
-        post_status: shift.status,
-        post_role_type: shift.role_type,
-        shift_date: shift.shift_date,
-        shift_start_time: shift.start_time,
-        shift_end_time: shift.end_time,
-        clinic_id: shift.clinic_id,
-        ...clinicFields,
-        screening: null,
-      });
+      const workerShift = buildWorkerShiftApplication(
+        application,
+        {
+          role_type: shift.role_type,
+          shift_date: shift.shift_date,
+          start_time: shift.start_time,
+          end_time: shift.end_time,
+          clinic_id: shift.clinic_id,
+          status: shift.status,
+        },
+        clinic,
+      );
+      if (workerShift) applications.push(workerShift);
+    } else if (!row.job_post_id && row.shift_date) {
+      const workerShift = buildWorkerShiftApplication(application, null, null);
+      if (workerShift) applications.push(workerShift);
     }
   }
 
@@ -574,28 +620,22 @@ async function enrichWorkerApplication(
       .maybeSingle();
 
     if (shiftError) throw shiftError;
-    if (!shift) return null;
 
-    const { data: clinic, error: clinicError } = await supabase
-      .from('clinic_profiles')
-      .select('clinic_name, city, province, address_line1, logo_storage_path, latitude, longitude')
-      .eq('id', shift.clinic_id)
-      .maybeSingle();
+    if (shift) {
+      const { data: clinic, error: clinicError } = await supabase
+        .from('clinic_profiles')
+        .select('clinic_name, city, province, address_line1, logo_storage_path, latitude, longitude')
+        .eq('id', shift.clinic_id)
+        .maybeSingle();
 
-    if (clinicError) throw clinicError;
+      if (clinicError) throw clinicError;
 
-    return {
-      ...application,
-      post_title: `Fill-in · ${shift.shift_date}`,
-      post_type: 'shift',
-      post_role_type: shift.role_type,
-      shift_date: shift.shift_date,
-      shift_start_time: shift.start_time,
-      shift_end_time: shift.end_time,
-      clinic_id: shift.clinic_id,
-      ...resolveWorkerClinicFields(application, clinic),
-      screening: null,
-    };
+      return buildWorkerShiftApplication(application, shift, clinic);
+    }
+  }
+
+  if (application.shift_date) {
+    return buildWorkerShiftApplication(application, null, null);
   }
 
   return null;
@@ -1476,6 +1516,24 @@ export async function cancelConfirmedFillIn(
   const row = data as Application | null;
   if (!row) {
     throw new Error('Confirmed fill-in not found or cannot be cancelled');
+  }
+  return row;
+}
+
+export async function deleteConfirmedFillIn(
+  applicationId: string,
+  options: { message: string },
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('delete_confirmed_fill_in', {
+    application_id: applicationId,
+    message: options.message,
+  });
+
+  if (error) throwWithMessage(error, 'Confirmed fill-in not found or cannot be deleted');
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('Confirmed fill-in not found or cannot be deleted');
   }
   return row;
 }

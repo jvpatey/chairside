@@ -59,9 +59,11 @@ export function WorkerApplicationListCard({
 
   const location = shiftDisplay?.location ?? application.clinic_city;
   const appliedOnLabel = isCancelledShift
-    ? application.status_closed_by === 'clinic'
-      ? 'Cancelled by clinic'
-      : 'Cancelled'
+    ? application.status_closed_by === 'clinic_deleted'
+      ? 'Removed by clinic'
+      : application.status_closed_by === 'clinic'
+        ? 'Cancelled by clinic'
+        : 'Cancelled'
     : appliedLabel
       ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}`
       : null;

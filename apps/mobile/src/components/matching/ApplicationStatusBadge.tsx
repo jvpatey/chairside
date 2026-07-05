@@ -110,7 +110,7 @@ type WorkerApplicationStatusBadgeProps = {
   status: ApplicationStatus | string;
   postType: ApplicationPostType;
   statusNote?: string | null;
-  statusClosedBy?: 'clinic' | 'worker' | null;
+  statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
 };
 
 export function WorkerApplicationStatusBadge({
@@ -173,7 +173,7 @@ type ClinicApplicationStatusBadgeProps = {
   postType?: ApplicationPostType;
   applicationKitRequestedAt?: string | null;
   applicationKitSubmittedAt?: string | null;
-  statusClosedBy?: 'clinic' | 'worker' | null;
+  statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
 };
 
 export function ClinicApplicationStatusBadge({

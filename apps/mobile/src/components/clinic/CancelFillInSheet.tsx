@@ -18,9 +18,49 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 const MAX_MESSAGE_LENGTH = 500;
 
+type CancelFillInSheetMode = 'cancel' | 'delete';
+
+const COPY: Record<
+  CancelFillInSheetMode,
+  {
+    title: string;
+    subtitle: (workerName: string) => string;
+    placeholder: string;
+    submitLabel: string;
+    submittingLabel: string;
+    keepLabel: string;
+    requiredError: string;
+    submitError: string;
+  }
+> = {
+  cancel: {
+    title: 'Cancel fill-in?',
+    subtitle: (workerName) =>
+      `Let ${workerName} know why this confirmed fill-in is being cancelled. They will see this message on their application.`,
+    placeholder: 'Explain why the fill-in is being cancelled...',
+    submitLabel: 'Cancel fill-in',
+    submittingLabel: 'Cancelling…',
+    keepLabel: 'Keep fill-in',
+    requiredError: 'Add a message for the candidate before cancelling.',
+    submitError: 'Could not cancel fill-in.',
+  },
+  delete: {
+    title: 'Delete fill-in?',
+    subtitle: (workerName) =>
+      `Let ${workerName} know why this fill-in is being removed. They will see this message in their history.`,
+    placeholder: 'Explain why the fill-in is being removed...',
+    submitLabel: 'Delete fill-in',
+    submittingLabel: 'Deleting…',
+    keepLabel: 'Keep fill-in',
+    requiredError: 'Add a message for the candidate before deleting.',
+    submitError: 'Could not delete fill-in.',
+  },
+};
+
 type CancelFillInSheetProps = {
   visible: boolean;
   workerName: string;
+  mode?: CancelFillInSheetMode;
   onClose: () => void;
   onSubmit: (message: string) => Promise<void>;
 };
@@ -28,6 +68,7 @@ type CancelFillInSheetProps = {
 export function CancelFillInSheet({
   visible,
   workerName,
+  mode = 'cancel',
   onClose,
   onSubmit,
 }: CancelFillInSheetProps) {
@@ -119,10 +160,12 @@ export function CancelFillInSheet({
     },
   }));
 
+  const copy = COPY[mode];
+
   const handleSubmit = async () => {
     const trimmed = message.trim();
     if (!trimmed) {
-      setError('Add a message for the candidate before cancelling.');
+      setError(copy.requiredError);
       return;
     }
 
@@ -132,7 +175,7 @@ export function CancelFillInSheet({
       await onSubmit(trimmed);
       onClose();
     } catch (submitError) {
-      setError(getErrorMessage(submitError, 'Could not cancel fill-in.'));
+      setError(getErrorMessage(submitError, copy.submitError));
     } finally {
       setIsSubmitting(false);
     }
@@ -151,11 +194,8 @@ export function CancelFillInSheet({
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled">
             <View style={styles.section}>
-              <Text style={styles.title}>Cancel fill-in?</Text>
-              <Text style={styles.subtitle}>
-                Let {workerName} know why this confirmed fill-in is being cancelled. They will see
-                this message on their application.
-              </Text>
+              <Text style={styles.title}>{copy.title}</Text>
+              <Text style={styles.subtitle}>{copy.subtitle(workerName)}</Text>
             </View>
             <View style={styles.section}>
               <Text style={styles.label}>Message to candidate</Text>
@@ -166,7 +206,7 @@ export function CancelFillInSheet({
                   setMessage(value.slice(0, MAX_MESSAGE_LENGTH));
                   if (error) setError(null);
                 }}
-                placeholder="Explain why the fill-in is being cancelled..."
+                placeholder={copy.placeholder}
                 placeholderTextColor={colors.labelTertiary}
                 multiline
                 editable={!isSubmitting}
@@ -175,13 +215,13 @@ export function CancelFillInSheet({
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <View style={styles.actions}>
               <OnboardingButton
-                label={isSubmitting ? 'Cancelling…' : 'Cancel fill-in'}
+                label={isSubmitting ? copy.submittingLabel : copy.submitLabel}
                 variant="destructive"
                 disabled={isSubmitting}
                 onPress={() => void handleSubmit()}
               />
               <OnboardingButton
-                label="Keep fill-in"
+                label={copy.keepLabel}
                 variant="secondary"
                 disabled={isSubmitting}
                 onPress={onClose}

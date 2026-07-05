@@ -1,10 +1,9 @@
-import { cancelConfirmedFillIn, deleteShiftPost } from '@chairside/api';
+import { cancelConfirmedFillIn, deleteConfirmedFillIn } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -18,7 +17,6 @@ import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationS
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { ExpandableSurfaceCard } from '@/components/ui/ExpandableSurfaceCard';
-import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   formatFillInRoleLabel,
   formatShiftPostMeta,
@@ -62,6 +60,7 @@ export function ConfirmedFillInCard({
 }: ConfirmedFillInCardProps) {
   const { colors } = useTheme();
   const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
+  const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState<'cancel' | 'delete' | null>(null);
   const roleLabel = formatFillInRoleLabel(shiftDate);
   const shiftTimes = {
@@ -100,30 +99,20 @@ export function ConfirmedFillInCard({
     }
   };
 
+  const handleSubmitDelete = async (message: string) => {
+    setIsSubmitting('delete');
+    try {
+      await deleteConfirmedFillIn(applicationId, { message });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onUpdated?.();
+    } finally {
+      setIsSubmitting(null);
+    }
+  };
+
   const handleDeleteFillIn = () => {
     if (isSubmitting) return;
-
-    showConfirmActionSheet({
-      title: 'Delete fill-in?',
-      message: `Permanently delete this fill-in and remove the confirmed record with ${workerName}?`,
-      confirmLabel: 'Delete fill-in',
-      destructive: true,
-      onConfirm: async () => {
-        setIsSubmitting('delete');
-        try {
-          await deleteShiftPost(clinicId, shiftPostId);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onUpdated?.();
-        } catch (error) {
-          Alert.alert(
-            'Could not delete fill-in',
-            error instanceof Error ? error.message : 'Please try again.',
-          );
-        } finally {
-          setIsSubmitting(null);
-        }
-      },
-    });
+    setDeleteSheetVisible(true);
   };
 
   const header = (
@@ -191,6 +180,13 @@ export function ConfirmedFillInCard({
         workerName={workerName}
         onClose={() => setCancelSheetVisible(false)}
         onSubmit={handleSubmitCancel}
+      />
+      <CancelFillInSheet
+        visible={deleteSheetVisible}
+        workerName={workerName}
+        mode="delete"
+        onClose={() => setDeleteSheetVisible(false)}
+        onSubmit={handleSubmitDelete}
       />
     </>
   );

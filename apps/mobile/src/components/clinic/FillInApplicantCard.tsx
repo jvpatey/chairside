@@ -166,7 +166,7 @@ export function FillInApplicantCard({
         submittingActionRef.current = 'accept';
         setSubmittingAction('accept');
         try {
-          await confirmFillInApplicant(clinicId, application.id);
+          const confirmed = await confirmFillInApplicant(clinicId, application.id);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           await refreshPending();
           onConfirmed?.({
@@ -176,6 +176,7 @@ export function FillInApplicantCard({
             counterpartName: workerName,
             postTitle: getRoleTypeLabel(application.post_role_type),
             shiftDateLabel: getShiftMeta(application),
+            applicationUpdatedAt: confirmed.updated_at,
           });
           onUpdated?.();
         } catch (error) {

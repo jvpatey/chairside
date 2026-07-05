@@ -68,25 +68,31 @@ export function formatApplicationStatus(
   return labels[status] ?? status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
 }
 
-/** Worker-facing fill-in status, including confirmed cancellations. */
+/** Worker-facing fill-in status, including confirmed cancellations and removals. */
 export function formatWorkerShiftApplicationStatus(input: {
   status: string | null | undefined;
   status_note?: string | null;
   status_closed_by?: string | null;
 }): string {
   const { status, status_closed_by } = input;
+  if (status === 'rejected' && status_closed_by === 'clinic_deleted') {
+    return 'Removed';
+  }
   if (status === 'rejected' && status_closed_by) {
     return 'Cancelled';
   }
   return formatApplicationStatus(status, 'shift');
 }
 
-/** Clinic-facing fill-in status, including confirmed cancellations. */
+/** Clinic-facing fill-in status, including confirmed cancellations and removals. */
 export function formatClinicShiftApplicationStatus(input: {
   status: string | null | undefined;
   status_closed_by?: string | null;
 }): string {
   const { status, status_closed_by } = input;
+  if (status === 'rejected' && status_closed_by === 'clinic_deleted') {
+    return 'Removed';
+  }
   if (status === 'rejected' && status_closed_by) {
     return 'Cancelled';
   }

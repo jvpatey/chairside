@@ -210,6 +210,7 @@ export {
   cancelScheduledApplicationInterview,
   confirmFillInApplicant,
   cancelConfirmedFillIn,
+  deleteConfirmedFillIn,
   reRequestShiftCover,
   declineApplicationInterview,
   declineApplicationInterviewUpdate,

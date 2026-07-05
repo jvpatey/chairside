@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '@chairside/api';
+import { getRoleTypeLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
@@ -12,13 +13,29 @@ import {
   calendarEventKindLabel,
   formatCalendarEventTime,
 } from '@/lib/calendarEvents';
-import { formatShiftDateLabel } from '@/lib/dates';
+import { formatShiftDateLabel, parseISODate } from '@/lib/dates';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ScheduleEventCardProps = {
   event: CalendarEvent;
   onPress: () => void;
 };
+
+function getConfirmedFillInPresentation(event: CalendarEvent) {
+  const date = parseISODate(event.dateKey);
+  const dateLabel = date ? formatShiftDateLabel(date) : null;
+  const timeLabel = formatCalendarEventTime(event);
+  const location = event.location?.trim() || null;
+  const roleLabel = event.roleType ? getRoleTypeLabel(event.roleType) : null;
+
+  return {
+    eyebrow: calendarEventKindLabel(event.kind),
+    title: event.subtitle,
+    meta: roleLabel,
+    headerDetail: dateLabel,
+    detail: [timeLabel, location].filter(Boolean).join(' · ') || null,
+  };
+}
 
 function EventAvatar({ event }: { event: CalendarEvent }) {
   const { colors } = useTheme();
@@ -46,6 +63,24 @@ function EventAvatar({ event }: { event: CalendarEvent }) {
 }
 
 export function ScheduleEventCard({ event, onPress }: ScheduleEventCardProps) {
+  if (event.kind === 'confirmed_fill_in') {
+    const presentation = getConfirmedFillInPresentation(event);
+
+    return (
+      <SurfaceCard padding="none" onPress={onPress}>
+        <BrowseListRow
+          avatar={<EventAvatar event={event} />}
+          eyebrow={presentation.eyebrow}
+          title={presentation.title}
+          meta={presentation.meta}
+          headerDetail={presentation.headerDetail}
+          detail={presentation.detail}
+          onPress={onPress}
+        />
+      </SurfaceCard>
+    );
+  }
+
   const timeLabel = formatCalendarEventTime(event);
   const kindLabel = calendarEventKindLabel(event.kind);
   const location = event.location?.trim();
