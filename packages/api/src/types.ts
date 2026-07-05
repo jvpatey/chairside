@@ -469,6 +469,10 @@ export type Database = {
         Args: { application_id: string };
         Returns: ApplicationRow;
       };
+      cancel_confirmed_fill_in: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
       hide_worker_application: {
         Args: { application_id: string };
         Returns: ApplicationRow;

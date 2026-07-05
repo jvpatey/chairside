@@ -1384,6 +1384,20 @@ export async function confirmFillInApplicant(
   return row;
 }
 
+export async function cancelConfirmedFillIn(applicationId: string): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('cancel_confirmed_fill_in', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('Confirmed fill-in not found or cannot be cancelled');
+  }
+  return row;
+}
+
 export async function listFillInCoverRequests(clinicId: string): Promise<FillInCoverRequest[]> {
   const supabase = getSupabaseClient();
 

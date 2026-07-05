@@ -372,6 +372,7 @@ export default function ClinicDashboardScreen() {
             onJobDeleted={handleJobDeleted}
             onShiftUpdated={handleShiftUpdated}
             onShiftDeleted={handleShiftDeleted}
+            onConfirmedFillInsUpdated={() => void loadDashboard()}
             onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
             onJobApplicationsPress={(jobId) =>
               router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))

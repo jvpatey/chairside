@@ -208,6 +208,7 @@ export {
   cancelApplicationInterviewOffer,
   cancelScheduledApplicationInterview,
   confirmFillInApplicant,
+  cancelConfirmedFillIn,
   declineApplicationInterview,
   declineApplicationInterviewUpdate,
   offerApplicationInterview,
