@@ -494,10 +494,14 @@ export type ClinicSummary = {
 export type LiveJobPost = JobPost & {
   clinic: ClinicSummary;
   screening_questions: ScreeningQuestion[];
+  /** Pro plan: surfaced first in worker browse lists. */
+  has_priority_listing: boolean;
 };
 
 export type LiveShiftPost = ShiftPost & {
   clinic: ClinicSummary;
+  /** Pro plan: surfaced first in worker browse lists. */
+  has_priority_listing: boolean;
 };
 
 export type WorkerAppliedShiftClinic = ClinicSummary & {
@@ -564,6 +568,16 @@ function attachClinic<T extends { clinic_id: string }>(
     .filter((post): post is T & { clinic: ClinicSummary } => post != null);
 }
 
+function attachPriorityListing<T extends { clinic_id: string }>(
+  post: T,
+  planMap: Map<string, ClinicPlan>,
+): T & { has_priority_listing: boolean } {
+  return {
+    ...post,
+    has_priority_listing: planMap.get(post.clinic_id) === 'pro',
+  };
+}
+
 function sortPostsByClinicPlanPriority<T extends { clinic_id: string; created_at?: string }>(
   posts: T[],
   planMap: Map<string, ClinicPlan>,
@@ -598,7 +612,9 @@ export async function listLiveJobPosts(province: string): Promise<LiveJobPost[]>
   const sortedPosts = sortPostsByClinicPlanPriority(posts, planMap, (left, right) =>
     right.created_at.localeCompare(left.created_at),
   );
-  return sortedPosts.map((post) => ({ ...post, screening_questions: [] }));
+  return sortedPosts.map((post) =>
+    attachPriorityListing({ ...post, screening_questions: [] }, planMap),
+  );
 }
 
 export async function listLiveShiftPosts(province: string): Promise<LiveShiftPost[]> {
@@ -624,7 +640,7 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
     const dateCompare = left.shift_date.localeCompare(right.shift_date);
     if (dateCompare !== 0) return dateCompare;
     return left.created_at.localeCompare(right.created_at);
-  });
+  }).map((post) => attachPriorityListing(post, planMap));
 }
 
 function shiftWeekday(shiftDate: string): number {
@@ -705,7 +721,8 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
     ? await getJobPostScreeningQuestions(jobId, { province: clinic.province })
     : [];
 
-  return {
+  const planMap = await getClinicPlanMap([data.clinic_id as string]);
+  const base = {
     ...(data as JobPost),
     clinic: {
       clinic_id: clinic.id,
@@ -720,6 +737,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
     },
     screening_questions: screeningQuestions,
   };
+  return attachPriorityListing(base, planMap);
 }
 
 export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost | null> {
@@ -747,7 +765,8 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
   if (clinicError) throw clinicError;
   if (!clinic) return null;
 
-  return {
+  const planMap = await getClinicPlanMap([data.clinic_id as string]);
+  const base = {
     ...(data as ShiftPost),
     clinic: {
       clinic_id: clinic.id,
@@ -761,6 +780,7 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
       logo_storage_path: clinic.logo_storage_path ?? null,
     },
   };
+  return attachPriorityListing(base, planMap);
 }
 
 export async function getWorkerAppliedShiftPost(

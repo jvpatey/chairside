@@ -8,6 +8,7 @@ import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { PillBadge } from '@/components/ui/PillBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { getAppliedRowGradient, useTheme, useThemedStyles } from '@/theme';
@@ -88,8 +89,9 @@ export function RoleListingCard({
   ) : null;
 
   const accessory =
-    matchBadge || appliedBadge || onToggleSaved ? (
+    job.has_priority_listing || matchBadge || appliedBadge || onToggleSaved ? (
       <View style={styles.accessoryColumn}>
+        {job.has_priority_listing ? <FeaturedListingBadge /> : null}
         {matchBadge}
         {appliedBadge}
         {onToggleSaved ? (

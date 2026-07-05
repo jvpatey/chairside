@@ -23,6 +23,7 @@ import type {
   WorkerMatchTierFilter,
   WorkerSoftwareFilter,
 } from '@/lib/postingFilters';
+import { sortWithPriorityFirst } from '@/lib/listingPriority';
 
 export type WorkerRoleBrowseFiltersState = {
   searchQuery: string;
@@ -185,7 +186,7 @@ function sortJobs(
   jobs: EnrichedLiveJobPost[],
   sort: WorkerBrowseSort,
 ): EnrichedLiveJobPost[] {
-  return [...jobs].sort((a, b) => {
+  return sortWithPriorityFirst(jobs, (a, b) => {
     switch (sort) {
       case 'recommended': {
         const tierCompare =
@@ -213,7 +214,7 @@ function sortShifts(
   shifts: EnrichedLiveShiftPost[],
   sort: WorkerBrowseSort,
 ): EnrichedLiveShiftPost[] {
-  return [...shifts].sort((a, b) => {
+  return sortWithPriorityFirst(shifts, (a, b) => {
     switch (sort) {
       case 'recommended':
       case 'distance': {
