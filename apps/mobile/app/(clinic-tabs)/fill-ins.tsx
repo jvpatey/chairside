@@ -322,17 +322,20 @@ export default function ClinicFillInsScreen() {
                   {confirmedRows.map((row) => (
                     <ConfirmedFillInCard
                       key={row.applicationId}
+                      clinicId={user?.id ?? ''}
                       workerName={row.workerName}
                       workerPhotoStoragePath={row.workerPhotoStoragePath}
                       shiftDate={row.shiftDate}
                       startTime={row.startTime}
                       endTime={row.endTime}
                       applicationId={row.applicationId}
+                      shiftPostId={row.shiftPostId}
                       returnTo="fill-ins-tab"
                       expanded={expandedConfirmedId === row.applicationId}
                       onExpandChange={(next) =>
                         setExpandedConfirmedId(next ? row.applicationId : null)
                       }
+                      onUpdated={() => void load()}
                     />
                   ))}
                 </StaggeredList>

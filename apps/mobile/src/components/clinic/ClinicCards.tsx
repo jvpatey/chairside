@@ -161,6 +161,7 @@ type DashboardOverviewPanelProps = {
   onJobDeleted?: (jobId: string) => void;
   onShiftUpdated?: (shift: ShiftPost) => void;
   onShiftDeleted?: (shiftId: string) => void;
+  onConfirmedFillInsUpdated?: () => void;
   onJobPress?: (jobId: string) => void;
   onJobApplicationsPress?: (jobId: string) => void;
   onViewAllPress?: () => void;
@@ -247,6 +248,7 @@ export function DashboardOverviewPanel({
   onJobDeleted,
   onShiftUpdated,
   onShiftDeleted,
+  onConfirmedFillInsUpdated,
   onJobPress,
   onJobApplicationsPress,
   onViewAllPress,
@@ -335,17 +337,20 @@ export function DashboardOverviewPanel({
                 {confirmedFillIns.map((row) => (
                   <ConfirmedFillInCard
                     key={row.applicationId}
+                    clinicId={clinicId ?? ''}
                     workerName={row.workerName}
                     workerPhotoStoragePath={row.workerPhotoStoragePath}
                     shiftDate={row.shiftDate}
                     startTime={row.startTime}
                     endTime={row.endTime}
                     applicationId={row.applicationId}
+                    shiftPostId={row.shiftPostId}
                     returnTo="dashboard-fill-ins"
                     expanded={expandedConfirmedId === row.applicationId}
                     onExpandChange={(next) =>
                       setExpandedConfirmedId(next ? row.applicationId : null)
                     }
+                    onUpdated={onConfirmedFillInsUpdated}
                   />
                 ))}
               </View>

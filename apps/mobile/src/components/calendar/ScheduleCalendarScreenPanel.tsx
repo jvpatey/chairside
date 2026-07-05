@@ -13,7 +13,6 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   getClinicApplicationRoute,
   getWorkerApplicationRoute,
-  getWorkerShiftDetailRoute,
 } from '@/lib/routing';
 
 type ScheduleCalendarScreenPanelProps = {
@@ -80,10 +79,6 @@ export function ScheduleCalendarScreenPanel({
   const handleEventPress = useCallback(
     (event: CalendarEvent) => {
       if (role === 'worker') {
-        if (event.kind === 'confirmed_fill_in' && event.shiftPostId) {
-          router.push(getWorkerShiftDetailRoute(event.shiftPostId, 'fill-ins-tab'));
-          return;
-        }
         router.push(getWorkerApplicationRoute(event.applicationId, applicationReturnTo));
         return;
       }

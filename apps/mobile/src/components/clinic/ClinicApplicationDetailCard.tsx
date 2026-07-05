@@ -1,9 +1,11 @@
 import {
   acceptApplicationInterviewUpdate,
   cancelApplicationInterviewOffer,
+  cancelConfirmedFillIn,
   cancelScheduledApplicationInterview,
   confirmFillInApplicant,
   declineApplicationInterviewUpdate,
+  deleteShiftPost,
   FILL_IN_PENDING_STATUSES,
   getApplicantDisplayName,
   requestApplicationKit,
@@ -836,6 +838,14 @@ export function ClinicApplicationDetailCard({
   const applicantName = getApplicantDisplayName(application);
   const workerDeleted = application.worker_account_deleted;
 
+  const isFillInPending =
+    application.post_type === 'shift' &&
+    FILL_IN_PENDING_STATUSES.includes(application.status) &&
+    !workerDeleted;
+
+  const isConfirmedFillIn =
+    application.post_type === 'shift' && application.status === 'hired' && !workerDeleted;
+
   const hasActions =
     !workerDeleted &&
     (isScreeningStage ||
@@ -843,12 +853,8 @@ export function ClinicApplicationDetailCard({
       application.status === 'reviewed' ||
       application.status === 'in_progress' ||
       application.status === 'interview_offered' ||
-      application.status === 'interview_scheduled');
-
-  const isFillInPending =
-    application.post_type === 'shift' &&
-    FILL_IN_PENDING_STATUSES.includes(application.status) &&
-    !workerDeleted;
+      application.status === 'interview_scheduled' ||
+      isConfirmedFillIn);
 
   const experienceLabel =
     application.years_of_experience != null
@@ -923,6 +929,51 @@ export function ClinicApplicationDetailCard({
     });
   };
 
+  const handleCancelConfirmedFillIn = () => {
+    showConfirmActionSheet({
+      title: 'Cancel fill-in?',
+      message: `Cancel the confirmation with ${applicantName}? The fill-in will reopen for new cover requests.`,
+      confirmLabel: 'Cancel fill-in',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await cancelConfirmedFillIn(application.id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+          onDecided?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not cancel fill-in',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
+  };
+
+  const handleDeleteConfirmedFillIn = () => {
+    if (!application.shift_post_id) return;
+
+    showConfirmActionSheet({
+      title: 'Delete fill-in?',
+      message: `Permanently delete this fill-in and remove the confirmed record with ${applicantName}?`,
+      confirmLabel: 'Delete fill-in',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteShiftPost(clinicId, application.shift_post_id!);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onRemoved?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not delete fill-in',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
+      },
+    });
+  };
+
   const showNewBadge = hasNewApplication;
   const { showStatusBadge } = getClinicApplicantBadgeVisibility(application, hasNewApplication);
 
@@ -957,6 +1008,21 @@ export function ClinicApplicationDetailCard({
         label: 'Decline cover request',
         variant: 'secondary',
         onPress: () => void updateStatus('rejected'),
+      });
+      return { primary, secondary, destructive };
+    }
+
+    if (isConfirmedFillIn) {
+      destructive.push({
+        key: 'cancel-fill-in',
+        label: 'Cancel fill-in',
+        variant: 'secondary',
+        onPress: handleCancelConfirmedFillIn,
+      });
+      destructive.push({
+        key: 'delete-fill-in',
+        label: 'Delete fill-in',
+        onPress: handleDeleteConfirmedFillIn,
       });
       return { primary, secondary, destructive };
     }

@@ -149,6 +149,7 @@ export default function WorkerApplicationDetailScreen() {
             shift={confirmedShift}
             returnTo={resolvedReturnTo}
             hasUnreadMessages={hasUnreadMessages}
+            onCancelled={() => void handleApplicationRemoved()}
           />
         ) : application ? (
           <WorkerApplicationDetailCard

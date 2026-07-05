@@ -1,6 +1,10 @@
+import { cancelConfirmedFillIn, deleteShiftPost } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import {
+  Alert,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -13,6 +17,7 @@ import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationS
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { ExpandableSurfaceCard } from '@/components/ui/ExpandableSurfaceCard';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   formatFillInRoleLabel,
   formatShiftPostMeta,
@@ -26,29 +31,36 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 type ConfirmedFillInCardProps = {
+  clinicId: string;
   workerName: string;
   workerPhotoStoragePath?: string | null;
   shiftDate: string;
   startTime: string | null;
   endTime: string | null;
-  applicationId?: string;
+  applicationId: string;
+  shiftPostId: string;
   expanded?: boolean;
   onExpandChange?: (expanded: boolean) => void;
   returnTo?: ClinicApplicationReturnTarget;
+  onUpdated?: () => void;
 };
 
 export function ConfirmedFillInCard({
+  clinicId,
   workerName,
   workerPhotoStoragePath,
   shiftDate,
   startTime,
   endTime,
   applicationId,
+  shiftPostId,
   expanded = false,
   onExpandChange,
   returnTo = 'fill-ins-tab',
+  onUpdated,
 }: ConfirmedFillInCardProps) {
   const { colors } = useTheme();
+  const [isSubmitting, setIsSubmitting] = useState<'cancel' | 'delete' | null>(null);
   const roleLabel = formatFillInRoleLabel(shiftDate);
   const shiftTimes = {
     shift_date: shiftDate,
@@ -65,11 +77,66 @@ export function ConfirmedFillInCard({
     detailsCard: {
       gap: spacing.sm,
     },
+    actions: {
+      gap: spacing.sm,
+    },
   }));
 
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     onExpandChange?.(!expanded);
+  };
+
+  const handleCancelFillIn = () => {
+    if (isSubmitting) return;
+
+    showConfirmActionSheet({
+      title: 'Cancel fill-in?',
+      message: `Cancel the confirmation with ${workerName}? The fill-in will reopen for new cover requests.`,
+      confirmLabel: 'Cancel fill-in',
+      destructive: true,
+      onConfirm: async () => {
+        setIsSubmitting('cancel');
+        try {
+          await cancelConfirmedFillIn(applicationId);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not cancel fill-in',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        } finally {
+          setIsSubmitting(null);
+        }
+      },
+    });
+  };
+
+  const handleDeleteFillIn = () => {
+    if (isSubmitting) return;
+
+    showConfirmActionSheet({
+      title: 'Delete fill-in?',
+      message: `Permanently delete this fill-in and remove the confirmed record with ${workerName}?`,
+      confirmLabel: 'Delete fill-in',
+      destructive: true,
+      onConfirm: async () => {
+        setIsSubmitting('delete');
+        try {
+          await deleteShiftPost(clinicId, shiftPostId);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onUpdated?.();
+        } catch (error) {
+          Alert.alert(
+            'Could not delete fill-in',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        } finally {
+          setIsSubmitting(null);
+        }
+      },
+    });
   };
 
   const header = (
@@ -108,7 +175,7 @@ export function ConfirmedFillInCard({
           <DetailRow label="Status" value="Confirmed" />
         </View>
       </CardDetailSection>
-      {applicationId ? (
+      <View style={styles.actions}>
         <OnboardingButton
           label="Message"
           variant="secondary"
@@ -116,7 +183,19 @@ export function ConfirmedFillInCard({
             router.push(getClinicApplicationMessagesRoute(applicationId, returnTo))
           }
         />
-      ) : null}
+        <OnboardingButton
+          label={isSubmitting === 'cancel' ? 'Cancelling…' : 'Cancel fill-in'}
+          variant="secondary"
+          disabled={isSubmitting != null}
+          onPress={handleCancelFillIn}
+        />
+        <OnboardingButton
+          label={isSubmitting === 'delete' ? 'Deleting…' : 'Delete fill-in'}
+          variant="destructive"
+          disabled={isSubmitting != null}
+          onPress={handleDeleteFillIn}
+        />
+      </View>
     </ExpandableSurfaceCard>
   );
 }
