@@ -8,6 +8,7 @@ export type HiringCelebrationPayload = {
   counterpartName: string;
   postTitle: string;
   shiftDateLabel?: string | null;
+  applicationUpdatedAt?: string;
 };
 
 export function getHiringCelebrationCopy(payload: HiringCelebrationPayload): {

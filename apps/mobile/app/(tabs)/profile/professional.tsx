@@ -14,7 +14,7 @@ export default function WorkerProfileProfessionalScreen() {
   return (
     <ProfileDetailScreen
       title="Professional background"
-      subtitle="Role, experience, location, and skills."
+      subtitle="Your roles, experience, location, and skills clinics use to understand your fit."
       actionLabel="Edit"
       onActionPress={() =>
         router.push(getSetupEditRoute('/(worker-setup)/basics', 'worker-professional'))

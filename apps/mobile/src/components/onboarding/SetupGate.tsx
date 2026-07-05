@@ -12,14 +12,22 @@ import {
 import { CLINIC_SETUP_BASICS, WORKER_SETUP_BASICS } from '@/lib/routing';
 
 export function ClinicSetupGate({ children }: { children: ReactNode }) {
-  const { session, isAuthReady } = useAuth();
+  const { session, isAuthReady, profile } = useAuth();
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
 
   if (!isAuthReady || !session) {
     return <PageLoadingSpinner />;
   }
 
-  if (!isClinicProfileReady) {
+  if (profile === null) {
+    return <PageLoadingSpinner />;
+  }
+
+  if (profile.role !== 'clinic') {
+    return <PageLoadingSpinner />;
+  }
+
+  if (!isClinicProfileReady || clinicProfile === null) {
     return <PageLoadingSpinner />;
   }
 
@@ -31,14 +39,22 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
 }
 
 export function WorkerSetupGate({ children }: { children: ReactNode }) {
-  const { session, isAuthReady } = useAuth();
+  const { session, isAuthReady, profile } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
 
   if (!isAuthReady || !session) {
     return <PageLoadingSpinner />;
   }
 
-  if (!isWorkerProfileReady) {
+  if (profile === null) {
+    return <PageLoadingSpinner />;
+  }
+
+  if (profile.role !== 'worker') {
+    return <PageLoadingSpinner />;
+  }
+
+  if (!isWorkerProfileReady || workerProfile === null) {
     return <PageLoadingSpinner />;
   }
 

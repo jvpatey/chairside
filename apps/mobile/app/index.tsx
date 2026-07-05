@@ -29,6 +29,10 @@ export default function Index() {
         return;
       }
 
+      if (!profile) {
+        return;
+      }
+
       const { href, role } = await resolveAuthenticatedRoute({
         userId: session.user.id,
         profile,

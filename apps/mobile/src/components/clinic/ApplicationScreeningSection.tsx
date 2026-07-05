@@ -11,6 +11,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 type ApplicationScreeningSectionProps = {
   screening: ApplicationScreening;
   audience?: 'clinic' | 'worker';
+  onExpandedChange?: (expanded: boolean) => void;
 };
 
 function formatYesNo(answer: boolean): string {
@@ -173,9 +174,15 @@ export function ApplicationScreeningPreview({
 export function ApplicationScreeningSection({
   screening,
   audience = 'clinic',
+  onExpandedChange,
 }: ApplicationScreeningSectionProps) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
+
+  const setScreeningExpanded = (next: boolean) => {
+    setExpanded(next);
+    onExpandedChange?.(next);
+  };
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -271,7 +278,7 @@ export function ApplicationScreeningSection({
         ]}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        onPress={() => setExpanded((current) => !current)}>
+        onPress={() => setScreeningExpanded(!expanded)}>
         <Text style={styles.toggleText}>{toggleLabel}</Text>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}

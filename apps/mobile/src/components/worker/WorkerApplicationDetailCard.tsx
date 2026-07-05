@@ -41,6 +41,7 @@ import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScre
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { ApplicationStatusSummaryCard } from '@/components/matching/ApplicationStatusSummaryCard';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
@@ -62,6 +63,7 @@ import {
 import { buildResumeFileName } from '@/lib/openResumePreview';
 import { getWorkerCalendarRoute } from '@/lib/calendarNavigation';
 import {
+  getApplyRoute,
   getWorkerApplicationMessagesRoute,
   getWorkerClinicProfileRoute,
   getWorkerJobDetailRoute,
@@ -336,6 +338,8 @@ function WorkerApplicationHeroCard({
           <WorkerApplicationStatusBadge
             status={application.status}
             postType={application.post_type}
+            statusNote={application.status_note}
+            statusClosedBy={application.status_closed_by}
           />
           {jobMatch && matchContext ? (
             <MatchTierBadge
@@ -482,14 +486,14 @@ function WorkerApplicationSummaryCard({
           ) : null}
           {isScreeningStage && !kitSubmitted ? (
             <ApplicationPreviewField
-              label="Application kit"
+              label="Application profile"
               value="Not submitted yet"
               preserveLabelCase
             />
           ) : null}
           {kitSubmitted ? (
             <ApplicationPreviewField
-              label="Application kit"
+              label="Application profile"
               value="Submitted"
               preserveLabelCase
             />
@@ -854,6 +858,20 @@ export function WorkerApplicationDetailCard({
       return { primary, secondary, destructive };
     }
 
+    if (
+      isShift &&
+      application.status === 'rejected' &&
+      application.shift_post_id &&
+      application.post_status === 'live'
+    ) {
+      primary.push({
+        key: 're-request',
+        label: 'Request to cover again',
+        onPress: () => router.push(getApplyRoute('shift', application.shift_post_id!)),
+      });
+      return { primary, secondary, destructive };
+    }
+
     if (application.status === 'interview_offered' && interviewSummary) {
       primary.push({
         key: 'accept-interview',
@@ -956,7 +974,7 @@ export function WorkerApplicationDetailCard({
       application.status === 'interview_scheduled') &&
     interviewSummary;
 
-  const hasStatusCard = hasInterviewDetails || awaitingKit || clinicDeleted;
+  const hasStatusCard = hasInterviewDetails || clinicDeleted;
 
   const hasQualifications =
     hasKitSubmitted &&
@@ -992,6 +1010,18 @@ export function WorkerApplicationDetailCard({
           jobMatch={jobMatch}
           matchContext={matchContext}
           onClinicPress={canViewClinicProfile ? handleViewClinicProfile : undefined}
+        />
+
+        <ApplicationStatusSummaryCard
+          audience="worker"
+          status={application.status}
+          postType={application.post_type}
+          applicationKitRequestedAt={application.application_kit_requested_at}
+          applicationKitSubmittedAt={application.application_kit_submitted_at}
+          interviewProposedAt={application.interview_proposed_at}
+          statusNote={application.status_note}
+          statusClosedBy={application.status_closed_by}
+          clinicAccountDeleted={clinicDeleted}
         />
 
         {clinicDeleted ? (
@@ -1051,14 +1081,6 @@ export function WorkerApplicationDetailCard({
                     Awaiting clinic response · {proposedSummary}
                   </CardInfoPanelText>
                 ) : null}
-              </CardInfoPanel>
-            ) : null}
-
-            {awaitingKit ? (
-              <CardInfoPanel variant="default" icon="document-text-outline" title="Application kit">
-                <CardInfoPanelText>
-                  The clinic requested your full application. Submit your application kit below.
-                </CardInfoPanelText>
               </CardInfoPanel>
             ) : null}
 

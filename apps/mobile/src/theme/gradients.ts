@@ -272,6 +272,20 @@ export function getTabIndicatorGradient(
     : [colors.primary, GRADIENT_HUE_SHIFT.primaryEnd];
 }
 
+/** Horizontal fade used between dashboard quick actions and stat cards. */
+export function getDashboardSectionDividerGradient(
+  colors: Colors,
+  isDark: boolean,
+): readonly [string, string, string, string, string] {
+  return [
+    'transparent',
+    colorWithAlpha(colors.primary, isDark ? 0.14 : 0.1),
+    colorWithAlpha(colors.secondary, isDark ? 0.2 : 0.14),
+    colorWithAlpha(colors.primary, isDark ? 0.14 : 0.1),
+    'transparent',
+  ];
+}
+
 /** Subtle gradient for dark-mode card surfaces. */
 export function getSurfaceGradient(
   colors: Colors,

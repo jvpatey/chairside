@@ -76,7 +76,7 @@ export default function WorkerApplicationKitScreen() {
         </View>
       }>
       <AuthScreenHeader
-        title="Application kit · Photo, resume & note"
+        title="Application profile · Photo, resume & note"
         subtitle="What clinics receive when you apply. Photo and resume are optional."
         onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />

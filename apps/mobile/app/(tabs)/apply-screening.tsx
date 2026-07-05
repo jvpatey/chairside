@@ -267,7 +267,7 @@ export default function ApplyScreeningScreen() {
               <Text style={styles.reviewMeta}>
                 You answered {answeredCount} of {questions.length} screening question
                 {questions.length === 1 ? '' : 's'}. The clinic will review your responses and can
-                request your full application kit if they want to continue.
+                request your full application if they want to continue.
               </Text>
             </View>
           ) : null}

@@ -19,7 +19,7 @@ export default function ClinicProfileAccountScreen() {
   return (
     <ProfileDetailScreen
       title="Account"
-      subtitle="Your clinic name, password, login, sign out, and account deletion."
+      subtitle="Manage your clinic login, name, privacy, and account access."
       onBack={() => navigateToClinicProfileHub(router)}>
       <AccountScreenContent
         user={user}

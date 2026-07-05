@@ -154,6 +154,7 @@ export default function ClinicApplicationDetailScreen() {
                   audience: 'clinic',
                   counterpartName: hiredApplication.worker_display_name?.trim() || 'Applicant',
                   postTitle: hiredApplication.post_title,
+                  applicationUpdatedAt: hiredApplication.updated_at,
                 })
               }
               onConfirmed={(payload) => showCelebration(payload)}

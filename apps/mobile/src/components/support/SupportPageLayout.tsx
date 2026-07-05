@@ -12,7 +12,6 @@ import { PublicLegalPageShell } from '@/components/legal/PublicLegalPageShell';
 import { PublicPageCardHeader } from '@/components/legal/PublicPageCardHeader';
 import { SupportContactForm } from '@/components/support/SupportContactForm';
 import { SupportHelpTopics } from '@/components/support/SupportHelpTopics';
-import { LEGAL_LAST_UPDATED } from '@/constants/legal';
 import { SUPPORT_PAGE_CONTENT } from '@/content/legal/support';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
@@ -46,36 +45,12 @@ export function SupportPageLayout() {
       gap: spacing.xs,
       marginBottom: isCompact ? spacing.md : spacing.lg,
     },
-    eyebrow: {
-      fontSize: 12,
-      lineHeight: 16,
-      fontWeight: '600' as const,
-      letterSpacing: 0.6,
-      textTransform: 'uppercase' as const,
-      color: colors.primary,
-    },
     title: {
       ...typography.title,
       fontSize: isCompact ? 28 : 32,
       lineHeight: isCompact ? 34 : 38,
       letterSpacing: -0.4,
       color: colors.labelPrimary,
-    },
-    updatedPill: {
-      alignSelf: 'flex-start' as const,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      borderRadius: radii.pill,
-      backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      marginTop: spacing.xs,
-    },
-    updatedText: {
-      fontSize: 12,
-      lineHeight: 16,
-      fontWeight: '500' as const,
-      color: colors.labelTertiary,
     },
     intro: {
       ...typography.body,
@@ -106,11 +81,7 @@ export function SupportPageLayout() {
         <Animated.View
           entering={enterFadeUp(PUBLIC_PAGE_STAGGER.title, reducedMotion)}
           style={styles.titleBlock}>
-          <Text style={styles.eyebrow}>Support</Text>
           <Text style={styles.title}>{SUPPORT_PAGE_CONTENT.title}</Text>
-          <View style={styles.updatedPill}>
-            <Text style={styles.updatedText}>Last updated: {LEGAL_LAST_UPDATED}</Text>
-          </View>
         </Animated.View>
 
         <Animated.View entering={enterFadeUp(PUBLIC_PAGE_STAGGER.title + 45, reducedMotion)}>

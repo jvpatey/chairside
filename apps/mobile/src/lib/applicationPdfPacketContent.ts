@@ -102,7 +102,7 @@ function buildFieldRows(application: ClinicApplication): { label: string; value:
     value: formatClinicApplicationStatus(application.status, application.post_type),
   });
 
-  rows.push({ label: 'Application kit', value: 'Submitted' });
+  rows.push({ label: 'Candidate packet', value: 'Submitted' });
 
   if (application.years_of_experience != null) {
     rows.push({

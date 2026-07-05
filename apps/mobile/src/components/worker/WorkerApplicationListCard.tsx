@@ -32,6 +32,8 @@ export function WorkerApplicationListCard({
   const appliedLabel = formatApplicationDate(application.created_at);
 
   const isConfirmedShift = isShift && application.status === 'hired';
+  const isCancelledShift =
+    isShift && application.status === 'rejected' && Boolean(application.status_closed_by);
   const shiftDisplay = isShift ? getWorkerShiftApplicationCardDisplay(application) : null;
   const hasApplicationUpdate = isApplicationHighlighted(application);
   const applicationUpdateLabel = getApplicationHighlightLabel(application);
@@ -56,9 +58,21 @@ export function WorkerApplicationListCard({
   }));
 
   const location = shiftDisplay?.location ?? application.clinic_city;
-  const appliedOnLabel = appliedLabel
-    ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}`
-    : null;
+  const appliedOnLabel = isCancelledShift
+    ? application.status_closed_by === 'clinic_deleted'
+      ? 'Removed by clinic'
+      : application.status_closed_by === 'clinic'
+        ? 'Cancelled by clinic'
+        : 'Cancelled'
+    : appliedLabel
+      ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}`
+      : null;
+  const detailLine = [
+    shiftDisplay?.shiftSchedule ?? null,
+    isCancelledShift ? application.status_note?.trim() : applicationUpdateLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ') || null;
 
   const openDetail = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -70,7 +84,7 @@ export function WorkerApplicationListCard({
 
   return (
     <SurfaceCard
-      variant={isConfirmedShift ? 'success' : 'default'}
+      variant={isConfirmedShift ? 'success' : isCancelledShift ? 'default' : 'default'}
       padding="md"
       gap
       onPress={openDetail}
@@ -83,11 +97,7 @@ export function WorkerApplicationListCard({
         title={shiftDisplay?.title ?? application.post_title}
         location={location}
         postedLabel={appliedOnLabel}
-        detail={
-          [shiftDisplay?.shiftSchedule ?? null, applicationUpdateLabel]
-            .filter(Boolean)
-            .join(' · ') || null
-        }
+        detail={detailLine}
         avatarSize={44}
         accessory={
           <View style={styles.accessory}>
@@ -95,6 +105,8 @@ export function WorkerApplicationListCard({
             <WorkerApplicationStatusBadge
               status={application.status}
               postType={application.post_type}
+              statusNote={application.status_note}
+              statusClosedBy={application.status_closed_by}
             />
           </View>
         }

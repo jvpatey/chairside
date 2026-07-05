@@ -10,7 +10,7 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
       bullets: [
         'Account information: name, email, password (hashed), and role (clinic or worker).',
         'Profile information: clinic or worker details such as practice name, address, phone, role type, experience, skills, availability, and optional website or team information.',
-        'Application kit: resumes, profile photos, clinic logos, and practice doctor photos you upload.',
+        'Application profile: resumes, profile photos, clinic logos, and practice doctor photos you upload.',
         'Job and shift activity: postings, applications, screening responses, interviews, and messages between clinics and workers.',
         'Location-related data: addresses and map coordinates you enter for clinics or your worker profile. We do not continuously track your device GPS unless you grant location permission in a future feature.',
         'Notification preferences: push, in-app, and optional SMS opt-in for fill-in alerts, including your mobile number when you enable text alerts.',

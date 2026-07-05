@@ -30,7 +30,7 @@ const SATELLITE_FEATURES = [
     icon: 'sparkles-outline' as const,
     title: 'Better matches from the start',
     highlight: 'matches',
-    body: 'Application kits and match scores help clinics compare fit in seconds.',
+    body: 'Candidate profiles and match scores help clinics compare fit in seconds.',
   },
   {
     id: 'hiring',

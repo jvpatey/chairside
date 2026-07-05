@@ -7,8 +7,20 @@ export function getAccountTypeLabel(role: UserRole): string {
 }
 
 export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null): string {
-  if (!profile || !isWorkerProfileComplete(profile)) {
-    return 'Incomplete';
+  if (!profile) {
+    return 'Add roles, experience, and location';
+  }
+
+  if (!isWorkerProfileComplete(profile)) {
+    const hasRoles = getWorkerRoleTypes(profile).length > 0;
+    const hasLocation = Boolean(
+      profile.address_line1?.trim() && profile.city?.trim() && profile.postal_code?.trim(),
+    );
+
+    if (!hasRoles && !hasLocation) return 'Add roles and location to complete';
+    if (!hasRoles) return 'Add your roles to complete';
+    if (!hasLocation) return 'Add your location to complete';
+    return 'Finish required details';
   }
 
   const roleLabel = formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null;
@@ -23,11 +35,33 @@ export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null)
 export function getApplicationKitSubtitle(profile: WorkerProfile | null): string {
   const hasResume = Boolean(profile?.resume_storage_path);
   const hasPhoto = Boolean(profile?.photo_storage_path);
+  const hasNote = Boolean(profile?.default_cover_message?.trim());
 
-  const resumePart = hasResume ? 'Resume added' : 'Resume missing';
-  const photoPart = hasPhoto ? 'Photo added' : 'Photo optional';
+  if (!hasResume && !hasPhoto && !hasNote) {
+    return 'Add a resume, photo, and note for clinics';
+  }
 
-  return `${resumePart} · ${photoPart}`;
+  if (hasResume && hasPhoto && hasNote) {
+    return 'Resume, photo, and note clinics see when you apply';
+  }
+
+  const added: string[] = [];
+  const missing: string[] = [];
+  if (hasResume) added.push('Resume added');
+  else missing.push('resume');
+  if (hasPhoto) added.push('Photo added');
+  else missing.push('photo');
+  if (hasNote) added.push('Note added');
+  else missing.push('note');
+
+  const missingLabel =
+    missing.length === 1
+      ? `Add a ${missing[0]}`
+      : missing.length === 2
+        ? `Add ${missing[0]} and ${missing[1]}`
+        : 'Add a resume, photo, and note';
+
+  return added.length > 0 ? `${added[0]} · ${missingLabel}` : missingLabel;
 }
 
 export function getNotificationsSubtitle(profile: WorkerProfile | null): string {

@@ -142,7 +142,7 @@ export function ScreeningToggleSection({
         <View style={styles.headerText}>
           <Text style={styles.title}>Screening questions</Text>
           <Text style={styles.subtitle}>
-            Workers complete screening first. You can request their full application kit after
+            Workers complete screening first. You can request their full application after
             reviewing responses.
           </Text>
         </View>

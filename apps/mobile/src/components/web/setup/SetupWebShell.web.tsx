@@ -23,7 +23,7 @@ const WORKER_STEPS: SetupStep[] = [
   { id: 'skills', label: 'Skills', href: '/(worker-setup)/skills' },
   { id: 'location', label: 'Location', href: '/(worker-setup)/location' },
   { id: 'availability', label: 'Availability', href: '/(worker-setup)/availability' },
-  { id: 'application-kit', label: 'Application kit', href: '/(worker-setup)/application-kit' },
+  { id: 'application-kit', label: 'Application profile', href: '/(worker-setup)/application-kit' },
   { id: 'review', label: 'Review', href: '/(worker-setup)/review' },
 ];
 

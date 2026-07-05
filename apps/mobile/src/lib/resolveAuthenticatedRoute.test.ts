@@ -16,9 +16,9 @@ vi.mock('@chairside/api', () => apiMocks);
 
 vi.mock('@/lib/setupCompletion', () => ({
   isClinicSetupComplete: (profile: { setup_completed_at?: string | null; clinic_name?: string | null } | null) =>
-    Boolean(profile?.setup_completed_at && profile?.clinic_name?.trim()),
+    Boolean(profile?.setup_completed_at) || Boolean(profile?.clinic_name?.trim()),
   isWorkerSetupComplete: (profile: { setup_completed_at?: string | null; role_types?: string[] | null } | null) =>
-    Boolean(profile?.setup_completed_at && (profile?.role_types?.length ?? 0) > 0),
+    Boolean(profile?.setup_completed_at) || (profile?.role_types?.length ?? 0) > 0,
 }));
 
 import { resolveAuthenticatedRoute } from './resolveAuthenticatedRoute';

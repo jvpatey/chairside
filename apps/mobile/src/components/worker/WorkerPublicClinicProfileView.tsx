@@ -1,26 +1,28 @@
 import type { LiveJobPost, LiveShiftPost, PublicClinicProfile } from '@chairside/api';
-import { formatJobPostCardMeta, getSpecialtyLabel, getTeamSizeRangeLabel } from '@chairside/config';
+import { formatJobPostCardMeta, getProvinceLabel, getSpecialtyLabel, getTeamSizeRangeLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 
 import { DetailProse } from '@/components/clinic/DetailCard';
+import { ClinicIdentityHeroCard } from '@/components/clinic/ClinicProfileHero';
+import { PracticeDoctorList } from '@/components/clinic/PracticeDoctorList';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import {
   FieldBlock,
   FieldDivider,
   FieldValue,
   ProfileDetailStack,
+  ProfileEmptyState,
+  ProfileTagRow,
   SectionPanel,
 } from '@/components/profile/ProfileDetailBlocks';
-import { ClinicLocationCard } from '@/components/worker/ClinicLocationCard';
-import { PracticeDoctorList } from '@/components/clinic/PracticeDoctorList';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { ClinicLocationCard } from '@/components/worker/ClinicLocationCard';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
-import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type WorkerPublicClinicProfileViewProps = {
   profile: PublicClinicProfile;
@@ -231,112 +233,41 @@ export function WorkerPublicClinicProfileView({
   onShiftPress,
 }: WorkerPublicClinicProfileViewProps) {
   const logoUri = useClinicLogoUri(profile.logo_storage_path);
-  const location = [profile.city, profile.province].filter(Boolean).join(', ');
+  const locationLabel = [profile.city, getProvinceLabel(profile.province)].filter(Boolean).join(', ');
   const specialtyLabel = getSpecialtyLabel(profile.specialty);
   const teamSizeLabel = getTeamSizeRangeLabel(profile.team_size_range);
-  const softwareLabel =
-    profile.software_used.length > 0 ? profile.software_used.join(' · ') : null;
+  const softwareUsed = profile.software_used ?? [];
   const description = profile.description?.trim() || null;
   const hasAbout = Boolean(description || profile.website?.trim());
   const practiceDoctors = profile.practice_doctors ?? [];
   const hasDoctors = practiceDoctors.length > 0;
-  const hasPracticeDetails = Boolean(teamSizeLabel || softwareLabel);
+  const hasPracticeDetails = Boolean(teamSizeLabel || softwareUsed.length > 0 || hasDoctors);
   const acceptsGeneralMessages = profile.accepts_general_candidate_messages;
   const hasNoPostings = jobs.length === 0 && shifts.length === 0;
   const showGeneralMessageHint = acceptsGeneralMessages && hasNoPostings;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    stack: {
-      gap: spacing.lg,
-    },
-    hero: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.md,
-    },
-    heroTop: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
-    },
-    heroIdentity: {
-      flex: 1,
-      minWidth: 0,
-      gap: spacing.xs,
-    },
-    clinicName: {
-      ...typography.title,
-      fontSize: 24,
-      lineHeight: 30,
-      color: colors.labelPrimary,
-    },
-    location: {
-      ...typography.body,
-      fontSize: 15,
-      lineHeight: 21,
-      color: colors.labelSecondary,
-    },
-    specialty: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
+  let sectionStep = 1;
+  const aboutStep = hasAbout ? sectionStep++ : null;
+  const locationStep = sectionStep++;
+  const practiceStep = hasPracticeDetails ? sectionStep++ : null;
+
+  const styles = useThemedStyles(({ spacing }) => ({
     sectionBlock: {
       gap: spacing.sm,
     },
-    emptyCard: {
-      alignItems: 'center',
+    doctorsBlock: {
       gap: spacing.sm,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.xl,
-    },
-    emptyIconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.fillSubtle,
-    },
-    emptyTitle: {
-      ...typography.body,
-      fontFamily: fontSemibold,
-      fontWeight: '600',
-      textAlign: 'center',
-      color: colors.labelPrimary,
-    },
-    emptyBody: {
-      ...typography.subtitle,
-      textAlign: 'center',
     },
   }));
 
   return (
-    <View style={styles.stack}>
-      <View style={styles.hero}>
-        <View style={styles.heroTop}>
-          <ClinicLogoAvatar clinicName={profile.clinic_name} logoUri={logoUri} size={64} />
-          <View style={styles.heroIdentity}>
-            <Text style={styles.clinicName} numberOfLines={3}>
-              {profile.clinic_name}
-            </Text>
-            {location ? (
-              <Text style={styles.location} numberOfLines={2}>
-                {location}
-              </Text>
-            ) : null}
-            <Text style={styles.specialty} numberOfLines={2}>
-              {specialtyLabel}
-            </Text>
-          </View>
-        </View>
-      </View>
+    <ProfileDetailStack>
+      <ClinicIdentityHeroCard
+        clinicName={profile.clinic_name}
+        logoUri={logoUri}
+        specialtyLabel={specialtyLabel}
+        locationLabel={locationLabel || null}
+      />
 
       {showGeneralMessageHint ? (
         <CardInfoPanel variant="info" icon="chatbubble-ellipses-outline" title="Open to inquiries">
@@ -347,58 +278,76 @@ export function WorkerPublicClinicProfileView({
         </CardInfoPanel>
       ) : null}
 
-      <ClinicLocationCard profile={profile} />
-
       {hasAbout ? (
-        <ProfileDetailStack>
-          <SectionPanel icon="document-text-outline" title="About">
-            {description ? (
-              <>
-                <FieldBlock label="Description">
-                  <DetailProse text={description} />
-                </FieldBlock>
-                {profile.website?.trim() ? (
-                  <>
-                    <FieldDivider />
-                    <FieldBlock label="Website">
-                      <WebsiteField url={profile.website} />
-                    </FieldBlock>
-                  </>
-                ) : null}
-              </>
-            ) : (
-              <FieldBlock label="Website">
-                <WebsiteField url={profile.website} />
+        <SectionPanel
+          icon="document-text-outline"
+          stepNumber={aboutStep!}
+          stepAccent="secondary"
+          title="About">
+          {description ? (
+            <>
+              <FieldBlock label="Description">
+                <DetailProse text={description} />
               </FieldBlock>
-            )}
-          </SectionPanel>
-        </ProfileDetailStack>
+              {profile.website?.trim() ? (
+                <>
+                  <FieldDivider />
+                  <FieldBlock label="Website">
+                    <WebsiteField url={profile.website} />
+                  </FieldBlock>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <FieldBlock label="Website">
+              <WebsiteField url={profile.website} />
+            </FieldBlock>
+          )}
+        </SectionPanel>
       ) : null}
 
-      {hasDoctors ? (
-        <ProfileDetailStack>
-          <SectionPanel icon="people-outline" title="Doctors">
-            <PracticeDoctorList doctors={practiceDoctors} />
-          </SectionPanel>
-        </ProfileDetailStack>
-      ) : null}
+      <ClinicLocationCard
+        profile={profile}
+        stepNumber={locationStep}
+        stepAccent="secondary"
+      />
 
       {hasPracticeDetails ? (
-        <ProfileDetailStack>
-          <SectionPanel icon="medkit-outline" title="Practice">
-            {teamSizeLabel ? (
+        <SectionPanel
+          icon="medkit-outline"
+          stepNumber={practiceStep!}
+          stepAccent="primary"
+          title="Practice">
+          <FieldBlock label="Specialty">
+            <FieldValue value={specialtyLabel} />
+          </FieldBlock>
+          {teamSizeLabel ? (
+            <>
+              <FieldDivider />
               <FieldBlock label="Team size">
                 <FieldValue value={teamSizeLabel} />
               </FieldBlock>
-            ) : null}
-            {teamSizeLabel && softwareLabel ? <FieldDivider /> : null}
-            {softwareLabel ? (
+            </>
+          ) : null}
+          {softwareUsed.length > 0 ? (
+            <>
+              <FieldDivider />
               <FieldBlock label="Software">
-                <FieldValue value={softwareLabel} />
+                <ProfileTagRow tags={softwareUsed} />
               </FieldBlock>
-            ) : null}
-          </SectionPanel>
-        </ProfileDetailStack>
+            </>
+          ) : null}
+          {hasDoctors ? (
+            <>
+              <FieldDivider />
+              <FieldBlock label="Doctors">
+                <View style={styles.doctorsBlock}>
+                  <PracticeDoctorList doctors={practiceDoctors} />
+                </View>
+              </FieldBlock>
+            </>
+          ) : null}
+        </SectionPanel>
       ) : null}
 
       <View style={styles.sectionBlock}>
@@ -408,17 +357,15 @@ export function WorkerPublicClinicProfileView({
             <ClinicProfileJobRow key={job.id} job={job} onPress={() => onJobPress(job.id)} />
           ))
         ) : (
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="briefcase-outline" size={22} color={styles.specialty.color} />
-            </View>
-            <Text style={styles.emptyTitle}>No open roles right now</Text>
-            <Text style={styles.emptyBody}>
-              {acceptsGeneralMessages
+          <ProfileEmptyState
+            icon="briefcase-outline"
+            title="No open roles right now"
+            description={
+              acceptsGeneralMessages
                 ? 'No roles are posted, but you can still message this clinic if you are interested in working there.'
-                : 'Check back later for new opportunities.'}
-            </Text>
-          </View>
+                : 'Check back later for new opportunities.'
+            }
+          />
         )}
       </View>
 
@@ -433,19 +380,17 @@ export function WorkerPublicClinicProfileView({
             />
           ))
         ) : (
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="calendar-outline" size={22} color={styles.specialty.color} />
-            </View>
-            <Text style={styles.emptyTitle}>No open fill-ins right now</Text>
-            <Text style={styles.emptyBody}>
-              {acceptsGeneralMessages
+          <ProfileEmptyState
+            icon="calendar-outline"
+            title="No open fill-ins right now"
+            description={
+              acceptsGeneralMessages
                 ? 'No fill-ins are posted, but you can still message this clinic about future opportunities.'
-                : 'This clinic has no upcoming shifts posted.'}
-            </Text>
-          </View>
+                : 'This clinic has no upcoming shifts posted.'
+            }
+          />
         )}
       </View>
-    </View>
+    </ProfileDetailStack>
   );
 }

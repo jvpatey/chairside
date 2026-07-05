@@ -13,7 +13,7 @@ const STEPS = [
     number: '01',
     icon: 'person-circle-outline' as const,
     title: 'Create your profile',
-    body: 'Set up your clinic or build your professional application kit once.',
+    body: 'Set up your clinic or build your application profile once.',
   },
   {
     number: '02',

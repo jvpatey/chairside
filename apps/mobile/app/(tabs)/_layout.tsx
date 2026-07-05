@@ -108,6 +108,7 @@ function WorkerTabNavigator() {
       <Tabs.Screen name="apply-screening" options={{ href: null }} />
       <Tabs.Screen name="open-fill-ins" options={{ href: null }} />
       <Tabs.Screen name="past-fill-ins" options={{ href: null }} />
+      <Tabs.Screen name="fill-in-availability" options={{ href: null }} />
     </Tabs>
   );
 }

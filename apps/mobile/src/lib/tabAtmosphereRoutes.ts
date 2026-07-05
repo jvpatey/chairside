@@ -15,6 +15,7 @@ const WORKER_STACK_FRAGMENTS = [
   '/apply',
   '/open-fill-ins',
   '/past-fill-ins',
+  '/fill-in-availability',
 ] as const;
 
 const CLINIC_STACK_FRAGMENTS = [
@@ -148,7 +149,9 @@ function getStackParentTabFromRelativePath(
   }
 
   if (root === 'apply') return 'browse';
-  if (root === 'open-fill-ins' || root === 'past-fill-ins') return 'fillins';
+  if (root === 'open-fill-ins' || root === 'past-fill-ins' || root === 'fill-in-availability') {
+    return 'fillins';
+  }
 
   return null;
 }

@@ -19,7 +19,7 @@ export default function WorkerProfileAccountScreen() {
   return (
     <ProfileDetailScreen
       title="Account"
-      subtitle="Your name, password, login, sign out, and account deletion."
+      subtitle="Manage your login, name, privacy, and account access."
       onBack={() => navigateToWorkerProfileHub(router)}>
       <AccountScreenContent
         user={user}

@@ -69,7 +69,7 @@ export default function WorkerProfileScreen() {
           />
           <ProfileSettingsRow
             icon="folder-outline"
-            title="Application kit"
+            title="Application profile"
             subtitle={getApplicationKitSubtitle(workerProfile)}
             iconColor={colors.secondary}
             iconBackgroundColor={colors.secondarySubtle}
@@ -88,6 +88,8 @@ export default function WorkerProfileScreen() {
               icon="help-circle-outline"
               title="Support"
               subtitle={getSupportSubtitle()}
+              iconColor={colors.success}
+              iconBackgroundColor={`${colors.success}18`}
               onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
             />
           ) : null}
@@ -95,6 +97,8 @@ export default function WorkerProfileScreen() {
             icon="person-circle-outline"
             title="Account"
             subtitle={getAccountSubtitle(user?.email)}
+            iconColor={colors.warning}
+            iconBackgroundColor={`${colors.warning}18`}
             onPress={() => router.push(WORKER_PROFILE_ACCOUNT)}
           />
         </ProfileSettingsGroup>

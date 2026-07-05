@@ -81,6 +81,8 @@ export {
   formatApplicationResumeStatus,
   formatApplicationScreeningStatus,
   formatApplicationStatus,
+  formatWorkerShiftApplicationStatus,
+  formatClinicShiftApplicationStatus,
   formatClinicApplicationStatus,
   formatClinicScreeningStatus,
   formatJobApplicationSummaryMeta,

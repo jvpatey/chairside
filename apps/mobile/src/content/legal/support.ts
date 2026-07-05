@@ -46,7 +46,7 @@ export const SUPPORT_PAGE_CONTENT: LegalPageContent = {
       title: 'Clinics and workers',
       bullets: [
         'Clinics: complete setup (basics, location, practice info) before posting roles or fill-ins.',
-        'Workers: complete setup and your application kit before applying.',
+        'Workers: complete setup and your application profile before applying.',
         'Messaging opens after applications or confirmed fill-in workflows as described in the app.',
       ],
     },

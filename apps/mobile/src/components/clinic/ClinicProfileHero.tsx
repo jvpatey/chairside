@@ -10,32 +10,38 @@ import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
 
-type ClinicProfileHeroProps = {
+export type ClinicIdentityHeroCardProps = {
+  clinicName: string;
+  logoUri?: string | null;
+  specialtyLabel: string | null;
+  locationLabel: string | null;
   email?: string | null;
-  profile: ClinicProfile | null;
   editable?: boolean;
+  isUploading?: boolean;
+  onPickLogo?: () => void;
+  showAccountBadge?: boolean;
+  emptyMetaFallback?: string;
 };
 
-export function ClinicProfileHero({
+export function ClinicIdentityHeroCard({
+  clinicName,
+  logoUri,
+  specialtyLabel,
+  locationLabel,
   email,
-  profile,
   editable = false,
-}: ClinicProfileHeroProps) {
+  isUploading = false,
+  onPickLogo,
+  showAccountBadge = false,
+  emptyMetaFallback,
+}: ClinicIdentityHeroCardProps) {
   const { colors, isDark } = useTheme();
-  const { logoUri, isUploading, pickLogo } = useClinicLogo();
-  const name = profile?.clinic_name?.trim() || 'Your practice';
-  const specialtyLabel =
-    SPECIALTY_OPTIONS.find((item) => item.value === profile?.specialty)?.label ?? null;
-  const location = [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
-    .filter(Boolean)
-    .join(', ');
+  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
 
   const metaLine =
-    specialtyLabel && location
-      ? `${specialtyLabel} · ${location}`
-      : specialtyLabel ?? location ?? 'Complete your clinic profile to get started';
-
-  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
+    specialtyLabel && locationLabel
+      ? `${specialtyLabel} · ${locationLabel}`
+      : specialtyLabel ?? locationLabel ?? emptyMetaFallback ?? null;
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
     card: {
@@ -92,12 +98,7 @@ export function ClinicProfileHero({
   }));
 
   const avatar = (
-    <ClinicLogoAvatar
-      clinicName={profile?.clinic_name}
-      logoUri={logoUri}
-      size={72}
-      isLoading={isUploading}
-    />
+    <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={72} isLoading={isUploading} />
   );
 
   return (
@@ -117,7 +118,7 @@ export function ClinicProfileHero({
               accessibilityRole="button"
               accessibilityLabel="Change clinic logo"
               disabled={isUploading}
-              onPress={() => void pickLogo()}>
+              onPress={onPickLogo}>
               {avatar}
               <View style={styles.editBadge}>
                 <Ionicons name="camera" size={14} color={colors.primaryOnPrimary} />
@@ -128,12 +129,47 @@ export function ClinicProfileHero({
           )}
         </View>
         <Text style={styles.name} numberOfLines={2}>
-          {name}
+          {clinicName}
         </Text>
         {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
-        <Text style={styles.meta}>{metaLine}</Text>
-        <AccountTypeBadge label={getAccountTypeLabel('clinic')} />
+        {metaLine ? <Text style={styles.meta}>{metaLine}</Text> : null}
+        {showAccountBadge ? <AccountTypeBadge label={getAccountTypeLabel('clinic')} /> : null}
       </View>
     </View>
+  );
+}
+
+type ClinicProfileHeroProps = {
+  email?: string | null;
+  profile: ClinicProfile | null;
+  editable?: boolean;
+};
+
+export function ClinicProfileHero({
+  email,
+  profile,
+  editable = false,
+}: ClinicProfileHeroProps) {
+  const { logoUri, isUploading, pickLogo } = useClinicLogo();
+  const name = profile?.clinic_name?.trim() || 'Your practice';
+  const specialtyLabel =
+    SPECIALTY_OPTIONS.find((item) => item.value === profile?.specialty)?.label ?? null;
+  const locationLabel = [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
+    .filter(Boolean)
+    .join(', ');
+
+  return (
+    <ClinicIdentityHeroCard
+      clinicName={name}
+      logoUri={logoUri}
+      specialtyLabel={specialtyLabel}
+      locationLabel={locationLabel || null}
+      email={email}
+      editable={editable}
+      isUploading={isUploading}
+      onPickLogo={() => void pickLogo()}
+      showAccountBadge
+      emptyMetaFallback="Complete your clinic profile to get started"
+    />
   );
 }

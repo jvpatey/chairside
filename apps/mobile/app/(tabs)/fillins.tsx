@@ -8,13 +8,10 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  StyleSheet,
-  Text,
   useWindowDimensions,
   View,
   type LayoutChangeEvent,
@@ -27,18 +24,15 @@ import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInse
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
-import { FillInModePanel } from '@/components/worker/FillInModePanel';
+import { FillInAvailabilitySummaryCard } from '@/components/worker/FillInAvailabilitySummaryCard';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
 import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
 import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
-import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { PageTabBar } from '@/components/ui/PageTabBar';
 import { StaggeredList } from '@/components/ui/StaggeredList';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
@@ -62,54 +56,19 @@ import {
   DEFAULT_WORKER_FILLIN_BROWSE_FILTERS,
   filterAndSortLiveShifts,
 } from '@/lib/workerBrowseFilters';
-import {
-  getWorkerShiftDetailRoute,
-  WORKER_PAST_FILLINS,
-  WORKER_SETUP_AVAILABILITY_SCHEDULE,
-} from '@/lib/routing';
+import { getWorkerShiftDetailRoute } from '@/lib/routing';
 import {
   countUnmappablePosts,
   groupWorkerMapItemsByClinic,
   toWorkerMapItemsFromShifts,
 } from '@/lib/workerMapItems';
 import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
-import { getFillInHeroGradient, FILL_IN_HERO_GRADIENT_LOCATIONS, useTheme, useThemedStyles } from '@/theme';
-
-function FillInAvailabilityPanelAccent({ children }: { children: ReactNode }) {
-  const { colors, isDark } = useTheme();
-  const gradient = getFillInHeroGradient(colors, isDark);
-  const styles = useThemedStyles(({ radii }) => ({
-    wrap: {
-      borderRadius: radii.lg,
-      overflow: 'hidden',
-      position: 'relative',
-    },
-    gradient: StyleSheet.absoluteFillObject,
-  }));
-
-  return (
-    <View style={styles.wrap}>
-      <LinearGradient
-        colors={gradient}
-        locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
-      {children}
-    </View>
-  );
-}
-
-function navigateToEditSchedule() {
-  router.push(WORKER_SETUP_AVAILABILITY_SCHEDULE);
-}
+import { useThemedStyles } from '@/theme';
 
 export default function FillInsScreen() {
   useMarkGetStartedBrowseVisit('fillIns');
   const { user } = useAuth();
-  const params = useLocalSearchParams<{ mode?: string; date?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; date?: string; tab?: string }>();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('open');
@@ -191,6 +150,17 @@ export default function FillInsScreen() {
     }
   }, [params.date, params.mode]);
 
+  useEffect(() => {
+    const tab = params.tab;
+    if (tab === 'open' || tab === 'confirmed' || tab === 'history') {
+      setSelectedMode(tab);
+      return;
+    }
+    if (tab === 'availability') {
+      setSelectedMode('open');
+    }
+  }, [params.tab]);
+
   const filteredShifts = useMemo(
     () =>
       filterAndSortLiveShifts(shifts, workerProfile, availabilityBlocks, {
@@ -253,12 +223,20 @@ export default function FillInsScreen() {
     availabilityFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter ||
     savedOnlyFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.savedOnlyFilter;
 
-  const { upcomingConfirmed, pastConfirmed, pastInProgress, upcomingInProgress } = useMemo(
-    () => partitionWorkerShiftApplications(applications),
-    [applications],
-  );
-  const pastFillInCount = pastConfirmed.length + pastInProgress.length;
+  const {
+    upcomingConfirmed,
+    pastConfirmed,
+    pastInProgress,
+    upcomingInProgress,
+    cancelledApplications,
+    declinedApplications,
+  } = useMemo(() => partitionWorkerShiftApplications(applications), [applications]);
   const activeFillInCount = upcomingConfirmed.length + upcomingInProgress.length;
+  const historyFillInCount =
+    cancelledApplications.length +
+    declinedApplications.length +
+    pastConfirmed.length +
+    pastInProgress.length;
   const mapGroups = useMemo(
     () => groupWorkerMapItemsByClinic(toWorkerMapItemsFromShifts(filteredShifts, savedShiftIds)),
     [filteredShifts, savedShiftIds],
@@ -286,9 +264,7 @@ export default function FillInsScreen() {
     }
   };
 
-  const fillInsAvailable = workerProfile?.short_notice_available ?? false;
-
-  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
     panel: { gap: spacing.lg },
     cardList: { gap: dashboardSectionGap(spacing) },
@@ -315,31 +291,6 @@ export default function FillInsScreen() {
       overflow: 'hidden',
     },
     applicationGroup: { gap: spacing.sm },
-    daysCardMuted: {
-      opacity: 0.55,
-    },
-    scheduleHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.md,
-    },
-    scheduleHeaderText: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    scheduleTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      letterSpacing: -0.2,
-      color: colors.labelPrimary,
-    },
-    scheduleSubtitle: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
   }));
 
   return (
@@ -354,6 +305,7 @@ export default function FillInsScreen() {
         refreshAccent="secondary"
       >
         <View style={styles.content}>
+          <FillInAvailabilitySummaryCard />
           <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
             <View style={styles.controlRow}>
               <PageTabBar
@@ -456,7 +408,7 @@ export default function FillInsScreen() {
                 <DashboardEmptyState
                   icon="document-text-outline"
                   title="No fill-in shifts yet"
-                  message="Request to cover an open shift and track it here."
+                  message="Request to cover an open shift and track confirmed and in-progress fill-ins here."
                 />
               ) : (
                 <>
@@ -490,41 +442,79 @@ export default function FillInsScreen() {
                   ) : null}
                 </>
               )}
-              {!isLoading && pastFillInCount > 0 ? (
-                <DashboardSectionHeader
-                  title=""
-                  actionLabel={`View ${pastFillInCount} past fill-in${pastFillInCount === 1 ? '' : 's'}`}
-                  onActionPress={() => router.push(WORKER_PAST_FILLINS)}
-                />
-              ) : null}
             </View>
           ) : null}
 
-          {selectedMode === 'availability' ? (
+          {selectedMode === 'history' ? (
             <View style={styles.panel}>
-              <FillInAvailabilityPanelAccent>
-                <SurfaceCard padding="none">
-                  <FillInModePanel variant="grouped" />
-                </SurfaceCard>
-              </FillInAvailabilityPanelAccent>
-              <SurfaceCard
-                padding="md"
-                gap
-                style={!fillInsAvailable ? styles.daysCardMuted : undefined}
-              >
-                <View style={styles.scheduleHeader}>
-                  <View style={styles.scheduleHeaderText}>
-                    <Text style={styles.scheduleTitle}>Available days</Text>
-                    <Text style={styles.scheduleSubtitle}>
-                      {fillInsAvailable
-                        ? 'The days and hours you can cover fill-in shifts. Used to filter alerts when you choose matching days only.'
-                        : 'Turn on fill-ins above, then choose which days and hours you can cover temp shifts.'}
-                    </Text>
-                  </View>
-                  <EditPillButton label="Edit days" onPress={navigateToEditSchedule} />
-                </View>
-                <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
-              </SurfaceCard>
+              {isLoading ? (
+                <PageLoadingList rowCount={3} />
+              ) : historyFillInCount === 0 ? (
+                <DashboardEmptyState
+                  icon="time-outline"
+                  title="No fill-in history yet"
+                  message="Declined requests, cancelled shifts, and past fill-ins will appear here."
+                />
+              ) : (
+                <>
+                  {cancelledApplications.length > 0 ? (
+                    <View style={styles.applicationGroup}>
+                      <DashboardSectionHeader title="Cancelled" compact />
+                      <StaggeredList>
+                        {cancelledApplications.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
+                    </View>
+                  ) : null}
+                  {declinedApplications.length > 0 ? (
+                    <View style={styles.applicationGroup}>
+                      <DashboardSectionHeader title="Declined" compact />
+                      <StaggeredList>
+                        {declinedApplications.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
+                    </View>
+                  ) : null}
+                  {pastConfirmed.length > 0 ? (
+                    <View style={styles.applicationGroup}>
+                      <DashboardSectionHeader title="Past confirmed" compact />
+                      <StaggeredList>
+                        {pastConfirmed.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
+                    </View>
+                  ) : null}
+                  {pastInProgress.length > 0 ? (
+                    <View style={styles.applicationGroup}>
+                      <DashboardSectionHeader title="Expired requests" compact />
+                      <StaggeredList>
+                        {pastInProgress.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
+                    </View>
+                  ) : null}
+                </>
+              )}
             </View>
           ) : null}
         </View>

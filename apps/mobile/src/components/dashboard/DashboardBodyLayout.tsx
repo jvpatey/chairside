@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
+import { DashboardSectionDivider } from '@/components/dashboard/DashboardSectionDivider';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { IS_WEB } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
@@ -51,11 +52,18 @@ export function DashboardBodyLayout({
     hasRenderableContent(checklist) ||
     hasRenderableContent(alerts);
 
-  const phoneColumn = (
+  const statsBlock = (
     <>
+      <DashboardSectionDivider />
       {error}
       {spotlight}
       {statCards}
+    </>
+  );
+
+  const phoneColumn = (
+    <>
+      {statsBlock}
       {overview}
       {checklist}
       {messages}
@@ -68,9 +76,7 @@ export function DashboardBodyLayout({
       <View style={styles.desktopShell}>
         {hero}
         {quickActions}
-        {error}
-        {spotlight}
-        {statCards}
+        {statsBlock}
         {overview}
         {hasAside ? <View style={styles.desktopSupplementary}>{asideColumn}</View> : null}
       </View>

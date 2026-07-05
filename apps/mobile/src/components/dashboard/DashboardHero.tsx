@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, type Href } from 'expo-router';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -63,6 +64,7 @@ export function DashboardHero({
   const { isTablet } = useResponsiveLayout();
   const reducedMotion = useReducedMotion();
   const overlayActions = !isTablet && showActions;
+  const heroOpensProfile = Platform.OS !== 'web';
   const drift = useSharedValue(0);
 
   const startOrbMotion = useCallback(() => {
@@ -147,6 +149,9 @@ export function DashboardHero({
       minWidth: 0,
       gap: spacing.xs,
     },
+    identityPressed: {
+      opacity: 0.85,
+    },
     actionsCorner: {
       position: 'absolute' as const,
       top: spacing.sm,
@@ -186,6 +191,43 @@ export function DashboardHero({
 
   const gradientColors = getHeroBandGradient(colors, isDark);
 
+  const openProfile = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(profileHref);
+  };
+
+  const identityBody = (
+    <>
+      <Text style={styles.greeting} accessibilityRole="text">
+        {getTimeOfDayGreeting()}
+      </Text>
+      <DashboardHeroName displayName={displayName} namePlaceholder={namePlaceholder} />
+      <DashboardHeroSubtitle
+        subtitle={subtitle}
+        trailing={contextLine ? undefined : formatDashboardDate()}
+      />
+      {contextLine ? (
+        <View style={styles.contextRow}>
+          <View style={styles.chip}>
+            <Text style={styles.chipLabel}>{contextLine}</Text>
+          </View>
+        </View>
+      ) : null}
+    </>
+  );
+
+  const identity = heroOpensProfile ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Open profile"
+      onPress={openProfile}
+      style={({ pressed }) => [styles.identity, pressed && styles.identityPressed]}>
+      {identityBody}
+    </Pressable>
+  ) : (
+    <View style={styles.identity}>{identityBody}</View>
+  );
+
   return (
     <View style={styles.band}>
       <LinearGradient colors={gradientColors} style={styles.gradient} />
@@ -204,58 +246,20 @@ export function DashboardHero({
       <View style={overlayActions ? styles.bandContent : undefined}>
         <View style={styles.row}>
           {overlayActions ? (
-            <View style={styles.identity}>
-              <Text style={styles.greeting} accessibilityRole="text">
-                {getTimeOfDayGreeting()}
-              </Text>
-              <DashboardHeroName
-                displayName={displayName}
-                namePlaceholder={namePlaceholder}
-              />
-              <DashboardHeroSubtitle
-                subtitle={subtitle}
-                trailing={contextLine ? undefined : formatDashboardDate()}
-              />
-              {contextLine ? (
-                <View style={styles.contextRow}>
-                  <View style={styles.chip}>
-                    <Text style={styles.chipLabel}>{contextLine}</Text>
-                  </View>
-                </View>
-              ) : null}
-            </View>
+            identity
           ) : (
-          <>
-            <View style={styles.identity}>
-              <Text style={styles.greeting} accessibilityRole="text">
-                {getTimeOfDayGreeting()}
-              </Text>
-              <DashboardHeroName
-                displayName={displayName}
-                namePlaceholder={namePlaceholder}
-              />
-              <DashboardHeroSubtitle
-                subtitle={subtitle}
-                trailing={contextLine ? undefined : formatDashboardDate()}
-              />
-              {contextLine ? (
-                <View style={styles.contextRow}>
-                  <View style={styles.chip}>
-                    <Text style={styles.chipLabel}>{contextLine}</Text>
-                  </View>
-                </View>
+            <>
+              {identity}
+              {showActions ? (
+                <DashboardHeroActions
+                  profileHref={profileHref}
+                  avatarKind={avatarKind}
+                  displayName={displayName}
+                  photoUri={photoUri}
+                />
               ) : null}
-            </View>
-            {showActions ? (
-              <DashboardHeroActions
-                profileHref={profileHref}
-                avatarKind={avatarKind}
-                displayName={displayName}
-                photoUri={photoUri}
-              />
-            ) : null}
-          </>
-        )}
+            </>
+          )}
         </View>
       </View>
     </View>

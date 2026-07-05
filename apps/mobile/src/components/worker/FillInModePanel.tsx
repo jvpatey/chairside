@@ -18,6 +18,7 @@ import { FILL_IN_HERO_GRADIENT_LOCATIONS, getFillInHeroGradient, radii, spacing,
 
 type FillInModePanelProps = {
   showNotificationOptions?: boolean;
+  hidePrimaryToggle?: boolean;
   variant?: 'card' | 'grouped';
 };
 
@@ -90,6 +91,7 @@ function SettingsSection({
 
 export function FillInModePanel({
   showNotificationOptions = true,
+  hidePrimaryToggle = false,
   variant = 'card',
 }: FillInModePanelProps) {
   const { colors, isDark } = useTheme();
@@ -381,29 +383,31 @@ export function FillInModePanel({
 
   return (
     <View style={isGrouped ? styles.grouped : styles.card}>
-      <View style={styles.primaryHero}>
-        <LinearGradient
-          colors={fillInHeroGradient}
-          locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={styles.primaryGradient}
-          pointerEvents="none"
-        />
-        <SettingsToggleRow
-          prominence="primary"
-          title="Available for fill-ins"
-          hint={
-            shortNoticeAvailable
-              ? 'You appear open to short-notice fill-in opportunities.'
-              : 'Turn on when you can cover urgent shifts.'
-          }
-          value={shortNoticeAvailable}
-          disabled={isSaving}
-          accentColor={colors.secondary}
-          onValueChange={handleToggle}
-        />
-      </View>
+      {hidePrimaryToggle ? null : (
+        <View style={styles.primaryHero}>
+          <LinearGradient
+            colors={fillInHeroGradient}
+            locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.primaryGradient}
+            pointerEvents="none"
+          />
+          <SettingsToggleRow
+            prominence="primary"
+            title="Available for fill-ins"
+            hint={
+              shortNoticeAvailable
+                ? 'You appear open to short-notice fill-in opportunities.'
+                : 'Turn on when you can cover urgent shifts.'
+            }
+            value={shortNoticeAvailable}
+            disabled={isSaving}
+            accentColor={colors.secondary}
+            onValueChange={handleToggle}
+          />
+        </View>
+      )}
       {clinicOutreachSection}
       {postedFillInAlertsSection}
     </View>

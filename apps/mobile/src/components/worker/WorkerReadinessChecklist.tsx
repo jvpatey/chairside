@@ -77,11 +77,11 @@ export function WorkerReadinessChecklist({
       {
         id: 'application-kit',
         title: isWorkerApplicationKitStarted(workerProfile)
-          ? 'Application kit added'
-          : 'Add your application kit',
+          ? 'Application profile added'
+          : 'Add your application profile',
         body: isWorkerApplicationKitStarted(workerProfile)
           ? 'Photo, resume, or note ready for clinics.'
-          : 'Add a photo, resume, or default note for polished applications.',
+          : 'Add a photo, resume, and default note for polished applications.',
         complete: isWorkerApplicationKitStarted(workerProfile),
         onPress: () => router.push(WORKER_SETUP_APPLICATION),
       },

@@ -1,10 +1,22 @@
-import { getLiveShiftPost, hasAppliedToShift, isShiftPostSaved, saveShiftPost, unsaveShiftPost, type LiveShiftPost } from '@chairside/api';
+import {
+  getLiveShiftPost,
+  getWorkerShiftApplication,
+  isShiftPostSaved,
+  saveShiftPost,
+  unsaveShiftPost,
+  ACTIVE_SHIFT_COVER_STATUSES,
+  type LiveShiftPost,
+  type WorkerApplication,
+} from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
-import { RequestedPillBadge } from '@/components/matching/ApplicationStatusBadge';
+import {
+  CancelledPillBadge,
+  RequestedPillBadge,
+} from '@/components/matching/ApplicationStatusBadge';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
@@ -16,10 +28,39 @@ import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getApplyRoute, getWorkerClinicProfileRoute, navigateAfterWorkerShift } from '@/lib/routing';
+import {
+  getApplyRoute,
+  getWorkerApplicationRoute,
+  getWorkerClinicProfileRoute,
+  navigateAfterWorkerShift,
+} from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { guardApply } from '@/lib/workerGuard';
 import { useThemedStyles } from '@/theme';
+
+type ShiftApplicationView =
+  | { kind: 'none' }
+  | { kind: 'pending' }
+  | { kind: 'confirmed' }
+  | { kind: 'cancelled'; application: WorkerApplication };
+
+function resolveShiftApplicationView(application: WorkerApplication | null): ShiftApplicationView {
+  if (!application) return { kind: 'none' };
+
+  if (application.status === 'hired') {
+    return { kind: 'confirmed' };
+  }
+
+  if (application.status === 'rejected' && application.status_closed_by) {
+    return { kind: 'cancelled', application };
+  }
+
+  if (ACTIVE_SHIFT_COVER_STATUSES.includes(application.status)) {
+    return { kind: 'pending' };
+  }
+
+  return { kind: 'none' };
+}
 
 export default function WorkerShiftDetailScreen() {
   const { user } = useAuth();
@@ -32,7 +73,7 @@ export default function WorkerShiftDetailScreen() {
     navigateAfterWorkerShift(router, resolvedReturnTo);
   }, [resolvedReturnTo]);
   const [shift, setShift] = useState<LiveShiftPost | null>(null);
-  const [hasApplied, setHasApplied] = useState(false);
+  const [shiftApplication, setShiftApplication] = useState<WorkerApplication | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,6 +105,7 @@ export default function WorkerShiftDetailScreen() {
   const loadShift = useCallback(async () => {
     if (!shiftId) {
       setShift(null);
+      setShiftApplication(null);
       setIsLoading(false);
       return;
     }
@@ -79,12 +121,14 @@ export default function WorkerShiftDetailScreen() {
       setShift(nextShift);
 
       if (user?.id) {
-        const [applied, saved] = await Promise.all([
-          hasAppliedToShift(user.id, shiftId),
+        const [application, saved] = await Promise.all([
+          getWorkerShiftApplication(user.id, shiftId),
           isShiftPostSaved(user.id, shiftId),
         ]);
-        setHasApplied(applied);
+        setShiftApplication(application);
         setIsSaved(saved);
+      } else {
+        setShiftApplication(null);
       }
     } catch (error) {
       Alert.alert(
@@ -128,19 +172,46 @@ export default function WorkerShiftDetailScreen() {
     );
   }
 
+  const applicationView = resolveShiftApplicationView(shiftApplication);
+  const applicationReturnTo = resolvedReturnTo ?? 'fill-ins-tab';
+
+  const footerAction =
+    applicationView.kind === 'none' ? (
+      <OnboardingButton
+        label="Request to cover"
+        onPress={() =>
+          guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
+        }
+      />
+    ) : applicationView.kind === 'pending' ? (
+      <OnboardingButton label="Requested" disabled />
+    ) : applicationView.kind === 'confirmed' && shiftApplication ? (
+      <OnboardingButton
+        label="View confirmed fill-in"
+        onPress={() =>
+          router.push(getWorkerApplicationRoute(shiftApplication.id, applicationReturnTo))
+        }
+      />
+    ) : applicationView.kind === 'cancelled' && shiftApplication ? (
+      <OnboardingButton
+        label="Request to cover again"
+        onPress={() =>
+          guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
+        }
+      />
+    ) : null;
+
+  const statusFooter =
+    applicationView.kind === 'pending' ? (
+      <RequestedPillBadge />
+    ) : applicationView.kind === 'cancelled' ? (
+      <CancelledPillBadge />
+    ) : null;
+
   const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
 
   return (
-    <OnboardingShell atmosphere="subtle"
-      footer={
-        <OnboardingButton
-          label={hasApplied ? 'Requested' : 'Request to cover'}
-          disabled={hasApplied}
-          onPress={() =>
-            guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
-          }
-        />
-      }>
+    <OnboardingShell atmosphere="subtle" footer={footerAction}>
       <AuthScreenHeader
         title="Fill-in details"
         subtitle={shift.clinic.clinic_name}
@@ -162,7 +233,7 @@ export default function WorkerShiftDetailScreen() {
             location={location || null}
             detail={formatShiftPostMeta(shift)}
             accessory={<ShiftUrgencyBadge urgency={shift.urgency} />}
-            textFooter={hasApplied ? <RequestedPillBadge /> : null}
+            textFooter={statusFooter}
             footer={
               shift.compensation ? (
                 <View style={styles.footer}>

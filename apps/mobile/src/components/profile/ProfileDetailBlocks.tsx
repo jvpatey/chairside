@@ -2,7 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
-import { ProfileSettingsCard, type ProfileSettingsCardProps } from '@/components/profile/ProfileSettingsCard';
+import {
+  ProfileSettingsCard,
+  type ProfileSettingsCardProps,
+} from '@/components/profile/ProfileSettingsCard';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type ProfileDetailSectionIcon = keyof typeof Ionicons.glyphMap;
@@ -147,9 +150,23 @@ export function SummaryStat({
 
 export function SectionPanel({
   icon,
+  stepNumber,
+  stepAccent,
   title,
   children,
-}: Pick<ProfileSettingsCardProps, 'icon' | 'title'> & {
+  collapsible = false,
+  defaultExpanded = true,
+  variant = 'default',
+}: Pick<
+  ProfileSettingsCardProps,
+  | 'icon'
+  | 'stepNumber'
+  | 'stepAccent'
+  | 'title'
+  | 'collapsible'
+  | 'defaultExpanded'
+  | 'variant'
+> & {
   children: ReactNode;
 }) {
   const styles = useThemedStyles(({ spacing }) => ({
@@ -157,7 +174,14 @@ export function SectionPanel({
   }));
 
   return (
-    <ProfileSettingsCard title={title} icon={icon}>
+    <ProfileSettingsCard
+      title={title}
+      icon={icon}
+      stepNumber={stepNumber}
+      stepAccent={stepAccent}
+      collapsible={collapsible}
+      defaultExpanded={defaultExpanded}
+      variant={variant}>
       <View style={styles.body}>{children}</View>
     </ProfileSettingsCard>
   );
@@ -241,4 +265,53 @@ export function SummaryStatRow({ children }: { children: ReactNode }) {
   }));
 
   return <View style={styles.row}>{children}</View>;
+}
+
+export function ProfileTagRow({
+  tags,
+  emptyText = 'Not added yet',
+}: {
+  tags: string[];
+  emptyText?: string;
+}) {
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    wrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    tag: {
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 4,
+      backgroundColor: colors.fillSubtle,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
+    tagText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.labelPrimary,
+    },
+    empty: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.labelTertiary,
+      fontStyle: 'italic',
+    },
+  }));
+
+  if (tags.length === 0) {
+    return <Text style={styles.empty}>{emptyText}</Text>;
+  }
+
+  return (
+    <View style={styles.wrap}>
+      {tags.map((tag) => (
+        <View key={tag} style={styles.tag}>
+          <Text style={styles.tagText}>{tag}</Text>
+        </View>
+      ))}
+    </View>
+  );
 }

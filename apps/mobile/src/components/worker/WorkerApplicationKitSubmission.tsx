@@ -6,10 +6,9 @@ import { Alert, Text, View } from 'react-native';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { EditPillButton } from '@/components/ui/EditPillButton';
-import { ApplicationPackageFields } from '@/components/worker/ApplicationPackageFields';
+import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { WORKER_SETUP_APPLICATION } from '@/lib/routing';
 import { router } from 'expo-router';
 import { useThemedStyles } from '@/theme';
@@ -29,7 +28,6 @@ export function WorkerApplicationKitSubmission({
 }: WorkerApplicationKitSubmissionProps) {
   const { user, profile } = useAuth();
   const { workerProfile } = useWorkerProfile();
-  const photoUri = useWorkerPhotoUri(workerProfile?.photo_storage_path);
   const [coverMessage, setCoverMessage] = useState(workerProfile?.default_cover_message ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -88,24 +86,25 @@ export function WorkerApplicationKitSubmission({
   return (
     <View style={styles.card}>
       <Text style={styles.eyebrow}>Application requested</Text>
-      <Text style={styles.title}>{clinicName} wants your application kit</Text>
+      <Text style={styles.title}>{clinicName} wants your full application</Text>
       <Text style={styles.body}>
         {clinicName} reviewed your screening responses for {postTitle} and would like your full
         application to continue.
       </Text>
 
       <View style={styles.kitSection}>
-        <Text style={styles.kitLabel}>Application kit</Text>
+        <Text style={styles.kitLabel}>Application profile</Text>
         {workerProfile ? (
-          <ApplicationPackageFields
+          <ApplicationKitPreview
             profile={workerProfile}
             displayName={profile?.display_name}
-            photoUri={photoUri}
+            photoStoragePath={workerProfile.photo_storage_path}
             showDefaultNote
+            embedded
           />
         ) : null}
         <EditPillButton
-          label="Edit application kit"
+          label="Edit application profile"
           onPress={() => router.push(WORKER_SETUP_APPLICATION)}
         />
       </View>
@@ -119,7 +118,7 @@ export function WorkerApplicationKitSubmission({
       />
 
       <OnboardingButton
-        label={isSubmitting ? 'Submitting…' : 'Submit application kit'}
+        label={isSubmitting ? 'Submitting…' : 'Submit full application'}
         disabled={isSubmitting}
         onPress={() => void handleSubmit()}
       />

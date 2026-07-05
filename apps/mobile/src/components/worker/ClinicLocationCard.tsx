@@ -11,7 +11,6 @@ import { ClinicLocationMapCallout } from '@/components/worker/ClinicLocationMapC
 import { ClinicLocationMapPreview } from '@/components/worker/ClinicLocationMapPreview';
 import {
   FieldBlock,
-  ProfileDetailStack,
   SectionPanel,
 } from '@/components/profile/ProfileDetailBlocks';
 import {
@@ -40,6 +39,8 @@ type ClinicLocationCardProps = {
     | 'latitude'
     | 'longitude'
   >;
+  stepNumber?: number;
+  stepAccent?: 'primary' | 'secondary';
 };
 
 function buildMapsDestination(
@@ -53,7 +54,11 @@ function buildMapsDestination(
   };
 }
 
-export function ClinicLocationCard({ profile }: ClinicLocationCardProps) {
+export function ClinicLocationCard({
+  profile,
+  stepNumber,
+  stepAccent = 'primary',
+}: ClinicLocationCardProps) {
   const { colors, isDark } = useTheme();
   const [directionsSheetVisible, setDirectionsSheetVisible] = useState(false);
   const [calloutVisible, setCalloutVisible] = useState(false);
@@ -140,60 +145,66 @@ export function ClinicLocationCard({ profile }: ClinicLocationCardProps) {
       : []),
   ];
 
+  const panel = (
+    <SectionPanel
+      icon="location-outline"
+      stepNumber={stepNumber}
+      stepAccent={stepAccent}
+      title="Location">
+      {formattedAddress ? (
+        <FieldBlock label="Address">
+          <Text style={styles.address}>{formattedAddress}</Text>
+        </FieldBlock>
+      ) : null}
+
+      {hasCoordinates ? (
+        <View style={styles.mapShell}>
+          <ClinicLocationMapPreview
+            latitude={profile.latitude!}
+            longitude={profile.longitude!}
+            selected={calloutVisible}
+          />
+          {calloutVisible ? (
+            <>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Hide clinic location details"
+                onPress={() => setCalloutVisible(false)}
+                style={styles.mapTapTarget}
+              />
+              <View style={styles.calloutOverlay}>
+                <ClinicLocationMapCallout
+                  clinicName={profile.clinic_name}
+                  address={addressLine}
+                  specialtyLabel={specialtyLabel}
+                  onGetDirections={handleDirectionsPress}
+                />
+              </View>
+            </>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Show clinic location details"
+              onPress={() => setCalloutVisible(true)}
+              style={styles.mapTapTarget}
+            />
+          )}
+        </View>
+      ) : null}
+
+      <View style={styles.directionsButton}>
+        <OnboardingButton
+          label="Get directions"
+          variant="secondary"
+          onPress={handleDirectionsPress}
+        />
+      </View>
+    </SectionPanel>
+  );
+
   return (
     <>
-      <ProfileDetailStack>
-        <SectionPanel icon="location-outline" title="Location">
-          {formattedAddress ? (
-            <FieldBlock label="Address">
-              <Text style={styles.address}>{formattedAddress}</Text>
-            </FieldBlock>
-          ) : null}
-
-          {hasCoordinates ? (
-            <View style={styles.mapShell}>
-              <ClinicLocationMapPreview
-                latitude={profile.latitude!}
-                longitude={profile.longitude!}
-                selected={calloutVisible}
-              />
-              {calloutVisible ? (
-                <>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Hide clinic location details"
-                    onPress={() => setCalloutVisible(false)}
-                    style={styles.mapTapTarget}
-                  />
-                  <View style={styles.calloutOverlay}>
-                    <ClinicLocationMapCallout
-                      clinicName={profile.clinic_name}
-                      address={addressLine}
-                      specialtyLabel={specialtyLabel}
-                      onGetDirections={handleDirectionsPress}
-                    />
-                  </View>
-                </>
-              ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Show clinic location details"
-                  onPress={() => setCalloutVisible(true)}
-                  style={styles.mapTapTarget}
-                />
-              )}
-            </View>
-          ) : null}
-
-          <View style={styles.directionsButton}>
-            <OnboardingButton
-              label="Get directions"
-              variant="secondary"
-              onPress={handleDirectionsPress}
-            />
-          </View>
-        </SectionPanel>
-      </ProfileDetailStack>
+      {panel}
 
       <ActionMenuSheet
         visible={directionsSheetVisible}

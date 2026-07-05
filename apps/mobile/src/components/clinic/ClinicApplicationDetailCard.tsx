@@ -1,9 +1,11 @@
 import {
   acceptApplicationInterviewUpdate,
   cancelApplicationInterviewOffer,
+  cancelConfirmedFillIn,
   cancelScheduledApplicationInterview,
   confirmFillInApplicant,
   declineApplicationInterviewUpdate,
+  deleteConfirmedFillIn,
   FILL_IN_PENDING_STATUSES,
   getApplicantDisplayName,
   requestApplicationKit,
@@ -41,6 +43,7 @@ import { Alert, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { ApplicationStatusSummaryCard } from '@/components/matching/ApplicationStatusSummaryCard';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import {
   ClinicWorkerCrmSection,
@@ -48,16 +51,18 @@ import {
 } from '@/components/clinic/ClinicWorkerCrmSheet';
 import { ApplicationPdfPacketPreviewModal } from '@/components/clinic/ApplicationPdfPacketPreviewModal';
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
+import { CancelFillInSheet } from '@/components/clinic/CancelFillInSheet';
 import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
 import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
-import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { cardShellRadii } from '@/components/ui/cardLayout';
 import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { useDismissedScreeningReviews } from '@/hooks/useDismissedScreeningReviews';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
   getApplicationMatchDisplayContext,
@@ -124,11 +129,13 @@ function ApplicantDetailSection({
   title,
   children,
   accent = 'primary',
+  headerAccessory,
 }: {
   icon: SectionIcon;
   title: string;
   children: ReactNode;
   accent?: GradientAccent;
+  headerAccessory?: ReactNode;
 }) {
   const { brand, brandSubtle } = useBrandColors(accent);
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -168,6 +175,7 @@ function ApplicantDetailSection({
           <Ionicons name={icon} size={15} color={brand} />
         </View>
         <Text style={styles.title}>{title}</Text>
+        {headerAccessory}
       </View>
       <View style={styles.body}>{children}</View>
     </View>
@@ -348,6 +356,7 @@ function ApplicantHeroCard({
               postType={application.post_type}
               applicationKitRequestedAt={application.application_kit_requested_at}
               applicationKitSubmittedAt={application.application_kit_submitted_at}
+              statusClosedBy={application.status_closed_by}
             />
           ) : null}
           {jobMatch && matchContext ? (
@@ -513,14 +522,14 @@ function ApplicationSummaryCard({
           ) : null}
           {isScreeningStage && !kitSubmitted ? (
             <ApplicationPreviewField
-              label="Application kit"
+              label="Candidate packet"
               value="Not submitted yet"
               preserveLabelCase
             />
           ) : null}
           {kitSubmitted ? (
             <ApplicationPreviewField
-              label="Application kit"
+              label="Candidate packet"
               value="Submitted"
               preserveLabelCase
             />
@@ -630,6 +639,10 @@ export function ClinicApplicationDetailCard({
   const [pdfPreviewVisible, setPdfPreviewVisible] = useState(false);
   const [pdfPreview, setPdfPreview] = useState<ApplicationPdfPacketResult | null>(null);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
+  const [cancelFillInSheetVisible, setCancelFillInSheetVisible] = useState(false);
+  const [deleteFillInSheetVisible, setDeleteFillInSheetVisible] = useState(false);
+  const { isHydrated: screeningDismissHydrated, dismissedIds: dismissedScreeningReviewIds, dismiss: dismissScreeningReviewBadge } =
+    useDismissedScreeningReviews();
   const isJob = application.post_type === 'job';
   const accent: GradientAccent = isJob ? 'primary' : 'secondary';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
@@ -818,16 +831,24 @@ export function ClinicApplicationDetailCard({
 
   const handleRequestKit = () => {
     showConfirmActionSheet({
-      title: 'Request application kit?',
+      title: 'Request full application?',
       message:
-        'The candidate will be asked to confirm and submit their full application before you can review it.',
-      confirmLabel: 'Request application',
+        'After reviewing their screening responses, you can request the candidate packet. They will submit their resume, profile, and cover note before you can review the full application.',
+      confirmLabel: 'Request full application',
       onConfirm: () => requestKit(),
     });
   };
 
   const applicantName = getApplicantDisplayName(application);
   const workerDeleted = application.worker_account_deleted;
+
+  const isFillInPending =
+    application.post_type === 'shift' &&
+    FILL_IN_PENDING_STATUSES.includes(application.status) &&
+    !workerDeleted;
+
+  const isConfirmedFillIn =
+    application.post_type === 'shift' && application.status === 'hired' && !workerDeleted;
 
   const hasActions =
     !workerDeleted &&
@@ -836,12 +857,8 @@ export function ClinicApplicationDetailCard({
       application.status === 'reviewed' ||
       application.status === 'in_progress' ||
       application.status === 'interview_offered' ||
-      application.status === 'interview_scheduled');
-
-  const isFillInPending =
-    application.post_type === 'shift' &&
-    FILL_IN_PENDING_STATUSES.includes(application.status) &&
-    !workerDeleted;
+      application.status === 'interview_scheduled' ||
+      isConfirmedFillIn);
 
   const experienceLabel =
     application.years_of_experience != null
@@ -895,7 +912,7 @@ export function ClinicApplicationDetailCard({
       confirmLabel: 'Accept',
       onConfirm: async () => {
         try {
-          await confirmFillInApplicant(clinicId, application.id);
+          const confirmed = await confirmFillInApplicant(clinicId, application.id);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           onConfirmed?.({
             applicationId: application.id,
@@ -904,6 +921,7 @@ export function ClinicApplicationDetailCard({
             counterpartName: applicantName,
             postTitle: getRoleTypeLabel(application.post_role_type),
             shiftDateLabel: application.post_title.replace(/^Fill-in · /, ''),
+            applicationUpdatedAt: confirmed.updated_at,
           });
           onUpdated?.();
         } catch (error) {
@@ -914,6 +932,24 @@ export function ClinicApplicationDetailCard({
         }
       },
     });
+  };
+
+  const handleSubmitCancelConfirmedFillIn = async (message: string) => {
+    await cancelConfirmedFillIn(application.id, { message });
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onUpdated?.();
+    onDecided?.();
+  };
+
+  const handleSubmitDeleteConfirmedFillIn = async (message: string) => {
+    await deleteConfirmedFillIn(application.id, { message });
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onRemoved?.();
+  };
+
+  const handleDeleteConfirmedFillIn = () => {
+    if (!application.shift_post_id) return;
+    setDeleteFillInSheetVisible(true);
   };
 
   const showNewBadge = hasNewApplication;
@@ -954,10 +990,25 @@ export function ClinicApplicationDetailCard({
       return { primary, secondary, destructive };
     }
 
+    if (isConfirmedFillIn) {
+      destructive.push({
+        key: 'cancel-fill-in',
+        label: 'Cancel fill-in',
+        variant: 'secondary',
+        onPress: () => setCancelFillInSheetVisible(true),
+      });
+      destructive.push({
+        key: 'delete-fill-in',
+        label: 'Delete fill-in',
+        onPress: handleDeleteConfirmedFillIn,
+      });
+      return { primary, secondary, destructive };
+    }
+
     if (isScreeningStage && !awaitingKit) {
       primary.push({
         key: 'request-kit',
-        label: 'Request application kit',
+        label: 'Request full application',
         onPress: handleRequestKit,
       });
       destructive.push(rejectAction());
@@ -1101,6 +1152,17 @@ export function ClinicApplicationDetailCard({
       (isScreeningStage && !hasKitSubmitted) ||
       hasKitSubmitted);
 
+  const screeningBadgeLabel =
+    screeningDismissHydrated &&
+    isScreeningStage &&
+    !awaitingKit &&
+    application.screening &&
+    !dismissedScreeningReviewIds.has(application.id)
+      ? hasNewApplication
+        ? 'New'
+        : 'Needs review'
+      : null;
+
   return (
     <>
       <View style={styles.stack}>
@@ -1115,6 +1177,19 @@ export function ClinicApplicationDetailCard({
           jobMatch={jobMatch}
           matchContext={matchContext}
           accent={accent}
+        />
+
+        <ApplicationStatusSummaryCard
+          audience="clinic"
+          status={application.status}
+          postType={application.post_type}
+          applicationKitRequestedAt={application.application_kit_requested_at}
+          applicationKitSubmittedAt={application.application_kit_submitted_at}
+          interviewProposedAt={application.interview_proposed_at}
+          statusNote={application.status_note}
+          statusClosedBy={application.status_closed_by}
+          workerAccountDeleted={workerDeleted}
+          isHighlighted={hasNewApplication}
         />
 
         {!workerDeleted ? (
@@ -1155,50 +1230,32 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         )}
 
-        {hasInterviewDetails || awaitingKit || workerDeleted ? (
+        {hasInterviewDetails ? (
           <SurfaceCard padding="md" gap>
-            {hasInterviewDetails ? (
-              <CardInfoPanel
-                variant={application.status === 'interview_offered' ? 'warning' : 'info'}
-                icon="calendar-outline"
-                title={
-                  application.status === 'interview_offered'
-                    ? 'Interview invitation'
-                    : 'Interview scheduled'
-                }>
-                <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
-                {application.status === 'interview_offered' ? (
-                  <CardInfoPanelText>Awaiting candidate response</CardInfoPanelText>
-                ) : null}
-                {application.status === 'interview_scheduled' && clinicProposedChange ? (
-                  <CardInfoPanelText>
-                    Awaiting candidate response to new time
-                    {proposedSummary ? ` · ${proposedSummary}` : ''}
-                  </CardInfoPanelText>
-                ) : null}
-                {application.status === 'interview_scheduled' &&
-                workerProposedChange &&
-                proposedSummary ? (
-                  <CardInfoPanelText>Proposed new time · {proposedSummary}</CardInfoPanelText>
-                ) : null}
-              </CardInfoPanel>
-            ) : null}
-
-            {awaitingKit ? (
-              <CardInfoPanel variant="default" icon="document-text-outline" title="Application kit">
+            <CardInfoPanel
+              variant={application.status === 'interview_offered' ? 'warning' : 'info'}
+              icon="calendar-outline"
+              title={
+                application.status === 'interview_offered'
+                  ? 'Interview invitation'
+                  : 'Interview scheduled'
+              }>
+              <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
+              {application.interview_details ? (
+                <CardInfoPanelText>{application.interview_details}</CardInfoPanelText>
+              ) : null}
+              {application.status === 'interview_scheduled' && clinicProposedChange ? (
                 <CardInfoPanelText>
-                  Application kit requested. Waiting for the candidate to submit.
+                  Awaiting candidate response to new time
+                  {proposedSummary ? ` · ${proposedSummary}` : ''}
                 </CardInfoPanelText>
-              </CardInfoPanel>
-            ) : null}
-
-            {workerDeleted ? (
-              <CardInfoPanel variant="default">
-                <CardInfoPanelText>
-                  This candidate is no longer signed up for Chairside.
-                </CardInfoPanelText>
-              </CardInfoPanel>
-            ) : null}
+              ) : null}
+              {application.status === 'interview_scheduled' &&
+              workerProposedChange &&
+              proposedSummary ? (
+                <CardInfoPanelText>Proposed new time · {proposedSummary}</CardInfoPanelText>
+              ) : null}
+            </CardInfoPanel>
           </SurfaceCard>
         ) : null}
 
@@ -1214,8 +1271,21 @@ export function ClinicApplicationDetailCard({
 
         {application.post_type === 'job' && application.screening && !workerDeleted ? (
           <SurfaceCard padding="md" gap>
-            <ApplicantDetailSection icon="clipboard-outline" title="Screening responses" accent={accent}>
-              <ApplicationScreeningSection screening={application.screening} />
+            <ApplicantDetailSection
+              icon="clipboard-outline"
+              title="Screening responses"
+              accent={accent}
+              headerAccessory={
+                screeningBadgeLabel ? (
+                  <ApplicationCardBadge label={screeningBadgeLabel} accent={accent} />
+                ) : null
+              }>
+              <ApplicationScreeningSection
+                screening={application.screening}
+                onExpandedChange={(expanded) => {
+                  if (expanded) void dismissScreeningReviewBadge(application.id);
+                }}
+              />
             </ApplicantDetailSection>
           </SurfaceCard>
         ) : null}
@@ -1228,7 +1298,10 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         ) : null}
 
-        {application.interview_details && !workerDeleted ? (
+        {application.interview_details &&
+        !workerDeleted &&
+        application.status !== 'interview_offered' &&
+        application.status !== 'interview_scheduled' ? (
           <SurfaceCard padding="md" gap>
             <ApplicantDetailSection icon="calendar-outline" title="Interview notes" accent={accent}>
               <ApplicationPreviewField
@@ -1294,6 +1367,24 @@ export function ClinicApplicationDetailCard({
         onRetry={() => void handleOpenCandidatePacket()}
         onPdfError={(message) => setPdfPreviewError(message)}
       />
+
+      {isConfirmedFillIn ? (
+        <>
+          <CancelFillInSheet
+            visible={cancelFillInSheetVisible}
+            workerName={applicantName}
+            onClose={() => setCancelFillInSheetVisible(false)}
+            onSubmit={handleSubmitCancelConfirmedFillIn}
+          />
+          <CancelFillInSheet
+            visible={deleteFillInSheetVisible}
+            workerName={applicantName}
+            mode="delete"
+            onClose={() => setDeleteFillInSheetVisible(false)}
+            onSubmit={handleSubmitDeleteConfirmedFillIn}
+          />
+        </>
+      ) : null}
     </>
   );
 }
