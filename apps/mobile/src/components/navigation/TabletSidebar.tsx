@@ -3,12 +3,12 @@ import { formatRoleTypesLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { CommonActions } from '@react-navigation/native';
 import { router, usePathname } from 'expo-router';
 import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
@@ -395,18 +395,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
     const onPress = () => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const event = navigation.emit({
-        type: 'tabPress',
-        target: route.key,
-        canPreventDefault: true,
+      handleTabBarPress({
+        route,
+        navigation,
+        state,
+        isFocused,
+        pathname,
+        role,
       });
-
-      if (!isFocused && !event.defaultPrevented) {
-        navigation.dispatch({
-          ...CommonActions.navigate(route.name),
-          target: state.key,
-        });
-      }
     };
 
     const onLongPress = () => {

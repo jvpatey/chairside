@@ -210,7 +210,7 @@ export function pickClinicSpotlight(input: ClinicSpotlightInput): DashboardSpotl
       id: `posting-${openJob.id}`,
       eyebrow: 'Live role',
       headline: openJob.title,
-      body: 'Your open role is live — share it or review incoming interest.',
+      body: 'Your role is live on Chairside — review applicants as they come in.',
       ctaLabel: 'Manage role',
       accent: 'primary',
       icon: 'briefcase-outline',

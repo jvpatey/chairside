@@ -199,6 +199,33 @@ export function getActiveTabBarName(
   return null;
 }
 
+/** True when the pathname is the top-level screen for a main tab (not a nested stack route). */
+export function isTabRootPath(
+  pathname: string,
+  tabName: string,
+  role: TabAtmosphereRole,
+): boolean {
+  const normalized = normalizePath(pathname);
+  const relative = stripTabGroupPrefix(normalized, role);
+
+  if (tabName === 'index') {
+    return isHomePath(relative);
+  }
+
+  const mainTab = getMainTabFromRelativePath(relative, role);
+  if (mainTab !== tabName) {
+    return false;
+  }
+
+  const segments = relative.split('/').filter(Boolean);
+
+  if (tabName === 'messages') {
+    return segments.length === 1 || segments[1] === 'index';
+  }
+
+  return segments.length === 1;
+}
+
 function getMainTabFromRelativePath(
   relativePath: string,
   role: TabAtmosphereRole,

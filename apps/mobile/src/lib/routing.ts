@@ -1,5 +1,7 @@
 import type { Href } from 'expo-router';
 
+import type { TabAtmosphereRole } from '@/lib/tabAtmosphereRoutes';
+
 import type { UserRole } from '@/types';
 
 export type FillInReturnTarget = 'postings-fill-ins' | 'dashboard-fill-ins' | 'fill-ins-tab';
@@ -153,6 +155,45 @@ export function getWorkerBrowseRoute(tab?: WorkerBrowseTabParam): Href {
     return WORKER_FILLINS;
   }
   return WORKER_BROWSE;
+}
+
+/** Top-level href for a main tab bar route (resets nested stack screens). */
+export function getTabRootHref(tabName: string, role: TabAtmosphereRole): Href | null {
+  if (role === 'clinic') {
+    switch (tabName) {
+      case 'index':
+        return CLINIC_HOME;
+      case 'postings':
+        return CLINIC_POSTINGS;
+      case 'applications':
+        return CLINIC_APPLICATIONS;
+      case 'fill-ins':
+        return CLINIC_FILL_INS;
+      case 'calendar':
+        return getClinicCalendarSidebarRoute();
+      case 'messages':
+        return getClinicMessagesRoute();
+      default:
+        return null;
+    }
+  }
+
+  switch (tabName) {
+    case 'index':
+      return WORKER_HOME;
+    case 'browse':
+      return WORKER_BROWSE;
+    case 'applications':
+      return WORKER_APPLICATIONS;
+    case 'fillins':
+      return WORKER_FILLINS;
+    case 'calendar':
+      return getWorkerCalendarSidebarRoute();
+    case 'messages':
+      return getWorkerMessagesRoute();
+    default:
+      return null;
+  }
 }
 
 export function getClinicHomeRoute(overview?: DashboardOverviewParam): Href {
