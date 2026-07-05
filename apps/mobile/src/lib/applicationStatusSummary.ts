@@ -14,6 +14,8 @@ export type ApplicationStatusSummaryInput = {
   applicationKitRequestedAt?: string | null;
   applicationKitSubmittedAt?: string | null;
   interviewProposedAt?: string | null;
+  statusNote?: string | null;
+  statusClosedBy?: 'clinic' | 'worker' | null;
   workerAccountDeleted?: boolean;
   clinicAccountDeleted?: boolean;
 };
@@ -24,6 +26,53 @@ export type ApplicationStatusSummary = {
   nextStep?: string;
   variant: 'default' | 'info' | 'warning' | 'success';
 };
+
+function cancelledFillInSummary(
+  application: ApplicationStatusSummaryInput,
+  audience: ApplicationStatusSummaryAudience,
+): ApplicationStatusSummary | null {
+  const note = application.statusNote?.trim();
+  if (
+    application.postType !== 'shift' ||
+    application.status !== 'rejected' ||
+    !application.statusClosedBy
+  ) {
+    return null;
+  }
+
+  if (application.statusClosedBy === 'clinic') {
+    return audience === 'worker'
+      ? {
+          headline: 'Fill-in cancelled by clinic',
+          description: note ?? 'The clinic cancelled this confirmed fill-in.',
+          nextStep: 'This fill-in may reopen for other candidates.',
+          variant: 'warning',
+        }
+      : {
+          headline: 'Fill-in cancelled',
+          description: note ?? 'You cancelled this confirmed fill-in.',
+          nextStep: 'The fill-in has been reopened for new cover requests.',
+          variant: 'default',
+        };
+  }
+
+  if (application.statusClosedBy === 'worker') {
+    return audience === 'worker'
+      ? {
+          headline: 'Shift cancelled',
+          description: 'You cancelled this confirmed fill-in.',
+          variant: 'default',
+        }
+      : {
+          headline: 'Candidate cancelled shift',
+          description: 'The candidate cancelled this confirmed fill-in.',
+          nextStep: 'The fill-in has been reopened for new cover requests.',
+          variant: 'default',
+        };
+  }
+
+  return null;
+}
 
 function toKitFields(application: ApplicationStatusSummaryInput) {
   return {
@@ -147,14 +196,16 @@ export function getApplicationStatusSummary(
     }
 
     if (status === 'rejected') {
-      return {
-        headline: 'Declined',
-        description:
-          audience === 'worker'
-            ? 'This cover request was declined.'
-            : 'You declined this cover request.',
-        variant: 'default',
-      };
+      return (
+        cancelledFillInSummary(application, audience) ?? {
+          headline: 'Declined',
+          description:
+            audience === 'worker'
+              ? 'This cover request was declined.'
+              : 'You declined this cover request.',
+          variant: 'default',
+        }
+      );
     }
   }
 

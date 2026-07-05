@@ -239,7 +239,11 @@ export function FillInApplicantCard({
             <View style={{ alignItems: 'flex-end', gap: 8 }}>
               {showNewBadge ? <ApplicationCardBadge label={newCoverRequestLabel ?? 'New'} /> : null}
               {showStatusBadge ? (
-                <ClinicApplicationStatusBadge status={application.status} postType="shift" />
+                <ClinicApplicationStatusBadge
+                  status={application.status}
+                  postType="shift"
+                  statusClosedBy={application.status_closed_by}
+                />
               ) : null}
               <View style={styles.chevronRow}>
                 <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />

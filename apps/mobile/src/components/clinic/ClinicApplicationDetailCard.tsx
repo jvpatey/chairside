@@ -51,6 +51,7 @@ import {
 } from '@/components/clinic/ClinicWorkerCrmSheet';
 import { ApplicationPdfPacketPreviewModal } from '@/components/clinic/ApplicationPdfPacketPreviewModal';
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
+import { CancelFillInSheet } from '@/components/clinic/CancelFillInSheet';
 import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
 import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -355,6 +356,7 @@ function ApplicantHeroCard({
               postType={application.post_type}
               applicationKitRequestedAt={application.application_kit_requested_at}
               applicationKitSubmittedAt={application.application_kit_submitted_at}
+              statusClosedBy={application.status_closed_by}
             />
           ) : null}
           {jobMatch && matchContext ? (
@@ -637,6 +639,7 @@ export function ClinicApplicationDetailCard({
   const [pdfPreviewVisible, setPdfPreviewVisible] = useState(false);
   const [pdfPreview, setPdfPreview] = useState<ApplicationPdfPacketResult | null>(null);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
+  const [cancelFillInSheetVisible, setCancelFillInSheetVisible] = useState(false);
   const { isHydrated: screeningDismissHydrated, dismissedIds: dismissedScreeningReviewIds, dismiss: dismissScreeningReviewBadge } =
     useDismissedScreeningReviews();
   const isJob = application.post_type === 'job';
@@ -929,26 +932,11 @@ export function ClinicApplicationDetailCard({
     });
   };
 
-  const handleCancelConfirmedFillIn = () => {
-    showConfirmActionSheet({
-      title: 'Cancel fill-in?',
-      message: `Cancel the confirmation with ${applicantName}? The fill-in will reopen for new cover requests.`,
-      confirmLabel: 'Cancel fill-in',
-      destructive: true,
-      onConfirm: async () => {
-        try {
-          await cancelConfirmedFillIn(application.id);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onUpdated?.();
-          onDecided?.();
-        } catch (error) {
-          Alert.alert(
-            'Could not cancel fill-in',
-            error instanceof Error ? error.message : 'Please try again.',
-          );
-        }
-      },
-    });
+  const handleSubmitCancelConfirmedFillIn = async (message: string) => {
+    await cancelConfirmedFillIn(application.id, { message });
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onUpdated?.();
+    onDecided?.();
   };
 
   const handleDeleteConfirmedFillIn = () => {
@@ -1017,7 +1005,7 @@ export function ClinicApplicationDetailCard({
         key: 'cancel-fill-in',
         label: 'Cancel fill-in',
         variant: 'secondary',
-        onPress: handleCancelConfirmedFillIn,
+        onPress: () => setCancelFillInSheetVisible(true),
       });
       destructive.push({
         key: 'delete-fill-in',
@@ -1208,6 +1196,8 @@ export function ClinicApplicationDetailCard({
           applicationKitRequestedAt={application.application_kit_requested_at}
           applicationKitSubmittedAt={application.application_kit_submitted_at}
           interviewProposedAt={application.interview_proposed_at}
+          statusNote={application.status_note}
+          statusClosedBy={application.status_closed_by}
           workerAccountDeleted={workerDeleted}
           isHighlighted={hasNewApplication}
         />
@@ -1394,6 +1384,15 @@ export function ClinicApplicationDetailCard({
         onRetry={() => void handleOpenCandidatePacket()}
         onPdfError={(message) => setPdfPreviewError(message)}
       />
+
+      {isConfirmedFillIn ? (
+        <CancelFillInSheet
+          visible={cancelFillInSheetVisible}
+          workerName={applicantName}
+          onClose={() => setCancelFillInSheetVisible(false)}
+          onSubmit={handleSubmitCancelConfirmedFillIn}
+        />
+      ) : null}
     </>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
+import { CancelFillInSheet } from '@/components/clinic/CancelFillInSheet';
 import { DetailRow, RowDivider } from '@/components/clinic/DetailCard';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -60,6 +61,7 @@ export function ConfirmedFillInCard({
   onUpdated,
 }: ConfirmedFillInCardProps) {
   const { colors } = useTheme();
+  const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState<'cancel' | 'delete' | null>(null);
   const roleLabel = formatFillInRoleLabel(shiftDate);
   const shiftTimes = {
@@ -87,30 +89,15 @@ export function ConfirmedFillInCard({
     onExpandChange?.(!expanded);
   };
 
-  const handleCancelFillIn = () => {
-    if (isSubmitting) return;
-
-    showConfirmActionSheet({
-      title: 'Cancel fill-in?',
-      message: `Cancel the confirmation with ${workerName}? The fill-in will reopen for new cover requests.`,
-      confirmLabel: 'Cancel fill-in',
-      destructive: true,
-      onConfirm: async () => {
-        setIsSubmitting('cancel');
-        try {
-          await cancelConfirmedFillIn(applicationId);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onUpdated?.();
-        } catch (error) {
-          Alert.alert(
-            'Could not cancel fill-in',
-            error instanceof Error ? error.message : 'Please try again.',
-          );
-        } finally {
-          setIsSubmitting(null);
-        }
-      },
-    });
+  const handleSubmitCancel = async (message: string) => {
+    setIsSubmitting('cancel');
+    try {
+      await cancelConfirmedFillIn(applicationId, { message });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onUpdated?.();
+    } finally {
+      setIsSubmitting(null);
+    }
   };
 
   const handleDeleteFillIn = () => {
@@ -158,44 +145,53 @@ export function ConfirmedFillInCard({
   );
 
   return (
-    <ExpandableSurfaceCard
-      header={header}
-      expanded={expanded}
-      onToggleExpand={toggleExpanded}
-      variant="success"
-      accent="secondary">
-      <CardDetailSection title="Shift details">
-        <View style={styles.detailsCard}>
-          <DetailRow label="Name" value={workerName} />
-          <RowDivider />
-          <DetailRow label="Role" value={roleLabel} />
-          <RowDivider />
-          <DetailRow label="Schedule" value={scheduleDetail ?? shiftMeta} />
-          <RowDivider />
-          <DetailRow label="Status" value="Confirmed" />
+    <>
+      <ExpandableSurfaceCard
+        header={header}
+        expanded={expanded}
+        onToggleExpand={toggleExpanded}
+        variant="success"
+        accent="secondary">
+        <CardDetailSection title="Shift details">
+          <View style={styles.detailsCard}>
+            <DetailRow label="Name" value={workerName} />
+            <RowDivider />
+            <DetailRow label="Role" value={roleLabel} />
+            <RowDivider />
+            <DetailRow label="Schedule" value={scheduleDetail ?? shiftMeta} />
+            <RowDivider />
+            <DetailRow label="Status" value="Confirmed" />
+          </View>
+        </CardDetailSection>
+        <View style={styles.actions}>
+          <OnboardingButton
+            label="Message"
+            variant="secondary"
+            onPress={() =>
+              router.push(getClinicApplicationMessagesRoute(applicationId, returnTo))
+            }
+          />
+          <OnboardingButton
+            label={isSubmitting === 'cancel' ? 'Cancelling…' : 'Cancel fill-in'}
+            variant="secondary"
+            disabled={isSubmitting != null}
+            onPress={() => setCancelSheetVisible(true)}
+          />
+          <OnboardingButton
+            label={isSubmitting === 'delete' ? 'Deleting…' : 'Delete fill-in'}
+            variant="destructive"
+            disabled={isSubmitting != null}
+            onPress={handleDeleteFillIn}
+          />
         </View>
-      </CardDetailSection>
-      <View style={styles.actions}>
-        <OnboardingButton
-          label="Message"
-          variant="secondary"
-          onPress={() =>
-            router.push(getClinicApplicationMessagesRoute(applicationId, returnTo))
-          }
-        />
-        <OnboardingButton
-          label={isSubmitting === 'cancel' ? 'Cancelling…' : 'Cancel fill-in'}
-          variant="secondary"
-          disabled={isSubmitting != null}
-          onPress={handleCancelFillIn}
-        />
-        <OnboardingButton
-          label={isSubmitting === 'delete' ? 'Deleting…' : 'Delete fill-in'}
-          variant="destructive"
-          disabled={isSubmitting != null}
-          onPress={handleDeleteFillIn}
-        />
-      </View>
-    </ExpandableSurfaceCard>
+      </ExpandableSurfaceCard>
+
+      <CancelFillInSheet
+        visible={cancelSheetVisible}
+        workerName={workerName}
+        onClose={() => setCancelSheetVisible(false)}
+        onSubmit={handleSubmitCancel}
+      />
+    </>
   );
 }

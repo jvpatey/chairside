@@ -106,6 +106,8 @@ export type ApplicationRow = {
   interview_duration_minutes: number | null;
   interview_details: string | null;
   interview_offer_closed_by: string | null;
+  status_note: string | null;
+  status_closed_by: string | null;
   worker_hidden_at: string | null;
   clinic_hidden_at: string | null;
   clinic_name: string | null;
@@ -470,7 +472,11 @@ export type Database = {
         Returns: ApplicationRow;
       };
       cancel_confirmed_fill_in: {
-        Args: { application_id: string };
+        Args: { application_id: string; message?: string | null };
+        Returns: ApplicationRow;
+      };
+      re_request_shift_cover: {
+        Args: { p_shift_post_id: string; p_cover_message?: string | null };
         Returns: ApplicationRow;
       };
       hide_worker_application: {

@@ -115,6 +115,7 @@ export function ClinicApplicationCard({
                 postType={application.post_type}
                 applicationKitRequestedAt={application.application_kit_requested_at}
                 applicationKitSubmittedAt={application.application_kit_submitted_at}
+                statusClosedBy={application.status_closed_by}
               />
             ) : null}
           </View>

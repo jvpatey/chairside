@@ -64,7 +64,6 @@ import {
 } from '@/lib/workerBrowseFilters';
 import {
   getWorkerShiftDetailRoute,
-  WORKER_PAST_FILLINS,
   WORKER_SETUP_AVAILABILITY_SCHEDULE,
 } from '@/lib/routing';
 import {
@@ -109,7 +108,7 @@ function navigateToEditSchedule() {
 export default function FillInsScreen() {
   useMarkGetStartedBrowseVisit('fillIns');
   const { user } = useAuth();
-  const params = useLocalSearchParams<{ mode?: string; date?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; date?: string; tab?: string }>();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
   const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('open');
@@ -191,6 +190,13 @@ export default function FillInsScreen() {
     }
   }, [params.date, params.mode]);
 
+  useEffect(() => {
+    const tab = params.tab;
+    if (tab === 'open' || tab === 'confirmed' || tab === 'history' || tab === 'availability') {
+      setSelectedMode(tab);
+    }
+  }, [params.tab]);
+
   const filteredShifts = useMemo(
     () =>
       filterAndSortLiveShifts(shifts, workerProfile, availabilityBlocks, {
@@ -253,12 +259,20 @@ export default function FillInsScreen() {
     availabilityFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.availabilityFilter ||
     savedOnlyFilter !== DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.savedOnlyFilter;
 
-  const { upcomingConfirmed, pastConfirmed, pastInProgress, upcomingInProgress } = useMemo(
-    () => partitionWorkerShiftApplications(applications),
-    [applications],
-  );
-  const pastFillInCount = pastConfirmed.length + pastInProgress.length;
+  const {
+    upcomingConfirmed,
+    pastConfirmed,
+    pastInProgress,
+    upcomingInProgress,
+    cancelledApplications,
+    declinedApplications,
+  } = useMemo(() => partitionWorkerShiftApplications(applications), [applications]);
   const activeFillInCount = upcomingConfirmed.length + upcomingInProgress.length;
+  const historyFillInCount =
+    cancelledApplications.length +
+    declinedApplications.length +
+    pastConfirmed.length +
+    pastInProgress.length;
   const mapGroups = useMemo(
     () => groupWorkerMapItemsByClinic(toWorkerMapItemsFromShifts(filteredShifts, savedShiftIds)),
     [filteredShifts, savedShiftIds],
@@ -456,7 +470,7 @@ export default function FillInsScreen() {
                 <DashboardEmptyState
                   icon="document-text-outline"
                   title="No fill-in shifts yet"
-                  message="Request to cover an open shift and track it here."
+                  message="Request to cover an open shift and track confirmed and in-progress fill-ins here."
                 />
               ) : (
                 <>
@@ -490,13 +504,79 @@ export default function FillInsScreen() {
                   ) : null}
                 </>
               )}
-              {!isLoading && pastFillInCount > 0 ? (
-                <DashboardSectionHeader
-                  title=""
-                  actionLabel={`View ${pastFillInCount} past fill-in${pastFillInCount === 1 ? '' : 's'}`}
-                  onActionPress={() => router.push(WORKER_PAST_FILLINS)}
+            </View>
+          ) : null}
+
+          {selectedMode === 'history' ? (
+            <View style={styles.panel}>
+              {isLoading ? (
+                <PageLoadingList rowCount={3} />
+              ) : historyFillInCount === 0 ? (
+                <DashboardEmptyState
+                  icon="time-outline"
+                  title="No fill-in history yet"
+                  message="Declined requests, cancelled shifts, and past fill-ins will appear here."
                 />
-              ) : null}
+              ) : (
+                <>
+                  {cancelledApplications.length > 0 ? (
+                    <View style={styles.applicationGroup}>
+                      <DashboardSectionHeader title="Cancelled" compact />
+                      <StaggeredList>
+                        {cancelledApplications.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
+                    </View>
+                  ) : null}
+                  {declinedApplications.length > 0 ? (
+                    <View style={styles.applicationGroup}>
+                      <DashboardSectionHeader title="Declined" compact />
+                      <StaggeredList>
+                        {declinedApplications.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
+                    </View>
+                  ) : null}
+                  {pastConfirmed.length > 0 ? (
+                    <View style={styles.applicationGroup}>
+                      <DashboardSectionHeader title="Past confirmed" compact />
+                      <StaggeredList>
+                        {pastConfirmed.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
+                    </View>
+                  ) : null}
+                  {pastInProgress.length > 0 ? (
+                    <View style={styles.applicationGroup}>
+                      <DashboardSectionHeader title="Expired requests" compact />
+                      <StaggeredList>
+                        {pastInProgress.map((application) => (
+                          <WorkerApplicationListCard
+                            key={application.id}
+                            application={application}
+                            returnTo="fill-ins-tab"
+                          />
+                        ))}
+                      </StaggeredList>
+                    </View>
+                  ) : null}
+                </>
+              )}
             </View>
           ) : null}
 

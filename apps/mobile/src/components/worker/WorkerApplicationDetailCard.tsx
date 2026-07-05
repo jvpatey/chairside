@@ -63,6 +63,7 @@ import {
 import { buildResumeFileName } from '@/lib/openResumePreview';
 import { getWorkerCalendarRoute } from '@/lib/calendarNavigation';
 import {
+  getApplyRoute,
   getWorkerApplicationMessagesRoute,
   getWorkerClinicProfileRoute,
   getWorkerJobDetailRoute,
@@ -337,6 +338,8 @@ function WorkerApplicationHeroCard({
           <WorkerApplicationStatusBadge
             status={application.status}
             postType={application.post_type}
+            statusNote={application.status_note}
+            statusClosedBy={application.status_closed_by}
           />
           {jobMatch && matchContext ? (
             <MatchTierBadge
@@ -855,6 +858,20 @@ export function WorkerApplicationDetailCard({
       return { primary, secondary, destructive };
     }
 
+    if (
+      isShift &&
+      application.status === 'rejected' &&
+      application.shift_post_id &&
+      application.post_status === 'live'
+    ) {
+      primary.push({
+        key: 're-request',
+        label: 'Request to cover again',
+        onPress: () => router.push(getApplyRoute('shift', application.shift_post_id!)),
+      });
+      return { primary, secondary, destructive };
+    }
+
     if (application.status === 'interview_offered' && interviewSummary) {
       primary.push({
         key: 'accept-interview',
@@ -1002,6 +1019,8 @@ export function WorkerApplicationDetailCard({
           applicationKitRequestedAt={application.application_kit_requested_at}
           applicationKitSubmittedAt={application.application_kit_submitted_at}
           interviewProposedAt={application.interview_proposed_at}
+          statusNote={application.status_note}
+          statusClosedBy={application.status_closed_by}
           clinicAccountDeleted={clinicDeleted}
         />
 

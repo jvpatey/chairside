@@ -78,7 +78,7 @@ export const WORKER_BROWSE: Href = '/(tabs)/browse' as Href;
 export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;
-export const WORKER_PAST_FILLINS: Href = '/(tabs)/past-fill-ins' as Href;
+export const WORKER_PAST_FILLINS: Href = '/(tabs)/fillins?tab=history' as Href;
 export const WORKER_PROFILE: Href = '/(tabs)/profile' as Href;
 export const WORKER_PROFILE_PROFESSIONAL: Href = '/(tabs)/profile/professional' as Href;
 export const WORKER_PROFILE_APPLICATION_KIT: Href = '/(tabs)/profile/application-kit' as Href;

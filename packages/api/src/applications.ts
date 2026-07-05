@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './client';
+import { throwWithMessage } from './errors';
 import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
 import {
   APPLICATION_UPDATE_GRACE_MS,
@@ -51,6 +52,15 @@ export const ACTIVE_APPLICATION_STATUSES: ApplicationStatus[] = [
   'interview_scheduled',
 ];
 
+/** Pending cover requests that block submitting another request for the same shift. */
+export const ACTIVE_SHIFT_COVER_STATUSES: ApplicationStatus[] = [
+  'applied',
+  'reviewed',
+  'in_progress',
+  'interview_offered',
+  'interview_scheduled',
+];
+
 export type ScheduleApplicationInterviewInput = {
   interviewAt: string;
   durationMinutes: number;
@@ -88,6 +98,8 @@ export type Application = {
   interview_proposed_details: string | null;
   interview_proposed_by: 'clinic' | 'worker' | null;
   interview_offer_closed_by: 'clinic' | 'worker' | null;
+  status_note: string | null;
+  status_closed_by: 'clinic' | 'worker' | null;
   worker_hidden_at: string | null;
   clinic_hidden_at: string | null;
   clinic_name: string | null;
@@ -607,6 +619,32 @@ export async function getWorkerApplication(
   return enrichWorkerApplication(data as Application);
 }
 
+async function getWorkerShiftApplicationRecord(
+  workerId: string,
+  shiftPostId: string,
+): Promise<Application | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*')
+    .eq('worker_id', workerId)
+    .eq('shift_post_id', shiftPostId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as Application | null;
+}
+
+export async function getWorkerShiftApplication(
+  workerId: string,
+  shiftPostId: string,
+): Promise<WorkerApplication | null> {
+  const data = await getWorkerShiftApplicationRecord(workerId, shiftPostId);
+  if (!data) return null;
+
+  return enrichWorkerApplication(data);
+}
+
 export async function getClinicApplication(
   clinicId: string,
   applicationId: string,
@@ -989,6 +1027,24 @@ export async function listClinicApplicationsForShift(
   );
 }
 
+export async function reRequestShiftCover(
+  shiftPostId: string,
+  coverMessage?: string,
+): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('re_request_shift_cover', {
+    p_shift_post_id: shiftPostId,
+    p_cover_message: coverMessage ?? null,
+  });
+
+  if (error) throwWithMessage(error, 'Cover request cannot be resubmitted');
+  const row = data as Application | null;
+  if (!row) {
+    throw new Error('Cover request cannot be resubmitted');
+  }
+  return row;
+}
+
 export async function createApplication(
   workerId: string,
   input: CreateApplicationInput,
@@ -1012,6 +1068,21 @@ export async function createApplication(
     }
   }
 
+  if (input.shiftPostId && !input.screeningOnly) {
+    const existing = await getWorkerShiftApplicationRecord(workerId, input.shiftPostId);
+    if (existing) {
+      if (existing.status === 'rejected') {
+        return reRequestShiftCover(input.shiftPostId, input.coverMessage);
+      }
+      if (existing.status === 'hired') {
+        throw new Error('You are already confirmed for this fill-in.');
+      }
+      if (ACTIVE_SHIFT_COVER_STATUSES.includes(existing.status)) {
+        throw new Error('You have already submitted for this posting.');
+      }
+    }
+  }
+
   const status: ApplicationStatus = input.screeningOnly ? 'screening_submitted' : 'applied';
 
   const { data, error } = await supabase
@@ -1029,9 +1100,15 @@ export async function createApplication(
 
   if (error) {
     if (error.code === '23505') {
+      if (input.shiftPostId) {
+        const existing = await getWorkerShiftApplicationRecord(workerId, input.shiftPostId);
+        if (existing?.status === 'rejected') {
+          return reRequestShiftCover(input.shiftPostId, input.coverMessage);
+        }
+      }
       throw new Error('You have already submitted for this posting.');
     }
-    throw error;
+    throwWithMessage(error, 'Could not submit application');
   }
 
   const application = data as Application;
@@ -1094,7 +1171,8 @@ export async function hasAppliedToShift(workerId: string, shiftPostId: string): 
     .from('applications')
     .select('id', { count: 'exact', head: true })
     .eq('worker_id', workerId)
-    .eq('shift_post_id', shiftPostId);
+    .eq('shift_post_id', shiftPostId)
+    .in('status', ACTIVE_SHIFT_COVER_STATUSES);
 
   if (error) throw error;
   return (count ?? 0) > 0;
@@ -1384,13 +1462,17 @@ export async function confirmFillInApplicant(
   return row;
 }
 
-export async function cancelConfirmedFillIn(applicationId: string): Promise<Application> {
+export async function cancelConfirmedFillIn(
+  applicationId: string,
+  options?: { message?: string },
+): Promise<Application> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.rpc('cancel_confirmed_fill_in', {
     application_id: applicationId,
+    message: options?.message ?? null,
   });
 
-  if (error) throw error;
+  if (error) throwWithMessage(error, 'Confirmed fill-in not found or cannot be cancelled');
   const row = data as Application | null;
   if (!row) {
     throw new Error('Confirmed fill-in not found or cannot be cancelled');

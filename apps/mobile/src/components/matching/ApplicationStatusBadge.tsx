@@ -3,6 +3,8 @@ import {
   formatApplicationStatus,
   formatClinicApplicationStatus,
   formatClinicScreeningStatus,
+  formatClinicShiftApplicationStatus,
+  formatWorkerShiftApplicationStatus,
   type ApplicationPostType,
 } from '@chairside/config';
 
@@ -107,15 +109,28 @@ export function ApplicationStatusBadge({ label, variant }: ApplicationStatusBadg
 type WorkerApplicationStatusBadgeProps = {
   status: ApplicationStatus | string;
   postType: ApplicationPostType;
+  statusNote?: string | null;
+  statusClosedBy?: 'clinic' | 'worker' | null;
 };
 
 export function WorkerApplicationStatusBadge({
   status,
   postType,
+  statusNote,
+  statusClosedBy,
 }: WorkerApplicationStatusBadgeProps) {
+  const label =
+    postType === 'shift'
+      ? formatWorkerShiftApplicationStatus({
+          status,
+          status_note: statusNote,
+          status_closed_by: statusClosedBy,
+        })
+      : formatApplicationStatus(status, postType);
+
   return (
     <ApplicationStatusBadge
-      label={formatApplicationStatus(status, postType)}
+      label={label}
       variant={getWorkerApplicationStatusVariant(status, postType)}
     />
   );
@@ -124,10 +139,19 @@ export function WorkerApplicationStatusBadge({
 export function WorkerApplicationStatusLabel({
   status,
   postType,
+  statusNote,
+  statusClosedBy,
 }: WorkerApplicationStatusBadgeProps) {
   const variant = getWorkerApplicationStatusVariant(status, postType);
   const palette = useStatusVariantPalette(variant);
-  const label = formatApplicationStatus(status, postType);
+  const label =
+    postType === 'shift'
+      ? formatWorkerShiftApplicationStatus({
+          status,
+          status_note: statusNote,
+          status_closed_by: statusClosedBy,
+        })
+      : formatApplicationStatus(status, postType);
 
   return (
     <Text
@@ -149,6 +173,7 @@ type ClinicApplicationStatusBadgeProps = {
   postType?: ApplicationPostType;
   applicationKitRequestedAt?: string | null;
   applicationKitSubmittedAt?: string | null;
+  statusClosedBy?: 'clinic' | 'worker' | null;
 };
 
 export function ClinicApplicationStatusBadge({
@@ -156,6 +181,7 @@ export function ClinicApplicationStatusBadge({
   postType,
   applicationKitRequestedAt,
   applicationKitSubmittedAt,
+  statusClosedBy,
 }: ClinicApplicationStatusBadgeProps) {
   const label =
     status === 'screening_submitted'
@@ -165,7 +191,12 @@ export function ClinicApplicationStatusBadge({
           application_kit_requested_at: applicationKitRequestedAt,
           application_kit_submitted_at: applicationKitSubmittedAt,
         })
-      : formatClinicApplicationStatus(status, postType);
+      : postType === 'shift'
+        ? formatClinicShiftApplicationStatus({
+            status,
+            status_closed_by: statusClosedBy,
+          })
+        : formatClinicApplicationStatus(status, postType);
 
   return (
     <ApplicationStatusBadge
@@ -186,5 +217,16 @@ export function RequestedPillBadge() {
   const { colors } = useTheme();
   return (
     <PillBadge label="Requested" color={colors.primary} backgroundColor={colors.primarySubtle} />
+  );
+}
+
+export function CancelledPillBadge() {
+  const { colors } = useTheme();
+  return (
+    <PillBadge
+      label="Cancelled"
+      color={colors.destructive}
+      backgroundColor={`${colors.destructive}18`}
+    />
   );
 }

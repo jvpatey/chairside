@@ -8,6 +8,14 @@ export type FillInsListMode = 'active' | 'history';
 
 const IN_PROGRESS_STATUSES = ['applied', 'reviewed', 'in_progress'] as const;
 
+function isCancelledShiftApplication(application: WorkerApplication): boolean {
+  return application.status === 'rejected' && Boolean(application.status_closed_by);
+}
+
+function isDeclinedShiftApplication(application: WorkerApplication): boolean {
+  return application.status === 'rejected' && !application.status_closed_by;
+}
+
 export function isTodayOrUpcomingShiftDate(shiftDate: string | null | undefined): boolean {
   if (!shiftDate) return false;
   return shiftDate >= todayISO();
@@ -53,6 +61,22 @@ export function partitionWorkerShiftApplications(applications: WorkerApplication
     )
     .sort(compareShiftApplicationsByDateAsc);
 
+  const cancelledApplications = applications
+    .filter(isCancelledShiftApplication)
+    .sort(compareShiftApplicationsByDateDesc);
+
+  const declinedApplications = applications
+    .filter(isDeclinedShiftApplication)
+    .sort(compareShiftApplicationsByDateDesc);
+
+  const upcomingCancelled = cancelledApplications.filter((application) =>
+    isTodayOrUpcomingShiftDate(application.shift_date),
+  );
+
+  const pastCancelled = cancelledApplications.filter((application) =>
+    isPastShiftDate(application.shift_date),
+  );
+
   const pastInProgress = applications
     .filter(
       (application) =>
@@ -65,7 +89,11 @@ export function partitionWorkerShiftApplications(applications: WorkerApplication
     upcomingConfirmed,
     pastConfirmed,
     upcomingInProgress,
+    upcomingCancelled,
     pastInProgress,
+    pastCancelled,
+    cancelledApplications,
+    declinedApplications,
   };
 }
 
@@ -110,10 +138,11 @@ export const FILL_INS_LIST_MODE_OPTIONS: { value: FillInsListMode; label: string
   { value: 'history', label: 'History' },
 ];
 
-export type FillInsTabMode = 'open' | 'confirmed' | 'availability';
+export type FillInsTabMode = 'open' | 'confirmed' | 'history' | 'availability';
 
 export const FILL_INS_TAB_MODE_OPTIONS: { value: FillInsTabMode; label: string }[] = [
   { value: 'open', label: 'Open' },
   { value: 'confirmed', label: 'Confirmed' },
+  { value: 'history', label: 'History' },
   { value: 'availability', label: 'Availability' },
 ];

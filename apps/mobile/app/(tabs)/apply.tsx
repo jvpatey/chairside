@@ -1,7 +1,9 @@
 import {
   createApplication,
+  getErrorMessage,
   getLiveJobPost,
   getLiveShiftPost,
+  getWorkerShiftApplication,
   type LiveJobPost,
   type LiveShiftPost,
 } from '@chairside/api';
@@ -48,6 +50,7 @@ export default function ApplyScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [screeningEnabled, setScreeningEnabled] = useState(false);
+  const [isReRequest, setIsReRequest] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -135,9 +138,15 @@ export default function ApplyScreen() {
         setJob(null);
         setJobMatch(null);
         setMatchContext(null);
+        if (user?.id) {
+          const existing = await getWorkerShiftApplication(user.id, id);
+          setIsReRequest(existing?.status === 'rejected');
+        } else {
+          setIsReRequest(false);
+        }
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Please try again.';
+      const message = getErrorMessage(error, 'Please try again.');
       setFormError(message);
       if (Platform.OS !== 'web') {
         Alert.alert('Could not load posting', message);
@@ -146,7 +155,7 @@ export default function ApplyScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, type, workerProfile]);
+  }, [id, type, user?.id, workerProfile]);
 
   useEffect(() => {
     setCoverMessage(workerProfile?.default_cover_message ?? '');
@@ -185,7 +194,7 @@ export default function ApplyScreen() {
       });
       router.replace(type === 'shift' ? WORKER_FILLINS : WORKER_APPLICATIONS);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Please try again.';
+      const message = getErrorMessage(error, 'Please try again.');
       setFormError(message);
       if (Platform.OS !== 'web') {
         Alert.alert(type === 'shift' ? 'Request failed' : 'Application failed', message);
@@ -215,7 +224,9 @@ export default function ApplyScreen() {
             isSubmitting
               ? 'Submitting…'
               : type === 'shift'
-                ? 'Submit request'
+                ? isReRequest
+                  ? 'Request to cover again'
+                  : 'Submit request'
                 : screeningEnabled
                   ? 'Continue to screening'
                   : 'Submit application'
@@ -225,7 +236,7 @@ export default function ApplyScreen() {
         />
       }>
       <AuthScreenHeader
-        title={type === 'job' ? 'Apply for role' : 'Request to cover'}
+        title={type === 'job' ? 'Apply for role' : isReRequest ? 'Request to cover again' : 'Request to cover'}
         subtitle={
           type === 'shift'
             ? 'Review the profile snapshot and cover note the clinic will receive.'

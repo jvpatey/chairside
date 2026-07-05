@@ -22,6 +22,8 @@ export function ApplicationStatusSummaryCard({
   applicationKitRequestedAt,
   applicationKitSubmittedAt,
   interviewProposedAt,
+  statusNote,
+  statusClosedBy,
   workerAccountDeleted,
   clinicAccountDeleted,
 }: ApplicationStatusSummaryCardProps) {
@@ -33,6 +35,8 @@ export function ApplicationStatusSummaryCard({
       applicationKitRequestedAt,
       applicationKitSubmittedAt,
       interviewProposedAt,
+      statusNote,
+      statusClosedBy,
       workerAccountDeleted,
       clinicAccountDeleted,
     },

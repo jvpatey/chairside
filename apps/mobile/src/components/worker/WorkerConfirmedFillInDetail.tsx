@@ -100,7 +100,12 @@ export function WorkerConfirmedFillInDetail({
           detail={formatShiftPostMeta(shift)}
           avatarSize={48}
           textFooter={
-            <WorkerApplicationStatusBadge status={application.status} postType="shift" />
+            <WorkerApplicationStatusBadge
+              status={application.status}
+              postType="shift"
+              statusNote={application.status_note}
+              statusClosedBy={application.status_closed_by}
+            />
           }
         />
       </View>
