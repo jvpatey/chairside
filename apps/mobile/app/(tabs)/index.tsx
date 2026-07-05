@@ -36,7 +36,6 @@ import {
   WorkerOverviewPanel,
   type WorkerOverviewStat,
 } from '@/components/worker/WorkerCards';
-import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -302,10 +301,9 @@ export default function WorkerDashboardScreen() {
             profileHref={WORKER_PROFILE}
             avatarKind="worker"
             displayName={isProfileComplete ? profile?.display_name : null}
-            photoUri={photoUri}
-            namePlaceholder="Your profile"
-            subtitle={workerSubtitle}
-            showActions={isProfileComplete}
+            photoUri={isProfileComplete ? photoUri : null}
+            namePlaceholder={isProfileComplete ? 'Your profile' : 'Welcome to Chairside'}
+            subtitle={isProfileComplete ? workerSubtitle : 'Finish your profile setup'}
           />
         </FadeInSection>
       }
@@ -399,16 +397,6 @@ export default function WorkerDashboardScreen() {
             }
             onApplicationUpdated={() => void loadDashboard()}
             onViewAllPress={overviewViewAll}
-          />
-        </FadeInSection>
-      }
-      checklist={
-        <FadeInSection delayMs={220}>
-          <WorkerReadinessChecklist
-            workerProfile={workerProfile}
-            jobApplicationCount={jobApplications.length}
-            shiftApplicationCount={shiftApplications.length}
-            savedShiftCount={savedShiftIds.size}
           />
         </FadeInSection>
       }

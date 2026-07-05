@@ -12,6 +12,7 @@ type DashboardHeroActionsProps = {
   avatarKind: 'worker' | 'clinic';
   displayName?: string | null;
   photoUri?: string | null;
+  compact?: boolean;
 };
 
 export function DashboardHeroActions({
@@ -19,26 +20,30 @@ export function DashboardHeroActions({
   avatarKind,
   displayName,
   photoUri,
+  compact = false,
 }: DashboardHeroActionsProps) {
   const { colors, isDark } = useTheme();
   const name = displayName?.trim();
   const showSignOut = Platform.OS === 'web';
 
-  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
+  const buttonSize = compact ? 32 : 40;
+  const pillPadding = compact ? 5 : 6;
+  const glassOverlay = colorWithAlpha(colors.surface, isDark ? 0.52 : 0.82);
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    wrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexShrink: 0,
+    },
     actionsCluster: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: spacing.xs,
+      gap: compact ? 6 : spacing.xs,
+      paddingHorizontal: pillPadding,
+      paddingVertical: pillPadding,
       flexShrink: 0,
-    },
-    avatarRing: {
-      borderRadius: radii.pill,
-      padding: 2,
-      borderWidth: 2,
-      borderColor: colorWithAlpha(colors.primary, isDark ? 0.55 : 0.4),
-      backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.5 : 0.88),
+      alignSelf: 'flex-start',
     },
     signOutWrap: {
       marginLeft: spacing.xs,
@@ -46,25 +51,27 @@ export function DashboardHeroActions({
   }));
 
   return (
-    <LiquidGlassSurface
-      borderRadius={22}
-      style={styles.actionsCluster}
-      overlayColor={colorWithAlpha(colors.surface, isDark ? 0.58 : 0.84)}>
-      <View style={styles.avatarRing}>
+    <View style={styles.wrap}>
+      <LiquidGlassSurface
+        borderRadius={999}
+        style={styles.actionsCluster}
+        overlayColor={glassOverlay}>
         <ProfileHeaderButton
           href={profileHref}
           placement="hero"
+          embedded
           avatarKind={avatarKind}
           displayName={name}
           photoUri={photoUri}
+          size={buttonSize}
         />
-      </View>
-      <NotificationBell placement="hero" embedded />
+        <NotificationBell placement="hero" embedded size={buttonSize} />
+      </LiquidGlassSurface>
       {showSignOut ? (
         <View style={styles.signOutWrap}>
           <SignOutHeaderButton />
         </View>
       ) : null}
-    </LiquidGlassSurface>
+    </View>
   );
 }

@@ -1,7 +1,7 @@
 import { ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
 import { getWorkerRoleTypes, updateProfileDisplayName } from '@chairside/api';
 import { router } from 'expo-router';
-import { WORKER_HOME, WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
+import { WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { useSignOut } from '@/hooks/useSignOut';
 import { useThemedStyles } from '@/theme';
 
 export default function WorkerBasicsScreen() {
@@ -22,6 +23,7 @@ export default function WorkerBasicsScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const { isSigningOut, signOut } = useSignOut();
   const [displayName, setDisplayName] = useState('');
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,7 +92,8 @@ export default function WorkerBasicsScreen() {
       <AuthScreenHeader
         title="Professional background · Basics"
         subtitle="Tell clinics who you are and which roles you are qualified for."
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.replace(WORKER_HOME))}
+        backLabel={isEditMode ? undefined : isSigningOut ? 'Signing out…' : 'Sign out'}
+        onBack={() => (isEditMode ? router.replace(exitHref) : void signOut())}
       />
       {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
       <View style={styles.form}>

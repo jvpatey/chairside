@@ -31,6 +31,8 @@ type OnboardingButtonProps = {
   accent?: GradientAccent;
   /** Use a flat brand fill instead of the primary tile gradient. */
   solid?: boolean;
+  /** Equal-height side-by-side action rows — single-line label, shared min height. */
+  split?: boolean;
 };
 
 export function OnboardingButton({
@@ -42,6 +44,7 @@ export function OnboardingButton({
   buttonStyle,
   accent = 'primary',
   solid = false,
+  split = false,
 }: OnboardingButtonProps) {
   const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
@@ -63,16 +66,18 @@ export function OnboardingButton({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     outer: {
       alignSelf: 'stretch' as const,
+      ...(split ? { flex: 1, minWidth: 0 } : null),
     },
     base: {
       alignSelf: 'stretch',
       borderRadius: radii.md,
-      paddingVertical: 14,
-      paddingHorizontal: spacing.lg,
+      paddingVertical: split ? 12 : 14,
+      paddingHorizontal: split ? spacing.sm : spacing.lg,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       minHeight: 48,
       overflow: 'hidden' as const,
+      ...(split ? { flex: 1, width: '100%' as const } : null),
     },
     gradient: {
       ...StyleSheet.absoluteFillObject,
@@ -236,8 +241,9 @@ export function OnboardingButton({
                   ? [labelPrimaryStyle, disabled && styles.labelPrimaryDisabled]
                   : styles.labelSecondary,
           ]}
-          numberOfLines={2}
-          adjustsFontSizeToFit={false}>
+          numberOfLines={split ? 1 : 2}
+          adjustsFontSizeToFit={split}
+          minimumFontScale={split ? 0.82 : undefined}>
           {label}
         </Text>
       </Pressable>

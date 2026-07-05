@@ -86,7 +86,7 @@ export function DashboardHeroSubtitle({ subtitle, trailing }: DashboardHeroSubti
   }
 
   return (
-    <Text style={styles.metaLine} numberOfLines={2} accessibilityRole="text">
+    <Text style={styles.metaLine} numberOfLines={1} accessibilityRole="text">
       <Text style={styles.subtitle}>{subtitle}</Text>
       <Text style={styles.metaSeparator}> · </Text>
       <Text style={styles.trailing}>{trailing}</Text>

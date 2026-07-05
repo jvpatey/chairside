@@ -1,7 +1,8 @@
 import { resolveAuthProfile } from '@chairside/api';
 import { router } from 'expo-router';
 
-import { getHomeRouteForRole } from '@/lib/routing';
+import { isPasswordRecoveryPending } from '@/lib/authRecoveryState';
+import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import type { UserRole } from '@/types';
 
 export async function handleAuthSuccess(
@@ -9,14 +10,23 @@ export async function handleAuthSuccess(
   completeOnboarding: (role: UserRole) => Promise<void>,
   userId: string,
 ) {
-  const profile = await resolveAuthProfile(userId);
-  await refreshProfile();
-
-  if (!profile?.role) {
-    router.replace('/(onboarding)/role?fromAuth=1');
+  if (await isPasswordRecoveryPending()) {
+    router.replace('/auth/reset-password');
     return;
   }
 
-  await completeOnboarding(profile.role);
-  router.replace(getHomeRouteForRole(profile.role));
+  const profile = await resolveAuthProfile(userId);
+  const refreshed = await refreshProfile();
+
+  const { href, role } = await resolveAuthenticatedRoute({
+    userId,
+    profile: profile ?? refreshed,
+    refreshProfile,
+  });
+
+  if (role) {
+    await completeOnboarding(role);
+  }
+
+  router.replace(href);
 }

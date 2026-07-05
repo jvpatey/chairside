@@ -162,6 +162,7 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
     cell: {
       flex: 1,
       minWidth: 0,
+      alignSelf: 'stretch',
     },
   }));
 
@@ -186,7 +187,7 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
   );
 }
 
-function renderActionButtons(actions: ActionButtonSpec[]) {
+function ApplicationActionButtons({ actions }: { actions: ActionButtonSpec[] }) {
   if (actions.length === 0) return null;
 
   const chunks: ActionButtonSpec[][] = [];
@@ -214,6 +215,7 @@ function renderActionButtons(actions: ActionButtonSpec[]) {
                 variant={action.variant ?? 'primary'}
                 onPress={action.onPress}
                 disabled={action.disabled}
+                split
               />
             ))}
           </ApplicationActionRow>
@@ -522,72 +524,56 @@ function WorkerActionPanel({
   removeAction: ActionButtonSpec | null;
 }) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    wrap: {
-      gap: 0,
-    },
-    primaryBlock: {
+    actionStack: {
       gap: spacing.sm,
+      alignSelf: 'stretch',
     },
-    utilityBlock: {
-      gap: spacing.sm,
-      marginTop: spacing.md,
-      paddingTop: spacing.md,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.separator,
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
     },
   }));
 
-  const hasWorkflow = primary.length > 0 || secondary.length > 0 || destructive.length > 0;
+  const workflowActions = [
+    ...primary,
+    ...secondary.map((action) => ({ ...action, variant: action.variant ?? 'secondary' })),
+    ...destructive.map((action) => ({ ...action, variant: action.variant ?? 'destructive' })),
+  ];
+  const hasWorkflow = workflowActions.length > 0;
 
   return (
-    <SurfaceCard padding="md" gap>
-      <View style={styles.wrap}>
-        {hasWorkflow ? (
-          <View style={styles.primaryBlock}>
-            {renderActionButtons(primary)}
-            {renderActionButtons(
-              secondary.map((action) => ({ ...action, variant: action.variant ?? 'secondary' })),
-            )}
-            {renderActionButtons(
-              destructive.map((action) => ({ ...action, variant: action.variant ?? 'destructive' })),
-            )}
-          </View>
-        ) : null}
-
-        <View
-          style={[
-            styles.utilityBlock,
-            !hasWorkflow && { borderTopWidth: 0, marginTop: 0, paddingTop: 0 },
-          ]}>
+    <SurfaceCard padding="md">
+      <View style={styles.actionStack}>
+        {hasWorkflow ? <ApplicationActionButtons actions={workflowActions} /> : null}
+        {hasWorkflow ? <View style={styles.divider} /> : null}
+        <OnboardingButton
+          label={messageAction.label}
+          solid
+          onPress={messageAction.onPress}
+        />
+        {postingAction ? (
           <OnboardingButton
-            label={messageAction.label}
-            solid
-            onPress={messageAction.onPress}
+            label={postingAction.label}
+            variant="secondary"
+            onPress={postingAction.onPress}
+            disabled={postingAction.disabled}
           />
-          {postingAction ? (
-            <OnboardingButton
-              label={postingAction.label}
-              variant="secondary"
-              onPress={postingAction.onPress}
-              disabled={postingAction.disabled}
-            />
-          ) : null}
-          {clinicProfileAction ? (
-            <OnboardingButton
-              label={clinicProfileAction.label}
-              variant="secondary"
-              onPress={clinicProfileAction.onPress}
-              disabled={clinicProfileAction.disabled}
-            />
-          ) : null}
-          {removeAction ? (
-            <OnboardingButton
-              label={removeAction.label}
-              variant="ghost"
-              onPress={removeAction.onPress}
-            />
-          ) : null}
-        </View>
+        ) : null}
+        {clinicProfileAction ? (
+          <OnboardingButton
+            label={clinicProfileAction.label}
+            variant="secondary"
+            onPress={clinicProfileAction.onPress}
+            disabled={clinicProfileAction.disabled}
+          />
+        ) : null}
+        {removeAction ? (
+          <OnboardingButton
+            label={removeAction.label}
+            variant="ghost"
+            onPress={removeAction.onPress}
+          />
+        ) : null}
       </View>
     </SurfaceCard>
   );

@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import {
-  CLINIC_HOME,
   CLINIC_SETUP_LOCATION,
 } from '@/lib/routing';
 import { useEffect, useState } from 'react';
@@ -14,6 +13,7 @@ import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { useSignOut } from '@/hooks/useSignOut';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { useThemedStyles } from '@/theme';
 
@@ -21,6 +21,7 @@ export default function ClinicBasicsScreen() {
   const { clinicProfile, isClinicProfileReady } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
+  const { isSigningOut, signOut } = useSignOut();
   const [clinicName, setClinicName] = useState('');
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
@@ -82,8 +83,9 @@ export default function ClinicBasicsScreen() {
       <AuthScreenHeader
         title="Clinic basics"
         subtitle="Tell us about your practice."
+        backLabel={isEditMode ? undefined : isSigningOut ? 'Signing out…' : 'Sign out'}
         onBack={() =>
-          isEditMode ? router.replace(exitHref) : router.replace(CLINIC_HOME)
+          isEditMode ? router.replace(exitHref) : void signOut()
         }
       />
       {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}

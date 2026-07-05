@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 import { JobPostManageMenuHost } from '@/components/clinic/JobPostManageMenuHost';
+import { ClinicSetupGate } from '@/components/onboarding/SetupGate';
 import { renderClinicTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
@@ -109,7 +110,9 @@ export default function ClinicTabLayout() {
         <FillInPendingProvider>
           <ApplicationTabBadgeProvider role="clinic">
             <TabAtmosphereShell role="clinic">
-              <ClinicTabNavigator />
+              <ClinicSetupGate>
+                <ClinicTabNavigator />
+              </ClinicSetupGate>
             </TabAtmosphereShell>
           </ApplicationTabBadgeProvider>
         </FillInPendingProvider>

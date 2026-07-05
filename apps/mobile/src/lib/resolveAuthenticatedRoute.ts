@@ -1,7 +1,20 @@
-import { resolveAuthProfile, type Profile, type UserRole } from '@chairside/api';
+import {
+  getClinicProfile,
+  getWorkerProfile,
+  resolveAuthProfile,
+  type Profile,
+  type UserRole,
+} from '@chairside/api';
 import type { Href } from 'expo-router';
 
-import { getHomeRouteForRole } from '@/lib/routing';
+import {
+  CLINIC_SETUP_BASICS,
+  getHomeRouteForRole,
+  WORKER_SETUP_BASICS,
+} from '@/lib/routing';
+import { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupCompletion';
+
+export { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupCompletion';
 
 type ResolveAuthenticatedRouteInput = {
   userId: string;
@@ -14,6 +27,22 @@ type ResolveAuthenticatedRouteResult = {
   role: UserRole | null;
 };
 
+async function resolveHomeRouteForRole(userId: string, role: UserRole): Promise<Href> {
+  if (role === 'clinic') {
+    const clinicProfile = await getClinicProfile(userId);
+    if (!isClinicSetupComplete(clinicProfile)) {
+      return CLINIC_SETUP_BASICS;
+    }
+    return getHomeRouteForRole('clinic');
+  }
+
+  const workerProfile = await getWorkerProfile(userId);
+  if (!isWorkerSetupComplete(workerProfile)) {
+    return WORKER_SETUP_BASICS;
+  }
+  return getHomeRouteForRole('worker');
+}
+
 export async function resolveAuthenticatedRoute({
   userId,
   profile,
@@ -25,7 +54,8 @@ export async function resolveAuthenticatedRoute({
     if (!profile?.role) {
       await refreshProfile();
     }
-    return { href: getHomeRouteForRole(resolved.role), role: resolved.role };
+    const href = await resolveHomeRouteForRole(userId, resolved.role);
+    return { href, role: resolved.role };
   }
 
   return { href: '/(onboarding)/role?fromAuth=1', role: null };

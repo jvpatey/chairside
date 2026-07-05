@@ -6,8 +6,8 @@ import {
   signInWithEmail,
   signInWithGoogle,
 } from '@chairside/api';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 
@@ -28,14 +28,22 @@ import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
 import { PASSWORD_RESET_SENT_MESSAGE } from '@/lib/passwordResetCopy';
 import {
   webHover,
+  webOnlyStyle,
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  'reset-link-expired':
+    'That reset link is invalid or expired. Enter your email below and request a new one.',
+  'sign-in-failed': 'We could not finish signing you in. Please try again.',
+};
+
 export default function SignInScreen() {
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
+  const { authError } = useLocalSearchParams<{ authError?: string }>();
   const reducedMotion = useReducedMotion();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +51,7 @@ export default function SignInScreen() {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetLinkSent, setResetLinkSent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [resetHint, setResetHint] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -57,6 +66,12 @@ export default function SignInScreen() {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
     },
+    resetHint: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+      paddingHorizontal: spacing.xs,
+    },
     forgot: {
       alignSelf: 'flex-end',
       paddingVertical: spacing.xs,
@@ -67,11 +82,18 @@ export default function SignInScreen() {
       borderRadius: 8,
       ...webPointer(),
     },
+    forgotDisabled: {
+      opacity: 0.55,
+      ...webPointer('default'),
+    },
     forgotHovered: webTextLinkHoverStyles(colors),
     forgotText: {
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
+    },
+    forgotTextDisabled: {
+      color: colors.labelTertiary,
     },
     footer: {
       gap: spacing.md,
@@ -102,11 +124,20 @@ export default function SignInScreen() {
     },
   }));
 
+  useEffect(() => {
+    if (!authError) return;
+    const message = AUTH_ERROR_MESSAGES[authError];
+    if (message) {
+      setFormError(message);
+    }
+  }, [authError]);
+
   const runSocialSignIn = async (action: () => Promise<unknown>) => {
-    if (isSubmitting) return;
+    if (isSubmitting || isSendingReset) return;
 
     setIsSubmitting(true);
     setFormError(null);
+    setResetHint(null);
     try {
       await action();
       const {
@@ -119,7 +150,9 @@ export default function SignInScreen() {
       const message = getAuthErrorMessage(error);
       if (message !== 'Sign in was cancelled.') {
         setFormError(message);
-        Alert.alert('Sign in failed', message);
+        if (Platform.OS !== 'web') {
+          Alert.alert('Sign in failed', message);
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -127,17 +160,20 @@ export default function SignInScreen() {
   };
 
   const handleSignIn = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || isSendingReset) return;
 
     if (!email.trim() || !password) {
       const message = 'Enter your email and password.';
       setFormError(message);
-      Alert.alert('Missing information', message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Missing information', message);
+      }
       return;
     }
 
     setIsSubmitting(true);
     setFormError(null);
+    setResetHint(null);
     try {
       const { user } = await signInWithEmail(email, password);
       if (!user) return;
@@ -146,21 +182,31 @@ export default function SignInScreen() {
     } catch (error) {
       const message = getAuthErrorMessage(error);
       setFormError(message);
-      Alert.alert('Sign in failed', message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Sign in failed', message);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleForgotPassword = async () => {
+    if (isSendingReset) return;
+
     if (!email.trim()) {
-      Alert.alert('Enter your email', 'Add the email for your account first.');
+      const message = 'Add the email for your account first.';
+      setResetHint(message);
+      setFormError(null);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Enter your email', message);
+      }
       return;
     }
 
     setIsSendingReset(true);
     setResetLinkSent(false);
     setFormError(null);
+    setResetHint(null);
     try {
       await resetPasswordForEmail(email);
       setResetLinkSent(true);
@@ -170,13 +216,16 @@ export default function SignInScreen() {
     } catch (error) {
       const message = getAuthErrorMessage(error);
       setFormError(message);
-      Alert.alert('Reset failed', message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Reset failed', message);
+      }
     } finally {
       setIsSendingReset(false);
     }
   };
 
-  const formBusy = isSubmitting || isSendingReset;
+  const signInBusy = isSubmitting || isSendingReset;
+  const fieldsLocked = isSendingReset;
 
   return (
     <OnboardingShell
@@ -187,7 +236,7 @@ export default function SignInScreen() {
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
             <OnboardingButton
               label={isSubmitting ? 'Signing in…' : 'Sign in'}
-              disabled={formBusy}
+              disabled={signInBusy}
               onPress={handleSignIn}
             />
           </Animated.View>
@@ -215,7 +264,7 @@ export default function SignInScreen() {
       </Animated.View>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.social, reducedMotion)}>
         <SocialAuthButtons
-          disabled={formBusy}
+          disabled={signInBusy}
           onApplePress={() => runSocialSignIn(signInWithApple)}
           onGooglePress={() => runSocialSignIn(signInWithGoogle)}
         />
@@ -233,10 +282,11 @@ export default function SignInScreen() {
           value={email}
           onChangeText={(text) => {
             setFormError(null);
+            setResetHint(null);
             setResetLinkSent(false);
             setEmail(text);
           }}
-          editable={!formBusy}
+          editable={!fieldsLocked}
         />
         <AuthField
           label="Password"
@@ -249,18 +299,22 @@ export default function SignInScreen() {
             setFormError(null);
             setPassword(text);
           }}
-          editable={!formBusy}
+          editable={!fieldsLocked}
         />
+        {resetHint ? <Text style={styles.resetHint}>{resetHint}</Text> : null}
         <Pressable
-          accessibilityRole="button"
-          disabled={formBusy}
-          onPress={handleForgotPassword}
+          accessibilityRole="link"
+          accessibilityState={{ disabled: isSendingReset }}
+          disabled={isSendingReset}
+          onPress={() => void handleForgotPassword()}
           style={({ pressed, hovered }) => [
             styles.forgot,
-            webHover(hovered, pressed, styles.forgotHovered, formBusy),
-            pressed && !formBusy && { opacity: 0.75 },
+            isSendingReset && styles.forgotDisabled,
+            webHover(hovered, pressed, styles.forgotHovered, isSendingReset),
+            pressed && !isSendingReset && { opacity: 0.75 },
+            webOnlyStyle({ tabIndex: isSendingReset ? -1 : 0 } as never),
           ]}>
-          <Text style={styles.forgotText}>
+          <Text style={[styles.forgotText, isSendingReset && styles.forgotTextDisabled]}>
             {isSendingReset ? 'Sending reset link…' : 'Forgot password?'}
           </Text>
         </Pressable>

@@ -4,6 +4,11 @@ import type { Colors } from './colors';
 import { fontBold, fontRegular, fontSemibold } from './fonts';
 import { IS_WEB, webOnlyStyle } from '@/lib/webPressableStyles';
 
+/** Expo registers each weight as a separate font-family on web; use normal weight to avoid fallback. */
+function webExpoFont(fontFamily: string): Pick<TextStyle, 'fontFamily' | 'fontWeight'> {
+  return { fontFamily, fontWeight: 'normal' };
+}
+
 /** Web-only design tokens — never import from native code paths. */
 export const webMotion = {
   fast: '140ms',
@@ -15,50 +20,43 @@ export const webMotion = {
 
 export const webTypography = {
   display: {
+    ...webExpoFont(fontBold),
     fontSize: 56,
     lineHeight: 62,
-    fontWeight: '700' as const,
-    fontFamily: fontBold,
     letterSpacing: -1.8,
   },
   displaySm: {
+    ...webExpoFont(fontBold),
     fontSize: 44,
     lineHeight: 50,
-    fontWeight: '700' as const,
-    fontFamily: fontBold,
     letterSpacing: -1.2,
   },
   headline: {
+    ...webExpoFont(fontBold),
     fontSize: 32,
     lineHeight: 38,
-    fontWeight: '700' as const,
-    fontFamily: fontBold,
     letterSpacing: -0.6,
   },
   title: {
+    ...webExpoFont(fontBold),
     fontSize: 24,
     lineHeight: 30,
-    fontWeight: '700' as const,
-    fontFamily: fontBold,
     letterSpacing: -0.4,
   },
   subtitle: {
+    ...webExpoFont(fontRegular),
     fontSize: 18,
     lineHeight: 28,
-    fontWeight: '400' as const,
-    fontFamily: fontRegular,
   },
   bodyLg: {
+    ...webExpoFont(fontRegular),
     fontSize: 17,
     lineHeight: 26,
-    fontWeight: '400' as const,
-    fontFamily: fontRegular,
   },
   eyebrow: {
+    ...webExpoFont(fontSemibold),
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '600' as const,
-    fontFamily: fontSemibold,
     letterSpacing: 0.6,
     textTransform: 'uppercase' as const,
   },

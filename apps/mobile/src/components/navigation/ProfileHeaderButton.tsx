@@ -12,17 +12,22 @@ type ProfileHeaderButtonProps = {
   href: Href;
   /** `hero` — top-left inside dashboard hero card; `header` — screen title row */
   placement?: 'header' | 'hero';
+  /** Transparent surface when nested inside a hero glass control */
+  embedded?: boolean;
   avatarKind?: 'worker' | 'clinic';
   displayName?: string | null;
   photoUri?: string | null;
+  size?: number;
 };
 
 export function ProfileHeaderButton({
   href,
   placement = 'header',
+  embedded = false,
   avatarKind,
   displayName,
   photoUri,
+  size = 40,
 }: ProfileHeaderButtonProps) {
   const { colors } = useTheme();
   const inHero = placement === 'hero';
@@ -30,13 +35,13 @@ export function ProfileHeaderButton({
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     button: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: size,
+      height: size,
+      borderRadius: size / 2,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: inHero ? 0 : spacing.sm,
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: embedded && inHero ? 'transparent' : colors.fillSubtle,
       overflow: 'hidden',
       ...webPointer(),
     },
@@ -48,8 +53,8 @@ export function ProfileHeaderButton({
       opacity: 0.9,
     },
     image: {
-      width: 40,
-      height: 40,
+      width: size,
+      height: size,
     },
   }));
 
@@ -69,13 +74,13 @@ export function ProfileHeaderButton({
         router.push(href);
       }}>
       {showAvatar && avatarKind === 'worker' ? (
-        <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={40} />
+        <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={size} />
       ) : showAvatar && avatarKind === 'clinic' ? (
-        <ClinicLogoAvatar clinicName={displayName} logoUri={photoUri} size={40} />
+        <ClinicLogoAvatar clinicName={displayName} logoUri={photoUri} size={size} />
       ) : photoUri ? (
         <Image source={{ uri: photoUri }} style={styles.image} accessibilityLabel="Profile" />
       ) : (
-        <Ionicons name="person-outline" size={22} color={colors.labelPrimary} />
+        <Ionicons name="person-outline" size={Math.round(size * 0.55)} color={colors.labelPrimary} />
       )}
     </Pressable>
   );

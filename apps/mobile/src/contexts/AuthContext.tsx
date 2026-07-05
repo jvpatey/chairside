@@ -16,6 +16,11 @@ import {
   type ReactNode,
 } from 'react';
 
+import {
+  clearPasswordRecoveryPending,
+  isPasswordRecoveryPending,
+  markPasswordRecoveryPending,
+} from '@/lib/authRecoveryState';
 import { unregisterPingramPushNotifications } from '@/lib/pingramPushRegistration';
 
 type AuthContextValue = {
@@ -23,7 +28,10 @@ type AuthContextValue = {
   user: User | null;
   profile: Profile | null;
   isAuthReady: boolean;
+  isPasswordRecoveryPending: boolean;
   refreshProfile: () => Promise<Profile | null>;
+  markPasswordRecoveryPending: () => void;
+  clearPasswordRecoveryPending: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -34,8 +42,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isPasswordRecoveryPendingState, setIsPasswordRecoveryPendingState] = useState(false);
   const profileRequestRef = useRef(0);
   const signingOutRef = useRef(false);
+
+  const markRecoveryPending = useCallback(() => {
+    setIsPasswordRecoveryPendingState(true);
+  }, []);
+
+  const clearRecoveryPending = useCallback(async () => {
+    await clearPasswordRecoveryPending();
+    setIsPasswordRecoveryPendingState(false);
+  }, []);
 
   const refreshProfile = useCallback(async () => {
     const supabase = getSupabaseClient();
@@ -102,6 +120,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const revisionAtStart = profileRequestRef.current;
 
       try {
+        const recoveryPending = await isPasswordRecoveryPending();
+        if (!cancelled) {
+          setIsPasswordRecoveryPendingState(recoveryPending);
+        }
+
         await applySessionFromStorage(revisionAtStart);
       } catch {
         if (!cancelled && revisionAtStart === profileRequestRef.current) {
@@ -131,7 +154,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(null);
           setUser(null);
           setProfile(null);
+          void clearPasswordRecoveryPending();
+          setIsPasswordRecoveryPendingState(false);
           return;
+        }
+
+        if (event === 'PASSWORD_RECOVERY') {
+          void markPasswordRecoveryPending();
+          setIsPasswordRecoveryPendingState(true);
         }
 
         const revisionAtEvent = profileRequestRef.current;
@@ -158,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userId) {
         await unregisterPingramPushNotifications(userId);
       }
+      await clearRecoveryPending();
       await apiSignOut();
       setSession(null);
       setUser(null);
@@ -165,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       signingOutRef.current = false;
     }
-  }, [user?.id]);
+  }, [clearRecoveryPending, user?.id]);
 
   const value = useMemo(
     () => ({
@@ -173,10 +204,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       profile,
       isAuthReady,
+      isPasswordRecoveryPending: isPasswordRecoveryPendingState,
       refreshProfile,
+      markPasswordRecoveryPending: markRecoveryPending,
+      clearPasswordRecoveryPending: clearRecoveryPending,
       signOut,
     }),
-    [session, user, profile, isAuthReady, refreshProfile, signOut],
+    [
+      session,
+      user,
+      profile,
+      isAuthReady,
+      isPasswordRecoveryPendingState,
+      refreshProfile,
+      markRecoveryPending,
+      clearRecoveryPending,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

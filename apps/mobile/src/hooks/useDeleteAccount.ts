@@ -22,9 +22,9 @@ export function useDeleteAccount() {
     setIsDeleting(true);
     try {
       await deleteAccount();
+      router.replace('/(onboarding)/welcome');
       await signOut();
       await resetOnboarding();
-      router.replace('/(onboarding)/welcome');
     } catch (error) {
       Alert.alert(
         'Could not delete account',

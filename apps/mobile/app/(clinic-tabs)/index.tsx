@@ -25,7 +25,6 @@ import {
   DashboardOverviewPanel,
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
-import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
 import { DashboardCoverRequestsCard } from '@/components/clinic/DashboardCoverRequestsCard';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
@@ -280,11 +279,10 @@ export default function ClinicDashboardScreen() {
           <DashboardHero
             profileHref={CLINIC_PROFILE}
             avatarKind="clinic"
-            displayName={clinicName}
-            photoUri={logoUri}
-            namePlaceholder="Your practice"
-            subtitle="Dental Clinic"
-            showActions={isProfileComplete}
+            displayName={isProfileComplete ? clinicName : null}
+            photoUri={isProfileComplete ? logoUri : null}
+            namePlaceholder={isProfileComplete ? 'Your practice' : 'Welcome to Chairside'}
+            subtitle={isProfileComplete ? 'Dental Clinic' : 'Finish your clinic setup'}
           />
         </FadeInSection>
       }
@@ -379,19 +377,6 @@ export default function ClinicDashboardScreen() {
               router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
             }
             onViewAllPress={overviewViewAll}
-          />
-        </FadeInSection>
-      }
-      checklist={
-        <FadeInSection delayMs={220}>
-          <ClinicReadinessChecklist
-            clinicProfile={clinicProfile}
-            fillInsPosted={counts.fillInsPosted}
-            openRoles={counts.openRoles}
-            totalApplications={counts.totalApplications}
-            conversationCount={conversations.length}
-            onPostFillIn={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
-            onPostRole={() => guardPosting(CLINIC_POST_JOB)}
           />
         </FadeInSection>
       }

@@ -19,6 +19,7 @@ import { getAppNavigationTheme } from '@/theme/navigationTheme';
 import { ToastProvider } from '@/contexts/ToastContext';
 
 import { PushRegistration } from '@/components/notifications/PushRegistration';
+import { WebAuthCallbackHandler } from '@/components/auth/WebAuthCallbackHandler';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
 import { GetStartedBrowseProgressProvider } from '@/contexts/GetStartedBrowseProgressContext';
@@ -78,6 +79,7 @@ export default function RootLayout() {
               <ResumePreviewProvider>
                 <OnboardingProvider>
                   <ToastProvider>
+                  <WebAuthCallbackHandler />
                   <PushRegistration />
                   <ConfirmActionSheetHost />
                   <VercelAnalytics />

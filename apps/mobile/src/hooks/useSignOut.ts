@@ -16,9 +16,9 @@ export function useSignOut() {
 
     setIsSigningOut(true);
     try {
+      router.replace('/(onboarding)/welcome');
       await signOut();
       await resetOnboarding();
-      router.replace('/(onboarding)/welcome');
     } catch (error) {
       Alert.alert(
         'Sign out failed',

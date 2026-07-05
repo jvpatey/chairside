@@ -20,7 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useSignOut } from '@/hooks/useSignOut';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { getHomeRouteForRole } from '@/lib/routing';
+import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
 
@@ -81,9 +81,14 @@ export default function RoleScreen() {
       setIsSubmitting(true);
       try {
         await setProfileRole(session.user.id, selectedRole);
-        await refreshProfile();
+        const refreshed = await refreshProfile();
         await completeOnboarding(selectedRole);
-        router.replace(getHomeRouteForRole(selectedRole));
+        const { href } = await resolveAuthenticatedRoute({
+          userId: session.user.id,
+          profile: refreshed,
+          refreshProfile,
+        });
+        router.replace(href);
       } catch (error) {
         Alert.alert(
           'Could not save role',

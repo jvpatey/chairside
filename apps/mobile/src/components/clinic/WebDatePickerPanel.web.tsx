@@ -42,7 +42,7 @@ function buildCalendarCells(viewMonth: Date): (Date | null)[] {
 }
 
 export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePickerPanelProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const selectedDate = parseISODate(value) ?? startOfDay(new Date());
   const minDate = min ? parseISODate(min) : null;
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -55,7 +55,7 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
     }
   }, [value]);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     panel: {
       marginTop: spacing.sm,
       backgroundColor: colors.surface,
@@ -112,6 +112,10 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
       justifyContent: 'center',
       paddingVertical: 4,
     },
+    dayPressable: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     dayButton: {
       width: 38,
       height: 38,
@@ -119,12 +123,10 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
       alignItems: 'center',
       justifyContent: 'center',
     },
-    dayButtonSelected: {
-      backgroundColor: colors.primary,
-    },
     dayButtonToday: {
-      borderWidth: 1,
+      borderWidth: 2,
       borderColor: colors.primary,
+      backgroundColor: colors.primarySubtle,
     },
     dayButtonDisabled: {
       opacity: 0.35,
@@ -138,9 +140,14 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
       fontWeight: '500',
       color: colors.labelPrimary,
     },
+    dayTextToday: {
+      color: colors.primary,
+      fontWeight: '700',
+    },
     dayTextSelected: {
       color: colors.primaryOnPrimary,
-      fontWeight: '700',
+      fontWeight: '800',
+      fontSize: 16,
     },
     dayTextMuted: {
       color: colors.labelSecondary,
@@ -154,6 +161,18 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
   const cells = buildCalendarCells(viewMonth);
 
   const isDisabled = (date: Date) => minDate != null && date.getTime() < minDate.getTime();
+
+  const selectedCircleStyle = {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.primaryOnPrimary,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    boxShadow: `0 3px 10px ${isDark ? 'rgba(74, 154, 255, 0.45)' : 'rgba(26, 111, 212, 0.4)'}`,
+  };
 
   return (
     <View style={styles.panel}>
@@ -216,21 +235,27 @@ export function WebDatePickerPanel({ value, min, onChange, onClose }: WebDatePic
                   onClose?.();
                 }}
                 style={({ pressed, hovered }) => [
-                  styles.dayButton,
-                  selected && styles.dayButtonSelected,
-                  !selected && isToday && styles.dayButtonToday,
+                  styles.dayPressable,
                   disabled && styles.dayButtonDisabled,
                   !selected && !disabled && webHover(hovered, pressed, styles.dayButtonHovered),
                   pressed && !disabled && styles.dayButtonPressed,
                 ]}>
-                <Text
+                <View
                   style={[
-                    styles.dayText,
-                    selected && styles.dayTextSelected,
-                    !selected && disabled && styles.dayTextMuted,
+                    styles.dayButton,
+                    selected && selectedCircleStyle,
+                    !selected && isToday && styles.dayButtonToday,
                   ]}>
-                  {date.getDate()}
-                </Text>
+                  <Text
+                    style={[
+                      styles.dayText,
+                      !selected && isToday && styles.dayTextToday,
+                      selected && styles.dayTextSelected,
+                      !selected && disabled && styles.dayTextMuted,
+                    ]}>
+                    {date.getDate()}
+                  </Text>
+                </View>
               </Pressable>
             </View>
           );
