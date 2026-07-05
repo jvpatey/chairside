@@ -69,7 +69,7 @@ export default function WorkerProfileScreen() {
           />
           <ProfileSettingsRow
             icon="folder-outline"
-            title="Application kit"
+            title="Application profile"
             subtitle={getApplicationKitSubtitle(workerProfile)}
             iconColor={colors.secondary}
             iconBackgroundColor={colors.secondarySubtle}

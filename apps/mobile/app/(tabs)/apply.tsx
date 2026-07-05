@@ -307,7 +307,7 @@ export default function ApplyScreen() {
               <Text style={styles.screeningEyebrow}>Screening questions</Text>
               <Text style={styles.screeningText}>
                 This clinic uses screening questions before reviewing full applications. You will only
-                submit your application kit if the clinic requests it.
+                submit your application profile if the clinic requests it.
               </Text>
             </View>
           </View>
@@ -331,7 +331,7 @@ export default function ApplyScreen() {
                 />
               ) : null}
               <EditPillButton
-                label="Edit application kit"
+                label="Edit application profile"
                 onPress={() => router.push(WORKER_SETUP_APPLICATION)}
               />
             </View>

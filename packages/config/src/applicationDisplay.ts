@@ -211,7 +211,7 @@ export function formatClinicScreeningStatus(application: {
     return formatClinicApplicationStatus(application.status, application.post_type);
   }
   if (isAwaitingApplicationKit(application)) {
-    return 'Awaiting application kit';
+    return 'Awaiting candidate packet';
   }
   return 'Screening';
 }

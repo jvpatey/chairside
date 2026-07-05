@@ -1052,7 +1052,7 @@ export async function requestApplicationKit(applicationId: string): Promise<Appl
   if (error) throw error;
   const row = data as Application | null;
   if (!row) {
-    throw new Error('Application kit could not be requested');
+    throw new Error('Full application could not be requested');
   }
   return row;
 }
@@ -1071,7 +1071,7 @@ export async function submitRequestedApplicationKit(
   if (error) throw error;
   const row = data as Application | null;
   if (!row || row.worker_id !== workerId) {
-    throw new Error('Application kit could not be submitted');
+    throw new Error('Full application could not be submitted');
   }
   return row;
 }

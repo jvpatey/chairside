@@ -2,7 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
-import { ProfileSettingsCard, type ProfileSettingsCardProps } from '@/components/profile/ProfileSettingsCard';
+import {
+  ProfileSettingsCard,
+  type ProfileSettingsCardProps,
+} from '@/components/profile/ProfileSettingsCard';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type ProfileDetailSectionIcon = keyof typeof Ionicons.glyphMap;
@@ -147,9 +150,16 @@ export function SummaryStat({
 
 export function SectionPanel({
   icon,
+  stepNumber,
+  stepAccent,
   title,
   children,
-}: Pick<ProfileSettingsCardProps, 'icon' | 'title'> & {
+  collapsible = false,
+  defaultExpanded = true,
+}: Pick<
+  ProfileSettingsCardProps,
+  'icon' | 'stepNumber' | 'stepAccent' | 'title' | 'collapsible' | 'defaultExpanded'
+> & {
   children: ReactNode;
 }) {
   const styles = useThemedStyles(({ spacing }) => ({
@@ -157,7 +167,13 @@ export function SectionPanel({
   }));
 
   return (
-    <ProfileSettingsCard title={title} icon={icon}>
+    <ProfileSettingsCard
+      title={title}
+      icon={icon}
+      stepNumber={stepNumber}
+      stepAccent={stepAccent}
+      collapsible={collapsible}
+      defaultExpanded={defaultExpanded}>
       <View style={styles.body}>{children}</View>
     </ProfileSettingsCard>
   );

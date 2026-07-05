@@ -482,14 +482,14 @@ function WorkerApplicationSummaryCard({
           ) : null}
           {isScreeningStage && !kitSubmitted ? (
             <ApplicationPreviewField
-              label="Application kit"
+              label="Application profile"
               value="Not submitted yet"
               preserveLabelCase
             />
           ) : null}
           {kitSubmitted ? (
             <ApplicationPreviewField
-              label="Application kit"
+              label="Application profile"
               value="Submitted"
               preserveLabelCase
             />
@@ -1055,9 +1055,9 @@ export function WorkerApplicationDetailCard({
             ) : null}
 
             {awaitingKit ? (
-              <CardInfoPanel variant="default" icon="document-text-outline" title="Application kit">
+              <CardInfoPanel variant="default" icon="document-text-outline" title="Full application requested">
                 <CardInfoPanelText>
-                  The clinic requested your full application. Submit your application kit below.
+                  The clinic requested your full application. Submit your application profile below.
                 </CardInfoPanelText>
               </CardInfoPanel>
             ) : null}

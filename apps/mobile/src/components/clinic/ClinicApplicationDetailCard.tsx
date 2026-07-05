@@ -513,14 +513,14 @@ function ApplicationSummaryCard({
           ) : null}
           {isScreeningStage && !kitSubmitted ? (
             <ApplicationPreviewField
-              label="Application kit"
+              label="Candidate packet"
               value="Not submitted yet"
               preserveLabelCase
             />
           ) : null}
           {kitSubmitted ? (
             <ApplicationPreviewField
-              label="Application kit"
+              label="Candidate packet"
               value="Submitted"
               preserveLabelCase
             />
@@ -818,10 +818,10 @@ export function ClinicApplicationDetailCard({
 
   const handleRequestKit = () => {
     showConfirmActionSheet({
-      title: 'Request application kit?',
+      title: 'Request full application?',
       message:
         'The candidate will be asked to confirm and submit their full application before you can review it.',
-      confirmLabel: 'Request application',
+      confirmLabel: 'Request full application',
       onConfirm: () => requestKit(),
     });
   };
@@ -957,7 +957,7 @@ export function ClinicApplicationDetailCard({
     if (isScreeningStage && !awaitingKit) {
       primary.push({
         key: 'request-kit',
-        label: 'Request application kit',
+        label: 'Request full application',
         onPress: handleRequestKit,
       });
       destructive.push(rejectAction());
@@ -1185,9 +1185,9 @@ export function ClinicApplicationDetailCard({
             ) : null}
 
             {awaitingKit ? (
-              <CardInfoPanel variant="default" icon="document-text-outline" title="Application kit">
+              <CardInfoPanel variant="default" icon="document-text-outline" title="Candidate packet">
                 <CardInfoPanelText>
-                  Application kit requested. Waiting for the candidate to submit.
+                  Full application requested. Waiting for the candidate to submit.
                 </CardInfoPanelText>
               </CardInfoPanel>
             ) : null}

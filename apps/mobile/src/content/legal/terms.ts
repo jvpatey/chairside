@@ -40,7 +40,7 @@ export const TERMS_OF_SERVICE_CONTENT: LegalPageContent = {
       title: 'Worker responsibilities',
       bullets: [
         'Apply only when genuinely interested and qualified.',
-        'Keep your application kit, availability, and contact details accurate.',
+        'Keep your application profile, availability, and contact details accurate.',
         'Communicate professionally with clinics.',
       ],
     },

@@ -80,7 +80,7 @@ export async function generateApplicationPdfPacket(
   options: ApplicationPdfPacketOptions,
 ): Promise<ApplicationPdfPacketResult> {
   if (!canGenerateApplicationPdfPacket(options.application)) {
-    throw new Error('Application kit must be submitted before generating a candidate packet.');
+    throw new Error('Full application must be submitted before generating a candidate packet.');
   }
 
   const fileName = buildApplicationPdfPacketFileName(options.application);

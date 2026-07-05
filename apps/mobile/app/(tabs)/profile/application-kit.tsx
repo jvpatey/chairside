@@ -13,8 +13,8 @@ export default function WorkerProfileApplicationKitScreen() {
 
   return (
     <ProfileDetailScreen
-      title="Application kit"
-      subtitle="Photo, resume, and default note sent with applications."
+      title="Application profile"
+      subtitle="Your resume, photo, and note — what clinics see when you apply."
       actionLabel="Edit"
       onActionPress={() =>
         router.push(

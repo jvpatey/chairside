@@ -209,7 +209,7 @@ export function ScreeningWorkerPreviewModal({
                       <Text style={styles.reviewMeta}>
                         Applicants answer all {questions.length} screening question
                         {questions.length === 1 ? '' : 's'}, then submit for clinic review. You can
-                        request their full application kit after reviewing responses.
+                        request their full application after reviewing responses.
                       </Text>
                     </View>
                   ) : null}
