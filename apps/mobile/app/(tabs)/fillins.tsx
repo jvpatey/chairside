@@ -8,13 +8,10 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  StyleSheet,
-  Text,
   useWindowDimensions,
   View,
   type LayoutChangeEvent,
@@ -27,18 +24,15 @@ import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInse
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
-import { FillInModePanel } from '@/components/worker/FillInModePanel';
+import { FillInAvailabilitySummaryCard } from '@/components/worker/FillInAvailabilitySummaryCard';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
 import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
 import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
-import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { PageTabBar } from '@/components/ui/PageTabBar';
 import { StaggeredList } from '@/components/ui/StaggeredList';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
@@ -62,48 +56,14 @@ import {
   DEFAULT_WORKER_FILLIN_BROWSE_FILTERS,
   filterAndSortLiveShifts,
 } from '@/lib/workerBrowseFilters';
-import {
-  getWorkerShiftDetailRoute,
-  WORKER_SETUP_AVAILABILITY_SCHEDULE,
-} from '@/lib/routing';
+import { getWorkerShiftDetailRoute } from '@/lib/routing';
 import {
   countUnmappablePosts,
   groupWorkerMapItemsByClinic,
   toWorkerMapItemsFromShifts,
 } from '@/lib/workerMapItems';
 import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
-import { getFillInHeroGradient, FILL_IN_HERO_GRADIENT_LOCATIONS, useTheme, useThemedStyles } from '@/theme';
-
-function FillInAvailabilityPanelAccent({ children }: { children: ReactNode }) {
-  const { colors, isDark } = useTheme();
-  const gradient = getFillInHeroGradient(colors, isDark);
-  const styles = useThemedStyles(({ radii }) => ({
-    wrap: {
-      borderRadius: radii.lg,
-      overflow: 'hidden',
-      position: 'relative',
-    },
-    gradient: StyleSheet.absoluteFillObject,
-  }));
-
-  return (
-    <View style={styles.wrap}>
-      <LinearGradient
-        colors={gradient}
-        locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
-      {children}
-    </View>
-  );
-}
-
-function navigateToEditSchedule() {
-  router.push(WORKER_SETUP_AVAILABILITY_SCHEDULE);
-}
+import { useThemedStyles } from '@/theme';
 
 export default function FillInsScreen() {
   useMarkGetStartedBrowseVisit('fillIns');
@@ -192,8 +152,12 @@ export default function FillInsScreen() {
 
   useEffect(() => {
     const tab = params.tab;
-    if (tab === 'open' || tab === 'confirmed' || tab === 'history' || tab === 'availability') {
+    if (tab === 'open' || tab === 'confirmed' || tab === 'history') {
       setSelectedMode(tab);
+      return;
+    }
+    if (tab === 'availability') {
+      setSelectedMode('open');
     }
   }, [params.tab]);
 
@@ -300,9 +264,7 @@ export default function FillInsScreen() {
     }
   };
 
-  const fillInsAvailable = workerProfile?.short_notice_available ?? false;
-
-  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
     panel: { gap: spacing.lg },
     cardList: { gap: dashboardSectionGap(spacing) },
@@ -329,31 +291,6 @@ export default function FillInsScreen() {
       overflow: 'hidden',
     },
     applicationGroup: { gap: spacing.sm },
-    daysCardMuted: {
-      opacity: 0.55,
-    },
-    scheduleHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.md,
-    },
-    scheduleHeaderText: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    scheduleTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      letterSpacing: -0.2,
-      color: colors.labelPrimary,
-    },
-    scheduleSubtitle: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
   }));
 
   return (
@@ -368,6 +305,7 @@ export default function FillInsScreen() {
         refreshAccent="secondary"
       >
         <View style={styles.content}>
+          <FillInAvailabilitySummaryCard />
           <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
             <View style={styles.controlRow}>
               <PageTabBar
@@ -577,34 +515,6 @@ export default function FillInsScreen() {
                   ) : null}
                 </>
               )}
-            </View>
-          ) : null}
-
-          {selectedMode === 'availability' ? (
-            <View style={styles.panel}>
-              <FillInAvailabilityPanelAccent>
-                <SurfaceCard padding="none">
-                  <FillInModePanel variant="grouped" />
-                </SurfaceCard>
-              </FillInAvailabilityPanelAccent>
-              <SurfaceCard
-                padding="md"
-                gap
-                style={!fillInsAvailable ? styles.daysCardMuted : undefined}
-              >
-                <View style={styles.scheduleHeader}>
-                  <View style={styles.scheduleHeaderText}>
-                    <Text style={styles.scheduleTitle}>Available days</Text>
-                    <Text style={styles.scheduleSubtitle}>
-                      {fillInsAvailable
-                        ? 'The days and hours you can cover fill-in shifts. Used to filter alerts when you choose matching days only.'
-                        : 'Turn on fill-ins above, then choose which days and hours you can cover temp shifts.'}
-                    </Text>
-                  </View>
-                  <EditPillButton label="Edit days" onPress={navigateToEditSchedule} />
-                </View>
-                <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
-              </SurfaceCard>
             </View>
           ) : null}
         </View>

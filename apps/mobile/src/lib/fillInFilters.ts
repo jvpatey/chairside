@@ -138,11 +138,10 @@ export const FILL_INS_LIST_MODE_OPTIONS: { value: FillInsListMode; label: string
   { value: 'history', label: 'History' },
 ];
 
-export type FillInsTabMode = 'open' | 'confirmed' | 'history' | 'availability';
+export type FillInsTabMode = 'open' | 'confirmed' | 'history';
 
 export const FILL_INS_TAB_MODE_OPTIONS: { value: FillInsTabMode; label: string }[] = [
   { value: 'open', label: 'Open' },
   { value: 'confirmed', label: 'Confirmed' },
   { value: 'history', label: 'History' },
-  { value: 'availability', label: 'Availability' },
 ];

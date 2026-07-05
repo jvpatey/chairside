@@ -77,6 +77,7 @@ export const CLINIC_PROFILE_BILLING: Href = '/(clinic-tabs)/profile/billing' as 
 export const WORKER_BROWSE: Href = '/(tabs)/browse' as Href;
 export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
+export const WORKER_FILLIN_AVAILABILITY: Href = '/(tabs)/fill-in-availability' as Href;
 export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;
 export const WORKER_PAST_FILLINS: Href = '/(tabs)/fillins?tab=history' as Href;
 export const WORKER_PROFILE: Href = '/(tabs)/profile' as Href;
@@ -642,6 +643,7 @@ const NOTIFICATION_TAB_ROOT_ROUTES = new Set([
   '/(tabs)/fillins',
   '/(tabs)/open-fill-ins',
   '/(tabs)/past-fill-ins',
+  '/(tabs)/fill-in-availability',
   '/(tabs)/messages',
   '/(tabs)/profile',
   '/(clinic-tabs)',
