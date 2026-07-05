@@ -30,7 +30,7 @@ type WorkerProfileContextValue = {
 const WorkerProfileContext = createContext<WorkerProfileContextValue | null>(null);
 
 export function WorkerProfileProvider({ children }: { children: ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, isAuthReady } = useAuth();
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
   const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
   const [isWorkerProfileReady, setIsWorkerProfileReady] = useState(false);
@@ -77,7 +77,27 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function load() {
-      if (!user?.id || profile?.role !== 'worker') {
+      if (!isAuthReady) {
+        setIsWorkerProfileReady(false);
+        return;
+      }
+
+      if (!user?.id) {
+        requestRef.current += 1;
+        setWorkerProfile(null);
+        setAvailabilityBlocks([]);
+        setIsWorkerProfileReady(true);
+        return;
+      }
+
+      if (profile === null) {
+        setWorkerProfile(null);
+        setAvailabilityBlocks([]);
+        setIsWorkerProfileReady(false);
+        return;
+      }
+
+      if (profile.role !== 'worker') {
         requestRef.current += 1;
         setWorkerProfile(null);
         setAvailabilityBlocks([]);
@@ -112,7 +132,7 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       requestRef.current += 1;
     };
-  }, [user?.id, profile?.role]);
+  }, [user?.id, profile, profile?.role, isAuthReady]);
 
   const value = useMemo(
     () => ({

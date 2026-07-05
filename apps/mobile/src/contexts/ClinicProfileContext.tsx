@@ -26,7 +26,7 @@ type ClinicProfileContextValue = {
 const ClinicProfileContext = createContext<ClinicProfileContextValue | null>(null);
 
 export function ClinicProfileProvider({ children }: { children: ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, isAuthReady } = useAuth();
   const [clinicProfile, setClinicProfile] = useState<ClinicProfile | null>(null);
   const [isClinicProfileReady, setIsClinicProfileReady] = useState(false);
   const requestRef = useRef(0);
@@ -55,7 +55,25 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function load() {
-      if (!user?.id || profile?.role !== 'clinic') {
+      if (!isAuthReady) {
+        setIsClinicProfileReady(false);
+        return;
+      }
+
+      if (!user?.id) {
+        requestRef.current += 1;
+        setClinicProfile(null);
+        setIsClinicProfileReady(true);
+        return;
+      }
+
+      if (profile === null) {
+        setClinicProfile(null);
+        setIsClinicProfileReady(false);
+        return;
+      }
+
+      if (profile.role !== 'clinic') {
         requestRef.current += 1;
         setClinicProfile(null);
         setIsClinicProfileReady(true);
@@ -84,7 +102,7 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       requestRef.current += 1;
     };
-  }, [user?.id, profile?.role]);
+  }, [user?.id, profile, profile?.role, isAuthReady]);
 
   const value = useMemo(
     () => ({
