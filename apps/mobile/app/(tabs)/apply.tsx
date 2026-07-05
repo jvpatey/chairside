@@ -17,14 +17,13 @@ import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
-import { ApplicationPackageFields } from '@/components/worker/ApplicationPackageFields';
+import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS, getApplyScreeningRoute } from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
@@ -76,14 +75,6 @@ export default function ApplyScreen() {
       alignItems: 'center',
       gap: spacing.sm,
     },
-    credentialsTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: colors.primary,
-    },
-    hint: { ...typography.subtitle, fontSize: 13 },
     screeningNote: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -174,8 +165,6 @@ export default function ApplyScreen() {
     void loadPost();
   }, [isProfileComplete, loadPost]);
 
-  const photoUri = useWorkerPhotoUri(workerProfile?.photo_storage_path);
-
   const handleContinue = () => {
     if (type === 'job' && screeningEnabled) {
       router.push(getApplyScreeningRoute(id));
@@ -239,10 +228,10 @@ export default function ApplyScreen() {
         title={type === 'job' ? 'Apply for role' : 'Request to cover'}
         subtitle={
           type === 'shift'
-            ? 'Review what the clinic will receive with your cover request.'
+            ? 'Review the profile snapshot and cover note the clinic will receive.'
             : screeningEnabled
               ? undefined
-              : 'Review what the clinic will receive.'
+              : 'Review the profile snapshot and cover note the clinic will receive.'
         }
         onBack={() => router.back()}
       />
@@ -306,35 +295,31 @@ export default function ApplyScreen() {
             <View style={styles.screeningContent}>
               <Text style={styles.screeningEyebrow}>Screening questions</Text>
               <Text style={styles.screeningText}>
-                This clinic uses screening questions before reviewing full applications. You will only
-                submit your application profile if the clinic requests it.
+                You will answer screening questions first. Your full application profile is only sent
+                if the clinic requests it after reviewing your responses.
               </Text>
             </View>
           </View>
         ) : (
           <>
-            <View style={styles.card}>
-              <Text style={styles.credentialsTitle}>
-                {type === 'shift' ? 'Cover request details' : 'Application credentials'}
-              </Text>
-              <Text style={styles.hint}>
-                {type === 'shift'
-                  ? 'This is what the clinic will receive with your cover request.'
-                  : 'This is what the clinic will receive with your application.'}
-              </Text>
-              {workerProfile ? (
-                <ApplicationPackageFields
-                  profile={workerProfile}
-                  displayName={profile?.display_name}
-                  photoUri={photoUri}
-                  showDefaultNote
+            <ApplicationKitPreview
+              profile={workerProfile}
+              displayName={profile?.display_name}
+              photoStoragePath={workerProfile?.photo_storage_path}
+              showDefaultNote
+              title={type === 'shift' ? 'Cover request preview' : 'Application profile preview'}
+              hint={
+                type === 'shift'
+                  ? 'This is the profile snapshot and cover note the clinic will receive with your request.'
+                  : 'This is the profile snapshot and cover note the clinic will receive with your application.'
+              }
+              footer={
+                <EditPillButton
+                  label="Edit application profile"
+                  onPress={() => router.push(WORKER_SETUP_APPLICATION)}
                 />
-              ) : null}
-              <EditPillButton
-                label="Edit application profile"
-                onPress={() => router.push(WORKER_SETUP_APPLICATION)}
-              />
-            </View>
+              }
+            />
 
             <AuthField
               label="Cover message (optional)"

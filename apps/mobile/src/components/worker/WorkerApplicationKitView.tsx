@@ -148,7 +148,9 @@ export function WorkerApplicationKitView({
           title="Clinic preview"
           collapsible
           defaultExpanded={false}>
-          <Text style={styles.hint}>This is what clinics will see when they review your application.</Text>
+          <Text style={styles.hint}>
+            A live preview of the application profile clinics review when you apply.
+          </Text>
           <ApplicationKitPreview profile={profile} embedded />
         </SectionPanel>
       ) : null}

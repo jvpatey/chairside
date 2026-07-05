@@ -8,6 +8,7 @@ import {
 } from '@chairside/config';
 import { Text, View } from 'react-native';
 
+import { ApplicationPreviewGroup } from '@/components/worker/ApplicationPreviewGroup';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useThemedStyles } from '@/theme';
 
@@ -92,14 +93,13 @@ export function ApplicationPackageFields({
   showDefaultNote = true,
 }: ApplicationPackageFieldsProps) {
   const styles = useThemedStyles(({ spacing }) => ({
-    wrap: { gap: spacing.xs },
-    header: {
+    wrap: { gap: spacing.sm },
+    profileRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.md,
-      paddingBottom: spacing.xs,
     },
-    headerFields: { flex: 1, gap: spacing.xs },
+    profileFields: { flex: 1, gap: spacing.xs, minWidth: 0 },
   }));
 
   const software =
@@ -108,40 +108,80 @@ export function ApplicationPackageFields({
     profile.practice_types.length > 0
       ? profile.practice_types.map(getSpecialtyLabel).join(', ')
       : null;
+  const rolesLabel = formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null;
+  const experienceLabel =
+    profile.years_of_experience != null ? `${profile.years_of_experience} years` : null;
+  const educationLabel = formatWorkerEducation(profile);
+  const locationLabel = formatWorkerAddress(profile);
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.header}>
-        <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={48} />
-        <View style={styles.headerFields}>
-          <ApplicationPreviewField label="Name" value={displayName} />
-          <ApplicationPreviewField label="Location" value={formatWorkerAddress(profile)} />
+      <ApplicationPreviewGroup title="Profile">
+        <View style={styles.profileRow}>
+          <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={48} />
+          <View style={styles.profileFields}>
+            <ApplicationPreviewField
+              label="Name"
+              value={displayName}
+              emptyLabel="Add your name in account settings"
+            />
+            <ApplicationPreviewField
+              label="Location"
+              value={locationLabel}
+              emptyLabel="Add your location in professional background"
+            />
+          </View>
         </View>
-      </View>
-
-      <ApplicationPreviewField
-        label="Roles"
-        value={formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null}
-      />
-      <ApplicationPreviewField
-        label="Experience"
-        value={
-          profile.years_of_experience != null
-            ? `${profile.years_of_experience} years`
-            : null
-        }
-      />
-      <ApplicationPreviewField label="Education" value={formatWorkerEducation(profile)} />
-      <ApplicationPreviewField label="Software" value={software} />
-      <ApplicationPreviewField label="Practice types" value={specialties} />
-      {showDefaultNote ? (
-        <ApplicationPreviewField label="Default note" value={profile.default_cover_message} />
-      ) : null}
-      {profile.resume_storage_path ? (
         <ApplicationPreviewField
-          label="Resume"
-          value={profile.resume_file_name ?? 'PDF attached'}
+          label="Roles"
+          value={rolesLabel}
+          emptyLabel="Add your roles in professional background"
         />
+      </ApplicationPreviewGroup>
+
+      <ApplicationPreviewGroup title="Experience">
+        <ApplicationPreviewField
+          label="Years"
+          value={experienceLabel}
+          emptyLabel="Add experience in professional background"
+        />
+        <ApplicationPreviewField
+          label="Education"
+          value={educationLabel}
+          emptyLabel="Add education in professional background"
+        />
+        <ApplicationPreviewField
+          label="Software"
+          value={software}
+          emptyLabel="Add software in professional background"
+        />
+        <ApplicationPreviewField
+          label="Practice types"
+          value={specialties}
+          emptyLabel="Add practice types in professional background"
+        />
+      </ApplicationPreviewGroup>
+
+      {showDefaultNote ? (
+        <ApplicationPreviewGroup title="Notes & documents">
+          <ApplicationPreviewField
+            label="Default note"
+            value={profile.default_cover_message}
+            emptyLabel="No default note saved yet"
+          />
+          <ApplicationPreviewField
+            label="Resume"
+            value={profile.resume_storage_path ? profile.resume_file_name ?? 'PDF attached' : null}
+            emptyLabel="No resume attached"
+          />
+        </ApplicationPreviewGroup>
+      ) : profile.resume_storage_path ? (
+        <ApplicationPreviewGroup title="Documents">
+          <ApplicationPreviewField
+            label="Resume"
+            value={profile.resume_file_name ?? 'PDF attached'}
+          />
+        </ApplicationPreviewGroup>
       ) : null}
     </View>
   );

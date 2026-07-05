@@ -41,6 +41,7 @@ import { Alert, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { ApplicationStatusSummaryCard } from '@/components/matching/ApplicationStatusSummaryCard';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import {
   ClinicWorkerCrmSection,
@@ -58,6 +59,7 @@ import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { useDismissedScreeningReviews } from '@/hooks/useDismissedScreeningReviews';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
   getApplicationMatchDisplayContext,
@@ -124,11 +126,13 @@ function ApplicantDetailSection({
   title,
   children,
   accent = 'primary',
+  headerAccessory,
 }: {
   icon: SectionIcon;
   title: string;
   children: ReactNode;
   accent?: GradientAccent;
+  headerAccessory?: ReactNode;
 }) {
   const { brand, brandSubtle } = useBrandColors(accent);
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -168,6 +172,7 @@ function ApplicantDetailSection({
           <Ionicons name={icon} size={15} color={brand} />
         </View>
         <Text style={styles.title}>{title}</Text>
+        {headerAccessory}
       </View>
       <View style={styles.body}>{children}</View>
     </View>
@@ -630,6 +635,8 @@ export function ClinicApplicationDetailCard({
   const [pdfPreviewVisible, setPdfPreviewVisible] = useState(false);
   const [pdfPreview, setPdfPreview] = useState<ApplicationPdfPacketResult | null>(null);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
+  const { isHydrated: screeningDismissHydrated, dismissedIds: dismissedScreeningReviewIds, dismiss: dismissScreeningReviewBadge } =
+    useDismissedScreeningReviews();
   const isJob = application.post_type === 'job';
   const accent: GradientAccent = isJob ? 'primary' : 'secondary';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
@@ -820,7 +827,7 @@ export function ClinicApplicationDetailCard({
     showConfirmActionSheet({
       title: 'Request full application?',
       message:
-        'The candidate will be asked to confirm and submit their full application before you can review it.',
+        'After reviewing their screening responses, you can request the candidate packet. They will submit their resume, profile, and cover note before you can review the full application.',
       confirmLabel: 'Request full application',
       onConfirm: () => requestKit(),
     });
@@ -1101,6 +1108,17 @@ export function ClinicApplicationDetailCard({
       (isScreeningStage && !hasKitSubmitted) ||
       hasKitSubmitted);
 
+  const screeningBadgeLabel =
+    screeningDismissHydrated &&
+    isScreeningStage &&
+    !awaitingKit &&
+    application.screening &&
+    !dismissedScreeningReviewIds.has(application.id)
+      ? hasNewApplication
+        ? 'New'
+        : 'Needs review'
+      : null;
+
   return (
     <>
       <View style={styles.stack}>
@@ -1155,7 +1173,18 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         )}
 
-        {hasInterviewDetails || awaitingKit || workerDeleted ? (
+        <ApplicationStatusSummaryCard
+          audience="clinic"
+          status={application.status}
+          postType={application.post_type}
+          applicationKitRequestedAt={application.application_kit_requested_at}
+          applicationKitSubmittedAt={application.application_kit_submitted_at}
+          interviewProposedAt={application.interview_proposed_at}
+          workerAccountDeleted={workerDeleted}
+          isHighlighted={hasNewApplication}
+        />
+
+        {hasInterviewDetails || workerDeleted ? (
           <SurfaceCard padding="md" gap>
             {hasInterviewDetails ? (
               <CardInfoPanel
@@ -1184,14 +1213,6 @@ export function ClinicApplicationDetailCard({
               </CardInfoPanel>
             ) : null}
 
-            {awaitingKit ? (
-              <CardInfoPanel variant="default" icon="document-text-outline" title="Candidate packet">
-                <CardInfoPanelText>
-                  Full application requested. Waiting for the candidate to submit.
-                </CardInfoPanelText>
-              </CardInfoPanel>
-            ) : null}
-
             {workerDeleted ? (
               <CardInfoPanel variant="default">
                 <CardInfoPanelText>
@@ -1214,8 +1235,21 @@ export function ClinicApplicationDetailCard({
 
         {application.post_type === 'job' && application.screening && !workerDeleted ? (
           <SurfaceCard padding="md" gap>
-            <ApplicantDetailSection icon="clipboard-outline" title="Screening responses" accent={accent}>
-              <ApplicationScreeningSection screening={application.screening} />
+            <ApplicantDetailSection
+              icon="clipboard-outline"
+              title="Screening responses"
+              accent={accent}
+              headerAccessory={
+                screeningBadgeLabel ? (
+                  <ApplicationCardBadge label={screeningBadgeLabel} accent={accent} />
+                ) : null
+              }>
+              <ApplicationScreeningSection
+                screening={application.screening}
+                onExpandedChange={(expanded) => {
+                  if (expanded) void dismissScreeningReviewBadge(application.id);
+                }}
+              />
             </ApplicantDetailSection>
           </SurfaceCard>
         ) : null}

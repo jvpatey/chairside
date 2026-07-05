@@ -41,6 +41,7 @@ import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScre
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { ApplicationStatusSummaryCard } from '@/components/matching/ApplicationStatusSummaryCard';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
@@ -956,7 +957,7 @@ export function WorkerApplicationDetailCard({
       application.status === 'interview_scheduled') &&
     interviewSummary;
 
-  const hasStatusCard = hasInterviewDetails || awaitingKit || clinicDeleted;
+  const hasStatusCard = hasInterviewDetails || clinicDeleted;
 
   const hasQualifications =
     hasKitSubmitted &&
@@ -1017,6 +1018,16 @@ export function WorkerApplicationDetailCard({
           />
         )}
 
+        <ApplicationStatusSummaryCard
+          audience="worker"
+          status={application.status}
+          postType={application.post_type}
+          applicationKitRequestedAt={application.application_kit_requested_at}
+          applicationKitSubmittedAt={application.application_kit_submitted_at}
+          interviewProposedAt={application.interview_proposed_at}
+          clinicAccountDeleted={clinicDeleted}
+        />
+
         {hasStatusCard ? (
           <SurfaceCard padding="md" gap>
             {hasInterviewDetails ? (
@@ -1051,14 +1062,6 @@ export function WorkerApplicationDetailCard({
                     Awaiting clinic response · {proposedSummary}
                   </CardInfoPanelText>
                 ) : null}
-              </CardInfoPanel>
-            ) : null}
-
-            {awaitingKit ? (
-              <CardInfoPanel variant="default" icon="document-text-outline" title="Full application requested">
-                <CardInfoPanelText>
-                  The clinic requested your full application. Submit your application profile below.
-                </CardInfoPanelText>
               </CardInfoPanel>
             ) : null}
 
