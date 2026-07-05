@@ -15,13 +15,11 @@ export type SidebarSection = {
 
 export const TABLET_SIDEBAR_SECTIONS: Record<'worker' | 'clinic', SidebarSection[]> = {
   worker: [
-    { label: 'Workspace', routes: ['index', 'browse', 'applications'] },
-    { label: 'Schedule', routes: ['calendar', 'fillins'] },
-    { label: null, routes: ['messages'] },
+    { label: null, routes: ['index', 'browse', 'applications'] },
+    { label: null, routes: ['calendar', 'fillins', 'messages'] },
   ],
   clinic: [
-    { label: 'Workspace', routes: ['index', 'postings', 'applications'] },
-    { label: 'Schedule', routes: ['calendar', 'fill-ins'] },
-    { label: null, routes: ['messages'] },
+    { label: null, routes: ['index', 'postings', 'applications'] },
+    { label: null, routes: ['calendar', 'fill-ins', 'messages'] },
   ],
 };

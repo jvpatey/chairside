@@ -196,7 +196,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     nav: {
       flex: 1,
-      gap: spacing.sm,
+      gap: 0,
       paddingTop: spacing.xs,
     },
     navCollapsed: {
@@ -204,7 +204,13 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       gap: spacing.xs,
     },
     sectionGroup: {
-      gap: spacing.xs,
+      gap: 2,
+    },
+    sectionDivider: {
+      height: 0.5,
+      marginVertical: spacing.sm,
+      marginHorizontal: spacing.sm,
+      backgroundColor: colorWithAlpha(colors.separator, 0.45),
     },
     sectionLabel: {
       fontSize: 11,
@@ -506,8 +512,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       </View>
 
       <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
-        {sidebarSections.map((section) => (
-          <View key={section.label ?? 'ungrouped'} style={styles.sectionGroup}>
+        {sidebarSections.map((section, sectionIndex) => (
+          <View
+            key={section.routes[0]?.name ?? `section-${sectionIndex}`}
+            style={styles.sectionGroup}
+          >
+            {sectionIndex > 0 && !isCollapsed ? <View style={styles.sectionDivider} /> : null}
             {!isCollapsed && section.label ? (
               <Text style={styles.sectionLabel}>{section.label}</Text>
             ) : null}

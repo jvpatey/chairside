@@ -19,6 +19,9 @@ export const CONTENT_MAX_WIDTH = {
 /** Extra top inset below the safe area for aligned sidebar + dashboard content. */
 export const TABLET_TOP_INSET_EXTRA = 8;
 
+/** Web sidebar glass panel inset from viewport — matches `TabletSidebar` outerWeb padding. */
+export const WEB_SIDEBAR_OUTER_INSET = 8;
+
 /** Matches sidebar profile avatar row height for cross-pane alignment. */
 export const TABLET_PROFILE_ROW_HEIGHT = 56;
 

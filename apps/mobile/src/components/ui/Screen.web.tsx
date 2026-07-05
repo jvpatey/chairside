@@ -15,7 +15,7 @@ import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
-import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
+import { WEB_SIDEBAR_OUTER_INSET } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
@@ -73,7 +73,7 @@ export function Screen({
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
   const topPadding =
-    isTablet && !showHeader ? insets.top + TABLET_TOP_INSET_EXTRA : insets.top + 16;
+    isTablet && !showHeader ? WEB_SIDEBAR_OUTER_INSET : insets.top + 16;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {

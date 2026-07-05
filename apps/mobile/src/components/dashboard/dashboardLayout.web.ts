@@ -28,7 +28,6 @@ export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
     },
     content: {
       gap: sectionGap,
-      paddingTop: spacing.sm,
     },
     section: {
       gap: spacing.sm,
