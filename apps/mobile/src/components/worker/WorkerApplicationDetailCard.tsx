@@ -995,6 +995,16 @@ export function WorkerApplicationDetailCard({
           onClinicPress={canViewClinicProfile ? handleViewClinicProfile : undefined}
         />
 
+        <ApplicationStatusSummaryCard
+          audience="worker"
+          status={application.status}
+          postType={application.post_type}
+          applicationKitRequestedAt={application.application_kit_requested_at}
+          applicationKitSubmittedAt={application.application_kit_submitted_at}
+          interviewProposedAt={application.interview_proposed_at}
+          clinicAccountDeleted={clinicDeleted}
+        />
+
         {clinicDeleted ? (
           <SurfaceCard padding="md" gap>
             <OnboardingButton label="View messages" onPress={handleMessage} />
@@ -1017,16 +1027,6 @@ export function WorkerApplicationDetailCard({
             removeAction={removeAction}
           />
         )}
-
-        <ApplicationStatusSummaryCard
-          audience="worker"
-          status={application.status}
-          postType={application.post_type}
-          applicationKitRequestedAt={application.application_kit_requested_at}
-          applicationKitSubmittedAt={application.application_kit_submitted_at}
-          interviewProposedAt={application.interview_proposed_at}
-          clinicAccountDeleted={clinicDeleted}
-        />
 
         {hasStatusCard ? (
           <SurfaceCard padding="md" gap>

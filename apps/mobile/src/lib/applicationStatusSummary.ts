@@ -1,4 +1,4 @@
-import type { ApplicationStatus } from '@chairside/api';
+import { FILL_IN_PENDING_STATUSES, type ApplicationStatus } from '@chairside/api';
 import {
   hasPendingInterviewProposal,
   isAwaitingApplicationKit,
@@ -38,9 +38,9 @@ function screeningWorkerSummary(
 ): ApplicationStatusSummary {
   if (isAwaitingApplicationKit(toKitFields(application))) {
     return {
-      headline: 'Full application requested',
+      headline: 'Application profile requested',
       description:
-        'The clinic reviewed your screening responses and wants your full application profile.',
+        'The clinic reviewed your screening responses and wants your application profile.',
       nextStep: 'Submit your photo, resume, and cover note below.',
       variant: 'warning',
     };
@@ -49,7 +49,7 @@ function screeningWorkerSummary(
   return {
     headline: 'Screening submitted',
     description:
-      'Your screening responses were sent to the clinic. They will review them before deciding whether to request your full application.',
+      'Your screening responses were sent to the clinic. They will review them before deciding whether to request your application profile.',
     nextStep: 'You will be notified if the clinic requests your application profile.',
     variant: 'info',
   };
@@ -61,9 +61,9 @@ function screeningClinicSummary(
 ): ApplicationStatusSummary {
   if (isAwaitingApplicationKit(toKitFields(application))) {
     return {
-      headline: 'Awaiting candidate packet',
+      headline: 'Awaiting full application',
       description: 'You requested the full application. The candidate has not submitted it yet.',
-      nextStep: 'You will be notified when their application profile arrives.',
+      nextStep: 'You will be notified when they submit their full application.',
       variant: 'default',
     };
   }
@@ -71,7 +71,7 @@ function screeningClinicSummary(
   return {
     headline: isHighlighted ? 'New screening submission' : 'Screening needs review',
     description:
-      'Review the screening responses first. If this candidate looks like a fit, request the full application so they can submit their resume, profile, and cover note.',
+      'Review the screening responses first. If this candidate looks like a fit, request the full application so they can submit their photo, resume, and cover note.',
     nextStep: 'Use Request full application after you have reviewed their responses.',
     variant: isHighlighted ? 'warning' : 'info',
   };
@@ -108,88 +108,31 @@ export function getApplicationStatusSummary(
   }
 
   if (postType === 'shift') {
-    if (status === 'applied') {
+    if (
+      FILL_IN_PENDING_STATUSES.includes(
+        status as (typeof FILL_IN_PENDING_STATUSES)[number],
+      )
+    ) {
       return audience === 'worker'
         ? {
-            headline: 'Cover request sent',
-            description: 'Your cover request was submitted to the clinic.',
-            nextStep: 'The clinic will review your request and respond.',
+            headline: status === 'applied' ? 'Cover request sent' : 'Awaiting clinic response',
+            description:
+              status === 'applied'
+                ? 'Your request to cover this fill-in was submitted to the clinic.'
+                : 'Your cover request is with the clinic.',
+            nextStep: 'The clinic will accept or decline your request.',
             variant: 'info',
           }
         : {
-            headline: isHighlighted ? 'New cover request' : 'Cover request received',
-            description: 'Review this candidate and decide whether to accept the fill-in.',
+            headline:
+              isHighlighted && status === 'applied'
+                ? 'New cover request'
+                : 'Cover request received',
+            description:
+              'Review this candidate and accept or decline their request to cover this fill-in.',
             nextStep: 'Accept the cover request or decline if it is not a fit.',
-            variant: isHighlighted ? 'warning' : 'info',
+            variant: isHighlighted && status === 'applied' ? 'warning' : 'info',
           };
-    }
-
-    if (status === 'reviewed') {
-      return audience === 'worker'
-        ? {
-            headline: 'Request viewed',
-            description: 'The clinic viewed your cover request.',
-            nextStep: 'They may accept, decline, or follow up with you.',
-            variant: 'default',
-          }
-        : {
-            headline: 'Cover request viewed',
-            description: 'You have viewed this cover request.',
-            nextStep: 'Accept the fill-in or decline when you are ready.',
-            variant: 'default',
-          };
-    }
-
-    if (status === 'in_progress') {
-      return {
-        headline: 'In progress',
-        description:
-          audience === 'worker'
-            ? 'This fill-in request is still active.'
-            : 'This cover request is still in progress.',
-        nextStep:
-          audience === 'worker'
-            ? 'Watch for updates from the clinic.'
-            : 'Accept the fill-in or continue the conversation.',
-        variant: 'info',
-      };
-    }
-
-    if (status === 'interview_offered') {
-      return {
-        headline: 'Interview invitation',
-        description:
-          audience === 'worker'
-            ? 'The clinic sent an interview invitation for this fill-in.'
-            : 'Interview invitation sent to the candidate.',
-        nextStep:
-          audience === 'worker'
-            ? 'Review the details and respond below.'
-            : 'Awaiting candidate response.',
-        variant: 'warning',
-      };
-    }
-
-    if (status === 'interview_scheduled') {
-      const hasProposal = hasPendingInterviewProposal({
-        interview_proposed_at: application.interviewProposedAt,
-      });
-      return {
-        headline: hasProposal ? 'Interview time proposed' : 'Interview scheduled',
-        description: hasProposal
-          ? audience === 'worker'
-            ? 'The clinic proposed a new interview time.'
-            : 'The candidate proposed a new interview time.'
-          : audience === 'worker'
-            ? 'Your interview for this fill-in is scheduled.'
-            : 'The interview for this fill-in is scheduled.',
-        nextStep: hasProposal
-          ? 'Review the proposed time and respond below.'
-          : audience === 'worker'
-            ? 'Check the scheduled time below.'
-            : 'Confirm details or mark the fill-in confirmed when ready.',
-        variant: hasProposal ? 'warning' : 'info',
-      };
     }
 
     if (status === 'hired' || status === 'selected') {

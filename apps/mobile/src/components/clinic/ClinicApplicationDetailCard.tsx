@@ -1135,6 +1135,17 @@ export function ClinicApplicationDetailCard({
           accent={accent}
         />
 
+        <ApplicationStatusSummaryCard
+          audience="clinic"
+          status={application.status}
+          postType={application.post_type}
+          applicationKitRequestedAt={application.application_kit_requested_at}
+          applicationKitSubmittedAt={application.application_kit_submitted_at}
+          interviewProposedAt={application.interview_proposed_at}
+          workerAccountDeleted={workerDeleted}
+          isHighlighted={hasNewApplication}
+        />
+
         {!workerDeleted ? (
           <ActionPanel
             primary={workflowActions.primary}
@@ -1172,17 +1183,6 @@ export function ClinicApplicationDetailCard({
             <OnboardingButton label="View messages" accent={accent} solid onPress={handleMessage} />
           </SurfaceCard>
         )}
-
-        <ApplicationStatusSummaryCard
-          audience="clinic"
-          status={application.status}
-          postType={application.post_type}
-          applicationKitRequestedAt={application.application_kit_requested_at}
-          applicationKitSubmittedAt={application.application_kit_submitted_at}
-          interviewProposedAt={application.interview_proposed_at}
-          workerAccountDeleted={workerDeleted}
-          isHighlighted={hasNewApplication}
-        />
 
         {hasInterviewDetails || workerDeleted ? (
           <SurfaceCard padding="md" gap>
