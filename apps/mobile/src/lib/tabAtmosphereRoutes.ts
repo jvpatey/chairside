@@ -74,6 +74,27 @@ function isFillInOutreachPath(relativePath: string): boolean {
   );
 }
 
+/** Stack routes that keep the shell atmosphere visible (including behind the sidebar). */
+function isAtmosphereStackPath(relativePath: string): boolean {
+  const root = relativePath.split('/').filter(Boolean)[0];
+  if (!root) return false;
+
+  return (
+    root === 'job' ||
+    root === 'role-applicants' ||
+    root === 'application' ||
+    root === 'shift' ||
+    root === 'shift-applicants' ||
+    root === 'role-history' ||
+    root === 'post-job' ||
+    root === 'post-shift' ||
+    root === 'apply' ||
+    root === 'open-fill-ins' ||
+    root === 'past-fill-ins' ||
+    root === 'fill-in-availability'
+  );
+}
+
 function getTabBarNameFromReturnTo(
   returnTo: string | undefined,
   role: TabAtmosphereRole,
@@ -212,7 +233,7 @@ export function getTabAtmosphereIntensityFromPathname(
   const relative = stripTabGroupPrefix(normalized, role);
 
   if (isStackDetailPath(normalized, role)) {
-    return 'none';
+    return isAtmosphereStackPath(relative) ? 'subtle' : 'none';
   }
 
   if (isHomePath(relative)) {
@@ -250,6 +271,13 @@ export function getTabAtmosphereAccentFromPathname(
   }
 
   const mainTab = getMainTabFromRelativePath(relative, role);
+
+  if (!mainTab && isStackDetailPath(normalized, role)) {
+    const parentTab = getStackParentTabFromRelativePath(relative, role);
+    if (parentTab) {
+      return getTabAccentForName(parentTab);
+    }
+  }
 
   if (!mainTab) {
     return 'primary';

@@ -126,7 +126,7 @@ export default function ClinicApplicationDetailScreen() {
 
   return (
     <>
-      <OnboardingShell>
+      <OnboardingShell atmosphere="subtle">
         <AuthScreenHeader
           eyebrow="Application review"
           title={application?.post_title || 'Applicant'}

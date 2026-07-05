@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
+import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
 import type { ApplicantFilterCounts, ApplicantListFilter } from '@/lib/applicationPipeline';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
@@ -22,6 +23,26 @@ const FILTER_TABS: { value: ApplicantListFilter; label: string }[] = [
 ];
 
 export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilterBarProps) {
+  if (Platform.OS === 'web') {
+    return (
+      <DashboardStatGrid
+        stats={FILTER_TABS.map((tab) => ({
+          key: tab.value,
+          label: tab.label,
+          value: counts[tab.value],
+        }))}
+        selected={selected}
+        onSelect={onChange}
+        density="compact"
+        accessibilityRole="tab"
+      />
+    );
+  }
+
+  return <ApplicantFilterBarScroll selected={selected} counts={counts} onChange={onChange} />;
+}
+
+function ApplicantFilterBarScroll({ selected, counts, onChange }: ApplicantFilterBarProps) {
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     row: {
       flexDirection: 'row',

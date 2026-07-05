@@ -222,7 +222,7 @@ export default function ClinicRoleApplicationsScreen() {
   };
 
   return (
-    <OnboardingShell>
+    <OnboardingShell atmosphere="subtle">
       <AuthScreenHeader
         eyebrow="Applications for"
         title={postTitle || 'Role'}

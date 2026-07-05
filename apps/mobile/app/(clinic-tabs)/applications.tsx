@@ -5,13 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { ClinicApplicationSummaryFilters } from '@/components/clinic/ClinicApplicationSummaryFilters';
-import {
-  formatViewApplicantsLabel,
-  PostingCardActionButton,
-} from '@/components/clinic/PostingCardActionButton';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import { formatApplicantCountLabelWithNew } from '@/components/ui/CountBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
@@ -65,28 +62,25 @@ function RoleApplicationSummaryRow({
   const pipelineMeta = formatJobApplicationSummaryMeta(summary);
   const hasNewApplicants = summary.unseen_count > 0;
   const postedLabel = formatPostedDateLabel(summary.post_created_at);
-  const viewLabel = formatViewApplicantsLabel(summary.applicant_count);
+  const metaLine = [
+    summary.applicant_count > 0
+      ? formatApplicantCountLabelWithNew(summary.applicant_count, summary.unseen_count)
+      : null,
+    pipelineMeta,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   const row = (
-    <SurfaceCard padding="none">
+    <SurfaceCard padding="none" onPress={onViewPress}>
       <BrowseListRow
         avatar={<RoleIconAvatar />}
-        eyebrow={`${summary.applicant_count} applicant${summary.applicant_count === 1 ? '' : 's'}`}
         title={summary.post_title}
-        meta={pipelineMeta}
+        meta={metaLine || null}
         postedLabel={postedLabel || null}
         postedLabelPlacement="header"
         topTrailing={hasNewApplicants ? <ApplicationCardBadge /> : undefined}
-        showChevron={false}
-        action={
-          <PostingCardActionButton
-            label={viewLabel}
-            variant="primary"
-            highlighted={hasNewApplicants}
-            fullWidth
-            onPress={onViewPress}
-          />
-        }
+        showChevron={Boolean(onViewPress)}
       />
     </SurfaceCard>
   );
