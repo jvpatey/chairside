@@ -37,6 +37,7 @@ export function WorkerApplicationKitView({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     hint: profileSettingsHintStyle({ typography, colors }),
     intro: profileSettingsHintStyle({ typography, colors }),
+    previewIntro: { gap: spacing.md },
     noteForm: { gap: spacing.sm },
     badge: {
       alignSelf: 'flex-start',
@@ -77,10 +78,7 @@ export function WorkerApplicationKitView({
       setCoverNoteDraft('');
       await refreshWorkerProfile();
     } catch (error) {
-      Alert.alert(
-        'Could not save',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      Alert.alert('Could not save', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setIsSavingNote(false);
     }
@@ -110,7 +108,8 @@ export function WorkerApplicationKitView({
 
       <SectionPanel stepNumber={2} stepAccent="secondary" title="Resume">
         <Text style={styles.hint}>
-          Optional PDF attached to role applications so clinics can review your experience in detail.
+          Optional PDF attached to role applications so clinics can review your experience in
+          detail.
         </Text>
         <ResumeUpload embedded onUploaded={() => void refreshWorkerProfile()} />
       </SectionPanel>
@@ -143,15 +142,13 @@ export function WorkerApplicationKitView({
       </SectionPanel>
 
       {displayPreview ? (
-        <SectionPanel
-          icon="eye-outline"
-          title="Clinic preview"
-          collapsible
-          defaultExpanded={false}>
-          <Text style={styles.hint}>
-            A live preview of the application profile clinics review when you apply.
-          </Text>
-          <ApplicationKitPreview profile={profile} embedded />
+        <SectionPanel icon="eye-outline" title="Clinic preview" collapsible defaultExpanded={false}>
+          <View style={styles.previewIntro}>
+            <Text style={styles.hint}>
+              A live preview of the application profile clinics review when you apply.
+            </Text>
+            <ApplicationKitPreview profile={profile} embedded />
+          </View>
         </SectionPanel>
       ) : null}
     </ProfileDetailStack>

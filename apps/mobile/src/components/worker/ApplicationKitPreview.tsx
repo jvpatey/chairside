@@ -33,14 +33,12 @@ export function ApplicationKitPreview({
   const resolvedPhotoPath = photoStoragePath ?? profile?.photo_storage_path;
   const photoUri = useWorkerPhotoUri(resolvedPhotoPath);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    shell: embedded
-      ? { gap: spacing.md }
-      : {
-          gap: spacing.md,
-        },
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
+    shell: {
+      gap: spacing.lg,
+    },
     header: {
-      gap: spacing.xs,
+      gap: spacing.sm,
     },
     previewLabel: {
       fontSize: 12,
@@ -53,7 +51,7 @@ export function ApplicationKitPreview({
     hint: {
       ...typography.subtitle,
       fontSize: 14,
-      lineHeight: 20,
+      lineHeight: 21,
       color: colors.labelSecondary,
     },
     emptyCard: {

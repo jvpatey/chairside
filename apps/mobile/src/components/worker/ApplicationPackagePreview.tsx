@@ -167,7 +167,9 @@ export function ApplicationPackagePreview({
       ...StyleSheet.absoluteFillObject,
     },
     heroContent: {
-      padding: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg + 6,
+      paddingBottom: spacing.lg,
       alignItems: 'center',
       gap: spacing.sm,
     },
@@ -178,6 +180,7 @@ export function ApplicationPackagePreview({
       letterSpacing: 0.55,
       textTransform: 'uppercase',
       color: colors.secondary,
+      marginBottom: spacing.xs,
     },
     heroName: {
       ...typography.title,
@@ -252,8 +255,7 @@ export function ApplicationPackagePreview({
   const experienceLabel =
     profile.years_of_experience != null ? `${profile.years_of_experience} years` : null;
   const educationLabel = formatWorkerEducation(profile);
-  const softwareLabel =
-    profile.software_used.length > 0 ? profile.software_used.join(', ') : null;
+  const softwareLabel = profile.software_used.length > 0 ? profile.software_used.join(', ') : null;
   const specialtiesLabel =
     profile.practice_types.length > 0
       ? profile.practice_types.map(getSpecialtyLabel).join(', ')
