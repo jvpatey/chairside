@@ -7,8 +7,20 @@ export function getAccountTypeLabel(role: UserRole): string {
 }
 
 export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null): string {
-  if (!profile || !isWorkerProfileComplete(profile)) {
-    return 'Incomplete';
+  if (!profile) {
+    return 'Add roles, experience, and location';
+  }
+
+  if (!isWorkerProfileComplete(profile)) {
+    const hasRoles = getWorkerRoleTypes(profile).length > 0;
+    const hasLocation = Boolean(
+      profile.address_line1?.trim() && profile.city?.trim() && profile.postal_code?.trim(),
+    );
+
+    if (!hasRoles && !hasLocation) return 'Add roles and location to complete';
+    if (!hasRoles) return 'Add your roles to complete';
+    if (!hasLocation) return 'Add your location to complete';
+    return 'Finish required details';
   }
 
   const roleLabel = formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null;
