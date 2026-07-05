@@ -172,6 +172,8 @@ export function ClinicMessagesInboxPanel({
         scroll={scroll ?? !compact}
         fillsContainer={fillsContainer}
         animateEntry={false}
+        hideAtmosphere={compact}
+        transparentBackground={compact}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />
@@ -186,6 +188,8 @@ export function ClinicMessagesInboxPanel({
       scroll={scroll ?? !compact}
       fillsContainer={fillsContainer}
       animateEntry={false}
+      hideAtmosphere={compact}
+      transparentBackground={compact}
       refreshing={refreshing}
       onRefresh={onRefresh}
     >

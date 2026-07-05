@@ -7,9 +7,11 @@ import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthWebSplitLayout } from '@/components/web/auth/AuthWebSplitLayout.web';
+import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { OnboardingWebCenteredLayout } from '@/components/onboarding/OnboardingWebCenteredLayout.web';
 import { PageHeroGlow, type PageHeroGlowVariant } from '@/components/ui/PageHeroGlow';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
+import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -47,6 +49,7 @@ export function OnboardingShell({
   footer,
   contentStyle,
   backgroundAccessory,
+  transparentBackground = false,
   atmosphere = 'none',
   atmosphereAccent = 'primary',
   authSplit = false,
@@ -57,16 +60,25 @@ export function OnboardingShell({
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const tabAtmosphere = useTabAtmosphere();
+  const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const showTabAtmosphere = tabAtmosphere !== 'none';
+  const useTabGlow = showTabAtmosphere && atmosphere === 'none';
+  const showGlow = atmosphere !== 'none' || showTabAtmosphere;
+  const containerBackground =
+    transparentBackground || showGlow ? 'transparent' : colors.backgroundGrouped;
   const resolvedBackgroundAccessory =
     backgroundAccessory ??
     (atmosphere !== 'none' ? (
       <PageHeroGlow variant={atmosphere} accent={atmosphereAccent} />
     ) : null);
+  const tabAtmosphereLayer = useTabGlow && !transparentBackground ? (
+    <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+  ) : null;
 
   const styles = useThemedStyles(({ spacing }) => ({
     container: {
       flex: 1,
-      backgroundColor: colors.backgroundGrouped,
       overflow: 'hidden',
     },
     backgroundLayer: {
@@ -107,7 +119,8 @@ export function OnboardingShell({
   if (webLayout === 'centeredDecision') {
     return (
       <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: containerBackground }]}>
+          {tabAtmosphereLayer}
           {backgroundLayer}
           <OnboardingWebCenteredLayout footer={footer}>{body}</OnboardingWebCenteredLayout>
         </View>
@@ -118,7 +131,8 @@ export function OnboardingShell({
   if (authSplit) {
     return (
       <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: containerBackground }]}>
+          {tabAtmosphereLayer}
           {backgroundLayer}
           <AuthWebSplitLayout
             footer={footer}
@@ -135,10 +149,11 @@ export function OnboardingShell({
 
   return (
     <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: containerBackground }]}>
+        {tabAtmosphereLayer}
         {backgroundLayer}
         <ScrollView
-          style={[styles.scroll, webScrollbarStyles()]}
+          style={[styles.scroll, webScrollbarStyles(), { backgroundColor: 'transparent' }]}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

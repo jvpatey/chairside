@@ -52,6 +52,8 @@ type ScreenProps = {
   animateEntry?: boolean;
   /** When true, the screen background is transparent (for layered dashboard atmosphere). */
   transparentBackground?: boolean;
+  /** When true, skip the tab atmosphere layer (e.g. master/detail panes paint their own). */
+  hideAtmosphere?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -75,6 +77,7 @@ export function Screen({
   fillsContainer = false,
   animateEntry = true,
   transparentBackground = false,
+  hideAtmosphere = false,
   contentContainerStyle,
   refreshing = false,
   onRefresh,
@@ -111,7 +114,7 @@ export function Screen({
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
-  const showAtmosphere = tabAtmosphere !== 'none';
+  const showAtmosphere = tabAtmosphere !== 'none' && !hideAtmosphere;
   // Web tab scenes are opaque (see useAdaptiveTabScreenOptions); paint atmosphere per screen.
   const atmosphereLayer =
     showAtmosphere && Platform.OS === 'web' ? (

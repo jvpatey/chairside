@@ -37,6 +37,8 @@ type ScreenProps = {
   fillsContainer?: boolean;
   animateEntry?: boolean;
   transparentBackground?: boolean;
+  /** When true, skip the tab atmosphere layer (e.g. master/detail panes paint their own). */
+  hideAtmosphere?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
@@ -56,6 +58,7 @@ export function Screen({
   fillsContainer = false,
   animateEntry = true,
   transparentBackground = false,
+  hideAtmosphere = false,
   contentContainerStyle,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
@@ -64,7 +67,7 @@ export function Screen({
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
-  const showAtmosphere = tabAtmosphere !== 'none';
+  const showAtmosphere = tabAtmosphere !== 'none' && !hideAtmosphere;
   const atmosphereLayer =
     showAtmosphere && Platform.OS === 'web' ? (
       <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
