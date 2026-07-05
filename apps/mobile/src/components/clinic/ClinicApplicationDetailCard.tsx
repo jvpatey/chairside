@@ -56,10 +56,10 @@ import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageF
 import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
-import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { cardShellRadii } from '@/components/ui/cardLayout';
 import { ResumeViewButton } from '@/components/ui/ResumeViewButton';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useDismissedScreeningReviews } from '@/hooks/useDismissedScreeningReviews';
@@ -1230,42 +1230,32 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         )}
 
-        {hasInterviewDetails || workerDeleted ? (
+        {hasInterviewDetails ? (
           <SurfaceCard padding="md" gap>
-            {hasInterviewDetails ? (
-              <CardInfoPanel
-                variant={application.status === 'interview_offered' ? 'warning' : 'info'}
-                icon="calendar-outline"
-                title={
-                  application.status === 'interview_offered'
-                    ? 'Interview invitation'
-                    : 'Interview scheduled'
-                }>
-                <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
-                {application.status === 'interview_offered' ? (
-                  <CardInfoPanelText>Awaiting candidate response</CardInfoPanelText>
-                ) : null}
-                {application.status === 'interview_scheduled' && clinicProposedChange ? (
-                  <CardInfoPanelText>
-                    Awaiting candidate response to new time
-                    {proposedSummary ? ` · ${proposedSummary}` : ''}
-                  </CardInfoPanelText>
-                ) : null}
-                {application.status === 'interview_scheduled' &&
-                workerProposedChange &&
-                proposedSummary ? (
-                  <CardInfoPanelText>Proposed new time · {proposedSummary}</CardInfoPanelText>
-                ) : null}
-              </CardInfoPanel>
-            ) : null}
-
-            {workerDeleted ? (
-              <CardInfoPanel variant="default">
+            <CardInfoPanel
+              variant={application.status === 'interview_offered' ? 'warning' : 'info'}
+              icon="calendar-outline"
+              title={
+                application.status === 'interview_offered'
+                  ? 'Interview invitation'
+                  : 'Interview scheduled'
+              }>
+              <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
+              {application.interview_details ? (
+                <CardInfoPanelText>{application.interview_details}</CardInfoPanelText>
+              ) : null}
+              {application.status === 'interview_scheduled' && clinicProposedChange ? (
                 <CardInfoPanelText>
-                  This candidate is no longer signed up for Chairside.
+                  Awaiting candidate response to new time
+                  {proposedSummary ? ` · ${proposedSummary}` : ''}
                 </CardInfoPanelText>
-              </CardInfoPanel>
-            ) : null}
+              ) : null}
+              {application.status === 'interview_scheduled' &&
+              workerProposedChange &&
+              proposedSummary ? (
+                <CardInfoPanelText>Proposed new time · {proposedSummary}</CardInfoPanelText>
+              ) : null}
+            </CardInfoPanel>
           </SurfaceCard>
         ) : null}
 
@@ -1308,7 +1298,10 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         ) : null}
 
-        {application.interview_details && !workerDeleted ? (
+        {application.interview_details &&
+        !workerDeleted &&
+        application.status !== 'interview_offered' &&
+        application.status !== 'interview_scheduled' ? (
           <SurfaceCard padding="md" gap>
             <ApplicantDetailSection icon="calendar-outline" title="Interview notes" accent={accent}>
               <ApplicationPreviewField
