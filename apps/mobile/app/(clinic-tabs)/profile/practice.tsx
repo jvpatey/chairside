@@ -14,7 +14,7 @@ export default function ClinicProfilePracticeScreen() {
   return (
     <ProfileDetailScreen
       title="Practice details"
-      subtitle="Location, contact, and practice info."
+      subtitle="Contact, location, and practice setup candidates use to understand your clinic."
       actionLabel="Edit"
       onActionPress={() =>
         router.push(getSetupEditRoute('/(clinic-setup)/basics', 'clinic-practice'))

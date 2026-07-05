@@ -14,7 +14,7 @@ export default function ClinicProfileAboutScreen() {
   return (
     <ProfileDetailScreen
       title="About"
-      subtitle="Description and website shown to candidates."
+      subtitle="Your practice story and website — what candidates see on your public profile."
       actionLabel="Edit"
       onActionPress={() => router.push(getSetupEditRoute('/(clinic-setup)/about', 'clinic-about'))}
       onBack={() => navigateToClinicProfileHub(router)}>

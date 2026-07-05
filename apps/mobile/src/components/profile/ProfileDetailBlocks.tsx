@@ -266,3 +266,52 @@ export function SummaryStatRow({ children }: { children: ReactNode }) {
 
   return <View style={styles.row}>{children}</View>;
 }
+
+export function ProfileTagRow({
+  tags,
+  emptyText = 'Not added yet',
+}: {
+  tags: string[];
+  emptyText?: string;
+}) {
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    wrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    tag: {
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 4,
+      backgroundColor: colors.fillSubtle,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
+    tagText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.labelPrimary,
+    },
+    empty: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.labelTertiary,
+      fontStyle: 'italic',
+    },
+  }));
+
+  if (tags.length === 0) {
+    return <Text style={styles.empty}>{emptyText}</Text>;
+  }
+
+  return (
+    <View style={styles.wrap}>
+      {tags.map((tag) => (
+        <View key={tag} style={styles.tag}>
+          <Text style={styles.tagText}>{tag}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
