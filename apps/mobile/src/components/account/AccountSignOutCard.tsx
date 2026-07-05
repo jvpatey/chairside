@@ -1,4 +1,3 @@
-import { AccountSettingsCard } from '@/components/account/AccountSettingsCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 
 type AccountSignOutCardProps = {
@@ -15,13 +14,11 @@ export function AccountSignOutCard({
   const busy = disabled || isSigningOut;
 
   return (
-    <AccountSettingsCard title="Sign out" icon="log-out-outline">
-      <OnboardingButton
-        label={isSigningOut ? 'Signing out…' : 'Sign out on this device'}
-        variant="ghost"
-        disabled={busy}
-        onPress={onSignOut}
-      />
-    </AccountSettingsCard>
+    <OnboardingButton
+      label={isSigningOut ? 'Signing out…' : 'Sign out on this device'}
+      variant="ghost"
+      disabled={busy}
+      onPress={onSignOut}
+    />
   );
 }

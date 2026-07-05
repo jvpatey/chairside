@@ -8,14 +8,13 @@ import { SupportHelpTopics } from '@/components/support/SupportHelpTopics';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
 import { WebMarketingNav } from '@/components/web/marketing/WebMarketingNav.web';
-import { LEGAL_LAST_UPDATED } from '@/constants/legal';
 import { SUPPORT_PAGE_CONTENT } from '@/content/legal/support';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { radii } from '@/theme/tokens';
 import { useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
+import { getWebShadow, webTypography } from '@/theme/web';
 
 const FAQ_SECTIONS = SUPPORT_PAGE_CONTENT.sections.filter(
   (section) => section.title !== 'Contact us' && section.title !== 'Report a problem',
@@ -57,31 +56,9 @@ export function SupportPageLayout() {
       alignSelf: 'center' as const,
       gap: spacing.md,
     },
-    eyebrow: webSectionEyebrowStyle(colors),
     title: {
       ...(isWide ? webTypography.displaySm : webTypography.headline),
       color: colors.labelPrimary,
-    },
-    metaRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: spacing.sm,
-      flexWrap: 'wrap' as const,
-    },
-    updatedPill: {
-      alignSelf: 'flex-start' as const,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      borderRadius: radii.pill,
-      backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
-      borderColor: colors.separator,
-    },
-    updatedText: {
-      fontSize: 12,
-      lineHeight: 16,
-      fontWeight: '500' as const,
-      color: colors.labelTertiary,
     },
     intro: {
       ...webTypography.bodyLg,
@@ -136,13 +113,7 @@ export function SupportPageLayout() {
         <View style={styles.hero}>
           <View style={styles.atmosphere} />
           <WebPageEnter style={styles.heroInner}>
-            <Text style={styles.eyebrow}>Support</Text>
             <Text style={styles.title}>{SUPPORT_PAGE_CONTENT.title}</Text>
-            <View style={styles.metaRow}>
-              <View style={styles.updatedPill}>
-                <Text style={styles.updatedText}>Last updated: {LEGAL_LAST_UPDATED}</Text>
-              </View>
-            </View>
             <Text style={styles.intro}>{SUPPORT_PAGE_CONTENT.intro}</Text>
           </WebPageEnter>
         </View>

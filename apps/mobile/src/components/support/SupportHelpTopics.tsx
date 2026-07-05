@@ -3,8 +3,9 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'react-native';
 
-import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
+import { PUBLIC_LEGAL_PATHS, LEGAL_LAST_UPDATED } from '@/constants/legal';
 import type { LegalSection } from '@/content/legal/types';
+import { PublicPageCardHeader } from '@/components/legal/PublicPageCardHeader';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -26,6 +27,7 @@ const TOPIC_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 type SupportHelpTopicsProps = {
   sections: LegalSection[];
+  lastUpdated?: string;
 };
 
 function toggleLayoutAnimation() {
@@ -197,32 +199,16 @@ function HelpTopicRow({
   );
 }
 
-export function SupportHelpTopics({ sections }: SupportHelpTopicsProps) {
+export function SupportHelpTopics({
+  sections,
+  lastUpdated = LEGAL_LAST_UPDATED,
+}: SupportHelpTopicsProps) {
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(() => new Set());
   const { isCompact } = useResponsiveLayout();
   const { isDark } = useTheme();
   const isWeb = Platform.OS === 'web';
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    wrap: {
-      gap: isCompact ? spacing.xs : spacing.sm,
-    },
-    heading: {
-      gap: spacing.xs,
-      marginBottom: isCompact ? spacing.xs : spacing.sm,
-    },
-    title: {
-      ...typography.body,
-      fontSize: isCompact ? 18 : 20,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-    },
-    subtitle: {
-      ...typography.subtitle,
-      fontSize: isCompact ? 14 : 15,
-      lineHeight: isCompact ? 20 : 22,
-      color: colors.labelSecondary,
-    },
     card: {
       backgroundColor: colors.surface,
       borderRadius: isWeb ? radii.xxl : isCompact ? radii.lg : radii.xl,
@@ -232,6 +218,32 @@ export function SupportHelpTopics({ sections }: SupportHelpTopicsProps) {
       ...(isWeb
         ? { boxShadow: getWebShadow(isDark, 'raised') }
         : getElevationStyle({ isDark, level: 'subtle' })),
+    },
+    cardHeader: {
+      padding: isCompact ? spacing.md : spacing.lg,
+      gap: spacing.sm,
+    },
+    headerTextInset: {
+      marginLeft: (isCompact ? 40 : 44) + (isCompact ? spacing.sm : spacing.md),
+    },
+    updatedPill: {
+      alignSelf: 'flex-start' as const,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: radii.pill,
+      backgroundColor: colors.fillSubtle,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
+    updatedText: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '500' as const,
+      color: colors.labelTertiary,
+    },
+    sectionDivider: {
+      height: 1,
+      backgroundColor: colors.separator,
     },
   }));
 
@@ -249,23 +261,29 @@ export function SupportHelpTopics({ sections }: SupportHelpTopicsProps) {
   };
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.heading}>
-        <Text style={styles.title}>Help topics</Text>
-        <Text style={styles.subtitle}>Tap a topic to expand answers and troubleshooting tips.</Text>
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <PublicPageCardHeader
+          icon="help-circle-outline"
+          title="Help topics"
+          subtitle="Tap a topic to expand answers and troubleshooting tips."
+        />
+        <View style={[styles.updatedPill, styles.headerTextInset]}>
+          <Text style={styles.updatedText}>Last updated: {lastUpdated}</Text>
+        </View>
       </View>
 
-      <View style={styles.card}>
-        {sections.map((section, index) => (
-          <HelpTopicRow
-            key={section.title}
-            section={section}
-            expanded={expandedTitles.has(section.title)}
-            onToggle={() => toggleSection(section.title)}
-            showDivider={index < sections.length - 1}
-          />
-        ))}
-      </View>
+      <View style={styles.sectionDivider} />
+
+      {sections.map((section, index) => (
+        <HelpTopicRow
+          key={section.title}
+          section={section}
+          expanded={expandedTitles.has(section.title)}
+          onToggle={() => toggleSection(section.title)}
+          showDivider={index < sections.length - 1}
+        />
+      ))}
     </View>
   );
 }

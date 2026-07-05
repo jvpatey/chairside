@@ -1,6 +1,5 @@
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { AccountSettingsCard } from '@/components/account/AccountSettingsCard';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useThemedStyles } from '@/theme';
 
@@ -19,8 +18,11 @@ export function AccountDeleteAccountCard({
 }: AccountDeleteAccountCardProps) {
   const busy = disabled || isDeleting;
 
-  const styles = useThemedStyles(({ typography }) => ({
+  const styles = useThemedStyles(({ spacing, typography }) => ({
     body: {
+      gap: spacing.md,
+    },
+    description: {
       ...typography.subtitle,
       fontSize: 14,
       lineHeight: 20,
@@ -28,14 +30,14 @@ export function AccountDeleteAccountCard({
   }));
 
   return (
-    <AccountSettingsCard title="Delete account" icon="trash-outline" variant="danger">
-      <Text style={styles.body}>{description}</Text>
+    <View style={styles.body}>
+      <Text style={styles.description}>{description}</Text>
       <OnboardingButton
         label={isDeleting ? 'Deleting account…' : 'Delete account'}
         variant="destructive"
         disabled={busy}
         onPress={onDeleteAccount}
       />
-    </AccountSettingsCard>
+    </View>
   );
 }

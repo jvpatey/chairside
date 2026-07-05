@@ -156,9 +156,16 @@ export function SectionPanel({
   children,
   collapsible = false,
   defaultExpanded = true,
+  variant = 'default',
 }: Pick<
   ProfileSettingsCardProps,
-  'icon' | 'stepNumber' | 'stepAccent' | 'title' | 'collapsible' | 'defaultExpanded'
+  | 'icon'
+  | 'stepNumber'
+  | 'stepAccent'
+  | 'title'
+  | 'collapsible'
+  | 'defaultExpanded'
+  | 'variant'
 > & {
   children: ReactNode;
 }) {
@@ -173,7 +180,8 @@ export function SectionPanel({
       stepNumber={stepNumber}
       stepAccent={stepAccent}
       collapsible={collapsible}
-      defaultExpanded={defaultExpanded}>
+      defaultExpanded={defaultExpanded}
+      variant={variant}>
       <View style={styles.body}>{children}</View>
     </ProfileSettingsCard>
   );

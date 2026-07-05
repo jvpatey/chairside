@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
-import { AccountSettingsCard } from '@/components/account/AccountSettingsCard';
 import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
@@ -56,9 +55,7 @@ export function AccountLegalLinks() {
   }));
 
   return (
-    <AccountSettingsCard
-      title={isCompact ? 'Legal' : 'Legal & support'}
-      icon="document-text-outline">
+    <View>
       <View style={styles.list}>
         {links.map((link) => (
           <Pressable
@@ -86,6 +83,6 @@ export function AccountLegalLinks() {
           to send us a message.
         </Text>
       ) : null}
-    </AccountSettingsCard>
+    </View>
   );
 }
