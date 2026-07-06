@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getActiveTabBarName, getTabAccentForName } from './tabAtmosphereRoutes';
+import { getActiveTabBarName, getTabAccentForName, isTabRootPath } from './tabAtmosphereRoutes';
 
 describe('getActiveTabBarName', () => {
   it('keeps applications selected on worker application detail', () => {
@@ -41,6 +41,27 @@ describe('getActiveTabBarName', () => {
     expect(
       getActiveTabBarName('/(clinic-tabs)/application/app-1', 'clinic', 'calendar-tab'),
     ).toBe('calendar');
+  });
+});
+
+describe('isTabRootPath', () => {
+  it('returns true on main tab list screens', () => {
+    expect(isTabRootPath('/(clinic-tabs)/applications', 'applications', 'clinic')).toBe(true);
+    expect(isTabRootPath('/(tabs)/browse', 'browse', 'worker')).toBe(true);
+    expect(isTabRootPath('/(clinic-tabs)', 'index', 'clinic')).toBe(true);
+  });
+
+  it('returns false on nested stack routes', () => {
+    expect(isTabRootPath('/(clinic-tabs)/role-applicants/job-1', 'applications', 'clinic')).toBe(
+      false,
+    );
+    expect(isTabRootPath('/(tabs)/application/app-1', 'applications', 'worker')).toBe(false);
+    expect(isTabRootPath('/(clinic-tabs)/job/job-1', 'postings', 'clinic')).toBe(false);
+  });
+
+  it('returns false on worker messages sub-screens', () => {
+    expect(isTabRootPath('/(tabs)/messages/clinics', 'messages', 'worker')).toBe(false);
+    expect(isTabRootPath('/(tabs)/messages', 'messages', 'worker')).toBe(true);
   });
 });
 

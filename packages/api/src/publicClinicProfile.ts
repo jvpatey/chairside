@@ -1,5 +1,6 @@
 import { getSupabaseClient } from './client';
 import { normalizePracticeDoctors, type PracticeDoctor } from '@chairside/config';
+import { getClinicPlanMap } from './billing';
 import {
   getJobPostScreeningQuestions,
   type ScreeningQuestion,
@@ -136,6 +137,9 @@ export async function getPublicClinicPostings(
   if (jobsResult.error) throw jobsResult.error;
   if (shiftsResult.error) throw shiftsResult.error;
 
+  const planMap = await getClinicPlanMap([clinicId]);
+  const hasPriorityListing = planMap.get(clinicId) === 'pro';
+
   const jobs = await Promise.all(
     ((jobsResult.data ?? []) as JobPost[]).map(async (job) => {
       const screeningQuestions: ScreeningQuestion[] = job.screening_enabled
@@ -145,6 +149,7 @@ export async function getPublicClinicPostings(
         ...job,
         clinic,
         screening_questions: screeningQuestions,
+        has_priority_listing: hasPriorityListing,
       } satisfies LiveJobPost;
     }),
   );
@@ -154,6 +159,7 @@ export async function getPublicClinicPostings(
       ({
         ...shift,
         clinic,
+        has_priority_listing: hasPriorityListing,
       }) satisfies LiveShiftPost,
   );
 

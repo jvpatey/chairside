@@ -40,9 +40,11 @@ type ApplicationRow = Awaited<ReturnType<typeof listWorkerJobApplications>>[numb
 function ApplicationList({
   applications,
   unreadMap,
+  compact = false,
 }: {
   applications: ApplicationRow[];
   unreadMap: Record<string, boolean>;
+  compact?: boolean;
 }) {
   const styles = useThemedStyles(({ spacing }) => ({
     list: { gap: spacing.lg },
@@ -57,6 +59,7 @@ function ApplicationList({
             application={application}
             hasUnreadMessages={Boolean(unreadMap[application.id])}
             returnTo="applications-tab"
+            compact={compact}
           />
         ))}
       </StaggeredList>
@@ -185,7 +188,7 @@ export function WorkerApplicationsInboxPanel({
   }, [load, pathname]);
 
   const hasAnyApplications = applications.length > 0;
-  const listProps = { unreadMap };
+  const listProps = { unreadMap, compact };
 
   return (
     <>
@@ -194,6 +197,11 @@ export function WorkerApplicationsInboxPanel({
         subtitle={compact ? undefined : 'Track your role applications.'}
         showHeader={!compact}
         constrainWidth={!compact}
+        scroll={!compact}
+        fillsContainer={compact}
+        animateEntry={!compact}
+        hideAtmosphere={compact}
+        transparentBackground={compact}
         refreshing={refreshing}
         onRefresh={onRefresh}>
         <FormErrorBanner message={formError} />

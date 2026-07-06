@@ -18,12 +18,14 @@ type WorkerApplicationListCardProps = {
   application: WorkerApplication;
   hasUnreadMessages?: boolean;
   returnTo?: WorkerApplicationReturnTarget;
+  compact?: boolean;
 };
 
 export function WorkerApplicationListCard({
   application,
   hasUnreadMessages = false,
   returnTo = 'applications-tab',
+  compact = false,
 }: WorkerApplicationListCardProps) {
   const { colors } = useTheme();
   const { isApplicationHighlighted, getApplicationHighlightLabel, markApplicationSeen } =
@@ -55,6 +57,12 @@ export function WorkerApplicationListCard({
       alignItems: 'flex-end',
       gap: spacing.xs,
     },
+    compactFooter: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
   }));
 
   const location = shiftDisplay?.location ?? application.clinic_city;
@@ -82,10 +90,19 @@ export function WorkerApplicationListCard({
     router.push(getWorkerApplicationRoute(application.id, returnTo));
   };
 
+  const statusBadge = (
+    <WorkerApplicationStatusBadge
+      status={application.status}
+      postType={application.post_type}
+      statusNote={application.status_note}
+      statusClosedBy={application.status_closed_by}
+    />
+  );
+
   return (
     <SurfaceCard
       variant={isConfirmedShift ? 'success' : isCancelledShift ? 'default' : 'default'}
-      padding="md"
+      padding={compact ? 'sm' : 'md'}
       gap
       onPress={openDetail}
     >
@@ -98,24 +115,31 @@ export function WorkerApplicationListCard({
         location={location}
         postedLabel={appliedOnLabel}
         detail={detailLine}
-        avatarSize={44}
-        accessory={
+        avatarSize={compact ? 40 : 44}
+        accessory={compact ? undefined : (
           <View style={styles.accessory}>
             {hasApplicationUpdate ? <ApplicationCardBadge /> : null}
-            <WorkerApplicationStatusBadge
-              status={application.status}
-              postType={application.post_type}
-              statusNote={application.status_note}
-              statusClosedBy={application.status_closed_by}
-            />
+            {statusBadge}
           </View>
+        )}
+        statusFooter={
+          compact ? (
+            <View style={styles.compactFooter}>
+              {hasApplicationUpdate ? <ApplicationCardBadge /> : null}
+              {statusBadge}
+            </View>
+          ) : undefined
         }
       />
 
-      <View style={styles.trailingRow}>
-        {hasUnreadMessages ? <Text style={styles.unread}>New message</Text> : null}
-        <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
-      </View>
+      {!compact ? (
+        <View style={styles.trailingRow}>
+          {hasUnreadMessages ? <Text style={styles.unread}>New message</Text> : null}
+          <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
+        </View>
+      ) : hasUnreadMessages ? (
+        <Text style={styles.unread}>New message</Text>
+      ) : null}
     </SurfaceCard>
   );
 }

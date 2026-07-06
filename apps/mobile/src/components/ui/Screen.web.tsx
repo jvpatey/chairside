@@ -15,7 +15,7 @@ import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
-import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
+import { WEB_SIDEBAR_OUTER_INSET } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
@@ -37,6 +37,8 @@ type ScreenProps = {
   fillsContainer?: boolean;
   animateEntry?: boolean;
   transparentBackground?: boolean;
+  /** When true, skip the tab atmosphere layer (e.g. master/detail panes paint their own). */
+  hideAtmosphere?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
@@ -56,6 +58,7 @@ export function Screen({
   fillsContainer = false,
   animateEntry = true,
   transparentBackground = false,
+  hideAtmosphere = false,
   contentContainerStyle,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
@@ -64,7 +67,7 @@ export function Screen({
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
-  const showAtmosphere = tabAtmosphere !== 'none';
+  const showAtmosphere = tabAtmosphere !== 'none' && !hideAtmosphere;
   const atmosphereLayer =
     showAtmosphere && Platform.OS === 'web' ? (
       <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
@@ -73,7 +76,7 @@ export function Screen({
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
   const topPadding =
-    isTablet && !showHeader ? insets.top + TABLET_TOP_INSET_EXTRA : insets.top + 16;
+    isTablet && !showHeader ? WEB_SIDEBAR_OUTER_INSET : insets.top + 16;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {

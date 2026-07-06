@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
 
 import { useTheme } from '@/theme';
 
@@ -9,7 +10,9 @@ export default function ApplicationLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: {
+          backgroundColor: Platform.OS === 'web' ? 'transparent' : colors.background,
+        },
       }}
     />
   );

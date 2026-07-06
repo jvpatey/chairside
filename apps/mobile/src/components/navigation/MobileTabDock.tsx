@@ -1,8 +1,8 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BottomTabBarHeightCallbackContext } from '@react-navigation/bottom-tabs';
-import { CommonActions } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { usePathname } from 'expo-router';
 import { useContext, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { MOBILE_TAB_ORDER } from '@/components/navigation/tabOrder';
+import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
@@ -160,6 +161,7 @@ function DockTabItem({
 
 export function MobileTabDock({ state, descriptors, navigation, insets, role }: MobileTabDockProps) {
   const { colors, isDark, spacing } = useTheme();
+  const pathname = usePathname();
   const { width: windowWidth } = useWindowDimensions();
   const showLabels = windowWidth >= ICON_ONLY_BREAKPOINT;
   const isWeb = Platform.OS === 'web';
@@ -293,18 +295,14 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
 
           const onPress = () => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
+            handleTabBarPress({
+              route,
+              navigation,
+              state,
+              isFocused,
+              pathname,
+              role,
             });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.dispatch({
-                ...CommonActions.navigate(route.name),
-                target: state.key,
-              });
-            }
           };
 
           const onLongPress = () => {

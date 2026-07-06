@@ -3,12 +3,12 @@ import { formatRoleTypesLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { CommonActions } from '@react-navigation/native';
 import { router, usePathname } from 'expo-router';
 import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
@@ -196,7 +196,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     nav: {
       flex: 1,
-      gap: spacing.sm,
+      gap: 0,
       paddingTop: spacing.xs,
     },
     navCollapsed: {
@@ -204,7 +204,13 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       gap: spacing.xs,
     },
     sectionGroup: {
-      gap: spacing.xs,
+      gap: 2,
+    },
+    sectionDivider: {
+      height: 0.5,
+      marginVertical: spacing.sm,
+      marginHorizontal: spacing.sm,
+      backgroundColor: colorWithAlpha(colors.separator, 0.45),
     },
     sectionLabel: {
       fontSize: 11,
@@ -389,18 +395,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
     const onPress = () => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const event = navigation.emit({
-        type: 'tabPress',
-        target: route.key,
-        canPreventDefault: true,
+      handleTabBarPress({
+        route,
+        navigation,
+        state,
+        isFocused,
+        pathname,
+        role,
       });
-
-      if (!isFocused && !event.defaultPrevented) {
-        navigation.dispatch({
-          ...CommonActions.navigate(route.name),
-          target: state.key,
-        });
-      }
     };
 
     const onLongPress = () => {
@@ -506,8 +508,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       </View>
 
       <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
-        {sidebarSections.map((section) => (
-          <View key={section.label ?? 'ungrouped'} style={styles.sectionGroup}>
+        {sidebarSections.map((section, sectionIndex) => (
+          <View
+            key={section.routes[0]?.name ?? `section-${sectionIndex}`}
+            style={styles.sectionGroup}
+          >
+            {sectionIndex > 0 && !isCollapsed ? <View style={styles.sectionDivider} /> : null}
             {!isCollapsed && section.label ? (
               <Text style={styles.sectionLabel}>{section.label}</Text>
             ) : null}

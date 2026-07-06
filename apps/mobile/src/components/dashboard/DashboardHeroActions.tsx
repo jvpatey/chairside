@@ -1,5 +1,5 @@
 import { type Href } from 'expo-router';
-import { Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 
 import { ProfileHeaderButton } from '@/components/navigation/ProfileHeaderButton';
 import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
@@ -31,11 +31,6 @@ export function DashboardHeroActions({
   const glassOverlay = colorWithAlpha(colors.surface, isDark ? 0.52 : 0.82);
 
   const styles = useThemedStyles(({ spacing }) => ({
-    wrap: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flexShrink: 0,
-    },
     actionsCluster: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -45,33 +40,26 @@ export function DashboardHeroActions({
       flexShrink: 0,
       alignSelf: 'flex-start',
     },
-    signOutWrap: {
-      marginLeft: spacing.xs,
-    },
   }));
 
   return (
-    <View style={styles.wrap}>
-      <LiquidGlassSurface
-        borderRadius={999}
-        style={styles.actionsCluster}
-        overlayColor={glassOverlay}>
-        <ProfileHeaderButton
-          href={profileHref}
-          placement="hero"
-          embedded
-          avatarKind={avatarKind}
-          displayName={name}
-          photoUri={photoUri}
-          size={buttonSize}
-        />
-        <NotificationBell placement="hero" embedded size={buttonSize} />
-      </LiquidGlassSurface>
+    <LiquidGlassSurface
+      borderRadius={999}
+      style={styles.actionsCluster}
+      overlayColor={glassOverlay}>
+      <ProfileHeaderButton
+        href={profileHref}
+        placement="hero"
+        embedded
+        avatarKind={avatarKind}
+        displayName={name}
+        photoUri={photoUri}
+        size={buttonSize}
+      />
+      <NotificationBell placement="hero" embedded size={buttonSize} />
       {showSignOut ? (
-        <View style={styles.signOutWrap}>
-          <SignOutHeaderButton />
-        </View>
+        <SignOutHeaderButton embedded size={buttonSize} />
       ) : null}
-    </View>
+    </LiquidGlassSurface>
   );
 }

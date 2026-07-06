@@ -171,6 +171,8 @@ export function WorkerMessagesInboxPanel({
         scroll={scroll ?? !compact}
         fillsContainer={fillsContainer}
         animateEntry={false}
+        hideAtmosphere={compact}
+        transparentBackground={compact}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />
@@ -185,6 +187,8 @@ export function WorkerMessagesInboxPanel({
       scroll={scroll ?? !compact}
       fillsContainer={fillsContainer}
       animateEntry={false}
+      hideAtmosphere={compact}
+      transparentBackground={compact}
       refreshing={refreshing}
       onRefresh={onRefresh}
     >

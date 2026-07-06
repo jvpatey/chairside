@@ -1,4 +1,5 @@
 import { getJobPost, type JobPost } from '@chairside/api';
+import { formatJobPostRoleMeta } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -98,7 +99,12 @@ export default function JobDetailScreen() {
       }
     >
       <View style={styles.content}>
-        <AuthScreenHeader onBack={() => router.back()} />
+        <AuthScreenHeader
+          eyebrow="Role details"
+          title={job.title}
+          subtitle={formatJobPostRoleMeta(job)}
+          onBack={() => router.back()}
+        />
         <JobPostDetailView job={job} />
       </View>
     </OnboardingShell>

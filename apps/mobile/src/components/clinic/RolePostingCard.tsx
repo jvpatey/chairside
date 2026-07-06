@@ -7,8 +7,9 @@ import { Pressable, Text, View } from 'react-native';
 import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
-import { PostingCardActionRow } from '@/components/clinic/PostingCardActionButton';
+import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { formatApplicantCountLabel } from '@/components/ui/CountBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -30,7 +31,7 @@ type RolePostingCardProps = {
   onPress?: () => void;
   onApplicantsPress?: () => void;
   manage?: RolePostingCardManageProps;
-  /** Hide view-post / applicants action row (detail screens). */
+  /** Hide applicant review pill (detail screens). */
   hideActions?: boolean;
 };
 
@@ -50,6 +51,7 @@ export function RolePostingCard({
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
   const postedLabel = formatPostedDateLabel(job.created_at);
   const roleMeta = formatJobPostRoleMeta(job);
+  const hasApplicants = applicantCount > 0;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -113,13 +115,15 @@ export function RolePostingCard({
     </View>
   );
 
-  const actionRow = hideActions ? null : (
-    <PostingCardActionRow
-      onViewPost={onPress}
-      onViewApplicants={onApplicantsPress}
-      applicantCount={applicantCount}
+  const showApplicantPill = !hideActions && hasApplicants && Boolean(onApplicantsPress);
+
+  const applicantControl = showApplicantPill ? (
+    <ApplicantCountButton
+      label={formatApplicantCountLabel(applicantCount)}
+      onPress={onApplicantsPress}
+      accessibilityLabel={`Review ${applicantCount} applicants`}
     />
-  );
+  ) : null;
 
   const wageLabel = job.wage_range ? (
     <Text style={styles.wage}>{job.wage_range}</Text>
@@ -127,24 +131,26 @@ export function RolePostingCard({
 
   if (layout === 'list') {
     return (
-      <BrowseListRow
-        avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
-        eyebrow={clinicName}
-        title={job.title}
-        meta={location || null}
-        postedLabel={postedLabel || null}
-        postedLabelPlacement="header"
-        headerDetail={roleMeta}
-        headerAccent={job.wage_range || null}
-        topTrailing={headerActions}
-        showChevron={false}
-        action={actionRow}
-      />
+      <SurfaceCard padding="none" onPress={onPress}>
+        <BrowseListRow
+          avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
+          eyebrow={clinicName}
+          title={job.title}
+          meta={location || null}
+          postedLabel={postedLabel || null}
+          postedLabelPlacement="header"
+          headerDetail={roleMeta}
+          headerAccent={job.wage_range || null}
+          topTrailing={headerActions}
+          contentAccessory={applicantControl}
+          showChevron={Boolean(onPress)}
+        />
+      </SurfaceCard>
     );
   }
 
   return (
-    <SurfaceCard padding="none" style={styles.card}>
+    <SurfaceCard padding="none" style={styles.card} onPress={onPress}>
       <View style={styles.cardContent}>
         <ClinicPostHeader
           layout="split"
@@ -154,10 +160,11 @@ export function RolePostingCard({
           location={location || null}
           detail={roleMeta}
           postedLabel={postedLabel || null}
-          textFooter={wageLabel ?? undefined}
+          textFooter={showApplicantPill ? undefined : (wageLabel ?? undefined)}
+          footer={showApplicantPill ? (wageLabel ?? undefined) : undefined}
           avatarSize={44}
           accessory={headerActions}
-          action={actionRow}
+          detailAccessory={applicantControl}
         />
       </View>
     </SurfaceCard>

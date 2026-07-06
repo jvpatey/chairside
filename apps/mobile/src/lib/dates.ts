@@ -66,3 +66,32 @@ export function formatPostedDateLabel(isoTimestamp: string | null | undefined): 
     year: 'numeric',
   })}`;
 }
+
+/** Compact relative age for list surfaces, e.g. "today", "2 days ago", "Jul 4, 2026". */
+export function formatRelativeApplicationAge(isoTimestamp: string | null | undefined): string | null {
+  if (!isoTimestamp) return null;
+  const date = new Date(isoTimestamp);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const today = startOfDay(new Date());
+  const applied = startOfDay(date);
+  const diffDays = Math.round((today.getTime() - applied.getTime()) / 86_400_000);
+
+  if (diffDays <= 0) return 'today';
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+  }
+  if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30);
+    return months === 1 ? '1 month ago' : `${months} months ago`;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}

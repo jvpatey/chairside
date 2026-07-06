@@ -1,19 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 
+import { useTabAtmosphere } from '@/contexts/TabAtmosphereContext';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type MessageThreadPlaceholderProps = {
   role: 'worker' | 'clinic';
   /** True when inbox has rows but none is selected (filtered empty, etc.). */
   filteredEmpty?: boolean;
+  /** Split-view detail pane on web — lets tab atmosphere show through. */
+  embedded?: boolean;
 };
 
 export function MessageThreadPlaceholder({
   role,
   filteredEmpty = false,
+  embedded = false,
 }: MessageThreadPlaceholderProps) {
   const { colors } = useTheme();
+  const tabAtmosphere = useTabAtmosphere();
+  const showTabAtmosphere = tabAtmosphere !== 'none';
+  const transparentShell = showTabAtmosphere || (embedded && Platform.OS === 'web');
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     container: {
@@ -22,7 +29,7 @@ export function MessageThreadPlaceholder({
       justifyContent: 'center',
       paddingHorizontal: spacing.xl,
       gap: spacing.md,
-      backgroundColor: colors.background,
+      backgroundColor: transparentShell ? 'transparent' : colors.background,
     },
     iconWrap: {
       width: 56,

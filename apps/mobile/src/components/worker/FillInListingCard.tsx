@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
@@ -53,6 +54,7 @@ export function FillInListingCard({
 
   const accessory = (
     <View style={styles.accessoryColumn}>
+      {shift.has_priority_listing ? <FeaturedListingBadge /> : null}
       <ShiftUrgencyBadge urgency={shift.urgency} />
       {onToggleSaved ? (
         <SavePostButton isSaved={isSaved} onToggle={onToggleSaved} size={20} />

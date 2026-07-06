@@ -6,18 +6,25 @@ import { useSignOut } from '@/hooks/useSignOut';
 import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
-export function SignOutHeaderButton() {
+type SignOutHeaderButtonProps = {
+  /** Transparent surface when nested inside a hero glass control */
+  embedded?: boolean;
+  size?: number;
+};
+
+export function SignOutHeaderButton({ embedded = false, size = 40 }: SignOutHeaderButtonProps) {
   const { colors } = useTheme();
   const { isSigningOut, signOut } = useSignOut();
+  const iconSize = Math.round(size * 0.55);
 
   const styles = useThemedStyles(({ colors }) => ({
     button: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: size,
+      height: size,
+      borderRadius: size / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: embedded ? 'transparent' : colors.fillSubtle,
       ...webPointer(isSigningOut ? 'default' : 'pointer'),
     },
     buttonHovered: {
@@ -52,7 +59,7 @@ export function SignOutHeaderButton() {
       {isSigningOut ? (
         <ActivityIndicator size="small" color={colors.labelPrimary} />
       ) : (
-        <Ionicons name="log-out-outline" size={22} color={colors.labelPrimary} />
+        <Ionicons name="log-out-outline" size={iconSize} color={colors.labelPrimary} />
       )}
     </Pressable>
   );

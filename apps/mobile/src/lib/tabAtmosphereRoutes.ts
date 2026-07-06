@@ -74,6 +74,28 @@ function isFillInOutreachPath(relativePath: string): boolean {
   );
 }
 
+/** Stack routes that keep the shell atmosphere visible (including behind the sidebar). */
+function isAtmosphereStackPath(relativePath: string): boolean {
+  const root = relativePath.split('/').filter(Boolean)[0];
+  if (!root) return false;
+
+  return (
+    root === 'job' ||
+    root === 'role-applicants' ||
+    root === 'application' ||
+    root === 'conversation' ||
+    root === 'shift' ||
+    root === 'shift-applicants' ||
+    root === 'role-history' ||
+    root === 'post-job' ||
+    root === 'post-shift' ||
+    root === 'apply' ||
+    root === 'open-fill-ins' ||
+    root === 'past-fill-ins' ||
+    root === 'fill-in-availability'
+  );
+}
+
 function getTabBarNameFromReturnTo(
   returnTo: string | undefined,
   role: TabAtmosphereRole,
@@ -178,6 +200,33 @@ export function getActiveTabBarName(
   return null;
 }
 
+/** True when the pathname is the top-level screen for a main tab (not a nested stack route). */
+export function isTabRootPath(
+  pathname: string,
+  tabName: string,
+  role: TabAtmosphereRole,
+): boolean {
+  const normalized = normalizePath(pathname);
+  const relative = stripTabGroupPrefix(normalized, role);
+
+  if (tabName === 'index') {
+    return isHomePath(relative);
+  }
+
+  const mainTab = getMainTabFromRelativePath(relative, role);
+  if (mainTab !== tabName) {
+    return false;
+  }
+
+  const segments = relative.split('/').filter(Boolean);
+
+  if (tabName === 'messages') {
+    return segments.length === 1 || segments[1] === 'index';
+  }
+
+  return segments.length === 1;
+}
+
 function getMainTabFromRelativePath(
   relativePath: string,
   role: TabAtmosphereRole,
@@ -212,7 +261,7 @@ export function getTabAtmosphereIntensityFromPathname(
   const relative = stripTabGroupPrefix(normalized, role);
 
   if (isStackDetailPath(normalized, role)) {
-    return 'none';
+    return isAtmosphereStackPath(relative) ? 'subtle' : 'none';
   }
 
   if (isHomePath(relative)) {
@@ -250,6 +299,13 @@ export function getTabAtmosphereAccentFromPathname(
   }
 
   const mainTab = getMainTabFromRelativePath(relative, role);
+
+  if (!mainTab && isStackDetailPath(normalized, role)) {
+    const parentTab = getStackParentTabFromRelativePath(relative, role);
+    if (parentTab) {
+      return getTabAccentForName(parentTab);
+    }
+  }
 
   if (!mainTab) {
     return 'primary';

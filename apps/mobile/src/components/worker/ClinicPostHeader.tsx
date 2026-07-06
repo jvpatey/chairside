@@ -214,7 +214,7 @@ export function ClinicPostHeader({
               </Text>
             ) : (
               <>
-                <Text style={styles.eyebrow} numberOfLines={2}>
+                <Text style={styles.eyebrow} numberOfLines={headerOnlySplit ? 3 : 2}>
                   {clinicName}
                 </Text>
                 <Text style={styles.title} numberOfLines={2}>
@@ -243,7 +243,7 @@ export function ClinicPostHeader({
               </Text>
             ) : null}
             {!isSplit && postedLabel ? renderPostedLabel(postedLabel, styles.posted) : null}
-            {headerOnlySplit && postedLabel ? renderPostedLabel(postedLabel, styles.posted) : null}
+            {headerOnlySplit && postedLabel ? renderPostedLabel(postedLabel, styles.posted, 2) : null}
             {headerOnlySplit && footer ? <View style={styles.footer}>{footer}</View> : null}
           </View>
           {accessory ? (

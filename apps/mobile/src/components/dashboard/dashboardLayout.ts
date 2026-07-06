@@ -31,7 +31,6 @@ export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
     },
     content: {
       gap: sectionGap,
-      ...(Platform.OS === 'web' ? { paddingTop: spacing.sm } : null),
     },
     section: {
       gap: spacing.sm,

@@ -12,6 +12,7 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
 import { WorkerApplicationsInboxPanel } from '@/components/worker/WorkerApplicationsInboxPanel';
 import { WorkerConfirmedFillInDetail } from '@/components/worker/WorkerConfirmedFillInDetail';
+import { WorkerFillInsInboxPanel } from '@/components/worker/WorkerFillInsInboxPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
@@ -25,6 +26,14 @@ import {
   navigateAfterWorkerApplication,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
+
+function isFillInApplicationReturn(returnTo?: string) {
+  return (
+    returnTo === 'fill-ins-tab' ||
+    returnTo === 'open-fill-ins' ||
+    returnTo === 'past-fill-ins'
+  );
+}
 
 export default function WorkerApplicationDetailScreen() {
   const { user } = useAuth();
@@ -129,7 +138,7 @@ export default function WorkerApplicationDetailScreen() {
     : undefined;
 
   const detail = (
-    <OnboardingShell>
+    <OnboardingShell transparentBackground={Platform.OS === 'web' && isTablet}>
       <AuthScreenHeader
         title={headerTitle}
         subtitle={headerSubtitle}
@@ -163,13 +172,16 @@ export default function WorkerApplicationDetailScreen() {
   );
 
   if (isTablet) {
+    const fillInContext = isFillInApplicationReturn(resolvedReturnTo);
+    const master = fillInContext ? (
+      <WorkerFillInsInboxPanel compact />
+    ) : (
+      <WorkerApplicationsInboxPanel compact />
+    );
+
     return (
       <>
-        <MasterDetailLayout
-          master={<WorkerApplicationsInboxPanel compact />}
-          detail={detail}
-          showDetail
-        />
+        <MasterDetailLayout master={master} detail={detail} showDetail />
         <HiringCelebrationModal
           visible={celebrationVisible}
           payload={celebrationPayload}

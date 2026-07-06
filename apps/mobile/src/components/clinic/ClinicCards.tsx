@@ -21,7 +21,6 @@ import {
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
-import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
 import {
   formatApplicantCountLabelWithNew,
 } from '@/components/ui/CountBadge';
@@ -192,24 +191,9 @@ function DashboardListCard({
   const countLabel = formatApplicantCountLabelWithNew(applicantCount, unseenCount);
   const postedLabel = formatPostedDateLabel(postedAt);
   const hasApplicants = applicantCount > 0;
+  const detailLine = [hasApplicants ? countLabel : null, meta].filter(Boolean).join(' · ') || null;
 
   const accessory = highlighted ? (statusBadge ?? <ApplicationCardBadge />) : statusBadge;
-
-  const applicantControl =
-    hasApplicants && onPress
-      ? (
-          <ApplicantCountButton
-            label={countLabel}
-            highlighted={highlighted}
-            onPress={onPress}
-            accessibilityLabel={`Review ${applicantCount} applicants`}
-          />
-        )
-      : hasApplicants
-        ? (
-            <ApplicantCountButton label={countLabel} highlighted={highlighted} showChevron={false} />
-          )
-        : null;
 
   const header = (
     <ClinicPostHeader
@@ -218,11 +202,10 @@ function DashboardListCard({
       logoStoragePath={clinicProfile?.logo_storage_path}
       title={title}
       location={location || null}
-      detail={meta ?? null}
+      detail={detailLine}
       postedLabel={postedLabel || null}
       avatarSize={44}
       accessory={accessory}
-      detailAccessory={applicantControl}
     />
   );
 
