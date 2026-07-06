@@ -68,7 +68,7 @@ export function MasterDetailLayout({
       flexShrink: 0,
       borderLeftWidth: 0.5,
       borderLeftColor: colors.separator,
-      backgroundColor: colors.surface,
+      backgroundColor: showAtmosphere ? 'transparent' : colors.surface,
       // @ts-expect-error web shadow
       boxShadow: getWebShadow(isDark, 'subtle'),
     },
@@ -94,7 +94,12 @@ export function MasterDetailLayout({
           {atmosphereLayer}
           <View style={styles.paneContent}>{detail}</View>
         </View>
-        {isXWide && context ? <View style={styles.context}>{context}</View> : null}
+        {isXWide && context ? (
+          <View style={[styles.context, styles.pane]}>
+            {atmosphereLayer}
+            <View style={styles.paneContent}>{context}</View>
+          </View>
+        ) : null}
       </View>
     </View>
   );

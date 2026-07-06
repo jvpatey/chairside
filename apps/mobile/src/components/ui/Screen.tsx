@@ -115,11 +115,9 @@ export function Screen({
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
   const showAtmosphere = tabAtmosphere !== 'none' && !hideAtmosphere;
-  // Web tab scenes are opaque (see useAdaptiveTabScreenOptions); paint atmosphere per screen.
-  const atmosphereLayer =
-    showAtmosphere && Platform.OS === 'web' ? (
-      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
-    ) : null;
+  const atmosphereLayer = showAtmosphere ? (
+    <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+  ) : null;
   const containerBackground =
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);

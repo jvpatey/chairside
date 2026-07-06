@@ -41,11 +41,11 @@ function renderDetailPane({
   onConversationChange?: (conversation: Conversation) => void;
 }) {
   if (!userId || inboxFilteredEmpty) {
-    return <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} />;
+    return <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} embedded />;
   }
 
   if (!selectedId) {
-    return <MessageThreadPlaceholder role={role} />;
+    return <MessageThreadPlaceholder role={role} embedded />;
   }
 
   return (
@@ -249,7 +249,7 @@ export function MessageThreadSplitView({
 
   const detail =
     !user?.id || inboxFilteredEmpty ? (
-      <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} />
+      <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} embedded />
     ) : (
       <MessageThread
         embedded

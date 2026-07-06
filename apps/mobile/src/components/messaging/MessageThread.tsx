@@ -30,8 +30,10 @@ import { MessageThreadHeader } from '@/components/messaging/MessageThreadHeader'
 import { MessagingEmptyState } from '@/components/messaging/MessagingEmptyState';
 import { MessagingThreadSkeleton } from '@/components/messaging/MessagingSkeleton';
 import { TypingIndicator } from '@/components/messaging/TypingIndicator';
+import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
+import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useConversationRealtime } from '@/hooks/useConversationRealtime';
 import { useMessageRealtime } from '@/hooks/useMessageRealtime';
@@ -47,7 +49,7 @@ import {
 } from '@/lib/messageThreadDisplay';
 import { webPointer } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 const MESSAGE_PAGE_SIZE = 50;
 const SEARCH_HIGHLIGHT_DURATION_MS = 2800;
@@ -159,10 +161,17 @@ export function MessageThread({
     }
   }, [conversation]);
 
+  const tabAtmosphere = useTabAtmosphere();
+  const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const showTabAtmosphere = tabAtmosphere !== 'none';
+  const transparentShell = showTabAtmosphere || (embedded && Platform.OS === 'web');
+  const paintOwnAtmosphere = showTabAtmosphere && !(embedded && Platform.OS === 'web');
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      overflow: 'hidden',
+      backgroundColor: transparentShell ? 'transparent' : colors.background,
     },
     header: {
       paddingHorizontal: spacing.lg,
@@ -171,6 +180,7 @@ export function MessageThread({
     list: {
       flex: 1,
       paddingHorizontal: spacing.lg,
+      backgroundColor: transparentShell ? 'transparent' : undefined,
     },
     listContent: {
       paddingVertical: spacing.md,
@@ -215,7 +225,9 @@ export function MessageThread({
       paddingBottom: spacing.sm,
       borderTopWidth: 1,
       borderTopColor: colors.separator,
-      backgroundColor: colors.background,
+      backgroundColor: transparentShell
+        ? colorWithAlpha(colors.backgroundGrouped, 0.94)
+        : colors.background,
     },
     scrollToLatest: {
       position: 'absolute',
@@ -832,6 +844,9 @@ export function MessageThread({
 
   return (
     <View ref={containerRef} style={styles.container} collapsable={false}>
+      {paintOwnAtmosphere ? (
+        <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+      ) : null}
       {embedded ? threadBody : <WebPageEnter animate={false} style={{ flex: 1 }}>{threadBody}</WebPageEnter>}
     </View>
   );

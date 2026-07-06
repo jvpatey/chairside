@@ -83,6 +83,7 @@ function isAtmosphereStackPath(relativePath: string): boolean {
     root === 'job' ||
     root === 'role-applicants' ||
     root === 'application' ||
+    root === 'conversation' ||
     root === 'shift' ||
     root === 'shift-applicants' ||
     root === 'role-history' ||
