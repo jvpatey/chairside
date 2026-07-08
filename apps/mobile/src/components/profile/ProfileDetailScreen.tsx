@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { createContext, ReactNode, useContext, useRef } from 'react';
+import { Platform, Pressable, ScrollView, Text, View, type View as ViewType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PageHeroGlow } from '@/components/ui/PageHeroGlow';
@@ -10,6 +10,17 @@ import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphe
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
+
+type ProfileDetailScrollContextValue = {
+  scrollRef: React.RefObject<ScrollView | null>;
+  scrollContentRef: React.RefObject<ViewType | null>;
+};
+
+const ProfileDetailScrollContext = createContext<ProfileDetailScrollContextValue | null>(null);
+
+export function useProfileDetailScroll() {
+  return useContext(ProfileDetailScrollContext);
+}
 
 type ProfileDetailScreenProps = {
   title?: string;
@@ -30,6 +41,8 @@ export function ProfileDetailScreen({
   headerRight,
   children,
 }: ProfileDetailScreenProps) {
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollContentRef = useRef<ViewType>(null);
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset();
   const { colors } = useTheme();
@@ -102,9 +115,11 @@ export function ProfileDetailScreen({
   }));
 
   return (
+    <ProfileDetailScrollContext.Provider value={{ scrollRef, scrollContentRef }}>
     <View style={[styles.container, { backgroundColor: containerBackground }]}>
       {atmosphereLayer}
       <ScrollView
+        ref={scrollRef}
         style={[
           { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
           webScrollbarStyles(),
@@ -118,7 +133,8 @@ export function ProfileDetailScreen({
           },
         ]}>
         <WebPageEnter>
-          <View style={styles.header}>
+          <View ref={scrollContentRef}>
+            <View style={styles.header}>
             <View style={styles.topRow}>
               <Pressable
                 accessibilityRole="button"
@@ -148,10 +164,12 @@ export function ProfileDetailScreen({
                 ) : null}
               </View>
             ) : null}
+            </View>
+            <View style={styles.body}>{children}</View>
           </View>
-          <View style={styles.body}>{children}</View>
         </WebPageEnter>
       </ScrollView>
     </View>
+    </ProfileDetailScrollContext.Provider>
   );
 }
