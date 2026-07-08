@@ -1,8 +1,9 @@
 import type { ShiftPostStatus } from '@chairside/api';
-import { Text, View, type ViewStyle } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
+import { PillBadge } from '@/components/ui/PillBadge';
 import { isExpiredLiveShift } from '@/lib/fillInFilters';
-import { useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme } from '@/theme';
 
 type ShiftPostStatusBadgeProps = {
   status: ShiftPostStatus;
@@ -51,91 +52,36 @@ function getShiftPostStatusLabel(status: ShiftPostStatus, shiftDate?: string | n
 }
 
 export function ShiftPostStatusBadge({ status, shiftDate, style }: ShiftPostStatusBadgeProps) {
+  const { colors, isDark } = useTheme();
   const variant = getShiftPostStatusBadgeVariant(status, shiftDate);
   const label = getShiftPostStatusLabel(status, shiftDate);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    badge: {
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-    },
-    badgeOpen: {
-      backgroundColor: `${colors.destructive}1A`,
-      borderWidth: 1,
-      borderColor: `${colors.destructive}40`,
-    },
-    badgeFilled: {
-      backgroundColor: `${colors.success}1A`,
-      borderWidth: 1,
-      borderColor: `${colors.success}40`,
-    },
-    badgeDraft: {
-      backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
-      borderColor: colors.separator,
-    },
-    badgeClosed: {
-      backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
-      borderColor: colors.separator,
-    },
-    badgeExpired: {
-      backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
-      borderColor: colors.separator,
-    },
-    textOpen: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.destructive,
-    },
-    textFilled: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.success,
-    },
-    textDraft: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
-    textClosed: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
-    textExpired: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
-  }));
-
-  const badgeStyle = [
-    styles.badge,
-    variant === 'open' && styles.badgeOpen,
-    variant === 'filled' && styles.badgeFilled,
-    variant === 'draft' && styles.badgeDraft,
-    variant === 'closed' && styles.badgeClosed,
-    variant === 'expired' && styles.badgeExpired,
-    style,
-  ];
-
-  const textStyle =
+  const palette =
     variant === 'open'
-      ? styles.textOpen
+      ? {
+          color: colors.destructive,
+          backgroundColor: colorWithAlpha(colors.destructive, isDark ? 0.18 : 0.1),
+          borderColor: colorWithAlpha(colors.destructive, 0.28),
+        }
       : variant === 'filled'
-        ? styles.textFilled
-        : variant === 'draft'
-          ? styles.textDraft
-          : variant === 'expired'
-            ? styles.textExpired
-            : styles.textClosed;
+        ? {
+            color: colors.success,
+            backgroundColor: colorWithAlpha(colors.success, isDark ? 0.18 : 0.1),
+            borderColor: colorWithAlpha(colors.success, 0.28),
+          }
+        : {
+            color: colors.labelSecondary,
+            backgroundColor: colors.fillSubtle,
+            borderColor: colors.separator,
+          };
 
   return (
-    <View style={badgeStyle}>
-      <Text style={textStyle}>{label}</Text>
-    </View>
+    <PillBadge
+      label={label}
+      color={palette.color}
+      backgroundColor={palette.backgroundColor}
+      borderColor={palette.borderColor}
+      style={[{ alignSelf: 'center' }, style]}
+    />
   );
 }

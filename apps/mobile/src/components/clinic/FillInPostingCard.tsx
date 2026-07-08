@@ -13,8 +13,12 @@ import { ShiftPostManageMenu } from '@/components/clinic/ShiftPostManageMenu';
 import { ShiftPostStatusBadge } from '@/components/clinic/ShiftPostStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CountBadge, formatRequestCountLabel } from '@/components/ui/CountBadge';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { ExpandableSurfaceCard } from '@/components/ui/ExpandableSurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
+import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
+import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import {
   formatShiftPostMeta,
@@ -57,6 +61,8 @@ export function FillInPostingCard({
   accent = 'secondary',
 }: FillInPostingCardProps) {
   const { colors } = useTheme();
+  const { billing } = useClinicBilling();
+  const featuredTreatment = useFeaturedListingTreatment(accent);
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
@@ -82,6 +88,10 @@ export function FillInPostingCard({
       alignItems: 'center',
       gap: spacing.sm,
     },
+    headerActions: {
+      alignItems: 'flex-end',
+      gap: spacing.xs,
+    },
     actionButton: {
       flex: 1,
     },
@@ -94,17 +104,25 @@ export function FillInPostingCard({
 
   const reviewLabel =
     applicationCount === 1 ? 'Review applicant' : `Review ${applicationCount} applicants`;
+  const isFeatured = shift.status === 'live' && Boolean(billing?.hasPriorityListing);
 
   const header = (
-        <ClinicPostHeader
-          layout="split"
-          clinicName={clinicName}
+    <ClinicPostHeader
+      layout="split"
+      clinicName={clinicName}
       logoStoragePath={clinicProfile?.logo_storage_path}
       title={formatShiftPostRoleTitle(shift.role_type)}
       location={location || null}
       detail={formatShiftPostMeta(shift)}
       avatarSize={44}
-      accessory={<ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />}
+      accessory={
+        <View style={styles.headerActions}>
+          <BadgeRow>
+            {isFeatured ? <FeaturedListingBadge accent={accent} /> : null}
+            <ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />
+          </BadgeRow>
+        </View>
+      }
       textFooter={
         pendingRequestCount > 0 ? (
           <CountBadge label={formatRequestCountLabel(pendingRequestCount)} />
@@ -125,7 +143,9 @@ export function FillInPostingCard({
       header={header}
       expanded={expanded}
       onToggleExpand={toggleExpanded}
-      accent={accent}>
+      accent={accent}
+      style={isFeatured ? featuredTreatment.styles.card : undefined}
+      featuredGradient={isFeatured ? featuredTreatment.gradient : null}>
       <ShiftPostDetailView shift={shift} variant="embedded" showStatusBadge={false} accent={accent} />
       <View style={styles.actions}>
         {applicationCount > 0 ? (

@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { BillingMetricTile } from '@/components/billing/BillingMetricTile';
 import { PlanTierBadge } from '@/components/billing/PlanTierBadge';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { PillBadge } from '@/components/ui/PillBadge';
 import {
   formatClinicSubscriptionStatus,
@@ -12,7 +13,7 @@ import {
   getClinicPlanHeroSummary,
   getRecommendedUpgradePlan,
 } from '@/lib/clinicPlanPresentation';
-import { colorWithAlpha, getSpotlightGradient, useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
 
 type BillingHeroProps = {
   billing: ClinicBillingState;
@@ -63,12 +64,13 @@ export function BillingHero({
         ? colors.warning
         : colors.labelTertiary;
 
-  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
     card: {
-      borderRadius: radii.lg,
+      borderRadius: radii.hero,
       overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: colorWithAlpha(colors.primary, isDark ? 0.24 : 0.14),
+      borderWidth: isDark ? 1 : 0,
+      borderColor: colors.separator,
+      position: 'relative',
       ...elevation('subtle'),
     },
     gradient: {
@@ -76,37 +78,48 @@ export function BillingHero({
     },
     content: {
       padding: spacing.lg,
+      alignItems: 'center',
       gap: spacing.md,
     },
-    topRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.md,
+    headingBlock: {
+      alignItems: 'center',
+      gap: spacing.sm,
+      width: '100%',
     },
-    topMeta: {
-      flex: 1,
-      gap: spacing.xs,
+    heading: {
+      ...typography.title,
+      fontSize: 22,
+      lineHeight: 28,
+      textAlign: 'center',
+      color: colors.labelPrimary,
+    },
+    badgeRow: {
+      justifyContent: 'center',
     },
     summary: {
       ...typography.subtitle,
       fontSize: 15,
       lineHeight: 22,
+      textAlign: 'center',
       color: colors.labelSecondary,
+      maxWidth: 320,
     },
     renewal: {
       ...typography.subtitle,
       fontSize: 13,
       lineHeight: 18,
+      textAlign: 'center',
       color: colors.labelTertiary,
     },
     metricsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: spacing.sm,
+      alignSelf: 'stretch',
     },
     actions: {
       gap: spacing.sm,
+      alignSelf: 'stretch',
     },
     secondaryLink: {
       alignSelf: 'center',
@@ -120,7 +133,7 @@ export function BillingHero({
     },
   }));
 
-  const spotlight = getSpotlightGradient(colors, isDark, 'primary');
+  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
 
   const roleAtLimit =
     billing.activeRoleLimit != null && billing.activeRoleCount >= billing.activeRoleLimit;
@@ -130,29 +143,32 @@ export function BillingHero({
   return (
     <View style={styles.card}>
       <LinearGradient
-        colors={spotlight}
-        locations={[0, 0.45, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        colors={heroGradient}
+        locations={[0, 0.35, 0.65, 0.85, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
         style={styles.gradient}
         pointerEvents="none"
       />
       <View style={styles.content}>
-        <View style={styles.topRow}>
-          <View style={styles.topMeta}>
-            <PlanTierBadge plan={plan} />
-            <Text style={styles.summary}>{getClinicPlanHeroSummary(plan)}</Text>
-            {renewalLabel ? <Text style={styles.renewal}>{renewalLabel}</Text> : null}
+        <View style={styles.headingBlock}>
+          <Text style={styles.heading}>Your plan</Text>
+          <View style={styles.badgeRow}>
+            <BadgeRow>
+              <PlanTierBadge plan={plan} size="sm" />
+              {statusBadge ? (
+                <PillBadge
+                  label={statusBadge.label}
+                  color={statusColor}
+                  backgroundColor={colorWithAlpha(statusColor, isDark ? 0.18 : 0.1)}
+                  borderColor={colorWithAlpha(statusColor, 0.28)}
+                  size="sm"
+                />
+              ) : null}
+            </BadgeRow>
           </View>
-          {statusBadge ? (
-            <PillBadge
-              label={statusBadge.label}
-              color={statusColor}
-              backgroundColor={colorWithAlpha(statusColor, isDark ? 0.18 : 0.1)}
-              borderColor={colorWithAlpha(statusColor, 0.28)}
-              size="sm"
-            />
-          ) : null}
+          <Text style={styles.summary}>{getClinicPlanHeroSummary(plan)}</Text>
+          {renewalLabel ? <Text style={styles.renewal}>{renewalLabel}</Text> : null}
         </View>
 
         <View style={styles.metricsRow}>

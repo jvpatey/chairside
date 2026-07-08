@@ -10,6 +10,7 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { SavePostButton } from '@/components/worker/SavePostButton';
+import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { getAppliedRowGradient, useTheme, useThemedStyles } from '@/theme';
 
@@ -35,6 +36,7 @@ export function RoleListingCard({
   onPress,
 }: RoleListingCardProps) {
   const { colors, isDark } = useTheme();
+  const featuredTreatment = useFeaturedListingTreatment();
   const locationBase = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
   const location = distanceLabel
     ? locationBase
@@ -101,9 +103,15 @@ export function RoleListingCard({
     ) : null;
 
   const appliedGradient = hasApplied ? getAppliedRowGradient(colors, isDark) : null;
+  const isFeatured = job.has_priority_listing;
 
   return (
-    <SurfaceCard onPress={onPress} padding="none" style={styles.card} contentStyle={styles.cardInner}>
+    <SurfaceCard
+      onPress={onPress}
+      padding="none"
+      style={[styles.card, isFeatured && featuredTreatment.styles.card]}
+      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}
+      contentStyle={styles.cardInner}>
       {appliedGradient ? (
         <LinearGradient
           colors={appliedGradient}

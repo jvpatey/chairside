@@ -6,6 +6,7 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
+import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
@@ -30,6 +31,7 @@ export function FillInListingCard({
   const { colors } = useTheme();
   const tabAccent = useTabAtmosphereAccent();
   const resolvedAccent = accent ?? tabAccent;
+  const featuredTreatment = useFeaturedListingTreatment(resolvedAccent);
   const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
   const locationBase = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
   const location = distanceLabel
@@ -41,6 +43,9 @@ export function FillInListingCard({
   const detail = formatShiftPostMeta(shift);
 
   const styles = useThemedStyles(({ spacing }) => ({
+    cardContent: {
+      padding: spacing.md,
+    },
     accessoryColumn: {
       alignItems: 'flex-end',
       gap: spacing.xs,
@@ -54,7 +59,7 @@ export function FillInListingCard({
 
   const accessory = (
     <View style={styles.accessoryColumn}>
-      {shift.has_priority_listing ? <FeaturedListingBadge /> : null}
+      {shift.has_priority_listing ? <FeaturedListingBadge accent={resolvedAccent} /> : null}
       <ShiftUrgencyBadge urgency={shift.urgency} />
       {onToggleSaved ? (
         <SavePostButton isSaved={isSaved} onToggle={onToggleSaved} size={20} />
@@ -62,24 +67,32 @@ export function FillInListingCard({
     </View>
   );
 
+  const isFeatured = shift.has_priority_listing;
+
   return (
-    <SurfaceCard onPress={onPress}>
-      <ClinicPostHeader
-        layout="split"
-        clinicName={shift.clinic.clinic_name}
-        logoStoragePath={shift.clinic.logo_storage_path}
-        title={roleTitle}
-        location={location || null}
-        detail={detail || null}
-        textFooter={
-          shift.compensation ? (
-            <Text style={styles.compensation}>{shift.compensation}</Text>
-          ) : undefined
-        }
-        avatarSize={44}
-        accessory={accessory}
-        stackedAccessory
-      />
+    <SurfaceCard
+      onPress={onPress}
+      padding="none"
+      style={isFeatured ? featuredTreatment.styles.card : undefined}
+      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
+      <View style={styles.cardContent}>
+        <ClinicPostHeader
+          layout="split"
+          clinicName={shift.clinic.clinic_name}
+          logoStoragePath={shift.clinic.logo_storage_path}
+          title={roleTitle}
+          location={location || null}
+          detail={detail || null}
+          textFooter={
+            shift.compensation ? (
+              <Text style={styles.compensation}>{shift.compensation}</Text>
+            ) : undefined
+          }
+          avatarSize={44}
+          accessory={accessory}
+          stackedAccessory
+        />
+      </View>
     </SurfaceCard>
   );
 }
