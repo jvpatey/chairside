@@ -1,20 +1,20 @@
 import { router } from 'expo-router';
-import {
-  CLINIC_SETUP_LOCATION,
-} from '@/lib/routing';
+import { CLINIC_SETUP_LOCATION } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSignOut } from '@/hooks/useSignOut';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
+import { validateClinicBasicsStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicBasicsScreen() {
@@ -26,10 +26,14 @@ export default function ClinicBasicsScreen() {
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useClinicSetupStepGuard('basics', clinicProfile, isClinicProfileReady, isEditMode);
+
+  const validation = validateClinicBasicsStep({ clinicName, contactName, phone });
 
   const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
-    footer: { gap: spacing.md, marginTop: spacing.lg },
   }));
 
   useEffect(() => {
@@ -40,11 +44,9 @@ export default function ClinicBasicsScreen() {
   }, [clinicProfile]);
 
   const handleContinue = async () => {
-    if (!clinicName.trim()) {
-      Alert.alert('Missing information', 'Enter your clinic name to continue.');
-      return;
-    }
+    if (!validation.ok) return;
 
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await save({
@@ -58,10 +60,7 @@ export default function ClinicBasicsScreen() {
         router.push(CLINIC_SETUP_LOCATION);
       }
     } catch (error) {
-      Alert.alert(
-        'Could not save',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -70,23 +69,23 @@ export default function ClinicBasicsScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell atmosphere="form"
+    <OnboardingShell
+      atmosphere="form"
       footer={
-        <View style={styles.footer}>
-          <OnboardingButton
-            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
-            disabled={isSubmitting}
-            onPress={handleContinue}
-          />
-        </View>
+        <SetupStepFooter
+          canContinue={validation.ok}
+          validationMessage={validation.message}
+          submitError={submitError}
+          isSubmitting={isSubmitting}
+          continueLabel={isEditMode ? 'Save changes' : 'Continue'}
+          onContinue={handleContinue}
+        />
       }>
       <AuthScreenHeader
         title="Clinic basics"
         subtitle="Tell us about your practice."
         backLabel={isEditMode ? undefined : isSigningOut ? 'Signing out…' : 'Sign out'}
-        onBack={() =>
-          isEditMode ? router.replace(exitHref) : void signOut()
-        }
+        onBack={() => (isEditMode ? router.replace(exitHref) : void signOut())}
       />
       {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
       <View style={styles.form}>
@@ -96,6 +95,7 @@ export default function ClinicBasicsScreen() {
           value={clinicName}
           onChangeText={setClinicName}
           autoCapitalize="words"
+          invalid={!validation.ok && !clinicName.trim()}
         />
         <AuthField
           label="Contact name"
@@ -103,6 +103,7 @@ export default function ClinicBasicsScreen() {
           value={contactName}
           onChangeText={setContactName}
           autoCapitalize="words"
+          invalid={!validation.ok && !contactName.trim() && !phone.trim()}
         />
         <AuthField
           label="Phone"
@@ -110,6 +111,7 @@ export default function ClinicBasicsScreen() {
           value={phone}
           onChangeText={(text) => setPhone(formatPhoneNumber(text))}
           keyboardType="phone-pad"
+          invalid={!validation.ok && !contactName.trim() && !phone.trim()}
         />
       </View>
     </OnboardingShell>

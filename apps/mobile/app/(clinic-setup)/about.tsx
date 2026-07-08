@@ -1,15 +1,16 @@
 import { router } from 'expo-router';
 import { CLINIC_SETUP_REVIEW } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
@@ -20,10 +21,12 @@ export default function ClinicAboutScreen() {
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useClinicSetupStepGuard('about', clinicProfile, isClinicProfileReady, isEditMode);
 
   const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
-    footer: { gap: spacing.md, marginTop: spacing.lg },
   }));
 
   useEffect(() => {
@@ -33,6 +36,7 @@ export default function ClinicAboutScreen() {
   }, [clinicProfile]);
 
   const handleContinue = async () => {
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await save({
@@ -45,10 +49,7 @@ export default function ClinicAboutScreen() {
         router.push(CLINIC_SETUP_REVIEW);
       }
     } catch (error) {
-      Alert.alert(
-        'Could not save',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -57,15 +58,17 @@ export default function ClinicAboutScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell atmosphere="form"
+    <OnboardingShell
+      atmosphere="form"
       footer={
-        <View style={styles.footer}>
-          <OnboardingButton
-            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
-            disabled={isSubmitting}
-            onPress={handleContinue}
-          />
-        </View>
+        <SetupStepFooter
+          canContinue
+          validationMessage={null}
+          submitError={submitError}
+          isSubmitting={isSubmitting}
+          continueLabel={isEditMode ? 'Save changes' : 'Continue'}
+          onContinue={handleContinue}
+        />
       }>
       <AuthScreenHeader
         title="About your clinic"

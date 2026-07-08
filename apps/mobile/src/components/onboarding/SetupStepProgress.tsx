@@ -1,17 +1,14 @@
 import { Text, View } from 'react-native';
 
-import { ProgressRing } from '@/components/dashboard/ProgressRing';
 import { useThemedStyles } from '@/theme';
 
 type SetupStepProgressProps = {
   step: number;
   total: number;
-  /** Show circular ring on the final review step. */
-  showRing?: boolean;
 };
 
-/** Step indicator for native setup flows — dots with optional progress ring. */
-export function SetupStepProgress({ step, total, showRing = false }: SetupStepProgressProps) {
+/** Step indicator for native setup flows — dots with step count label. */
+export function SetupStepProgress({ step, total }: SetupStepProgressProps) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
     row: {
       flexDirection: 'row',
@@ -70,13 +67,9 @@ export function SetupStepProgress({ step, total, showRing = false }: SetupStepPr
           );
         })}
       </View>
-      {showRing ? (
-        <ProgressRing completed={step} total={total} size={40} strokeWidth={3} />
-      ) : (
-        <Text style={styles.label}>
-          {step}/{total}
-        </Text>
-      )}
+      <Text style={styles.label}>
+        {step}/{total}
+      </Text>
     </View>
   );
 }
