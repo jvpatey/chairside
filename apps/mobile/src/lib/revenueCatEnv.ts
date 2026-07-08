@@ -31,3 +31,15 @@ export function getRevenueCatApiKey(): string | undefined {
   if (Platform.OS === 'ios') return getRevenueCatIosApiKey();
   return process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY?.trim();
 }
+
+export function getRevenueCatWebApiKey(): string | undefined {
+  const fromEnv = process.env.EXPO_PUBLIC_REVENUECAT_WEB_API_KEY?.trim();
+  if (fromEnv) return fromEnv;
+
+  const extra = Constants.expoConfig?.extra as { revenueCatWebApiKey?: string } | undefined;
+  return extra?.revenueCatWebApiKey?.trim() || undefined;
+}
+
+export function isWebRevenueCatConfigured(): boolean {
+  return Platform.OS === 'web' && Boolean(getRevenueCatWebApiKey());
+}

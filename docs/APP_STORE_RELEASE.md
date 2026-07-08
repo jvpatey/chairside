@@ -166,6 +166,8 @@ When you are ready to sell plans in-app:
 4. Enable In-App Purchase capability on the iOS App ID if EAS credentials do not add it automatically.
 5. Test purchase, restore purchases, posting limits, outreach gating, SMS gating, and Pro listing priority on TestFlight.
 
+For web-only clinic checkout on `chairside.app`, configure RevenueCat Web Billing separately. See [WEB_BILLING.md](./WEB_BILLING.md). Web purchases use the same entitlements and Supabase sync path; no iOS resubmit is required for the first web billing release.
+
 Launch tiers:
 
 - **Free:** 1 active role and 1 active fill-in, applicant messaging, screening

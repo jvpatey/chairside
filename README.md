@@ -174,6 +174,7 @@ Expo web can be exported and hosted separately from the native apps. Build with 
 | [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Pingram types, webhooks, `notify` deploy |
 | [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md) | APNs, EAS env, TestFlight push debugging |
 | [docs/WEB_DEPLOY.md](docs/WEB_DEPLOY.md) | Static web export, auth redirects, hosting |
+| [docs/WEB_BILLING.md](docs/WEB_BILLING.md) | RevenueCat Web Billing setup and cross-platform sync |
 
 ## Expo Go vs dev build (quick reference)
 

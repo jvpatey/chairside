@@ -67,6 +67,30 @@ export const REVENUECAT_PRODUCT_IDS = {
   proYearly: 'clinic_pro_yearly',
 } as const;
 
+/** Package / product identifiers used when resolving offerings on native and web. */
+export const REVENUECAT_PACKAGE_LOOKUP = {
+  starterMonthly: [
+    'starter_monthly',
+    REVENUECAT_PRODUCT_IDS.starterMonthly,
+    '$rc_monthly',
+  ],
+  starterYearly: [
+    'starter_yearly',
+    REVENUECAT_PRODUCT_IDS.starterYearly,
+    '$rc_annual',
+  ],
+  proMonthly: [
+    'pro_monthly',
+    REVENUECAT_PRODUCT_IDS.proMonthly,
+    '$rc_monthly_pro',
+  ],
+  proYearly: [
+    'pro_yearly',
+    REVENUECAT_PRODUCT_IDS.proYearly,
+    '$rc_annual_pro',
+  ],
+} as const;
+
 export function resolveClinicPlanFromEntitlements(entitlements: {
   clinic_starter?: boolean;
   clinic_pro?: boolean;

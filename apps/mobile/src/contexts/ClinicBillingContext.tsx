@@ -17,33 +17,38 @@ import {
   type ReactNode,
 } from 'react';
 import { Platform } from 'react-native';
-import type { PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
 
+import type { BillingOfferings, BillingPackage } from '@/lib/billingOfferings';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   configureRevenueCat,
-  getRevenueCatCustomerInfo,
-  getRevenueCatOfferings,
-  getClinicPlanFromCustomerInfo,
+  getBillingOfferings,
+  getCurrentClinicPlan,
   logOutRevenueCat,
-  purchaseRevenueCatPackage,
+  openSubscriptionManagement,
+  purchaseBillingPackage,
   restoreRevenueCatPurchases,
 } from '@/lib/revenueCat';
-import { isRevenueCatConfigured } from '@/lib/revenueCatEnv';
+import { isRevenueCatConfigured, isWebRevenueCatConfigured } from '@/lib/revenueCatEnv';
 
 type ClinicBillingContextValue = {
   billing: ClinicBillingState | null;
   isBillingReady: boolean;
   isRefreshing: boolean;
-  offerings: PurchasesOfferings | null;
+  offerings: BillingOfferings | null;
   revenueCatPlan: ClinicPlan | null;
   refreshBilling: () => Promise<void>;
-  purchasePackage: (purchasePackage: PurchasesPackage) => Promise<void>;
+  purchasePackage: (purchasePackage: BillingPackage) => Promise<void>;
   restorePurchases: () => Promise<void>;
+  manageSubscription: () => Promise<void>;
   isPurchasing: boolean;
   isRestoring: boolean;
+  isManagingSubscription: boolean;
   billingError: string | null;
   isNativeBillingAvailable: boolean;
+  isWebBillingAvailable: boolean;
+  isPurchaseBillingAvailable: boolean;
+  canManageSubscription: boolean;
 };
 
 const ClinicBillingContext = createContext<ClinicBillingContextValue | null>(null);
@@ -72,21 +77,26 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
   const clinicId = isClinic ? user?.id : undefined;
 
   const [billing, setBilling] = useState<ClinicBillingState | null>(null);
-  const [offerings, setOfferings] = useState<PurchasesOfferings | null>(null);
+  const [offerings, setOfferings] = useState<BillingOfferings | null>(null);
   const [revenueCatPlan, setRevenueCatPlan] = useState<ClinicPlan | null>(null);
   const [isBillingReady, setIsBillingReady] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isManagingSubscription, setIsManagingSubscription] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
+  const [canManageSubscription, setCanManageSubscription] = useState(false);
 
   const isNativeBillingAvailable = Platform.OS !== 'web' && isRevenueCatConfigured();
+  const isWebBillingAvailable = Platform.OS === 'web' && isWebRevenueCatConfigured();
+  const isPurchaseBillingAvailable = isNativeBillingAvailable || isWebBillingAvailable;
 
   const refreshBilling = useCallback(async () => {
     if (!clinicId) {
       setBilling(null);
       setOfferings(null);
       setRevenueCatPlan(null);
+      setCanManageSubscription(false);
       setIsBillingReady(true);
       return;
     }
@@ -94,21 +104,25 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
     setIsRefreshing(true);
     setBillingError(null);
     try {
-      if (isNativeBillingAvailable) {
+      if (isPurchaseBillingAvailable) {
         await configureRevenueCat(clinicId);
-        const [nextBilling, nextOfferings, customerInfo] = await Promise.all([
+        const [nextBilling, nextOfferings, nextRevenueCatPlan] = await Promise.all([
           getClinicBillingState(clinicId),
-          getRevenueCatOfferings(),
-          getRevenueCatCustomerInfo(),
+          getBillingOfferings(),
+          getCurrentClinicPlan(),
         ]);
         setBilling(nextBilling);
         setOfferings(nextOfferings);
-        setRevenueCatPlan(customerInfo ? getClinicPlanFromCustomerInfo(customerInfo) : null);
+        setRevenueCatPlan(nextRevenueCatPlan);
+        setCanManageSubscription(
+          isWebBillingAvailable && nextBilling.plan !== 'free' && nextBilling.status !== 'expired',
+        );
       } else {
         const nextBilling = await getClinicBillingState(clinicId);
         setBilling(nextBilling);
         setOfferings(null);
         setRevenueCatPlan(null);
+        setCanManageSubscription(false);
       }
     } catch (error) {
       setBilling(DEFAULT_BILLING);
@@ -117,7 +131,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       setIsRefreshing(false);
       setIsBillingReady(true);
     }
-  }, [clinicId, isNativeBillingAvailable]);
+  }, [clinicId, isPurchaseBillingAvailable, isWebBillingAvailable]);
 
   useEffect(() => {
     setIsBillingReady(false);
@@ -130,15 +144,28 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
     }
   }, [clinicId]);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshBilling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refreshBilling]);
+
   const purchasePackage = useCallback(
-    async (purchasePackage: PurchasesPackage) => {
-      if (!clinicId || !isNativeBillingAvailable) return;
+    async (purchasePackageArg: BillingPackage) => {
+      if (!clinicId || !isPurchaseBillingAvailable) return;
 
       setIsPurchasing(true);
       setBillingError(null);
       try {
-        const customerInfo = await purchaseRevenueCatPackage(purchasePackage);
-        setRevenueCatPlan(getClinicPlanFromCustomerInfo(customerInfo));
+        const nextPlan = await purchaseBillingPackage(purchasePackageArg);
+        setRevenueCatPlan(nextPlan);
         await syncClinicSubscriptionFromRevenueCat();
         await refreshBilling();
       } catch (error) {
@@ -151,7 +178,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
         setIsPurchasing(false);
       }
     },
-    [clinicId, isNativeBillingAvailable, refreshBilling],
+    [clinicId, isPurchaseBillingAvailable, refreshBilling],
   );
 
   const restorePurchases = useCallback(async () => {
@@ -160,8 +187,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
     setIsRestoring(true);
     setBillingError(null);
     try {
-      const customerInfo = await restoreRevenueCatPurchases();
-      setRevenueCatPlan(getClinicPlanFromCustomerInfo(customerInfo));
+      const nextPlan = await restoreRevenueCatPurchases();
+      setRevenueCatPlan(nextPlan);
       await syncClinicSubscriptionFromRevenueCat();
       await refreshBilling();
     } catch (error) {
@@ -171,6 +198,26 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       setIsRestoring(false);
     }
   }, [clinicId, isNativeBillingAvailable, refreshBilling]);
+
+  const manageSubscription = useCallback(async () => {
+    if (!clinicId || !isWebBillingAvailable) return;
+
+    setIsManagingSubscription(true);
+    setBillingError(null);
+    try {
+      const opened = await openSubscriptionManagement();
+      if (!opened) {
+        setBillingError('Subscription management is not available for this account yet.');
+      }
+    } catch (error) {
+      setBillingError(
+        error instanceof Error ? error.message : 'Could not open subscription management.',
+      );
+      throw error;
+    } finally {
+      setIsManagingSubscription(false);
+    }
+  }, [clinicId, isWebBillingAvailable]);
 
   const value = useMemo<ClinicBillingContextValue>(
     () => ({
@@ -182,19 +229,29 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       refreshBilling,
       purchasePackage,
       restorePurchases,
+      manageSubscription,
       isPurchasing,
       isRestoring,
+      isManagingSubscription,
       billingError,
       isNativeBillingAvailable,
+      isWebBillingAvailable,
+      isPurchaseBillingAvailable,
+      canManageSubscription,
     }),
     [
       billing,
       billingError,
+      canManageSubscription,
       isBillingReady,
+      isManagingSubscription,
       isNativeBillingAvailable,
+      isPurchaseBillingAvailable,
       isPurchasing,
       isRefreshing,
       isRestoring,
+      isWebBillingAvailable,
+      manageSubscription,
       offerings,
       purchasePackage,
       refreshBilling,

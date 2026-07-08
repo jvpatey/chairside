@@ -6,7 +6,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import type { PurchasesPackage } from 'react-native-purchases';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
@@ -15,15 +14,24 @@ import {
   getClinicPlanLabel,
   useClinicBilling,
 } from '@/contexts/ClinicBillingContext';
+import {
+  computeYearlySavings,
+  findBillingPackage,
+  formatBillingPackagePrice,
+  formatYearlySavingsBadge,
+  formatYearlySavingsDetail,
+  type BillingCycle,
+  type BillingPackage,
+  type YearlySavings,
+} from '@/lib/billingOfferings';
 import { CLINIC_PROFILE_BILLING } from '@/lib/routing';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
-
-type BillingCycle = 'monthly' | 'yearly';
 
 type ClinicPlanCardProps = {
   plan: ClinicPlan;
   priceLabel: string;
   billingCycleLabel?: string | null;
+  yearlySavings?: YearlySavings | null;
   isCurrent: boolean;
   isRecommended?: boolean;
   actionLabel: string;
@@ -43,6 +51,7 @@ function ClinicPlanCard({
   plan,
   priceLabel,
   billingCycleLabel,
+  yearlySavings,
   isCurrent,
   isRecommended = false,
   actionLabel,
@@ -106,7 +115,13 @@ function ClinicPlanCard({
       color: colors.labelSecondary,
     },
     priceBlock: {
-      gap: 2,
+      gap: spacing.sm,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
     },
     price: {
       ...typography.body,
@@ -118,6 +133,12 @@ function ClinicPlanCard({
       ...typography.subtitle,
       fontSize: 13,
       color: colors.labelTertiary,
+    },
+    savingsDetail: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.success,
     },
     features: {
       gap: spacing.sm,
@@ -174,8 +195,22 @@ function ClinicPlanCard({
       </View>
 
       <View style={styles.priceBlock}>
-        <Text style={styles.price}>{priceLabel}</Text>
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>{priceLabel}</Text>
+          {yearlySavings ? (
+            <PillBadge
+              label={formatYearlySavingsBadge(yearlySavings)}
+              color={colors.success}
+              backgroundColor={colorWithAlpha(colors.success, isDark ? 0.18 : 0.12)}
+              borderColor={colorWithAlpha(colors.success, 0.28)}
+              size="sm"
+            />
+          ) : null}
+        </View>
         {billingCycleLabel ? <Text style={styles.priceMeta}>{billingCycleLabel}</Text> : null}
+        {yearlySavings ? (
+          <Text style={styles.savingsDetail}>{formatYearlySavingsDetail(yearlySavings)}</Text>
+        ) : null}
       </View>
 
       <View style={styles.features}>
@@ -211,17 +246,23 @@ function BillingCycleToggle({
   onChange,
   hasMonthly,
   hasYearly,
+  yearlySavingsPercent,
 }: {
   value: BillingCycle;
   onChange: (cycle: BillingCycle) => void;
   hasMonthly: boolean;
   hasYearly: boolean;
+  yearlySavingsPercent?: number | null;
 }) {
+  const { isDark } = useTheme();
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
       flexDirection: 'row',
       backgroundColor: colors.fillSubtle,
-      borderRadius: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.separator,
       padding: 4,
       gap: 4,
     },
@@ -229,16 +270,16 @@ function BillingCycleToggle({
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.sm + 2,
       borderRadius: 10,
     },
     optionSelected: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.primary,
       shadowColor: '#000',
-      shadowOpacity: 0.06,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 1 },
-      elevation: 1,
+      shadowOpacity: isDark ? 0.28 : 0.12,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
     },
     label: {
       ...typography.body,
@@ -247,7 +288,18 @@ function BillingCycleToggle({
       color: colors.labelSecondary,
     },
     labelSelected: {
-      color: colors.labelPrimary,
+      color: colors.primaryOnPrimary,
+      fontWeight: '700',
+    },
+    yearlyHint: {
+      ...typography.subtitle,
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.labelTertiary,
+      marginTop: 2,
+    },
+    yearlyHintSelected: {
+      color: colorWithAlpha(colors.primaryOnPrimary, 0.82),
     },
   }));
 
@@ -258,6 +310,7 @@ function BillingCycleToggle({
     <View style={styles.row} accessibilityRole="tablist">
       {(['monthly', 'yearly'] as const).map((cycle) => {
         const selected = value === cycle;
+        const showYearlyHint = cycle === 'yearly' && yearlySavingsPercent != null && yearlySavingsPercent > 0;
         return (
           <Pressable
             key={cycle}
@@ -268,6 +321,11 @@ function BillingCycleToggle({
             <Text style={[styles.label, selected && styles.labelSelected]}>
               {cycle === 'monthly' ? 'Monthly' : 'Yearly'}
             </Text>
+            {showYearlyHint ? (
+              <Text style={[styles.yearlyHint, selected && styles.yearlyHintSelected]}>
+                Save up to {yearlySavingsPercent}%
+              </Text>
+            ) : null}
           </Pressable>
         );
       })}
@@ -526,20 +584,20 @@ function UsageSummary({
   );
 }
 
-function findPackage(
-  packages: PurchasesPackage[] | undefined,
-  identifiers: string[],
-): PurchasesPackage | undefined {
-  if (!packages?.length) return undefined;
-  return packages.find(
-    (pkg) => identifiers.includes(pkg.identifier) || identifiers.includes(pkg.product.identifier),
-  );
-}
+function getBillingCycleLabel(
+  billingCycle: BillingCycle,
+  monthlyPackage: BillingPackage | undefined,
+  yearlyPackage: BillingPackage | undefined,
+): string | null {
+  if (billingCycle === 'monthly' && monthlyPackage) {
+    return 'Billed monthly';
+  }
 
-function formatPackagePrice(pkg: PurchasesPackage | undefined, cycle: BillingCycle): string | null {
-  if (!pkg) return null;
-  const suffix = cycle === 'monthly' ? '/mo' : '/yr';
-  return `${pkg.product.priceString}${suffix}`;
+  if (billingCycle === 'yearly' && yearlyPackage) {
+    return 'Billed annually';
+  }
+
+  return null;
 }
 
 export function ClinicBillingScreenContent() {
@@ -548,10 +606,15 @@ export function ClinicBillingScreenContent() {
     offerings,
     purchasePackage,
     restorePurchases,
+    manageSubscription,
     isPurchasing,
     isRestoring,
+    isManagingSubscription,
     billingError,
     isNativeBillingAvailable,
+    isWebBillingAvailable,
+    isPurchaseBillingAvailable,
+    canManageSubscription,
     isBillingReady,
     isRefreshing,
   } = useClinicBilling();
@@ -572,39 +635,48 @@ export function ClinicBillingScreenContent() {
       lineHeight: 20,
       color: colors.labelTertiary,
     },
-    restore: { alignSelf: 'center', paddingVertical: spacing.sm },
-    restoreText: { ...typography.body, fontWeight: '600', color: colors.primary },
+    actionLink: { alignSelf: 'center', paddingVertical: spacing.sm },
+    actionLinkText: { ...typography.body, fontWeight: '600', color: colors.primary },
     loadingWrap: { alignItems: 'center', paddingVertical: spacing.xl },
     planList: { gap: spacing.md },
   }));
 
-  const currentPackages = useMemo(
-    () => offerings?.current?.availablePackages ?? [],
+  const starterMonthly = useMemo(
+    () => findBillingPackage(offerings, 'starter', 'monthly'),
     [offerings],
   );
-  const starterMonthly = useMemo(
-    () => findPackage(currentPackages, ['starter_monthly', 'clinic_starter_monthly', '$rc_monthly']),
-    [currentPackages],
-  );
   const starterYearly = useMemo(
-    () => findPackage(currentPackages, ['starter_yearly', 'clinic_starter_yearly', '$rc_annual']),
-    [currentPackages],
+    () => findBillingPackage(offerings, 'starter', 'yearly'),
+    [offerings],
   );
-  const proMonthly = useMemo(
-    () => findPackage(currentPackages, ['pro_monthly', 'clinic_pro_monthly']),
-    [currentPackages],
-  );
-  const proYearly = useMemo(
-    () => findPackage(currentPackages, ['pro_yearly', 'clinic_pro_yearly']),
-    [currentPackages],
-  );
+  const proMonthly = useMemo(() => findBillingPackage(offerings, 'pro', 'monthly'), [offerings]);
+  const proYearly = useMemo(() => findBillingPackage(offerings, 'pro', 'yearly'), [offerings]);
 
   const hasMonthly = Boolean(starterMonthly || proMonthly);
   const hasYearly = Boolean(starterYearly || proYearly);
 
-  const handlePurchase = async (purchasePackageArg: PurchasesPackage | undefined) => {
+  const starterYearlySavings = useMemo(
+    () => computeYearlySavings(starterMonthly, starterYearly),
+    [starterMonthly, starterYearly],
+  );
+  const proYearlySavings = useMemo(
+    () => computeYearlySavings(proMonthly, proYearly),
+    [proMonthly, proYearly],
+  );
+  const maxYearlySavingsPercent = useMemo(() => {
+    const percents = [starterYearlySavings?.percent, proYearlySavings?.percent].filter(
+      (value): value is number => value != null && value > 0,
+    );
+    return percents.length > 0 ? Math.max(...percents) : null;
+  }, [proYearlySavings?.percent, starterYearlySavings?.percent]);
+
+  const handlePurchase = async (purchasePackageArg: BillingPackage | undefined) => {
     if (!purchasePackageArg) {
-      setLocalError('This plan is not available yet in App Store Connect.');
+      setLocalError(
+        isWebBillingAvailable
+          ? 'This plan is not available yet in RevenueCat Web Billing.'
+          : 'This plan is not available yet in App Store Connect.',
+      );
       return;
     }
 
@@ -630,10 +702,10 @@ export function ClinicBillingScreenContent() {
   const proPackage = billingCycle === 'monthly' ? proMonthly : proYearly;
 
   const starterPrice =
-    formatPackagePrice(starterPackage, billingCycle) ??
+    formatBillingPackagePrice(starterPackage, billingCycle) ??
     CLINIC_PLAN_MARKETING.starter.fallbackPriceLabel;
   const proPrice =
-    formatPackagePrice(proPackage, billingCycle) ??
+    formatBillingPackagePrice(proPackage, billingCycle) ??
     CLINIC_PLAN_MARKETING.pro.fallbackPriceLabel;
 
   return (
@@ -654,18 +726,25 @@ export function ClinicBillingScreenContent() {
         Workers stay free. Upgrade when you need more active postings, direct outreach, SMS alerts, or priority placement.
       </Text>
 
-      {!isNativeBillingAvailable ? (
+      {isWebBillingAvailable ? (
+        <Text style={styles.helper}>
+          Subscribe securely on the web. Your plan syncs across web and the iOS app on the same clinic account.
+        </Text>
+      ) : null}
+
+      {!isPurchaseBillingAvailable ? (
         <Text style={styles.helper}>
           In-app purchases require the native iOS app with App Store products configured. You can still review plans here.
         </Text>
       ) : null}
 
-      {isNativeBillingAvailable ? (
+      {isPurchaseBillingAvailable ? (
         <BillingCycleToggle
           value={billingCycle}
           onChange={setBillingCycle}
           hasMonthly={hasMonthly}
           hasYearly={hasYearly}
+          yearlySavingsPercent={maxYearlySavingsPercent}
         />
       ) : null}
 
@@ -683,13 +762,8 @@ export function ClinicBillingScreenContent() {
         <ClinicPlanCard
           plan="starter"
           priceLabel={starterPrice}
-          billingCycleLabel={
-            billingCycle === 'yearly' && starterYearly
-              ? 'Billed annually'
-              : billingCycle === 'monthly' && starterMonthly
-                ? 'Billed monthly'
-                : null
-          }
+          billingCycleLabel={getBillingCycleLabel(billingCycle, starterMonthly, starterYearly)}
+          yearlySavings={billingCycle === 'yearly' ? starterYearlySavings : null}
           isCurrent={currentPlan === 'starter'}
           actionLabel={
             currentPlan === 'starter'
@@ -700,14 +774,14 @@ export function ClinicBillingScreenContent() {
           }
           actionVariant={currentPlan === 'free' ? 'primary' : 'secondary'}
           disabled={
-            !isNativeBillingAvailable ||
+            !isPurchaseBillingAvailable ||
             currentPlan === 'starter' ||
             currentPlan === 'pro' ||
             isPurchasing
           }
           loading={isPurchasing}
           onPress={
-            isNativeBillingAvailable && currentPlan === 'free'
+            isPurchaseBillingAvailable && currentPlan === 'free'
               ? () => void handlePurchase(starterPackage ?? starterMonthly ?? starterYearly)
               : undefined
           }
@@ -716,21 +790,16 @@ export function ClinicBillingScreenContent() {
         <ClinicPlanCard
           plan="pro"
           priceLabel={proPrice}
-          billingCycleLabel={
-            billingCycle === 'yearly' && proYearly
-              ? 'Billed annually'
-              : billingCycle === 'monthly' && proMonthly
-                ? 'Billed monthly'
-                : null
-          }
+          billingCycleLabel={getBillingCycleLabel(billingCycle, proMonthly, proYearly)}
+          yearlySavings={billingCycle === 'yearly' ? proYearlySavings : null}
           isCurrent={currentPlan === 'pro'}
           isRecommended={currentPlan !== 'pro'}
           actionLabel={currentPlan === 'pro' ? 'Current plan' : 'Upgrade to Pro'}
           actionVariant="primary"
-          disabled={!isNativeBillingAvailable || currentPlan === 'pro' || isPurchasing}
+          disabled={!isPurchaseBillingAvailable || currentPlan === 'pro' || isPurchasing}
           loading={isPurchasing}
           onPress={
-            isNativeBillingAvailable && currentPlan !== 'pro'
+            isPurchaseBillingAvailable && currentPlan !== 'pro'
               ? () => void handlePurchase(proPackage ?? proMonthly ?? proYearly)
               : undefined
           }
@@ -739,13 +808,27 @@ export function ClinicBillingScreenContent() {
 
       {isNativeBillingAvailable ? (
         <Pressable
-          style={styles.restore}
+          style={styles.actionLink}
           disabled={isRestoring}
           onPress={() => {
             setLocalError(null);
             void restorePurchases().catch(() => {});
           }}>
-          <Text style={styles.restoreText}>{isRestoring ? 'Restoring…' : 'Restore purchases'}</Text>
+          <Text style={styles.actionLinkText}>{isRestoring ? 'Restoring…' : 'Restore purchases'}</Text>
+        </Pressable>
+      ) : null}
+
+      {isWebBillingAvailable && canManageSubscription ? (
+        <Pressable
+          style={styles.actionLink}
+          disabled={isManagingSubscription}
+          onPress={() => {
+            setLocalError(null);
+            void manageSubscription().catch(() => {});
+          }}>
+          <Text style={styles.actionLinkText}>
+            {isManagingSubscription ? 'Opening…' : 'Manage subscription'}
+          </Text>
         </Pressable>
       ) : null}
 
