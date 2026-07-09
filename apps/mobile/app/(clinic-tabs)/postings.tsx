@@ -20,6 +20,7 @@ import { Alert, View } from 'react-native';
 
 import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
+import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
@@ -32,6 +33,7 @@ import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -41,12 +43,19 @@ import {
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
 import { hasActiveListSearch, matchesJobPostSearch } from '@/lib/clinicListSearch';
+import {
+  getClinicPostingLimitReachedMessage,
+  getClinicPostingLimitTitle,
+  isRolePostingLimitReached,
+} from '@/lib/clinicPlanPresentation';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export default function ClinicPostingsScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
+    useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
@@ -105,6 +114,16 @@ export default function ClinicPostingsScreen() {
     );
   };
 
+  const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
+
+  const handlePostRolePress = () => {
+    if (roleLimitReached) {
+      showPublishUpgrade('role');
+      return;
+    }
+    guardPosting(CLINIC_POST_JOB);
+  };
+
   const load = useCallback(async () => {
     if (!user?.id) {
       setJobs([]);
@@ -120,6 +139,7 @@ export default function ClinicPostingsScreen() {
       ]);
       setJobs(jobPosts);
       setApplicantCounts(counts);
+      await refreshBilling();
     } catch (error) {
       setJobs([]);
       setApplicantCounts({});
@@ -130,41 +150,60 @@ export default function ClinicPostingsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, refreshBilling]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);
 
-  const handleJobUpdated = useCallback((updated: JobPost) => {
-    setJobs((prev) => prev.map((job) => (job.id === updated.id ? updated : job)));
-  }, []);
+  const handleJobUpdated = useCallback(
+    (updated: JobPost) => {
+      setJobs((prev) => prev.map((job) => (job.id === updated.id ? updated : job)));
+      void refreshBilling();
+    },
+    [refreshBilling],
+  );
 
-  const handleJobDeleted = useCallback((jobId: string) => {
-    setJobs((prev) => prev.filter((job) => job.id !== jobId));
-    setApplicantCounts((prev) => {
-      const next = { ...prev };
-      delete next[jobId];
-      return next;
-    });
-  }, []);
+  const handleJobDeleted = useCallback(
+    (jobId: string) => {
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+      setApplicantCounts((prev) => {
+        const next = { ...prev };
+        delete next[jobId];
+        return next;
+      });
+      void refreshBilling();
+    },
+    [refreshBilling],
+  );
 
   const showRoleControls = !isLoading && mainListJobs.length > 0;
   const historyDetail = `${historyCounts.archived === 1 ? '1 archived' : `${historyCounts.archived} archived`} · ${historyCounts.filled === 1 ? '1 filled' : `${historyCounts.filled} filled`}`;
 
   return (
-    <Screen
-      title="Postings"
-      subtitle="Open roles at your clinic."
-      refreshing={refreshing}
-      onRefresh={onRefresh}>
-      <View style={styles.wrap}>
-        <DashboardQuickActionTile
-          label="Post role"
-          description="Publish a new opening"
-          icon="briefcase-outline"
-          variant="primary"
-          onPress={() => guardPosting(CLINIC_POST_JOB)}
-        />
+    <>
+      {upgradePrompt}
+      <Screen
+        title="Postings"
+        subtitle="Open roles at your clinic."
+        refreshing={refreshing}
+        onRefresh={onRefresh}>
+        <View style={styles.wrap}>
+          <DashboardQuickActionTile
+            label="Post role"
+            description="Publish a new opening"
+            icon="briefcase-outline"
+            variant="primary"
+            dimmed={roleLimitReached}
+            onPress={handlePostRolePress}
+          />
+
+          {roleLimitReached && billing ? (
+            <PlanUpgradeCallout
+              title={getClinicPostingLimitTitle('role')}
+              message={getClinicPostingLimitReachedMessage(billing, 'role')}
+              compact
+            />
+          ) : null}
 
         {showRoleControls ? (
           <ListSearchFilterRow
@@ -274,5 +313,6 @@ export default function ClinicPostingsScreen() {
         )}
       </View>
     </Screen>
+    </>
   );
 }

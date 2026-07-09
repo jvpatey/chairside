@@ -26,6 +26,11 @@ type DashboardQuickActionTileProps = {
   icon: keyof typeof Ionicons.glyphMap;
   variant?: DashboardQuickActionVariant;
   compact?: boolean;
+  /** Blocks interaction and dims the tile. */
+  disabled?: boolean;
+  /** Dims the tile while keeping it pressable (e.g. show upgrade on tap). */
+  dimmed?: boolean;
+  accessibilityHint?: string;
   onPress: () => void;
 };
 
@@ -35,12 +40,16 @@ export function DashboardQuickActionTile({
   icon,
   variant = 'primary',
   compact = false,
+  disabled = false,
+  dimmed = false,
+  accessibilityHint,
   onPress,
 }: DashboardQuickActionTileProps) {
   const { colors, isDark } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const isPrimary = variant === 'primary';
   const useStackedLayout = !isTablet;
+  const isVisuallyMuted = disabled || dimmed;
   const gradientColors = isPrimary
     ? getPrimaryTileGradient(colors, isDark)
     : getSecondaryTileGradient(colors, isDark);
@@ -87,6 +96,9 @@ export function DashboardQuickActionTile({
       opacity: 0.88,
       transform: [{ scale: 0.982 }],
     },
+    tileDisabled: {
+      opacity: 0.52,
+    },
     iconHalo: {
       flexShrink: 0,
     },
@@ -112,22 +124,31 @@ export function DashboardQuickActionTile({
   }));
 
   const handlePress = () => {
+    if (disabled) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
 
   const isWeb = Platform.OS === 'web';
+  const resolvedAccessibilityHint =
+    accessibilityHint ??
+    (isVisuallyMuted
+      ? 'Posting limit reached. Remove an active ad or upgrade your plan.'
+      : 'Opens this section of the app');
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${label}. ${description}`}
-      accessibilityHint="Opens this section of the app"
+      accessibilityHint={resolvedAccessibilityHint}
+      accessibilityState={{ disabled: isVisuallyMuted }}
+      disabled={disabled}
       onPress={handlePress}
       style={({ pressed, hovered }) => [
         styles.tile,
-        isWeb && hovered && !pressed && styles.tileHovered,
-        pressed && styles.tilePressed,
+        isVisuallyMuted && styles.tileDisabled,
+        isWeb && hovered && !pressed && !disabled && styles.tileHovered,
+        pressed && !disabled && styles.tilePressed,
       ]}>
       <LinearGradient colors={gradientColors} style={styles.gradient} />
       {useStackedLayout ? (

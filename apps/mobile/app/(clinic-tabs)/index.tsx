@@ -42,9 +42,14 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSpotlights';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { pickClinicSpotlight } from '@/lib/dashboardSpotlight';
+import {
+  isFillInPostingLimitReached,
+  isRolePostingLimitReached,
+} from '@/lib/clinicPlanPresentation';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   CLINIC_APPLICATIONS,
@@ -66,6 +71,7 @@ export default function ClinicDashboardScreen() {
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { billing, isBillingReady, refreshBilling } = useClinicUpgradePrompt();
   const { logoUri } = useClinicLogo();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
@@ -140,6 +146,7 @@ export default function ClinicDashboardScreen() {
       setConversations(conversationRows);
       setConfirmedFillIns(confirmed);
       await refreshUnread();
+      await refreshBilling();
       hasLoadedOnce.current = true;
     } catch {
       setLoadError(true);
@@ -157,24 +164,33 @@ export default function ClinicDashboardScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [refreshUnread, user?.id]);
+  }, [refreshBilling, refreshUnread, user?.id]);
 
   useRefreshOnFocus(loadDashboard);
 
-  const handleShiftUpdated = useCallback((updated: ShiftPost) => {
-    setShifts((prev) => prev.map((shift) => (shift.id === updated.id ? updated : shift)));
-  }, []);
+  const handleShiftUpdated = useCallback(
+    (updated: ShiftPost) => {
+      setShifts((prev) => prev.map((shift) => (shift.id === updated.id ? updated : shift)));
+      void refreshBilling();
+    },
+    [refreshBilling],
+  );
 
-  const handleShiftDeleted = useCallback((shiftId: string) => {
-    setShifts((prev) => prev.filter((shift) => shift.id !== shiftId));
-  }, []);
+  const handleShiftDeleted = useCallback(
+    (shiftId: string) => {
+      setShifts((prev) => prev.filter((shift) => shift.id !== shiftId));
+      void refreshBilling();
+    },
+    [refreshBilling],
+  );
 
   const handleJobUpdated = useCallback(
     (updated: JobPost) => {
       setJobs((prev) => prev.map((job) => (job.id === updated.id ? updated : job)));
       void loadDashboard();
+      void refreshBilling();
     },
-    [loadDashboard],
+    [loadDashboard, refreshBilling],
   );
 
   const handleJobDeleted = useCallback(
@@ -186,8 +202,9 @@ export default function ClinicDashboardScreen() {
         return next;
       });
       void loadDashboard();
+      void refreshBilling();
     },
-    [loadDashboard],
+    [loadDashboard, refreshBilling],
   );
 
   useEffect(() => {
@@ -216,6 +233,8 @@ export default function ClinicDashboardScreen() {
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
+  const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
+  const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
 
   const openConversation = useCallback((conversation: Conversation) => {
     const preview = getMessageThreadPreview(conversation, 'clinic');
@@ -342,6 +361,7 @@ export default function ClinicDashboardScreen() {
                 description: 'Full-time or part-time hire',
                 icon: 'briefcase-outline',
                 variant: 'primary',
+                disabled: roleLimitReached,
                 onPress: () => guardPosting(CLINIC_POST_JOB),
               },
               {
@@ -349,6 +369,7 @@ export default function ClinicDashboardScreen() {
                 description: 'Temp or urgent shift',
                 icon: 'calendar-outline',
                 variant: 'secondary',
+                disabled: fillInLimitReached,
                 onPress: () => guardPosting(getPostShiftRoute('fill-ins-tab')),
               },
             ]}

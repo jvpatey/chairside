@@ -3,7 +3,7 @@ import {
   CLINIC_PLAN_MARKETING,
   type ClinicPlan,
 } from '@chairside/config';
-import type { ClinicSubscriptionStatus } from '@chairside/api';
+import type { ClinicBillingState, ClinicSubscriptionStatus } from '@chairside/api';
 import type { Ionicons } from '@expo/vector-icons';
 
 export const CLINIC_PLAN_ICONS: Record<ClinicPlan, keyof typeof Ionicons.glyphMap> = {
@@ -66,6 +66,62 @@ export function getRecommendedUpgradePlan(plan: ClinicPlan): ClinicPlan | null {
   if (plan === 'free') return 'starter';
   if (plan === 'starter') return 'pro';
   return null;
+}
+
+export type ClinicPostingPublishType = 'role' | 'fill-in';
+
+export function isRolePostingLimitReached(
+  billing: Pick<ClinicBillingState, 'canPublishRole'> | null | undefined,
+): boolean {
+  return billing != null && !billing.canPublishRole;
+}
+
+export function isFillInPostingLimitReached(
+  billing: Pick<ClinicBillingState, 'canPublishFillIn'> | null | undefined,
+): boolean {
+  return billing != null && !billing.canPublishFillIn;
+}
+
+export function getClinicPostingLimitTitle(publishType: ClinicPostingPublishType): string {
+  return publishType === 'fill-in' ? 'Fill-in limit reached' : 'Role limit reached';
+}
+
+function formatActivePostingLimit(limit: number | null): string {
+  return limit == null ? 'unlimited' : String(limit);
+}
+
+function getActivePostingLabel(
+  publishType: ClinicPostingPublishType,
+  options: { plural?: boolean; forRemoval?: boolean } = {},
+): string {
+  const { plural = false, forRemoval = false } = options;
+
+  if (publishType === 'fill-in') {
+    if (forRemoval) return 'active fill-in';
+    return plural ? 'active fill-ins' : 'active fill-in';
+  }
+
+  if (forRemoval) return 'active role';
+  return plural ? 'active roles' : 'active role';
+}
+
+export function getClinicPostingLimitReachedMessage(
+  billing: Pick<ClinicBillingState, 'plan' | 'activeRoleLimit' | 'activeFillInLimit'>,
+  publishType: ClinicPostingPublishType,
+): string {
+  const limit =
+    publishType === 'fill-in' ? billing.activeFillInLimit : billing.activeRoleLimit;
+  const planLabel = CLINIC_PLAN_LABELS[billing.plan];
+  const postingLabel = getActivePostingLabel(publishType, {
+    plural: limit != null && limit !== 1,
+  });
+  const removeLabel = getActivePostingLabel(publishType, { forRemoval: true });
+
+  if (billing.plan === 'pro' || limit == null) {
+    return `Remove an ${removeLabel} or upgrade your plan to post more.`;
+  }
+
+  return `You have reached your ${planLabel} plan limit of ${formatActivePostingLimit(limit)} ${postingLabel}. Remove an ${removeLabel} or upgrade your plan to post more.`;
 }
 
 export function formatSubscriptionStatusBadge(

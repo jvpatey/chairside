@@ -14,6 +14,9 @@ export type DashboardQuickActionConfig = {
   description: string;
   icon: Parameters<typeof DashboardQuickActionTile>[0]['icon'];
   variant?: DashboardQuickActionVariant;
+  disabled?: boolean;
+  dimmed?: boolean;
+  accessibilityHint?: string;
   onPress: () => void;
 };
 
@@ -37,6 +40,9 @@ export function DashboardQuickActionsRow({ actions }: DashboardQuickActionsRowPr
             icon={action.icon}
             variant={action.variant}
             compact={compact}
+            disabled={action.disabled}
+            dimmed={action.dimmed}
+            accessibilityHint={action.accessibilityHint}
             onPress={action.onPress}
           />
         ))}

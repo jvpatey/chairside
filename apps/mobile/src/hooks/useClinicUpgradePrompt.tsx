@@ -12,7 +12,7 @@ import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 type UpgradeReason = 'publish_role' | 'publish_fill_in' | 'outreach' | 'sms' | null;
 
 export function useClinicUpgradePrompt() {
-  const { billing } = useClinicBilling();
+  const { billing, isBillingReady, refreshBilling } = useClinicBilling();
   const [reason, setReason] = useState<UpgradeReason>(null);
 
   const closeUpgradePrompt = useCallback(() => setReason(null), []);
@@ -71,6 +71,8 @@ export function useClinicUpgradePrompt() {
 
   return {
     billing,
+    isBillingReady,
+    refreshBilling,
     upgradePrompt,
     closeUpgradePrompt,
     showPublishUpgrade,
