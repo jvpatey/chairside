@@ -219,16 +219,6 @@ export function getStatSelectedSegmentGradient(
   };
 }
 
-/** Soft left-edge wash for already-applied browse list rows. */
-export function getAppliedRowGradient(
-  colors: Colors,
-  isDark: boolean,
-): readonly [string, string, string] {
-  return isDark
-    ? [colorWithAlpha(colors.primary, 0.22), colorWithAlpha(colors.primary, 0.07), 'transparent']
-    : [colorWithAlpha(colors.primary, 0.2), colorWithAlpha(colors.primary, 0.09), 'transparent'];
-}
-
 /** Location stops for fill-in hero washes — long tail avoids a harsh bottom edge. */
 export const FILL_IN_HERO_GRADIENT_LOCATIONS = [0, 0.28, 0.55, 0.78, 1] as const;
 

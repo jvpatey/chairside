@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
@@ -97,6 +98,11 @@ export function WorkerProfileHero({
       textAlign: 'center',
       marginTop: spacing.xs,
     },
+    badgeRow: {
+      justifyContent: 'center',
+      marginTop: spacing.xs,
+      width: '100%' as const,
+    },
   }));
 
   const avatar = (
@@ -144,7 +150,11 @@ export function WorkerProfileHero({
           {name}
         </Text>
         <Text style={styles.meta}>{metaLine}</Text>
-        <AccountTypeBadge label={getAccountTypeLabel('worker')} />
+        <View style={styles.badgeRow}>
+          <BadgeRow>
+            <AccountTypeBadge label={getAccountTypeLabel('worker')} inRow />
+          </BadgeRow>
+        </View>
       </View>
     </View>
   );

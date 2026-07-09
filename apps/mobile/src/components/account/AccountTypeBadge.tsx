@@ -12,6 +12,7 @@ export function AccountTypeBadge({ label, inRow = false }: AccountTypeBadgeProps
   const styles = useThemedStyles(({ spacing }) => ({
     standalone: {
       marginTop: spacing.xs,
+      alignSelf: 'center' as const,
     },
   }));
 

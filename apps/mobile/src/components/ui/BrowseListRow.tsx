@@ -2,12 +2,11 @@ import type { ReactNode } from 'react';
 import type { TextStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { cardShellRadii } from '@/components/ui/cardLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { getAppliedRowGradient, useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 export type ListingLayout = 'tile' | 'list';
 
@@ -55,8 +54,6 @@ type BrowseListRowProps = {
   showChevron?: boolean;
   /** `split` — header above a tinted content band (matches tile cards). */
   layout?: 'stacked' | 'split';
-  /** Visual emphasis for secondary states such as already-applied roles. */
-  tone?: 'default' | 'applied';
 };
 
 export function BrowseListRow({
@@ -79,10 +76,8 @@ export function BrowseListRow({
   onPress,
   showChevron = true,
   layout = 'split',
-  tone = 'default',
 }: BrowseListRowProps) {
-  const { colors, isDark } = useTheme();
-  const isAppliedTone = tone === 'applied';
+  const { colors } = useTheme();
   const isSplit = layout === 'split';
   const postedInHeader = isSplit && postedLabelPlacement === 'header' && postedLabel;
   const postedInContent = postedLabel && !postedInHeader;
@@ -105,9 +100,6 @@ export function BrowseListRow({
       gap: spacing.xs,
       position: 'relative',
       overflow: 'hidden',
-    },
-    appliedGradient: {
-      ...StyleSheet.absoluteFillObject,
     },
     rowHovered: webListRowHoverStyles(colors),
     rowPressed: {
@@ -409,23 +401,7 @@ export function BrowseListRow({
     </>
   );
 
-  const appliedGradient = isAppliedTone ? getAppliedRowGradient(colors, isDark) : null;
-
-  const rowBody = (
-    <>
-      {appliedGradient ? (
-        <LinearGradient
-          colors={appliedGradient}
-          locations={[0, 0.55, 1]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={styles.appliedGradient}
-          pointerEvents="none"
-        />
-      ) : null}
-      {content}
-    </>
-  );
+  const rowBody = content;
 
   if (!onPress) {
     return <View style={styles.container}>{rowBody}</View>;

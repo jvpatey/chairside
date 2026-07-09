@@ -1,8 +1,7 @@
 import type { LiveJobPost } from '@chairside/api';
 import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
 import { formatJobPostCardMeta } from '@chairside/config';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { PillBadge } from '@/components/ui/PillBadge';
@@ -12,7 +11,7 @@ import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { formatPostedDateLabel } from '@/lib/dates';
-import { getAppliedRowGradient, useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
   job: LiveJobPost;
@@ -35,7 +34,7 @@ export function RoleListingCard({
   distanceLabel,
   onPress,
 }: RoleListingCardProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const featuredTreatment = useFeaturedListingTreatment();
   const locationBase = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
   const location = distanceLabel
@@ -53,12 +52,6 @@ export function RoleListingCard({
     },
     cardContent: {
       padding: spacing.md,
-    },
-    cardInner: {
-      position: 'relative',
-    },
-    appliedGradient: {
-      ...StyleSheet.absoluteFillObject,
     },
     accessoryColumn: {
       alignItems: 'flex-end',
@@ -102,7 +95,6 @@ export function RoleListingCard({
       </View>
     ) : null;
 
-  const appliedGradient = hasApplied ? getAppliedRowGradient(colors, isDark) : null;
   const isFeatured = job.has_priority_listing;
 
   return (
@@ -110,18 +102,7 @@ export function RoleListingCard({
       onPress={onPress}
       padding="none"
       style={[styles.card, isFeatured && featuredTreatment.styles.card]}
-      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}
-      contentStyle={styles.cardInner}>
-      {appliedGradient ? (
-        <LinearGradient
-          colors={appliedGradient}
-          locations={[0, 0.55, 1]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={styles.appliedGradient}
-          pointerEvents="none"
-        />
-      ) : null}
+      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
       <View style={styles.cardContent}>
         <ClinicPostHeader
           layout="split"

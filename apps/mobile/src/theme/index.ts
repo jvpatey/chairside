@@ -21,7 +21,6 @@ export {
   getStatCardSelectedGradient,
   getStatSelectedGradient,
   getStatSelectedSegmentGradient,
-  getAppliedRowGradient,
   FILL_IN_HERO_GRADIENT_LOCATIONS,
   FEATURED_LISTING_GRADIENT_LOCATIONS,
   getFeaturedListingGradient,
