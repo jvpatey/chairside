@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import type { ReactNode } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -51,6 +52,7 @@ type PillBadgeProps = {
   backgroundColor: string;
   borderColor?: string;
   showDot?: boolean;
+  leading?: ReactNode;
   onPress?: () => void;
   accessibilityLabel?: string;
   size?: PillBadgeSize;
@@ -63,6 +65,7 @@ export function PillBadge({
   backgroundColor,
   borderColor,
   showDot = false,
+  leading,
   onPress,
   accessibilityLabel,
   size = 'md',
@@ -79,6 +82,7 @@ export function PillBadge({
 
   const content = (
     <View style={styles.row}>
+      {leading}
       {showDot ? <View style={[styles.dot, { backgroundColor: color }]} /> : null}
       <Text style={[styles.label, { color }]} numberOfLines={1}>
         {label}

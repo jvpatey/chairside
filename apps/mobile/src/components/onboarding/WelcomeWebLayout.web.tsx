@@ -7,6 +7,7 @@ import { WebLandingCta } from '@/components/web/marketing/WebLandingCta.web';
 import { WebLandingFeatures } from '@/components/web/marketing/WebLandingFeatures.web';
 import { WebLandingHero } from '@/components/web/marketing/WebLandingHero.web';
 import { WebLandingHowItWorks } from '@/components/web/marketing/WebLandingHowItWorks.web';
+import { WebLandingPricing } from '@/components/web/marketing/WebLandingPricing.web';
 import { WebLandingSocialProof } from '@/components/web/marketing/WebLandingSocialProof.web';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
 import { WebMarketingNav } from '@/components/web/marketing/WebMarketingNav.web';
@@ -46,6 +47,7 @@ export function WelcomeWebLayout() {
         <WebLandingAudience />
         <WebLandingFeatures />
         <WebLandingHowItWorks />
+        <WebLandingPricing />
         <WebLandingCta />
         <WebMarketingFooter />
       </Animated.ScrollView>

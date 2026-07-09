@@ -11,18 +11,20 @@ import {
 import { router } from 'expo-router';
 import { CLINIC_SETUP_ABOUT } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { PracticeDoctorsInput } from '@/components/clinic/PracticeDoctorsInput';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { validateClinicPracticeStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicPracticeScreen() {
@@ -35,10 +37,14 @@ export default function ClinicPracticeScreen() {
   const [teamSizeRange, setTeamSizeRange] = useState<TeamSizeRange | null>(null);
   const [practiceDoctors, setPracticeDoctors] = useState<PracticeDoctor[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useClinicSetupStepGuard('practice', clinicProfile, isClinicProfileReady, isEditMode);
+
+  const validation = validateClinicPracticeStep(softwareUsed);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
-    footer: { gap: spacing.md, marginTop: spacing.lg },
     section: { gap: spacing.sm },
     label: {
       ...typography.body,
@@ -57,11 +63,9 @@ export default function ClinicPracticeScreen() {
   }, [clinicProfile]);
 
   const handleContinue = async () => {
-    if (softwareUsed.length === 0) {
-      Alert.alert('Missing information', 'Select at least one software system.');
-      return;
-    }
+    if (!validation.ok) return;
 
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await save({
@@ -77,10 +81,7 @@ export default function ClinicPracticeScreen() {
         router.push(CLINIC_SETUP_ABOUT);
       }
     } catch (error) {
-      Alert.alert(
-        'Could not save',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -89,15 +90,17 @@ export default function ClinicPracticeScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell atmosphere="form"
+    <OnboardingShell
+      atmosphere="form"
       footer={
-        <View style={styles.footer}>
-          <OnboardingButton
-            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
-            disabled={isSubmitting}
-            onPress={handleContinue}
-          />
-        </View>
+        <SetupStepFooter
+          canContinue={validation.ok}
+          validationMessage={validation.message}
+          submitError={submitError}
+          isSubmitting={isSubmitting}
+          continueLabel={isEditMode ? 'Save changes' : 'Continue'}
+          onContinue={handleContinue}
+        />
       }>
       <AuthScreenHeader
         title="Practice details"

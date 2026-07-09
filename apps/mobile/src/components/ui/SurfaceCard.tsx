@@ -18,6 +18,7 @@ import {
   getSurfaceGradient,
   radii,
   type ElevationLevel,
+  type FeaturedListingGradient,
   useTheme,
   useThemedStyles,
 } from '@/theme';
@@ -36,6 +37,7 @@ type SurfaceCardProps = {
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
+  featuredOverlay?: FeaturedListingGradient | null;
 };
 
 function SurfaceCardContent({
@@ -49,7 +51,7 @@ function SurfaceCardContent({
   contentStyle?: StyleProp<ViewStyle>;
   styles: ReturnType<typeof useThemedStyles<{ content: ViewStyle }>>;
 }) {
-  return <View style={[gap && styles.content, contentStyle]}>{children}</View>;
+  return <View style={[styles.contentLayer, gap && styles.content, contentStyle]}>{children}</View>;
 }
 
 export function SurfaceCard({
@@ -62,10 +64,11 @@ export function SurfaceCard({
   onPress,
   style,
   contentStyle,
+  featuredOverlay,
 }: SurfaceCardProps) {
   const { colors, isDark } = useTheme();
   const surfaceGradient = getSurfaceGradient(colors, isDark);
-  const showGradient = isDark && variant === 'default';
+  const showGradient = isDark && variant === 'default' && !featuredOverlay;
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     card: {
@@ -89,10 +92,15 @@ export function SurfaceCard({
     },
     gradient: {
       ...StyleSheet.absoluteFillObject,
+      zIndex: 0,
     },
     cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: {
       opacity: 0.92,
+    },
+    contentLayer: {
+      position: 'relative',
+      zIndex: 1,
     },
     content: {
       gap: spacing.sm,
@@ -105,6 +113,16 @@ export function SurfaceCard({
     <>
       {showGradient ? (
         <LinearGradient colors={surfaceGradient} style={styles.gradient} pointerEvents="none" />
+      ) : null}
+      {featuredOverlay ? (
+        <LinearGradient
+          colors={featuredOverlay.colors}
+          locations={[...featuredOverlay.locations]}
+          start={featuredOverlay.start}
+          end={featuredOverlay.end}
+          style={styles.gradient}
+          pointerEvents="none"
+        />
       ) : null}
       <SurfaceCardContent gap={gap} contentStyle={contentStyle} styles={styles}>
         {children}

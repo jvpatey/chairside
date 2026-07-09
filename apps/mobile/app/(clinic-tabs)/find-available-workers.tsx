@@ -179,7 +179,7 @@ export default function FindAvailableWorkersScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell atmosphere="form" atmosphereAccent={FILL_IN_ACCENT}>
+      <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
           title="Find available workers"

@@ -3,15 +3,17 @@ import { SPECIALTY_OPTIONS, getTeamSizeRangeLabel } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
 import { CLINIC_HOME } from '@/lib/routing';
 import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { PracticeDoctorReviewValue } from '@/components/clinic/PracticeDoctorList';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
 
@@ -44,6 +46,11 @@ export default function ClinicReviewScreen() {
   const { clinicProfile, isClinicProfileReady, refreshClinicProfile } = useClinicProfile();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useClinicSetupStepGuard('review', clinicProfile, isClinicProfileReady, isEditMode);
+
+  const missingFields = getMissingClinicProfileFields(clinicProfile);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -61,23 +68,26 @@ export default function ClinicReviewScreen() {
     'General dentistry';
 
   const handleFinish = async () => {
-    if (!user?.id) return;
-
-    const missing = getMissingClinicProfileFields(clinicProfile);
-    if (missing.length > 0) {
-      Alert.alert('Profile incomplete', `Still needed: ${missing.join(', ')}`);
+    if (!user?.id) {
+      setSubmitError('You must be signed in to finish setup.');
       return;
     }
 
+    const missing = getMissingClinicProfileFields(clinicProfile);
+    if (missing.length > 0) {
+      setSubmitError(`Still needed: ${missing.join(', ')}`);
+      return;
+    }
+
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await completeClinicSetup(user.id);
       await refreshClinicProfile();
       router.replace(CLINIC_HOME);
     } catch (error) {
-      Alert.alert(
-        'Could not finish setup',
-        error instanceof Error ? error.message : 'Please try again.',
+      setSubmitError(
+        error instanceof Error ? error.message : 'Could not finish setup. Please try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -94,9 +104,17 @@ export default function ClinicReviewScreen() {
     <OnboardingShell atmosphere="form"
       footer={
         <View style={styles.footer}>
+          {submitError || missingFields.length > 0 ? (
+            <FormErrorBanner
+              message={
+                submitError ??
+                `Still needed: ${missingFields.join(', ')}. Go back to an earlier step to add them.`
+              }
+            />
+          ) : null}
           <OnboardingButton
             label={isSubmitting ? 'Finishing…' : 'Finish setup'}
-            disabled={isSubmitting}
+            disabled={isSubmitting || missingFields.length > 0}
             onPress={handleFinish}
           />
         </View>
@@ -106,7 +124,7 @@ export default function ClinicReviewScreen() {
         subtitle="Confirm everything looks right before posting."
         onBack={() => router.back()}
       />
-      <SetupStepProgress step={5} total={5} showRing />
+      <SetupStepProgress step={5} total={5} />
       <View style={styles.card}>
         <ReviewRow label="Clinic name" value={clinicProfile.clinic_name} />
         <ReviewRow label="Contact" value={clinicProfile.contact_name ?? ''} />

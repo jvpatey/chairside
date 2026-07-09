@@ -31,8 +31,14 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import {
+  getClinicPostingLimitReachedMessage,
+  getClinicPostingLimitTitle,
+  isRolePostingLimitReached,
+} from '@/lib/clinicPlanPresentation';
 import { useThemedStyles } from '@/theme';
 
 function applyJobToForm(job: JobPostWithScreening) {
@@ -81,6 +87,7 @@ export default function PostJobScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const jobId = typeof id === 'string' ? id : undefined;
   const isEditing = Boolean(jobId);
+  const roleLimitReached = !isEditing && isRolePostingLimitReached(billing);
 
   const [roleType, setRoleType] = useState<RoleType>('hygienist');
   const [employmentType, setEmploymentType] = useState<EmploymentType>('permanent');
@@ -247,7 +254,7 @@ export default function PostJobScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell atmosphere="accent" atmosphereAccent="primary">
+      <OnboardingShell>
         <AuthScreenHeader
           title={isEditing ? 'Edit role' : 'Post a role'}
           onBack={() => router.back()}
@@ -260,7 +267,7 @@ export default function PostJobScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell atmosphere="accent" atmosphereAccent="primary">
+      <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit role' : 'Post a role'}
@@ -315,9 +322,17 @@ export default function PostJobScreen() {
           onCustomQuestionsChange={setCustomQuestions}
         />
 
+        {roleLimitReached && billing ? (
+          <PlanUpgradeCallout
+            title={getClinicPostingLimitTitle('role')}
+            message={getClinicPostingLimitReachedMessage(billing, 'role')}
+            compact
+          />
+        ) : null}
+
         <OnboardingButton
           label={isSubmitting ? (isEditing ? 'Saving…' : 'Publishing…') : isEditing ? 'Save changes' : 'Publish role'}
-          disabled={isSubmitting}
+          disabled={isSubmitting || roleLimitReached}
           onPress={handleSubmit}
         />
       </View>

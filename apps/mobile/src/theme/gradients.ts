@@ -219,18 +219,66 @@ export function getStatSelectedSegmentGradient(
   };
 }
 
-/** Soft left-edge wash for already-applied browse list rows. */
-export function getAppliedRowGradient(
-  colors: Colors,
-  isDark: boolean,
-): readonly [string, string, string] {
-  return isDark
-    ? [colorWithAlpha(colors.primary, 0.22), colorWithAlpha(colors.primary, 0.07), 'transparent']
-    : [colorWithAlpha(colors.primary, 0.2), colorWithAlpha(colors.primary, 0.09), 'transparent'];
-}
-
 /** Location stops for fill-in hero washes — long tail avoids a harsh bottom edge. */
 export const FILL_IN_HERO_GRADIENT_LOCATIONS = [0, 0.28, 0.55, 0.78, 1] as const;
+
+export const FEATURED_LISTING_GRADIENT_LOCATIONS = [0, 0.32, 0.58, 0.82, 1] as const;
+
+export type FeaturedListingGradient = {
+  colors: readonly string[];
+  locations: readonly number[];
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+};
+
+/** Left-to-right spotlight wash for priority / featured listing cards. */
+export function getFeaturedListingGradient(
+  colors: Colors,
+  isDark: boolean,
+  accent: GradientAccent = 'primary',
+): FeaturedListingGradient {
+  const brandColor = resolveAccentColor(colors, accent);
+
+  const gradientColors =
+    accent === 'secondary'
+      ? isDark
+        ? ([
+            colorWithAlpha(brandColor, 0.48),
+            colorWithAlpha(brandColor, 0.28),
+            colorWithAlpha(brandColor, 0.14),
+            colorWithAlpha(brandColor, 0.05),
+            'transparent',
+          ] as const)
+        : ([
+            colorWithAlpha(brandColor, 0.36),
+            colorWithAlpha(brandColor, 0.2),
+            colorWithAlpha(brandColor, 0.09),
+            colorWithAlpha(brandColor, 0.03),
+            'transparent',
+          ] as const)
+      : isDark
+        ? ([
+            colorWithAlpha(brandColor, 0.42),
+            colorWithAlpha(brandColor, 0.24),
+            colorWithAlpha(brandColor, 0.12),
+            colorWithAlpha(brandColor, 0.04),
+            'transparent',
+          ] as const)
+        : ([
+            colorWithAlpha(brandColor, 0.3),
+            colorWithAlpha(brandColor, 0.16),
+            colorWithAlpha(brandColor, 0.07),
+            colorWithAlpha(brandColor, 0.02),
+            'transparent',
+          ] as const);
+
+  return {
+    colors: gradientColors,
+    locations: FEATURED_LISTING_GRADIENT_LOCATIONS,
+    start: { x: 0, y: 0.5 },
+    end: { x: 1, y: 0.5 },
+  };
+}
 
 /** Fill-in availability hero wash (matches dashboard fill-in accent). */
 export function getFillInHeroGradient(

@@ -22,9 +22,15 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { todayISO } from '@/lib/dates';
+import {
+  getClinicPostingLimitReachedMessage,
+  getClinicPostingLimitTitle,
+  isFillInPostingLimitReached,
+} from '@/lib/clinicPlanPresentation';
 import { isValidTimeRange, normalizeTime24h, parseTime24h } from '@/lib/time';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -66,6 +72,9 @@ export default function PostShiftScreen() {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [formKey, setFormKey] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
+  const countsTowardLimit = shiftDate.trim() >= todayISO();
+  const fillInLimitReached =
+    !isEditing && countsTowardLimit && isFillInPostingLimitReached(billing);
 
   const handleCompensationChange = useCallback((value: string) => {
     setCompensation(value);
@@ -229,7 +238,7 @@ export default function PostShiftScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell atmosphere="accent" atmosphereAccent="secondary">
+      <OnboardingShell>
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
           accent={FILL_IN_ACCENT}
@@ -243,7 +252,7 @@ export default function PostShiftScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell atmosphere="accent" atmosphereAccent="secondary">
+      <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
@@ -318,6 +327,15 @@ export default function PostShiftScreen() {
           </View>
         ) : null}
 
+        {fillInLimitReached && billing ? (
+          <PlanUpgradeCallout
+            title={getClinicPostingLimitTitle('fill-in')}
+            message={getClinicPostingLimitReachedMessage(billing, 'fill-in')}
+            accent="secondary"
+            compact
+          />
+        ) : null}
+
         <OnboardingButton
           label={
             isSubmitting
@@ -328,7 +346,7 @@ export default function PostShiftScreen() {
                 ? 'Save changes'
                 : 'Publish fill-in'
           }
-          disabled={isSubmitting}
+          disabled={isSubmitting || fillInLimitReached}
           accent={FILL_IN_ACCENT}
           onPress={handleSubmit}
         />

@@ -47,6 +47,9 @@ importers:
       '@react-native-community/datetimepicker':
         specifier: 8.4.4
         version: 8.4.4(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      '@revenuecat/purchases-js':
+        specifier: ^1.47.1
+        version: 1.47.1
       '@rnmapbox/maps':
         specifier: ^10.3.1
         version: 10.3.1(expo@54.0.35)(mapbox-gl@2.15.0)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -1708,6 +1711,9 @@ packages:
 
   '@revenuecat/purchases-js@1.30.0':
     resolution: {integrity: sha512-aNlk6lPWrJ1DncPnw0WZh8nZKbd5S++EcsQxlLnv3HX/jOnMO54zr0SKsz3GJyFa6zh04N6b3qHAgWWm51EWpg==}
+
+  '@revenuecat/purchases-js@1.47.1':
+    resolution: {integrity: sha512-ctc7H6GB+PvJnp4p3cn/CEDQu93aSvAQrZdgXA/bq88DSWBmWU0sjgJ+EUrIkCqidj+jPzKtE9L1BzordTTEVw==}
 
   '@revenuecat/purchases-typescript-internal@17.55.1':
     resolution: {integrity: sha512-t49IP5hdlLEi+csqH8J8fo+DvCucWBwDnv+bVQca1Ogdry6VnY0HVdH1z743h9F4vKwFGTJ3XK5TUcahlK+U3Q==}
@@ -7321,6 +7327,8 @@ snapshots:
       '@revenuecat/purchases-js': 1.30.0
 
   '@revenuecat/purchases-js@1.30.0': {}
+
+  '@revenuecat/purchases-js@1.47.1': {}
 
   '@revenuecat/purchases-typescript-internal@17.55.1': {}
 

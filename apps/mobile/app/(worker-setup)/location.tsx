@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { WORKER_SETUP_REVIEW } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import {
   AddressAutocomplete,
@@ -10,12 +10,15 @@ import {
 } from '@/components/clinic/AddressAutocomplete';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
+import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { validateAddressStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
 function buildFormattedAddress(
@@ -47,6 +50,7 @@ function profileToAddress(
 }
 
 export default function WorkerLocationScreen() {
+  const { profile } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
@@ -55,10 +59,14 @@ export default function WorkerLocationScreen() {
   );
   const [bio, setBio] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useWorkerSetupStepGuard('location', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
+
+  const validation = validateAddressStep(address);
 
   const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
-    footer: { gap: spacing.md, marginTop: spacing.lg },
   }));
 
   useEffect(() => {
@@ -69,11 +77,9 @@ export default function WorkerLocationScreen() {
   }, [workerProfile]);
 
   const handleContinue = async () => {
-    if (!address.address_line1.trim() || !address.city.trim() || !address.postal_code.trim()) {
-      Alert.alert('Missing information', 'Enter a complete address to continue.');
-      return;
-    }
+    if (!validation.ok) return;
 
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await save({
@@ -92,10 +98,7 @@ export default function WorkerLocationScreen() {
         router.push(WORKER_SETUP_REVIEW);
       }
     } catch (error) {
-      Alert.alert(
-        'Could not save',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -104,15 +107,17 @@ export default function WorkerLocationScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell atmosphere="form"
+    <OnboardingShell
+      atmosphere="form"
       footer={
-        <View style={styles.footer}>
-          <OnboardingButton
-            label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
-            disabled={isSubmitting}
-            onPress={handleContinue}
-          />
-        </View>
+        <SetupStepFooter
+          canContinue={validation.ok}
+          validationMessage={validation.message}
+          submitError={submitError}
+          isSubmitting={isSubmitting}
+          continueLabel={isEditMode ? 'Save changes' : 'Continue'}
+          onContinue={handleContinue}
+        />
       }>
       <AuthScreenHeader
         title="Professional background · Location & bio"

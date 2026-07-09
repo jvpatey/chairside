@@ -9,9 +9,13 @@ import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { formatApplicantCountLabel } from '@/components/ui/CountBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
+import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
+import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
@@ -46,6 +50,8 @@ export function RolePostingCard({
 }: RolePostingCardProps) {
   const { colors } = useTheme();
   const { clinicProfile } = useClinicProfile();
+  const { billing } = useClinicBilling();
+  const featuredTreatment = useFeaturedListingTreatment();
   const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
@@ -107,10 +113,14 @@ export function RolePostingCard({
   ) : null;
 
   const statusBadge = <JobPostStatusBadge status={job.status} />;
+  const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
 
   const headerActions = (
     <View style={styles.headerActions}>
-      {statusBadge}
+      <BadgeRow>
+        {isFeatured ? <FeaturedListingBadge /> : null}
+        {statusBadge}
+      </BadgeRow>
       {manageButton}
     </View>
   );
@@ -131,7 +141,11 @@ export function RolePostingCard({
 
   if (layout === 'list') {
     return (
-      <SurfaceCard padding="none" onPress={onPress}>
+      <SurfaceCard
+        padding="none"
+        onPress={onPress}
+        style={isFeatured ? featuredTreatment.styles.card : undefined}
+        featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
         <BrowseListRow
           avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
           eyebrow={clinicName}
@@ -150,7 +164,11 @@ export function RolePostingCard({
   }
 
   return (
-    <SurfaceCard padding="none" style={styles.card} onPress={onPress}>
+    <SurfaceCard
+      padding="none"
+      style={[styles.card, isFeatured && featuredTreatment.styles.card]}
+      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}
+      onPress={onPress}>
       <View style={styles.cardContent}>
         <ClinicPostHeader
           layout="split"

@@ -1,11 +1,14 @@
 import type { ClinicProfile } from '@chairside/api';
+import type { ClinicPlan } from '@chairside/config';
 import { getProvinceLabel, SPECIALTY_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
+import { PlanTierBadge } from '@/components/billing/PlanTierBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
@@ -20,6 +23,7 @@ export type ClinicIdentityHeroCardProps = {
   isUploading?: boolean;
   onPickLogo?: () => void;
   showAccountBadge?: boolean;
+  plan?: ClinicPlan | null;
   emptyMetaFallback?: string;
 };
 
@@ -33,6 +37,7 @@ export function ClinicIdentityHeroCard({
   isUploading = false,
   onPickLogo,
   showAccountBadge = false,
+  plan,
   emptyMetaFallback,
 }: ClinicIdentityHeroCardProps) {
   const { colors, isDark } = useTheme();
@@ -95,6 +100,10 @@ export function ClinicIdentityHeroCard({
       textAlign: 'center',
       marginTop: spacing.xs,
     },
+    badgeRow: {
+      justifyContent: 'center',
+      marginTop: spacing.xs,
+    },
   }));
 
   const avatar = (
@@ -133,7 +142,16 @@ export function ClinicIdentityHeroCard({
         </Text>
         {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
         {metaLine ? <Text style={styles.meta}>{metaLine}</Text> : null}
-        {showAccountBadge ? <AccountTypeBadge label={getAccountTypeLabel('clinic')} /> : null}
+        {showAccountBadge || plan ? (
+          <View style={styles.badgeRow}>
+            <BadgeRow>
+              {showAccountBadge ? (
+                <AccountTypeBadge label={getAccountTypeLabel('clinic')} inRow />
+              ) : null}
+              {plan ? <PlanTierBadge plan={plan} size="sm" /> : null}
+            </BadgeRow>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -143,12 +161,14 @@ type ClinicProfileHeroProps = {
   email?: string | null;
   profile: ClinicProfile | null;
   editable?: boolean;
+  plan?: ClinicPlan | null;
 };
 
 export function ClinicProfileHero({
   email,
   profile,
   editable = false,
+  plan,
 }: ClinicProfileHeroProps) {
   const { logoUri, isUploading, pickLogo } = useClinicLogo();
   const name = profile?.clinic_name?.trim() || 'Your practice';
@@ -169,6 +189,7 @@ export function ClinicProfileHero({
       isUploading={isUploading}
       onPickLogo={() => void pickLogo()}
       showAccountBadge
+      plan={plan}
       emptyMetaFallback="Complete your clinic profile to get started"
     />
   );

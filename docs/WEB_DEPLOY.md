@@ -12,6 +12,8 @@ Output is written to `apps/mobile/dist`.
 
 Public legal pages (`/privacy`, `/support`, `/terms`) are included in the export and should be deployed before App Store submission. Set `EXPO_PUBLIC_WEB_BASE_URL` in hosting env vars to your production origin.
 
+For web clinic subscriptions, also set `EXPO_PUBLIC_REVENUECAT_WEB_API_KEY` at build time. See [WEB_BILLING.md](./WEB_BILLING.md).
+
 ## Supabase redirect URLs
 
 Add these under **Authentication → URL Configuration → Redirect URLs**:

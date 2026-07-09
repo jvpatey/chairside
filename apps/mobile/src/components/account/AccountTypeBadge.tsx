@@ -1,30 +1,28 @@
-import { Text, View } from 'react-native';
-
-import { useThemedStyles } from '@/theme';
+import { PillBadge } from '@/components/ui/PillBadge';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type AccountTypeBadgeProps = {
   label: string;
+  inRow?: boolean;
 };
 
-export function AccountTypeBadge({ label }: AccountTypeBadgeProps) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    badge: {
+export function AccountTypeBadge({ label, inRow = false }: AccountTypeBadgeProps) {
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    standalone: {
       marginTop: spacing.xs,
-      borderRadius: 999,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs + 2,
-      backgroundColor: colors.fillSubtle,
-    },
-    badgeText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
+      alignSelf: 'center' as const,
     },
   }));
 
   return (
-    <View style={styles.badge}>
-      <Text style={styles.badgeText}>{label} account</Text>
-    </View>
+    <PillBadge
+      label={`${label} account`}
+      color={colors.labelSecondary}
+      backgroundColor={colors.fillSubtle}
+      size="sm"
+      style={inRow ? undefined : styles.standalone}
+    />
   );
 }

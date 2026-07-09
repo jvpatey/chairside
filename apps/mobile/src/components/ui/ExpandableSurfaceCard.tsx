@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import type { FeaturedListingGradient } from '@/theme';
 import {
   webFullBleedRowInsets,
   webHover,
@@ -23,6 +24,7 @@ type ExpandableSurfaceCardProps = {
   bleedPadding?: number;
   style?: StyleProp<ViewStyle>;
   accent?: GradientAccent;
+  featuredGradient?: FeaturedListingGradient | null;
 };
 
 /**
@@ -38,6 +40,7 @@ export function ExpandableSurfaceCard({
   bleedPadding,
   style,
   accent,
+  featuredGradient,
 }: ExpandableSurfaceCardProps) {
   const bleed = bleedPadding ?? (padding === 'lg' ? spacing.lg : spacing.md);
 
@@ -59,7 +62,12 @@ export function ExpandableSurfaceCard({
   }));
 
   return (
-    <SurfaceCard variant={variant} padding={padding} gap style={style}>
+    <SurfaceCard
+      variant={variant}
+      padding={padding}
+      gap
+      style={style}
+      featuredOverlay={featuredGradient}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded }}

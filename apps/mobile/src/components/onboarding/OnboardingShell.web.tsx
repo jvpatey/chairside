@@ -1,8 +1,4 @@
-import {
-  createContext,
-  ReactNode,
-  useContext,
-} from 'react';
+import { createContext, ReactNode, useContext } from 'react';
 import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -72,9 +68,10 @@ export function OnboardingShell({
     (atmosphere !== 'none' ? (
       <PageHeroGlow variant={atmosphere} accent={atmosphereAccent} />
     ) : null);
-  const tabAtmosphereLayer = useTabGlow && !transparentBackground ? (
-    <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
-  ) : null;
+  const tabAtmosphereLayer =
+    useTabGlow && !transparentBackground ? (
+      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+    ) : null;
 
   const styles = useThemedStyles(({ spacing }) => ({
     container: {

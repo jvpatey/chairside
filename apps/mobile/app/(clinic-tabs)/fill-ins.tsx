@@ -19,6 +19,7 @@ import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
+import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
@@ -31,6 +32,7 @@ import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -57,6 +59,11 @@ import {
   getFindAvailableWorkersRoute,
   getPostShiftRoute,
 } from '@/lib/routing';
+import {
+  getClinicPostingLimitReachedMessage,
+  getClinicPostingLimitTitle,
+  isFillInPostingLimitReached,
+} from '@/lib/clinicPlanPresentation';
 import { useThemedStyles } from '@/theme';
 
 function sectionTitleWithCount(title: string, count: number) {
@@ -68,6 +75,8 @@ export default function ClinicFillInsScreen() {
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { refreshPending } = useFillInPending();
+  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
+    useClinicUpgradePrompt();
   const [coverRequests, setCoverRequests] = useState<FillInCoverRequest[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
@@ -184,6 +193,7 @@ export default function ClinicFillInsScreen() {
       setConfirmedRows(confirmed);
       setUnreadMap(unread);
       await refreshPending();
+      await refreshBilling();
       hasLoadedOnce.current = true;
     } catch (error) {
       Alert.alert(
@@ -193,7 +203,7 @@ export default function ClinicFillInsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [refreshPending, user?.id]);
+  }, [refreshBilling, refreshPending, user?.id]);
 
   useEffect(() => {
     const redirect = redirectEmbeddedCalendarDeepLink(
@@ -228,6 +238,16 @@ export default function ClinicFillInsScreen() {
     );
   };
 
+  const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
+
+  const handlePostFillInPress = () => {
+    if (fillInLimitReached) {
+      showPublishUpgrade('fill-in');
+      return;
+    }
+    guardPosting(getPostShiftRoute('fill-ins-tab'));
+  };
+
   if (isLoading && !hasLoadedOnce.current) {
     return (
       <Screen
@@ -243,6 +263,7 @@ export default function ClinicFillInsScreen() {
 
   return (
     <>
+      {upgradePrompt}
       <Screen
         title="Fill-ins"
         subtitle="Review cover requests and manage your fill-in shifts."
@@ -257,7 +278,8 @@ export default function ClinicFillInsScreen() {
                 description: 'Temp or urgent shift',
                 icon: 'calendar-outline',
                 variant: 'secondary',
-                onPress: () => guardPosting(getPostShiftRoute('fill-ins-tab')),
+                dimmed: fillInLimitReached,
+                onPress: handlePostFillInPress,
               },
               {
                 label: 'Find workers',
@@ -268,6 +290,15 @@ export default function ClinicFillInsScreen() {
               },
             ]}
           />
+
+          {fillInLimitReached && billing ? (
+            <PlanUpgradeCallout
+              title={getClinicPostingLimitTitle('fill-in')}
+              message={getClinicPostingLimitReachedMessage(billing, 'fill-in')}
+              accent="secondary"
+              compact
+            />
+          ) : null}
 
           <View style={styles.section}>
             <DashboardSectionHeader
@@ -352,11 +383,11 @@ export default function ClinicFillInsScreen() {
                 icon="calendar-outline"
                 title="No fill-ins yet"
                 message="Post a fill-in shift when you need temporary or urgent coverage."
-                ctaLabel={isProfileComplete ? 'Post fill-in' : undefined}
+                ctaLabel={
+                  isProfileComplete && !fillInLimitReached ? 'Post fill-in' : undefined
+                }
                 onCtaPress={
-                  isProfileComplete
-                    ? () => guardPosting(getPostShiftRoute('fill-ins-tab'))
-                    : undefined
+                  isProfileComplete && !fillInLimitReached ? handlePostFillInPress : undefined
                 }
                 ctaAccent="secondary"
               />
@@ -439,16 +470,18 @@ export default function ClinicFillInsScreen() {
                           returnTo="fill-ins-tab"
                           expanded={expandedShiftId === shift.id}
                           onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
-                          onShiftUpdated={(updated) =>
+                          onShiftUpdated={(updated) => {
                             setShifts((current) =>
                               current.map((row) => (row.id === updated.id ? updated : row)),
-                            )
-                          }
+                            );
+                            void refreshBilling();
+                          }}
                           onShiftDeleted={() => {
                             setShifts((current) => current.filter((row) => row.id !== shift.id));
                             setExpandedShiftId((current) =>
                               current === shift.id ? null : current,
                             );
+                            void refreshBilling();
                           }}
                         />
                       ))}

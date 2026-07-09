@@ -58,7 +58,12 @@ export default function ClinicAccountProfileScreen() {
       onBack={() => router.replace(CLINIC_HOME)}
       headerRight={<SignOutHeaderButton />}>
       <View style={styles.content}>
-        <ClinicProfileHero email={user?.email} profile={clinicProfile} editable />
+        <ClinicProfileHero
+          email={user?.email}
+          profile={clinicProfile}
+          editable
+          plan={billing?.plan ?? 'free'}
+        />
 
         <ProfileSettingsGroup>
           <ProfileSettingsRow

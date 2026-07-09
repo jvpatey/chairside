@@ -135,9 +135,7 @@ export function OnboardingShell({
     },
   }));
 
-  const footerScrollClearance = footer
-    ? footerHeight || FOOTER_SCROLL_CLEARANCE_FALLBACK
-    : 0;
+  const footerScrollClearance = footer ? footerHeight || FOOTER_SCROLL_CLEARANCE_FALLBACK : 0;
 
   const performScroll = useCallback(
     (wrapRef: View | null) => {
@@ -236,15 +234,9 @@ export function OnboardingShell({
     scheduleDelayedRuns(() => performScroll(pendingScrollRef.current));
   }, [footerHeight, performScroll, scheduleDelayedRuns]);
 
-  const footerPaddingBottom = footer
-    ? spacing.md + tabDockInset
-    : insets.bottom + spacing.md;
+  const footerPaddingBottom = footer ? spacing.md + tabDockInset : insets.bottom + spacing.md;
 
-  const scrollBottomInset = footer
-    ? 0
-    : tabDockInset > 0
-      ? tabDockInset
-      : insets.bottom;
+  const scrollBottomInset = footer ? 0 : tabDockInset > 0 ? tabDockInset : insets.bottom;
 
   const scrollView = (
     <ScrollView
@@ -262,9 +254,7 @@ export function OnboardingShell({
       scrollEventThrottle={16}
       contentContainerStyle={[
         styles.content,
-        fillViewport && scrollViewportHeight > 0
-          ? { minHeight: scrollViewportHeight }
-          : null,
+        fillViewport && scrollViewportHeight > 0 ? { minHeight: scrollViewportHeight } : null,
         {
           paddingTop: insets.top + 16,
           paddingBottom:
@@ -279,7 +269,8 @@ export function OnboardingShell({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       automaticallyAdjustKeyboardInsets={Platform.OS === 'ios' && !footer}
-      showsVerticalScrollIndicator={false}>
+      showsVerticalScrollIndicator={false}
+    >
       <View ref={contentRef} style={[styles.body, contentStyle]} collapsable={false}>
         <WebPageEnter style={styles.body}>{children}</WebPageEnter>
       </View>
@@ -289,7 +280,8 @@ export function OnboardingShell({
   const shell = footer ? (
     <KeyboardAvoidingView
       style={styles.shellInner}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {scrollView}
       <View
         style={[styles.footer, { paddingBottom: footerPaddingBottom }]}
@@ -297,7 +289,8 @@ export function OnboardingShell({
           const height = event.nativeEvent.layout.height;
           footerHeightRef.current = height;
           setFooterHeight(height);
-        }}>
+        }}
+      >
         {footer}
       </View>
     </KeyboardAvoidingView>
