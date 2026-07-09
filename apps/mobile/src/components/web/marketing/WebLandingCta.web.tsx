@@ -13,17 +13,20 @@ export function WebLandingCta() {
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     section: {
-      marginHorizontal: spacing.lg,
+      paddingHorizontal: spacing.lg,
       marginTop: spacing.lg,
       marginBottom: spacing.xl,
+      maxWidth: CONTENT_MAX_WIDTH.xwide,
+      width: '100%' as const,
+      alignSelf: 'center' as const,
+    },
+    card: {
       paddingVertical: spacing.xl * 1.75,
       paddingHorizontal: spacing.xl,
       borderRadius: 28,
       alignItems: 'center' as const,
       gap: spacing.lg,
-      maxWidth: CONTENT_MAX_WIDTH.xwide,
       width: '100%' as const,
-      alignSelf: 'center' as const,
       borderWidth: 1,
       borderColor: colors.separator,
       ...webOnlyStyle({
@@ -56,21 +59,23 @@ export function WebLandingCta() {
   }));
 
   return (
-    <WebPageEnter>
-      <View style={styles.section}>
-        <View style={styles.copy}>
-          <Text style={styles.title}>Post a shift or find your next role</Text>
-          <Text style={styles.subtitle}>
-            Join free in minutes — set up as a clinic or a professional.
-          </Text>
+    <View style={styles.section}>
+      <WebPageEnter style={{ width: '100%' }}>
+        <View style={styles.card}>
+          <View style={styles.copy}>
+            <Text style={styles.title}>Post a shift or find your next role</Text>
+            <Text style={styles.subtitle}>
+              Join free in minutes — set up as a clinic or a professional.
+            </Text>
+          </View>
+          <OnboardingButton
+            label="Create free account"
+            onPress={() => router.push('/(onboarding)/role')}
+            variant="primary"
+            style={styles.ctaButton}
+          />
         </View>
-        <OnboardingButton
-          label="Create free account"
-          onPress={() => router.push('/(onboarding)/role')}
-          variant="primary"
-          style={styles.ctaButton}
-        />
-      </View>
-    </WebPageEnter>
+      </WebPageEnter>
+    </View>
   );
 }

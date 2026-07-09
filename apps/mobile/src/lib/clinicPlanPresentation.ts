@@ -124,6 +124,23 @@ export function getClinicPostingLimitReachedMessage(
   return `You have reached your ${planLabel} plan limit of ${formatActivePostingLimit(limit)} ${postingLabel}. Remove an ${removeLabel} or upgrade your plan to post more.`;
 }
 
+export function getClinicPlanBrandAccentColor(
+  plan: ClinicPlan,
+  colors: { primary: string; secondary: string },
+): string {
+  return plan === 'pro' ? colors.secondary : colors.primary;
+}
+
+export function getClinicPlanFeatureAccentColor(
+  plan: ClinicPlan,
+  colors: { primary: string; secondary: string; success: string },
+  emphasized = false,
+): string {
+  if (plan === 'pro') return colors.secondary;
+  if (emphasized) return colors.primary;
+  return colors.success;
+}
+
 export function formatSubscriptionStatusBadge(
   status: ClinicSubscriptionStatus,
 ): { label: string; tone: 'success' | 'warning' | 'muted' } {

@@ -13,8 +13,12 @@ import {
   formatYearlySavingsDetail,
   type YearlySavings,
 } from '@/lib/billingOfferings';
-import { CLINIC_PLAN_ICONS } from '@/lib/clinicPlanPresentation';
-import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
+import {
+  CLINIC_PLAN_ICONS,
+  getClinicPlanBrandAccentColor,
+  getClinicPlanFeatureAccentColor,
+} from '@/lib/clinicPlanPresentation';
+import { colorWithAlpha, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 export type PlanComparisonCardProps = {
   plan: ClinicPlan;
@@ -46,18 +50,21 @@ export function PlanComparisonCard({
   const { colors, isDark } = useTheme();
   const marketing = CLINIC_PLAN_MARKETING[plan];
   const emphasized = isCurrent || (isRecommended && !isCurrent);
+  const brandAccent = getClinicPlanBrandAccentColor(plan, colors);
+  const featureAccent = getClinicPlanFeatureAccentColor(plan, colors, emphasized);
+  const actionAccent: GradientAccent = plan === 'pro' ? 'secondary' : 'primary';
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     card: {
       backgroundColor: isCurrent
-        ? colorWithAlpha(colors.primary, isDark ? 0.08 : 0.04)
+        ? colorWithAlpha(brandAccent, isDark ? 0.08 : 0.04)
         : colors.surface,
       borderRadius: radii.lg,
       borderWidth: isCurrent ? 2 : 1,
       borderColor: isCurrent
-        ? colors.primary
+        ? brandAccent
         : isRecommended
-          ? colorWithAlpha(colors.primary, isDark ? 0.32 : 0.22)
+          ? colorWithAlpha(brandAccent, isDark ? 0.32 : 0.22)
           : colors.separator,
       padding: spacing.lg,
       gap: spacing.md,
@@ -80,7 +87,7 @@ export function PlanComparisonCard({
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: emphasized
-        ? colorWithAlpha(colors.primary, isDark ? 0.18 : 0.1)
+        ? colorWithAlpha(brandAccent, isDark ? 0.18 : 0.1)
         : colors.fillSubtle,
     },
     headerText: {
@@ -148,17 +155,17 @@ export function PlanComparisonCard({
         {isCurrent ? (
           <PillBadge
             label="Current plan"
-            color={colors.primaryOnPrimary}
-            backgroundColor={colors.primary}
+            color={plan === 'pro' ? colors.secondaryOnSecondary : colors.primaryOnPrimary}
+            backgroundColor={brandAccent}
             size="sm"
           />
         ) : null}
         {isRecommended && !isCurrent ? (
           <PillBadge
             label="Recommended upgrade"
-            color={colors.primary}
-            backgroundColor={colorWithAlpha(colors.primary, isDark ? 0.18 : 0.1)}
-            borderColor={colorWithAlpha(colors.primary, 0.25)}
+            color={brandAccent}
+            backgroundColor={colorWithAlpha(brandAccent, isDark ? 0.18 : 0.1)}
+            borderColor={colorWithAlpha(brandAccent, 0.25)}
             size="sm"
           />
         ) : null}
@@ -169,7 +176,7 @@ export function PlanComparisonCard({
           <Ionicons
             name={CLINIC_PLAN_ICONS[plan]}
             size={21}
-            color={emphasized ? colors.primary : colors.labelSecondary}
+            color={emphasized || plan === 'pro' ? brandAccent : colors.labelSecondary}
           />
         </View>
         <View style={styles.headerText}>
@@ -203,7 +210,7 @@ export function PlanComparisonCard({
             <Ionicons
               name="checkmark-circle"
               size={17}
-              color={emphasized ? colors.primary : colors.success}
+              color={featureAccent}
               style={{ marginTop: 1 }}
             />
             <Text style={styles.feature}>{feature}</Text>
@@ -215,6 +222,7 @@ export function PlanComparisonCard({
         <OnboardingButton
           label={loading ? 'Processing…' : actionLabel}
           variant={actionVariant}
+          accent={actionAccent}
           disabled={disabled || loading}
           onPress={onPress}
         />

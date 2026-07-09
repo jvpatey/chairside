@@ -254,7 +254,7 @@ export default function PostJobScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell atmosphere="accent" atmosphereAccent="primary">
+      <OnboardingShell>
         <AuthScreenHeader
           title={isEditing ? 'Edit role' : 'Post a role'}
           onBack={() => router.back()}
@@ -267,7 +267,7 @@ export default function PostJobScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell atmosphere="accent" atmosphereAccent="primary">
+      <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit role' : 'Post a role'}

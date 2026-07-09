@@ -238,7 +238,7 @@ export default function PostShiftScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell atmosphere="accent" atmosphereAccent="secondary">
+      <OnboardingShell>
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
           accent={FILL_IN_ACCENT}
@@ -252,7 +252,7 @@ export default function PostShiftScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell atmosphere="accent" atmosphereAccent="secondary">
+      <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
           title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}

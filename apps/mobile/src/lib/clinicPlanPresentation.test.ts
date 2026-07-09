@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getClinicPlanBrandAccentColor,
+  getClinicPlanFeatureAccentColor,
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
   isFillInPostingLimitReached,
@@ -43,5 +45,14 @@ describe('clinicPlanPresentation posting limits', () => {
     ).toBe(
       'You have reached your Starter plan limit of 3 active fill-ins. Remove an active fill-in or upgrade your plan to post more.',
     );
+  });
+
+  it('uses purple accents for pro plan branding', () => {
+    const colors = { primary: '#1A6FD4', secondary: '#5856D6', success: '#34C759' };
+    expect(getClinicPlanBrandAccentColor('pro', colors)).toBe('#5856D6');
+    expect(getClinicPlanBrandAccentColor('starter', colors)).toBe('#1A6FD4');
+    expect(getClinicPlanFeatureAccentColor('pro', colors, false)).toBe('#5856D6');
+    expect(getClinicPlanFeatureAccentColor('starter', colors, true)).toBe('#1A6FD4');
+    expect(getClinicPlanFeatureAccentColor('free', colors, false)).toBe('#34C759');
   });
 });
