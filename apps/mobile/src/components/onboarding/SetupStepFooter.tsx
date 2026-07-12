@@ -7,6 +7,7 @@ import { useThemedStyles } from '@/theme';
 type SetupStepFooterProps = {
   canContinue: boolean;
   validationMessage: string | null;
+  showValidation?: boolean;
   submitError: string | null;
   isSubmitting: boolean;
   continueLabel: string;
@@ -16,6 +17,7 @@ type SetupStepFooterProps = {
 export function SetupStepFooter({
   canContinue,
   validationMessage,
+  showValidation = false,
   submitError,
   isSubmitting,
   continueLabel,
@@ -25,14 +27,15 @@ export function SetupStepFooter({
     footer: { gap: spacing.md, marginTop: spacing.lg },
   }));
 
-  const bannerMessage = submitError ?? (!canContinue ? validationMessage : null);
+  const bannerMessage =
+    submitError ?? (showValidation && !canContinue ? validationMessage : null);
 
   return (
     <View style={styles.footer}>
       {bannerMessage ? <FormErrorBanner message={bannerMessage} /> : null}
       <OnboardingButton
         label={isSubmitting ? 'Saving…' : continueLabel}
-        disabled={isSubmitting || !canContinue}
+        disabled={isSubmitting}
         onPress={onContinue}
       />
     </View>

@@ -5,7 +5,7 @@ export type TabAtmosphereIntensity = 'none' | 'subtle' | 'prominent';
 export type TabAtmosphereAccent = 'primary' | 'secondary';
 
 const WORKER_MAIN_TABS = new Set(['browse', 'applications', 'calendar', 'fillins', 'messages']);
-const CLINIC_MAIN_TABS = new Set(['postings', 'applications', 'calendar', 'fill-ins', 'messages']);
+const CLINIC_MAIN_TABS = new Set(['postings', 'discover', 'applications', 'calendar', 'fill-ins', 'messages']);
 
 const WORKER_STACK_FRAGMENTS = [
   '/job/',
@@ -28,6 +28,7 @@ const CLINIC_STACK_FRAGMENTS = [
   '/role-applicants/',
   '/shift-applicants/',
   '/role-history',
+  '/discover/',
   '/clinic',
 ] as const;
 
@@ -89,6 +90,7 @@ function isAtmosphereStackPath(relativePath: string): boolean {
     root === 'role-history' ||
     root === 'post-job' ||
     root === 'post-shift' ||
+    root === 'discover' ||
     root === 'apply' ||
     root === 'open-fill-ins' ||
     root === 'past-fill-ins' ||
@@ -159,6 +161,10 @@ function getStackParentTabFromRelativePath(
 
   if (root === 'job' || root === 'post-job' || root === 'role-history') {
     return role === 'worker' ? 'browse' : 'postings';
+  }
+
+  if (root === 'discover') {
+    return role === 'clinic' ? 'discover' : null;
   }
 
   if (

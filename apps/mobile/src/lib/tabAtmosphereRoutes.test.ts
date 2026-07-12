@@ -23,6 +23,7 @@ describe('getActiveTabBarName', () => {
 
   it('resolves main tabs from pathname', () => {
     expect(getActiveTabBarName('/(clinic-tabs)/applications', 'clinic')).toBe('applications');
+    expect(getActiveTabBarName('/(clinic-tabs)/discover', 'clinic')).toBe('discover');
     expect(getActiveTabBarName('/(clinic-tabs)/calendar', 'clinic')).toBe('calendar');
     expect(getActiveTabBarName('/(tabs)/fillins', 'worker')).toBe('fillins');
     expect(getActiveTabBarName('/(tabs)/calendar', 'worker')).toBe('calendar');
@@ -45,8 +46,18 @@ describe('getActiveTabBarName', () => {
 });
 
 describe('isTabRootPath', () => {
+  it('keeps discover selected on nested discover detail routes', () => {
+    expect(
+      getActiveTabBarName('/(clinic-tabs)/discover/job/job-1', 'clinic'),
+    ).toBe('discover');
+    expect(
+      getActiveTabBarName('/(clinic-tabs)/discover/shift/shift-1', 'clinic'),
+    ).toBe('discover');
+  });
+
   it('returns true on main tab list screens', () => {
     expect(isTabRootPath('/(clinic-tabs)/applications', 'applications', 'clinic')).toBe(true);
+    expect(isTabRootPath('/(clinic-tabs)/discover', 'discover', 'clinic')).toBe(true);
     expect(isTabRootPath('/(tabs)/browse', 'browse', 'worker')).toBe(true);
     expect(isTabRootPath('/(clinic-tabs)', 'index', 'clinic')).toBe(true);
   });

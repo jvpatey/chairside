@@ -5,7 +5,7 @@ export const MOBILE_TAB_ORDER: Record<'worker' | 'clinic', string[]> = {
 
 export const TABLET_SIDEBAR_TAB_ORDER: Record<'worker' | 'clinic', string[]> = {
   worker: ['index', 'browse', 'applications', 'calendar', 'fillins', 'messages'],
-  clinic: ['index', 'postings', 'applications', 'calendar', 'fill-ins', 'messages'],
+  clinic: ['index', 'postings', 'discover', 'applications', 'calendar', 'fill-ins', 'messages'],
 };
 
 export type SidebarSection = {
@@ -19,7 +19,7 @@ export const TABLET_SIDEBAR_SECTIONS: Record<'worker' | 'clinic', SidebarSection
     { label: null, routes: ['calendar', 'fillins', 'messages'] },
   ],
   clinic: [
-    { label: null, routes: ['index', 'postings', 'applications'] },
+    { label: null, routes: ['index', 'postings', 'discover', 'applications'] },
     { label: null, routes: ['calendar', 'fill-ins', 'messages'] },
   ],
 };

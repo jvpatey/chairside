@@ -11,6 +11,7 @@ import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
+  getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
   getJobDetailRoute,
   getRoleHistoryRoute,
@@ -29,11 +30,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { StaggeredList } from '@/components/ui/StaggeredList';
+import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -52,6 +55,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 export default function ClinicPostingsScreen() {
   const { colors } = useTheme();
+  const { isTablet } = useResponsiveLayout();
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
@@ -144,7 +148,7 @@ export default function ClinicPostingsScreen() {
       setJobs([]);
       setApplicantCounts({});
       Alert.alert(
-        'Could not load postings',
+        'Could not load roles',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -183,7 +187,7 @@ export default function ClinicPostingsScreen() {
     <>
       {upgradePrompt}
       <Screen
-        title="Postings"
+        title="Roles"
         subtitle="Open roles at your clinic."
         refreshing={refreshing}
         onRefresh={onRefresh}>
@@ -196,6 +200,13 @@ export default function ClinicPostingsScreen() {
             dimmed={roleLimitReached}
             onPress={handlePostRolePress}
           />
+
+          {!isTablet ? (
+            <ClinicDiscoverBrowseLink
+              title="Roles from other clinics"
+              onPress={() => router.push(getClinicDiscoverRoute('roles', 'postings-tab'))}
+            />
+          ) : null}
 
           {roleLimitReached && billing ? (
             <PlanUpgradeCallout
@@ -210,7 +221,7 @@ export default function ClinicPostingsScreen() {
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Search role title or type"
-            accessibilityLabel="Search postings"
+            accessibilityLabel="Search roles"
             filter={
               <RolePostingFilters
                 statusFilter={jobStatusFilter}
@@ -223,7 +234,7 @@ export default function ClinicPostingsScreen() {
         ) : null}
 
         {isLoading ? (
-          <PageLoadingList message="Loading postings…" />
+          <PageLoadingList message="Loading roles…" />
         ) : (
           <>
             {jobs.length === 0 ? (
@@ -236,7 +247,7 @@ export default function ClinicPostingsScreen() {
               <EmptyState
                 icon="briefcase-outline"
                 title="No active roles"
-                message="Paused and live roles appear here. View role history for archived and filled postings."
+                message="Paused and live roles appear here. View role history for archived and filled roles."
               />
             ) : filteredJobs.length === 0 ? (
               <EmptyState

@@ -60,6 +60,7 @@ export default function WorkerLocationScreen() {
   const [bio, setBio] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
 
   useWorkerSetupStepGuard('location', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
 
@@ -77,7 +78,10 @@ export default function WorkerLocationScreen() {
   }, [workerProfile]);
 
   const handleContinue = async () => {
-    if (!validation.ok) return;
+    if (!validation.ok) {
+      setShowValidation(true);
+      return;
+    }
 
     setSubmitError(null);
     setIsSubmitting(true);
@@ -113,6 +117,7 @@ export default function WorkerLocationScreen() {
         <SetupStepFooter
           canContinue={validation.ok}
           validationMessage={validation.message}
+          showValidation={showValidation}
           submitError={submitError}
           isSubmitting={isSubmitting}
           continueLabel={isEditMode ? 'Save changes' : 'Continue'}

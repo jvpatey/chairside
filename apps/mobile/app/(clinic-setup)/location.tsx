@@ -54,6 +54,7 @@ export default function ClinicLocationScreen() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
 
   useClinicSetupStepGuard('location', clinicProfile, isClinicProfileReady, isEditMode);
 
@@ -70,7 +71,10 @@ export default function ClinicLocationScreen() {
   }, [clinicProfile]);
 
   const handleContinue = async () => {
-    if (!validation.ok) return;
+    if (!validation.ok) {
+      setShowValidation(true);
+      return;
+    }
 
     setSubmitError(null);
     setIsSubmitting(true);
@@ -105,6 +109,7 @@ export default function ClinicLocationScreen() {
         <SetupStepFooter
           canContinue={validation.ok}
           validationMessage={validation.message}
+          showValidation={showValidation}
           submitError={submitError}
           isSubmitting={isSubmitting}
           continueLabel={isEditMode ? 'Save changes' : 'Continue'}

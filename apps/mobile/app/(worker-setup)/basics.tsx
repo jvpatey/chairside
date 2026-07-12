@@ -30,6 +30,7 @@ export default function WorkerBasicsScreen() {
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
 
   useWorkerSetupStepGuard('basics', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
 
@@ -51,7 +52,10 @@ export default function WorkerBasicsScreen() {
   }, [workerProfile]);
 
   const handleContinue = async () => {
-    if (!validation.ok) return;
+    if (!validation.ok) {
+      setShowValidation(true);
+      return;
+    }
 
     setSubmitError(null);
     setIsSubmitting(true);
@@ -82,6 +86,7 @@ export default function WorkerBasicsScreen() {
         <SetupStepFooter
           canContinue={validation.ok}
           validationMessage={validation.message}
+          showValidation={showValidation}
           submitError={submitError}
           isSubmitting={isSubmitting}
           continueLabel={isEditMode ? 'Save changes' : 'Continue'}
@@ -102,7 +107,7 @@ export default function WorkerBasicsScreen() {
           value={displayName}
           onChangeText={setDisplayName}
           autoCapitalize="words"
-          invalid={!validation.ok && !displayName.trim()}
+          invalid={showValidation && !validation.ok && !displayName.trim()}
         />
         <View style={styles.section}>
           <Text style={styles.label}>Roles</Text>
