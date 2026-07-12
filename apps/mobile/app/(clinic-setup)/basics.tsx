@@ -27,13 +27,17 @@ export default function ClinicBasicsScreen() {
   const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
 
   useClinicSetupStepGuard('basics', clinicProfile, isClinicProfileReady, isEditMode);
 
   const validation = validateClinicBasicsStep({ clinicName, contactName, phone });
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.md },
+    section: { gap: spacing.sm },
+    sectionLabel: { ...typography.body, fontWeight: '600' },
+    hint: typography.subtitle,
   }));
 
   useEffect(() => {
@@ -44,7 +48,10 @@ export default function ClinicBasicsScreen() {
   }, [clinicProfile]);
 
   const handleContinue = async () => {
-    if (!validation.ok) return;
+    if (!validation.ok) {
+      setShowValidation(true);
+      return;
+    }
 
     setSubmitError(null);
     setIsSubmitting(true);
@@ -75,6 +82,7 @@ export default function ClinicBasicsScreen() {
         <SetupStepFooter
           canContinue={validation.ok}
           validationMessage={validation.message}
+          showValidation={showValidation}
           submitError={submitError}
           isSubmitting={isSubmitting}
           continueLabel={isEditMode ? 'Save changes' : 'Continue'}
@@ -95,24 +103,38 @@ export default function ClinicBasicsScreen() {
           value={clinicName}
           onChangeText={setClinicName}
           autoCapitalize="words"
-          invalid={!validation.ok && !clinicName.trim()}
+          invalid={showValidation && !validation.ok && !clinicName.trim()}
         />
-        <AuthField
-          label="Contact name"
-          placeholder="Office manager or owner"
-          value={contactName}
-          onChangeText={setContactName}
-          autoCapitalize="words"
-          invalid={!validation.ok && !contactName.trim() && !phone.trim()}
-        />
-        <AuthField
-          label="Phone"
-          placeholder={PHONE_NUMBER_PLACEHOLDER}
-          value={phone}
-          onChangeText={(text) => setPhone(formatPhoneNumber(text))}
-          keyboardType="phone-pad"
-          invalid={!validation.ok && !contactName.trim() && !phone.trim()}
-        />
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Contact</Text>
+          <Text style={styles.hint}>Phone or contact name required.</Text>
+          <AuthField
+            label="Contact name"
+            placeholder="Office manager or owner"
+            value={contactName}
+            onChangeText={setContactName}
+            autoCapitalize="words"
+            invalid={
+              showValidation &&
+              !validation.ok &&
+              !contactName.trim() &&
+              !phone.trim()
+            }
+          />
+          <AuthField
+            label="Phone"
+            placeholder={PHONE_NUMBER_PLACEHOLDER}
+            value={phone}
+            onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+            keyboardType="phone-pad"
+            invalid={
+              showValidation &&
+              !validation.ok &&
+              !contactName.trim() &&
+              !phone.trim()
+            }
+          />
+        </View>
       </View>
     </OnboardingShell>
   );
