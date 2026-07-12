@@ -14,6 +14,7 @@ import type { Href } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
@@ -24,6 +25,8 @@ import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
+import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
+import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { PageTabBar } from '@/components/ui/PageTabBar';
@@ -33,6 +36,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -56,6 +60,7 @@ import {
 } from '@/lib/clinicListSearch';
 import {
   CLINIC_SETUP_BASICS,
+  getClinicDiscoverRoute,
   getFindAvailableWorkersRoute,
   getPostShiftRoute,
 } from '@/lib/routing';
@@ -64,13 +69,15 @@ import {
   getClinicPostingLimitTitle,
   isFillInPostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
-import { useThemedStyles } from '@/theme';
+import { useThemedStyles, useTheme } from '@/theme';
 
 function sectionTitleWithCount(title: string, count: number) {
   return count > 0 ? `${title} (${count})` : title;
 }
 
 export default function ClinicFillInsScreen() {
+  const { colors } = useTheme();
+  const { isTablet } = useResponsiveLayout();
   const { user } = useAuth();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
@@ -290,6 +297,30 @@ export default function ClinicFillInsScreen() {
               },
             ]}
           />
+
+          {!isTablet ? (
+            <BrowseListGroup>
+              <BrowseListRow
+                avatar={
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: colors.fillSubtle,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons name="compass-outline" size={20} color={colors.labelSecondary} />
+                  </View>
+                }
+                title="Fill-ins from other clinics"
+                headerDetail="Live shifts in your province"
+                onPress={() => router.push(getClinicDiscoverRoute('fill-ins'))}
+              />
+            </BrowseListGroup>
+          ) : null}
 
           {fillInLimitReached && billing ? (
             <PlanUpgradeCallout

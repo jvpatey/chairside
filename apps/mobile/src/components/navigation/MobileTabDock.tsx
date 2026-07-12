@@ -59,6 +59,7 @@ function getVisibleRoutes(
 
   return state.routes
     .filter((route) => typeof descriptors[route.key]?.options?.tabBarIcon === 'function')
+    .filter((route) => order.includes(route.name))
     .sort((a, b) => {
       const aIndex = order.indexOf(a.name);
       const bIndex = order.indexOf(b.name);

@@ -40,6 +40,19 @@ function ClinicTabNavigator() {
           }}
         />
         <Tabs.Screen
+          name="discover"
+          options={{
+            title: 'Discover',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'compass' : 'compass-outline'}
+                size={22}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="applications"
           options={{
             title: 'Applications',

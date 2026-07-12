@@ -524,35 +524,60 @@ export type WorkerDashboardCounts = {
   pendingApplications: number;
 };
 
+type ClinicListingSummaryRow = {
+  id: string;
+  clinic_name: string;
+  city: string | null;
+  province: string;
+  specialty: string;
+  software_used: string[] | null;
+  latitude: number | null;
+  longitude: number | null;
+  logo_storage_path: string | null;
+};
+
+function mapClinicListingSummaryRow(row: ClinicListingSummaryRow): ClinicSummary {
+  return {
+    clinic_id: row.id,
+    clinic_name: row.clinic_name,
+    city: row.city,
+    province: row.province,
+    specialty: row.specialty,
+    software_used: row.software_used ?? [],
+    latitude: row.latitude,
+    longitude: row.longitude,
+    logo_storage_path: row.logo_storage_path ?? null,
+  };
+}
+
 async function listClinicSummariesInProvince(
   province: string,
 ): Promise<Map<string, ClinicSummary>> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('clinic_profiles')
-    .select(
-      'id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path',
-    )
-    .eq('province', province);
+  const { data, error } = await supabase.rpc('list_clinic_listing_summaries', {
+    p_province: province,
+  });
 
   if (error) throw error;
 
   return new Map(
-    (data ?? []).map((row) => [
+    ((data ?? []) as ClinicListingSummaryRow[]).map((row) => [
       row.id,
-      {
-        clinic_id: row.id,
-        clinic_name: row.clinic_name,
-        city: row.city,
-        province: row.province,
-        specialty: row.specialty,
-        software_used: row.software_used ?? [],
-        latitude: row.latitude,
-        longitude: row.longitude,
-        logo_storage_path: row.logo_storage_path ?? null,
-      },
+      mapClinicListingSummaryRow(row),
     ]),
   );
+}
+
+async function getClinicListingSummary(clinicId: string): Promise<ClinicSummary | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_clinic_listing_summary', {
+    p_clinic_id: clinicId,
+  });
+
+  if (error) throw error;
+  const row = ((data ?? []) as ClinicListingSummaryRow[])[0];
+  if (!row) return null;
+  return mapClinicListingSummaryRow(row);
 }
 
 function attachClinic<T extends { clinic_id: string }>(
@@ -706,15 +731,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
   if (error) throw error;
   if (!data) return null;
 
-  const { data: clinic, error: clinicError } = await supabase
-    .from('clinic_profiles')
-    .select(
-      'id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path',
-    )
-    .eq('id', data.clinic_id)
-    .maybeSingle();
-
-  if (clinicError) throw clinicError;
+  const clinic = await getClinicListingSummary(data.clinic_id as string);
   if (!clinic) return null;
 
   const screeningQuestions = (data as JobPost).screening_enabled
@@ -724,17 +741,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
   const planMap = await getClinicPlanMap([data.clinic_id as string]);
   const base = {
     ...(data as JobPost),
-    clinic: {
-      clinic_id: clinic.id,
-      clinic_name: clinic.clinic_name,
-      city: clinic.city,
-      province: clinic.province,
-      specialty: clinic.specialty,
-      software_used: clinic.software_used ?? [],
-      latitude: clinic.latitude,
-      longitude: clinic.longitude,
-      logo_storage_path: clinic.logo_storage_path ?? null,
-    },
+    clinic,
     screening_questions: screeningQuestions,
   };
   return attachPriorityListing(base, planMap);
@@ -754,33 +761,49 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
   if (error) throw error;
   if (!data) return null;
 
-  const { data: clinic, error: clinicError } = await supabase
-    .from('clinic_profiles')
-    .select(
-      'id, clinic_name, city, province, specialty, software_used, latitude, longitude, logo_storage_path',
-    )
-    .eq('id', data.clinic_id)
-    .maybeSingle();
-
-  if (clinicError) throw clinicError;
+  const clinic = await getClinicListingSummary(data.clinic_id as string);
   if (!clinic) return null;
 
   const planMap = await getClinicPlanMap([data.clinic_id as string]);
   const base = {
     ...(data as ShiftPost),
-    clinic: {
-      clinic_id: clinic.id,
-      clinic_name: clinic.clinic_name,
-      city: clinic.city,
-      province: clinic.province,
-      specialty: clinic.specialty,
-      software_used: clinic.software_used ?? [],
-      latitude: clinic.latitude,
-      longitude: clinic.longitude,
-      logo_storage_path: clinic.logo_storage_path ?? null,
-    },
+    clinic,
   };
   return attachPriorityListing(base, planMap);
+}
+
+export async function listClinicDiscoverJobPosts(
+  province: string,
+  viewerClinicId: string,
+): Promise<LiveJobPost[]> {
+  const jobs = await listLiveJobPosts(province);
+  return jobs.filter((job) => job.clinic_id !== viewerClinicId);
+}
+
+export async function listClinicDiscoverShiftPosts(
+  province: string,
+  viewerClinicId: string,
+): Promise<LiveShiftPost[]> {
+  const shifts = await listLiveShiftPosts(province);
+  return shifts.filter((shift) => shift.clinic_id !== viewerClinicId);
+}
+
+export async function getClinicDiscoverJobPost(
+  jobId: string,
+  viewerClinicId: string,
+): Promise<LiveJobPost | null> {
+  const job = await getLiveJobPost(jobId);
+  if (!job || job.clinic_id === viewerClinicId) return null;
+  return job;
+}
+
+export async function getClinicDiscoverShiftPost(
+  shiftId: string,
+  viewerClinicId: string,
+): Promise<LiveShiftPost | null> {
+  const shift = await getLiveShiftPost(shiftId);
+  if (!shift || shift.clinic_id === viewerClinicId) return null;
+  return shift;
 }
 
 export async function getWorkerAppliedShiftPost(

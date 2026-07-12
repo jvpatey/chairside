@@ -11,6 +11,7 @@ import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
+  getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
   getJobDetailRoute,
   getRoleHistoryRoute,
@@ -34,6 +35,7 @@ import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -52,6 +54,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 export default function ClinicPostingsScreen() {
   const { colors } = useTheme();
+  const { isTablet } = useResponsiveLayout();
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
@@ -196,6 +199,30 @@ export default function ClinicPostingsScreen() {
             dimmed={roleLimitReached}
             onPress={handlePostRolePress}
           />
+
+          {!isTablet ? (
+            <BrowseListGroup>
+              <BrowseListRow
+                avatar={
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: colors.fillSubtle,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons name="compass-outline" size={20} color={colors.labelSecondary} />
+                  </View>
+                }
+                title="Roles from other clinics"
+                headerDetail="Live openings in your province"
+                onPress={() => router.push(getClinicDiscoverRoute('roles'))}
+              />
+            </BrowseListGroup>
+          ) : null}
 
           {roleLimitReached && billing ? (
             <PlanUpgradeCallout

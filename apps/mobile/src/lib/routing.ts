@@ -30,6 +30,7 @@ export type ClinicApplicationReturnTarget =
   | 'messages-tab'
   | 'fill-ins-tab'
   | FillInReturnTarget;
+export type ClinicDiscoverTabParam = 'roles' | 'fill-ins';
 export type PostingsTabParam = 'roles' | 'fill-ins';
 export type DashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
 export type WorkerBrowseTabParam = 'roles' | 'fill-ins';
@@ -66,6 +67,7 @@ export const CLINIC_POST_JOB: Href = '/(clinic-tabs)/post-job' as Href;
 export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;
 export const CLINIC_POSTINGS: Href = '/(clinic-tabs)/postings' as Href;
 export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
+export const CLINIC_DISCOVER: Href = '/(clinic-tabs)/discover' as Href;
 export const CLINIC_FIND_AVAILABLE_WORKERS: Href = '/(clinic-tabs)/find-available-workers' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
@@ -97,6 +99,27 @@ export function navigateToWorkerProfileHub(nav: RouterReplace) {
 
 export function navigateToClinicProfileHub(nav: RouterReplace) {
   nav.replace(CLINIC_PROFILE);
+}
+
+export function getClinicDiscoverRoute(tab?: ClinicDiscoverTabParam): Href {
+  if (tab) {
+    return { pathname: '/(clinic-tabs)/discover', params: { tab } } as Href;
+  }
+  return CLINIC_DISCOVER;
+}
+
+export function getClinicDiscoverJobDetailRoute(jobId: string): Href {
+  return {
+    pathname: '/(clinic-tabs)/discover/job/[id]',
+    params: { id: jobId },
+  } as Href;
+}
+
+export function getClinicDiscoverShiftDetailRoute(shiftId: string): Href {
+  return {
+    pathname: '/(clinic-tabs)/discover/shift/[id]',
+    params: { id: shiftId },
+  } as Href;
 }
 
 export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
@@ -169,6 +192,8 @@ export function getTabRootHref(tabName: string, role: TabAtmosphereRole): Href |
         return CLINIC_APPLICATIONS;
       case 'fill-ins':
         return CLINIC_FILL_INS;
+      case 'discover':
+        return getClinicDiscoverRoute();
       case 'calendar':
         return getClinicCalendarSidebarRoute();
       case 'messages':
@@ -690,6 +715,7 @@ const NOTIFICATION_TAB_ROOT_ROUTES = new Set([
   '/(clinic-tabs)',
   '/(clinic-tabs)/postings',
   '/(clinic-tabs)/fill-ins',
+  '/(clinic-tabs)/discover',
   '/(clinic-tabs)/applications',
   '/(clinic-tabs)/calendar',
   '/(clinic-tabs)/messages',

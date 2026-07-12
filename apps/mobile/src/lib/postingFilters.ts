@@ -287,6 +287,13 @@ export const ROLES_BROWSE_MODE_OPTIONS: { value: RolesBrowseMode; label: string 
   { value: 'saved', label: 'Saved' },
 ];
 
+export type ClinicDiscoverTab = 'roles' | 'fill-ins';
+
+export const CLINIC_DISCOVER_TAB_OPTIONS: { value: ClinicDiscoverTab; label: string }[] = [
+  { value: 'roles', label: 'Roles' },
+  { value: 'fill-ins', label: 'Fill-ins' },
+];
+
 export type WorkerBrowseViewMode = 'list' | 'map';
 
 export const WORKER_BROWSE_VIEW_MODE_OPTIONS: { value: WorkerBrowseViewMode; label: string }[] = [
