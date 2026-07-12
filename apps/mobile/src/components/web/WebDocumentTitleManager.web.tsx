@@ -18,7 +18,7 @@ function titleForPath(pathname: string): string {
   if (pathname.includes('/applications')) return 'Chairside — Applications';
   if (pathname.includes('/fillins') || pathname.includes('/fill-ins')) return 'Chairside — Fill-ins';
   if (pathname.includes('/messages')) return 'Chairside — Messages';
-  if (pathname.includes('/postings')) return 'Chairside — Postings';
+  if (pathname.includes('/postings')) return 'Chairside — Roles';
   if (pathname.includes('/post-job')) return 'Chairside — Post a role';
   if (pathname.includes('/post-shift')) return 'Chairside — Post a fill-in';
   if (pathname.includes('/profile')) return 'Chairside — Settings';

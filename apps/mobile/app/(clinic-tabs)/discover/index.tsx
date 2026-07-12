@@ -140,7 +140,7 @@ export default function ClinicDiscoverScreen() {
       : tab === 'fill-ins'
         ? 'fill-ins-tab'
         : 'postings-tab';
-  const discoverBackLabel = discoverReturnTo === 'fill-ins-tab' ? 'Fill-ins' : 'Postings';
+  const discoverBackLabel = discoverReturnTo === 'fill-ins-tab' ? 'Fill-ins' : 'Roles';
 
   return (
     <Screen

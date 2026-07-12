@@ -29,7 +29,7 @@ function ClinicTabNavigator() {
         <Tabs.Screen
           name="postings"
           options={{
-            title: 'Postings',
+            title: 'Roles',
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'briefcase' : 'briefcase-outline'}

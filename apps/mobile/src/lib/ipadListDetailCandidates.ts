@@ -72,7 +72,7 @@ export const IPAD_LIST_DETAIL_CANDIDATES: readonly ListDetailCandidate[] = [
   {
     id: 'clinic-postings',
     role: 'clinic',
-    label: 'Postings',
+    label: 'Roles',
     listRoute: '/(clinic-tabs)/postings',
     detailRoute: '/(clinic-tabs)/job/[id]',
     priority: 'medium',

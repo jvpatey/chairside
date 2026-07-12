@@ -369,7 +369,7 @@ export function DashboardOverviewPanel({
           <DashboardEmptyState
             icon="people-outline"
             title="No applications yet"
-            message="Applications will appear here when workers apply to your postings."
+            message="Applications will appear here when workers apply to your roles."
           />
         ) : (
           <View style={styles.list}>

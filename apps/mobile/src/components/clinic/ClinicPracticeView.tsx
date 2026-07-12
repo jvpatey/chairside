@@ -184,7 +184,7 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
 
       <SectionPanel stepNumber={2} stepAccent="secondary" title="Location">
         <Text style={styles.hint}>
-          Where your practice is based — shown on postings and your public clinic profile.
+          Where your practice is based — shown on roles, fill-ins, and your public clinic profile.
         </Text>
         <FieldBlock label="City & province">
           <FieldValue value={locationLabel || null} />

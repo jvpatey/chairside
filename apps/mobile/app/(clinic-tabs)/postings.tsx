@@ -148,7 +148,7 @@ export default function ClinicPostingsScreen() {
       setJobs([]);
       setApplicantCounts({});
       Alert.alert(
-        'Could not load postings',
+        'Could not load roles',
         error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
@@ -187,7 +187,7 @@ export default function ClinicPostingsScreen() {
     <>
       {upgradePrompt}
       <Screen
-        title="Postings"
+        title="Roles"
         subtitle="Open roles at your clinic."
         refreshing={refreshing}
         onRefresh={onRefresh}>
@@ -221,7 +221,7 @@ export default function ClinicPostingsScreen() {
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Search role title or type"
-            accessibilityLabel="Search postings"
+            accessibilityLabel="Search roles"
             filter={
               <RolePostingFilters
                 statusFilter={jobStatusFilter}
@@ -234,7 +234,7 @@ export default function ClinicPostingsScreen() {
         ) : null}
 
         {isLoading ? (
-          <PageLoadingList message="Loading postings…" />
+          <PageLoadingList message="Loading roles…" />
         ) : (
           <>
             {jobs.length === 0 ? (
@@ -247,7 +247,7 @@ export default function ClinicPostingsScreen() {
               <EmptyState
                 icon="briefcase-outline"
                 title="No active roles"
-                message="Paused and live roles appear here. View role history for archived and filled postings."
+                message="Paused and live roles appear here. View role history for archived and filled roles."
               />
             ) : filteredJobs.length === 0 ? (
               <EmptyState
