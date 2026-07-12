@@ -25,8 +25,7 @@ import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
-import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { PageTabBar } from '@/components/ui/PageTabBar';
@@ -299,27 +298,10 @@ export default function ClinicFillInsScreen() {
           />
 
           {!isTablet ? (
-            <BrowseListGroup>
-              <BrowseListRow
-                avatar={
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: colors.fillSubtle,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Ionicons name="compass-outline" size={20} color={colors.labelSecondary} />
-                  </View>
-                }
-                title="Fill-ins from other clinics"
-                headerDetail="Live shifts in your province"
-                onPress={() => router.push(getClinicDiscoverRoute('fill-ins'))}
-              />
-            </BrowseListGroup>
+            <ClinicDiscoverBrowseLink
+              title="Fill-ins from other clinics"
+              onPress={() => router.push(getClinicDiscoverRoute('fill-ins', 'fill-ins-tab'))}
+            />
           ) : null}
 
           {fillInLimitReached && billing ? (

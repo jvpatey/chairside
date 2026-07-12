@@ -2,10 +2,38 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   getClinicApplicationRoute,
+  getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
   navigateAfterClinicApplication,
+  navigateAfterClinicDiscover,
   navigateAfterRoleApplicants,
 } from './routing';
+
+describe('getClinicDiscoverRoute', () => {
+  it('includes tab and return target for mobile entry points', () => {
+    expect(getClinicDiscoverRoute('roles', 'postings-tab')).toEqual({
+      pathname: '/(clinic-tabs)/discover',
+      params: { tab: 'roles', returnTo: 'postings-tab' },
+    });
+    expect(getClinicDiscoverRoute('fill-ins', 'fill-ins-tab')).toEqual({
+      pathname: '/(clinic-tabs)/discover',
+      params: { tab: 'fill-ins', returnTo: 'fill-ins-tab' },
+    });
+  });
+});
+
+describe('navigateAfterClinicDiscover', () => {
+  it('returns to postings or fill-ins tabs', () => {
+    const router = { replace: vi.fn(), back: vi.fn(), canGoBack: vi.fn(() => false) };
+
+    navigateAfterClinicDiscover(router, 'postings-tab');
+    expect(router.replace).toHaveBeenCalledWith('/(clinic-tabs)/postings');
+
+    router.replace.mockClear();
+    navigateAfterClinicDiscover(router, 'fill-ins-tab');
+    expect(router.replace).toHaveBeenCalledWith('/(clinic-tabs)/fill-ins');
+  });
+});
 
 describe('getClinicApplicationRoute', () => {
   it('builds the clinic applicant detail route', () => {

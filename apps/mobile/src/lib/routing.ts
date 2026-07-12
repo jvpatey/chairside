@@ -31,6 +31,7 @@ export type ClinicApplicationReturnTarget =
   | 'fill-ins-tab'
   | FillInReturnTarget;
 export type ClinicDiscoverTabParam = 'roles' | 'fill-ins';
+export type ClinicDiscoverReturnTarget = 'postings-tab' | 'fill-ins-tab';
 export type PostingsTabParam = 'roles' | 'fill-ins';
 export type DashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
 export type WorkerBrowseTabParam = 'roles' | 'fill-ins';
@@ -101,11 +102,41 @@ export function navigateToClinicProfileHub(nav: RouterReplace) {
   nav.replace(CLINIC_PROFILE);
 }
 
-export function getClinicDiscoverRoute(tab?: ClinicDiscoverTabParam): Href {
-  if (tab) {
-    return { pathname: '/(clinic-tabs)/discover', params: { tab } } as Href;
+export function getClinicDiscoverRoute(
+  tab?: ClinicDiscoverTabParam,
+  returnTo?: ClinicDiscoverReturnTarget,
+): Href {
+  const params: Record<string, string> = {};
+  if (tab) params.tab = tab;
+  if (returnTo) params.returnTo = returnTo;
+  if (Object.keys(params).length > 0) {
+    return { pathname: '/(clinic-tabs)/discover', params } as Href;
   }
   return CLINIC_DISCOVER;
+}
+
+export function navigateAfterClinicDiscover(
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
+  returnTo?: string,
+  tab?: ClinicDiscoverTabParam,
+) {
+  if (returnTo === 'fill-ins-tab') {
+    router.replace(CLINIC_FILL_INS);
+    return;
+  }
+  if (returnTo === 'postings-tab') {
+    router.replace(CLINIC_POSTINGS);
+    return;
+  }
+  if (tab === 'fill-ins') {
+    router.replace(CLINIC_FILL_INS);
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(CLINIC_POSTINGS);
 }
 
 export function getClinicDiscoverJobDetailRoute(jobId: string): Href {

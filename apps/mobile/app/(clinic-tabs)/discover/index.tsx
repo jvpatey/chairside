@@ -21,6 +21,7 @@ import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -37,13 +38,16 @@ import {
 import {
   getClinicDiscoverJobDetailRoute,
   getClinicDiscoverShiftDetailRoute,
+  navigateAfterClinicDiscover,
+  type ClinicDiscoverReturnTarget,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicDiscoverScreen() {
   const { user } = useAuth();
   const { clinicProfile } = useClinicProfile();
-  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const { isTablet } = useResponsiveLayout();
+  const { tab, returnTo } = useLocalSearchParams<{ tab?: string; returnTo?: string }>();
   const province = clinicProfile?.province ?? 'NS';
   const [selectedTab, setSelectedTab] = useState<ClinicDiscoverTab>('roles');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
@@ -130,12 +134,26 @@ export default function ClinicDiscoverScreen() {
   const activeList = selectedTab === 'roles' ? filteredJobs : filteredShifts;
   const sourceCount = selectedTab === 'roles' ? jobs.length : shifts.length;
 
+  const discoverReturnTo: ClinicDiscoverReturnTarget =
+    returnTo === 'fill-ins-tab' || returnTo === 'postings-tab'
+      ? returnTo
+      : tab === 'fill-ins'
+        ? 'fill-ins-tab'
+        : 'postings-tab';
+  const discoverBackLabel = discoverReturnTo === 'fill-ins-tab' ? 'Fill-ins' : 'Postings';
+
   return (
     <Screen
       title="Discover"
       subtitle="Live roles and fill-ins posted by other clinics in your province."
       refreshing={refreshing}
-      onRefresh={onRefresh}>
+      onRefresh={onRefresh}
+      onBack={
+        isTablet
+          ? undefined
+          : () => navigateAfterClinicDiscover(router, discoverReturnTo, selectedTab)
+      }
+      backLabel={discoverBackLabel}>
       <View style={styles.wrap}>
         <View style={styles.tabBar}>
           <PageTabBar

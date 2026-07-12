@@ -30,6 +30,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { StaggeredList } from '@/components/ui/StaggeredList';
+import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
@@ -201,27 +202,10 @@ export default function ClinicPostingsScreen() {
           />
 
           {!isTablet ? (
-            <BrowseListGroup>
-              <BrowseListRow
-                avatar={
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: colors.fillSubtle,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Ionicons name="compass-outline" size={20} color={colors.labelSecondary} />
-                  </View>
-                }
-                title="Roles from other clinics"
-                headerDetail="Live openings in your province"
-                onPress={() => router.push(getClinicDiscoverRoute('roles'))}
-              />
-            </BrowseListGroup>
+            <ClinicDiscoverBrowseLink
+              title="Roles from other clinics"
+              onPress={() => router.push(getClinicDiscoverRoute('roles', 'postings-tab'))}
+            />
           ) : null}
 
           {roleLimitReached && billing ? (
