@@ -1,12 +1,13 @@
 import {
   createClinicLocation,
   deactivateClinicLocation,
+  isClinicGroupsEnabled,
   updateClinicLocation,
   type ClinicLocation,
 } from '@chairside/api';
 import { SPECIALTY_OPTIONS, getProvinceLabel } from '@chairside/config';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import {
@@ -109,9 +110,20 @@ export default function ClinicLocationsSettingsScreen() {
     organization,
     clinicProfile,
     isOwner,
+    isGroup,
+    isClinicProfileReady,
     refreshClinicProfile,
   } = useClinicProfile();
   const { colors } = useTheme();
+  const groupsEnabled = isClinicGroupsEnabled();
+
+  useEffect(() => {
+    if (!isClinicProfileReady) return;
+    if (!groupsEnabled || !isGroup) {
+      navigateToClinicProfileHub(router);
+    }
+  }, [groupsEnabled, isClinicProfileReady, isGroup]);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
@@ -305,6 +317,10 @@ export default function ClinicLocationsSettingsScreen() {
       );
     }
   };
+
+  if (!isClinicProfileReady || !groupsEnabled || !isGroup) {
+    return null;
+  }
 
   if (showForm && isOwner) {
     return (

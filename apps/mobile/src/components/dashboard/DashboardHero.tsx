@@ -109,10 +109,12 @@ export function DashboardHero({
     band: {
       borderRadius: radii.hero,
       overflow: 'hidden',
-      borderWidth: Platform.OS === 'web' ? 1 : 0,
-      borderColor: colorWithAlpha(colors.primary, isDark ? 0.22 : 0.12),
+      borderWidth: 0,
+      backgroundColor: 'transparent',
       position: 'relative' as const,
-      ...elevation('subtle'),
+      // Native keeps a soft lift; web shadow draws a hard card silhouette that
+      // fights the gradient’s transparent bottom fade into the page background.
+      ...(Platform.OS === 'web' ? null : elevation('subtle')),
       ...(overlayActions
         ? null
         : {

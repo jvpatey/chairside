@@ -107,7 +107,7 @@ export default function ClinicAccountProfileScreen() {
             iconBackgroundColor={colors.secondarySubtle}
             onPress={() => router.push(CLINIC_PROFILE_ABOUT)}
           />
-          {groupsEnabled ? (
+          {groupsEnabled && isGroup ? (
             <ProfileSettingsRow
               icon="business-outline"
               title="Locations"
@@ -125,7 +125,7 @@ export default function ClinicAccountProfileScreen() {
               onPress={() => router.push(CLINIC_PROFILE_LOCATIONS)}
             />
           ) : null}
-          {groupsEnabled && (isGroup || isOwner) ? (
+          {groupsEnabled && isGroup ? (
             <ProfileSettingsRow
               icon="people-outline"
               title="Team & access"

@@ -1,5 +1,6 @@
 import {
   createClinicManagerInvitation,
+  isClinicGroupsEnabled,
   listClinicInvitations,
   listClinicMemberships,
   removeClinicManager,
@@ -64,10 +65,21 @@ export default function ClinicTeamSettingsScreen() {
     organization,
     clinicProfile,
     isOwner,
+    isGroup,
+    isClinicProfileReady,
     membership,
     refreshClinicProfile,
   } = useClinicProfile();
   const { colors } = useTheme();
+  const groupsEnabled = isClinicGroupsEnabled();
+
+  useEffect(() => {
+    if (!isClinicProfileReady) return;
+    if (!groupsEnabled || !isGroup) {
+      navigateToClinicProfileHub(router);
+    }
+  }, [groupsEnabled, isClinicProfileReady, isGroup]);
+
   const [members, setMembers] = useState<ClinicMembership[]>([]);
   const [invitations, setInvitations] = useState<ClinicInvitation[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -419,6 +431,10 @@ export default function ClinicTeamSettingsScreen() {
       setError(revokeError instanceof Error ? revokeError.message : 'Could not revoke invitation.');
     }
   };
+
+  if (!isClinicProfileReady || !groupsEnabled || !isGroup) {
+    return null;
+  }
 
   if (showProfileForm) {
     return (
