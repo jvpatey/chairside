@@ -11,12 +11,20 @@ import {
 } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
+export type PracticeDoctorLocationOption = {
+  value: string;
+  label: string;
+};
+
 type PracticeDoctorFormFieldsProps = {
   name: string;
   title: string;
   bio: string;
   photoUri?: string | null;
   isPhotoLoading?: boolean;
+  locationOptions?: PracticeDoctorLocationOption[];
+  selectedLocationIds?: string[];
+  onLocationIdsChange?: (locationIds: string[]) => void;
   onPickPhoto: () => void;
   onNameChange: (value: string) => void;
   onTitleChange: (value: string) => void;
@@ -29,6 +37,9 @@ export function PracticeDoctorFormFields({
   bio,
   photoUri,
   isPhotoLoading = false,
+  locationOptions = [],
+  selectedLocationIds = [],
+  onLocationIdsChange,
   onPickPhoto,
   onNameChange,
   onTitleChange,
@@ -114,6 +125,19 @@ export function PracticeDoctorFormFields({
           onChange={(next) => onTitleChange(String(next))}
         />
       </View>
+
+      {locationOptions.length > 0 && onLocationIdsChange ? (
+        <View style={styles.roleSection}>
+          <Text style={styles.roleLabel}>Works at</Text>
+          <ChipSelector
+            options={locationOptions}
+            selected={selectedLocationIds}
+            multiple
+            horizontal={false}
+            onChange={(value) => onLocationIdsChange(value as string[])}
+          />
+        </View>
+      ) : null}
 
       <AuthField
         label="Bio (optional)"

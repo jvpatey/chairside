@@ -9,7 +9,7 @@ import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
-import { PracticeDoctorReviewValue } from '@/components/clinic/PracticeDoctorList';
+import { PracticeDoctorReviewSection } from '@/components/clinic/PracticeDoctorList';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -44,7 +44,13 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 
 export default function ClinicReviewScreen() {
   const { user } = useAuth();
-  const { clinicProfile, isClinicProfileReady, refreshClinicProfile, isGroup } = useClinicProfile();
+  const {
+    clinicProfile,
+    isClinicProfileReady,
+    refreshClinicProfile,
+    isGroup,
+    locations,
+  } = useClinicProfile();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -147,9 +153,11 @@ export default function ClinicReviewScreen() {
           value={getTeamSizeRangeLabel(clinicProfile.team_size_range) ?? ''}
         />
         <ReviewRow label="Software" value={clinicProfile.software_used.join(', ')} />
-        <ReviewRow
-          label="Doctors"
-          value={PracticeDoctorReviewValue({ doctors: clinicProfile.practice_doctors ?? [] })}
+        <PracticeDoctorReviewSection
+          doctors={clinicProfile.practice_doctors ?? []}
+          locations={locations
+            .filter((location) => location.is_active)
+            .map((location) => ({ id: location.id, name: location.name }))}
         />
         <ReviewRow label="Description" value={clinicProfile.description ?? ''} />
       </View>

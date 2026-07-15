@@ -26,6 +26,8 @@ Each site collects: name, optional **clinic photo**, address, phone, specialty, 
 
 Shared across the group: practice doctors, description, and website. Specialty, software, and clinic photo are **not** collected again here for groups — those live on each location. Individual clinics still set their logo on About.
 
+Practice doctors stay on the org profile (`practice_doctors` JSON) and can be assigned to **one or more locations** (`location_ids`) during About — useful when a doctor works at multiple sites. When the group has active locations, at least one location is required per doctor.
+
 ## Access model
 
 - **Owner** — one primary login with full org access, billing, locations, and invitations.

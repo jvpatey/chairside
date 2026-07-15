@@ -1,6 +1,7 @@
 import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
 import { normalizePracticeDoctors } from '@chairside/config';
 import { getSupabaseClient } from './client';
+import { throwWithMessage } from './errors';
 import type { Database } from './types';
 
 export type ClinicProfile = Database['public']['Tables']['clinic_profiles']['Row'];
@@ -148,7 +149,12 @@ export async function upsertClinicProfile(
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    throwWithMessage(error, 'Could not save clinic profile.');
+  }
+  if (!data) {
+    throw new Error('Could not save clinic profile.');
+  }
 
   if (partial.clinic_name?.trim()) {
     await supabase

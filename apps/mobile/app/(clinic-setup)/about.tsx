@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@chairside/api';
 import { normalizePracticeDoctors, type PracticeDoctor } from '@chairside/config';
 import { router } from 'expo-router';
 import { CLINIC_SETUP_REVIEW } from '@/lib/routing';
@@ -19,7 +20,7 @@ import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicAboutScreen() {
-  const { clinicProfile, isClinicProfileReady, isGroup } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, isGroup, locations } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const progress = getClinicSetupStepNumber('about', isGroup);
@@ -28,6 +29,7 @@ export default function ClinicAboutScreen() {
   const [practiceDoctors, setPracticeDoctors] = useState<PracticeDoctor[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const activeLocations = locations.filter((location) => location.is_active);
 
   useClinicSetupStepGuard('about', clinicProfile, isClinicProfileReady, isEditMode);
 
@@ -51,7 +53,11 @@ export default function ClinicAboutScreen() {
       await save({
         description: description.trim() || null,
         website: website.trim() || null,
-        ...(isGroup ? { practice_doctors: practiceDoctors } : {}),
+        // Preserve account type on partial upserts (avoids group → individual flip via trigger defaults).
+        account_type: isGroup ? 'group' : (clinicProfile?.account_type ?? 'individual'),
+        ...(isGroup
+          ? { practice_doctors: normalizePracticeDoctors(practiceDoctors) }
+          : {}),
       });
       if (isEditMode) {
         router.replace(exitHref);
@@ -59,7 +65,7 @@ export default function ClinicAboutScreen() {
         router.push(CLINIC_SETUP_REVIEW);
       }
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');
+      setSubmitError(getErrorMessage(error, 'Could not save. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -84,7 +90,7 @@ export default function ClinicAboutScreen() {
         title={isGroup ? 'About your group' : 'About your clinic'}
         subtitle={
           isGroup
-            ? 'Optional shared doctors and story shown across your locations.'
+            ? 'Optional group story, plus doctors assigned to the locations where they work.'
             : 'Optional logo and details that help candidates learn more.'
         }
         onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
@@ -93,7 +99,14 @@ export default function ClinicAboutScreen() {
       <View style={styles.form}>
         {!isGroup ? <ClinicLogoSetupField /> : null}
         {isGroup ? (
-          <PracticeDoctorsInput value={practiceDoctors} onChange={setPracticeDoctors} />
+          <PracticeDoctorsInput
+            value={practiceDoctors}
+            onChange={setPracticeDoctors}
+            locations={activeLocations.map((location) => ({
+              id: location.id,
+              name: location.name,
+            }))}
+          />
         ) : null}
         <AuthField
           label="Description"
