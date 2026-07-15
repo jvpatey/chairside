@@ -21,6 +21,11 @@ export type ShiftUrgency = 'normal' | 'urgent' | 'same_day';
 export type JobPost = {
   id: string;
   clinic_id: string;
+  organization_id?: string | null;
+  location_id?: string | null;
+  posted_by_membership_id?: string | null;
+  posted_by_display_name?: string | null;
+  posted_by_title?: string | null;
   role_type: RoleType;
   employment_type: EmploymentType;
   title: string;
@@ -47,6 +52,11 @@ export type JobPostWithScreening = JobPost & {
 export type ShiftPost = {
   id: string;
   clinic_id: string;
+  organization_id?: string | null;
+  location_id?: string | null;
+  posted_by_membership_id?: string | null;
+  posted_by_display_name?: string | null;
+  posted_by_title?: string | null;
   role_type: RoleType;
   shift_date: string;
   start_time: string;
@@ -83,6 +93,11 @@ export type CreateJobPostInput = {
   screening_enabled?: boolean;
   screeningQuestions?: ScreeningQuestionInput[];
   status?: JobPostStatus;
+  location_id?: string | null;
+  organization_id?: string | null;
+  posted_by_membership_id?: string | null;
+  posted_by_display_name?: string | null;
+  posted_by_title?: string | null;
 };
 
 export type CreateShiftPostInput = {
@@ -94,31 +109,56 @@ export type CreateShiftPostInput = {
   urgency?: ShiftUrgency;
   description?: string;
   status?: ShiftPostStatus;
+  location_id?: string | null;
+  organization_id?: string | null;
+  posted_by_membership_id?: string | null;
+  posted_by_display_name?: string | null;
+  posted_by_title?: string | null;
 };
 
 export type UpdateJobPostInput = Partial<CreateJobPostInput>;
 
 export type UpdateShiftPostInput = Partial<CreateShiftPostInput>;
 
-export async function listJobPosts(clinicId: string): Promise<JobPost[]> {
+export async function listJobPosts(
+  clinicId: string,
+  options?: { locationIds?: string[] | 'all' },
+): Promise<JobPost[]> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('job_posts')
     .select('*')
-    .eq('clinic_id', clinicId)
+    .or(`clinic_id.eq.${clinicId},organization_id.eq.${clinicId}`)
     .order('created_at', { ascending: false });
+
+  if (options?.locationIds && options.locationIds !== 'all') {
+    if (options.locationIds.length === 0) return [];
+    query = query.in('location_id', options.locationIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return (data ?? []) as JobPost[];
 }
 
-export async function listShiftPosts(clinicId: string): Promise<ShiftPost[]> {
+export async function listShiftPosts(
+  clinicId: string,
+  options?: { locationIds?: string[] | 'all' },
+): Promise<ShiftPost[]> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('shift_posts')
     .select('*')
-    .eq('clinic_id', clinicId)
+    .or(`clinic_id.eq.${clinicId},organization_id.eq.${clinicId}`)
     .order('created_at', { ascending: false });
+
+  if (options?.locationIds && options.locationIds !== 'all') {
+    if (options.locationIds.length === 0) return [];
+    query = query.in('location_id', options.locationIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return (data ?? []) as ShiftPost[];
@@ -278,6 +318,11 @@ export async function createJobPost(clinicId: string, input: CreateJobPostInput)
     .from('job_posts')
     .insert({
       clinic_id: clinicId,
+      organization_id: input.organization_id ?? clinicId,
+      location_id: input.location_id ?? null,
+      posted_by_membership_id: input.posted_by_membership_id ?? null,
+      posted_by_display_name: input.posted_by_display_name ?? null,
+      posted_by_title: input.posted_by_title ?? null,
       role_type: input.role_type,
       employment_type: input.employment_type,
       title: input.title,
@@ -317,6 +362,11 @@ export async function createShiftPost(
     .from('shift_posts')
     .insert({
       clinic_id: clinicId,
+      organization_id: input.organization_id ?? clinicId,
+      location_id: input.location_id ?? null,
+      posted_by_membership_id: input.posted_by_membership_id ?? null,
+      posted_by_display_name: input.posted_by_display_name ?? null,
+      posted_by_title: input.posted_by_title ?? null,
       role_type: input.role_type,
       shift_date: input.shift_date,
       start_time: input.start_time,

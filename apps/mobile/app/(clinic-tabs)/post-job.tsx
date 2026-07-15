@@ -33,6 +33,7 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import {
   getClinicPostingLimitReachedMessage,
@@ -83,6 +84,13 @@ const DEFAULT_CREATE_FORM = {
 
 export default function PostJobScreen() {
   const { user } = useAuth();
+  const {
+    clinicId,
+    accessibleLocations,
+    isGroup,
+    attribution,
+    attributionLabel,
+  } = useClinicActingContext();
   const { billing, upgradePrompt, showPublishUpgrade, handleBillingError } = useClinicUpgradePrompt();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const jobId = typeof id === 'string' ? id : undefined;
@@ -99,6 +107,11 @@ export default function PostJobScreen() {
   const [screeningEnabled, setScreeningEnabled] = useState(false);
   const [selectedCatalogSlugs, setSelectedCatalogSlugs] = useState<string[]>([]);
   const [customQuestions, setCustomQuestions] = useState<CustomScreeningQuestion[]>([]);
+  const [locationId, setLocationId] = useState<string | null>(
+    accessibleLocations.find((location) => location.is_primary)?.id ??
+      accessibleLocations[0]?.id ??
+      null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [formKey, setFormKey] = useState(0);
@@ -144,7 +157,7 @@ export default function PostJobScreen() {
 
     setIsLoading(true);
     try {
-      const job = await getJobPostWithScreening(user.id, jobId);
+      const job = await getJobPostWithScreening(clinicId ?? user.id, jobId);
       if (!job) {
         const message = 'This posting may have been removed.';
         setFormError(message);
@@ -166,6 +179,7 @@ export default function PostJobScreen() {
       setScreeningEnabled(form.screeningEnabled);
       setSelectedCatalogSlugs(form.selectedCatalogSlugs);
       setCustomQuestions(form.customQuestions);
+      setLocationId(job.location_id ?? null);
       setFormKey((current) => current + 1);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please try again.';
@@ -177,15 +191,24 @@ export default function PostJobScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [jobId, user?.id]);
+  }, [clinicId, jobId, user?.id]);
 
   useEffect(() => {
     void loadJob();
   }, [loadJob]);
 
   const handleSubmit = async () => {
-    if (!user?.id || !title.trim()) {
+    if (!user?.id || !clinicId || !title.trim()) {
       const message = 'Enter a job title to continue.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Missing information', message);
+      }
+      return;
+    }
+
+    if (isGroup && !locationId) {
+      const message = 'Choose which location this role is for.';
       setFormError(message);
       if (Platform.OS !== 'web') {
         Alert.alert('Missing information', message);
@@ -227,13 +250,16 @@ export default function PostJobScreen() {
       };
 
       if (isEditing && jobId) {
-        await updateJobPost(user.id, jobId, payload);
+        await updateJobPost(clinicId, jobId, payload);
         router.back();
       } else {
-        await createJobPost(user.id, {
+        await createJobPost(clinicId, {
           ...payload,
           offerings: offerings.length > 0 ? offerings : undefined,
           status: 'live',
+          organization_id: clinicId,
+          location_id: locationId,
+          ...attribution,
         });
         resetForm();
         router.replace(CLINIC_POSTINGS);
@@ -280,6 +306,23 @@ export default function PostJobScreen() {
         />
 
         <FormErrorBanner message={formError} />
+
+        {isGroup ? (
+          <View style={styles.section}>
+            <Text style={styles.label}>Location</Text>
+            <ChipSelector
+              options={accessibleLocations.map((location) => ({
+                value: location.id,
+                label: location.name,
+              }))}
+              selected={locationId}
+              onChange={(value) => setLocationId(value as string)}
+            />
+            {attributionLabel ? (
+              <Text style={styles.loading}>Will show as posted by {attributionLabel}</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.label}>Role type</Text>

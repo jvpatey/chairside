@@ -2,6 +2,10 @@ import { resolveAuthProfile } from '@chairside/api';
 import { router } from 'expo-router';
 
 import { isPasswordRecoveryPending } from '@/lib/authRecoveryState';
+import {
+  buildClinicInviteAcceptHref,
+  readClinicInviteToken,
+} from '@/lib/clinicInviteSession';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import type { UserRole } from '@/types';
 
@@ -12,6 +16,12 @@ export async function handleAuthSuccess(
 ) {
   if (await isPasswordRecoveryPending()) {
     router.replace('/auth/reset-password');
+    return;
+  }
+
+  const inviteToken = await readClinicInviteToken();
+  if (inviteToken) {
+    router.replace(buildClinicInviteAcceptHref(inviteToken));
     return;
   }
 

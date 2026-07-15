@@ -9,11 +9,16 @@ import {
   isClinicSetupComplete,
   isWorkerSetupComplete,
 } from '@/lib/setupCompletion';
-import { CLINIC_SETUP_BASICS, WORKER_SETUP_BASICS } from '@/lib/routing';
+import {
+  CLINIC_SETUP_ACCOUNT_TYPE,
+  CLINIC_SETUP_BASICS,
+  WORKER_SETUP_BASICS,
+} from '@/lib/routing';
+import { isClinicGroupsEnabled } from '@chairside/api';
 
 export function ClinicSetupGate({ children }: { children: ReactNode }) {
   const { session, isAuthReady, profile } = useAuth();
-  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, membership, isOwner } = useClinicProfile();
 
   if (!isAuthReady || !session) {
     return <PageLoadingSpinner />;
@@ -27,12 +32,33 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
     return <PageLoadingSpinner />;
   }
 
-  if (!isClinicProfileReady || clinicProfile === null) {
+  if (!isClinicProfileReady) {
     return <PageLoadingSpinner />;
   }
 
+  // Invited managers join a completed org and skip owner setup.
+  if (membership && !isOwner) {
+    return children;
+  }
+
+  if (clinicProfile === null) {
+    return (
+      <Redirect
+        href={isClinicGroupsEnabled() ? CLINIC_SETUP_ACCOUNT_TYPE : CLINIC_SETUP_BASICS}
+      />
+    );
+  }
+
   if (!isClinicSetupComplete(clinicProfile)) {
-    return <Redirect href={CLINIC_SETUP_BASICS} />;
+    return (
+      <Redirect
+        href={
+          isClinicGroupsEnabled() && !clinicProfile.account_type
+            ? CLINIC_SETUP_ACCOUNT_TYPE
+            : CLINIC_SETUP_BASICS
+        }
+      />
+    );
   }
 
   return children;

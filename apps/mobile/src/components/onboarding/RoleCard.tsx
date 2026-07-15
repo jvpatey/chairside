@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import type { ReactNode } from 'react';
 import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -15,7 +16,9 @@ const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
 type RoleCardProps = {
   title: string;
   description: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** Optional custom icon when Ionicons lacks a matching glyph. */
+  iconNode?: ReactNode;
   selected: boolean;
   onPress: () => void;
   variant?: 'list' | 'tile';
@@ -26,7 +29,8 @@ type RoleCardProps = {
 export function RoleCard({
   title,
   description,
-  icon,
+  icon = 'ellipse-outline',
+  iconNode,
   selected,
   onPress,
   variant: _variant = 'list',
@@ -142,11 +146,13 @@ export function RoleCard({
             (selected ? styles.cardSelectedHovered : styles.cardHovered),
         ]}>
         <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
-          <Ionicons
-            name={icon}
-            size={22}
-            color={selected ? accentOn : colors.labelSecondary}
-          />
+          {iconNode ?? (
+            <Ionicons
+              name={icon}
+              size={22}
+              color={selected ? accentOn : colors.labelSecondary}
+            />
+          )}
         </View>
         <View style={styles.textBlock}>
           <Text style={styles.title}>{title}</Text>

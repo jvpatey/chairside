@@ -8,7 +8,7 @@ import {
   signUpWithEmail,
 } from '@chairside/api';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 
@@ -25,8 +25,8 @@ import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { saveClinicInviteToken } from '@/lib/clinicInviteSession';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
-import { getHomeRouteForRole } from '@/lib/routing';
 import {
   webHover,
   webPointer,
@@ -41,8 +41,13 @@ function parseRole(value: string | string[] | undefined): UserRole | null {
 }
 
 export default function SignUpScreen() {
-  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
+  const { role: roleParam, inviteToken } = useLocalSearchParams<{
+    role?: string;
+    inviteToken?: string;
+  }>();
   const role = parseRole(roleParam);
+  const pendingInviteToken =
+    typeof inviteToken === 'string' ? inviteToken.trim() : '';
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const reducedMotion = useReducedMotion();
@@ -51,6 +56,12 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (pendingInviteToken) {
+      void saveClinicInviteToken(pendingInviteToken);
+    }
+  }, [pendingInviteToken]);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -97,15 +108,12 @@ export default function SignUpScreen() {
       } = await getSupabaseClient().auth.getSession();
       const profile = session?.user ? await getProfile(session.user.id) : null;
 
+      if (!session?.user) return;
+
       if (!profile?.role && role && profile?.id) {
         await setProfileRole(profile.id, role);
         await refreshProfile();
-        await completeOnboarding(role);
-        router.replace(getHomeRouteForRole(role));
-        return;
       }
-
-      if (!session?.user) return;
 
       await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
     } catch (error) {
@@ -165,7 +173,11 @@ export default function SignUpScreen() {
         if (Platform.OS !== 'web') {
           Alert.alert('Confirm your email', message);
         }
-        router.replace('/(onboarding)/sign-in');
+        router.replace(
+          pendingInviteToken
+            ? (`/(onboarding)/sign-in?inviteToken=${encodeURIComponent(pendingInviteToken)}` as const)
+            : '/(onboarding)/sign-in',
+        );
         return;
       }
 
@@ -204,7 +216,13 @@ export default function SignUpScreen() {
             <Text style={styles.switchMuted}>Already have an account?</Text>
             <Pressable
               accessibilityRole="link"
-              onPress={() => router.replace('/(onboarding)/sign-in')}
+              onPress={() =>
+                router.replace(
+                  pendingInviteToken
+                    ? (`/(onboarding)/sign-in?inviteToken=${encodeURIComponent(pendingInviteToken)}` as const)
+                    : '/(onboarding)/sign-in',
+                )
+              }
               style={({ pressed, hovered }) => [
                 styles.switchLinkPressable,
                 webHover(hovered, pressed, styles.switchLinkHovered),

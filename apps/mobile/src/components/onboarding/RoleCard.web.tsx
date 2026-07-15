@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import type { ReactNode } from 'react';
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
 
 import { webCardLiftBase, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
@@ -9,7 +10,8 @@ import { getWebShadow } from '@/theme/web';
 type RoleCardProps = {
   title: string;
   description: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
+  iconNode?: ReactNode;
   selected: boolean;
   onPress: () => void;
   variant?: 'list' | 'tile';
@@ -20,7 +22,8 @@ type RoleCardProps = {
 export function RoleCard({
   title,
   description,
-  icon,
+  icon = 'ellipse-outline',
+  iconNode,
   selected,
   onPress,
   variant = 'tile',
@@ -115,6 +118,7 @@ export function RoleCard({
   };
 
   const iconColor = selected ? colors.primary : colors.labelSecondary;
+  const renderedIcon = iconNode ?? <Ionicons name={icon} size={isTile ? 24 : 22} color={iconColor} />;
   const checkNode = selected ? (
     <View style={styles.check}>
       <Ionicons name="checkmark" size={15} color={colors.primaryOnPrimary} />
@@ -139,7 +143,7 @@ export function RoleCard({
       {isTile ? (
         <>
           <View style={styles.topRow}>
-            <Ionicons name={icon} size={24} color={iconColor} />
+            {renderedIcon}
             {checkNode}
           </View>
           <View style={styles.content}>
@@ -151,7 +155,7 @@ export function RoleCard({
         <>
           <View style={styles.content}>
             <View style={styles.titleRow}>
-              <Ionicons name={icon} size={22} color={iconColor} />
+              {renderedIcon}
               <Text style={styles.title}>{title}</Text>
             </View>
             <Text style={styles.description}>{description}</Text>

@@ -8,6 +8,7 @@ import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
@@ -111,7 +112,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { profile } = useAuth();
   const { photoUri } = useProfilePhoto();
   const { logoUri } = useClinicLogo();
-  const { clinicProfile } = useClinicProfile();
+  const { clinicProfile, isGroup } = useClinicProfile();
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
 
@@ -505,6 +506,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             />
           </View>
         </View>
+        {role === 'clinic' && isGroup && !isCollapsed ? (
+          <View style={{ marginTop: 8 }}>
+            <ClinicLocationScopeSwitcher />
+          </View>
+        ) : null}
       </View>
 
       <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>

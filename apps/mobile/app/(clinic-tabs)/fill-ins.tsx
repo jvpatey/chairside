@@ -34,6 +34,7 @@ import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
@@ -78,6 +79,7 @@ export default function ClinicFillInsScreen() {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const { user } = useAuth();
+  const { clinicId, scopedLocationIds } = useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { refreshPending } = useFillInPending();
@@ -165,7 +167,7 @@ export default function ClinicFillInsScreen() {
   };
 
   const load = useCallback(async () => {
-    if (!user?.id) {
+    if (!clinicId) {
       setCoverRequests([]);
       setShifts([]);
       setIsLoading(false);
@@ -178,16 +180,16 @@ export default function ClinicFillInsScreen() {
 
     try {
       const [requests, shiftPosts, counts, confirmed, unread] = await Promise.all([
-        listFillInCoverRequests(user.id),
-        listShiftPosts(user.id),
-        getShiftPostPendingApplicationCountsMap(user.id),
-        listUpcomingConfirmedFillIns(user.id),
-        getUnreadConversationMap(user.id, 'clinic'),
+        listFillInCoverRequests(clinicId),
+        listShiftPosts(clinicId, { locationIds: scopedLocationIds }),
+        getShiftPostPendingApplicationCountsMap(clinicId),
+        listUpcomingConfirmedFillIns(clinicId),
+        getUnreadConversationMap(clinicId, 'clinic'),
       ]);
 
       const applicationCountEntries = await Promise.all(
         shiftPosts.map(async (shift) => {
-          const count = await getShiftPostApplicationCount(user.id, shift.id);
+          const count = await getShiftPostApplicationCount(clinicId, shift.id);
           return [shift.id, count] as const;
         }),
       );
@@ -209,7 +211,7 @@ export default function ClinicFillInsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [refreshBilling, refreshPending, user?.id]);
+  }, [clinicId, refreshBilling, refreshPending, scopedLocationIds]);
 
   useEffect(() => {
     const redirect = redirectEmbeddedCalendarDeepLink(

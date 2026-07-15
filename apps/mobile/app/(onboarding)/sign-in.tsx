@@ -24,6 +24,7 @@ import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { saveClinicInviteToken } from '@/lib/clinicInviteSession';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
 import { PASSWORD_RESET_SENT_MESSAGE } from '@/lib/passwordResetCopy';
 import {
@@ -43,7 +44,10 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 export default function SignInScreen() {
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
-  const { authError } = useLocalSearchParams<{ authError?: string }>();
+  const { authError, inviteToken } = useLocalSearchParams<{
+    authError?: string;
+    inviteToken?: string;
+  }>();
   const reducedMotion = useReducedMotion();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,6 +56,8 @@ export default function SignInScreen() {
   const [resetLinkSent, setResetLinkSent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [resetHint, setResetHint] = useState<string | null>(null);
+  const pendingInviteToken =
+    typeof inviteToken === 'string' ? inviteToken.trim() : '';
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -131,6 +137,12 @@ export default function SignInScreen() {
       setFormError(message);
     }
   }, [authError]);
+
+  useEffect(() => {
+    if (pendingInviteToken) {
+      void saveClinicInviteToken(pendingInviteToken);
+    }
+  }, [pendingInviteToken]);
 
   const runSocialSignIn = async (action: () => Promise<unknown>) => {
     if (isSubmitting || isSendingReset) return;
@@ -244,13 +256,21 @@ export default function SignInScreen() {
             <Text style={styles.switchMuted}>New to Chairside?</Text>
             <Pressable
               accessibilityRole="link"
-              onPress={() => router.replace('/(onboarding)/role')}
+              onPress={() =>
+                router.replace(
+                  pendingInviteToken
+                    ? (`/(onboarding)/sign-up?role=clinic&inviteToken=${encodeURIComponent(pendingInviteToken)}` as const)
+                    : '/(onboarding)/role',
+                )
+              }
               style={({ pressed, hovered }) => [
                 styles.switchLinkPressable,
                 webHover(hovered, pressed, styles.switchLinkHovered),
                 pressed && { opacity: 0.75 },
               ]}>
-              <Text style={styles.switchLink}>Get started</Text>
+              <Text style={styles.switchLink}>
+                {pendingInviteToken ? 'Create clinic account' : 'Get started'}
+              </Text>
             </Pressable>
           </View>
         </View>

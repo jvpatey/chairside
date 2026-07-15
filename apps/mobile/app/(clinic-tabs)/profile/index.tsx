@@ -25,19 +25,23 @@ import {
   CLINIC_PROFILE_ABOUT,
   CLINIC_PROFILE_ACCOUNT,
   CLINIC_PROFILE_BILLING,
+  CLINIC_PROFILE_LOCATIONS,
   CLINIC_PROFILE_MESSAGING,
   CLINIC_PROFILE_NOTIFICATIONS,
   CLINIC_PROFILE_PRACTICE,
+  CLINIC_PROFILE_TEAM,
 } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingContext';
+import { isClinicGroupsEnabled } from '@chairside/api';
 
 export default function ClinicAccountProfileScreen() {
   const { user } = useAuth();
-  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, isGroup, isOwner, locations } = useClinicProfile();
   const { billing } = useClinicBilling();
   const { isCompact } = useResponsiveLayout();
   const { colors } = useTheme();
+  const groupsEnabled = isClinicGroupsEnabled();
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
@@ -82,6 +86,32 @@ export default function ClinicAccountProfileScreen() {
             iconBackgroundColor={colors.secondarySubtle}
             onPress={() => router.push(CLINIC_PROFILE_ABOUT)}
           />
+          {groupsEnabled ? (
+            <ProfileSettingsRow
+              icon="business-outline"
+              title="Locations"
+              subtitle={
+                locations.filter((location) => location.is_active).length > 0
+                  ? `${locations.filter((location) => location.is_active).length} location${
+                      locations.filter((location) => location.is_active).length === 1 ? '' : 's'
+                    }`
+                  : 'Add clinic locations'
+              }
+              iconColor={colors.primary}
+              iconBackgroundColor={colors.primarySubtle}
+              onPress={() => router.push(CLINIC_PROFILE_LOCATIONS)}
+            />
+          ) : null}
+          {groupsEnabled && (isGroup || isOwner) ? (
+            <ProfileSettingsRow
+              icon="people-outline"
+              title="Team & access"
+              subtitle={isOwner ? 'Invite managers and assign locations' : 'Your manager access'}
+              iconColor={colors.info}
+              iconBackgroundColor={`${colors.info}18`}
+              onPress={() => router.push(CLINIC_PROFILE_TEAM)}
+            />
+          ) : null}
           <ProfileSettingsRow
             icon="notifications-outline"
             title="Notifications"

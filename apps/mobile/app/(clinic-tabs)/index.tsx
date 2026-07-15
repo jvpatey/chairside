@@ -36,11 +36,13 @@ import { DashboardSpotlightCard } from '@/components/dashboard/DashboardSpotligh
 import { DashboardStatCards } from '@/components/dashboard/DashboardStatCards';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
+import { ClinicLocationScopeSwitcher, getClinicLocationScopeLabel } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSpotlights';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -70,7 +72,13 @@ export default function ClinicDashboardScreen() {
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
-  const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
+  const {
+    clinicId,
+    scopedLocationIds,
+    locationScope,
+    isGroup,
+  } = useClinicActingContext();
   const { billing, isBillingReady, refreshBilling } = useClinicUpgradePrompt();
   const { logoUri } = useClinicLogo();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
@@ -101,7 +109,7 @@ export default function ClinicDashboardScreen() {
   } = useDismissedDashboardSpotlights('clinic');
 
   const loadDashboard = useCallback(async () => {
-    if (!user?.id) return;
+    if (!clinicId) return;
 
     if (!hasLoadedOnce.current) {
       setIsLoading(true);
@@ -119,19 +127,19 @@ export default function ClinicDashboardScreen() {
         conversationRows,
         confirmed,
       ] = await Promise.all([
-        getClinicDashboardCounts(user.id),
-        listJobPosts(user.id),
-        listShiftPosts(user.id),
-        listJobApplicationSummaries(user.id),
-        getJobPostApplicationCountsMap(user.id),
-        getShiftPostPendingApplicationCountsMap(user.id),
-        listConversationsForClinic(user.id),
-        listUpcomingConfirmedFillIns(user.id),
+        getClinicDashboardCounts(clinicId),
+        listJobPosts(clinicId, { locationIds: scopedLocationIds }),
+        listShiftPosts(clinicId, { locationIds: scopedLocationIds }),
+        listJobApplicationSummaries(clinicId),
+        getJobPostApplicationCountsMap(clinicId),
+        getShiftPostPendingApplicationCountsMap(clinicId),
+        listConversationsForClinic(clinicId),
+        listUpcomingConfirmedFillIns(clinicId),
       ]);
 
       const shiftApplicationCountEntries = await Promise.all(
         shiftPosts.map(async (shift) => {
-          const count = await getShiftPostApplicationCount(user.id, shift.id);
+          const count = await getShiftPostApplicationCount(clinicId, shift.id);
           return [shift.id, count] as const;
         }),
       );
@@ -164,7 +172,7 @@ export default function ClinicDashboardScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [refreshBilling, refreshUnread, user?.id]);
+  }, [clinicId, refreshBilling, refreshUnread, scopedLocationIds]);
 
   useRefreshOnFocus(loadDashboard);
 
@@ -302,7 +310,17 @@ export default function ClinicDashboardScreen() {
             photoUri={isProfileComplete ? logoUri : null}
             namePlaceholder={isProfileComplete ? 'Your practice' : 'Welcome to Chairside'}
             subtitle={isProfileComplete ? 'Dental Clinic' : 'Finish your clinic setup'}
+            contextLine={
+              isGroup
+                ? getClinicLocationScopeLabel(locationScope, locations)
+                : undefined
+            }
           />
+          {isGroup ? (
+            <FadeInSection delayMs={40}>
+              <ClinicLocationScopeSwitcher />
+            </FadeInSection>
+          ) : null}
         </FadeInSection>
       }
       error={

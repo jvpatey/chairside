@@ -1,11 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import { isClinicGroupsEnabled } from '@chairside/api';
 import { router, usePathname } from 'expo-router';
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import {
+  getClinicSetupStepIndexFromPath,
+  getClinicSetupSteps,
+} from '@/lib/clinicSetupSteps';
 import { navigateToWelcome } from '@/lib/publicRoutes';
 import { webHover, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -27,7 +33,7 @@ const WORKER_STEPS: SetupStep[] = [
   { id: 'review', label: 'Review', href: '/(worker-setup)/review' },
 ];
 
-const CLINIC_STEPS: SetupStep[] = [
+const CLINIC_STEPS_LEGACY: SetupStep[] = [
   { id: 'basics', label: 'Basics', href: '/(clinic-setup)/basics' },
   { id: 'location', label: 'Location', href: '/(clinic-setup)/location' },
   { id: 'practice', label: 'Practice', href: '/(clinic-setup)/practice' },
@@ -40,9 +46,14 @@ type SetupWebShellProps = {
   children: ReactNode;
 };
 
-function getActiveStepIndex(pathname: string, steps: SetupStep[]): number {
-  const index = steps.findIndex((step) => pathname.includes(step.id));
-  return index >= 0 ? index : 0;
+function getWorkerActiveStepIndex(pathname: string, steps: SetupStep[]): number {
+  const ordered = [...steps].sort((a, b) => b.id.length - a.id.length);
+  const match = ordered.find((step) => pathname.includes(`/${step.id}`) || pathname.endsWith(step.id));
+  if (!match) return 0;
+  return Math.max(
+    0,
+    steps.findIndex((step) => step.id === match.id),
+  );
 }
 
 export function SetupWebShell({ role, children }: SetupWebShellProps) {
@@ -50,8 +61,22 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { isWide } = useResponsiveLayout();
-  const steps = role === 'worker' ? WORKER_STEPS : CLINIC_STEPS;
-  const activeIndex = getActiveStepIndex(pathname, steps);
+  const { isGroup } = useClinicProfile();
+
+  const steps = useMemo(() => {
+    if (role !== 'clinic') return WORKER_STEPS;
+    if (!isClinicGroupsEnabled()) return CLINIC_STEPS_LEGACY;
+    return getClinicSetupSteps(isGroup).map((step) => ({
+      id: step.id,
+      label: step.label,
+      href: String(step.href),
+    }));
+  }, [isGroup, role]);
+
+  const activeIndex =
+    role === 'clinic' && isClinicGroupsEnabled()
+      ? getClinicSetupStepIndexFromPath(pathname, isGroup)
+      : getWorkerActiveStepIndex(pathname, steps);
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     root: {
@@ -75,13 +100,19 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
     railTitle: {
       ...webTypography.title,
       fontSize: 20,
+      lineHeight: 28,
       color: colors.labelPrimary,
-      marginBottom: spacing.xs,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
     },
     railSubtitle: {
       fontSize: 14,
+      lineHeight: 22,
       color: colors.labelSecondary,
-      marginBottom: spacing.lg,
+      marginBottom: spacing.xl,
+    },
+    steps: {
+      gap: spacing.xs,
     },
     step: {
       flexDirection: 'row' as const,
@@ -129,6 +160,7 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
     },
     stepLabel: {
       fontSize: 15,
+      lineHeight: 22,
       fontWeight: '500' as const,
       color: colors.labelSecondary,
     },
@@ -152,51 +184,53 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
         <Text style={styles.railSubtitle}>
           Step {activeIndex + 1} of {steps.length}
         </Text>
-        {steps.map((step, index) => {
-          const isActive = index === activeIndex;
-          const isComplete = index < activeIndex;
-          return (
-            <Pressable
-              key={step.id}
-              accessibilityRole="button"
-              accessibilityState={isActive ? { selected: true } : {}}
-              onPress={() => {
-                if (index <= activeIndex) router.push(step.href);
-              }}
-              style={({ pressed, hovered }) => [
-                styles.step,
-                isActive && styles.stepActive,
-                isComplete && styles.stepComplete,
-                webHover(hovered, pressed, styles.stepHovered, index > activeIndex),
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.stepNumber,
-                  isActive && styles.stepNumberActive,
-                  isComplete && styles.stepNumberComplete,
+        <View style={styles.steps}>
+          {steps.map((step, index) => {
+            const isActive = index === activeIndex;
+            const isComplete = index < activeIndex;
+            return (
+              <Pressable
+                key={step.id}
+                accessibilityRole="button"
+                accessibilityState={isActive ? { selected: true } : {}}
+                onPress={() => {
+                  if (index <= activeIndex) router.push(step.href as never);
+                }}
+                style={({ pressed, hovered }) => [
+                  styles.step,
+                  isActive && styles.stepActive,
+                  isComplete && styles.stepComplete,
+                  webHover(hovered, pressed, styles.stepHovered, index > activeIndex),
+                  pressed && { opacity: 0.85 },
                 ]}
               >
-                {isComplete ? (
-                  <Ionicons name="checkmark" size={14} color={colors.primaryOnPrimary} />
-                ) : (
-                  <Text
-                    style={[
-                      styles.stepNumberText,
-                      (isActive || isComplete) && styles.stepNumberTextActive,
-                    ]}
-                  >
-                    {index + 1}
-                  </Text>
-                )}
-              </View>
-              <Text style={[styles.stepLabel, isActive && styles.stepLabelActive]}>
-                {step.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <View
+                  style={[
+                    styles.stepNumber,
+                    isActive && styles.stepNumberActive,
+                    isComplete && styles.stepNumberComplete,
+                  ]}
+                >
+                  {isComplete ? (
+                    <Ionicons name="checkmark" size={14} color={colors.primaryOnPrimary} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.stepNumberText,
+                        (isActive || isComplete) && styles.stepNumberTextActive,
+                      ]}
+                    >
+                      {index + 1}
+                    </Text>
+                  )}
+                </View>
+                <Text style={[styles.stepLabel, isActive && styles.stepLabelActive]}>
+                  {step.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
       <View style={styles.content}>{children}</View>
     </View>

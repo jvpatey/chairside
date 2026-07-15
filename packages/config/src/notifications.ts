@@ -22,6 +22,8 @@ export const PINGRAM_NOTIFICATION_TYPES = {
   savedPostUnavailable: 'saved_post_unavailable',
   messageReceived: 'message_received',
   fillInOutreachSms: 'fill_in_outreach_sms',
+  /** Email-only (manager invites; invitee may not have an account yet). */
+  clinicManagerInvitation: 'clinic_manager_invitation',
 } as const;
 
 export type PingramNotificationType =

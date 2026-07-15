@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -43,10 +44,11 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 
 export default function ClinicReviewScreen() {
   const { user } = useAuth();
-  const { clinicProfile, isClinicProfileReady, refreshClinicProfile } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, refreshClinicProfile, isGroup } = useClinicProfile();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const progress = getClinicSetupStepNumber('review', isGroup);
 
   useClinicSetupStepGuard('review', clinicProfile, isClinicProfileReady, isEditMode);
 
@@ -124,7 +126,7 @@ export default function ClinicReviewScreen() {
         subtitle="Confirm everything looks right before posting."
         onBack={() => router.back()}
       />
-      <SetupStepProgress step={5} total={5} />
+      <SetupStepProgress step={progress.step} total={progress.total} />
       <View style={styles.card}>
         <ReviewRow label="Clinic name" value={clinicProfile.clinic_name} />
         <ReviewRow label="Contact" value={clinicProfile.contact_name ?? ''} />

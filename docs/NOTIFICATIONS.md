@@ -72,8 +72,31 @@ In Supabase → Database → Webhooks, create HTTP webhooks pointing to:
 | `shift_posts`   | INSERT, UPDATE      | same |
 | `job_posts`     | INSERT, UPDATE      | same |
 | `messages`      | INSERT              | same |
+| `clinic_invitations` | INSERT         | same |
 
 Use `application/json` body (default Supabase webhook payload).
+
+#### Manager invitation emails
+
+`clinic_invitations` INSERT (pending only) sends a Pingram **email** (`POST /email`) with type `clinic_manager_invitation`. Invitees may not have Chairside/Pingram users yet, so this path is email-only (not in-app/push).
+
+Required ops steps:
+
+1. Run migrations through `097_clinic_manager_invitation_preview_resend.sql`.
+2. Create Pingram notification type `clinic_manager_invitation` (`./scripts/setup-pingram-notification-types.sh`).
+3. Deploy `notify` and add the `clinic_invitations` INSERT webhook above.
+4. Set edge secrets as needed:
+   - `APP_WEB_BASE_URL` (defaults to `https://chairside.app`) for accept links
+   - optional `INVITE_SENDER_EMAIL` / `INVITE_SENDER_NAME`
+
+Smoke test (token redacted from script stdout):
+
+```bash
+export NOTIFY_WEBHOOK_SECRET='...'
+./scripts/test-clinic-manager-invite-notify.sh [invitation_id] [organization_id] [email]
+```
+
+Idempotency key: `clinic_manager_invitation:{invitation_id}`. Invitation tokens must never appear in edge-function logs or analytics payloads.
 
 ## Mobile
 
@@ -110,6 +133,7 @@ eas build --profile production --platform ios
 | New message | Other participant | `message_received` | in-app, push | `messages` |
 | Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
 | Auto shift-details message in outreach thread | — | — | suppressed (no Pingram send) | — |
+| Clinic manager invitation created | Invitee email | `clinic_manager_invitation` | email (`POST /email`) | — |
 
 ### Deep links
 
@@ -131,5 +155,6 @@ Edge dispatch dedupes via `notification_dispatch_log.idempotency_key`. Common pa
 - `fill_in_posted:{shiftId}:{workerId}:{updatedAt}`
 - `application_{status}:{applicationId}:{status}` (worker status updates)
 - `application_received:{applicationId}` (clinic new applicant)
+- `clinic_manager_invitation:{invitationId}` (manager invite email)
 
 Outreach SMS also has a DB-side 24h rate limit per clinic→worker pair before the message is inserted (`outreach_sms:{clinicId}:{workerId}:…`).

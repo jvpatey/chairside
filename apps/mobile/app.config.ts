@@ -18,6 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...base.ios,
       bundleIdentifier: base.ios?.bundleIdentifier ?? 'com.chairside.app',
+      associatedDomains: ['applinks:chairside.app'],
       entitlements: {
         ...(typeof base.ios?.entitlements === 'object' ? base.ios.entitlements : {}),
         'aps-environment': apsEnvironment,
@@ -31,6 +32,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...base.android,
       package: base.android?.package ?? 'com.chairside.app',
       softwareKeyboardLayoutMode: 'resize',
+      intentFilters: [
+        ...(Array.isArray(base.android?.intentFilters) ? base.android.intentFilters : []),
+        {
+          action: 'VIEW',
+          autoVerify: true,
+          category: ['BROWSABLE', 'DEFAULT'],
+          data: [
+            {
+              scheme: 'https',
+              host: 'chairside.app',
+              pathPrefix: '/accept-invite',
+            },
+          ],
+        },
+      ],
     },
   };
 };
