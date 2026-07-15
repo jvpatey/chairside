@@ -17,8 +17,8 @@ import { StaggeredList } from '@/components/ui/StaggeredList';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { formatPostedDateLabel } from '@/lib/dates';
@@ -89,9 +89,9 @@ function RoleApplicationSummaryRow({
 }
 
 export default function ClinicApplicationsScreen() {
-  const { user } = useAuth();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { isProfileComplete } = useClinicProfile();
+  const { clinicId, scopedLocationIds } = useClinicActingContext();
   const [summaries, setSummaries] = useState<JobApplicationSummary[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [summaryFilter, setSummaryFilter] = useState<ClinicApplicationSummaryFilter>('all');
@@ -116,7 +116,7 @@ export default function ClinicApplicationsScreen() {
   const hasActiveFilters = summaryFilter !== 'all';
 
   const load = useCallback(async () => {
-    if (!user?.id) {
+    if (!clinicId) {
       setSummaries([]);
       setIsLoading(false);
       return;
@@ -124,14 +124,16 @@ export default function ClinicApplicationsScreen() {
 
     setIsLoading(true);
     try {
-      const rows = await listJobApplicationSummaries(user.id);
+      const rows = await listJobApplicationSummaries(clinicId, {
+        locationIds: scopedLocationIds,
+      });
       setSummaries(rows);
     } catch {
       setSummaries([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [clinicId, scopedLocationIds]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);

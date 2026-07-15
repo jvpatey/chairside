@@ -1,7 +1,7 @@
 import { getFillInPendingCount, isClinicNewFillInRequest, type Application } from '@chairside/api';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
 
@@ -19,22 +19,24 @@ type FillInPendingContextValue = {
 const FillInPendingContext = createContext<FillInPendingContextValue | null>(null);
 
 export function FillInPendingProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { clinicId, scopedLocationIds } = useClinicActingContext();
   const [pendingCount, setPendingCount] = useState(0);
 
   const refreshPending = useCallback(async () => {
-    if (!user?.id) {
+    if (!clinicId) {
       setPendingCount(0);
       return;
     }
 
     try {
-      const count = await getFillInPendingCount(user.id);
+      const count = await getFillInPendingCount(clinicId, {
+        locationIds: scopedLocationIds,
+      });
       setPendingCount(count);
     } catch {
       setPendingCount(0);
     }
-  }, [user?.id]);
+  }, [clinicId, scopedLocationIds]);
 
   const isCoverRequestHighlighted = useCallback(
     (application: Pick<Application, 'post_type' | 'status' | 'clinic_hidden_at'>) =>

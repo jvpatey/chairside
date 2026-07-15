@@ -179,11 +179,12 @@ export default function ClinicFillInsScreen() {
     }
 
     try {
+      const locationOpts = { locationIds: scopedLocationIds } as const;
       const [requests, shiftPosts, counts, confirmed, unread] = await Promise.all([
-        listFillInCoverRequests(clinicId),
-        listShiftPosts(clinicId, { locationIds: scopedLocationIds }),
-        getShiftPostPendingApplicationCountsMap(clinicId),
-        listUpcomingConfirmedFillIns(clinicId),
+        listFillInCoverRequests(clinicId, locationOpts),
+        listShiftPosts(clinicId, locationOpts),
+        getShiftPostPendingApplicationCountsMap(clinicId, locationOpts),
+        listUpcomingConfirmedFillIns(clinicId, locationOpts),
         getUnreadConversationMap(clinicId, 'clinic'),
       ]);
 

@@ -119,7 +119,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     organization,
     membership,
     isOwner,
+    accessibleLocations,
   } = useClinicProfile();
+  const showGroupLocationScope =
+    role === 'clinic' && isGroup && accessibleLocations.length > 0;
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
 
@@ -193,17 +196,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       alignItems: 'center',
       paddingBottom: spacing.sm,
     },
-    sidebarToggleAnchor: {
-      position: 'absolute',
-      right: spacing.md,
-      top: 0,
-      bottom: 0,
-      width: 28,
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 3,
+    profileToggleAlone: {
+      alignItems: 'flex-end',
+      marginTop: spacing.xs,
+      paddingRight: 2,
     },
-    collapsedToggleInFlow: {
+    profileToggleAloneCollapsed: {
       alignItems: 'center',
       marginTop: spacing.xs,
     },
@@ -535,14 +533,22 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             />
           </View>
         </View>
-        {role === 'clinic' && isGroup ? (
+        {showGroupLocationScope ? (
           <View style={{ marginTop: isCollapsed ? 4 : 8 }}>
-            <ClinicLocationScopeSwitcher variant="sidebar" collapsed={isCollapsed} />
+            <ClinicLocationScopeSwitcher
+              variant="sidebar"
+              collapsed={isCollapsed}
+              endAccessory={collapseToggle}
+            />
           </View>
-        ) : null}
-        {isCollapsed ? (
-          <View style={styles.collapsedToggleInFlow}>{collapseToggle}</View>
-        ) : null}
+        ) : (
+          <View
+            style={
+              isCollapsed ? styles.profileToggleAloneCollapsed : styles.profileToggleAlone
+            }>
+            {collapseToggle}
+          </View>
+        )}
       </View>
 
       <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
@@ -621,11 +627,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         >
           <View style={[styles.sidebarWebInner, panelPadding]}>{sidebarContent}</View>
         </LiquidGlassSurface>
-        {!isCollapsed ? (
-          <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
-            {collapseToggle}
-          </View>
-        ) : null}
       </View>
     );
   }
@@ -633,11 +634,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   return (
     <View style={[panelPadding, styles.sidebarShell, { backgroundColor: 'transparent' }]}>
       {sidebarContent}
-      {!isCollapsed ? (
-        <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
-          {collapseToggle}
-        </View>
-      ) : null}
     </View>
   );
 }

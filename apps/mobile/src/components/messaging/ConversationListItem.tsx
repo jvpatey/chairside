@@ -118,7 +118,12 @@ export function ConversationListItem({
   const activeSearchQuery = searchQuery.trim();
   const previewText =
     messageSearchPreview ??
-    (activeSearchQuery ? conversation.last_message_preview : formatInboxPreviewText(conversation, viewerId)) ??
+    (activeSearchQuery
+      ? conversation.last_message_preview
+      : formatInboxPreviewText(conversation, viewerId, {
+          role,
+          workerId: conversation.worker_id,
+        })) ??
     'No messages yet';
   const isEmptyPreview = previewText === 'No messages yet';
   const ownDeliveryStatus = getLastOwnMessageDeliveryStatus(conversation, role, viewerId);

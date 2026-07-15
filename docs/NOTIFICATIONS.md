@@ -124,13 +124,13 @@ eas build --profile production --platform ios
 
 | Event | Recipient | Pingram type | Channels | Push pref category |
 | ----- | --------- | ------------ | -------- | ------------------ |
-| Application submitted | Clinic | `application_received` | in-app, push | `applications_interviews` |
+| Application submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app, push | `applications_interviews` |
 | Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app, push | `applications_interviews` |
-| Interview offered / scheduled / cancelled / reschedule | Worker or clinic | matching `application_interview_*` | in-app, push | `applications_interviews` |
+| Interview offered / scheduled / cancelled / reschedule | Worker, or clinic (applicant-driven events): same location-aware clinic fan-out as applications | matching `application_interview_*` | in-app, push | `applications_interviews` |
 | Fill-in post → live | Eligible workers | `fill_in_posted` | in-app, push; + SMS if opted in | `fill_in_alerts` |
 | Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app, push; + SMS if opted in | `fill_in_alerts` |
 | Job post → live | Eligible workers | `job_posted` | in-app, push | `job_alerts` |
-| New message | Other participant | `message_received` | in-app, push | `messages` |
+| New message | Worker ↔ clinic: clinic recipients are **owner + managers for the application post’s location** (general/outreach / null location → owner + all managers); each user’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app, push | `messages` |
 | Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
 | Auto shift-details message in outreach thread | — | — | suppressed (no Pingram send) | — |
 | Clinic manager invitation created | Invitee email | `clinic_manager_invitation` | email (`POST /email`) | — |
@@ -150,11 +150,12 @@ eas build --profile production --platform ios
 
 Edge dispatch dedupes via `notification_dispatch_log.idempotency_key`. Common patterns:
 
-- `message_received:{messageId}`
+- `message_received:{messageId}:{recipientUserId}` (per recipient; location-aware clinic fan-out)
 - `fill_in_outreach_sms:{messageId}` (SMS-only outreach text alert)
 - `fill_in_posted:{shiftId}:{workerId}:{updatedAt}`
 - `application_{status}:{applicationId}:{status}` (worker status updates)
-- `application_received:{applicationId}` (clinic new applicant)
+- `application_received:{applicationId}:{recipientUserId}` (clinic new applicant / cover request)
+- `application_interview_*:{applicationId}:{recipientUserId}` (clinic-side interview alerts)
 - `clinic_manager_invitation:{invitationId}` (manager invite email)
 
 Outreach SMS also has a DB-side 24h rate limit per clinic→worker pair before the message is inserted (`outreach_sms:{clinicId}:{workerId}:…`).

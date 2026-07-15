@@ -1,6 +1,11 @@
 import { getSupabaseClient } from './client';
 import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
 import type { ApplicationStatus } from './applications';
+import {
+  isActiveLocationScope,
+  isEmptyLocationScope,
+  type ClinicLocationScopeOptions,
+} from './posts';
 
 export type ConversationType = 'application' | 'general' | 'outreach';
 
@@ -97,11 +102,13 @@ export function getMessageDeliveryStatus(
 }
 
 const CONVERSATION_UNREAD_SELECT =
-  'application_id, last_message_at, last_sender_id, worker_last_read_at, clinic_last_read_at, worker_hidden_at, clinic_hidden_at' as const;
+  'worker_id, application_id, conversation_type, last_message_at, last_sender_id, worker_last_read_at, clinic_last_read_at, worker_hidden_at, clinic_hidden_at' as const;
 
 type ConversationUnreadSnapshot = Pick<
   ConversationRow,
+  | 'worker_id'
   | 'application_id'
+  | 'conversation_type'
   | 'last_message_at'
   | 'last_sender_id'
   | 'worker_last_read_at'
@@ -110,13 +117,94 @@ type ConversationUnreadSnapshot = Pick<
   | 'clinic_hidden_at'
 >;
 
+async function filterClinicUnreadByLocationScope(
+  conversations: ConversationUnreadSnapshot[],
+  locationIds: string[],
+): Promise<ConversationUnreadSnapshot[]> {
+  const allowed = new Set(locationIds);
+  const nonApplication = conversations.filter(
+    (conversation) => conversation.conversation_type !== 'application',
+  );
+  const applicationConversations = conversations.filter(
+    (conversation) =>
+      conversation.conversation_type === 'application' && conversation.application_id,
+  );
+  if (applicationConversations.length === 0) return nonApplication;
+
+  const supabase = getSupabaseClient();
+  const applicationIds = applicationConversations.map(
+    (conversation) => conversation.application_id!,
+  );
+  const { data: applications, error } = await supabase
+    .from('applications')
+    .select('id, job_post_id, shift_post_id')
+    .in('id', applicationIds);
+  if (error) throw error;
+
+  const jobIds = [
+    ...new Set((applications ?? []).map((row) => row.job_post_id).filter(Boolean)),
+  ] as string[];
+  const shiftIds = [
+    ...new Set((applications ?? []).map((row) => row.shift_post_id).filter(Boolean)),
+  ] as string[];
+
+  const [jobsResult, shiftsResult] = await Promise.all([
+    jobIds.length > 0
+      ? supabase.from('job_posts').select('id, location_id').in('id', jobIds)
+      : Promise.resolve({ data: [] as { id: string; location_id: string | null }[], error: null }),
+    shiftIds.length > 0
+      ? supabase.from('shift_posts').select('id, location_id').in('id', shiftIds)
+      : Promise.resolve({ data: [] as { id: string; location_id: string | null }[], error: null }),
+  ]);
+  if (jobsResult.error) throw jobsResult.error;
+  if (shiftsResult.error) throw shiftsResult.error;
+
+  const jobLocation = new Map(
+    (jobsResult.data ?? []).map((job) => [job.id, job.location_id as string | null]),
+  );
+  const shiftLocation = new Map(
+    (shiftsResult.data ?? []).map((shift) => [shift.id, shift.location_id as string | null]),
+  );
+  const applicationInScope = new Set<string>();
+  for (const application of applications ?? []) {
+    const locationId = application.job_post_id
+      ? jobLocation.get(application.job_post_id)
+      : application.shift_post_id
+        ? shiftLocation.get(application.shift_post_id)
+        : null;
+    if (locationId != null && allowed.has(locationId)) {
+      applicationInScope.add(application.id);
+    }
+  }
+
+  const scopedApplication = applicationConversations.filter(
+    (conversation) =>
+      conversation.application_id != null &&
+      applicationInScope.has(conversation.application_id),
+  );
+  return [...nonApplication, ...scopedApplication];
+}
+
+function isClinicSideSender(
+  conversation: Pick<ConversationUnreadSnapshot, 'worker_id'>,
+  senderId: string | null | undefined,
+): boolean {
+  if (!senderId) return false;
+  return senderId !== conversation.worker_id;
+}
+
 function isUnreadForRole(
   conversation: ConversationUnreadSnapshot,
   role: 'worker' | 'clinic',
   viewerId: string,
 ): boolean {
   if (!conversation.last_message_at) return false;
-  if (conversation.last_sender_id === viewerId) return false;
+  // Shared clinic inbox: any clinic-side sender (owner or manager) is "our" side.
+  if (role === 'clinic') {
+    if (isClinicSideSender(conversation, conversation.last_sender_id)) return false;
+  } else if (conversation.last_sender_id === viewerId) {
+    return false;
+  }
 
   const lastReadAt =
     role === 'worker' ? conversation.worker_last_read_at : conversation.clinic_last_read_at;
@@ -372,14 +460,19 @@ async function enrichWorkerConversations(
 async function enrichClinicConversations(
   rows: ConversationRow[],
   clinicId: string,
+  options?: ClinicLocationScopeOptions,
 ): Promise<Conversation[]> {
   if (rows.length === 0) return [];
+  if (isEmptyLocationScope(options?.locationIds)) return [];
 
   const supabase = getSupabaseClient();
   const applicationRows = rows.filter((row) => row.conversation_type === 'application');
   const generalRows = rows.filter((row) => row.conversation_type === 'general');
   const outreachRows = rows.filter((row) => row.conversation_type === 'outreach');
   const conversations: Conversation[] = [];
+  const scopedLocationIds = isActiveLocationScope(options?.locationIds)
+    ? new Set(options.locationIds)
+    : null;
 
   const { data: clinicProfile, error: clinicError } = await supabase
     .from('clinic_profiles')
@@ -419,12 +512,15 @@ async function enrichClinicConversations(
 
     const [jobsResult, shiftsResult] = await Promise.all([
       jobIds.length > 0
-        ? supabase.from('job_posts').select('id, title, role_type').in('id', jobIds)
+        ? supabase
+            .from('job_posts')
+            .select('id, title, role_type, location_id')
+            .in('id', jobIds)
         : Promise.resolve({ data: [], error: null }),
       shiftIds.length > 0
         ? supabase
             .from('shift_posts')
-            .select('id, shift_date, start_time, end_time, role_type')
+            .select('id, shift_date, start_time, end_time, role_type, location_id')
             .in('id', shiftIds)
         : Promise.resolve({ data: [], error: null }),
     ]);
@@ -450,6 +546,12 @@ async function enrichClinicConversations(
 
       if (application.job_post_id && jobMap.has(application.job_post_id)) {
         const job = jobMap.get(application.job_post_id)!;
+        if (
+          scopedLocationIds &&
+          (job.location_id == null || !scopedLocationIds.has(job.location_id as string))
+        ) {
+          continue;
+        }
         conversations.push({
           ...row,
           application_status: status,
@@ -469,6 +571,12 @@ async function enrichClinicConversations(
         });
       } else if (application.shift_post_id && shiftMap.has(application.shift_post_id)) {
         const shift = shiftMap.get(application.shift_post_id)!;
+        if (
+          scopedLocationIds &&
+          (shift.location_id == null || !scopedLocationIds.has(shift.location_id as string))
+        ) {
+          continue;
+        }
         conversations.push({
           ...row,
           application_status: status,
@@ -599,8 +707,13 @@ export async function listConversationsForWorker(workerId: string): Promise<Conv
   return enrichWorkerConversations((data ?? []) as ConversationRow[], workerId);
 }
 
-export async function listConversationsForClinic(clinicId: string): Promise<Conversation[]> {
+export async function listConversationsForClinic(
+  clinicId: string,
+  options?: ClinicLocationScopeOptions,
+): Promise<Conversation[]> {
   const supabase = getSupabaseClient();
+  if (isEmptyLocationScope(options?.locationIds)) return [];
+
   const { data, error } = await supabase
     .from('conversations')
     .select('*')
@@ -609,7 +722,7 @@ export async function listConversationsForClinic(clinicId: string): Promise<Conv
     .order('last_message_at', { ascending: false, nullsFirst: false });
 
   if (error) throw error;
-  return enrichClinicConversations((data ?? []) as ConversationRow[], clinicId);
+  return enrichClinicConversations((data ?? []) as ConversationRow[], clinicId, options);
 }
 
 export async function hideWorkerConversation(
@@ -630,7 +743,7 @@ export async function hideWorkerConversation(
 }
 
 export async function hideClinicConversation(
-  clinicId: string,
+  _clinicId: string,
   conversationId: string,
 ): Promise<ConversationRow> {
   const supabase = getSupabaseClient();
@@ -640,7 +753,8 @@ export async function hideClinicConversation(
 
   if (error) throw error;
   const row = data as ConversationRow | null;
-  if (!row || row.clinic_id !== clinicId) {
+  // RPC authorizes owner or active org member; clinic_id is the org id, not the manager's user id.
+  if (!row) {
     throw new Error('Conversation not found or cannot be deleted');
   }
   return row;
@@ -709,20 +823,20 @@ export async function getConversationByApplicationId(
     .eq('application_id', applicationId)
     .eq('conversation_type', 'application');
 
+  // Workers scoped by worker_id; clinic members rely on org-member RLS (not auth.uid() === clinic_id).
   if (role === 'worker') {
     query = query.eq('worker_id', userId);
-  } else {
-    query = query.eq('clinic_id', userId);
   }
 
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
   if (!data) return null;
 
+  const row = data as ConversationRow;
   const enriched =
     role === 'worker'
-      ? await enrichWorkerConversations([data as ConversationRow], userId)
-      : await enrichClinicConversations([data as ConversationRow], userId);
+      ? await enrichWorkerConversations([row], userId)
+      : await enrichClinicConversations([row], row.clinic_id);
 
   return enriched[0] ?? null;
 }
@@ -735,20 +849,20 @@ export async function getConversation(
   const supabase = getSupabaseClient();
   let query = supabase.from('conversations').select('*').eq('id', conversationId);
 
+  // Workers scoped by worker_id; clinic members rely on org-member RLS (not auth.uid() === clinic_id).
   if (role === 'worker') {
     query = query.eq('worker_id', userId);
-  } else {
-    query = query.eq('clinic_id', userId);
   }
 
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
   if (!data) return null;
 
+  const row = data as ConversationRow;
   const enriched =
     role === 'worker'
-      ? await enrichWorkerConversations([data as ConversationRow], userId)
-      : await enrichClinicConversations([data as ConversationRow], userId);
+      ? await enrichWorkerConversations([row], userId)
+      : await enrichClinicConversations([row], row.clinic_id);
 
   return enriched[0] ?? null;
 }
@@ -835,13 +949,26 @@ async function listConversationUnreadSnapshots(
 export async function getUnreadConversationCount(
   userId: string,
   role: 'worker' | 'clinic',
+  options?: ClinicLocationScopeOptions & { clinicId?: string },
 ): Promise<number> {
-  const conversations = await listConversationUnreadSnapshots(userId, role);
-  return conversations.filter((conversation) => {
+  const clinicId = role === 'clinic' ? (options?.clinicId ?? userId) : userId;
+  if (role === 'clinic' && isEmptyLocationScope(options?.locationIds)) return 0;
+
+  const conversations = await listConversationUnreadSnapshots(
+    role === 'clinic' ? clinicId : userId,
+    role,
+  );
+  let unread = conversations.filter((conversation) => {
     if (role === 'worker' && conversation.worker_hidden_at) return false;
     if (role === 'clinic' && conversation.clinic_hidden_at) return false;
-    return isUnreadForRole(conversation, role, userId);
-  }).length;
+    return isUnreadForRole(conversation, role, clinicId);
+  });
+
+  if (role === 'clinic' && isActiveLocationScope(options?.locationIds)) {
+    unread = await filterClinicUnreadByLocationScope(unread, options.locationIds);
+  }
+
+  return unread.length;
 }
 
 export async function getUnreadConversationMap(

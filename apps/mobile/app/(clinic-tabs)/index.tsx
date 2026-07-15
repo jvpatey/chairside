@@ -134,14 +134,16 @@ export default function ClinicDashboardScreen() {
         conversationRows,
         confirmed,
       ] = await Promise.all([
-        getClinicDashboardCounts(clinicId),
+        getClinicDashboardCounts(clinicId, { locationIds: scopedLocationIds }),
         listJobPosts(clinicId, { locationIds: scopedLocationIds }),
         listShiftPosts(clinicId, { locationIds: scopedLocationIds }),
-        listJobApplicationSummaries(clinicId),
-        getJobPostApplicationCountsMap(clinicId),
-        getShiftPostPendingApplicationCountsMap(clinicId),
-        listConversationsForClinic(clinicId),
-        listUpcomingConfirmedFillIns(clinicId),
+        listJobApplicationSummaries(clinicId, { locationIds: scopedLocationIds }),
+        getJobPostApplicationCountsMap(clinicId, { locationIds: scopedLocationIds }),
+        getShiftPostPendingApplicationCountsMap(clinicId, {
+          locationIds: scopedLocationIds,
+        }),
+        listConversationsForClinic(clinicId, { locationIds: scopedLocationIds }),
+        listUpcomingConfirmedFillIns(clinicId, { locationIds: scopedLocationIds }),
       ]);
 
       const shiftApplicationCountEntries = await Promise.all(

@@ -145,6 +145,7 @@ export {
   updateShiftPost,
   updateShiftPostStatus,
   type ClinicDashboardCounts,
+  type ClinicLocationScopeOptions,
   type ClinicSummary,
   type CreateJobPostInput,
   type CreateShiftPostInput,

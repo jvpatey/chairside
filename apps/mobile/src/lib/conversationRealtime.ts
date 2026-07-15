@@ -19,9 +19,13 @@ export function patchConversationFromRealtimeUpdate(
 ): Conversation {
   const lastReadAt =
     role === 'worker' ? update.worker_last_read_at : update.clinic_last_read_at;
+  const lastSenderIsOwnSide =
+    role === 'clinic'
+      ? Boolean(update.last_sender_id && update.last_sender_id !== conversation.worker_id)
+      : update.last_sender_id === viewerId;
   const unread = Boolean(
     update.last_message_at &&
-      update.last_sender_id !== viewerId &&
+      !lastSenderIsOwnSide &&
       (!lastReadAt || new Date(update.last_message_at).getTime() > new Date(lastReadAt).getTime()),
   );
 

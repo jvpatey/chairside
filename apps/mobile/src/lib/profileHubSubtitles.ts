@@ -107,7 +107,12 @@ export function getClinicMessagingSubtitle(profile: ClinicProfile | null): strin
     : "Candidates can't message you";
 }
 
-export function getClinicNotificationsSubtitle(): string {
+export function getClinicNotificationsSubtitle(options?: {
+  isGroupOwner?: boolean;
+}): string {
+  if (options?.isGroupOwner) {
+    return 'Mute apps & messages when managers handle day-to-day';
+  }
   return 'Manage push alerts';
 }
 

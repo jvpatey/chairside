@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   Modal,
   Pressable,
@@ -35,6 +35,8 @@ type ClinicLocationScopeSwitcherProps = {
   variant?: ClinicLocationScopeSwitcherVariant;
   /** Icon-only trigger for the narrow collapsed sidebar rail. */
   collapsed?: boolean;
+  /** Placed beside the sidebar trigger (e.g. collapse chevron). */
+  endAccessory?: ReactNode;
 };
 
 export function getClinicLocationScopeLabel(
@@ -213,6 +215,7 @@ function LocationScopePickerSheet({
 export function ClinicLocationScopeSwitcher({
   variant = 'sidebar',
   collapsed = false,
+  endAccessory,
 }: ClinicLocationScopeSwitcherProps) {
   const { colors, isDark } = useTheme();
   const {
@@ -251,7 +254,14 @@ export function ClinicLocationScopeSwitcher({
       textTransform: 'uppercase' as const,
       letterSpacing: 0.4,
     },
+    sidebarTriggerRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.xs,
+      minWidth: 0,
+    },
     sidebarTrigger: {
+      flex: 1,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       gap: spacing.xs,
@@ -277,13 +287,15 @@ export function ClinicLocationScopeSwitcher({
       color: colors.labelPrimary,
     },
     collapsedWrap: {
+      flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      marginTop: spacing.xs,
+      justifyContent: 'center' as const,
+      gap: spacing.xs,
     },
     collapsedTrigger: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
+      width: 32,
+      height: 32,
+      borderRadius: 10,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       borderWidth: StyleSheet.hairlineWidth,
@@ -352,26 +364,30 @@ export function ClinicLocationScopeSwitcher({
             webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
             pressed && styles.collapsedTriggerPressed,
           ]}>
-          <Ionicons name="business-outline" size={20} color={colors.labelPrimary} />
+          <Ionicons name="business-outline" size={16} color={colors.labelPrimary} />
         </Pressable>
+        {endAccessory}
       </View>
     ) : (
       <View style={styles.sidebarWrap}>
         <Text style={styles.sidebarEyebrow}>Viewing</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel}
-          onPress={() => setPickerOpen(true)}
-          style={({ pressed, hovered }) => [
-            styles.sidebarTrigger,
-            webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
-            pressed && styles.sidebarTriggerPressed,
-          ]}>
-          <Text style={styles.sidebarLabel} numberOfLines={1}>
-            {label}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={colors.labelSecondary} />
-        </Pressable>
+        <View style={styles.sidebarTriggerRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
+            onPress={() => setPickerOpen(true)}
+            style={({ pressed, hovered }) => [
+              styles.sidebarTrigger,
+              webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
+              pressed && styles.sidebarTriggerPressed,
+            ]}>
+            <Text style={styles.sidebarLabel} numberOfLines={1}>
+              {label}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={colors.labelSecondary} />
+          </Pressable>
+          {endAccessory}
+        </View>
       </View>
     );
 

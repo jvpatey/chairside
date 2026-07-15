@@ -29,6 +29,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicApplicationRealtime } from '@/hooks/useApplicationRealtime';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
 type ApplicationTabBadgeContextValue = {
@@ -81,6 +82,7 @@ type ApplicationTabBadgeProviderProps = {
 
 export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBadgeProviderProps) {
   const { user } = useAuth();
+  const { clinicId, scopedLocationIds } = useClinicActingContext();
   const { refreshNotifications } = useNotifications();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const [pendingCount, setPendingCount] = useState(0);
@@ -98,7 +100,14 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
 
     try {
       if (role === 'clinic') {
-        const count = await getClinicNewApplicationCount(user.id);
+        if (!clinicId) {
+          setPendingCount(0);
+          setFillInPendingCount(0);
+          return;
+        }
+        const count = await getClinicNewApplicationCount(clinicId, {
+          locationIds: scopedLocationIds,
+        });
         setPendingCount(count);
         setFillInPendingCount(0);
         return;
@@ -125,7 +134,7 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
       setPendingCount(0);
       setFillInPendingCount(0);
     }
-  }, [availabilityBlocks, role, user?.id, workerProfile]);
+  }, [availabilityBlocks, clinicId, role, scopedLocationIds, user?.id, workerProfile]);
 
   const markApplicationSeen = useCallback(
     async (applicationId: string) => {
@@ -241,7 +250,7 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
   useRefreshOnForeground(refreshPendingAndBell);
 
   useClinicApplicationRealtime(
-    role === 'clinic' ? user?.id : undefined,
+    role === 'clinic' ? clinicId ?? undefined : undefined,
     refreshPendingAndBell,
   );
 

@@ -139,7 +139,9 @@ export default function ClinicAccountProfileScreen() {
           <ProfileSettingsRow
             icon="notifications-outline"
             title="Notifications"
-            subtitle={getClinicNotificationsSubtitle()}
+            subtitle={getClinicNotificationsSubtitle({
+              isGroupOwner: isGroup && isOwner,
+            })}
             iconColor={colors.info}
             iconBackgroundColor={`${colors.info}18`}
             onPress={() => router.push(CLINIC_PROFILE_NOTIFICATIONS)}

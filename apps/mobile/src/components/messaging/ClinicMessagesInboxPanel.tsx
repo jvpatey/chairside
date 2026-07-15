@@ -12,6 +12,7 @@ import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useInboxConversationRealtime } from '@/hooks/useConversationRealtime';
 import { useInboxRealtime } from '@/hooks/useInboxRealtime';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -54,6 +55,7 @@ export function ClinicMessagesInboxPanel({
 }: ClinicMessagesInboxPanelProps) {
   const { user } = useAuth();
   const { refreshClinicProfile } = useClinicProfile();
+  const { clinicId, scopedLocationIds } = useClinicActingContext();
   const { refreshUnread } = useMessageUnread();
   const [conversations, setConversations] = useState<
     Awaited<ReturnType<typeof listConversationsForClinic>>
@@ -77,7 +79,7 @@ export function ClinicMessagesInboxPanel({
   );
 
   const load = useCallback(async () => {
-    if (!user?.id) {
+    if (!clinicId) {
       publishConversations([]);
       setIsLoading(false);
       setLoadError(null);
@@ -87,7 +89,9 @@ export function ClinicMessagesInboxPanel({
     setIsLoading(true);
     try {
       await refreshClinicProfile();
-      const rows = await listConversationsForClinic(user.id);
+      const rows = await listConversationsForClinic(clinicId, {
+        locationIds: scopedLocationIds,
+      });
       publishConversations(rows);
       setLoadError(null);
       await refreshUnread();
@@ -97,12 +101,12 @@ export function ClinicMessagesInboxPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [publishConversations, refreshClinicProfile, refreshUnread, user?.id]);
+  }, [clinicId, publishConversations, refreshClinicProfile, refreshUnread, scopedLocationIds]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);
 
-  useInboxConversationRealtime(user?.id, 'clinic', (update) => {
+  useInboxConversationRealtime(clinicId ?? undefined, 'clinic', (update) => {
     if (!user?.id) return;
     setConversations((current) => {
       const index = current.findIndex((row) => row.id === update.id);
@@ -127,13 +131,14 @@ export function ClinicMessagesInboxPanel({
 
       const next = [...current];
       const row = next[index]!;
+      // Shared inbox: only candidate sends are unread for clinic viewers.
       next[index] = {
         ...row,
         last_message_at: message.created_at,
         last_message_preview:
           message.body.length > 120 ? `${message.body.slice(0, 120).trim()}…` : message.body,
         last_sender_id: message.sender_id,
-        unread: message.sender_id !== user?.id,
+        unread: message.sender_id === row.worker_id,
       };
       const sorted = sortConversations(next);
       onConversationsChange?.(sorted);
