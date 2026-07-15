@@ -10,7 +10,6 @@ import { ConversationInboxList } from '@/components/messaging/ConversationInboxL
 import { MessagingInboxSkeleton } from '@/components/messaging/MessagingSkeleton';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useInboxConversationRealtime } from '@/hooks/useConversationRealtime';
@@ -54,7 +53,6 @@ export function ClinicMessagesInboxPanel({
   onInboxVisibilityChange,
 }: ClinicMessagesInboxPanelProps) {
   const { user } = useAuth();
-  const { refreshClinicProfile } = useClinicProfile();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const { refreshUnread } = useMessageUnread();
   const [conversations, setConversations] = useState<
@@ -88,7 +86,6 @@ export function ClinicMessagesInboxPanel({
 
     setIsLoading(true);
     try {
-      await refreshClinicProfile();
       const rows = await listConversationsForClinic(clinicId, {
         locationIds: scopedLocationIds,
       });
@@ -101,7 +98,7 @@ export function ClinicMessagesInboxPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [clinicId, publishConversations, refreshClinicProfile, refreshUnread, scopedLocationIds]);
+  }, [clinicId, publishConversations, refreshUnread, scopedLocationIds]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);

@@ -191,15 +191,21 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
     return filterLocationsForMembership(workspace.locations, workspace.accessibleLocationIds);
   }, [workspace]);
 
-  const scopedLocationIds = useMemo(() => {
-    if (!workspace || !workspace.isGroup) return 'all' as const;
+  // Primitive key so consumers don't see a new string[] every workspace identity change.
+  const scopedLocationIdsKey = useMemo(() => {
+    if (!workspace || !workspace.isGroup) return 'all';
     if (locationScope === 'all') {
-      return workspace.isOwner
-        ? ('all' as const)
-        : accessibleLocations.map((location) => location.id);
+      if (workspace.isOwner) return 'all';
+      return accessibleLocations.map((location) => location.id).join(',');
     }
-    return [locationScope];
+    return locationScope;
   }, [accessibleLocations, locationScope, workspace]);
+
+  const scopedLocationIds = useMemo((): 'all' | string[] => {
+    if (scopedLocationIdsKey === 'all') return 'all';
+    if (!scopedLocationIdsKey) return [];
+    return scopedLocationIdsKey.split(',');
+  }, [scopedLocationIdsKey]);
 
   const value = useMemo(
     () => ({

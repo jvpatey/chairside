@@ -86,7 +86,6 @@ export default function ClinicAccountProfileScreen() {
           profile={clinicProfile}
           displayName={isGroup ? groupDisplayName : null}
           identityLine={groupIdentityLine}
-          identityInline={isCompact}
           editable
           plan={billing?.plan ?? 'free'}
         />
