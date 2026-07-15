@@ -10,6 +10,7 @@ import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { formatClinicMemberIdentity } from '@/hooks/useClinicActingContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   getAccountSubtitle,
@@ -36,12 +37,30 @@ import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingCo
 import { isClinicGroupsEnabled } from '@chairside/api';
 
 export default function ClinicAccountProfileScreen() {
-  const { user } = useAuth();
-  const { clinicProfile, isClinicProfileReady, isGroup, isOwner, locations } = useClinicProfile();
+  const { user, profile: authProfile } = useAuth();
+  const {
+    clinicProfile,
+    isClinicProfileReady,
+    isGroup,
+    isOwner,
+    locations,
+    organization,
+    membership,
+  } = useClinicProfile();
   const { billing } = useClinicBilling();
   const { isCompact } = useResponsiveLayout();
   const { colors } = useTheme();
   const groupsEnabled = isClinicGroupsEnabled();
+  const groupDisplayName =
+    organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || null;
+  const groupIdentityLine = isGroup
+    ? formatClinicMemberIdentity({
+        displayName: membership?.display_name,
+        fallbackDisplayName: authProfile?.display_name,
+        role: membership?.role,
+        isOwner,
+      })
+    : null;
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.xl },
@@ -65,6 +84,9 @@ export default function ClinicAccountProfileScreen() {
         <ClinicProfileHero
           email={user?.email}
           profile={clinicProfile}
+          displayName={isGroup ? groupDisplayName : null}
+          identityLine={groupIdentityLine}
+          identityInline={isCompact}
           editable
           plan={billing?.plan ?? 'free'}
         />

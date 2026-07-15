@@ -15,6 +15,8 @@ type SidebarProfileHeaderProps = {
   displayName?: string | null;
   photoUri?: string | null;
   subtitle?: string | null;
+  /** Short trailing line (e.g. Owner / Manager) — kept off the truncated name line. */
+  meta?: string | null;
   collapsed?: boolean;
   avatarSize?: number;
 };
@@ -25,10 +27,13 @@ export function SidebarProfileHeader({
   displayName,
   photoUri,
   subtitle,
+  meta,
   collapsed = false,
   avatarSize = DEFAULT_AVATAR_SIZE,
 }: SidebarProfileHeaderProps) {
   const name = displayName?.trim() || 'Your profile';
+  const trimmedSubtitle = subtitle?.trim() || null;
+  const trimmedMeta = meta?.trim() || null;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     pressable: {
@@ -72,6 +77,14 @@ export function SidebarProfileHeader({
       ...typography.subtitle,
       fontSize: 13,
       lineHeight: 18,
+      color: colors.labelSecondary,
+    },
+    meta: {
+      ...typography.subtitle,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600',
+      color: colors.labelSecondary,
     },
   }));
 
@@ -80,7 +93,9 @@ export function SidebarProfileHeader({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Profile, ${name}`}
+      accessibilityLabel={
+        trimmedMeta ? `Profile, ${name}, ${trimmedMeta}` : `Profile, ${name}`
+      }
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.push(href);
@@ -101,9 +116,14 @@ export function SidebarProfileHeader({
           <Text style={styles.name} numberOfLines={2}>
             {name}
           </Text>
-          {subtitle ? (
+          {trimmedSubtitle ? (
             <Text style={styles.subtitle} numberOfLines={1}>
-              {subtitle}
+              {trimmedSubtitle}
+            </Text>
+          ) : null}
+          {trimmedMeta ? (
+            <Text style={styles.meta} numberOfLines={1}>
+              {trimmedMeta}
             </Text>
           ) : null}
         </View>

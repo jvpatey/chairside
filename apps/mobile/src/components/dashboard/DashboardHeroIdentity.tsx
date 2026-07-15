@@ -2,7 +2,7 @@ import { Text } from 'react-native';
 
 import { dashboardHeaderStackGap } from '@/components/dashboard/dashboardLayout';
 import { getTimeOfDayGreeting } from '@/lib/greeting';
-import { fontBold, fontRegular, spacing, useThemedStyles } from '@/theme';
+import { fontBold, fontRegular, fontSemibold, spacing, useThemedStyles } from '@/theme';
 
 /** Shared vertical gap between dashboard greeting, name, and subtitle. */
 export const DASHBOARD_HERO_TEXT_GAP = dashboardHeaderStackGap(spacing);
@@ -55,11 +55,19 @@ export function DashboardHeroName({ displayName, namePlaceholder }: DashboardHer
 
 type DashboardHeroSubtitleProps = {
   subtitle: string;
+  /** Same-line secondary segment (e.g. "Name · Owner") — lighter than the group name. */
+  detail?: string | null;
   /** Appended after subtitle with a middle dot (e.g. today's date). */
   trailing?: string;
 };
 
-export function DashboardHeroSubtitle({ subtitle, trailing }: DashboardHeroSubtitleProps) {
+export function DashboardHeroSubtitle({
+  subtitle,
+  detail,
+  trailing,
+}: DashboardHeroSubtitleProps) {
+  const trimmedDetail = detail?.trim() || null;
+
   const styles = useThemedStyles(({ colors, typography }) => ({
     metaLine: {
       ...typography.subtitle,
@@ -67,6 +75,16 @@ export function DashboardHeroSubtitle({ subtitle, trailing }: DashboardHeroSubti
       lineHeight: 20,
     },
     subtitle: {
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelPrimary,
+    },
+    subtitlePlain: {
+      color: colors.labelSecondary,
+    },
+    detail: {
+      fontFamily: fontRegular,
+      fontWeight: '400',
       color: colors.labelSecondary,
     },
     metaSeparator: {
@@ -77,19 +95,29 @@ export function DashboardHeroSubtitle({ subtitle, trailing }: DashboardHeroSubti
     },
   }));
 
-  if (!trailing) {
+  if (!trimmedDetail && !trailing) {
     return (
-      <Text style={[styles.metaLine, styles.subtitle]} numberOfLines={2}>
+      <Text style={[styles.metaLine, styles.subtitlePlain]} numberOfLines={2}>
         {subtitle}
       </Text>
     );
   }
 
   return (
-    <Text style={styles.metaLine} numberOfLines={1} accessibilityRole="text">
-      <Text style={styles.subtitle}>{subtitle}</Text>
-      <Text style={styles.metaSeparator}> · </Text>
-      <Text style={styles.trailing}>{trailing}</Text>
+    <Text style={styles.metaLine} numberOfLines={2} accessibilityRole="text">
+      <Text style={trimmedDetail ? styles.subtitle : styles.subtitlePlain}>{subtitle}</Text>
+      {trimmedDetail ? (
+        <>
+          <Text style={styles.metaSeparator}> · </Text>
+          <Text style={styles.detail}>{trimmedDetail}</Text>
+        </>
+      ) : null}
+      {trailing ? (
+        <>
+          <Text style={styles.metaSeparator}> · </Text>
+          <Text style={styles.trailing}>{trailing}</Text>
+        </>
+      ) : null}
     </Text>
   );
 }

@@ -36,7 +36,10 @@ import { DashboardSpotlightCard } from '@/components/dashboard/DashboardSpotligh
 import { DashboardStatCards } from '@/components/dashboard/DashboardStatCards';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
-import { ClinicLocationScopeSwitcher, getClinicLocationScopeLabel } from '@/components/clinic/ClinicLocationScopeSwitcher';
+import {
+  ClinicLocationScopeSwitcher,
+  getClinicLocationScopeLabel,
+} from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -47,6 +50,7 @@ import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSp
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { pickClinicSpotlight } from '@/lib/dashboardSpotlight';
 import {
   isFillInPostingLimitReached,
@@ -72,13 +76,16 @@ export default function ClinicDashboardScreen() {
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
-  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, organization, accessibleLocations } =
+    useClinicProfile();
   const {
     clinicId,
     scopedLocationIds,
     locationScope,
     isGroup,
+    memberIdentityLabel,
   } = useClinicActingContext();
+  const { isTablet } = useResponsiveLayout();
   const { billing, isBillingReady, refreshBilling } = useClinicUpgradePrompt();
   const { logoUri } = useClinicLogo();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
@@ -241,6 +248,21 @@ export default function ClinicDashboardScreen() {
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
+  const groupName =
+    organization?.name?.trim() || clinicName || 'Dental group';
+  const heroDisplayName = !isProfileComplete
+    ? null
+    : isGroup
+      ? getClinicLocationScopeLabel(locationScope, accessibleLocations)
+      : clinicName;
+  const heroSubtitle = !isProfileComplete
+    ? 'Finish your clinic setup'
+    : isGroup
+      ? groupName
+      : 'Dental Clinic';
+  // Phone: identity shares the group subtitle line (group name is emphasized in the hero).
+  const heroIdentityLine =
+    isGroup && isProfileComplete && !isTablet ? memberIdentityLabel : undefined;
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
   const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
 
@@ -306,21 +328,17 @@ export default function ClinicDashboardScreen() {
           <DashboardHero
             profileHref={CLINIC_PROFILE}
             avatarKind="clinic"
-            displayName={isProfileComplete ? clinicName : null}
+            displayName={heroDisplayName}
             photoUri={isProfileComplete ? logoUri : null}
             namePlaceholder={isProfileComplete ? 'Your practice' : 'Welcome to Chairside'}
-            subtitle={isProfileComplete ? 'Dental Clinic' : 'Finish your clinic setup'}
-            contextLine={
-              isGroup
-                ? getClinicLocationScopeLabel(locationScope, locations)
-                : undefined
+            subtitle={heroSubtitle}
+            identityLine={heroIdentityLine}
+            contextSlot={
+              isGroup && !isTablet ? (
+                <ClinicLocationScopeSwitcher variant="hero" />
+              ) : undefined
             }
           />
-          {isGroup ? (
-            <FadeInSection delayMs={40}>
-              <ClinicLocationScopeSwitcher />
-            </FadeInSection>
-          ) : null}
         </FadeInSection>
       }
       error={

@@ -17,6 +17,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { getClinicMembershipRoleLabel } from '@/hooks/useClinicActingContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
@@ -112,7 +113,13 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { profile } = useAuth();
   const { photoUri } = useProfilePhoto();
   const { logoUri } = useClinicLogo();
-  const { clinicProfile, isGroup } = useClinicProfile();
+  const {
+    clinicProfile,
+    isGroup,
+    organization,
+    membership,
+    isOwner,
+  } = useClinicProfile();
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
 
@@ -125,6 +132,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       backgroundColor: 'transparent',
       minHeight: 0,
       position: 'relative',
+      overflow: 'visible',
     },
     glassPanel: {
       flex: 1,
@@ -194,6 +202,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 3,
+    },
+    collapsedToggleInFlow: {
+      alignItems: 'center',
+      marginTop: spacing.xs,
     },
     nav: {
       flex: 1,
@@ -335,13 +347,29 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const profileHref = role === 'worker' ? WORKER_PROFILE : CLINIC_PROFILE;
   const isProfileActive = pathname.includes('/profile');
 
+  const clinicGroupName =
+    organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || null;
+  const clinicMemberName =
+    membership?.display_name?.trim() || profile?.display_name?.trim() || null;
+  const clinicRoleLabel = isGroup
+    ? getClinicMembershipRoleLabel(membership?.role, isOwner)
+    : null;
   const profileName =
-    role === 'worker' ? profile?.display_name : clinicProfile?.clinic_name?.trim() || null;
+    role === 'worker'
+      ? profile?.display_name
+      : isGroup
+        ? clinicGroupName
+        : clinicProfile?.clinic_name?.trim() || null;
   const profileSubtitle =
     role === 'worker'
       ? (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
         'Dental professional'
-      : 'Dental Clinic';
+      : isGroup
+        ? clinicMemberName || clinicRoleLabel
+        : 'Dental Clinic';
+  // Role on its own line so narrow sidebars don't ellipsize away Owner/Manager.
+  const profileMeta =
+    role === 'clinic' && isGroup && clinicMemberName ? clinicRoleLabel : null;
 
   const handleToggleCollapse = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -501,15 +529,19 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
               displayName={profileName}
               photoUri={role === 'worker' ? photoUri : logoUri}
               subtitle={profileSubtitle}
+              meta={profileMeta}
               collapsed={isCollapsed}
               avatarSize={isCollapsed ? COLLAPSED_AVATAR_SIZE : undefined}
             />
           </View>
         </View>
-        {role === 'clinic' && isGroup && !isCollapsed ? (
-          <View style={{ marginTop: 8 }}>
-            <ClinicLocationScopeSwitcher />
+        {role === 'clinic' && isGroup ? (
+          <View style={{ marginTop: isCollapsed ? 4 : 8 }}>
+            <ClinicLocationScopeSwitcher variant="sidebar" collapsed={isCollapsed} />
           </View>
+        ) : null}
+        {isCollapsed ? (
+          <View style={styles.collapsedToggleInFlow}>{collapseToggle}</View>
         ) : null}
       </View>
 
@@ -589,9 +621,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         >
           <View style={[styles.sidebarWebInner, panelPadding]}>{sidebarContent}</View>
         </LiquidGlassSurface>
-        <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
-          {collapseToggle}
-        </View>
+        {!isCollapsed ? (
+          <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
+            {collapseToggle}
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -599,9 +633,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   return (
     <View style={[panelPadding, styles.sidebarShell, { backgroundColor: 'transparent' }]}>
       {sidebarContent}
-      <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
-        {collapseToggle}
-      </View>
+      {!isCollapsed ? (
+        <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
+          {collapseToggle}
+        </View>
+      ) : null}
     </View>
   );
 }
