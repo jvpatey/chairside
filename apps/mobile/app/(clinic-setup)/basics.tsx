@@ -1,3 +1,4 @@
+import { updateClinicMembershipProfile } from '@chairside/api';
 import { router } from 'expo-router';
 import { CLINIC_SETUP_LOCATION, CLINIC_SETUP_LOCATIONS } from '@/lib/routing';
 import { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
@@ -18,14 +20,32 @@ import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { validateClinicBasicsStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
+function seedMembershipDisplayName(
+  membershipName: string | null | undefined,
+  authDisplayName: string | null | undefined,
+): string {
+  const membership = membershipName?.trim() ?? '';
+  if (membership && membership.toLowerCase() !== 'owner') return membership;
+  return authDisplayName?.trim() || membership;
+}
+
 export default function ClinicBasicsScreen() {
-  const { clinicProfile, isClinicProfileReady, isGroup } = useClinicProfile();
+  const { profile: authProfile } = useAuth();
+  const {
+    clinicProfile,
+    isClinicProfileReady,
+    isGroup,
+    membership,
+    refreshClinicProfile,
+  } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const { isSigningOut, signOut } = useSignOut();
   const [clinicName, setClinicName] = useState('');
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
+  const [memberDisplayName, setMemberDisplayName] = useState('');
+  const [memberTitle, setMemberTitle] = useState('Owner');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
@@ -33,7 +53,12 @@ export default function ClinicBasicsScreen() {
   useClinicSetupStepGuard('basics', clinicProfile, isClinicProfileReady, isEditMode);
 
   const progress = getClinicSetupStepNumber('basics', isGroup);
-  const validation = validateClinicBasicsStep({ clinicName, contactName, phone });
+  const basicsValidation = validateClinicBasicsStep({ clinicName, contactName, phone });
+  const membershipNameMissing = isGroup && !memberDisplayName.trim();
+  const validationOk = basicsValidation.ok && !membershipNameMissing;
+  const validationMessage = membershipNameMissing
+    ? 'Enter your name for the group.'
+    : basicsValidation.message;
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.md },
@@ -53,8 +78,16 @@ export default function ClinicBasicsScreen() {
     setPhone(clinicProfile.phone ? formatPhoneNumber(clinicProfile.phone) : '');
   }, [clinicProfile, isEditMode]);
 
+  useEffect(() => {
+    if (!isGroup) return;
+    setMemberDisplayName(
+      seedMembershipDisplayName(membership?.display_name, authProfile?.display_name),
+    );
+    setMemberTitle(membership?.title?.trim() || 'Owner');
+  }, [authProfile?.display_name, isGroup, membership?.display_name, membership?.title]);
+
   const handleContinue = async () => {
-    if (!validation.ok) {
+    if (!validationOk) {
       setShowValidation(true);
       return;
     }
@@ -68,6 +101,13 @@ export default function ClinicBasicsScreen() {
         phone: phone.trim() || null,
         account_type: isGroup ? 'group' : clinicProfile?.account_type ?? 'individual',
       });
+      if (isGroup && membership?.id) {
+        await updateClinicMembershipProfile(membership.id, {
+          display_name: memberDisplayName.trim(),
+          title: memberTitle.trim() || 'Owner',
+        });
+        await refreshClinicProfile();
+      }
       if (isEditMode) {
         router.replace(exitHref);
       } else if (isGroup) {
@@ -89,8 +129,8 @@ export default function ClinicBasicsScreen() {
       atmosphere="form"
       footer={
         <SetupStepFooter
-          canContinue={validation.ok}
-          validationMessage={validation.message}
+          canContinue={validationOk}
+          validationMessage={validationMessage}
           showValidation={showValidation}
           submitError={submitError}
           isSubmitting={isSubmitting}
@@ -101,7 +141,9 @@ export default function ClinicBasicsScreen() {
       <AuthScreenHeader
         title={isGroup ? 'Group basics' : 'Clinic basics'}
         subtitle={
-          isGroup ? 'Name your clinic group and primary contact.' : 'Tell us about your practice.'
+          isGroup
+            ? 'Name your clinic group, your role, and primary contact.'
+            : 'Tell us about your practice.'
         }
         backLabel={isEditMode ? undefined : isSigningOut ? 'Signing out…' : 'Sign out'}
         onBack={() => (isEditMode ? router.replace(exitHref) : void signOut())}
@@ -115,8 +157,31 @@ export default function ClinicBasicsScreen() {
           onChangeText={setClinicName}
           autoCapitalize="words"
           autoComplete="off"
-          invalid={showValidation && !validation.ok && !clinicName.trim()}
+          invalid={showValidation && !basicsValidation.ok && !clinicName.trim()}
         />
+        {isGroup ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Your profile</Text>
+            <Text style={styles.hint}>
+              Shown as your name and title when you post and manage the group.
+            </Text>
+            <AuthField
+              label="Your name"
+              placeholder="Alex Rivera"
+              value={memberDisplayName}
+              onChangeText={setMemberDisplayName}
+              autoCapitalize="words"
+              invalid={showValidation && membershipNameMissing}
+            />
+            <AuthField
+              label="Your title"
+              placeholder="Owner"
+              value={memberTitle}
+              onChangeText={setMemberTitle}
+              autoCapitalize="words"
+            />
+          </View>
+        ) : null}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Contact</Text>
           <Text style={styles.hint}>Phone or contact name required.</Text>
@@ -128,7 +193,7 @@ export default function ClinicBasicsScreen() {
             autoCapitalize="words"
             invalid={
               showValidation &&
-              !validation.ok &&
+              !basicsValidation.ok &&
               !contactName.trim() &&
               !phone.trim()
             }
@@ -141,7 +206,7 @@ export default function ClinicBasicsScreen() {
             keyboardType="phone-pad"
             invalid={
               showValidation &&
-              !validation.ok &&
+              !basicsValidation.ok &&
               !contactName.trim() &&
               !phone.trim()
             }

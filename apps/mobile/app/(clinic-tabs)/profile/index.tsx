@@ -130,7 +130,7 @@ export default function ClinicAccountProfileScreen() {
             <ProfileSettingsRow
               icon="people-outline"
               title="Team & access"
-              subtitle={isOwner ? 'Invite managers and assign locations' : 'Your manager access'}
+              subtitle={isOwner ? `Manage access for ${groupDisplayName ?? 'your group'}` : 'Your manager access'}
               iconColor={colors.info}
               iconBackgroundColor={`${colors.info}18`}
               onPress={() => router.push(CLINIC_PROFILE_TEAM)}
