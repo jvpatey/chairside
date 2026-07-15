@@ -9,7 +9,7 @@ import {
 import { SPECIALTY_OPTIONS } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import {
   AddressAutocomplete,
@@ -219,36 +219,33 @@ export default function ClinicLocationsSetupScreen() {
     }
   };
 
-  const handleRemove = (location: ClinicLocation) => {
+  const handleDelete = async (location: ClinicLocation) => {
     if (activeLocations.length <= 1) {
       setSubmitError('Keep at least one location to continue.');
       return;
     }
 
-    Alert.alert(
-      'Remove location?',
-      `${location.name} will be deactivated. You can manage locations again from Profile later.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            void deactivateClinicLocation(location.id)
-              .then(async () => {
-                if (editingId === location.id) resetForm();
-                await reload();
-                await refreshClinicProfile();
-              })
-              .catch((error) => {
-                setSubmitError(
-                  error instanceof Error ? error.message : 'Could not remove location.',
-                );
-              });
-          },
-        },
-      ],
-    );
+    const title = 'Delete location?';
+    const message = `${location.name} will stop accepting new posts. Existing posts stay in history.`;
+    const confirmed =
+      Platform.OS === 'web'
+        ? typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)
+        : await new Promise<boolean>((resolve) => {
+            Alert.alert(title, message, [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+            ]);
+          });
+    if (!confirmed) return;
+
+    try {
+      await deactivateClinicLocation(location.id);
+      if (editingId === location.id) resetForm();
+      await reload();
+      await refreshClinicProfile();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Could not delete location.');
+    }
   };
 
   const handleContinue = () => {
@@ -318,9 +315,11 @@ export default function ClinicLocationsSetupScreen() {
                   <Pressable onPress={() => startEdit(location)}>
                     <Text style={styles.addLabel}>Edit</Text>
                   </Pressable>
-                  <Pressable onPress={() => handleRemove(location)}>
-                    <Text style={styles.danger}>Remove</Text>
-                  </Pressable>
+                  {activeLocations.length > 1 ? (
+                    <Pressable onPress={() => void handleDelete(location)}>
+                      <Text style={styles.danger}>Delete</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               </SurfaceCard>
             ))}

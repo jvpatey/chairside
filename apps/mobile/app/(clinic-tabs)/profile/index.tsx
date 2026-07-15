@@ -113,11 +113,13 @@ export default function ClinicAccountProfileScreen() {
               icon="business-outline"
               title="Locations"
               subtitle={
-                locations.filter((location) => location.is_active).length > 0
-                  ? `${locations.filter((location) => location.is_active).length} location${
-                      locations.filter((location) => location.is_active).length === 1 ? '' : 's'
-                    }`
-                  : 'Add clinic locations'
+                isOwner
+                  ? locations.filter((location) => location.is_active).length > 0
+                    ? `${locations.filter((location) => location.is_active).length} location${
+                        locations.filter((location) => location.is_active).length === 1 ? '' : 's'
+                      }`
+                    : 'Add clinic locations'
+                  : 'Clinics you manage'
               }
               iconColor={colors.primary}
               iconBackgroundColor={colors.primarySubtle}

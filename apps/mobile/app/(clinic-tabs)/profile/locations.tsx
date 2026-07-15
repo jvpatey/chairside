@@ -4,10 +4,10 @@ import {
   updateClinicLocation,
   type ClinicLocation,
 } from '@chairside/api';
-import { SPECIALTY_OPTIONS } from '@chairside/config';
+import { SPECIALTY_OPTIONS, getProvinceLabel } from '@chairside/config';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import {
   AddressAutocomplete,
@@ -25,9 +25,17 @@ import {
   uploadPendingLocationPhoto,
 } from '@/components/clinic/ClinicLocationPhotoField';
 import { AuthField } from '@/components/onboarding/AuthField';
+import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
+import {
+  FieldBlock,
+  FieldDivider,
+  FieldValue,
+  ProfileDetailStack,
+  SectionPanel,
+} from '@/components/profile/ProfileDetailBlocks';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { formatPhoneNumber } from '@/lib/phone';
 import { navigateToClinicProfileHub } from '@/lib/routing';
@@ -65,8 +73,44 @@ function specialtyLabel(specialty: string): string {
   return SPECIALTY_OPTIONS.find((item) => item.value === specialty)?.label ?? specialty;
 }
 
+function formatLocationAddress(location: ClinicLocation): string {
+  return [
+    location.address_line1,
+    location.address_line2,
+    location.city,
+    location.province ? getProvinceLabel(location.province) : null,
+    location.postal_code,
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
+async function confirmDeleteLocation(locationName: string): Promise<boolean> {
+  const title = 'Delete location?';
+  const message = `${locationName} will stop accepting new posts. Existing posts stay in history.`;
+
+  if (Platform.OS === 'web') {
+    return typeof window !== 'undefined' ? window.confirm(`${title}\n\n${message}`) : false;
+  }
+
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+    ]);
+  });
+}
+
 export default function ClinicLocationsSettingsScreen() {
-  const { clinicId, locations, isOwner, refreshClinicProfile } = useClinicProfile();
+  const {
+    clinicId,
+    locations,
+    accessibleLocations,
+    organization,
+    clinicProfile,
+    isOwner,
+    refreshClinicProfile,
+  } = useClinicProfile();
   const { colors } = useTheme();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -82,32 +126,64 @@ export default function ClinicLocationsSettingsScreen() {
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     content: { gap: spacing.lg },
-    list: { gap: spacing.sm },
-    title: { ...typography.body, fontWeight: '600' as const },
-    meta: typography.subtitle,
-    actions: { flexDirection: 'row' as const, gap: spacing.md, marginTop: spacing.sm },
-    action: { color: colors.primary, fontWeight: '600' as const },
-    danger: { color: colors.destructive, fontWeight: '600' as const },
     form: { gap: spacing.md },
-    error: { ...typography.subtitle, color: colors.destructive },
+    actions: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      alignItems: 'center' as const,
+    },
+    danger: {
+      paddingVertical: spacing.xs + 2,
+      paddingHorizontal: spacing.sm,
+      minHeight: 36,
+      justifyContent: 'center' as const,
+    },
+    dangerLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.destructive,
+    },
+    cancel: {
+      alignSelf: 'center' as const,
+      paddingVertical: spacing.sm,
+    },
+    cancelLabel: {
+      ...typography.subtitle,
+      fontSize: 15,
+      color: colors.labelSecondary,
+      fontWeight: '600' as const,
+    },
   }));
+
+  const groupName =
+    organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || 'your group';
 
   const activeLocations = useMemo(
     () => locations.filter((location) => location.is_active),
     [locations],
   );
 
-  if (!isOwner) {
-    return (
-      <ProfileDetailScreen onBack={() => navigateToClinicProfileHub(router)}>
-        <EmptyState
-          icon="lock-closed-outline"
-          title="Owner access only"
-          message="Only the clinic owner can manage locations."
-        />
-      </ProfileDetailScreen>
-    );
-  }
+  // Owners manage every active site; managers only see assigned clinics.
+  const visibleLocations = useMemo(
+    () =>
+      isOwner
+        ? activeLocations
+        : accessibleLocations.filter((location) => location.is_active),
+    [accessibleLocations, activeLocations, isOwner],
+  );
+
+  const listSubtitle = isOwner
+    ? `All clinics for ${groupName}.`
+    : `Clinics you manage for ${groupName}.`;
+
+  const addressValidation = validateAddressStep(address);
+  const practiceValidation = validateClinicPracticeStep(practice.softwareUsed);
+  const canSave = Boolean(name.trim()) && addressValidation.ok && practiceValidation.ok;
+  const formValidationMessage = !name.trim()
+    ? 'Enter a location name.'
+    : (addressValidation.message ?? practiceValidation.message);
 
   const resetForm = () => {
     setEditingId(null);
@@ -116,6 +192,17 @@ export default function ClinicLocationsSettingsScreen() {
     setAddress(createEmptyAddressValue());
     setPractice(EMPTY_LOCATION_PRACTICE_FIELDS);
     setPendingPhoto(null);
+    setError(null);
+    setShowValidation(false);
+  };
+
+  const startAdd = () => {
+    setEditingId(null);
+    setName('');
+    setAddress(createEmptyAddressValue());
+    setPractice(EMPTY_LOCATION_PRACTICE_FIELDS);
+    setPendingPhoto(null);
+    setShowForm(true);
     setError(null);
     setShowValidation(false);
   };
@@ -131,17 +218,18 @@ export default function ClinicLocationsSettingsScreen() {
     setShowValidation(false);
   };
 
+  const handleBack = () => {
+    if (showForm) {
+      resetForm();
+      return;
+    }
+    navigateToClinicProfileHub(router);
+  };
+
   const handleSave = async () => {
     if (!clinicId) return;
-    const addressValidation = validateAddressStep(address);
-    const practiceValidation = validateClinicPracticeStep(practice.softwareUsed);
-    if (!name.trim() || !addressValidation.ok || !practiceValidation.ok) {
+    if (!canSave) {
       setShowValidation(true);
-      setError(
-        !name.trim()
-          ? 'Enter a location name.'
-          : (addressValidation.message ?? practiceValidation.message),
-      );
       return;
     }
 
@@ -197,119 +285,139 @@ export default function ClinicLocationsSettingsScreen() {
     }
   };
 
-  const handleDeactivate = (location: ClinicLocation) => {
-    Alert.alert(
-      'Deactivate location?',
-      `${location.name} will stop accepting new posts. Existing posts stay in history.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Deactivate',
-          style: 'destructive',
-          onPress: () => {
-            void deactivateClinicLocation(location.id)
-              .then(() => refreshClinicProfile())
-              .catch((deactivateError) => {
-                setError(
-                  deactivateError instanceof Error
-                    ? deactivateError.message
-                    : 'Could not deactivate location.',
-                );
-              });
-          },
-        },
-      ],
-    );
+  const handleDelete = async (location: ClinicLocation) => {
+    if (activeLocations.length <= 1) {
+      setError('Keep at least one active location.');
+      return;
+    }
+
+    const confirmed = await confirmDeleteLocation(location.name);
+    if (!confirmed) return;
+
+    try {
+      setError(null);
+      await deactivateClinicLocation(location.id);
+      if (editingId === location.id) resetForm();
+      await refreshClinicProfile();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : 'Could not delete location.',
+      );
+    }
   };
 
+  if (showForm && isOwner) {
+    return (
+      <ProfileDetailScreen
+        title={editingId ? 'Edit location' : 'Add location'}
+        subtitle="Use the same practice details candidates see on roles and fill-ins."
+        onBack={handleBack}>
+        <View style={styles.form}>
+          <AuthField
+            label="Location name"
+            placeholder="Downtown clinic"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            autoComplete="off"
+            invalid={showValidation && !name.trim()}
+          />
+          <ClinicLocationPhotoField
+            organizationId={clinicId}
+            locationId={editingId}
+            locationName={name.trim() || 'Clinic'}
+            logoStoragePath={
+              editingId
+                ? activeLocations.find((item) => item.id === editingId)?.logo_storage_path
+                : null
+            }
+            pendingPhoto={pendingPhoto}
+            onPendingPhotoChange={setPendingPhoto}
+            onUploaded={() => refreshClinicProfile()}
+          />
+          <AddressAutocomplete value={address} onChange={setAddress} />
+          <ClinicLocationFormFields
+            values={practice}
+            onChange={setPractice}
+            showValidation={showValidation}
+          />
+          <SetupStepFooter
+            canContinue={canSave}
+            validationMessage={formValidationMessage}
+            showValidation={showValidation}
+            submitError={error}
+            isSubmitting={isSubmitting}
+            continueLabel={editingId ? 'Save changes' : 'Add location'}
+            onContinue={() => void handleSave()}
+          />
+          <Pressable style={styles.cancel} onPress={resetForm}>
+            <Text style={styles.cancelLabel}>Cancel</Text>
+          </Pressable>
+        </View>
+      </ProfileDetailScreen>
+    );
+  }
+
   return (
-    <ProfileDetailScreen onBack={() => navigateToClinicProfileHub(router)}>
+    <ProfileDetailScreen
+      title="Locations"
+      subtitle={listSubtitle}
+      actionLabel={isOwner ? 'Add location' : undefined}
+      onActionPress={isOwner ? startAdd : undefined}
+      onBack={handleBack}>
       <View style={styles.content}>
-        {activeLocations.length === 0 ? (
+        {error ? (
+          <Text style={{ color: colors.destructive, fontWeight: '600' }}>{error}</Text>
+        ) : null}
+
+        {visibleLocations.length === 0 ? (
           <EmptyState
             icon="business-outline"
-            title="No locations yet"
-            message="Add the clinic locations your team posts for."
-            ctaLabel="Add location"
-            onCtaPress={() => setShowForm(true)}
+            title={isOwner ? 'No locations yet' : 'No clinics assigned'}
+            message={
+              isOwner
+                ? `Add the clinics for ${groupName}.`
+                : 'Ask the owner to assign you to one or more clinics.'
+            }
+            ctaLabel={isOwner ? 'Add location' : undefined}
+            onCtaPress={isOwner ? startAdd : undefined}
           />
         ) : (
-          <View style={styles.list}>
-            {activeLocations.map((location) => (
-              <SurfaceCard key={location.id}>
-                <Text style={styles.title}>
-                  {location.name}
-                </Text>
-                <Text style={styles.meta}>
-                  {[location.address_line1, location.city, location.province]
-                    .filter(Boolean)
-                    .join(', ')}
-                  {location.specialty ? ` · ${specialtyLabel(location.specialty)}` : ''}
-                </Text>
-                <View style={styles.actions}>
-                  <Pressable onPress={() => startEdit(location)}>
-                    <Text style={styles.action}>Edit</Text>
-                  </Pressable>
-                  <Pressable onPress={() => handleDeactivate(location)}>
-                    <Text style={styles.danger}>Deactivate</Text>
-                  </Pressable>
-                </View>
-              </SurfaceCard>
+          <ProfileDetailStack>
+            {visibleLocations.map((location, index) => (
+              <SectionPanel
+                key={location.id}
+                icon="business-outline"
+                stepNumber={index + 1}
+                stepAccent={index % 2 === 0 ? 'primary' : 'secondary'}
+                title={location.name}>
+                <FieldBlock label="Address">
+                  <FieldValue value={formatLocationAddress(location) || null} />
+                </FieldBlock>
+                <FieldDivider />
+                <FieldBlock label="Specialty">
+                  <FieldValue
+                    value={location.specialty ? specialtyLabel(location.specialty) : null}
+                  />
+                </FieldBlock>
+                {isOwner ? (
+                  <View style={styles.actions}>
+                    <EditPillButton label="Edit" onPress={() => startEdit(location)} />
+                    {activeLocations.length > 1 ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete ${location.name}`}
+                        style={styles.danger}
+                        onPress={() => void handleDelete(location)}>
+                        <Text style={styles.dangerLabel}>Delete</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : null}
+              </SectionPanel>
             ))}
-            <Pressable onPress={() => {
-              setEditingId(null);
-              setName('');
-              setAddress(createEmptyAddressValue());
-              setPractice(EMPTY_LOCATION_PRACTICE_FIELDS);
-              setPendingPhoto(null);
-              setShowForm(true);
-              setError(null);
-            }}>
-              <Text style={styles.action}>Add location</Text>
-            </Pressable>
-          </View>
+          </ProfileDetailStack>
         )}
-
-        {showForm ? (
-          <View style={styles.form}>
-            <AuthField
-              label="Location name"
-              placeholder="Downtown clinic"
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              autoComplete="off"
-            />
-            <ClinicLocationPhotoField
-              organizationId={clinicId}
-              locationId={editingId}
-              locationName={name.trim() || 'Clinic'}
-              logoStoragePath={
-                editingId
-                  ? activeLocations.find((item) => item.id === editingId)?.logo_storage_path
-                  : null
-              }
-              pendingPhoto={pendingPhoto}
-              onPendingPhotoChange={setPendingPhoto}
-              onUploaded={() => refreshClinicProfile()}
-            />
-            <AddressAutocomplete value={address} onChange={setAddress} />
-            <ClinicLocationFormFields
-              values={practice}
-              onChange={setPractice}
-              showValidation={showValidation}
-            />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <View style={styles.actions}>
-              <Pressable disabled={isSubmitting} onPress={() => void handleSave()}>
-                <Text style={styles.action}>{isSubmitting ? 'Saving…' : 'Save location'}</Text>
-              </Pressable>
-              <Pressable onPress={resetForm}>
-                <Text style={styles.meta}>Cancel</Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
       </View>
     </ProfileDetailScreen>
   );
