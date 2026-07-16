@@ -20,6 +20,7 @@ import { Platform } from 'react-native';
 
 import type { BillingOfferings, BillingPackage } from '@/lib/billingOfferings';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import {
   configureRevenueCat,
   getBillingOfferings,
@@ -72,9 +73,11 @@ const DEFAULT_BILLING: ClinicBillingState = {
 };
 
 export function ClinicBillingProvider({ children }: { children: ReactNode }) {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
+  const { clinicId: organizationClinicId, isClinicProfileReady, isOwner } = useClinicProfile();
   const isClinic = profile?.role === 'clinic';
-  const clinicId = isClinic ? user?.id : undefined;
+  /** Billing attaches to the organization (owner) id, not invited managers. */
+  const clinicId = isClinic ? organizationClinicId ?? undefined : undefined;
 
   const [billing, setBilling] = useState<ClinicBillingState | null>(null);
   const [offerings, setOfferings] = useState<BillingOfferings | null>(null);
@@ -115,7 +118,10 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
         setOfferings(nextOfferings);
         setRevenueCatPlan(nextRevenueCatPlan);
         setCanManageSubscription(
-          isWebBillingAvailable && nextBilling.plan !== 'free' && nextBilling.status !== 'expired',
+          isOwner &&
+            isWebBillingAvailable &&
+            nextBilling.plan !== 'free' &&
+            nextBilling.status !== 'expired',
         );
       } else {
         const nextBilling = await getClinicBillingState(clinicId);
@@ -131,12 +137,16 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       setIsRefreshing(false);
       setIsBillingReady(true);
     }
-  }, [clinicId, isPurchaseBillingAvailable, isWebBillingAvailable]);
+  }, [clinicId, isOwner, isPurchaseBillingAvailable, isWebBillingAvailable]);
 
   useEffect(() => {
+    if (isClinic && !isClinicProfileReady) {
+      setIsBillingReady(false);
+      return;
+    }
     setIsBillingReady(false);
     void refreshBilling();
-  }, [refreshBilling]);
+  }, [isClinic, isClinicProfileReady, refreshBilling]);
 
   useEffect(() => {
     if (!clinicId) {
@@ -159,7 +169,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
 
   const purchasePackage = useCallback(
     async (purchasePackageArg: BillingPackage) => {
-      if (!clinicId || !isPurchaseBillingAvailable) return;
+      if (!clinicId || !isPurchaseBillingAvailable || !isOwner) return;
 
       setIsPurchasing(true);
       setBillingError(null);
@@ -178,11 +188,11 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
         setIsPurchasing(false);
       }
     },
-    [clinicId, isPurchaseBillingAvailable, refreshBilling],
+    [clinicId, isOwner, isPurchaseBillingAvailable, refreshBilling],
   );
 
   const restorePurchases = useCallback(async () => {
-    if (!clinicId || !isNativeBillingAvailable) return;
+    if (!clinicId || !isNativeBillingAvailable || !isOwner) return;
 
     setIsRestoring(true);
     setBillingError(null);
@@ -197,10 +207,10 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsRestoring(false);
     }
-  }, [clinicId, isNativeBillingAvailable, refreshBilling]);
+  }, [clinicId, isNativeBillingAvailable, isOwner, refreshBilling]);
 
   const manageSubscription = useCallback(async () => {
-    if (!clinicId || !isWebBillingAvailable) return;
+    if (!clinicId || !isWebBillingAvailable || !isOwner) return;
 
     setIsManagingSubscription(true);
     setBillingError(null);
@@ -217,14 +227,14 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsManagingSubscription(false);
     }
-  }, [clinicId, isWebBillingAvailable]);
+  }, [clinicId, isOwner, isWebBillingAvailable]);
 
   const value = useMemo<ClinicBillingContextValue>(
     () => ({
       billing,
       isBillingReady,
       isRefreshing,
-      offerings,
+      offerings: isOwner ? offerings : null,
       revenueCatPlan,
       refreshBilling,
       purchasePackage,
@@ -234,9 +244,9 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       isRestoring,
       isManagingSubscription,
       billingError,
-      isNativeBillingAvailable,
-      isWebBillingAvailable,
-      isPurchaseBillingAvailable,
+      isNativeBillingAvailable: isOwner && isNativeBillingAvailable,
+      isWebBillingAvailable: isOwner && isWebBillingAvailable,
+      isPurchaseBillingAvailable: isOwner && isPurchaseBillingAvailable,
       canManageSubscription,
     }),
     [
@@ -246,6 +256,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       isBillingReady,
       isManagingSubscription,
       isNativeBillingAvailable,
+      isOwner,
       isPurchaseBillingAvailable,
       isPurchasing,
       isRefreshing,

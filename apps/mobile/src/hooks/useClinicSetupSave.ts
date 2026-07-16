@@ -7,16 +7,21 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 
 export function useClinicSetupSave() {
   const { user } = useAuth();
-  const { refreshClinicProfile } = useClinicProfile();
+  const { clinicId, isOwner, refreshClinicProfile } = useClinicProfile();
 
   const save = useCallback(
     async (partial: ClinicProfileUpdate) => {
       if (!user?.id) throw new Error('Not signed in');
-      const saved = await upsertClinicProfile(user.id, partial);
+      if (!isOwner) throw new Error('Only the clinic owner can edit organization details.');
+      const targetId = clinicId ?? user.id;
+      const saved = await upsertClinicProfile(targetId, {
+        ...partial,
+        organization_id: targetId,
+      });
       await refreshClinicProfile();
       return saved;
     },
-    [user?.id, refreshClinicProfile],
+    [clinicId, isOwner, user?.id, refreshClinicProfile],
   );
 
   return { save };

@@ -1,7 +1,16 @@
 import { getUnreadConversationCount } from '@chairside/api';
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 
 type MessageUnreadContextValue = {
@@ -18,6 +27,7 @@ type MessageUnreadProviderProps = {
 
 export function MessageUnreadProvider({ role, children }: MessageUnreadProviderProps) {
   const { user } = useAuth();
+  const { clinicId, scopedLocationIds } = useClinicActingContext();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const refreshUnread = useCallback(async () => {
@@ -27,14 +37,24 @@ export function MessageUnreadProvider({ role, children }: MessageUnreadProviderP
     }
 
     try {
-      const count = await getUnreadConversationCount(user.id, role);
+      const count =
+        role === 'clinic'
+          ? await getUnreadConversationCount(user.id, role, {
+              clinicId: clinicId ?? user.id,
+              locationIds: scopedLocationIds,
+            })
+          : await getUnreadConversationCount(user.id, role);
       setUnreadCount(count);
     } catch {
       setUnreadCount(0);
     }
-  }, [role, user?.id]);
+  }, [clinicId, role, scopedLocationIds, user?.id]);
 
   useRefreshOnFocus(refreshUnread);
+
+  useEffect(() => {
+    void refreshUnread();
+  }, [refreshUnread]);
 
   const value = useMemo(
     () => ({

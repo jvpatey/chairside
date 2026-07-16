@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CLINIC_SETUP_PRACTICE } from '@/lib/routing';
+import { CLINIC_SETUP_LOCATIONS, CLINIC_SETUP_PRACTICE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
@@ -16,6 +16,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { validateAddressStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
@@ -46,7 +47,7 @@ function profileToAddress(profile: NonNullable<ReturnType<typeof useClinicProfil
 }
 
 export default function ClinicLocationScreen() {
-  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, isGroup } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [address, setAddress] = useState<AddressFormValue>(() =>
@@ -58,6 +59,7 @@ export default function ClinicLocationScreen() {
 
   useClinicSetupStepGuard('location', clinicProfile, isClinicProfileReady, isEditMode);
 
+  const progress = getClinicSetupStepNumber('location', isGroup);
   const validation = validateAddressStep(address);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -87,9 +89,12 @@ export default function ClinicLocationScreen() {
         postal_code: address.postal_code.trim(),
         latitude: address.latitude,
         longitude: address.longitude,
+        account_type: isGroup ? 'group' : 'individual',
       });
       if (isEditMode) {
         router.replace(exitHref);
+      } else if (isGroup) {
+        router.push(CLINIC_SETUP_LOCATIONS);
       } else {
         router.push(CLINIC_SETUP_PRACTICE);
       }
@@ -118,10 +123,14 @@ export default function ClinicLocationScreen() {
       }>
       <AuthScreenHeader
         title="Clinic location"
-        subtitle="Where is your practice located?"
+        subtitle={
+          isGroup
+            ? 'Start with your main clinic address. You can add more locations next.'
+            : 'Where is your practice located?'
+        }
         onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />
-      {!isEditMode ? <SetupStepProgress step={2} total={5} /> : null}
+      {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
       <View style={styles.form}>
         <AddressAutocomplete value={address} onChange={setAddress} />
       </View>

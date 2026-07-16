@@ -15,6 +15,7 @@ import {
   SectionPanel,
   profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
 
 type ClinicPracticeViewProps = {
@@ -119,6 +120,10 @@ function PracticeHeroCard({
 }
 
 export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
+  const { locations } = useClinicProfile();
+  const doctorLocations = locations
+    .filter((location) => location.is_active)
+    .map((location) => ({ id: location.id, name: location.name }));
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     hint: profileSettingsHintStyle({ typography, colors }),
     intro: profileSettingsHintStyle({ typography, colors }),
@@ -223,7 +228,10 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
             <FieldDivider />
             <FieldBlock label="Doctors">
               <View style={styles.doctorsBlock}>
-                <PracticeDoctorFieldValue doctors={practiceDoctors} />
+                <PracticeDoctorFieldValue
+                  doctors={practiceDoctors}
+                  locations={doctorLocations}
+                />
               </View>
             </FieldBlock>
           </>

@@ -90,7 +90,8 @@ for spec in \
   "job_updated|Saved role updated" \
   "fill_in_updated|Saved fill-in updated" \
   "saved_post_unavailable|Saved posting unavailable" \
-  "message_received|Message received"; do
+  "message_received|Message received" \
+  "clinic_manager_invitation|Clinic manager invitation"; do
   id="${spec%%|*}"
   title="${spec#*|}"
   create_type "$id" "$title" || true
@@ -98,3 +99,4 @@ for spec in \
 done
 
 echo "Done. Re-run ./scripts/verify-pingram-sms.sh to confirm fill_in_posted."
+echo "Manager invites use Pingram POST /email with type clinic_manager_invitation."

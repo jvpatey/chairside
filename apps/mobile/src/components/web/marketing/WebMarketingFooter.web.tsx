@@ -167,7 +167,7 @@ export function WebMarketingFooter() {
           <View style={styles.brandColumn}>
             <ChairsideWordmark variant="small" align="left" onPress={navigateToWelcome} />
             <Text style={styles.tagline}>
-              Hiring and same-day fill-ins for dental teams.
+              Permanent roles and same-day fill-ins for dental teams. iOS app coming soon.
             </Text>
           </View>
 

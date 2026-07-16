@@ -116,6 +116,8 @@ export type PracticeDoctor = {
   title: string | null;
   bio: string | null;
   photo_storage_path: string | null;
+  /** Clinic location IDs where this doctor works (group accounts). */
+  location_ids: string[];
 };
 
 export const PRACTICE_DOCTOR_BIO_MAX_LENGTH = 280;
@@ -129,6 +131,21 @@ function normalizePracticeDoctorBio(value: unknown): string | null {
   return trimmed.length > PRACTICE_DOCTOR_BIO_MAX_LENGTH
     ? trimmed.slice(0, PRACTICE_DOCTOR_BIO_MAX_LENGTH).trimEnd()
     : trimmed;
+}
+
+function normalizePracticeDoctorLocationIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const item of value) {
+    if (typeof item !== 'string') continue;
+    const id = item.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids;
 }
 
 function createPracticeDoctorId(): string {
@@ -148,6 +165,7 @@ export function createPracticeDoctor(input: {
   title?: string | null;
   bio?: string | null;
   photo_storage_path?: string | null;
+  location_ids?: string[];
   id?: string;
 }): PracticeDoctor {
   const name = formatDisplayLabel(input.name);
@@ -162,6 +180,7 @@ export function createPracticeDoctor(input: {
     title,
     bio: normalizePracticeDoctorBio(input.bio),
     photo_storage_path: input.photo_storage_path ?? null,
+    location_ids: normalizePracticeDoctorLocationIds(input.location_ids),
   };
 }
 
@@ -196,8 +215,9 @@ export function normalizePracticeDoctor(value: unknown): PracticeDoctor | null {
       ? record.photo_storage_path.trim()
       : null;
   const bio = normalizePracticeDoctorBio(record.bio);
+  const location_ids = normalizePracticeDoctorLocationIds(record.location_ids);
 
-  return { id, name, title, bio, photo_storage_path };
+  return { id, name, title, bio, photo_storage_path, location_ids };
 }
 
 export function normalizePracticeDoctors(value: unknown): PracticeDoctor[] {

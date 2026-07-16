@@ -44,6 +44,7 @@ import {
   createPendingMessage,
   findLatestMatchingMessageId,
   findThreadListIndexForMessage,
+  isOwnSideMessage,
   type ThreadListItem,
   type ThreadMessage,
 } from '@/lib/messageThreadDisplay';
@@ -356,6 +357,14 @@ export function MessageThread({
     [role],
   );
 
+  const threadSideOptions = useMemo(
+    () => ({
+      role,
+      workerId: conversation?.worker_id ?? null,
+    }),
+    [conversation?.worker_id, role],
+  );
+
   const appendMessage = useCallback(
     (message: ThreadMessage) => {
       if (seenMessageIds.current.has(message.id)) return;
@@ -364,11 +373,11 @@ export function MessageThread({
       setMessages((current) => [...current, message]);
       if (isNearBottom) {
         scrollToLatest(true);
-      } else if (message.sender_id !== userId) {
+      } else if (!isOwnSideMessage(message.sender_id, userId, threadSideOptions)) {
         setNewMessageCount((count) => count + 1);
       }
     },
-    [isNearBottom, scrollToLatest, userId],
+    [isNearBottom, scrollToLatest, threadSideOptions, userId],
   );
 
   const replaceMessage = useCallback((messageId: string, nextMessage: ThreadMessage) => {
@@ -485,7 +494,7 @@ export function MessageThread({
           setHasMoreMessages(nextHasMore);
         }
 
-        const items = buildThreadListItems(nextMessages, userId);
+        const items = buildThreadListItems(nextMessages, userId, threadSideOptions);
         requestAnimationFrame(() => {
           scrollToMessage(targetMessageId, items);
         });
@@ -504,6 +513,7 @@ export function MessageThread({
     messages,
     scrollToMessage,
     scrollToMessageId,
+    threadSideOptions,
     userId,
   ]);
 
@@ -559,7 +569,7 @@ export function MessageThread({
 
   useMessageRealtime(conversationId, (message) => {
     appendMessage(message);
-    if (message.sender_id !== userId) {
+    if (!isOwnSideMessage(message.sender_id, userId, threadSideOptions)) {
       void markConversationRead(conversationId).then(() => {
         refreshUnread();
         setConversation((current) => {
@@ -645,15 +655,20 @@ export function MessageThread({
   const headerDisplay = conversation ? formatConversationDisplay(conversation, role) : null;
   const headerTitle = headerDisplay?.threadTitle ?? title;
   const headerSubtitle = headerDisplay?.threadSubtitle ?? subtitle;
-  const listItems = useMemo(() => buildThreadListItems(messages, userId), [messages, userId]);
+  const listItems = useMemo(
+    () => buildThreadListItems(messages, userId, threadSideOptions),
+    [messages, threadSideOptions, userId],
+  );
   const emptyCopy = getEmptyStateCopy(conversation, canSend);
   const lastOwnMessageId = useMemo(() => {
     for (let index = messages.length - 1; index >= 0; index -= 1) {
       const message = messages[index];
-      if (message?.sender_id === userId) return message.id;
+      if (message && isOwnSideMessage(message.sender_id, userId, threadSideOptions)) {
+        return message.id;
+      }
     }
     return null;
-  }, [messages, userId]);
+  }, [messages, threadSideOptions, userId]);
 
   const composeBottom = keyboardLift > 0 ? keyboardLift : tabDockInset;
   const listBottomPadding = canSend ? composeHeight + composeBottom + 8 : composeBottom + 16;

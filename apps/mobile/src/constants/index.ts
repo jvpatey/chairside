@@ -15,7 +15,7 @@ export const APP_STORE_COMING_SOON_HINT =
   'Push alerts when clinics post shifts or professionals go available — iOS app coming soon.';
 
 export const ONBOARDING_SUBTITLE =
-  'One platform for clinics hiring and professionals finding work.';
+  'Permanent roles and same-day fill-ins — one platform for clinics and professionals.';
 
 export const ROLE_OPTIONS = [
   {

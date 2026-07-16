@@ -1,0 +1,24 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["K456XRWT8C.com.chairside.app"],
+        "components": [
+          {
+            "/": "/accept-invite",
+            "?": { "token": "*" },
+            "comment": "Clinic manager invitation accept links"
+          },
+          {
+            "/": "/accept-invite/*",
+            "comment": "Clinic manager invitation accept links"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["K456XRWT8C.com.chairside.app"]
+  }
+}

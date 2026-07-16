@@ -21,6 +21,11 @@ export type ShiftUrgency = 'normal' | 'urgent' | 'same_day';
 export type JobPost = {
   id: string;
   clinic_id: string;
+  organization_id?: string | null;
+  location_id?: string | null;
+  posted_by_membership_id?: string | null;
+  posted_by_display_name?: string | null;
+  posted_by_title?: string | null;
   role_type: RoleType;
   employment_type: EmploymentType;
   title: string;
@@ -47,6 +52,11 @@ export type JobPostWithScreening = JobPost & {
 export type ShiftPost = {
   id: string;
   clinic_id: string;
+  organization_id?: string | null;
+  location_id?: string | null;
+  posted_by_membership_id?: string | null;
+  posted_by_display_name?: string | null;
+  posted_by_title?: string | null;
   role_type: RoleType;
   shift_date: string;
   start_time: string;
@@ -83,6 +93,11 @@ export type CreateJobPostInput = {
   screening_enabled?: boolean;
   screeningQuestions?: ScreeningQuestionInput[];
   status?: JobPostStatus;
+  location_id?: string | null;
+  organization_id?: string | null;
+  posted_by_membership_id?: string | null;
+  posted_by_display_name?: string | null;
+  posted_by_title?: string | null;
 };
 
 export type CreateShiftPostInput = {
@@ -94,31 +109,75 @@ export type CreateShiftPostInput = {
   urgency?: ShiftUrgency;
   description?: string;
   status?: ShiftPostStatus;
+  location_id?: string | null;
+  organization_id?: string | null;
+  posted_by_membership_id?: string | null;
+  posted_by_display_name?: string | null;
+  posted_by_title?: string | null;
 };
 
 export type UpdateJobPostInput = Partial<CreateJobPostInput>;
 
 export type UpdateShiftPostInput = Partial<CreateShiftPostInput>;
 
-export async function listJobPosts(clinicId: string): Promise<JobPost[]> {
+/** Shared viewing filter for group clinics (`'all'` / omitted = no filter). */
+export type ClinicLocationScopeOptions = {
+  locationIds?: string[] | 'all';
+};
+
+export function isEmptyLocationScope(
+  locationIds?: string[] | 'all',
+): boolean {
+  return Array.isArray(locationIds) && locationIds.length === 0;
+}
+
+export function isActiveLocationScope(
+  locationIds?: string[] | 'all',
+): locationIds is string[] {
+  return Array.isArray(locationIds);
+}
+
+export async function listJobPosts(
+  clinicId: string,
+  options?: ClinicLocationScopeOptions,
+): Promise<JobPost[]> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  if (isEmptyLocationScope(options?.locationIds)) return [];
+
+  let query = supabase
     .from('job_posts')
     .select('*')
-    .eq('clinic_id', clinicId)
+    .or(`clinic_id.eq.${clinicId},organization_id.eq.${clinicId}`)
     .order('created_at', { ascending: false });
+
+  if (isActiveLocationScope(options?.locationIds)) {
+    query = query.in('location_id', options.locationIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return (data ?? []) as JobPost[];
 }
 
-export async function listShiftPosts(clinicId: string): Promise<ShiftPost[]> {
+export async function listShiftPosts(
+  clinicId: string,
+  options?: ClinicLocationScopeOptions,
+): Promise<ShiftPost[]> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  if (isEmptyLocationScope(options?.locationIds)) return [];
+
+  let query = supabase
     .from('shift_posts')
     .select('*')
-    .eq('clinic_id', clinicId)
+    .or(`clinic_id.eq.${clinicId},organization_id.eq.${clinicId}`)
     .order('created_at', { ascending: false });
+
+  if (isActiveLocationScope(options?.locationIds)) {
+    query = query.in('location_id', options.locationIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return (data ?? []) as ShiftPost[];
@@ -278,6 +337,11 @@ export async function createJobPost(clinicId: string, input: CreateJobPostInput)
     .from('job_posts')
     .insert({
       clinic_id: clinicId,
+      organization_id: input.organization_id ?? clinicId,
+      location_id: input.location_id ?? null,
+      posted_by_membership_id: input.posted_by_membership_id ?? null,
+      posted_by_display_name: input.posted_by_display_name ?? null,
+      posted_by_title: input.posted_by_title ?? null,
       role_type: input.role_type,
       employment_type: input.employment_type,
       title: input.title,
@@ -317,6 +381,11 @@ export async function createShiftPost(
     .from('shift_posts')
     .insert({
       clinic_id: clinicId,
+      organization_id: input.organization_id ?? clinicId,
+      location_id: input.location_id ?? null,
+      posted_by_membership_id: input.posted_by_membership_id ?? null,
+      posted_by_display_name: input.posted_by_display_name ?? null,
+      posted_by_title: input.posted_by_title ?? null,
       role_type: input.role_type,
       shift_date: input.shift_date,
       start_time: input.start_time,
@@ -422,37 +491,51 @@ export async function getShiftPostApplicationCount(
   return count ?? 0;
 }
 
-export async function getClinicDashboardCounts(clinicId: string): Promise<ClinicDashboardCounts> {
+export async function getClinicDashboardCounts(
+  clinicId: string,
+  options?: ClinicLocationScopeOptions,
+): Promise<ClinicDashboardCounts> {
   const supabase = getSupabaseClient();
+  if (isEmptyLocationScope(options?.locationIds)) {
+    return { openRoles: 0, fillInsPosted: 0, totalApplications: 0, newApplications: 0 };
+  }
 
-  const [jobsResult, shiftsResult, applicationsResult] = await Promise.all([
-    supabase
-      .from('job_posts')
-      .select('id', { count: 'exact', head: true })
-      .eq('clinic_id', clinicId)
-      .eq('status', 'live'),
-    supabase
-      .from('shift_posts')
-      .select('id', { count: 'exact', head: true })
-      .eq('clinic_id', clinicId)
-      .eq('status', 'live')
-      .gte('shift_date', new Date().toISOString().slice(0, 10)),
+  let liveJobsQuery = supabase
+    .from('job_posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('clinic_id', clinicId)
+    .eq('status', 'live');
+  let liveShiftsQuery = supabase
+    .from('shift_posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('clinic_id', clinicId)
+    .eq('status', 'live')
+    .gte('shift_date', new Date().toISOString().slice(0, 10));
+  let allJobsQuery = supabase.from('job_posts').select('id').eq('clinic_id', clinicId);
+
+  if (isActiveLocationScope(options?.locationIds)) {
+    liveJobsQuery = liveJobsQuery.in('location_id', options.locationIds);
+    liveShiftsQuery = liveShiftsQuery.in('location_id', options.locationIds);
+    allJobsQuery = allJobsQuery.in('location_id', options.locationIds);
+  }
+
+  const [jobsResult, shiftsResult, applicationsResult, scopedJobsResult] = await Promise.all([
+    liveJobsQuery,
+    liveShiftsQuery,
     supabase
       .from('applications')
       .select('id, job_post_id, status, clinic_hidden_at, clinic_attention_at, clinic_last_seen_at')
       .not('job_post_id', 'is', null)
       .is('clinic_hidden_at', null),
+    allJobsQuery,
   ]);
 
   if (jobsResult.error) throw jobsResult.error;
   if (shiftsResult.error) throw shiftsResult.error;
   if (applicationsResult.error) throw applicationsResult.error;
+  if (scopedJobsResult.error) throw scopedJobsResult.error;
 
-  const jobIds = new Set(
-    (await supabase.from('job_posts').select('id').eq('clinic_id', clinicId)).data?.map(
-      (row) => row.id,
-    ) ?? [],
-  );
+  const jobIds = new Set((scopedJobsResult.data ?? []).map((row) => row.id));
 
   const clinicApplications =
     applicationsResult.data?.filter(

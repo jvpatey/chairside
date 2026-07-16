@@ -9,6 +9,14 @@ export function getClinicLogoStoragePath(clinicId: string, extension = 'jpg'): s
   return `${clinicId}/logo.${extension}`;
 }
 
+export function getClinicLocationLogoStoragePath(
+  organizationId: string,
+  locationId: string,
+  extension = 'jpg',
+): string {
+  return `${organizationId}/locations/${locationId}/logo.${extension}`;
+}
+
 function normalizeStoragePath(storagePath: string) {
   return storagePath.replace(/^\/+/, '');
 }
@@ -120,6 +128,105 @@ export async function deleteClinicLogo(
     logo_storage_path: null,
     logo_uploaded_at: null,
   });
+}
+
+export async function uploadClinicLocationLogoFromBase64(
+  organizationId: string,
+  locationId: string,
+  base64: string,
+  contentType: string,
+  existingStoragePath?: string | null,
+): Promise<{ storagePath: string }> {
+  const normalizedType = ALLOWED_CONTENT_TYPES.has(contentType) ? contentType : 'image/jpeg';
+  const bytes = base64ToBytes(base64);
+
+  if (bytes.byteLength === 0) {
+    throw new Error('Selected image is empty. Choose a different image.');
+  }
+  if (bytes.byteLength > MAX_LOGO_BYTES) {
+    throw new Error('Photo must be 2 MB or smaller.');
+  }
+
+  const supabase = getSupabaseClient();
+  const storagePath = getClinicLocationLogoStoragePath(
+    organizationId,
+    locationId,
+    contentTypeToExtension(normalizedType),
+  );
+
+  if (existingStoragePath && existingStoragePath !== storagePath) {
+    await supabase.storage.from(LOGO_BUCKET).remove([existingStoragePath]);
+  }
+
+  const { error: uploadError } = await supabase.storage
+    .from(LOGO_BUCKET)
+    .upload(storagePath, bytes, {
+      upsert: true,
+      contentType: normalizedType,
+    });
+
+  if (uploadError) throw uploadError;
+
+  const now = new Date().toISOString();
+  const { data: location, error: updateError } = await supabase
+    .from('clinic_locations')
+    .update({
+      logo_storage_path: storagePath,
+      logo_uploaded_at: now,
+      updated_at: now,
+    })
+    .eq('id', locationId)
+    .eq('organization_id', organizationId)
+    .select('is_primary, is_active')
+    .single();
+
+  if (updateError) throw updateError;
+
+  if (location?.is_primary && location?.is_active) {
+    await upsertClinicProfile(organizationId, {
+      logo_storage_path: storagePath,
+      logo_uploaded_at: now,
+    });
+  }
+
+  return { storagePath };
+}
+
+export async function deleteClinicLocationLogo(
+  organizationId: string,
+  locationId: string,
+  storagePath?: string | null,
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const path =
+    storagePath ?? getClinicLocationLogoStoragePath(organizationId, locationId);
+
+  if (path) {
+    const { error: removeError } = await supabase.storage.from(LOGO_BUCKET).remove([path]);
+    if (removeError) throw removeError;
+  }
+
+  const now = new Date().toISOString();
+  const { data: location, error: updateError } = await supabase
+    .from('clinic_locations')
+    .update({
+      logo_storage_path: null,
+      logo_uploaded_at: null,
+      updated_at: now,
+    })
+    .eq('id', locationId)
+    .eq('organization_id', organizationId)
+    .select('is_primary, is_active')
+    .single();
+
+  if (updateError) throw updateError;
+
+  if (location?.is_primary && location?.is_active) {
+    await upsertClinicProfile(organizationId, {
+      logo_storage_path: null,
+      logo_uploaded_at: null,
+    });
+  }
 }
 
 export async function getClinicLogoSignedUrl(storagePath: string): Promise<string | null> {

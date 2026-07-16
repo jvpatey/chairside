@@ -20,6 +20,8 @@ import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
+import { formatPostedDateLabel } from '@/lib/dates';
 import {
   formatShiftPostMeta,
   formatShiftPostRoleTitle,
@@ -64,9 +66,22 @@ export function FillInPostingCard({
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment(accent);
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
-  const { clinicProfile } = useClinicProfile();
+  const { clinicProfile, locations } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
+  const locationRecord = locations.find((item) => item.id === shift.location_id);
+  const location = [
+    locationRecord?.name,
+    locationRecord?.city ?? clinicProfile?.city,
+    locationRecord?.province ?? clinicProfile?.province,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const postedLabel = buildPostedByLabel({
+    postedAt: shift.created_at,
+    postedByDisplayName: shift.posted_by_display_name,
+    postedByTitle: shift.posted_by_title,
+    formatDateLabel: formatPostedDateLabel,
+  });
 
   const styles = useThemedStyles(({ spacing }) => ({
     footer: {
@@ -114,6 +129,7 @@ export function FillInPostingCard({
       title={formatShiftPostRoleTitle(shift.role_type)}
       location={location || null}
       detail={formatShiftPostMeta(shift)}
+      postedLabel={postedLabel}
       avatarSize={44}
       accessory={
         <View style={styles.headerActions}>

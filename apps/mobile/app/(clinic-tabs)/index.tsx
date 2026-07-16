@@ -36,15 +36,19 @@ import { DashboardSpotlightCard } from '@/components/dashboard/DashboardSpotligh
 import { DashboardStatCards } from '@/components/dashboard/DashboardStatCards';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSpotlights';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { pickClinicSpotlight } from '@/lib/dashboardSpotlight';
 import {
   isFillInPostingLimitReached,
@@ -70,9 +74,19 @@ export default function ClinicDashboardScreen() {
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
-  const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, organization } = useClinicProfile();
+  const {
+    clinicId,
+    scopedLocationIds,
+    isGroup,
+    memberDisplayName,
+    memberRoleLabel,
+    groupDisplayName,
+  } = useClinicActingContext();
+  const { isTablet } = useResponsiveLayout();
   const { billing, isBillingReady, refreshBilling } = useClinicUpgradePrompt();
   const { logoUri } = useClinicLogo();
+  const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
     openRoles: 0,
@@ -101,7 +115,7 @@ export default function ClinicDashboardScreen() {
   } = useDismissedDashboardSpotlights('clinic');
 
   const loadDashboard = useCallback(async () => {
-    if (!user?.id) return;
+    if (!clinicId) return;
 
     if (!hasLoadedOnce.current) {
       setIsLoading(true);
@@ -119,19 +133,21 @@ export default function ClinicDashboardScreen() {
         conversationRows,
         confirmed,
       ] = await Promise.all([
-        getClinicDashboardCounts(user.id),
-        listJobPosts(user.id),
-        listShiftPosts(user.id),
-        listJobApplicationSummaries(user.id),
-        getJobPostApplicationCountsMap(user.id),
-        getShiftPostPendingApplicationCountsMap(user.id),
-        listConversationsForClinic(user.id),
-        listUpcomingConfirmedFillIns(user.id),
+        getClinicDashboardCounts(clinicId, { locationIds: scopedLocationIds }),
+        listJobPosts(clinicId, { locationIds: scopedLocationIds }),
+        listShiftPosts(clinicId, { locationIds: scopedLocationIds }),
+        listJobApplicationSummaries(clinicId, { locationIds: scopedLocationIds }),
+        getJobPostApplicationCountsMap(clinicId, { locationIds: scopedLocationIds }),
+        getShiftPostPendingApplicationCountsMap(clinicId, {
+          locationIds: scopedLocationIds,
+        }),
+        listConversationsForClinic(clinicId, { locationIds: scopedLocationIds }),
+        listUpcomingConfirmedFillIns(clinicId, { locationIds: scopedLocationIds }),
       ]);
 
       const shiftApplicationCountEntries = await Promise.all(
         shiftPosts.map(async (shift) => {
-          const count = await getShiftPostApplicationCount(user.id, shift.id);
+          const count = await getShiftPostApplicationCount(clinicId, shift.id);
           return [shift.id, count] as const;
         }),
       );
@@ -164,7 +180,7 @@ export default function ClinicDashboardScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [refreshBilling, refreshUnread, user?.id]);
+  }, [clinicId, refreshBilling, refreshUnread, scopedLocationIds]);
 
   useRefreshOnFocus(loadDashboard);
 
@@ -233,6 +249,22 @@ export default function ClinicDashboardScreen() {
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
+  const groupName =
+    groupDisplayName || organization?.name?.trim() || clinicName || 'Dental group';
+  // Groups: person-first title; location lives in the scope switcher.
+  // Individuals: clinic name as before.
+  const heroDisplayName = !isProfileComplete
+    ? null
+    : isGroup
+      ? memberDisplayName || null
+      : clinicName;
+  const heroSubtitle = !isProfileComplete
+    ? 'Finish your clinic setup'
+    : isGroup
+      ? groupName
+      : 'Dental Clinic';
+  const heroIdentityLine =
+    isGroup && isProfileComplete && memberRoleLabel ? memberRoleLabel : undefined;
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
   const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
 
@@ -297,11 +329,29 @@ export default function ClinicDashboardScreen() {
         <FadeInSection delayMs={0}>
           <DashboardHero
             profileHref={CLINIC_PROFILE}
-            avatarKind="clinic"
-            displayName={isProfileComplete ? clinicName : null}
-            photoUri={isProfileComplete ? logoUri : null}
-            namePlaceholder={isProfileComplete ? 'Your practice' : 'Welcome to Chairside'}
-            subtitle={isProfileComplete ? 'Dental Clinic' : 'Finish your clinic setup'}
+            avatarKind={isGroup ? 'worker' : 'clinic'}
+            displayName={heroDisplayName}
+            photoUri={
+              isProfileComplete
+                ? isGroup
+                  ? memberPhotoUri
+                  : logoUri
+                : null
+            }
+            namePlaceholder={
+              isProfileComplete
+                ? isGroup
+                  ? 'Your profile'
+                  : 'Your practice'
+                : 'Welcome to Chairside'
+            }
+            subtitle={heroSubtitle}
+            identityLine={heroIdentityLine}
+            contextSlot={
+              isGroup && !isTablet ? (
+                <ClinicLocationScopeSwitcher variant="hero" />
+              ) : undefined
+            }
           />
         </FadeInSection>
       }

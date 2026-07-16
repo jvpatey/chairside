@@ -1,28 +1,24 @@
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 
-import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
 import { useThemedStyles } from '@/theme';
 
 const TRUST_ITEMS = [
   'Made for Canadian dental teams',
-  'Same-day fill-ins',
+  'Permanent roles & fill-ins',
   'Apply in one tap',
   'Start free',
 ] as const;
 
 export function WebLandingSocialProof() {
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    strip: {
+    bleed: {
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       paddingVertical: spacing.lg,
-      paddingHorizontal: spacing.lg,
       borderTopWidth: 1,
       borderBottomWidth: 1,
       borderColor: colors.separator,
-      maxWidth: CONTENT_MAX_WIDTH.xwide,
-      width: '100%' as const,
-      alignSelf: 'center' as const,
     },
     line: {
       fontSize: 14,
@@ -35,8 +31,8 @@ export function WebLandingSocialProof() {
   }));
 
   return (
-    <View style={styles.strip}>
+    <WebMarketingSection style={styles.bleed}>
       <Text style={styles.line}>{TRUST_ITEMS.join(' · ')}</Text>
-    </View>
+    </WebMarketingSection>
   );
 }

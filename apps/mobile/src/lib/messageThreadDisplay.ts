@@ -81,13 +81,32 @@ export function formatMessageDateLabel(isoDate: string): string {
   });
 }
 
+export type ThreadSideOptions = {
+  role?: 'worker' | 'clinic';
+  /** Candidate id — required for clinic shared-inbox side detection. */
+  workerId?: string | null;
+};
+
+/** Whether this sender is on the viewer's side of a shared clinic inbox thread. */
+export function isOwnSideMessage(
+  senderId: string,
+  viewerId: string,
+  options?: ThreadSideOptions,
+): boolean {
+  if (options?.role === 'clinic' && options.workerId) {
+    return senderId !== options.workerId;
+  }
+  return senderId === viewerId;
+}
+
 function isSameSenderGroup(
   previous: ThreadMessage,
   next: ThreadMessage,
   viewerId: string,
+  options?: ThreadSideOptions,
 ): boolean {
-  const previousOwn = previous.sender_id === viewerId;
-  const nextOwn = next.sender_id === viewerId;
+  const previousOwn = isOwnSideMessage(previous.sender_id, viewerId, options);
+  const nextOwn = isOwnSideMessage(next.sender_id, viewerId, options);
   if (previousOwn !== nextOwn) return false;
 
   const previousDate = new Date(previous.created_at);
@@ -108,12 +127,17 @@ export function areThreadMessagesGrouped(
   previous: ThreadMessage,
   next: ThreadMessage,
   viewerId: string,
+  options?: ThreadSideOptions,
 ): boolean {
-  return isSameSenderGroup(previous, next, viewerId);
+  return isSameSenderGroup(previous, next, viewerId, options);
 }
 
 /** Flatten messages into date separators and grouped bubble rows. */
-export function buildThreadListItems(messages: ThreadMessage[], viewerId: string): ThreadListItem[] {
+export function buildThreadListItems(
+  messages: ThreadMessage[],
+  viewerId: string,
+  options?: ThreadSideOptions,
+): ThreadListItem[] {
   if (messages.length === 0) return [];
 
   const items: ThreadListItem[] = [];
@@ -130,9 +154,13 @@ export function buildThreadListItems(messages: ThreadMessage[], viewerId: string
 
     const previous = index > 0 ? messages[index - 1] : null;
     const next = index < messages.length - 1 ? messages[index + 1] : null;
-    const groupedWithPrevious = previous ? isSameSenderGroup(previous, message, viewerId) : false;
-    const groupedWithNext = next ? isSameSenderGroup(message, next, viewerId) : false;
-    const isOwn = message.sender_id === viewerId;
+    const groupedWithPrevious = previous
+      ? isSameSenderGroup(previous, message, viewerId, options)
+      : false;
+    const groupedWithNext = next
+      ? isSameSenderGroup(message, next, viewerId, options)
+      : false;
+    const isOwn = isOwnSideMessage(message.sender_id, viewerId, options);
 
     items.push({
       type: 'message',
@@ -213,7 +241,14 @@ export function getLastOwnMessageDeliveryStatus(
   role: 'worker' | 'clinic',
   viewerId: string,
 ): MessageDeliveryStatus | null {
-  if (!conversation.last_message_at || conversation.last_sender_id !== viewerId) {
+  if (
+    !conversation.last_message_at ||
+    !conversation.last_sender_id ||
+    !isOwnSideMessage(conversation.last_sender_id, viewerId, {
+      role,
+      workerId: conversation.worker_id,
+    })
+  ) {
     return null;
   }
 
@@ -232,10 +267,14 @@ export function getLastOwnMessageDeliveryStatus(
 export function formatInboxPreviewText(
   conversation: Conversation,
   viewerId: string,
+  options?: ThreadSideOptions,
 ): string {
   const preview = conversation.last_message_preview ?? 'No messages yet';
   if (preview === 'No messages yet') return preview;
-  if (conversation.last_sender_id === viewerId) {
+  if (
+    conversation.last_sender_id &&
+    isOwnSideMessage(conversation.last_sender_id, viewerId, options)
+  ) {
     return `You: ${preview}`;
   }
   return preview;

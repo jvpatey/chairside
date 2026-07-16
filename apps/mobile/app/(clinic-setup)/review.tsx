@@ -9,12 +9,13 @@ import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
-import { PracticeDoctorReviewValue } from '@/components/clinic/PracticeDoctorList';
+import { PracticeDoctorReviewSection } from '@/components/clinic/PracticeDoctorList';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -43,10 +44,17 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 
 export default function ClinicReviewScreen() {
   const { user } = useAuth();
-  const { clinicProfile, isClinicProfileReady, refreshClinicProfile } = useClinicProfile();
+  const {
+    clinicProfile,
+    isClinicProfileReady,
+    refreshClinicProfile,
+    isGroup,
+    locations,
+  } = useClinicProfile();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const progress = getClinicSetupStepNumber('review', isGroup);
 
   useClinicSetupStepGuard('review', clinicProfile, isClinicProfileReady, isEditMode);
 
@@ -124,7 +132,7 @@ export default function ClinicReviewScreen() {
         subtitle="Confirm everything looks right before posting."
         onBack={() => router.back()}
       />
-      <SetupStepProgress step={5} total={5} />
+      <SetupStepProgress step={progress.step} total={progress.total} />
       <View style={styles.card}>
         <ReviewRow label="Clinic name" value={clinicProfile.clinic_name} />
         <ReviewRow label="Contact" value={clinicProfile.contact_name ?? ''} />
@@ -145,9 +153,11 @@ export default function ClinicReviewScreen() {
           value={getTeamSizeRangeLabel(clinicProfile.team_size_range) ?? ''}
         />
         <ReviewRow label="Software" value={clinicProfile.software_used.join(', ')} />
-        <ReviewRow
-          label="Doctors"
-          value={PracticeDoctorReviewValue({ doctors: clinicProfile.practice_doctors ?? [] })}
+        <PracticeDoctorReviewSection
+          doctors={clinicProfile.practice_doctors ?? []}
+          locations={locations
+            .filter((location) => location.is_active)
+            .map((location) => ({ id: location.id, name: location.name }))}
         />
         <ReviewRow label="Description" value={clinicProfile.description ?? ''} />
       </View>

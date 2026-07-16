@@ -35,6 +35,7 @@ import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -57,6 +58,7 @@ export default function ClinicPostingsScreen() {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const { user } = useAuth();
+  const { clinicId, scopedLocationIds } = useClinicActingContext();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
     useClinicUpgradePrompt();
@@ -129,7 +131,7 @@ export default function ClinicPostingsScreen() {
   };
 
   const load = useCallback(async () => {
-    if (!user?.id) {
+    if (!clinicId) {
       setJobs([]);
       setIsLoading(false);
       return;
@@ -138,8 +140,8 @@ export default function ClinicPostingsScreen() {
     setIsLoading(true);
     try {
       const [jobPosts, counts] = await Promise.all([
-        listJobPosts(user.id),
-        getJobPostApplicationCountsMap(user.id),
+        listJobPosts(clinicId, { locationIds: scopedLocationIds }),
+        getJobPostApplicationCountsMap(clinicId),
       ]);
       setJobs(jobPosts);
       setApplicantCounts(counts);
@@ -154,7 +156,7 @@ export default function ClinicPostingsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, refreshBilling]);
+  }, [clinicId, refreshBilling, scopedLocationIds]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);
@@ -278,7 +280,7 @@ export default function ClinicPostingsScreen() {
                       manage={
                         user?.id
                           ? {
-                              clinicId: user.id,
+                              clinicId: clinicId ?? user.id,
                               onUpdated: handleJobUpdated,
                               onDeleted: () => handleJobDeleted(job.id),
                             }

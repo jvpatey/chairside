@@ -31,6 +31,7 @@ Optional overrides:
 - `EXPO_PUBLIC_PINGRAM_API_HOST` — defaults to `api.ca.pingram.io`
 - `EXPO_PUBLIC_PINGRAM_WS_HOST` — defaults to `ws.ca.pingram.io`
 - `EXPO_PUBLIC_PINGRAM_ENVIRONMENT_ID` — explicit environment ID if not using `PINGRAM_CLIENT_ID`
+- `EXPO_PUBLIC_CLINIC_GROUPS_ENABLED` — set to `0`/`false` to disable clinic groups (see [docs/CLINIC_GROUPS.md](docs/CLINIC_GROUPS.md))
 
 Start the dev server:
 

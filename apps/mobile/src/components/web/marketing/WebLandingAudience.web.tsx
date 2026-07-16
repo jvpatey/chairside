@@ -5,7 +5,7 @@ import { Pressable, Text, type TextStyle, View } from 'react-native';
 import { ChairsideBrandText } from '@/components/brand/ChairsideWordmark';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
 import {
   webHover,
   webLinkUnderline,
@@ -28,7 +28,11 @@ const AUDIENCES = [
     accent: 'primary' as const,
     title: 'For clinics',
     subtitle: 'Fill chairs faster',
-    points: ['Post roles and same-day fill-ins', 'Screen, message, and hire in one place'],
+    points: [
+      'Post roles and same-day fill-ins',
+      'Screen, message, and hire in one place',
+      'One clinic or a multi-location group with managers',
+    ],
     cta: 'Start hiring',
   },
   {
@@ -37,7 +41,11 @@ const AUDIENCES = [
     accent: 'secondary' as const,
     title: 'For professionals',
     subtitle: 'Find work on your terms',
-    points: ['Browse shifts and apply in one tap', 'Signal availability and get discovered'],
+    points: [
+      'Browse permanent roles and fill-in shifts',
+      'Signal availability and get discovered',
+      'Get alerts when nearby shifts open',
+    ],
     cta: 'Find work',
   },
 ] as const;
@@ -347,16 +355,9 @@ function AudienceGrid() {
 }
 
 export function WebLandingAudience() {
-  const { colors } = useTheme();
-
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    section: {
-      paddingHorizontal: spacing.lg,
+    bleed: {
       paddingVertical: spacing.xl * 2.5,
-      maxWidth: CONTENT_MAX_WIDTH.xwide,
-      width: '100%' as const,
-      alignSelf: 'center' as const,
-      position: 'relative' as const,
       overflow: 'hidden' as const,
     },
     atmosphere: {
@@ -371,10 +372,6 @@ export function WebLandingAudience() {
           ? 'radial-gradient(ellipse 50% 45% at 15% 55%, rgba(74, 154, 255, 0.08) 0%, transparent 60%), radial-gradient(ellipse 50% 45% at 85% 55%, rgba(152, 150, 255, 0.08) 0%, transparent 60%)'
           : 'radial-gradient(ellipse 50% 45% at 15% 55%, rgba(26, 111, 212, 0.06) 0%, transparent 60%), radial-gradient(ellipse 50% 45% at 85% 55%, rgba(88, 86, 214, 0.06) 0%, transparent 60%)',
       } as object),
-    },
-    inner: {
-      position: 'relative' as const,
-      zIndex: 1,
     },
     header: {
       gap: spacing.sm,
@@ -398,16 +395,15 @@ export function WebLandingAudience() {
   }));
 
   return (
-    <View style={styles.section}>
-      <View style={styles.atmosphere} />
-      <View style={styles.inner}>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>Built for both sides</Text>
-          <Text style={styles.title}>One platform, two audiences</Text>
-        </View>
-
-        <AudienceGrid />
+    <WebMarketingSection
+      style={styles.bleed}
+      atmosphere={<View style={styles.atmosphere} />}>
+      <View style={styles.header}>
+        <Text style={styles.eyebrow}>Built for both sides</Text>
+        <Text style={styles.title}>One platform, two audiences</Text>
       </View>
-    </View>
+
+      <AudienceGrid />
+    </WebMarketingSection>
   );
 }

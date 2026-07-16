@@ -101,13 +101,36 @@ export function getClinicAboutSubtitle(profile: ClinicProfile | null): string {
   return 'Add description and website';
 }
 
+export function getClinicMemberProfileSubtitle(input: {
+  displayName?: string | null;
+  title?: string | null;
+  hasPhoto?: boolean;
+  hasBio?: boolean;
+}): string {
+  const name = input.displayName?.trim();
+  const title = input.title?.trim();
+  if (!name) return 'Add your name, photo, and bio';
+  const extras: string[] = [];
+  if (input.hasPhoto) extras.push('photo');
+  if (input.hasBio) extras.push('bio');
+  if (title && extras.length > 0) return `${title} · ${extras.join(' + ')}`;
+  if (title) return title;
+  if (extras.length > 0) return extras.map((item) => item[0]!.toUpperCase() + item.slice(1)).join(' + ');
+  return 'Add a photo and bio';
+}
+
 export function getClinicMessagingSubtitle(profile: ClinicProfile | null): string {
   return profile?.accepts_general_candidate_messages
     ? 'Candidates can message you'
     : "Candidates can't message you";
 }
 
-export function getClinicNotificationsSubtitle(): string {
+export function getClinicNotificationsSubtitle(options?: {
+  isGroupOwner?: boolean;
+}): string {
+  if (options?.isGroupOwner) {
+    return 'Mute apps & messages when managers handle day-to-day';
+  }
   return 'Manage push alerts';
 }
 

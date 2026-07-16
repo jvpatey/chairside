@@ -25,8 +25,10 @@ import {
   formatApplicantCountLabelWithNew,
 } from '@/components/ui/CountBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 import { formatPostedDateLabel } from '@/lib/dates';
@@ -60,13 +62,18 @@ export function DashboardHero({ clinicName, showActions = true }: DashboardHeroP
 
 export function ClinicDashboardHeaderActions({ clinicName }: { clinicName?: string | null }) {
   const { logoUri } = useClinicLogo();
+  const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
+  const { isGroup, membership } = useClinicProfile();
+  const { profile } = useAuth();
+  const personName =
+    membership?.display_name?.trim() || profile?.display_name?.trim() || clinicName;
 
   return (
     <DashboardHeroActions
       profileHref={CLINIC_PROFILE}
-      avatarKind="clinic"
-      displayName={clinicName}
-      photoUri={logoUri}
+      avatarKind={isGroup ? 'worker' : 'clinic'}
+      displayName={isGroup ? personName : clinicName}
+      photoUri={isGroup ? memberPhotoUri : logoUri}
     />
   );
 }

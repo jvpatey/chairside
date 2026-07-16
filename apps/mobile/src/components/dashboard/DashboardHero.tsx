@@ -11,7 +11,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
 import {
@@ -37,7 +37,14 @@ type DashboardHeroProps = {
   photoUri?: string | null;
   namePlaceholder: string;
   subtitle: string;
+  /** Muted identity meta on the subtitle line (e.g. "Owner"). */
+  identityLine?: string;
+  /** Optional first name for "Good afternoon, Sarah". */
+  greetingName?: string | null;
+  /** Static context chip (e.g. read-only label). Ignored when `contextSlot` is set. */
   contextLine?: string;
+  /** Interactive or custom context under the subtitle (e.g. location scope picker). */
+  contextSlot?: ReactNode;
   showActions?: boolean;
 };
 
@@ -57,7 +64,10 @@ export function DashboardHero({
   photoUri,
   namePlaceholder,
   subtitle,
+  identityLine,
+  greetingName,
   contextLine,
+  contextSlot,
   showActions = true,
 }: DashboardHeroProps) {
   const { colors, isDark } = useTheme();
@@ -102,10 +112,12 @@ export function DashboardHero({
     band: {
       borderRadius: radii.hero,
       overflow: 'hidden',
-      borderWidth: Platform.OS === 'web' ? 1 : 0,
-      borderColor: colorWithAlpha(colors.primary, isDark ? 0.22 : 0.12),
+      borderWidth: 0,
+      backgroundColor: 'transparent',
       position: 'relative' as const,
-      ...elevation('subtle'),
+      // Native keeps a soft lift; web shadow draws a hard card silhouette that
+      // fights the gradient’s transparent bottom fade into the page background.
+      ...(Platform.OS === 'web' ? null : elevation('subtle')),
       ...(overlayActions
         ? null
         : {
@@ -147,7 +159,11 @@ export function DashboardHero({
     identity: {
       flex: 1,
       minWidth: 0,
-      gap: spacing.xs,
+      gap: spacing.xs + 2,
+    },
+    // Shared rhythm for greeting → name → meta (Pressable has no gap of its own).
+    identityStack: {
+      gap: spacing.xs + 2,
     },
     identityPressed: {
       opacity: 0.85,
@@ -196,36 +212,50 @@ export function DashboardHero({
     router.push(profileHref);
   };
 
-  const identityBody = (
-    <>
+  const hasContext = Boolean(contextSlot) || Boolean(contextLine);
+  const trimmedIdentity = identityLine?.trim() || null;
+
+  const contextContent = contextSlot ? (
+    <View style={styles.contextRow}>{contextSlot}</View>
+  ) : contextLine ? (
+    <View style={styles.contextRow}>
+      <View style={styles.chip}>
+        <Text style={styles.chipLabel}>{contextLine}</Text>
+      </View>
+    </View>
+  ) : null;
+
+  const identityCore = (
+    <View style={styles.identityStack}>
       <Text style={styles.greeting} accessibilityRole="text">
-        {getTimeOfDayGreeting()}
+        {getTimeOfDayGreeting(greetingName)}
       </Text>
       <DashboardHeroName displayName={displayName} namePlaceholder={namePlaceholder} />
       <DashboardHeroSubtitle
         subtitle={subtitle}
-        trailing={contextLine ? undefined : formatDashboardDate()}
+        detail={trimmedIdentity}
+        trailing={hasContext || trimmedIdentity ? undefined : formatDashboardDate()}
       />
-      {contextLine ? (
-        <View style={styles.contextRow}>
-          <View style={styles.chip}>
-            <Text style={styles.chipLabel}>{contextLine}</Text>
-          </View>
-        </View>
-      ) : null}
-    </>
+    </View>
   );
 
+  // Keep interactive context outside the profile Pressable so nested buttons work.
   const identity = heroOpensProfile ? (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Open profile"
-      onPress={openProfile}
-      style={({ pressed }) => [styles.identity, pressed && styles.identityPressed]}>
-      {identityBody}
-    </Pressable>
+    <View style={styles.identity}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open profile"
+        onPress={openProfile}
+        style={({ pressed }) => [pressed && styles.identityPressed]}>
+        {identityCore}
+      </Pressable>
+      {contextContent}
+    </View>
   ) : (
-    <View style={styles.identity}>{identityBody}</View>
+    <View style={styles.identity}>
+      {identityCore}
+      {contextContent}
+    </View>
   );
 
   return (

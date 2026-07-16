@@ -16,6 +16,8 @@ export type Profile = {
   updated_at: string;
 };
 
+export type ClinicAccountType = 'individual' | 'group';
+
 export type ClinicProfileRow = {
   id: string;
   clinic_name: string;
@@ -39,6 +41,8 @@ export type ClinicProfileRow = {
   setup_completed_at: string | null;
   accepts_general_candidate_messages: boolean;
   practice_doctors: PracticeDoctor[];
+  account_type: ClinicAccountType;
+  organization_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -46,6 +50,11 @@ export type ClinicProfileRow = {
 export type JobPostRow = {
   id: string;
   clinic_id: string;
+  organization_id: string | null;
+  location_id: string | null;
+  posted_by_membership_id: string | null;
+  posted_by_display_name: string | null;
+  posted_by_title: string | null;
   role_type: string;
   employment_type: string;
   title: string;
@@ -67,6 +76,11 @@ export type JobPostRow = {
 export type ShiftPostRow = {
   id: string;
   clinic_id: string;
+  organization_id: string | null;
+  location_id: string | null;
+  posted_by_membership_id: string | null;
+  posted_by_display_name: string | null;
+  posted_by_title: string | null;
   role_type: string;
   shift_date: string;
   start_time: string;
@@ -236,10 +250,111 @@ export type Database = {
           setup_completed_at?: string | null;
           accepts_general_candidate_messages?: boolean;
           practice_doctors?: PracticeDoctor[];
+          account_type?: ClinicAccountType;
+          organization_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['clinic_profiles']['Insert']>;
+        Relationships: [];
+      };
+      clinic_organizations: {
+        Row: {
+          id: string;
+          account_type: ClinicAccountType;
+          name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          account_type?: ClinicAccountType;
+          name?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['clinic_organizations']['Insert']>;
+        Relationships: [];
+      };
+      clinic_locations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          address_line1: string | null;
+          address_line2: string | null;
+          city: string | null;
+          province: string;
+          postal_code: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          phone: string | null;
+          contact_name: string | null;
+          specialty: string;
+          software_used: string[];
+          operatories_count: number | null;
+          team_size_range: string | null;
+          logo_storage_path: string | null;
+          logo_uploaded_at: string | null;
+          is_primary: boolean;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      clinic_memberships: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          role: 'owner' | 'manager';
+          display_name: string | null;
+          title: string | null;
+          status: 'active' | 'removed';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      clinic_member_location_assignments: {
+        Row: {
+          membership_id: string;
+          location_id: string;
+          created_at: string;
+        };
+        Insert: {
+          membership_id: string;
+          location_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['clinic_member_location_assignments']['Insert']>;
+        Relationships: [];
+      };
+      clinic_invitations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          email: string;
+          display_name: string | null;
+          title: string | null;
+          role: 'manager';
+          token: string;
+          location_ids: string[];
+          status: 'pending' | 'accepted' | 'revoked' | 'expired';
+          invited_by_user_id: string | null;
+          expires_at: string;
+          accepted_by_user_id: string | null;
+          accepted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
         Relationships: [];
       };
       job_posts: {
@@ -577,6 +692,48 @@ export type Database = {
           p_provider_customer_id?: string | null;
         };
         Returns: Database['public']['Tables']['clinic_subscriptions']['Row'];
+      };
+      get_clinic_organization_id_for_user: {
+        Args: { p_user_id?: string };
+        Returns: string | null;
+      };
+      create_clinic_manager_invitation: {
+        Args: {
+          p_organization_id: string;
+          p_email: string;
+          p_display_name?: string | null;
+          p_title?: string | null;
+          p_location_ids?: string[];
+          p_expires_in_hours?: number;
+        };
+        Returns: Database['public']['Tables']['clinic_invitations']['Row'];
+      };
+      preview_clinic_manager_invitation: {
+        Args: { p_token: string };
+        Returns: Record<string, unknown>;
+      };
+      resend_clinic_manager_invitation: {
+        Args: { p_invitation_id: string };
+        Returns: Database['public']['Tables']['clinic_invitations']['Row'];
+      };
+      accept_clinic_manager_invitation: {
+        Args: { p_token: string };
+        Returns: Database['public']['Tables']['clinic_memberships']['Row'];
+      };
+      revoke_clinic_manager_invitation: {
+        Args: { p_invitation_id: string };
+        Returns: undefined;
+      };
+      remove_clinic_manager: {
+        Args: { p_membership_id: string };
+        Returns: undefined;
+      };
+      transfer_clinic_organization_ownership: {
+        Args: {
+          p_organization_id: string;
+          p_new_owner_membership_id: string;
+        };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

@@ -59,6 +59,36 @@ describe('buildThreadListItems', () => {
     expect(messageItems[1]?.type === 'message' && messageItems[1].groupedWithPrevious).toBe(true);
   });
 
+  it('treats manager and owner sends as the same clinic side', () => {
+    const items = buildThreadListItems(
+      [
+        makeMessage({
+          id: '1',
+          sender_id: 'manager-1',
+          created_at: '2026-06-26T12:00:00.000Z',
+        }),
+        makeMessage({
+          id: '2',
+          sender_id: 'owner-1',
+          created_at: '2026-06-26T12:01:00.000Z',
+        }),
+        makeMessage({
+          id: '3',
+          sender_id: 'worker-1',
+          created_at: '2026-06-26T12:02:00.000Z',
+        }),
+      ],
+      'owner-1',
+      { role: 'clinic', workerId: 'worker-1' },
+    );
+
+    const messageItems = items.filter((item) => item.type === 'message');
+    expect(messageItems[0]?.type === 'message' && messageItems[0].isOwn).toBe(true);
+    expect(messageItems[1]?.type === 'message' && messageItems[1].isOwn).toBe(true);
+    expect(messageItems[1]?.type === 'message' && messageItems[1].groupedWithPrevious).toBe(true);
+    expect(messageItems[2]?.type === 'message' && messageItems[2].isOwn).toBe(false);
+  });
+
   it('does not group messages on different calendar days', () => {
     expect(
       areThreadMessagesGrouped(
@@ -229,6 +259,19 @@ describe('formatInboxPreviewText', () => {
       'worker-1',
     );
     expect(preview).toBe('You: Sounds good');
+  });
+
+  it('prefixes clinic-side last messages with You for manager viewers', () => {
+    const preview = formatInboxPreviewText(
+      makeConversation({
+        worker_id: 'worker-1',
+        last_sender_id: 'owner-1',
+        last_message_preview: 'See you Monday',
+      }),
+      'manager-1',
+      { role: 'clinic', workerId: 'worker-1' },
+    );
+    expect(preview).toBe('You: See you Monday');
   });
 });
 

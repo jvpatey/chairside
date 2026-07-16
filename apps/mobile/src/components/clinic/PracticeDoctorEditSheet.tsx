@@ -8,7 +8,7 @@ import {
   deletePracticeDoctorPhoto,
   uploadPracticeDoctorPhotoFromBase64,
 } from '@chairside/api';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -23,7 +23,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PracticeDoctorFormFields } from '@/components/clinic/PracticeDoctorFormFields';
+import {
+  PracticeDoctorFormFields,
+  type PracticeDoctorLocationOption,
+} from '@/components/clinic/PracticeDoctorFormFields';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { usePracticeDoctorPhotoUri } from '@/hooks/usePracticeDoctorPhotoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
@@ -35,6 +38,8 @@ type PracticeDoctorEditSheetProps = {
   doctor: PracticeDoctor | null;
   clinicId: string | undefined;
   allDoctors: PracticeDoctor[];
+  locationOptions?: PracticeDoctorLocationOption[];
+  requireLocationAssignment?: boolean;
   onClose: () => void;
   onSave: (doctor: PracticeDoctor) => void;
   onRemove: (doctor: PracticeDoctor) => void;
@@ -45,6 +50,8 @@ export function PracticeDoctorEditSheet({
   doctor,
   clinicId,
   allDoctors,
+  locationOptions = [],
+  requireLocationAssignment = false,
   onClose,
   onSave,
   onRemove,
@@ -54,11 +61,17 @@ export function PracticeDoctorEditSheet({
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
   const [bio, setBio] = useState('');
+  const [locationIds, setLocationIds] = useState<string[]>([]);
   const [photoPreviewUri, setPhotoPreviewUri] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [photoContentType, setPhotoContentType] = useState<string | null>(null);
   const [photoStoragePath, setPhotoStoragePath] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const validLocationIds = useMemo(
+    () => new Set(locationOptions.map((option) => option.value)),
+    [locationOptions],
+  );
 
   useEffect(() => {
     if (!visible || !doctor) return;
@@ -66,11 +79,14 @@ export function PracticeDoctorEditSheet({
     setName(doctor.name);
     setTitle(doctor.title ?? '');
     setBio(doctor.bio ?? '');
+    setLocationIds(
+      (doctor.location_ids ?? []).filter((id) => validLocationIds.has(id) || locationOptions.length === 0),
+    );
     setPhotoPreviewUri(null);
     setPhotoBase64(null);
     setPhotoContentType(null);
     setPhotoStoragePath(doctor.photo_storage_path);
-  }, [doctor, visible]);
+  }, [doctor, visible, validLocationIds, locationOptions.length]);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     root: {
@@ -141,12 +157,18 @@ export function PracticeDoctorEditSheet({
       return;
     }
 
+    if (requireLocationAssignment && locationOptions.length > 0 && locationIds.length === 0) {
+      Alert.alert('Select a location', 'Choose at least one location where this doctor works.');
+      return;
+    }
+
     const candidate = createPracticeDoctor({
       id: doctor.id,
       name: trimmedName,
       title: title.trim() || null,
       bio,
       photo_storage_path: photoStoragePath,
+      location_ids: locationIds,
     });
 
     if (isDuplicatePracticeDoctor(allDoctors, candidate, doctor.id)) {
@@ -203,7 +225,10 @@ export function PracticeDoctorEditSheet({
   };
 
   const displayPhotoUri = photoPreviewUri ?? storedPhotoUri;
-  const canSave = name.trim().length > 0 && !isSaving;
+  const canSave =
+    name.trim().length > 0 &&
+    !isSaving &&
+    (!requireLocationAssignment || locationOptions.length === 0 || locationIds.length > 0);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
@@ -235,6 +260,9 @@ export function PracticeDoctorEditSheet({
               bio={bio}
               photoUri={displayPhotoUri}
               isPhotoLoading={isSaving}
+              locationOptions={locationOptions}
+              selectedLocationIds={locationIds}
+              onLocationIdsChange={setLocationIds}
               onPickPhoto={() => void handlePickPhoto()}
               onNameChange={setName}
               onTitleChange={setTitle}

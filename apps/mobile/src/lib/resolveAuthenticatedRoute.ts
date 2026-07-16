@@ -1,6 +1,9 @@
 import {
   getClinicProfile,
+  getClinicProfileByOrganizationId,
+  getClinicWorkspace,
   getWorkerProfile,
+  isClinicGroupsEnabled,
   resolveAuthProfile,
   type Profile,
   type UserRole,
@@ -8,6 +11,7 @@ import {
 import type { Href } from 'expo-router';
 
 import {
+  CLINIC_SETUP_ACCOUNT_TYPE,
   CLINIC_SETUP_BASICS,
   getHomeRouteForRole,
   WORKER_SETUP_BASICS,
@@ -29,8 +33,28 @@ type ResolveAuthenticatedRouteResult = {
 
 async function resolveHomeRouteForRole(userId: string, role: UserRole): Promise<Href> {
   if (role === 'clinic') {
+    if (isClinicGroupsEnabled()) {
+      const workspace = await getClinicWorkspace(userId);
+      if (workspace) {
+        const clinicProfile = await getClinicProfileByOrganizationId(workspace.organization.id);
+        if (workspace.membership.role === 'manager') {
+          return getHomeRouteForRole('clinic');
+        }
+        if (!isClinicSetupComplete(clinicProfile)) {
+          if (!clinicProfile?.account_type) {
+            return CLINIC_SETUP_ACCOUNT_TYPE;
+          }
+          return CLINIC_SETUP_BASICS;
+        }
+        return getHomeRouteForRole('clinic');
+      }
+    }
+
     const clinicProfile = await getClinicProfile(userId);
     if (!isClinicSetupComplete(clinicProfile)) {
+      if (isClinicGroupsEnabled() && !clinicProfile) {
+        return CLINIC_SETUP_ACCOUNT_TYPE;
+      }
       return CLINIC_SETUP_BASICS;
     }
     return getHomeRouteForRole('clinic');

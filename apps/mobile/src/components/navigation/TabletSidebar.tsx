@@ -8,6 +8,7 @@ import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
@@ -16,6 +17,8 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
+import { getClinicMembershipRoleLabel } from '@/hooks/useClinicActingContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
@@ -111,7 +114,17 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { profile } = useAuth();
   const { photoUri } = useProfilePhoto();
   const { logoUri } = useClinicLogo();
-  const { clinicProfile } = useClinicProfile();
+  const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
+  const {
+    clinicProfile,
+    isGroup,
+    organization,
+    membership,
+    isOwner,
+    accessibleLocations,
+  } = useClinicProfile();
+  const showGroupLocationScope =
+    role === 'clinic' && isGroup && accessibleLocations.length > 0;
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
 
@@ -124,6 +137,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       backgroundColor: 'transparent',
       minHeight: 0,
       position: 'relative',
+      overflow: 'visible',
     },
     glassPanel: {
       flex: 1,
@@ -184,15 +198,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       alignItems: 'center',
       paddingBottom: spacing.sm,
     },
-    sidebarToggleAnchor: {
-      position: 'absolute',
-      right: spacing.md,
-      top: 0,
-      bottom: 0,
-      width: 28,
-      justifyContent: 'center',
+    profileToggleAlone: {
+      alignItems: 'flex-end',
+      marginTop: spacing.xs,
+      paddingRight: 2,
+    },
+    profileToggleAloneCollapsed: {
       alignItems: 'center',
-      zIndex: 3,
+      marginTop: spacing.xs,
     },
     nav: {
       flex: 1,
@@ -334,13 +347,29 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const profileHref = role === 'worker' ? WORKER_PROFILE : CLINIC_PROFILE;
   const isProfileActive = pathname.includes('/profile');
 
+  const clinicGroupName =
+    organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || null;
+  const clinicMemberName =
+    membership?.display_name?.trim() || profile?.display_name?.trim() || null;
+  const clinicRoleLabel = isGroup
+    ? getClinicMembershipRoleLabel(membership?.role, isOwner)
+    : null;
+  // Groups: person-first. Individuals/workers unchanged.
   const profileName =
-    role === 'worker' ? profile?.display_name : clinicProfile?.clinic_name?.trim() || null;
+    role === 'worker'
+      ? profile?.display_name
+      : isGroup
+        ? clinicMemberName
+        : clinicProfile?.clinic_name?.trim() || null;
   const profileSubtitle =
     role === 'worker'
       ? (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
         'Dental professional'
-      : 'Dental Clinic';
+      : isGroup
+        ? clinicGroupName || 'Dental group'
+        : 'Dental Clinic';
+  const profileMeta =
+    role === 'clinic' && isGroup ? clinicRoleLabel : null;
 
   const handleToggleCollapse = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -496,15 +525,36 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           >
             <SidebarProfileHeader
               href={profileHref}
-              avatarKind={role === 'worker' ? 'worker' : 'clinic'}
+              avatarKind={
+                role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic'
+              }
               displayName={profileName}
-              photoUri={role === 'worker' ? photoUri : logoUri}
+              photoUri={
+                role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri
+              }
               subtitle={profileSubtitle}
+              meta={profileMeta}
               collapsed={isCollapsed}
               avatarSize={isCollapsed ? COLLAPSED_AVATAR_SIZE : undefined}
             />
           </View>
         </View>
+        {showGroupLocationScope ? (
+          <View style={{ marginTop: isCollapsed ? 4 : 8 }}>
+            <ClinicLocationScopeSwitcher
+              variant="sidebar"
+              collapsed={isCollapsed}
+              endAccessory={collapseToggle}
+            />
+          </View>
+        ) : (
+          <View
+            style={
+              isCollapsed ? styles.profileToggleAloneCollapsed : styles.profileToggleAlone
+            }>
+            {collapseToggle}
+          </View>
+        )}
       </View>
 
       <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
@@ -583,9 +633,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         >
           <View style={[styles.sidebarWebInner, panelPadding]}>{sidebarContent}</View>
         </LiquidGlassSurface>
-        <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
-          {collapseToggle}
-        </View>
       </View>
     );
   }
@@ -593,9 +640,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   return (
     <View style={[panelPadding, styles.sidebarShell, { backgroundColor: 'transparent' }]}>
       {sidebarContent}
-      <View style={styles.sidebarToggleAnchor} pointerEvents="box-none">
-        {collapseToggle}
-      </View>
     </View>
   );
 }

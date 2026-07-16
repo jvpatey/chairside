@@ -24,13 +24,15 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { validateClinicPracticeStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicPracticeScreen() {
-  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, isGroup } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
+  const progress = getClinicSetupStepNumber('practice', isGroup);
   const [specialty, setSpecialty] = useState<ClinicSpecialty>('general');
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
   const [operatories, setOperatories] = useState('');
@@ -112,7 +114,7 @@ export default function ClinicPracticeScreen() {
         subtitle="Help candidates understand your clinic."
         onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       />
-      {!isEditMode ? <SetupStepProgress step={3} total={5} /> : null}
+      {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
       <View style={styles.form}>
         <View style={styles.section}>
           <Text style={styles.label}>Specialty</Text>

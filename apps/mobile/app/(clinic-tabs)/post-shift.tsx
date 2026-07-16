@@ -24,6 +24,7 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { todayISO } from '@/lib/dates';
 import {
@@ -49,6 +50,13 @@ function applyShiftToForm(shift: ShiftPost) {
 
 export default function PostShiftScreen() {
   const { user } = useAuth();
+  const {
+    clinicId,
+    accessibleLocations,
+    isGroup,
+    attribution,
+    attributionLabel,
+  } = useClinicActingContext();
   const { billing, upgradePrompt, showPublishUpgrade, handleBillingError } = useClinicUpgradePrompt();
   const { colors } = useTheme();
   const brandColor = colors.secondary;
@@ -68,6 +76,11 @@ export default function PostShiftScreen() {
   const [endTime, setEndTime] = useState('');
   const [compensation, setCompensation] = useState('');
   const [description, setDescription] = useState('');
+  const [locationId, setLocationId] = useState<string | null>(
+    accessibleLocations.find((location) => location.is_primary)?.id ??
+      accessibleLocations[0]?.id ??
+      null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [formKey, setFormKey] = useState(0);
@@ -88,6 +101,7 @@ export default function PostShiftScreen() {
       fontWeight: '600',
     },
     loading: typography.subtitle,
+    helper: typography.subtitle,
     notice: {
       backgroundColor: brandSubtle,
       borderRadius: 16,
@@ -131,7 +145,7 @@ export default function PostShiftScreen() {
 
     setIsLoading(true);
     try {
-      const shift = await getShiftPost(user.id, shiftId);
+      const shift = await getShiftPost(clinicId ?? user.id, shiftId);
       if (!shift) {
         const message = 'This shift may have been removed.';
         setFormError(message);
@@ -149,6 +163,7 @@ export default function PostShiftScreen() {
       setEndTime(form.endTime);
       setCompensation(form.compensation);
       setDescription(form.description);
+      setLocationId(shift.location_id ?? null);
       setFormKey((current) => current + 1);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please try again.';
@@ -160,15 +175,24 @@ export default function PostShiftScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [handleBack, shiftId, user?.id]);
+  }, [clinicId, handleBack, shiftId, user?.id]);
 
   useEffect(() => {
     void loadShift();
   }, [loadShift]);
 
   const handleSubmit = async () => {
-    if (!user?.id || !shiftDate.trim()) {
+    if (!user?.id || !clinicId || !shiftDate.trim()) {
       const message = 'Select a shift date to continue.';
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Missing information', message);
+      }
+      return;
+    }
+
+    if (isGroup && !locationId) {
+      const message = 'Choose which location this fill-in is for.';
       setFormError(message);
       if (Platform.OS !== 'web') {
         Alert.alert('Missing information', message);
@@ -213,12 +237,15 @@ export default function PostShiftScreen() {
       };
 
       if (isEditing && shiftId) {
-        await updateShiftPost(user.id, shiftId, payload);
+        await updateShiftPost(clinicId, shiftId, payload);
         navigateAfterFillInSave(router, returnTo);
       } else {
-        await createShiftPost(user.id, {
+        await createShiftPost(clinicId, {
           ...payload,
           status: 'live',
+          organization_id: clinicId,
+          location_id: locationId,
+          ...attribution,
         });
         navigateAfterFillInSave(router, returnTo);
       }
@@ -266,6 +293,24 @@ export default function PostShiftScreen() {
         />
 
         <FormErrorBanner message={formError} />
+
+        {isGroup ? (
+          <View style={styles.section}>
+            <Text style={styles.label}>Location</Text>
+            <ChipSelector
+              options={accessibleLocations.map((location) => ({
+                value: location.id,
+                label: location.name,
+              }))}
+              selected={locationId}
+              onChange={(value) => setLocationId(value as string)}
+              accent={FILL_IN_ACCENT}
+            />
+            {attributionLabel ? (
+              <Text style={styles.helper}>Will show as posted by {attributionLabel}</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.label}>Role type</Text>

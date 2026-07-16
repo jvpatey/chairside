@@ -11,13 +11,14 @@ import { readFileAsBase64 } from '@/lib/readFileAsBase64';
 
 export function useClinicLogo() {
   const { user } = useAuth();
-  const { clinicProfile, refreshClinicProfile } = useClinicProfile();
+  const { clinicId, clinicProfile, refreshClinicProfile } = useClinicProfile();
   const storagePath = clinicProfile?.logo_storage_path;
   const logoUri = useClinicLogoUri(storagePath);
   const [isUploading, setIsUploading] = useState(false);
+  const ownerClinicId = clinicId ?? user?.id;
 
   const pickLogo = async () => {
-    if (!user?.id) return;
+    if (!ownerClinicId) return;
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -45,7 +46,7 @@ export function useClinicLogo() {
         Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
       );
       await uploadClinicLogoFromBase64(
-        user.id,
+        ownerClinicId,
         base64,
         asset.mimeType ?? 'image/jpeg',
         clinicProfile?.logo_storage_path,
@@ -62,7 +63,7 @@ export function useClinicLogo() {
   };
 
   const removeLogo = async () => {
-    if (!user?.id || !storagePath) return;
+    if (!ownerClinicId || !storagePath) return;
 
     showConfirmActionSheet({
       title: 'Remove logo',
@@ -72,7 +73,7 @@ export function useClinicLogo() {
       onConfirm: async () => {
         setIsUploading(true);
         try {
-          await deleteClinicLogo(user.id, storagePath);
+          await deleteClinicLogo(ownerClinicId, storagePath);
           await refreshClinicProfile();
         } catch (error) {
           Alert.alert(

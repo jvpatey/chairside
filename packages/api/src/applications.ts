@@ -29,7 +29,12 @@ import {
   type ApplicationScreening,
   type ScreeningSubmissionInput,
 } from './screening';
-import { listJobPosts } from './posts';
+import {
+  isActiveLocationScope,
+  isEmptyLocationScope,
+  listJobPosts,
+  type ClinicLocationScopeOptions,
+} from './posts';
 
 export type ApplicationStatus =
   | 'screening_submitted'
@@ -375,13 +380,26 @@ export type ApplicationListVisibility = 'active' | 'archived';
 export async function listClinicApplications(
   clinicId: string,
   visibility: ApplicationListVisibility = 'active',
+  options?: ClinicLocationScopeOptions,
 ): Promise<ClinicApplication[]> {
   const supabase = getSupabaseClient();
+  if (isEmptyLocationScope(options?.locationIds)) return [];
 
-  const [jobsResult, shiftsResult] = await Promise.all([
-    supabase.from('job_posts').select('id, title, role_type').eq('clinic_id', clinicId),
-    supabase.from('shift_posts').select('id, role_type, shift_date').eq('clinic_id', clinicId),
-  ]);
+  let jobsQuery = supabase
+    .from('job_posts')
+    .select('id, title, role_type')
+    .eq('clinic_id', clinicId);
+  let shiftsQuery = supabase
+    .from('shift_posts')
+    .select('id, role_type, shift_date')
+    .eq('clinic_id', clinicId);
+
+  if (isActiveLocationScope(options?.locationIds)) {
+    jobsQuery = jobsQuery.in('location_id', options.locationIds);
+    shiftsQuery = shiftsQuery.in('location_id', options.locationIds);
+  }
+
+  const [jobsResult, shiftsResult] = await Promise.all([jobsQuery, shiftsQuery]);
 
   if (jobsResult.error) throw jobsResult.error;
   if (shiftsResult.error) throw shiftsResult.error;
@@ -835,13 +853,19 @@ export async function listWorkerShiftApplications(workerId: string): Promise<Wor
   return applications.filter((application) => application.post_type === 'shift');
 }
 
-export async function getClinicNewApplicationCount(clinicId: string): Promise<number> {
+export async function getClinicNewApplicationCount(
+  clinicId: string,
+  options?: ClinicLocationScopeOptions,
+): Promise<number> {
   const supabase = getSupabaseClient();
+  if (isEmptyLocationScope(options?.locationIds)) return 0;
 
-  const { data: jobs, error: jobsError } = await supabase
-    .from('job_posts')
-    .select('id')
-    .eq('clinic_id', clinicId);
+  let jobsQuery = supabase.from('job_posts').select('id').eq('clinic_id', clinicId);
+  if (isActiveLocationScope(options?.locationIds)) {
+    jobsQuery = jobsQuery.in('location_id', options.locationIds);
+  }
+
+  const { data: jobs, error: jobsError } = await jobsQuery;
 
   if (jobsError) throw jobsError;
 
@@ -957,12 +981,17 @@ export async function listWorkerAppliedJobPostIds(workerId: string): Promise<str
 
 export async function getJobPostApplicationCountsMap(
   clinicId: string,
+  options?: ClinicLocationScopeOptions,
 ): Promise<Record<string, number>> {
   const supabase = getSupabaseClient();
-  const { data: jobs, error: jobsError } = await supabase
-    .from('job_posts')
-    .select('id')
-    .eq('clinic_id', clinicId);
+  if (isEmptyLocationScope(options?.locationIds)) return {};
+
+  let jobsQuery = supabase.from('job_posts').select('id').eq('clinic_id', clinicId);
+  if (isActiveLocationScope(options?.locationIds)) {
+    jobsQuery = jobsQuery.in('location_id', options.locationIds);
+  }
+
+  const { data: jobs, error: jobsError } = await jobsQuery;
 
   if (jobsError) throw jobsError;
 
@@ -988,10 +1017,11 @@ export async function getJobPostApplicationCountsMap(
 
 export async function listJobApplicationSummaries(
   clinicId: string,
+  options?: ClinicLocationScopeOptions,
 ): Promise<JobApplicationSummary[]> {
   const [applications, jobPosts] = await Promise.all([
-    listClinicApplications(clinicId),
-    listJobPosts(clinicId),
+    listClinicApplications(clinicId, 'active', options),
+    listJobPosts(clinicId, options),
   ]);
   const postCreatedAt = new Map(jobPosts.map((job) => [job.id, job.created_at]));
   const summaries = new Map<string, JobApplicationSummary>();
@@ -1538,14 +1568,23 @@ export async function deleteConfirmedFillIn(
   return row;
 }
 
-export async function listFillInCoverRequests(clinicId: string): Promise<FillInCoverRequest[]> {
+export async function listFillInCoverRequests(
+  clinicId: string,
+  options?: ClinicLocationScopeOptions,
+): Promise<FillInCoverRequest[]> {
   const supabase = getSupabaseClient();
+  if (isEmptyLocationScope(options?.locationIds)) return [];
 
-  const { data: shifts, error: shiftsError } = await supabase
+  let shiftsQuery = supabase
     .from('shift_posts')
     .select('id, role_type, shift_date, start_time, end_time, status')
     .eq('clinic_id', clinicId)
     .eq('status', 'live');
+  if (isActiveLocationScope(options?.locationIds)) {
+    shiftsQuery = shiftsQuery.in('location_id', options.locationIds);
+  }
+
+  const { data: shifts, error: shiftsError } = await shiftsQuery;
 
   if (shiftsError) throw shiftsError;
   if (!shifts?.length) return [];
@@ -1604,15 +1643,19 @@ export async function listFillInCoverRequests(clinicId: string): Promise<FillInC
   return attachClinicCrmToApplications(clinicId, sorted);
 }
 
-export async function getFillInPendingCount(clinicId: string): Promise<number> {
-  const requests = await listFillInCoverRequests(clinicId);
+export async function getFillInPendingCount(
+  clinicId: string,
+  options?: ClinicLocationScopeOptions,
+): Promise<number> {
+  const requests = await listFillInCoverRequests(clinicId, options);
   return requests.filter((request) => isClinicNewFillInRequest(request)).length;
 }
 
 export async function getShiftPostPendingApplicationCountsMap(
   clinicId: string,
+  options?: ClinicLocationScopeOptions,
 ): Promise<Record<string, number>> {
-  const requests = await listFillInCoverRequests(clinicId);
+  const requests = await listFillInCoverRequests(clinicId, options);
   const counts: Record<string, number> = {};
   for (const request of requests) {
     if (!request.shift_post_id || !isClinicNewFillInRequest(request)) continue;
@@ -1623,13 +1666,20 @@ export async function getShiftPostPendingApplicationCountsMap(
 
 export async function listUpcomingConfirmedFillIns(
   clinicId: string,
+  options?: ClinicLocationScopeOptions,
 ): Promise<ConfirmedFillInSummary[]> {
   const supabase = getSupabaseClient();
+  if (isEmptyLocationScope(options?.locationIds)) return [];
 
-  const { data: shifts, error: shiftsError } = await supabase
+  let shiftsQuery = supabase
     .from('shift_posts')
     .select('id, shift_date, start_time, end_time')
     .eq('clinic_id', clinicId);
+  if (isActiveLocationScope(options?.locationIds)) {
+    shiftsQuery = shiftsQuery.in('location_id', options.locationIds);
+  }
+
+  const { data: shifts, error: shiftsError } = await shiftsQuery;
 
   if (shiftsError) throw shiftsError;
   if (!shifts?.length) return [];

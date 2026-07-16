@@ -5,8 +5,10 @@ import type { Href } from 'expo-router';
 
 import type { AddressFormValue } from '@/components/clinic/AddressAutocomplete';
 import {
+  CLINIC_SETUP_ABOUT,
   CLINIC_SETUP_BASICS,
   CLINIC_SETUP_LOCATION,
+  CLINIC_SETUP_LOCATIONS,
   CLINIC_SETUP_PRACTICE,
   WORKER_SETUP_BASICS,
   WORKER_SETUP_LOCATION,
@@ -107,6 +109,19 @@ export function getClinicSetupStepGuard(
 ): Href | null {
   if (step === 'basics') return null;
   if (!isClinicBasicsComplete(profile)) return CLINIC_SETUP_BASICS;
+
+  // Groups collect practice fields per location and skip the Practice step.
+  // Primary location syncs specialty/software onto clinic_profiles before About.
+  if (profile?.account_type === 'group') {
+    if (step === 'location' || step === 'practice') return CLINIC_SETUP_ABOUT;
+    if (step === 'about' || step === 'review') {
+      if (!isClinicLocationComplete(profile) || !isClinicPracticeComplete(profile)) {
+        return CLINIC_SETUP_LOCATIONS;
+      }
+    }
+    return null;
+  }
+
   if (step === 'location') return null;
   if (!isClinicLocationComplete(profile)) return CLINIC_SETUP_LOCATION;
   if (step === 'practice') return null;

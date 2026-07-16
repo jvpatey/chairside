@@ -20,6 +20,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { formatPostedDateLabel } from '@/lib/dates';
+import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type RolePostingCardManageProps = {
@@ -54,8 +55,20 @@ export function RolePostingCard({
   const featuredTreatment = useFeaturedListingTreatment();
   const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
-  const postedLabel = formatPostedDateLabel(job.created_at);
+  const locations = useClinicProfile().locations;
+  const locationRecord = locations.find((location) => location.id === job.location_id);
+  const location =
+    [locationRecord?.city ?? clinicProfile?.city, locationRecord?.province ?? clinicProfile?.province]
+      .filter(Boolean)
+      .join(', ') || null;
+  const locationName = locationRecord?.name;
+  const postedLabel =
+    buildPostedByLabel({
+      postedAt: job.created_at,
+      postedByDisplayName: job.posted_by_display_name,
+      postedByTitle: job.posted_by_title,
+      formatDateLabel: formatPostedDateLabel,
+    }) ?? formatPostedDateLabel(job.created_at);
   const roleMeta = formatJobPostRoleMeta(job);
   const hasApplicants = applicantCount > 0;
 
@@ -150,7 +163,7 @@ export function RolePostingCard({
           avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
           eyebrow={clinicName}
           title={job.title}
-          meta={location || null}
+          meta={[locationName, location].filter(Boolean).join(' · ') || null}
           postedLabel={postedLabel || null}
           postedLabelPlacement="header"
           headerDetail={roleMeta}
@@ -175,7 +188,7 @@ export function RolePostingCard({
           clinicName={clinicName}
           logoStoragePath={clinicProfile?.logo_storage_path}
           title={job.title}
-          location={location || null}
+          location={[locationName, location].filter(Boolean).join(' · ') || null}
           detail={roleMeta}
           postedLabel={postedLabel || null}
           textFooter={showApplicantPill ? undefined : (wageLabel ?? undefined)}

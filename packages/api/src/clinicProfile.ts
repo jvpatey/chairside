@@ -1,6 +1,7 @@
 import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
 import { normalizePracticeDoctors } from '@chairside/config';
 import { getSupabaseClient } from './client';
+import { throwWithMessage } from './errors';
 import type { Database } from './types';
 
 export type ClinicProfile = Database['public']['Tables']['clinic_profiles']['Row'];
@@ -10,6 +11,21 @@ export type ClinicProfileUpdate = Partial<
 > & {
   province?: string;
 };
+
+export async function getClinicProfileByOrganizationId(
+  organizationId: string,
+): Promise<ClinicProfile | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('clinic_profiles')
+    .select('*')
+    .or(`id.eq.${organizationId},organization_id.eq.${organizationId}`)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
 
 const VALID_SPECIALTIES: ClinicSpecialty[] = [
   'general',
@@ -120,6 +136,12 @@ export async function upsertClinicProfile(
   if (partial.practice_doctors !== undefined) {
     payload.practice_doctors = normalizePracticeDoctors(partial.practice_doctors);
   }
+  if (partial.account_type !== undefined) payload.account_type = partial.account_type;
+  if (partial.organization_id !== undefined) payload.organization_id = partial.organization_id;
+
+  if (payload.organization_id === undefined) {
+    payload.organization_id = userId;
+  }
 
   const { data, error } = await supabase
     .from('clinic_profiles')
@@ -127,7 +149,12 @@ export async function upsertClinicProfile(
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    throwWithMessage(error, 'Could not save clinic profile.');
+  }
+  if (!data) {
+    throw new Error('Could not save clinic profile.');
+  }
 
   if (partial.clinic_name?.trim()) {
     await supabase

@@ -10,7 +10,7 @@ import {
   uploadPracticeDoctorPhotoFromBase64,
 } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { PracticeDoctorEditSheet } from '@/components/clinic/PracticeDoctorEditSheet';
@@ -27,16 +27,35 @@ import {
 } from '@/lib/webPressableStyles';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
+export type PracticeDoctorLocation = {
+  id: string;
+  name: string;
+};
+
 type PracticeDoctorsInputProps = {
   value: PracticeDoctor[];
   onChange: (doctors: PracticeDoctor[]) => void;
+  locations?: PracticeDoctorLocation[];
 };
+
+function formatDoctorLocationNames(
+  doctor: PracticeDoctor,
+  locationsById: Map<string, string>,
+): string | null {
+  const names = (doctor.location_ids ?? [])
+    .map((id) => locationsById.get(id))
+    .filter((name): name is string => Boolean(name));
+  if (names.length === 0) return null;
+  return names.join(' · ');
+}
 
 function PracticeDoctorListItem({
   doctor,
+  locationLabel,
   onPress,
 }: {
   doctor: PracticeDoctor;
+  locationLabel: string | null;
   onPress: () => void;
 }) {
   const { colors } = useTheme();
@@ -109,6 +128,11 @@ function PracticeDoctorListItem({
             {doctor.title}
           </Text>
         ) : null}
+        {locationLabel ? (
+          <Text style={styles.itemTitle} numberOfLines={2}>
+            {locationLabel}
+          </Text>
+        ) : null}
         {doctor.bio ? (
           <Text style={styles.itemBio} numberOfLines={2}>
             {doctor.bio}
@@ -125,12 +149,17 @@ function PracticeDoctorListItem({
   );
 }
 
-export function PracticeDoctorsInput({ value, onChange }: PracticeDoctorsInputProps) {
+export function PracticeDoctorsInput({
+  value,
+  onChange,
+  locations = [],
+}: PracticeDoctorsInputProps) {
   const { user } = useAuth();
   const clinicId = user?.id;
   const [nameDraft, setNameDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
   const [bioDraft, setBioDraft] = useState('');
+  const [locationIdsDraft, setLocationIdsDraft] = useState<string[]>([]);
   const [draftDoctorId, setDraftDoctorId] = useState(() => newPracticeDoctorId());
   const [draftPhotoPreviewUri, setDraftPhotoPreviewUri] = useState<string | null>(null);
   const [draftPhotoBase64, setDraftPhotoBase64] = useState<string | null>(null);
@@ -139,6 +168,16 @@ export function PracticeDoctorsInput({ value, onChange }: PracticeDoctorsInputPr
   const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null);
 
   const editingDoctor = value.find((doctor) => doctor.id === editingDoctorId) ?? null;
+
+  const locationOptions = useMemo(
+    () => locations.map((location) => ({ value: location.id, label: location.name })),
+    [locations],
+  );
+  const locationsById = useMemo(
+    () => new Map(locations.map((location) => [location.id, location.name])),
+    [locations],
+  );
+  const requireLocationAssignment = locationOptions.length > 0;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -186,6 +225,7 @@ export function PracticeDoctorsInput({ value, onChange }: PracticeDoctorsInputPr
     setNameDraft('');
     setTitleDraft('');
     setBioDraft('');
+    setLocationIdsDraft([]);
     setDraftDoctorId(newPracticeDoctorId());
     setDraftPhotoPreviewUri(null);
     setDraftPhotoBase64(null);
@@ -212,11 +252,17 @@ export function PracticeDoctorsInput({ value, onChange }: PracticeDoctorsInputPr
       return;
     }
 
+    if (requireLocationAssignment && locationIdsDraft.length === 0) {
+      Alert.alert('Select a location', 'Choose at least one location where this doctor works.');
+      return;
+    }
+
     const candidate = createPracticeDoctor({
       id: draftDoctorId,
       name,
       title: title || null,
       bio: bioDraft,
+      location_ids: locationIdsDraft,
     });
 
     if (isDuplicatePracticeDoctor(value, candidate)) {
@@ -262,14 +308,19 @@ export function PracticeDoctorsInput({ value, onChange }: PracticeDoctorsInputPr
     onChange(value.map((doctor) => (doctor.id === nextDoctor.id ? nextDoctor : doctor)));
   };
 
-  const canAdd = nameDraft.trim().length > 0 && !isAddingDoctor;
+  const canAdd =
+    nameDraft.trim().length > 0 &&
+    !isAddingDoctor &&
+    (!requireLocationAssignment || locationIdsDraft.length > 0);
 
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
         <Text style={styles.label}>Doctors at your practice (optional)</Text>
         <Text style={styles.hint}>
-          Help candidates see who they would be working with. Add as many doctors as you like.
+          {requireLocationAssignment
+            ? 'Add doctors and assign the locations where they work. Shared doctors can select more than one.'
+            : 'Help candidates see who they would be working with. Add as many doctors as you like.'}
         </Text>
       </View>
 
@@ -280,6 +331,9 @@ export function PracticeDoctorsInput({ value, onChange }: PracticeDoctorsInputPr
           bio={bioDraft}
           photoUri={draftPhotoPreviewUri}
           isPhotoLoading={isAddingDoctor}
+          locationOptions={locationOptions}
+          selectedLocationIds={locationIdsDraft}
+          onLocationIdsChange={setLocationIdsDraft}
           onPickPhoto={() => void handlePickDraftPhoto()}
           onNameChange={setNameDraft}
           onTitleChange={setTitleDraft}
@@ -307,6 +361,7 @@ export function PracticeDoctorsInput({ value, onChange }: PracticeDoctorsInputPr
               <PracticeDoctorListItem
                 key={doctor.id}
                 doctor={doctor}
+                locationLabel={formatDoctorLocationNames(doctor, locationsById)}
                 onPress={() => setEditingDoctorId(doctor.id)}
               />
             ))}
@@ -321,6 +376,8 @@ export function PracticeDoctorsInput({ value, onChange }: PracticeDoctorsInputPr
         doctor={editingDoctor}
         clinicId={clinicId}
         allDoctors={value}
+        locationOptions={locationOptions}
+        requireLocationAssignment={requireLocationAssignment}
         onClose={() => setEditingDoctorId(null)}
         onSave={saveDoctor}
         onRemove={removeDoctor}

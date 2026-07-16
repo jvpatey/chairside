@@ -1,15 +1,18 @@
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 
 import { ClinicPracticeView } from '@/components/clinic/ClinicPracticeView';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { getSetupEditRoute } from '@/hooks/useSetupEditMode';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { navigateToClinicProfileHub } from '@/lib/routing';
+import { CLINIC_PROFILE_LOCATIONS, navigateToClinicProfileHub } from '@/lib/routing';
 
 export default function ClinicProfilePracticeScreen() {
-  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, isGroup } = useClinicProfile();
 
   if (!isClinicProfileReady) return null;
+  if (isGroup) {
+    return <Redirect href={CLINIC_PROFILE_LOCATIONS} />;
+  }
 
   return (
     <ProfileDetailScreen

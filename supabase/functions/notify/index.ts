@@ -55,6 +55,7 @@ const PINGRAM_TYPES = {
   savedPostUnavailable: 'saved_post_unavailable',
   messageReceived: 'message_received',
   fillInOutreachSms: 'fill_in_outreach_sms',
+  clinicManagerInvitation: 'clinic_manager_invitation',
 } as const;
 
 const DEFAULT_PINGRAM_API_URL = 'https://api.ca.pingram.io';
@@ -209,18 +210,158 @@ function normalizeUuid(value: unknown): string | null {
   return value.trim().toLowerCase();
 }
 
-function resolveMessageRecipient(
-  conversation: { worker_id: string; clinic_id: string },
-  senderId: string,
-): string | null {
-  const sender = normalizeUuid(senderId);
-  const workerId = normalizeUuid(conversation.worker_id);
-  const clinicId = normalizeUuid(conversation.clinic_id);
+/**
+ * Clinic alert recipients: owner always + managers for location.
+ * null locationId => all active managers (org-level / unlocated posts).
+ */
+async function listClinicAlertRecipientUserIds(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  locationId: string | null,
+): Promise<string[]> {
+  const { data: memberships, error } = await supabase
+    .from('clinic_memberships')
+    .select('id, user_id, role')
+    .eq('organization_id', organizationId)
+    .eq('status', 'active');
 
-  if (!sender || !workerId || !clinicId) return null;
-  if (sender === workerId) return conversation.clinic_id;
-  if (sender === clinicId) return conversation.worker_id;
+  if (error) throw error;
+
+  const rows = memberships ?? [];
+  if (rows.length === 0) return [organizationId];
+
+  const recipientIds = new Set<string>();
+  const managers: { id: string; user_id: string }[] = [];
+
+  for (const row of rows) {
+    const userId = row.user_id as string;
+    if (!userId) continue;
+    if (row.role === 'owner') {
+      recipientIds.add(userId);
+    } else if (row.role === 'manager') {
+      managers.push({ id: row.id as string, user_id: userId });
+    }
+  }
+
+  // Owner user id is the org id; include even if membership role missing.
+  recipientIds.add(organizationId);
+
+  if (locationId == null) {
+    for (const manager of managers) {
+      recipientIds.add(manager.user_id);
+    }
+    return [...recipientIds];
+  }
+
+  if (managers.length === 0) return [...recipientIds];
+
+  const managerMembershipIds = managers.map((manager) => manager.id);
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from('clinic_member_location_assignments')
+    .select('membership_id')
+    .eq('location_id', locationId)
+    .in('membership_id', managerMembershipIds);
+
+  if (assignmentsError) throw assignmentsError;
+
+  const assignedMembershipIds = new Set(
+    (assignments ?? []).map((row) => row.membership_id as string),
+  );
+  for (const manager of managers) {
+    if (assignedMembershipIds.has(manager.id)) {
+      recipientIds.add(manager.user_id);
+    }
+  }
+
+  return [...recipientIds];
+}
+
+async function getPostLocationId(
+  supabase: ReturnType<typeof createClient>,
+  jobPostId: string | null | undefined,
+  shiftPostId: string | null | undefined,
+): Promise<string | null> {
+  if (jobPostId) {
+    const { data: job, error } = await supabase
+      .from('job_posts')
+      .select('location_id')
+      .eq('id', jobPostId)
+      .maybeSingle();
+    if (error) throw error;
+    return (job?.location_id as string | null | undefined) ?? null;
+  }
+
+  if (shiftPostId) {
+    const { data: shift, error } = await supabase
+      .from('shift_posts')
+      .select('location_id')
+      .eq('id', shiftPostId)
+      .maybeSingle();
+    if (error) throw error;
+    return (shift?.location_id as string | null | undefined) ?? null;
+  }
+
   return null;
+}
+
+async function getApplicationClinicAndLocation(
+  supabase: ReturnType<typeof createClient>,
+  application: Record<string, unknown>,
+): Promise<{ clinicId: string; locationId: string | null } | null> {
+  const jobPostId = application.job_post_id as string | null;
+  const shiftPostId = application.shift_post_id as string | null;
+
+  if (jobPostId) {
+    const { data: job, error } = await supabase
+      .from('job_posts')
+      .select('clinic_id, location_id')
+      .eq('id', jobPostId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!job?.clinic_id) return null;
+    return {
+      clinicId: job.clinic_id as string,
+      locationId: (job.location_id as string | null | undefined) ?? null,
+    };
+  }
+
+  if (shiftPostId) {
+    const { data: shift, error } = await supabase
+      .from('shift_posts')
+      .select('clinic_id, location_id')
+      .eq('id', shiftPostId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!shift?.clinic_id) return null;
+    return {
+      clinicId: shift.clinic_id as string,
+      locationId: (shift.location_id as string | null | undefined) ?? null,
+    };
+  }
+
+  return null;
+}
+
+async function isActiveClinicSideSender(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  senderId: string,
+): Promise<boolean> {
+  const sender = normalizeUuid(senderId);
+  const orgId = normalizeUuid(organizationId);
+  if (!sender || !orgId) return false;
+  if (sender === orgId) return true;
+
+  const { data, error } = await supabase
+    .from('clinic_memberships')
+    .select('user_id')
+    .eq('organization_id', organizationId)
+    .eq('user_id', senderId)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data);
 }
 
 function buildSmsOnlyBody(input: {
@@ -412,23 +553,51 @@ async function handleMessageInsert(
   if (conversationError) throw conversationError;
   if (!conversation) return;
 
-  const recipientId = resolveMessageRecipient(conversation, senderId);
-  if (!recipientId) return;
-
   const normalizedSenderId = normalizeUuid(senderId);
-  const normalizedRecipientId = normalizeUuid(recipientId);
-  if (normalizedSenderId && normalizedRecipientId && normalizedSenderId === normalizedRecipientId) {
-    return;
-  }
+  const normalizedWorkerId = normalizeUuid(conversation.worker_id);
+  const normalizedClinicId = normalizeUuid(conversation.clinic_id);
+  if (!normalizedSenderId || !normalizedWorkerId || !normalizedClinicId) return;
 
-  const recipientIsClinic = normalizeUuid(recipientId) === normalizeUuid(conversation.clinic_id);
+  const senderIsWorker = normalizedSenderId === normalizedWorkerId;
+  const senderIsClinicSide = senderIsWorker
+    ? false
+    : await isActiveClinicSideSender(supabase, conversation.clinic_id, senderId);
+
+  if (!senderIsWorker && !senderIsClinicSide) return;
+
   const isGeneralConversation = conversation.conversation_type === 'general';
   const isOutreachConversation = conversation.conversation_type === 'outreach';
 
-  const idempotencyKey = `${PINGRAM_TYPES.messageReceived}:${messageId}`;
+  let recipientIds: string[];
+  if (senderIsWorker) {
+    let locationId: string | null = null;
+    if (conversation.conversation_type === 'application' && conversation.application_id) {
+      const { data: application, error: applicationError } = await supabase
+        .from('applications')
+        .select('job_post_id, shift_post_id')
+        .eq('id', conversation.application_id)
+        .maybeSingle();
+      if (applicationError) throw applicationError;
+      locationId = await getPostLocationId(
+        supabase,
+        application?.job_post_id as string | null | undefined,
+        application?.shift_post_id as string | null | undefined,
+      );
+    }
+    // general / outreach (and missing post location) => null => owner + all managers
+    recipientIds = (
+      await listClinicAlertRecipientUserIds(supabase, conversation.clinic_id, locationId)
+    ).filter((userId) => normalizeUuid(userId) !== normalizedSenderId);
+  } else {
+    recipientIds = [conversation.worker_id];
+  }
+
+  if (recipientIds.length === 0) return;
+
+  const recipientIsClinic = senderIsWorker;
 
   let senderLabel = 'Someone';
-  if (normalizeUuid(senderId) === normalizeUuid(conversation.worker_id)) {
+  if (senderIsWorker) {
     if (isGeneralConversation || isOutreachConversation) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -466,34 +635,37 @@ async function handleMessageInsert(
         ? `chairside:///(clinic-tabs)/application/${conversation.application_id}/messages`
         : `chairside:///(tabs)/application/${conversation.application_id}/messages`;
 
-  const includePush = await isPushEnabledForUser(
-    supabase,
-    recipientId,
-    NOTIFICATION_PREFERENCE_CATEGORIES.messages,
-  );
-
-  await withIdempotentDispatch(supabase, idempotencyKey, 'message_received', async () => {
-    await pingramSend(
-      pingramKey,
-      pingramBase,
-      buildSendBody({
-        type: PINGRAM_TYPES.messageReceived,
-        userId: recipientId,
-        title,
-        message,
-        deepLink,
-        secondaryId: idempotencyKey,
-        includePush,
-        pushCustomData: { senderId },
-      }),
+  for (const recipientId of recipientIds) {
+    const idempotencyKey = `${PINGRAM_TYPES.messageReceived}:${messageId}:${recipientId}`;
+    const includePush = await isPushEnabledForUser(
+      supabase,
+      recipientId,
+      NOTIFICATION_PREFERENCE_CATEGORIES.messages,
     );
-  });
+
+    await withIdempotentDispatch(supabase, idempotencyKey, 'message_received', async () => {
+      await pingramSend(
+        pingramKey,
+        pingramBase,
+        buildSendBody({
+          type: PINGRAM_TYPES.messageReceived,
+          userId: recipientId,
+          title,
+          message,
+          deepLink,
+          secondaryId: idempotencyKey,
+          includePush,
+          pushCustomData: { senderId },
+        }),
+      );
+    });
+  }
 
   if (
     isOutreachConversation &&
     triggerSmsAlert &&
     !recipientIsClinic &&
-    normalizeUuid(senderId) === normalizeUuid(conversation.clinic_id)
+    senderIsClinicSide
   ) {
     const smsKey = `${PINGRAM_TYPES.fillInOutreachSms}:${messageId}`;
 
@@ -688,34 +860,6 @@ async function sendWorkerStatusNotification(
   );
 }
 
-async function getApplicationClinicId(
-  supabase: ReturnType<typeof createClient>,
-  application: Record<string, unknown>,
-): Promise<string | null> {
-  const jobPostId = application.job_post_id as string | null;
-  const shiftPostId = application.shift_post_id as string | null;
-
-  if (jobPostId) {
-    const { data: job } = await supabase
-      .from('job_posts')
-      .select('clinic_id')
-      .eq('id', jobPostId)
-      .maybeSingle();
-    return job?.clinic_id ?? null;
-  }
-
-  if (shiftPostId) {
-    const { data: shift } = await supabase
-      .from('shift_posts')
-      .select('clinic_id')
-      .eq('id', shiftPostId)
-      .maybeSingle();
-    return shift?.clinic_id ?? null;
-  }
-
-  return null;
-}
-
 async function sendClinicApplicationNotification(
   supabase: ReturnType<typeof createClient>,
   pingramKey: string,
@@ -723,11 +867,13 @@ async function sendClinicApplicationNotification(
   application: Record<string, unknown>,
   template: { pingramType: string; title: string; message: string },
 ) {
-  const clinicId = await getApplicationClinicId(supabase, application);
-  if (!clinicId) return;
+  const resolved = await getApplicationClinicAndLocation(supabase, application);
+  if (!resolved) return;
 
+  const { clinicId, locationId } = resolved;
   const applicationId = application.id as string;
-  const idempotencyKey = `${template.pingramType}:${applicationId}`;
+  const recipientIds = await listClinicAlertRecipientUserIds(supabase, clinicId, locationId);
+  if (recipientIds.length === 0) return;
 
   const jobPostId = application.job_post_id as string | null;
   const shiftPostId = application.shift_post_id as string | null;
@@ -737,32 +883,35 @@ async function sendClinicApplicationNotification(
       ? `chairside:///(clinic-tabs)/shift-applicants/${shiftPostId}`
       : 'chairside:///(clinic-tabs)/applications';
 
-  const includePush = await isPushEnabledForUser(
-    supabase,
-    clinicId,
-    NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
-  );
+  for (const recipientId of recipientIds) {
+    const idempotencyKey = `${template.pingramType}:${applicationId}:${recipientId}`;
+    const includePush = await isPushEnabledForUser(
+      supabase,
+      recipientId,
+      NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+    );
 
-  await withIdempotentDispatch(
-    supabase,
-    idempotencyKey,
-    `clinic_application_${template.pingramType}`,
-    async () => {
-      await pingramSend(
-        pingramKey,
-        pingramBase,
-        buildSendBody({
-          type: template.pingramType,
-          userId: clinicId,
-          title: template.title,
-          message: template.message,
-          deepLink,
-          secondaryId: idempotencyKey,
-          includePush,
-        }),
-      );
-    },
-  );
+    await withIdempotentDispatch(
+      supabase,
+      idempotencyKey,
+      `clinic_application_${template.pingramType}`,
+      async () => {
+        await pingramSend(
+          pingramKey,
+          pingramBase,
+          buildSendBody({
+            type: template.pingramType,
+            userId: recipientId,
+            title: template.title,
+            message: template.message,
+            deepLink,
+            secondaryId: idempotencyKey,
+            includePush,
+          }),
+        );
+      },
+    );
+  }
 }
 
 async function handleApplicationInsert(
@@ -779,27 +928,31 @@ async function handleApplicationInsert(
   let postTitle = 'your posting';
   let postType = 'role';
 
+  let locationId: string | null = null;
+
   if (jobPostId) {
     const { data: job } = await supabase
       .from('job_posts')
-      .select('clinic_id, title')
+      .select('clinic_id, title, location_id')
       .eq('id', jobPostId)
       .maybeSingle();
     if (job) {
       clinicId = job.clinic_id;
       postTitle = job.title;
       postType = 'job';
+      locationId = (job.location_id as string | null | undefined) ?? null;
     }
   } else if (shiftPostId) {
     const { data: shift } = await supabase
       .from('shift_posts')
-      .select('clinic_id, shift_date')
+      .select('clinic_id, shift_date, location_id')
       .eq('id', shiftPostId)
       .maybeSingle();
     if (shift) {
       clinicId = shift.clinic_id;
       postTitle = `Fill-in · ${shift.shift_date}`;
       postType = 'fill-in';
+      locationId = (shift.location_id as string | null | undefined) ?? null;
     }
   }
 
@@ -811,14 +964,14 @@ async function handleApplicationInsert(
   }
 
   console.log(
-    `[notify] application INSERT: dispatching application_received (applicationId=${applicationId}, clinicId=${clinicId}, jobPostId=${jobPostId}, shiftPostId=${shiftPostId})`,
+    `[notify] application INSERT: dispatching application_received (applicationId=${applicationId}, clinicId=${clinicId}, jobPostId=${jobPostId}, shiftPostId=${shiftPostId}, locationId=${locationId})`,
   );
 
-  const resolvedClinicId = clinicId;
+  const recipientIds = await listClinicAlertRecipientUserIds(supabase, clinicId, locationId);
+  if (recipientIds.length === 0) return;
 
   const workerName = (record.worker_display_name as string | null)?.trim() || 'A worker';
   const isShiftRequest = Boolean(shiftPostId);
-  const idempotencyKey = `${PINGRAM_TYPES.applicationReceived}:${applicationId}`;
 
   const title = isShiftRequest
     ? `New cover request · ${postTitle}`
@@ -833,27 +986,30 @@ async function handleApplicationInsert(
         ? `chairside:///(clinic-tabs)/role-applicants/${jobPostId}`
         : 'chairside:///(clinic-tabs)/applications';
 
-  const includePush = await isPushEnabledForUser(
-    supabase,
-    resolvedClinicId,
-    NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
-  );
-
-  await withIdempotentDispatch(supabase, idempotencyKey, 'application_received', async () => {
-    await pingramSend(
-      pingramKey,
-      pingramBase,
-      buildSendBody({
-        type: PINGRAM_TYPES.applicationReceived,
-        userId: resolvedClinicId,
-        title,
-        message,
-        deepLink,
-        secondaryId: idempotencyKey,
-        includePush,
-      }),
+  for (const recipientId of recipientIds) {
+    const idempotencyKey = `${PINGRAM_TYPES.applicationReceived}:${applicationId}:${recipientId}`;
+    const includePush = await isPushEnabledForUser(
+      supabase,
+      recipientId,
+      NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
     );
-  });
+
+    await withIdempotentDispatch(supabase, idempotencyKey, 'application_received', async () => {
+      await pingramSend(
+        pingramKey,
+        pingramBase,
+        buildSendBody({
+          type: PINGRAM_TYPES.applicationReceived,
+          userId: recipientId,
+          title,
+          message,
+          deepLink,
+          secondaryId: idempotencyKey,
+          includePush,
+        }),
+      );
+    });
+  }
 }
 
 async function handleInterviewProposalChange(
@@ -1561,6 +1717,189 @@ function shouldNotifyFillInShift(
   return fillInNotificationFieldsChanged(record, oldRecord);
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function pingramSendEmail(
+  apiKey: string,
+  apiBase: string,
+  body: {
+    type: string;
+    to: string;
+    subject: string;
+    html: string;
+    fromName: string;
+    fromAddress: string;
+  },
+): Promise<void> {
+  const res = await fetch(`${apiBase.replace(/\/$/, '')}/email`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Pingram email failed (${res.status}): ${text}`);
+  }
+}
+
+function buildClinicManagerInvitationEmailHtml(input: {
+  organizationName: string;
+  inviterName: string;
+  inviteeName: string | null;
+  locationNames: string[];
+  acceptUrl: string;
+  expiresAt: string;
+}): string {
+  const greeting = input.inviteeName?.trim()
+    ? `Hi ${escapeHtml(input.inviteeName.trim())},`
+    : 'Hi,';
+  const locations =
+    input.locationNames.length > 0
+      ? input.locationNames.map((name) => escapeHtml(name)).join(', ')
+      : 'Assigned locations will be confirmed when you join.';
+  const expiresLabel = new Date(input.expiresAt).toLocaleString('en-CA', {
+    timeZone: 'America/Halifax',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #1a6fd4;">You're invited to manage a clinic on Chairside</h2>
+      <p style="line-height: 1.6; color: #374151;">${greeting}</p>
+      <p style="line-height: 1.6; color: #374151;">
+        <strong>${escapeHtml(input.inviterName)}</strong> invited you to join
+        <strong>${escapeHtml(input.organizationName)}</strong> as a manager.
+      </p>
+      <div style="background-color: #f4f8fc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 0 0 8px; color: #374151;"><strong>Locations:</strong> ${locations}</p>
+        <p style="margin: 0; color: #6b7280; font-size: 14px;">Expires: ${escapeHtml(expiresLabel)}</p>
+      </div>
+      <p style="margin: 28px 0;">
+        <a href="${escapeHtml(input.acceptUrl)}"
+           style="background-color: #1a6fd4; color: #ffffff; padding: 12px 20px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: 600;">
+          Accept invitation
+        </a>
+      </p>
+      <p style="line-height: 1.6; color: #6b7280; font-size: 14px;">
+        Use the same email address this invitation was sent to when you sign in or create your account.
+        If the button does not work, open this link:<br />
+        <a href="${escapeHtml(input.acceptUrl)}" style="color: #1a6fd4;">${escapeHtml(input.acceptUrl)}</a>
+      </p>
+    </div>
+  `.trim();
+}
+
+async function handleClinicInvitationInsert(
+  supabase: ReturnType<typeof createClient>,
+  pingramKey: string,
+  pingramBase: string,
+  record: Record<string, unknown>,
+): Promise<void> {
+  const invitationId = typeof record.id === 'string' ? record.id : null;
+  const email = typeof record.email === 'string' ? record.email.trim().toLowerCase() : '';
+  const token = typeof record.token === 'string' ? record.token : '';
+  const status = typeof record.status === 'string' ? record.status : '';
+  const organizationId =
+    typeof record.organization_id === 'string' ? record.organization_id : null;
+  const expiresAt = typeof record.expires_at === 'string' ? record.expires_at : '';
+  const displayName =
+    typeof record.display_name === 'string' ? record.display_name : null;
+  const locationIds = Array.isArray(record.location_ids)
+    ? record.location_ids.filter((id): id is string => typeof id === 'string')
+    : [];
+  const invitedByUserId =
+    typeof record.invited_by_user_id === 'string' ? record.invited_by_user_id : null;
+
+  if (!invitationId || !email || !token || !organizationId || status !== 'pending') {
+    console.log('[notify] clinic_invitations insert skipped (incomplete or not pending)');
+    return;
+  }
+
+  const webBase = (
+    Deno.env.get('APP_WEB_BASE_URL') ??
+    Deno.env.get('EXPO_PUBLIC_WEB_BASE_URL') ??
+    'https://chairside.app'
+  ).replace(/\/$/, '');
+  const acceptUrl = `${webBase}/accept-invite?token=${encodeURIComponent(token)}`;
+
+  const [{ data: org }, { data: clinicProfile }, { data: inviterProfile }, locationsResult] =
+    await Promise.all([
+      supabase.from('clinic_organizations').select('name').eq('id', organizationId).maybeSingle(),
+      supabase
+        .from('clinic_profiles')
+        .select('clinic_name, contact_name')
+        .eq('id', organizationId)
+        .maybeSingle(),
+      invitedByUserId
+        ? supabase.from('profiles').select('display_name').eq('id', invitedByUserId).maybeSingle()
+        : Promise.resolve({ data: null }),
+      locationIds.length > 0
+        ? supabase
+            .from('clinic_locations')
+            .select('name')
+            .eq('organization_id', organizationId)
+            .eq('is_active', true)
+            .in('id', locationIds)
+            .order('name', { ascending: true })
+        : supabase
+            .from('clinic_locations')
+            .select('name')
+            .eq('organization_id', organizationId)
+            .eq('is_active', true)
+            .order('name', { ascending: true }),
+    ]);
+
+  const organizationName =
+    (typeof org?.name === 'string' && org.name.trim()) ||
+    (typeof clinicProfile?.clinic_name === 'string' && clinicProfile.clinic_name.trim()) ||
+    'Clinic group';
+  const inviterName =
+    (typeof inviterProfile?.display_name === 'string' && inviterProfile.display_name.trim()) ||
+    (typeof clinicProfile?.contact_name === 'string' && clinicProfile.contact_name.trim()) ||
+    (typeof clinicProfile?.clinic_name === 'string' && clinicProfile.clinic_name.trim()) ||
+    'Clinic owner';
+  const locationNames = (locationsResult.data ?? [])
+    .map((row) => (typeof row.name === 'string' ? row.name.trim() : ''))
+    .filter(Boolean);
+
+  const senderEmail = Deno.env.get('INVITE_SENDER_EMAIL')
+    ?? Deno.env.get('SUPPORT_SENDER_EMAIL')
+    ?? 'noreply@pingram.io';
+  const senderName = Deno.env.get('INVITE_SENDER_NAME')
+    ?? Deno.env.get('SUPPORT_SENDER_NAME')
+    ?? 'Chairside';
+
+  const idempotencyKey = `${PINGRAM_TYPES.clinicManagerInvitation}:${invitationId}`;
+  await withIdempotentDispatch(supabase, idempotencyKey, 'clinic_manager_invitation', async () => {
+    await pingramSendEmail(pingramKey, pingramBase, {
+      type: PINGRAM_TYPES.clinicManagerInvitation,
+      to: email,
+      subject: `${inviterName} invited you to manage ${organizationName} on Chairside`,
+      html: buildClinicManagerInvitationEmailHtml({
+        organizationName,
+        inviterName,
+        inviteeName: displayName,
+        locationNames,
+        acceptUrl,
+        expiresAt,
+      }),
+      fromName: senderName,
+      fromAddress: senderEmail,
+    });
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -1665,6 +2004,9 @@ Deno.serve(async (req) => {
       );
     } else if (payload.table === 'messages' && payload.type === 'INSERT') {
       await handleMessageInsert(supabase, pingramKey, pingramBase, payload.record);
+    } else if (payload.table === 'clinic_invitations' && payload.type === 'INSERT') {
+      console.log('[notify] clinic_invitations INSERT received');
+      await handleClinicInvitationInsert(supabase, pingramKey, pingramBase, payload.record);
     }
 
     return jsonResponse({ ok: true });

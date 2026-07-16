@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 
 import { ClinicAboutView } from '@/components/clinic/ClinicAboutView';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
@@ -7,9 +7,12 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { navigateToClinicProfileHub } from '@/lib/routing';
 
 export default function ClinicProfileAboutScreen() {
-  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, isGroup, isOwner } = useClinicProfile();
 
   if (!isClinicProfileReady) return null;
+  if (isGroup && !isOwner) {
+    return <Redirect href="/(clinic-tabs)/profile" />;
+  }
 
   return (
     <ProfileDetailScreen
