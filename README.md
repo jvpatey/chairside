@@ -2,7 +2,7 @@
 
 **Canadian dental hiring — permanent roles and same-day fill-ins.**
 
-Clinics post roles and shifts, review applications with explainable match scores, message candidates, and run outreach. Professionals build an application kit, browse nearby work, and stay free. Built as a mobile-first Expo app with a shared web surface on [chairside.app](https://chairside.app).
+Clinics post roles and shifts, review applications with explainable match scores, message candidates, and run outreach. Professionals build an application kit, browse nearby work, and stay free. Built as a mobile-first Expo app with a shared web surface on [chairside.app](https://chairsidedental.app).
 
 ---
 
