@@ -8,7 +8,6 @@ import {
   revokeClinicManagerInvitation,
   setManagerLocationAssignments,
   transferClinicOrganizationOwnership,
-  updateClinicMembershipProfile,
   type ClinicInvitation,
   type ClinicMembership,
 } from '@chairside/api';
@@ -33,7 +32,12 @@ import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { buildClinicManagerInviteUrl, formatInviteExpiry } from '@/lib/clinicInviteLinks';
 import { copyToClipboard } from '@/lib/copyToClipboard';
-import { CLINIC_ACCEPT_INVITE, CLINIC_PROFILE_LOCATIONS, navigateToClinicProfileHub } from '@/lib/routing';
+import {
+  CLINIC_ACCEPT_INVITE,
+  CLINIC_PROFILE_LOCATIONS,
+  CLINIC_PROFILE_MEMBER,
+  navigateToClinicProfileHub,
+} from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
 async function confirmDestructiveAction(
@@ -83,10 +87,6 @@ export default function ClinicTeamSettingsScreen() {
   const [members, setMembers] = useState<ClinicMembership[]>([]);
   const [invitations, setInvitations] = useState<ClinicInvitation[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [showProfileForm, setShowProfileForm] = useState(false);
-  const [profileDisplayName, setProfileDisplayName] = useState('');
-  const [profileTitle, setProfileTitle] = useState('');
-  const [showProfileValidation, setShowProfileValidation] = useState(false);
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [title, setTitle] = useState('Office Manager');
@@ -213,9 +213,6 @@ export default function ClinicTeamSettingsScreen() {
       : locationOptions.length > 0 && selectedLocationIds.length === 0
         ? 'Select at least one location to assign.'
         : null;
-  const canSaveProfile = Boolean(profileDisplayName.trim());
-  const profileValidationMessage = canSaveProfile ? null : 'Enter your name.';
-
   const reload = useCallback(async () => {
     if (!clinicId) return;
     const [nextMembers, nextInvites] = await Promise.all([
@@ -242,7 +239,6 @@ export default function ClinicTeamSettingsScreen() {
   };
 
   const startInvite = () => {
-    setShowProfileForm(false);
     setSelectedLocationIds([]);
     setShowForm(true);
     setError(null);
@@ -251,55 +247,15 @@ export default function ClinicTeamSettingsScreen() {
   };
 
   const startEditProfile = () => {
-    setShowForm(false);
-    setProfileDisplayName(membership?.display_name?.trim() || '');
-    setProfileTitle(
-      membership?.title?.trim() || (isOwner ? 'Owner' : 'Manager'),
-    );
-    setShowProfileValidation(false);
-    setError(null);
-    setShowProfileForm(true);
-  };
-
-  const resetProfileForm = () => {
-    setShowProfileForm(false);
-    setShowProfileValidation(false);
-    setError(null);
+    router.push(CLINIC_PROFILE_MEMBER);
   };
 
   const handleBack = () => {
-    if (showProfileForm) {
-      resetProfileForm();
-      return;
-    }
     if (showForm && isOwner) {
       resetInviteForm();
       return;
     }
     navigateToClinicProfileHub(router);
-  };
-
-  const handleSaveProfile = async () => {
-    if (!membership?.id || !canSaveProfile) {
-      setShowProfileValidation(true);
-      return;
-    }
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await updateClinicMembershipProfile(membership.id, {
-        display_name: profileDisplayName.trim(),
-        title: profileTitle.trim() || (isOwner ? 'Owner' : 'Manager'),
-      });
-      await refreshClinicProfile();
-      await reload();
-      setStatusMessage('Your profile was updated.');
-      resetProfileForm();
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Could not update your profile.');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const copyInviteLink = async (token: string) => {
@@ -434,45 +390,6 @@ export default function ClinicTeamSettingsScreen() {
 
   if (!isClinicProfileReady || !groupsEnabled || !isGroup) {
     return null;
-  }
-
-  if (showProfileForm) {
-    return (
-      <ProfileDetailScreen
-        title="Your profile"
-        subtitle={`How you appear when posting and managing ${groupName}.`}
-        onBack={handleBack}>
-        <View style={styles.form}>
-          <AuthField
-            label="Your name"
-            placeholder={isOwner ? 'Alex Rivera' : 'Sarah Mitchell'}
-            value={profileDisplayName}
-            onChangeText={setProfileDisplayName}
-            autoCapitalize="words"
-            invalid={showProfileValidation && !canSaveProfile}
-          />
-          <AuthField
-            label="Your title"
-            placeholder={isOwner ? 'Owner' : 'Office Manager'}
-            value={profileTitle}
-            onChangeText={setProfileTitle}
-            autoCapitalize="words"
-          />
-          <SetupStepFooter
-            canContinue={canSaveProfile}
-            validationMessage={profileValidationMessage}
-            showValidation={showProfileValidation}
-            submitError={error}
-            isSubmitting={isSubmitting}
-            continueLabel="Save changes"
-            onContinue={() => void handleSaveProfile()}
-          />
-          <Pressable style={styles.cancel} onPress={resetProfileForm}>
-            <Text style={styles.cancelLabel}>Cancel</Text>
-          </Pressable>
-        </View>
-      </ProfileDetailScreen>
-    );
   }
 
   // Manager: view of their own access (+ edit profile).

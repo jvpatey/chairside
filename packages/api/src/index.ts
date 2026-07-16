@@ -102,6 +102,13 @@ export {
   uploadClinicLocationLogoFromBase64,
 } from './clinicLogo';
 export {
+  deleteClinicMemberPhoto,
+  getClinicMemberPhotoDownloadRequest,
+  getClinicMemberPhotoSignedUrl,
+  getClinicMemberPhotoStoragePath,
+  uploadClinicMemberPhotoFromBase64,
+} from './clinicMemberPhoto';
+export {
   deletePracticeDoctorPhoto,
   getPracticeDoctorPhotoDownloadRequest,
   getPracticeDoctorPhotoSignedUrl,

@@ -506,16 +506,31 @@ export async function setManagerLocationAssignments(
 
 export async function updateClinicMembershipProfile(
   membershipId: string,
-  input: { display_name?: string | null; title?: string | null },
+  input: {
+    display_name?: string | null;
+    title?: string | null;
+    bio?: string | null;
+    photo_storage_path?: string | null;
+    photo_uploaded_at?: string | null;
+  },
 ): Promise<ClinicMembership> {
   const supabase = getSupabaseClient();
+  const payload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (input.display_name !== undefined) payload.display_name = input.display_name;
+  if (input.title !== undefined) payload.title = input.title;
+  if (input.bio !== undefined) payload.bio = input.bio;
+  if (input.photo_storage_path !== undefined) {
+    payload.photo_storage_path = input.photo_storage_path;
+  }
+  if (input.photo_uploaded_at !== undefined) {
+    payload.photo_uploaded_at = input.photo_uploaded_at;
+  }
+
   const { data, error } = await supabase
     .from('clinic_memberships')
-    .update({
-      display_name: input.display_name,
-      title: input.title,
-      updated_at: new Date().toISOString(),
-    })
+    .update(payload)
     .eq('id', membershipId)
     .select('*')
     .single();

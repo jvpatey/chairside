@@ -36,11 +36,7 @@ import { DashboardSpotlightCard } from '@/components/dashboard/DashboardSpotligh
 import { DashboardStatCards } from '@/components/dashboard/DashboardStatCards';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
-import {
-  ClinicLocationScopeSwitcher,
-  getClinicAllLocationsLabel,
-  getClinicLocationScopeLabel,
-} from '@/components/clinic/ClinicLocationScopeSwitcher';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -51,6 +47,7 @@ import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSp
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { pickClinicSpotlight } from '@/lib/dashboardSpotlight';
 import {
@@ -77,19 +74,19 @@ export default function ClinicDashboardScreen() {
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
-  const { clinicProfile, isProfileComplete, organization, accessibleLocations } =
-    useClinicProfile();
+  const { clinicProfile, isProfileComplete, organization } = useClinicProfile();
   const {
     clinicId,
     scopedLocationIds,
-    locationScope,
     isGroup,
-    isOwner,
-    memberIdentityLabel,
+    memberDisplayName,
+    memberRoleLabel,
+    groupDisplayName,
   } = useClinicActingContext();
   const { isTablet } = useResponsiveLayout();
   const { billing, isBillingReady, refreshBilling } = useClinicUpgradePrompt();
   const { logoUri } = useClinicLogo();
+  const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
     openRoles: 0,
@@ -253,31 +250,21 @@ export default function ClinicDashboardScreen() {
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
   const groupName =
-    organization?.name?.trim() || clinicName || 'Dental group';
-  const isAllLocationsScope = locationScope === 'all';
-  // When viewing every accessible clinic, lead with the group name — not the
-  // scope label ("My locations" / "All locations"), which lives in the picker.
+    groupDisplayName || organization?.name?.trim() || clinicName || 'Dental group';
+  // Groups: person-first title; location lives in the scope switcher.
+  // Individuals: clinic name as before.
   const heroDisplayName = !isProfileComplete
     ? null
     : isGroup
-      ? isAllLocationsScope
-        ? groupName
-        : getClinicLocationScopeLabel(locationScope, accessibleLocations, isOwner)
+      ? memberDisplayName || null
       : clinicName;
   const heroSubtitle = !isProfileComplete
     ? 'Finish your clinic setup'
     : isGroup
-      ? isAllLocationsScope
-        ? isTablet
-          ? getClinicAllLocationsLabel(isOwner)
-          : memberIdentityLabel || getClinicAllLocationsLabel(isOwner)
-        : groupName
+      ? groupName
       : 'Dental Clinic';
-  // Phone: identity under a specific location; when "all", identity is the subtitle.
   const heroIdentityLine =
-    isGroup && isProfileComplete && !isTablet && !isAllLocationsScope
-      ? memberIdentityLabel
-      : undefined;
+    isGroup && isProfileComplete && memberRoleLabel ? memberRoleLabel : undefined;
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
   const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
 
@@ -342,10 +329,22 @@ export default function ClinicDashboardScreen() {
         <FadeInSection delayMs={0}>
           <DashboardHero
             profileHref={CLINIC_PROFILE}
-            avatarKind="clinic"
+            avatarKind={isGroup ? 'worker' : 'clinic'}
             displayName={heroDisplayName}
-            photoUri={isProfileComplete ? logoUri : null}
-            namePlaceholder={isProfileComplete ? 'Your practice' : 'Welcome to Chairside'}
+            photoUri={
+              isProfileComplete
+                ? isGroup
+                  ? memberPhotoUri
+                  : logoUri
+                : null
+            }
+            namePlaceholder={
+              isProfileComplete
+                ? isGroup
+                  ? 'Your profile'
+                  : 'Your practice'
+                : 'Welcome to Chairside'
+            }
             subtitle={heroSubtitle}
             identityLine={heroIdentityLine}
             contextSlot={

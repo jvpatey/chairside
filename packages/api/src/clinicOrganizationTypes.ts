@@ -43,6 +43,9 @@ export type ClinicMembership = {
   role: ClinicMembershipRole;
   display_name: string | null;
   title: string | null;
+  bio: string | null;
+  photo_storage_path: string | null;
+  photo_uploaded_at: string | null;
   status: ClinicMembershipStatus;
   created_at: string;
   updated_at: string;

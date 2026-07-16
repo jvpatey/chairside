@@ -79,6 +79,7 @@ export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const CLINIC_PROFILE_PRACTICE: Href = '/(clinic-tabs)/profile/practice' as Href;
 export const CLINIC_PROFILE_ABOUT: Href = '/(clinic-tabs)/profile/about' as Href;
+export const CLINIC_PROFILE_MEMBER: Href = '/(clinic-tabs)/profile/member' as Href;
 export const CLINIC_PROFILE_LOCATIONS: Href = '/(clinic-tabs)/profile/locations' as Href;
 export const CLINIC_PROFILE_TEAM: Href = '/(clinic-tabs)/profile/team' as Href;
 export const CLINIC_PROFILE_MESSAGING: Href = '/(clinic-tabs)/profile/messaging' as Href;

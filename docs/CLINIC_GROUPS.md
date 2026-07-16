@@ -16,7 +16,7 @@ When disabled, clinics use the existing single-location setup path.
 
 **Individual:** account type → basics → location → practice → about → review
 
-**Group:** account type → group basics → **locations** → team → about → review
+**Group:** account type → group basics (includes owner **Your profile**: name, title, optional bio + photo) → **locations** → team → about → review
 
 ### Per location (Locations step)
 
@@ -28,10 +28,17 @@ Shared across the group: practice doctors, description, and website. Specialty, 
 
 Practice doctors stay on the org profile (`practice_doctors` JSON) and can be assigned to **one or more locations** (`location_ids`) during About — useful when a doctor works at multiple sites. When the group has active locations, at least one location is required per doctor.
 
+## Profile hub (group)
+
+- **Your profile** — owners and managers edit their membership name, title, bio, and photo (`clinic_memberships`). Shown in sidebar / hero chrome when set.
+- **Practice details** — hidden for groups (use **Locations**).
+- **About** — owners only (group story, website, practice doctors).
+- Owners without a personal photo can still change the mirrored org logo from the profile hero; managers never edit the org logo.
+
 ## Access model
 
 - **Owner** — one primary login with full org access, billing, locations, and invitations.
-- **Manager** — invited individual login with location assignments only.
+- **Manager** — invited individual login with location assignments only. Sets personal profile after join via **Profile → Your profile**.
 
 ### Manager invitations
 
@@ -67,4 +74,4 @@ Subscriptions and posting limits remain organization-scoped (owner / `clinic_id`
 
 ## Schema
 
-See `supabase/migrations/092_clinic_organizations.sql` (and follow-ups `093`–`097`) for organizations, locations, memberships, invitations, preview/resend RPCs, and post attribution columns.
+See `supabase/migrations/092_clinic_organizations.sql` (and follow-ups `093`–`100`) for organizations, locations, memberships (including bio/photo), invitations, preview/resend RPCs, and post attribution columns.

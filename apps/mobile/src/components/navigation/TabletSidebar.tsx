@@ -17,6 +17,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { getClinicMembershipRoleLabel } from '@/hooks/useClinicActingContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
@@ -113,6 +114,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { profile } = useAuth();
   const { photoUri } = useProfilePhoto();
   const { logoUri } = useClinicLogo();
+  const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
   const {
     clinicProfile,
     isGroup,
@@ -352,22 +354,22 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const clinicRoleLabel = isGroup
     ? getClinicMembershipRoleLabel(membership?.role, isOwner)
     : null;
+  // Groups: person-first. Individuals/workers unchanged.
   const profileName =
     role === 'worker'
       ? profile?.display_name
       : isGroup
-        ? clinicGroupName
+        ? clinicMemberName
         : clinicProfile?.clinic_name?.trim() || null;
   const profileSubtitle =
     role === 'worker'
       ? (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
         'Dental professional'
       : isGroup
-        ? clinicMemberName || clinicRoleLabel
+        ? clinicGroupName || 'Dental group'
         : 'Dental Clinic';
-  // Role on its own line so narrow sidebars don't ellipsize away Owner/Manager.
   const profileMeta =
-    role === 'clinic' && isGroup && clinicMemberName ? clinicRoleLabel : null;
+    role === 'clinic' && isGroup ? clinicRoleLabel : null;
 
   const handleToggleCollapse = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -523,9 +525,13 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           >
             <SidebarProfileHeader
               href={profileHref}
-              avatarKind={role === 'worker' ? 'worker' : 'clinic'}
+              avatarKind={
+                role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic'
+              }
               displayName={profileName}
-              photoUri={role === 'worker' ? photoUri : logoUri}
+              photoUri={
+                role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri
+              }
               subtitle={profileSubtitle}
               meta={profileMeta}
               collapsed={isCollapsed}

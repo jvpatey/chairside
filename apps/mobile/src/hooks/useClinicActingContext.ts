@@ -28,6 +28,14 @@ export function formatClinicMemberIdentity(input: {
   return name ? `${name} · ${roleLabel}` : roleLabel;
 }
 
+/** Membership display name with auth profile fallback. */
+export function resolveClinicMemberDisplayName(input: {
+  displayName?: string | null;
+  fallbackDisplayName?: string | null;
+}): string {
+  return input.displayName?.trim() || input.fallbackDisplayName?.trim() || '';
+}
+
 /** Resolve the organization clinic id and posting attribution for the signed-in member. */
 export function useClinicActingContext() {
   const { profile } = useAuth();
@@ -40,8 +48,19 @@ export function useClinicActingContext() {
     scopedLocationIds,
     locationScope,
     setLocationScope,
+    organization,
+    clinicProfile,
   } = useClinicProfile();
 
+  const memberDisplayName = isGroup
+    ? resolveClinicMemberDisplayName({
+        displayName: membership?.display_name,
+        fallbackDisplayName: profile?.display_name,
+      })
+    : '';
+  const memberRoleLabel = isGroup
+    ? getClinicMembershipRoleLabel(membership?.role, isOwner)
+    : '';
   // Group-only chrome. Individuals may still have a seed membership when the
   // groups flag is on — never surface Owner/Manager identity or attribution.
   const memberIdentityLabel = isGroup
@@ -51,6 +70,9 @@ export function useClinicActingContext() {
         role: membership?.role,
         isOwner,
       })
+    : '';
+  const groupDisplayName = isGroup
+    ? organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || 'Dental group'
     : '';
   const attribution = isGroup
     ? {
@@ -79,7 +101,10 @@ export function useClinicActingContext() {
     scopedLocationIds,
     locationScope,
     setLocationScope,
+    memberDisplayName,
+    memberRoleLabel,
     memberIdentityLabel,
+    groupDisplayName,
     attribution,
     attributionLabel,
   };

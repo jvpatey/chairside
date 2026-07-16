@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
 import { PlanTierBadge } from '@/components/billing/PlanTierBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
@@ -16,6 +17,9 @@ import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
 export type ClinicIdentityHeroCardProps = {
   clinicName: string;
   logoUri?: string | null;
+  /** When set with avatarKind "person", shows a circular person avatar. */
+  personName?: string | null;
+  avatarKind?: 'clinic' | 'person';
   specialtyLabel: string | null;
   locationLabel: string | null;
   email?: string | null;
@@ -26,6 +30,7 @@ export type ClinicIdentityHeroCardProps = {
   editable?: boolean;
   isUploading?: boolean;
   onPickLogo?: () => void;
+  avatarAccessibilityLabel?: string;
   showAccountBadge?: boolean;
   plan?: ClinicPlan | null;
   emptyMetaFallback?: string;
@@ -34,6 +39,8 @@ export type ClinicIdentityHeroCardProps = {
 export function ClinicIdentityHeroCard({
   clinicName,
   logoUri,
+  personName,
+  avatarKind = 'clinic',
   specialtyLabel,
   locationLabel,
   email,
@@ -42,6 +49,7 @@ export function ClinicIdentityHeroCard({
   editable = false,
   isUploading = false,
   onPickLogo,
+  avatarAccessibilityLabel,
   showAccountBadge = false,
   plan,
   emptyMetaFallback,
@@ -128,9 +136,22 @@ export function ClinicIdentityHeroCard({
     },
   }));
 
-  const avatar = (
-    <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={72} isLoading={isUploading} />
-  );
+  const avatar =
+    avatarKind === 'person' ? (
+      <WorkerProfileAvatar
+        displayName={personName || clinicName}
+        photoUri={logoUri}
+        size={72}
+        isLoading={isUploading}
+      />
+    ) : (
+      <ClinicLogoAvatar
+        clinicName={clinicName}
+        logoUri={logoUri}
+        size={72}
+        isLoading={isUploading}
+      />
+    );
 
   return (
     <View style={styles.card}>
@@ -147,7 +168,10 @@ export function ClinicIdentityHeroCard({
           {editable ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Change clinic logo"
+              accessibilityLabel={
+                avatarAccessibilityLabel ??
+                (avatarKind === 'person' ? 'Edit your profile' : 'Change clinic logo')
+              }
               disabled={isUploading}
               onPress={onPickLogo}>
               {avatar}
@@ -190,12 +214,20 @@ export function ClinicIdentityHeroCard({
 type ClinicProfileHeroProps = {
   email?: string | null;
   profile: ClinicProfile | null;
-  /** Overrides clinic_name when set (e.g. group organization name). */
+  /** Overrides clinic_name when set (person name for groups, org name otherwise). */
   displayName?: string | null;
   identityLine?: string | null;
   identityInline?: boolean;
   editable?: boolean;
   plan?: ClinicPlan | null;
+  /** Group: show member photo / person avatar instead of org logo. */
+  memberPhotoUri?: string | null;
+  memberDisplayName?: string | null;
+  /** When set, overrides default avatar press (e.g. open Your profile). */
+  onAvatarPress?: () => void;
+  isUploadingAvatar?: boolean;
+  /** Hide specialty/city meta (groups use role · group on identityLine). */
+  hideClinicMeta?: boolean;
 };
 
 export function ClinicProfileHero({
@@ -206,31 +238,55 @@ export function ClinicProfileHero({
   identityInline = false,
   editable = false,
   plan,
+  memberPhotoUri,
+  memberDisplayName,
+  onAvatarPress,
+  isUploadingAvatar,
+  hideClinicMeta = false,
 }: ClinicProfileHeroProps) {
   const { logoUri, isUploading, pickLogo } = useClinicLogo();
   const name =
     displayName?.trim() || profile?.clinic_name?.trim() || 'Your practice';
-  const specialtyLabel =
-    SPECIALTY_OPTIONS.find((item) => item.value === profile?.specialty)?.label ?? null;
-  const locationLabel = [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
-    .filter(Boolean)
-    .join(', ');
+  const specialtyLabel = hideClinicMeta
+    ? null
+    : SPECIALTY_OPTIONS.find((item) => item.value === profile?.specialty)?.label ?? null;
+  const locationLabel = hideClinicMeta
+    ? null
+    : [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
+        .filter(Boolean)
+        .join(', ');
+
+  const usePersonAvatar = Boolean(onAvatarPress) || Boolean(memberPhotoUri);
+  // In person mode without a member photo, show initials — not the org logo.
+  const avatarUri = memberPhotoUri ?? (usePersonAvatar ? null : logoUri);
+  const handleAvatarPress = onAvatarPress ?? (() => void pickLogo());
 
   return (
     <ClinicIdentityHeroCard
       clinicName={name}
-      logoUri={logoUri}
+      logoUri={avatarUri}
+      personName={memberDisplayName || name}
+      avatarKind={usePersonAvatar ? 'person' : 'clinic'}
       specialtyLabel={specialtyLabel}
       locationLabel={locationLabel || null}
       email={email}
       identityLine={identityLine}
       identityInline={identityInline}
       editable={editable}
-      isUploading={isUploading}
-      onPickLogo={() => void pickLogo()}
+      isUploading={isUploadingAvatar ?? isUploading}
+      onPickLogo={handleAvatarPress}
+      avatarAccessibilityLabel={
+        onAvatarPress
+          ? 'Edit your profile'
+          : usePersonAvatar
+            ? 'Change profile photo'
+            : 'Change clinic logo'
+      }
       showAccountBadge
       plan={plan}
-      emptyMetaFallback="Complete your clinic profile to get started"
+      emptyMetaFallback={
+        hideClinicMeta ? undefined : 'Complete your clinic profile to get started'
+      }
     />
   );
 }

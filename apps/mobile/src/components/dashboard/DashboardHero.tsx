@@ -37,8 +37,10 @@ type DashboardHeroProps = {
   photoUri?: string | null;
   namePlaceholder: string;
   subtitle: string;
-  /** Muted identity meta on the subtitle line (e.g. "Sarah · Manager"). */
+  /** Muted identity meta on the subtitle line (e.g. "Owner"). */
   identityLine?: string;
+  /** Optional first name for "Good afternoon, Sarah". */
+  greetingName?: string | null;
   /** Static context chip (e.g. read-only label). Ignored when `contextSlot` is set. */
   contextLine?: string;
   /** Interactive or custom context under the subtitle (e.g. location scope picker). */
@@ -63,6 +65,7 @@ export function DashboardHero({
   namePlaceholder,
   subtitle,
   identityLine,
+  greetingName,
   contextLine,
   contextSlot,
   showActions = true,
@@ -156,7 +159,11 @@ export function DashboardHero({
     identity: {
       flex: 1,
       minWidth: 0,
-      gap: spacing.xs,
+      gap: spacing.xs + 2,
+    },
+    // Shared rhythm for greeting → name → meta (Pressable has no gap of its own).
+    identityStack: {
+      gap: spacing.xs + 2,
     },
     identityPressed: {
       opacity: 0.85,
@@ -219,9 +226,9 @@ export function DashboardHero({
   ) : null;
 
   const identityCore = (
-    <>
+    <View style={styles.identityStack}>
       <Text style={styles.greeting} accessibilityRole="text">
-        {getTimeOfDayGreeting()}
+        {getTimeOfDayGreeting(greetingName)}
       </Text>
       <DashboardHeroName displayName={displayName} namePlaceholder={namePlaceholder} />
       <DashboardHeroSubtitle
@@ -229,7 +236,7 @@ export function DashboardHero({
         detail={trimmedIdentity}
         trailing={hasContext || trimmedIdentity ? undefined : formatDashboardDate()}
       />
-    </>
+    </View>
   );
 
   // Keep interactive context outside the profile Pressable so nested buttons work.

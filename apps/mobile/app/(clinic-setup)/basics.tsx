@@ -1,9 +1,14 @@
-import { updateClinicMembershipProfile } from '@chairside/api';
+import {
+  updateClinicMembershipProfile,
+  uploadClinicMemberPhotoFromBase64,
+} from '@chairside/api';
 import { router } from 'expo-router';
 import { CLINIC_SETUP_LOCATION, CLINIC_SETUP_LOCATIONS } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { ClinicMemberProfileFields } from '@/components/clinic/ClinicMemberProfileFields';
+import { pickLocationPhotoFile } from '@/components/clinic/ClinicLocationPhotoField';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
@@ -11,6 +16,7 @@ import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicMemberPhotoUri } from '@/hooks/useClinicMemberPhotoUri';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -29,6 +35,12 @@ function seedMembershipDisplayName(
   return authDisplayName?.trim() || membership;
 }
 
+type PendingMemberPhoto = {
+  uri: string;
+  base64: string;
+  contentType: string;
+};
+
 export default function ClinicBasicsScreen() {
   const { profile: authProfile } = useAuth();
   const {
@@ -36,16 +48,21 @@ export default function ClinicBasicsScreen() {
     isClinicProfileReady,
     isGroup,
     membership,
+    organization,
     refreshClinicProfile,
   } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const { isSigningOut, signOut } = useSignOut();
+  const savedMemberPhotoUri = useClinicMemberPhotoUri(membership?.photo_storage_path);
   const [clinicName, setClinicName] = useState('');
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
   const [memberDisplayName, setMemberDisplayName] = useState('');
   const [memberTitle, setMemberTitle] = useState('Owner');
+  const [memberBio, setMemberBio] = useState('');
+  const [pendingPhoto, setPendingPhoto] = useState<PendingMemberPhoto | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
@@ -59,6 +76,9 @@ export default function ClinicBasicsScreen() {
   const validationMessage = membershipNameMissing
     ? 'Enter your name for the group.'
     : basicsValidation.message;
+
+  const memberPhotoDisplayUri = pendingPhoto?.uri ?? savedMemberPhotoUri;
+  const hasMemberPhoto = Boolean(memberPhotoDisplayUri);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.md },
@@ -84,7 +104,27 @@ export default function ClinicBasicsScreen() {
       seedMembershipDisplayName(membership?.display_name, authProfile?.display_name),
     );
     setMemberTitle(membership?.title?.trim() || 'Owner');
-  }, [authProfile?.display_name, isGroup, membership?.display_name, membership?.title]);
+    setMemberBio(membership?.bio?.trim() || '');
+  }, [
+    authProfile?.display_name,
+    isGroup,
+    membership?.bio,
+    membership?.display_name,
+    membership?.title,
+  ]);
+
+  const handlePickPhoto = async () => {
+    try {
+      setIsUploadingPhoto(true);
+      const picked = await pickLocationPhotoFile();
+      if (!picked) return;
+      setPendingPhoto(picked);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Could not select photo.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleContinue = async () => {
     if (!validationOk) {
@@ -105,7 +145,19 @@ export default function ClinicBasicsScreen() {
         await updateClinicMembershipProfile(membership.id, {
           display_name: memberDisplayName.trim(),
           title: memberTitle.trim() || 'Owner',
+          bio: memberBio.trim() || null,
         });
+        if (pendingPhoto) {
+          const organizationId = organization?.id ?? membership.organization_id;
+          await uploadClinicMemberPhotoFromBase64(
+            organizationId,
+            membership.id,
+            pendingPhoto.base64,
+            pendingPhoto.contentType,
+            membership.photo_storage_path,
+          );
+          setPendingPhoto(null);
+        }
         await refreshClinicProfile();
       }
       if (isEditMode) {
@@ -129,7 +181,7 @@ export default function ClinicBasicsScreen() {
       atmosphere="form"
       footer={
         <SetupStepFooter
-          canContinue={validationOk}
+          canContinue={validationOk && !isUploadingPhoto}
           validationMessage={validationMessage}
           showValidation={showValidation}
           submitError={submitError}
@@ -165,20 +217,24 @@ export default function ClinicBasicsScreen() {
             <Text style={styles.hint}>
               Shown as your name and title when you post and manage the group.
             </Text>
-            <AuthField
-              label="Your name"
-              placeholder="Alex Rivera"
-              value={memberDisplayName}
-              onChangeText={setMemberDisplayName}
-              autoCapitalize="words"
-              invalid={showValidation && membershipNameMissing}
-            />
-            <AuthField
-              label="Your title"
-              placeholder="Owner"
-              value={memberTitle}
-              onChangeText={setMemberTitle}
-              autoCapitalize="words"
+            <ClinicMemberProfileFields
+              displayName={memberDisplayName}
+              title={memberTitle}
+              bio={memberBio}
+              onDisplayNameChange={setMemberDisplayName}
+              onTitleChange={setMemberTitle}
+              onBioChange={setMemberBio}
+              photoUri={memberPhotoDisplayUri}
+              isUploadingPhoto={isUploadingPhoto}
+              hasPhoto={hasMemberPhoto}
+              onPickPhoto={() => void handlePickPhoto()}
+              onRemovePhoto={
+                pendingPhoto
+                  ? () => setPendingPhoto(null)
+                  : undefined
+              }
+              showValidation={showValidation}
+              nameInvalid={membershipNameMissing}
             />
           </View>
         ) : null}

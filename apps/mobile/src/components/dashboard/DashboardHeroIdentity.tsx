@@ -31,7 +31,8 @@ export function DashboardHeroName({ displayName, namePlaceholder }: DashboardHer
   const styles = useThemedStyles(({ colors }) => ({
     name: {
       fontSize: 34,
-      lineHeight: 40,
+      // Tight to the glyph box so flex gap reads evenly vs greeting/meta.
+      lineHeight: 38,
       fontFamily: fontBold,
       fontWeight: '700',
       color: colors.labelPrimary,
