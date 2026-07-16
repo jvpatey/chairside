@@ -4,7 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { router, usePathname } from 'expo-router';
-import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
@@ -13,6 +21,7 @@ import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -20,7 +29,11 @@ import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { getClinicMembershipRoleLabel } from '@/hooks/useClinicActingContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
-import { CLINIC_PROFILE, WORKER_PROFILE } from '@/lib/routing';
+import {
+  CLINIC_PLAN_ICONS,
+  getClinicPlanTierLabel,
+} from '@/lib/clinicPlanPresentation';
+import { CLINIC_PROFILE, CLINIC_PROFILE_BILLING, WORKER_PROFILE } from '@/lib/routing';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
@@ -29,8 +42,9 @@ import {
   webListRowHoverStyles,
   webOnlyStyle,
   webPointer,
+  webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles, colorWithAlpha } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles, colorWithAlpha } from '@/theme';
 
 export {
   TABLET_SIDEBAR_COLLAPSED_WIDTH,
@@ -123,8 +137,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     isOwner,
     accessibleLocations,
   } = useClinicProfile();
+  const { billing } = useClinicBilling();
   const showGroupLocationScope =
     role === 'clinic' && isGroup && accessibleLocations.length > 0;
+  const showIndividualPlanBadge = role === 'clinic' && !isGroup;
+  const individualPlan = billing?.plan ?? 'free';
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
 
@@ -176,16 +193,19 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       alignItems: 'center',
     },
     toggleButton: {
-      width: 24,
-      height: 24,
-      borderRadius: 6,
+      width: 36,
+      height: 36,
+      borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      backgroundColor: colors.fillSubtle,
       ...webPointer(),
     },
     toggleHovered: webListRowHoverStyles(colors),
-    togglePressed: { opacity: 0.85 },
+    togglePressed: { opacity: 0.88 },
     profileSection: {
       flexShrink: 0,
       justifyContent: 'center',
@@ -206,6 +226,51 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     profileToggleAloneCollapsed: {
       alignItems: 'center',
       marginTop: spacing.xs,
+    },
+    planScopeWrap: {
+      gap: 4,
+      minWidth: 0,
+      marginTop: 8,
+    },
+    planScopeEyebrow: {
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '600',
+      color: colors.labelTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    planScopeTriggerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      minWidth: 0,
+    },
+    planScopeTrigger: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      minWidth: 0,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      borderRadius: 10,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      backgroundColor: colors.fillSubtle,
+      ...webPointer(),
+    },
+    planScopeTriggerPressed: {
+      opacity: 0.88,
+    },
+    planScopeLabel: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 13,
+      lineHeight: 18,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelPrimary,
     },
     nav: {
       flex: 1,
@@ -389,7 +454,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     >
       <Ionicons
         name={isCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'}
-        size={12}
+        size={16}
         color={colors.labelSecondary}
       />
     </Pressable>
@@ -544,8 +609,38 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             <ClinicLocationScopeSwitcher
               variant="sidebar"
               collapsed={isCollapsed}
-              endAccessory={collapseToggle}
+              startAccessory={collapseToggle}
             />
+          </View>
+        ) : showIndividualPlanBadge && !isCollapsed ? (
+          <View style={styles.planScopeWrap}>
+            <Text style={styles.planScopeEyebrow}>Plan</Text>
+            <View style={styles.planScopeTriggerRow}>
+              {collapseToggle}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${getClinicPlanTierLabel(individualPlan)}. Open plans and billing.`}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push(CLINIC_PROFILE_BILLING);
+                }}
+                style={({ pressed, hovered }) => [
+                  styles.planScopeTrigger,
+                  webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
+                  pressed && styles.planScopeTriggerPressed,
+                ]}
+              >
+                <Ionicons
+                  name={CLINIC_PLAN_ICONS[individualPlan]}
+                  size={16}
+                  color={colors.labelPrimary}
+                />
+                <Text style={styles.planScopeLabel} numberOfLines={1}>
+                  {getClinicPlanTierLabel(individualPlan)}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.labelSecondary} />
+              </Pressable>
+            </View>
           </View>
         ) : (
           <View

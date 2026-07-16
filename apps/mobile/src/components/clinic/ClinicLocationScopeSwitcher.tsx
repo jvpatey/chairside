@@ -35,8 +35,8 @@ type ClinicLocationScopeSwitcherProps = {
   variant?: ClinicLocationScopeSwitcherVariant;
   /** Icon-only trigger for the narrow collapsed sidebar rail. */
   collapsed?: boolean;
-  /** Placed beside the sidebar trigger (e.g. collapse chevron). */
-  endAccessory?: ReactNode;
+  /** Placed before the sidebar trigger (e.g. collapse chevron). */
+  startAccessory?: ReactNode;
 };
 
 export function getClinicAllLocationsLabel(isOwner: boolean): string {
@@ -220,7 +220,7 @@ function LocationScopePickerSheet({
 export function ClinicLocationScopeSwitcher({
   variant = 'sidebar',
   collapsed = false,
-  endAccessory,
+  startAccessory,
 }: ClinicLocationScopeSwitcherProps) {
   const { colors, isDark } = useTheme();
   const {
@@ -365,6 +365,7 @@ export function ClinicLocationScopeSwitcher({
       </Pressable>
     ) : collapsed ? (
       <View style={styles.collapsedWrap}>
+        {startAccessory}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
@@ -376,12 +377,12 @@ export function ClinicLocationScopeSwitcher({
           ]}>
           <Ionicons name="business-outline" size={16} color={colors.labelPrimary} />
         </Pressable>
-        {endAccessory}
       </View>
     ) : (
       <View style={styles.sidebarWrap}>
         <Text style={styles.sidebarEyebrow}>Viewing</Text>
         <View style={styles.sidebarTriggerRow}>
+          {startAccessory}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
@@ -396,7 +397,6 @@ export function ClinicLocationScopeSwitcher({
             </Text>
             <Ionicons name="chevron-down" size={16} color={colors.labelSecondary} />
           </Pressable>
-          {endAccessory}
         </View>
       </View>
     );
