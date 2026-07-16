@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
@@ -13,19 +13,19 @@ const STEPS = [
     number: '01',
     icon: 'person-circle-outline' as const,
     title: 'Create your profile',
-    body: 'Set up your clinic or build your application profile once.',
+    body: 'Set up your clinic or build your professional profile once.',
   },
   {
     number: '02',
     icon: 'briefcase-outline' as const,
-    title: 'Post or browse',
-    body: 'Post a role, browse shifts, or turn on availability.',
+    title: 'Post or apply',
+    body: 'Post roles and fill-ins, or browse openings and turn on availability.',
   },
   {
     number: '03',
     icon: 'chatbubbles-outline' as const,
-    title: 'Connect and hire',
-    body: 'Message, interview, and close the loop in-app.',
+    title: 'Connect in-app',
+    body: 'Message and move forward without the email thread spiral.',
   },
 ] as const;
 
@@ -261,16 +261,11 @@ function MobileTimeline() {
 }
 
 export function WebLandingHowItWorks() {
-  const { colors } = useTheme();
   const { isWide } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    section: {
-      paddingHorizontal: spacing.lg,
+    bleed: {
       paddingVertical: spacing.xl * 2.5,
-      maxWidth: CONTENT_MAX_WIDTH.xwide,
-      width: '100%' as const,
-      alignSelf: 'center' as const,
     },
     header: {
       gap: spacing.sm,
@@ -292,13 +287,13 @@ export function WebLandingHowItWorks() {
   }));
 
   return (
-    <View style={styles.section}>
+    <WebMarketingSection style={styles.bleed}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>How it works</Text>
         <Text style={styles.title}>Three steps to get started</Text>
       </View>
 
       {isWide ? <DesktopTimeline /> : <MobileTimeline />}
-    </View>
+    </WebMarketingSection>
   );
 }

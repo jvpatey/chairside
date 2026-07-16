@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { ThemeColors } from '@/theme/colors';
-import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
 import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
@@ -23,7 +23,7 @@ const SATELLITE_FEATURES = [
     icon: 'flash-outline' as const,
     title: "Let clinics know you're free",
     highlight: "you're free",
-    body: 'Turn on fill-in mode and get discovered by nearby clinics instantly.',
+    body: 'Turn on fill-in mode, get discovered nearby, and get alerts when shifts open.',
   },
   {
     id: 'matches',
@@ -33,11 +33,11 @@ const SATELLITE_FEATURES = [
     body: 'Candidate profiles and match scores help clinics compare fit in seconds.',
   },
   {
-    id: 'hiring',
-    icon: 'chatbubbles-outline' as const,
-    title: 'The hiring process — streamlined',
-    highlight: 'streamlined',
-    body: 'Messages, interviews, and offers — without the email thread spiral.',
+    id: 'groups',
+    icon: 'people-outline' as const,
+    title: 'Multi-location groups',
+    highlight: 'groups',
+    body: 'Invite managers, assign locations, and keep hiring in one place across your practices.',
   },
 ] as const;
 
@@ -432,16 +432,11 @@ function FeatureSatelliteCard({
 }
 
 export function WebLandingFeatures() {
-  const { colors } = useTheme();
   const { isWide } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    section: {
-      paddingHorizontal: spacing.lg,
+    bleed: {
       paddingVertical: spacing.xl * 2.5,
-      maxWidth: CONTENT_MAX_WIDTH.xwide,
-      width: '100%' as const,
-      alignSelf: 'center' as const,
       borderTopWidth: 1,
       borderTopColor: colors.separator,
       ...webOnlyStyle({
@@ -472,13 +467,12 @@ export function WebLandingFeatures() {
   }));
 
   return (
-    <View style={styles.section}>
+    <WebMarketingSection style={styles.bleed}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Features</Text>
         <Text style={styles.title}>Built for how dental teams actually work</Text>
         <Text style={styles.subtitle}>
-          One platform for clinics hiring and professionals finding work — starting with same-day
-          fill-ins.
+          Permanent roles and same-day fill-ins — for clinics hiring and professionals finding work.
         </Text>
       </View>
 
@@ -489,6 +483,6 @@ export function WebLandingFeatures() {
           <FeatureSatelliteCard key={feature.id} feature={feature} enterDelayMs={120 + index * 80} />
         ))}
       </View>
-    </View>
+    </WebMarketingSection>
   );
 }

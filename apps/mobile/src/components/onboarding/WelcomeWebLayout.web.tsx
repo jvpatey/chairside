@@ -26,6 +26,8 @@ export function WelcomeWebLayout() {
     },
     scrollContent: {
       flexGrow: 1,
+      width: '100%' as const,
+      alignSelf: 'stretch' as const,
       paddingBottom: insets.bottom,
     },
   }));

@@ -20,33 +20,31 @@ export type ClinicPlanMarketing = {
 
 export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
   free: {
-    tagline: 'Everything you need to post your first opportunity',
+    tagline: 'Try Chairside with one role and one fill-in',
     fallbackPriceLabel: 'Free forever',
     features: [
       '1 active role and 1 active fill-in',
-      'Post jobs and fill-in shifts',
       'Review applications and message candidates',
-      'Standard listing placement',
+      'Post permanent roles and fill-in shifts',
     ],
   },
   starter: {
-    tagline: 'Grow hiring with outreach and SMS alerts',
-    fallbackPriceLabel: 'Monthly or yearly',
+    tagline: 'More posts, plus outreach and SMS alerts',
+    fallbackPriceLabel: 'Billed monthly or annually',
     features: [
       'Up to 3 active roles and 3 active fill-ins',
       'Direct fill-in outreach to available workers',
       'SMS fill-in alerts',
-      'Standard listing placement',
     ],
   },
   pro: {
-    tagline: 'Unlimited posting with priority visibility',
-    fallbackPriceLabel: 'Monthly or yearly',
+    tagline: 'Unlimited posts with priority placement',
+    fallbackPriceLabel: 'Billed monthly or annually',
     features: [
       'Unlimited active roles and fill-ins',
+      'Priority role and fill-in placement',
       'Direct fill-in outreach to available workers',
       'SMS fill-in alerts',
-      'Priority role and fill-in placement',
     ],
   },
 };

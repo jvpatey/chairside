@@ -3,14 +3,13 @@ import { Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
+import { APP_STORE_COMING_SOON_HINT } from '@/constants';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
 
 export function WebLandingCta() {
-  const { isDark } = useTheme();
-
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     section: {
       paddingHorizontal: spacing.lg,
@@ -52,6 +51,13 @@ export function WebLandingCta() {
       color: colors.labelSecondary,
       textAlign: 'center' as const,
     },
+    appNote: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelTertiary,
+      textAlign: 'center' as const,
+      maxWidth: 420,
+    },
     ctaButton: {
       alignSelf: 'auto' as const,
       flexShrink: 0,
@@ -63,7 +69,7 @@ export function WebLandingCta() {
       <WebPageEnter style={{ width: '100%' }}>
         <View style={styles.card}>
           <View style={styles.copy}>
-            <Text style={styles.title}>Post a shift or find your next role</Text>
+            <Text style={styles.title}>Post a role or find your next one</Text>
             <Text style={styles.subtitle}>
               Join free in minutes — set up as a clinic or a professional.
             </Text>
@@ -74,6 +80,7 @@ export function WebLandingCta() {
             variant="primary"
             style={styles.ctaButton}
           />
+          <Text style={styles.appNote}>{APP_STORE_COMING_SOON_HINT}</Text>
         </View>
       </WebPageEnter>
     </View>

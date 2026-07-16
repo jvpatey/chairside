@@ -6,23 +6,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
-import { PillBadge } from '@/components/ui/PillBadge';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
 import { CLINIC_PLAN_ICONS } from '@/lib/clinicPlanPresentation';
 import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
-const PLANS: readonly {
-  plan: ClinicPlan;
-  isRecommended?: boolean;
-}[] = [
-  { plan: 'free' },
-  { plan: 'starter', isRecommended: true },
-  { plan: 'pro' },
-];
+const PLANS: readonly ClinicPlan[] = ['free', 'starter', 'pro'];
 
 const TRUST_POINTS = [
   { icon: 'leaf-outline' as const, label: 'Start free' },
@@ -30,161 +22,152 @@ const TRUST_POINTS = [
   { icon: 'medical-outline' as const, label: 'Professionals stay free' },
 ] as const;
 
-function featureAccentColor(
+/** Starter = brand blue; Pro = brand purple; Free stays neutral. */
+function planBrandAccent(
   plan: ClinicPlan,
-  emphasized: boolean,
   colors: ReturnType<typeof useTheme>['colors'],
-): string {
+): string | null {
+  if (plan === 'starter') return colors.primary;
   if (plan === 'pro') return colors.secondary;
-  if (emphasized) return colors.primary;
-  return colors.success;
+  return null;
 }
 
 function PricingPlanCard({
   plan,
-  isRecommended = false,
   enterDelayMs,
 }: {
   plan: ClinicPlan;
-  isRecommended?: boolean;
   enterDelayMs?: number;
 }) {
   const { colors, isDark } = useTheme();
   const marketing = CLINIC_PLAN_MARKETING[plan];
-  const emphasized = isRecommended;
-  const featureAccent = featureAccentColor(plan, emphasized, colors);
+  const brand = planBrandAccent(plan, colors);
+  const featureAccent = brand ?? colors.success;
 
-  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
-    cardWrap: {
-      flex: 1,
-      minWidth: 0,
-    },
-    card: {
-      flex: 1,
-      borderRadius: 24,
-      padding: spacing.xl,
-      backgroundColor: emphasized
-        ? colorWithAlpha(colors.primary, isDark ? 0.06 : 0.03)
-        : colors.surface,
-      borderWidth: emphasized ? 2 : 1,
-      borderColor: emphasized
-        ? colorWithAlpha(colors.primary, isDark ? 0.45 : 0.35)
-        : colors.separator,
-      gap: spacing.lg,
-      overflow: 'hidden' as const,
-      position: 'relative' as const,
-      ...webCardLiftBase(),
-      ...webOnlyStyle({
-        boxShadow: getWebShadow(isDark, emphasized ? 'raised' : 'subtle'),
-      } as object),
-    },
-    atmosphere: {
-      ...webOnlyStyle({
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        pointerEvents: 'none',
-        backgroundImage: emphasized
-          ? isDark
-            ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(74, 154, 255, 0.16) 0%, transparent 65%)'
-            : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(26, 111, 212, 0.1) 0%, transparent 65%)'
-          : undefined,
-      } as object),
-    },
-    content: {
-      flex: 1,
-      gap: spacing.lg,
-      zIndex: 1,
-    },
-    badgeRow: {
-      minHeight: 24,
-    },
-    header: {
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start' as const,
-      gap: spacing.md,
-    },
-    iconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: radii.md,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      backgroundColor: emphasized
-        ? colorWithAlpha(colors.primary, isDark ? 0.18 : 0.1)
-        : colors.fillSubtle,
-    },
-    headerText: {
-      flex: 1,
-      gap: 4,
-    },
-    title: {
-      fontSize: 20,
-      lineHeight: 26,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-    },
-    tagline: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-    priceBlock: {
-      gap: spacing.xs,
-    },
-    price: {
-      fontSize: 24,
-      lineHeight: 30,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-    },
-    priceMeta: {
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelTertiary,
-    },
-    features: {
-      gap: spacing.sm,
-      flex: 1,
-    },
-    featureRow: {
-      flexDirection: 'row' as const,
-      gap: spacing.sm,
-      alignItems: 'flex-start' as const,
-    },
-    feature: {
-      flex: 1,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-  }));
+  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => {
+    const accent = planBrandAccent(plan, colors);
+    return {
+      cardWrap: {
+        flex: 1,
+        minWidth: 0,
+      },
+      card: {
+        flex: 1,
+        borderRadius: 24,
+        padding: spacing.xl,
+        backgroundColor: accent
+          ? colorWithAlpha(accent, isDark ? 0.08 : 0.04)
+          : colors.surface,
+        borderWidth: accent ? 2 : 1,
+        borderColor: accent
+          ? colorWithAlpha(accent, isDark ? 0.45 : 0.35)
+          : colors.separator,
+        gap: spacing.lg,
+        overflow: 'hidden' as const,
+        position: 'relative' as const,
+        ...webCardLiftBase(),
+        ...webOnlyStyle({
+          boxShadow: getWebShadow(isDark, accent ? 'raised' : 'subtle'),
+        } as object),
+      },
+      atmosphere: {
+        ...webOnlyStyle({
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: 'none',
+          backgroundImage:
+            plan === 'starter'
+              ? isDark
+                ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 65%)'
+                : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(26, 111, 212, 0.12) 0%, transparent 65%)'
+              : plan === 'pro'
+                ? isDark
+                  ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(152, 150, 255, 0.2) 0%, transparent 65%)'
+                  : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(88, 86, 214, 0.12) 0%, transparent 65%)'
+                : undefined,
+        } as object),
+      },
+      content: {
+        flex: 1,
+        gap: spacing.lg,
+        zIndex: 1,
+      },
+      header: {
+        flexDirection: 'row' as const,
+        alignItems: 'flex-start' as const,
+        gap: spacing.md,
+      },
+      iconWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: radii.md,
+        alignItems: 'center' as const,
+        justifyContent: 'center' as const,
+        backgroundColor: accent
+          ? colorWithAlpha(accent, isDark ? 0.2 : 0.12)
+          : colors.fillSubtle,
+      },
+      headerText: {
+        flex: 1,
+        gap: 4,
+      },
+      title: {
+        fontSize: 20,
+        lineHeight: 26,
+        fontWeight: '700' as const,
+        color: colors.labelPrimary,
+      },
+      tagline: {
+        fontSize: 14,
+        lineHeight: 20,
+        color: colors.labelSecondary,
+      },
+      priceBlock: {
+        gap: spacing.xs,
+      },
+      price: {
+        fontSize: 24,
+        lineHeight: 30,
+        fontWeight: '700' as const,
+        color: colors.labelPrimary,
+      },
+      priceMeta: {
+        fontSize: 13,
+        lineHeight: 18,
+        color: colors.labelTertiary,
+      },
+      features: {
+        gap: spacing.sm,
+        flex: 1,
+      },
+      featureRow: {
+        flexDirection: 'row' as const,
+        gap: spacing.sm,
+        alignItems: 'flex-start' as const,
+      },
+      feature: {
+        flex: 1,
+        fontSize: 14,
+        lineHeight: 20,
+        color: colors.labelSecondary,
+      },
+    };
+  });
 
   return (
     <WebPageEnter delayMs={enterDelayMs} style={styles.cardWrap}>
       <View style={styles.card}>
-        {emphasized ? <View style={styles.atmosphere} /> : null}
+        {brand ? <View style={styles.atmosphere} /> : null}
         <View style={styles.content}>
-          <View style={styles.badgeRow}>
-            {isRecommended ? (
-              <PillBadge
-                label="Popular for growing clinics"
-                color={colors.primary}
-                backgroundColor={colorWithAlpha(colors.primary, isDark ? 0.18 : 0.1)}
-                borderColor={colorWithAlpha(colors.primary, 0.25)}
-                size="sm"
-              />
-            ) : null}
-          </View>
-
           <View style={styles.header}>
             <View style={styles.iconWrap}>
               <Ionicons
                 name={CLINIC_PLAN_ICONS[plan]}
                 size={22}
-                color={emphasized ? colors.primary : colors.labelSecondary}
+                color={brand ?? colors.labelSecondary}
               />
             </View>
             <View style={styles.headerText}>
@@ -196,9 +179,7 @@ function PricingPlanCard({
           <View style={styles.priceBlock}>
             <Text style={styles.price}>{marketing.fallbackPriceLabel}</Text>
             {plan !== 'free' ? (
-              <Text style={styles.priceMeta}>
-                Billed monthly or annually · upgrade anytime after signup
-              </Text>
+              <Text style={styles.priceMeta}>Upgrade anytime after signup</Text>
             ) : null}
           </View>
 
@@ -266,17 +247,11 @@ function PricingTrustStrip() {
 }
 
 export function WebLandingPricing() {
-  const { colors } = useTheme();
   const { isWide } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    section: {
-      paddingHorizontal: spacing.lg,
+    bleed: {
       paddingVertical: spacing.xl * 2.5,
-      maxWidth: CONTENT_MAX_WIDTH.xwide,
-      width: '100%' as const,
-      alignSelf: 'center' as const,
-      position: 'relative' as const,
       overflow: 'hidden' as const,
       borderTopWidth: 1,
       borderTopColor: colors.separator,
@@ -293,10 +268,6 @@ export function WebLandingPricing() {
           ? 'radial-gradient(ellipse 55% 50% at 50% 20%, rgba(74, 154, 255, 0.1) 0%, transparent 55%), radial-gradient(ellipse 40% 40% at 80% 80%, rgba(152, 150, 255, 0.06) 0%, transparent 50%)'
           : 'radial-gradient(ellipse 55% 50% at 50% 20%, rgba(26, 111, 212, 0.08) 0%, transparent 55%), radial-gradient(ellipse 40% 40% at 80% 80%, rgba(88, 86, 214, 0.05) 0%, transparent 50%)',
       } as object),
-    },
-    inner: {
-      position: 'relative' as const,
-      zIndex: 1,
     },
     header: {
       gap: spacing.sm,
@@ -325,9 +296,9 @@ export function WebLandingPricing() {
   }));
 
   return (
-    <View style={styles.section}>
-      <View style={styles.atmosphere} />
-      <View style={styles.inner}>
+    <WebMarketingSection
+      style={styles.bleed}
+      atmosphere={<View style={styles.atmosphere} />}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>For clinics</Text>
           <Text style={styles.title}>Start free, upgrade when you need more</Text>
@@ -337,18 +308,16 @@ export function WebLandingPricing() {
         </View>
 
         <View style={styles.cards}>
-          {PLANS.map((entry, index) => (
+          {PLANS.map((plan, index) => (
             <PricingPlanCard
-              key={entry.plan}
-              plan={entry.plan}
-              isRecommended={entry.isRecommended}
+              key={plan}
+              plan={plan}
               enterDelayMs={80 + index * 80}
             />
           ))}
         </View>
 
         <PricingTrustStrip />
-      </View>
-    </View>
+    </WebMarketingSection>
   );
 }
