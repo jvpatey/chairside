@@ -38,6 +38,7 @@ import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import {
   ClinicLocationScopeSwitcher,
+  getClinicAllLocationsLabel,
   getClinicLocationScopeLabel,
 } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
@@ -83,6 +84,7 @@ export default function ClinicDashboardScreen() {
     scopedLocationIds,
     locationScope,
     isGroup,
+    isOwner,
     memberIdentityLabel,
   } = useClinicActingContext();
   const { isTablet } = useResponsiveLayout();
@@ -252,19 +254,30 @@ export default function ClinicDashboardScreen() {
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
   const groupName =
     organization?.name?.trim() || clinicName || 'Dental group';
+  const isAllLocationsScope = locationScope === 'all';
+  // When viewing every accessible clinic, lead with the group name — not the
+  // scope label ("My locations" / "All locations"), which lives in the picker.
   const heroDisplayName = !isProfileComplete
     ? null
     : isGroup
-      ? getClinicLocationScopeLabel(locationScope, accessibleLocations)
+      ? isAllLocationsScope
+        ? groupName
+        : getClinicLocationScopeLabel(locationScope, accessibleLocations, isOwner)
       : clinicName;
   const heroSubtitle = !isProfileComplete
     ? 'Finish your clinic setup'
     : isGroup
-      ? groupName
+      ? isAllLocationsScope
+        ? isTablet
+          ? getClinicAllLocationsLabel(isOwner)
+          : memberIdentityLabel || getClinicAllLocationsLabel(isOwner)
+        : groupName
       : 'Dental Clinic';
-  // Phone: identity shares the group subtitle line (group name is emphasized in the hero).
+  // Phone: identity under a specific location; when "all", identity is the subtitle.
   const heroIdentityLine =
-    isGroup && isProfileComplete && !isTablet ? memberIdentityLabel : undefined;
+    isGroup && isProfileComplete && !isTablet && !isAllLocationsScope
+      ? memberIdentityLabel
+      : undefined;
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
   const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
 

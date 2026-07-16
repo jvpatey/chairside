@@ -277,8 +277,12 @@ export default function SignInScreen() {
       }>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
         <AuthScreenHeader
-          title="Welcome back"
-          subtitle="Sign in to pick up where you left off."
+          title={pendingInviteToken ? 'Join your clinic team' : 'Welcome back'}
+          subtitle={
+            pendingInviteToken
+              ? 'Sign in with the email your invitation was sent to. You’ll review the invite next.'
+              : 'Sign in to pick up where you left off.'
+          }
           onBack={() => router.back()}
         />
       </Animated.View>

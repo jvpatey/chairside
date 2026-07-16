@@ -39,11 +39,16 @@ type ClinicLocationScopeSwitcherProps = {
   endAccessory?: ReactNode;
 };
 
+export function getClinicAllLocationsLabel(isOwner: boolean): string {
+  return isOwner ? 'All locations' : 'My locations';
+}
+
 export function getClinicLocationScopeLabel(
   locationScope: string,
   locations: { id: string; name: string }[],
+  isOwner = true,
 ): string {
-  if (locationScope === 'all') return 'All locations';
+  if (locationScope === 'all') return getClinicAllLocationsLabel(isOwner);
   return locations.find((location) => location.id === locationScope)?.name ?? 'Selected location';
 }
 
@@ -228,18 +233,23 @@ export function ClinicLocationScopeSwitcher({
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const showAllOption = isOwner || accessibleLocations.length > 1;
-  const label = getClinicLocationScopeLabel(locationScope, accessibleLocations);
+  const allLocationsLabel = getClinicAllLocationsLabel(isOwner);
+  const label = getClinicLocationScopeLabel(
+    locationScope,
+    accessibleLocations,
+    isOwner,
+  );
 
   const options = useMemo(() => {
     const next: ScopeOption[] = [];
     if (showAllOption) {
-      next.push({ id: 'all', label: 'All locations' });
+      next.push({ id: 'all', label: allLocationsLabel });
     }
     for (const location of accessibleLocations) {
       next.push({ id: location.id, label: location.name });
     }
     return next;
-  }, [accessibleLocations, showAllOption]);
+  }, [accessibleLocations, allLocationsLabel, showAllOption]);
 
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     sidebarWrap: {

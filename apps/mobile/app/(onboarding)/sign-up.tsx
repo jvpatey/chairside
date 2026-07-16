@@ -235,8 +235,12 @@ export default function SignUpScreen() {
       }>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
         <AuthScreenHeader
-          title="Create your account"
-          subtitle="A few details to get you into Chairside."
+          title={pendingInviteToken ? 'Create your clinic account' : 'Create your account'}
+          subtitle={
+            pendingInviteToken
+              ? 'Use the email your invitation was sent to, then you’ll join the group.'
+              : 'A few details to get you into Chairside.'
+          }
           onBack={() => router.back()}
         />
       </Animated.View>

@@ -5,15 +5,16 @@ import {
   signOut,
   type ClinicInvitationPreview,
 } from '@chairside/api';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import {
@@ -21,7 +22,12 @@ import {
   saveClinicInviteToken,
 } from '@/lib/clinicInviteSession';
 import { CLINIC_HOME, CLINIC_SETUP_ACCOUNT_TYPE } from '@/lib/routing';
-import { useTheme, useThemedStyles } from '@/theme';
+import {
+  colorWithAlpha,
+  getHeroBandGradient,
+  useTheme,
+  useThemedStyles,
+} from '@/theme';
 
 function formatExpiry(iso?: string): string | null {
   if (!iso) return null;
@@ -33,6 +39,208 @@ function formatExpiry(iso?: string): string | null {
   } catch {
     return null;
   }
+}
+
+function InviteDetailRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ spacing, typography, colors: themeColors }) => ({
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: spacing.sm + 2,
+    },
+    iconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colorWithAlpha(themeColors.primary, 0.12),
+    },
+    copy: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+      paddingTop: 2,
+    },
+    label: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '500' as const,
+      color: themeColors.labelTertiary,
+      letterSpacing: 0.2,
+    },
+    value: {
+      ...typography.body,
+      fontSize: 15,
+      lineHeight: 21,
+      color: themeColors.labelPrimary,
+    },
+  }));
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.iconWrap}>
+        <Ionicons name={icon} size={18} color={colors.primary} />
+      </View>
+      <View style={styles.copy}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.value}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
+function ClinicInvitePreviewCard({
+  preview,
+  inviteTitle,
+  inviterLabel,
+}: {
+  preview: ClinicInvitationPreview;
+  inviteTitle: string;
+  inviterLabel: string;
+}) {
+  const { colors, isDark } = useTheme();
+  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
+  const locationNames = preview.location_names ?? [];
+  const expiresLabel = formatExpiry(preview.expires_at);
+
+  const styles = useThemedStyles(({ colors: themeColors, spacing, radii, typography, elevation }) => ({
+    card: {
+      borderRadius: radii.hero,
+      overflow: 'hidden' as const,
+      borderWidth: 0,
+      backgroundColor: themeColors.surface,
+      ...elevation('subtle'),
+    },
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    content: {
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+    header: {
+      gap: spacing.sm,
+    },
+    eyebrow: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600' as const,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase' as const,
+      color: themeColors.primary,
+    },
+    orgName: {
+      ...typography.title,
+      fontSize: 26,
+      lineHeight: 32,
+      color: themeColors.labelPrimary,
+    },
+    rolePill: {
+      alignSelf: 'flex-start' as const,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 6,
+      borderRadius: radii.pill,
+      backgroundColor: colorWithAlpha(themeColors.primary, isDark ? 0.2 : 0.12),
+    },
+    rolePillLabel: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '600' as const,
+      color: themeColors.primary,
+    },
+    details: {
+      gap: spacing.md,
+      paddingTop: spacing.xs,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: themeColors.separator,
+    },
+    chips: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: spacing.xs,
+      marginTop: 4,
+    },
+    chip: {
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 6,
+      borderRadius: radii.pill,
+      backgroundColor: colorWithAlpha(themeColors.labelPrimary, isDark ? 0.08 : 0.05),
+    },
+    chipLabel: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '500' as const,
+      color: themeColors.labelSecondary,
+    },
+  }));
+
+  return (
+    <View style={styles.card}>
+      <LinearGradient
+        colors={heroGradient}
+        locations={[0, 0.28, 0.55, 0.75, 0.9, 1]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={styles.gradient}
+        pointerEvents="none"
+      />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>Clinic invitation</Text>
+          <Text style={styles.orgName}>{preview.organization_name || 'Clinic group'}</Text>
+          <View style={styles.rolePill}>
+            <Text style={styles.rolePillLabel}>{inviteTitle}</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.details}>
+          <InviteDetailRow icon="person-outline" label="Invited by" value={inviterLabel} />
+          {preview.email ? (
+            <InviteDetailRow icon="mail-outline" label="Invited email" value={preview.email} />
+          ) : null}
+          {locationNames.length > 0 ? (
+            <View>
+              <InviteDetailRow
+                icon="business-outline"
+                label={locationNames.length === 1 ? 'Location' : 'Locations'}
+                value={
+                  locationNames.length === 1
+                    ? locationNames[0]!
+                    : `${locationNames.length} clinics assigned`
+                }
+              />
+              {locationNames.length > 1 ? (
+                <View style={styles.chips}>
+                  {locationNames.map((name) => (
+                    <View key={name} style={styles.chip}>
+                      <Text style={styles.chipLabel}>{name}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          {expiresLabel ? (
+            <InviteDetailRow icon="time-outline" label="Expires" value={expiresLabel} />
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
 }
 
 export default function AcceptClinicInviteScreen() {
@@ -51,17 +259,18 @@ export default function AcceptClinicInviteScreen() {
   const [showCodeEntry, setShowCodeEntry] = useState(!params.token);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
-    form: { gap: spacing.md },
+    form: { gap: spacing.lg },
     hint: typography.subtitle,
-    cardTitle: { ...typography.body, fontWeight: '600' as const },
-    cardMeta: typography.subtitle,
     action: { ...typography.body, color: colors.primary, fontWeight: '600' as const },
     errorBox: {
-      ...typography.subtitle,
-      color: colors.destructive,
+      gap: spacing.sm,
       backgroundColor: `${colors.destructive}14`,
       borderRadius: 12,
       padding: spacing.md,
+    },
+    errorText: {
+      ...typography.subtitle,
+      color: colors.destructive,
     },
   }));
 
@@ -187,27 +396,35 @@ export default function AcceptClinicInviteScreen() {
     (!preview || preview.status === 'pending') &&
     !isLoadingPreview;
 
+  const inviteTitle = preview?.title?.trim() || 'Manager';
+  const inviterLabel =
+    preview?.inviter_name?.trim() || preview?.organization_name?.trim() || 'the clinic';
+
   return (
     <OnboardingShell
       atmosphere="form"
       footer={
         <SetupStepFooter
-          canContinue={canJoin}
+          canContinue={emailMismatch ? Boolean(token.trim()) : canJoin}
           validationMessage={
             emailMismatch
-              ? `Sign in with ${preview?.email} to accept this invitation.`
+              ? `Sign in as ${preview?.email} to accept this invitation.`
               : 'Enter your invitation code.'
           }
           showValidation={Boolean(submitError) && !token.trim()}
           submitError={submitError}
           isSubmitting={isSubmitting || isSwitchingAccount}
-          continueLabel="Join clinic group"
-          onContinue={handleAccept}
+          continueLabel={emailMismatch ? 'Switch account' : 'Join clinic group'}
+          onContinue={emailMismatch ? handleSwitchAccount : handleAccept}
         />
       }>
       <AuthScreenHeader
         title="Join a clinic group"
-        subtitle="Review your invitation, then join with the invited email."
+        subtitle={
+          emailMismatch
+            ? `This invite is for ${preview?.email}. Switch accounts to continue.`
+            : 'Review your invitation, then join with the invited email.'
+        }
         onBack={() => router.back()}
       />
       <View style={styles.form}>
@@ -220,8 +437,9 @@ export default function AcceptClinicInviteScreen() {
 
         {emailMismatch ? (
           <View style={styles.errorBox}>
-            <Text>
-              This invitation was sent to {preview?.email}. You are signed in as {session.user.email}.
+            <Text style={styles.errorText}>
+              This invitation was sent to {preview?.email}. You are signed in as{' '}
+              {session.user.email}. Switch to that account to join.
             </Text>
             <Pressable onPress={() => void handleSwitchAccount()}>
               <Text style={styles.action}>
@@ -232,22 +450,11 @@ export default function AcceptClinicInviteScreen() {
         ) : null}
 
         {preview?.status === 'pending' ? (
-          <SurfaceCard>
-            <Text style={styles.cardTitle}>{preview.organization_name}</Text>
-            <Text style={styles.cardMeta}>
-              Invited by {preview.inviter_name}
-              {preview.title ? ` · ${preview.title}` : ''}
-            </Text>
-            <Text style={styles.cardMeta}>For {preview.email}</Text>
-            {(preview.location_names ?? []).length > 0 ? (
-              <Text style={styles.cardMeta}>
-                Locations: {(preview.location_names ?? []).join(', ')}
-              </Text>
-            ) : null}
-            {formatExpiry(preview.expires_at) ? (
-              <Text style={styles.cardMeta}>Expires {formatExpiry(preview.expires_at)}</Text>
-            ) : null}
-          </SurfaceCard>
+          <ClinicInvitePreviewCard
+            preview={preview}
+            inviteTitle={inviteTitle}
+            inviterLabel={inviterLabel}
+          />
         ) : null}
 
         {isLoadingPreview ? <Text style={styles.hint}>Loading invitation…</Text> : null}
