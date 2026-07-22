@@ -29,10 +29,7 @@ export default function Index() {
         return;
       }
 
-      if (!profile) {
-        return;
-      }
-
+      // profile may be null (no role yet) — resolveAuthenticatedRoute handles that.
       const { href, role } = await resolveAuthenticatedRoute({
         userId: session.user.id,
         profile,

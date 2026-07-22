@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiMocks = vi.hoisted(() => ({
   getClinicProfile: vi.fn(),
+  getClinicProfileByOrganizationId: vi.fn(),
+  getClinicWorkspace: vi.fn(),
   getWorkerProfile: vi.fn(),
   resolveAuthProfile: vi.fn(),
+  isClinicGroupsEnabled: vi.fn(() => false),
   isClinicProfileComplete: vi.fn((profile: { clinic_name?: string | null } | null) =>
     Boolean(profile?.clinic_name?.trim()),
   ),
