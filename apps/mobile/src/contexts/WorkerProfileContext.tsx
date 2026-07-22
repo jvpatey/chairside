@@ -91,9 +91,11 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
       }
 
       if (profile === null) {
+        // Auth settled with no profile row — treat as ready so gates can redirect.
+        requestRef.current += 1;
         setWorkerProfile(null);
         setAvailabilityBlocks([]);
-        setIsWorkerProfileReady(false);
+        setIsWorkerProfileReady(true);
         return;
       }
 

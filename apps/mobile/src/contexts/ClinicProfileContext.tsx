@@ -132,9 +132,11 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       }
 
       if (profile === null) {
+        // Auth settled with no profile row — treat as ready so gates can redirect.
+        requestRef.current += 1;
         setClinicProfile(null);
         setWorkspace(null);
-        setIsClinicProfileReady(false);
+        setIsClinicProfileReady(true);
         return;
       }
 

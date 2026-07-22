@@ -21,6 +21,7 @@ import {
   isPasswordRecoveryPending,
   markPasswordRecoveryPending,
 } from '@/lib/authRecoveryState';
+import { applyAuthSessionFromStorage } from '@/lib/authSessionSync';
 import { unregisterPingramPushNotifications } from '@/lib/pingramPushRegistration';
 
 type AuthContextValue = {
@@ -94,40 +95,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    async function applySessionFromStorage(revisionAtStart: number) {
-      const supabase = getSupabaseClient();
-      const {
-        data: { session: currentSession },
-        error,
-      } = await supabase.auth.getSession();
-      if (error) throw error;
-      if (cancelled || revisionAtStart !== profileRequestRef.current) return;
-
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-
-      if (!currentSession?.user) {
-        profileRequestRef.current += 1;
-        setProfile(null);
-        return;
-      }
-
-      const requestId = ++profileRequestRef.current;
-      await loadProfile(currentSession.user.id, requestId);
+    async function applySessionFromStorage() {
+      await applyAuthSessionFromStorage({
+        getSession: async () => {
+          const supabase = getSupabaseClient();
+          const {
+            data: { session: currentSession },
+            error,
+          } = await supabase.auth.getSession();
+          return { session: currentSession, error: error ? new Error(error.message) : null };
+        },
+        isCancelled: () => cancelled,
+        nextProfileRequestId: () => ++profileRequestRef.current,
+        loadProfile,
+        setSession,
+        setUser,
+        clearProfile: () => {
+          profileRequestRef.current += 1;
+          setProfile(null);
+        },
+      });
     }
 
     async function bootstrapAuth() {
-      const revisionAtStart = profileRequestRef.current;
-
       try {
         const recoveryPending = await isPasswordRecoveryPending();
         if (!cancelled) {
           setIsPasswordRecoveryPendingState(recoveryPending);
         }
 
-        await applySessionFromStorage(revisionAtStart);
+        await applySessionFromStorage();
       } catch {
-        if (!cancelled && revisionAtStart === profileRequestRef.current) {
+        if (!cancelled) {
           profileRequestRef.current += 1;
           setSession(null);
           setUser(null);
@@ -164,8 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsPasswordRecoveryPendingState(true);
         }
 
-        const revisionAtEvent = profileRequestRef.current;
-        void applySessionFromStorage(revisionAtEvent);
+        void applySessionFromStorage();
       });
       subscription = result.data.subscription;
     } catch {

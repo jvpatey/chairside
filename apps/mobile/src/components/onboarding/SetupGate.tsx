@@ -10,83 +10,51 @@ import {
   isWorkerSetupComplete,
 } from '@/lib/setupCompletion';
 import {
-  CLINIC_SETUP_ACCOUNT_TYPE,
-  CLINIC_SETUP_BASICS,
-  WORKER_SETUP_BASICS,
-} from '@/lib/routing';
+  getClinicSetupGateDecision,
+  getWorkerSetupGateDecision,
+} from '@/lib/setupGateDecision';
 import { isClinicGroupsEnabled } from '@chairside/api';
+
+function renderGateDecision(
+  decision: ReturnType<typeof getClinicSetupGateDecision>,
+  children: ReactNode,
+) {
+  if (decision.type === 'loading') return <PageLoadingSpinner />;
+  if (decision.type === 'redirect') return <Redirect href={decision.href} />;
+  return children;
+}
 
 export function ClinicSetupGate({ children }: { children: ReactNode }) {
   const { session, isAuthReady, profile } = useAuth();
   const { clinicProfile, isClinicProfileReady, membership, isOwner } = useClinicProfile();
 
-  if (!isAuthReady || !session) {
-    return <PageLoadingSpinner />;
-  }
+  const decision = getClinicSetupGateDecision({
+    isAuthReady,
+    session,
+    profile,
+    isClinicProfileReady,
+    clinicProfile,
+    membership,
+    isOwner,
+    isClinicGroupsEnabled: isClinicGroupsEnabled(),
+    isClinicSetupComplete,
+  });
 
-  if (profile === null) {
-    return <PageLoadingSpinner />;
-  }
-
-  if (profile.role !== 'clinic') {
-    return <PageLoadingSpinner />;
-  }
-
-  if (!isClinicProfileReady) {
-    return <PageLoadingSpinner />;
-  }
-
-  // Invited managers join a completed org and skip owner setup.
-  if (membership && !isOwner) {
-    return children;
-  }
-
-  if (clinicProfile === null) {
-    return (
-      <Redirect
-        href={isClinicGroupsEnabled() ? CLINIC_SETUP_ACCOUNT_TYPE : CLINIC_SETUP_BASICS}
-      />
-    );
-  }
-
-  if (!isClinicSetupComplete(clinicProfile)) {
-    return (
-      <Redirect
-        href={
-          isClinicGroupsEnabled() && !clinicProfile.account_type
-            ? CLINIC_SETUP_ACCOUNT_TYPE
-            : CLINIC_SETUP_BASICS
-        }
-      />
-    );
-  }
-
-  return children;
+  return renderGateDecision(decision, children);
 }
 
 export function WorkerSetupGate({ children }: { children: ReactNode }) {
   const { session, isAuthReady, profile } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
 
-  if (!isAuthReady || !session) {
-    return <PageLoadingSpinner />;
-  }
+  const decision = getWorkerSetupGateDecision({
+    isAuthReady,
+    session,
+    profile,
+    isWorkerProfileReady,
+    workerProfile,
+    isWorkerSetupComplete,
+  });
 
-  if (profile === null) {
-    return <PageLoadingSpinner />;
-  }
-
-  if (profile.role !== 'worker') {
-    return <PageLoadingSpinner />;
-  }
-
-  if (!isWorkerProfileReady || workerProfile === null) {
-    return <PageLoadingSpinner />;
-  }
-
-  if (!isWorkerSetupComplete(workerProfile)) {
-    return <Redirect href={WORKER_SETUP_BASICS} />;
-  }
-
-  return children;
+  return renderGateDecision(decision, children);
 }
