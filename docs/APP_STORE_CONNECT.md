@@ -120,6 +120,15 @@ Answer based on actual data collection. Summary for Chairside:
 
 Required because the app offers Google sign-in. Confirm the App ID has Sign in with Apple enabled and the capability is in the production build.
 
+**Supabase → Authentication → Providers → Apple → Client IDs** must list:
+
+1. Services ID first (web OAuth), e.g. `com.chairside.app.auth`
+2. Bundle ID second (native ID token), e.g. `com.chairside.app`
+
+Web uses OAuth; iOS uses native `signInWithIdToken` against the bundle ID audience. If only the Services ID is listed, web Apple works and native Apple fails.
+
+If native Apple still fails with Client IDs correct, check **Supabase → Logs → Auth** for `/token` errors right after a failed attempt (e.g. issuer mismatch / unacceptable audience). Prefer a physical device TestFlight build over the simulator.
+
 ## After approval
 
 Update `APP_STORE_URL` in [`apps/mobile/src/constants/index.ts`](../apps/mobile/src/constants/index.ts) with the live App Store link and rebuild if the welcome web pitch should link to the store.
