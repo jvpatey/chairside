@@ -4,6 +4,7 @@ import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
 import { getSupabaseClient } from './client';
+import { getErrorMessage } from './errors';
 import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
 import type { UserRole } from './types';
 
@@ -164,6 +165,15 @@ export async function signInWithGoogle() {
   return session;
 }
 
+function isAppleCancelError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'ERR_REQUEST_CANCELED'
+  );
+}
+
 export async function signInWithApple() {
   if (Platform.OS === 'web') {
     const supabase = getSupabaseClient();
@@ -192,22 +202,19 @@ export async function signInWithApple() {
 
   try {
     credential = await AppleAuthentication.signInAsync({
-    requestedScopes: [
-      AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-      AppleAuthentication.AppleAuthenticationScope.EMAIL,
-    ],
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
     });
   } catch (error) {
-    if (
-      error &&
-      typeof error === 'object' &&
-      'code' in error &&
-      error.code === 'ERR_REQUEST_CANCELED'
-    ) {
+    if (isAppleCancelError(error)) {
       throw new Error('Sign in was cancelled.');
     }
 
-    throw error;
+    throw new Error(
+      getErrorMessage(error, 'Apple sign-in failed. Check Sign in with Apple is enabled for this build.'),
+    );
   }
 
   if (!credential.identityToken) {
@@ -220,7 +227,9 @@ export async function signInWithApple() {
     token: credential.identityToken,
   });
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(getErrorMessage(error, 'Apple sign-in failed when verifying with Supabase.'));
+  }
 
   if (credential.fullName) {
     const nameParts = [
@@ -246,35 +255,37 @@ export async function signInWithApple() {
 }
 
 export function getAuthErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    if (error.message === 'Sign in was cancelled.') {
-      return error.message;
-    }
+  const message = getErrorMessage(error, 'Something went wrong. Please try again.');
 
-    const message = error.message.toLowerCase();
-
-    if (message.includes('json parse error') || message.includes('unexpected end of input')) {
-      return 'Could not reach Supabase. Check that EXPO_PUBLIC_SUPABASE_URL uses https:// in apps/mobile/.env, then restart Expo.';
-    }
-
-    if (message.includes('invalid login credentials')) {
-      return 'Incorrect email or password.';
-    }
-
-    if (message.includes('user already registered')) {
-      return 'An account with this email already exists.';
-    }
-
-    if (message.includes('email not confirmed')) {
-      return 'Please confirm your email before signing in.';
-    }
-
-    if (message.includes('password')) {
-      return error.message;
-    }
-
-    return error.message;
+  if (message === 'Sign in was cancelled.') {
+    return message;
   }
 
-  return 'Something went wrong. Please try again.';
+  const lower = message.toLowerCase();
+
+  if (lower.includes('json parse error') || lower.includes('unexpected end of input')) {
+    return 'Could not reach Supabase. Check that EXPO_PUBLIC_SUPABASE_URL uses https:// in apps/mobile/.env, then restart Expo.';
+  }
+
+  if (lower.includes('invalid login credentials')) {
+    return 'Incorrect email or password.';
+  }
+
+  if (lower.includes('user already registered')) {
+    return 'An account with this email already exists.';
+  }
+
+  if (lower.includes('email not confirmed')) {
+    return 'Please confirm your email before signing in.';
+  }
+
+  if (lower.includes('unacceptable audience')) {
+    return 'Apple sign-in is misconfigured. Add com.chairside.app to Supabase Apple Client IDs.';
+  }
+
+  if (lower.includes('issuer did not match') || lower.includes('account.apple.com')) {
+    return 'Apple sign-in failed due to an Apple/Supabase issuer mismatch. Check Supabase Auth logs or contact Supabase support.';
+  }
+
+  return message;
 }

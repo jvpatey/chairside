@@ -15,7 +15,8 @@ Record build number, date, and tester name when signing off.
 - [ ] Email sign-up sends confirmation (or sign-in if already confirmed)
 - [ ] Email sign-in works
 - [ ] Forgot password email opens app → reset password screen
-- [ ] Sign in with Apple works (iOS native)
+- [ ] Sign in with Apple works (iOS native; not Expo Go — needs TestFlight / EAS build)
+- [ ] If Apple fails, note the exact Alert text and check Supabase Auth logs for `/token`
 - [ ] Sign in with Google works
 - [ ] Sign out and sign back in
 
