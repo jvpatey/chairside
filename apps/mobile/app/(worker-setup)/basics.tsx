@@ -1,5 +1,5 @@
 import { ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
-import { getWorkerRoleTypes, updateProfileDisplayName } from '@chairside/api';
+import { getWorkerRoleTypes, resolveAuthDisplayName, updateProfileDisplayName } from '@chairside/api';
 import { router } from 'expo-router';
 import { WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
@@ -32,7 +32,18 @@ export default function WorkerBasicsScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
-  useWorkerSetupStepGuard('basics', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
+  const seededDisplayName = resolveAuthDisplayName(
+    profile?.display_name,
+    user?.user_metadata as Record<string, unknown> | undefined,
+  );
+
+  useWorkerSetupStepGuard(
+    'basics',
+    workerProfile,
+    seededDisplayName || profile?.display_name,
+    isWorkerProfileReady,
+    isEditMode,
+  );
 
   const validation = validateWorkerBasicsStep({ displayName, roleTypes });
 
@@ -43,8 +54,8 @@ export default function WorkerBasicsScreen() {
   }));
 
   useEffect(() => {
-    setDisplayName(profile?.display_name ?? '');
-  }, [profile?.display_name]);
+    setDisplayName(seededDisplayName);
+  }, [seededDisplayName]);
 
   useEffect(() => {
     if (!workerProfile) return;

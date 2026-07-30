@@ -1,4 +1,5 @@
 import {
+  resolveAuthDisplayName,
   updateClinicMembershipProfile,
   uploadClinicMemberPhotoFromBase64,
 } from '@chairside/api';
@@ -42,7 +43,7 @@ type PendingMemberPhoto = {
 };
 
 export default function ClinicBasicsScreen() {
-  const { profile: authProfile } = useAuth();
+  const { user, profile: authProfile } = useAuth();
   const {
     clinicProfile,
     isClinicProfileReady,
@@ -66,6 +67,11 @@ export default function ClinicBasicsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
+
+  const authDisplayName = resolveAuthDisplayName(
+    authProfile?.display_name,
+    user?.user_metadata as Record<string, unknown> | undefined,
+  );
 
   useClinicSetupStepGuard('basics', clinicProfile, isClinicProfileReady, isEditMode);
 
@@ -94,24 +100,17 @@ export default function ClinicBasicsScreen() {
     const isBootstrapPlaceholder =
       !isEditMode && rawName.toLowerCase() === 'clinic';
     setClinicName(isBootstrapPlaceholder ? '' : (clinicProfile.clinic_name ?? ''));
-    setContactName(clinicProfile.contact_name ?? '');
+    const savedContact = clinicProfile.contact_name?.trim() ?? '';
+    setContactName(savedContact || authDisplayName);
     setPhone(clinicProfile.phone ? formatPhoneNumber(clinicProfile.phone) : '');
-  }, [clinicProfile, isEditMode]);
+  }, [authDisplayName, clinicProfile, isEditMode]);
 
   useEffect(() => {
     if (!isGroup) return;
-    setMemberDisplayName(
-      seedMembershipDisplayName(membership?.display_name, authProfile?.display_name),
-    );
+    setMemberDisplayName(seedMembershipDisplayName(membership?.display_name, authDisplayName));
     setMemberTitle(membership?.title?.trim() || 'Owner');
     setMemberBio(membership?.bio?.trim() || '');
-  }, [
-    authProfile?.display_name,
-    isGroup,
-    membership?.bio,
-    membership?.display_name,
-    membership?.title,
-  ]);
+  }, [authDisplayName, isGroup, membership?.bio, membership?.display_name, membership?.title]);
 
   const handlePickPhoto = async () => {
     try {

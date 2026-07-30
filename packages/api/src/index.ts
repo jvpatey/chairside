@@ -355,6 +355,13 @@ export {
   type ScreeningSubmissionInput,
 } from './screening';
 export {
+  formatAppleFullName,
+  getUserMetadataDisplayName,
+  resolveAppleNameToPersist,
+  resolveAuthDisplayName,
+} from './authDisplayName';
+export {
+  ensureProfileDisplayName,
   getProfile,
   resolveAuthProfile,
   setProfileRole,

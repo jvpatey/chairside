@@ -96,3 +96,45 @@ export async function updateProfileDisplayName(userId: string, displayName: stri
   if (error) throw error;
   return data;
 }
+
+/**
+ * Seed profiles.display_name from auth (e.g. Sign in with Apple) without
+ * overwriting a name the user already set, and without forcing a role.
+ */
+export async function ensureProfileDisplayName(userId: string, displayName: string) {
+  const trimmed = displayName.trim();
+  if (!trimmed) return null;
+
+  const existing = await getProfile(userId);
+  if (existing?.display_name?.trim()) {
+    return existing;
+  }
+
+  const supabase = getSupabaseClient();
+  const now = new Date().toISOString();
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ display_name: trimmed, updated_at: now })
+      .eq('id', userId)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      id: userId,
+      display_name: trimmed,
+      updated_at: now,
+    })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}

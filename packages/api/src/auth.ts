@@ -3,9 +3,14 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
+import {
+  formatAppleFullName,
+  resolveAppleNameToPersist,
+} from './authDisplayName';
 import { getSupabaseClient } from './client';
 import { getErrorMessage } from './errors';
 import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
+import { ensureProfileDisplayName } from './profile';
 import type { UserRole } from './types';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -231,24 +236,26 @@ export async function signInWithApple() {
     throw new Error(getErrorMessage(error, 'Apple sign-in failed when verifying with Supabase.'));
   }
 
-  if (credential.fullName) {
-    const nameParts = [
-      credential.fullName.givenName,
-      credential.fullName.middleName,
-      credential.fullName.familyName,
-    ].filter(Boolean);
+  const appleName = formatAppleFullName(credential.fullName);
+  if (appleName) {
+    await supabase.auth.updateUser({
+      data: {
+        full_name: appleName,
+        given_name: credential.fullName?.givenName ?? undefined,
+        family_name: credential.fullName?.familyName ?? undefined,
+      },
+    });
+  }
 
-    const fullName = nameParts.join(' ');
+  const userId = data.user?.id;
+  const nameToPersist = resolveAppleNameToPersist(
+    credential.fullName,
+    data.user?.user_metadata as Record<string, unknown> | undefined,
+  );
 
-    if (fullName) {
-      await supabase.auth.updateUser({
-        data: {
-          full_name: fullName,
-          given_name: credential.fullName.givenName ?? undefined,
-          family_name: credential.fullName.familyName ?? undefined,
-        },
-      });
-    }
+  if (userId && nameToPersist) {
+    // Copy Apple identity into the app profile so setup does not re-ask for name.
+    await ensureProfileDisplayName(userId, nameToPersist);
   }
 
   return data;
