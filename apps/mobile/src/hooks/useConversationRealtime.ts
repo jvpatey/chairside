@@ -5,6 +5,8 @@ import type { ConversationRealtimeUpdate } from '@/lib/conversationRealtime';
 
 export type { ConversationRealtimeUpdate } from '@/lib/conversationRealtime';
 
+let channelInstance = 0;
+
 /** Subscribes to conversation row updates for read receipts and preview metadata. */
 export function useConversationRealtime(
   conversationId: string | null,
@@ -17,24 +19,32 @@ export function useConversationRealtime(
     if (!conversationId) return;
 
     const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel(`conversation:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'conversations',
-          filter: `id=eq.${conversationId}`,
-        },
-        (payload) => {
-          onUpdateRef.current(payload.new as ConversationRealtimeUpdate);
-        },
-      )
-      .subscribe();
+    const instanceId = ++channelInstance;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    try {
+      channel = supabase
+        .channel(`conversation:${conversationId}:${instanceId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'conversations',
+            filter: `id=eq.${conversationId}`,
+          },
+          (payload) => {
+            onUpdateRef.current(payload.new as ConversationRealtimeUpdate);
+          },
+        )
+        .subscribe();
+    } catch {
+      if (channel) void supabase.removeChannel(channel);
+      return;
+    }
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [conversationId]);
 }
@@ -53,24 +63,32 @@ export function useInboxConversationRealtime(
 
     const supabase = getSupabaseClient();
     const filterColumn = role === 'worker' ? 'worker_id' : 'clinic_id';
-    const channel = supabase
-      .channel(`inbox-conversations:${role}:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'conversations',
-          filter: `${filterColumn}=eq.${userId}`,
-        },
-        (payload) => {
-          onUpdateRef.current(payload.new as ConversationRealtimeUpdate);
-        },
-      )
-      .subscribe();
+    const instanceId = ++channelInstance;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    try {
+      channel = supabase
+        .channel(`inbox-conversations:${role}:${userId}:${instanceId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'conversations',
+            filter: `${filterColumn}=eq.${userId}`,
+          },
+          (payload) => {
+            onUpdateRef.current(payload.new as ConversationRealtimeUpdate);
+          },
+        )
+        .subscribe();
+    } catch {
+      if (channel) void supabase.removeChannel(channel);
+      return;
+    }
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [role, userId]);
 }

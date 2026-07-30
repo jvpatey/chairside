@@ -1,7 +1,7 @@
 import { ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
 import { getWorkerRoleTypes, resolveAuthDisplayName, updateProfileDisplayName } from '@chairside/api';
 import { router } from 'expo-router';
-import { WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
+import { ONBOARDING_CHANGE_ROLE, WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -16,7 +16,6 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
-import { useSignOut } from '@/hooks/useSignOut';
 import { validateWorkerBasicsStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
@@ -25,7 +24,6 @@ export default function WorkerBasicsScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
-  const { isSigningOut, signOut } = useSignOut();
   const [displayName, setDisplayName] = useState('');
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,8 +105,10 @@ export default function WorkerBasicsScreen() {
       <AuthScreenHeader
         title="Professional background · Basics"
         subtitle="Tell clinics who you are and which roles you are qualified for."
-        backLabel={isEditMode ? undefined : isSigningOut ? 'Signing out…' : 'Sign out'}
-        onBack={() => (isEditMode ? router.replace(exitHref) : void signOut())}
+        backLabel={isEditMode ? undefined : 'Back'}
+        onBack={() =>
+          isEditMode ? router.replace(exitHref) : router.replace(ONBOARDING_CHANGE_ROLE)
+        }
       />
       {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
       <View style={styles.form}>

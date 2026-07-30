@@ -1,10 +1,16 @@
 import {
+  isClinicGroupsEnabled,
   resolveAuthDisplayName,
   updateClinicMembershipProfile,
   uploadClinicMemberPhotoFromBase64,
 } from '@chairside/api';
 import { router } from 'expo-router';
-import { CLINIC_SETUP_LOCATION, CLINIC_SETUP_LOCATIONS } from '@/lib/routing';
+import {
+  CLINIC_SETUP_ACCOUNT_TYPE,
+  CLINIC_SETUP_LOCATION,
+  CLINIC_SETUP_LOCATIONS,
+  ONBOARDING_CHANGE_ROLE,
+} from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -21,7 +27,6 @@ import { useClinicMemberPhotoUri } from '@/hooks/useClinicMemberPhotoUri';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
-import { useSignOut } from '@/hooks/useSignOut';
 import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { validateClinicBasicsStep } from '@/lib/setupStepValidation';
@@ -54,7 +59,6 @@ export default function ClinicBasicsScreen() {
   } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
-  const { isSigningOut, signOut } = useSignOut();
   const savedMemberPhotoUri = useClinicMemberPhotoUri(membership?.photo_storage_path);
   const [clinicName, setClinicName] = useState('');
   const [contactName, setContactName] = useState('');
@@ -175,6 +179,20 @@ export default function ClinicBasicsScreen() {
 
   if (!isClinicProfileReady) return null;
 
+  const groupsEnabled = isClinicGroupsEnabled();
+  const canStepBackToAccountType = groupsEnabled && Boolean(clinicProfile?.account_type);
+  const handleBack = () => {
+    if (isEditMode) {
+      router.replace(exitHref);
+      return;
+    }
+    if (canStepBackToAccountType) {
+      router.replace(CLINIC_SETUP_ACCOUNT_TYPE);
+      return;
+    }
+    router.replace(ONBOARDING_CHANGE_ROLE);
+  };
+
   return (
     <OnboardingShell
       atmosphere="form"
@@ -196,8 +214,8 @@ export default function ClinicBasicsScreen() {
             ? 'Name your clinic group, your role, and primary contact.'
             : 'Tell us about your practice.'
         }
-        backLabel={isEditMode ? undefined : isSigningOut ? 'Signing out…' : 'Sign out'}
-        onBack={() => (isEditMode ? router.replace(exitHref) : void signOut())}
+        backLabel={isEditMode ? undefined : 'Back'}
+        onBack={handleBack}
       />
       {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
       <View style={styles.form}>

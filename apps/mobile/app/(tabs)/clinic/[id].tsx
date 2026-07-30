@@ -1,4 +1,4 @@
-import { getOrCreateGeneralConversation, getPublicClinicPostings } from '@chairside/api';
+import { getErrorMessage, getOrCreateGeneralConversation, getPublicClinicPostings } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -82,7 +82,7 @@ export default function WorkerClinicProfileScreen() {
     } catch (error) {
       Alert.alert(
         'Could not start conversation',
-        error instanceof Error ? error.message : 'Please try again.',
+        getErrorMessage(error, 'Please try again.'),
       );
     } finally {
       setIsStartingMessage(false);

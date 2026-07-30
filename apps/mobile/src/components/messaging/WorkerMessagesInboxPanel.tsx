@@ -1,7 +1,7 @@
 import type { Conversation } from '@chairside/api';
-import { listConversationsForWorker } from '@chairside/api';
+import { getErrorMessage, listConversationsForWorker } from '@chairside/api';
 import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
@@ -68,17 +68,14 @@ export function WorkerMessagesInboxPanel({
     },
   }));
 
-  const publishConversations = useCallback(
-    (rows: Conversation[]) => {
-      setConversations(rows);
-      onConversationsChange?.(rows);
-    },
-    [onConversationsChange],
-  );
+  // Notify parent after commit — never during render or setState updaters.
+  useEffect(() => {
+    onConversationsChange?.(conversations);
+  }, [conversations, onConversationsChange]);
 
   const load = useCallback(async () => {
     if (!user?.id) {
-      publishConversations([]);
+      setConversations([]);
       setIsLoading(false);
       setLoadError(null);
       return;
@@ -87,16 +84,16 @@ export function WorkerMessagesInboxPanel({
     setIsLoading(true);
     try {
       const rows = await listConversationsForWorker(user.id);
-      publishConversations(rows);
+      setConversations(rows);
       setLoadError(null);
       await refreshUnread();
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Could not load conversations.');
-      publishConversations([]);
+      setLoadError(getErrorMessage(error, 'Could not load conversations.'));
+      setConversations([]);
     } finally {
       setIsLoading(false);
     }
-  }, [publishConversations, refreshUnread, user?.id]);
+  }, [refreshUnread, user?.id]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);
@@ -109,9 +106,7 @@ export function WorkerMessagesInboxPanel({
 
       const next = [...current];
       next[index] = patchConversationFromRealtimeUpdate(next[index]!, update, user.id, 'worker');
-      const sorted = sortConversations(next);
-      onConversationsChange?.(sorted);
-      return sorted;
+      return sortConversations(next);
     });
     void refreshUnread();
   });
@@ -134,9 +129,7 @@ export function WorkerMessagesInboxPanel({
         last_sender_id: message.sender_id,
         unread: message.sender_id !== user?.id,
       };
-      const sorted = sortConversations(next);
-      onConversationsChange?.(sorted);
-      return sorted;
+      return sortConversations(next);
     });
     void refreshUnread();
   });

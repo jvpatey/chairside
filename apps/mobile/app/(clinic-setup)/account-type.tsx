@@ -10,15 +10,13 @@ import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { useSignOut } from '@/hooks/useSignOut';
 import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
-import { CLINIC_SETUP_BASICS } from '@/lib/routing';
+import { CLINIC_SETUP_BASICS, ONBOARDING_CHANGE_ROLE } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicAccountTypeScreen() {
   const { user } = useAuth();
   const { clinicProfile, isClinicProfileReady, refreshClinicProfile } = useClinicProfile();
-  const { isSigningOut, signOut } = useSignOut();
   const [accountType, setAccountType] = useState<ClinicAccountType | null>(
     clinicProfile?.account_type ?? null,
   );
@@ -82,8 +80,8 @@ export default function ClinicAccountTypeScreen() {
       }>
       <AuthScreenHeader
         title="How is your practice set up?"
-        backLabel={isSigningOut ? 'Signing out…' : 'Sign out'}
-        onBack={() => void signOut()}
+        backLabel="Back"
+        onBack={() => router.replace(ONBOARDING_CHANGE_ROLE)}
       />
       <SetupStepProgress step={progress.step} total={progress.total} />
       <View style={styles.form}>
