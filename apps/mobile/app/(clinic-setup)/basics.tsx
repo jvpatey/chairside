@@ -1,6 +1,7 @@
 import {
   isClinicGroupsEnabled,
-  resolveAuthDisplayName,
+  joinDisplayName,
+  resolveAuthNameParts,
   updateClinicMembershipProfile,
   uploadClinicMemberPhotoFromBase64,
 } from '@chairside/api';
@@ -72,10 +73,13 @@ export default function ClinicBasicsScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
-  const authDisplayName = resolveAuthDisplayName(
-    authProfile?.display_name,
-    user?.user_metadata as Record<string, unknown> | undefined,
-  );
+  const authNameParts = resolveAuthNameParts({
+    firstName: authProfile?.first_name,
+    lastName: authProfile?.last_name,
+    displayName: authProfile?.display_name,
+    userMetadata: user?.user_metadata as Record<string, unknown> | undefined,
+  });
+  const authDisplayName = joinDisplayName(authNameParts.firstName, authNameParts.lastName);
 
   useClinicSetupStepGuard('basics', clinicProfile, isClinicProfileReady, isEditMode);
 

@@ -16,6 +16,8 @@ Record build number, date, and tester name when signing off.
 - [ ] Email sign-in works
 - [ ] Forgot password email opens app → reset password screen
 - [ ] Sign in with Apple works (iOS native; not Expo Go — needs TestFlight / EAS build)
+- [ ] After first Apple auth (or after **Stop Using** Chairside under Sign in with Apple), worker basics first/last name are prefilled
+- [ ] Second Apple sign-in on the same device still prefills name (SecureStore / profile cache)
 - [ ] If Apple fails, note the exact Alert text and check Supabase Auth logs for `/token`
 - [ ] Sign in with Google works
 - [ ] Sign out and sign back in

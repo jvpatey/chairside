@@ -20,6 +20,8 @@ import { useThemedStyles } from '@/theme';
 type AccountScreenContentProps = {
   user: User;
   displayName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   accountTypeLabel: string;
   onProfileRefresh: () => Promise<unknown>;
   isSigningOut: boolean;
@@ -32,6 +34,8 @@ type AccountScreenContentProps = {
 export function AccountScreenContent({
   user,
   displayName,
+  firstName,
+  lastName,
   accountTypeLabel,
   onProfileRefresh,
   isSigningOut,
@@ -67,6 +71,8 @@ export function AccountScreenContent({
       <SectionPanel stepNumber={1} stepAccent="primary" title="Profile">
         <AccountDisplayNameField
           userId={user.id}
+          savedFirstName={firstName}
+          savedLastName={lastName}
           savedDisplayName={displayName}
           onSaved={onProfileRefresh}
         />

@@ -63,7 +63,7 @@ describe('resolveAuthenticatedRoute', () => {
 
     const result = await resolveAuthenticatedRoute({
       userId: 'user-1',
-      profile: { id: 'user-1', role: 'clinic' },
+      profile: { id: 'user-1', role: 'clinic' } as never,
       refreshProfile,
     });
 

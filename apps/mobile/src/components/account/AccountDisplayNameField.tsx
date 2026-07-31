@@ -1,4 +1,4 @@
-import { updateProfileDisplayName } from '@chairside/api';
+import { joinDisplayName, resolveAuthNameParts, updateProfileName } from '@chairside/api';
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
@@ -8,20 +8,26 @@ import { useThemedStyles } from '@/theme';
 
 type AccountDisplayNameFieldProps = {
   userId: string;
+  savedFirstName?: string | null;
+  savedLastName?: string | null;
   savedDisplayName?: string | null;
   onSaved: () => Promise<unknown>;
 };
 
 export function AccountDisplayNameField({
   userId,
+  savedFirstName,
+  savedLastName,
   savedDisplayName,
   onSaved,
 }: AccountDisplayNameFieldProps) {
-  const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     section: { gap: spacing.md },
+    row: { gap: spacing.md },
     hint: {
       ...typography.subtitle,
       fontSize: 14,
@@ -30,24 +36,37 @@ export function AccountDisplayNameField({
     },
   }));
 
-  useEffect(() => {
-    setDisplayName(savedDisplayName?.trim() ?? '');
-  }, [savedDisplayName]);
+  const savedParts = resolveAuthNameParts({
+    firstName: savedFirstName,
+    lastName: savedLastName,
+    displayName: savedDisplayName,
+  });
 
-  const trimmed = displayName.trim();
-  const savedTrimmed = savedDisplayName?.trim() ?? '';
-  const isDirty = trimmed !== savedTrimmed;
-  const isSaved = Boolean(savedTrimmed) && trimmed === savedTrimmed;
+  useEffect(() => {
+    setFirstName(savedParts.firstName);
+    setLastName(savedParts.lastName);
+  }, [savedParts.firstName, savedParts.lastName]);
+
+  const trimmedFirst = firstName.trim();
+  const trimmedLast = lastName.trim();
+  const isDirty =
+    trimmedFirst !== savedParts.firstName || trimmedLast !== savedParts.lastName;
+  const isSaved =
+    Boolean(joinDisplayName(savedParts.firstName, savedParts.lastName)) &&
+    trimmedFirst === savedParts.firstName &&
+    trimmedLast === savedParts.lastName &&
+    Boolean(trimmedFirst) &&
+    Boolean(trimmedLast);
 
   const handleSave = async () => {
-    if (!trimmed) {
-      Alert.alert('Missing information', 'Enter your full name to continue.');
+    if (!trimmedFirst || !trimmedLast) {
+      Alert.alert('Missing information', 'Enter your first and last name.');
       return;
     }
 
     setIsSaving(true);
     try {
-      await updateProfileDisplayName(userId, trimmed);
+      await updateProfileName(userId, { firstName: trimmedFirst, lastName: trimmedLast });
       await onSaved();
     } catch (error) {
       Alert.alert(
@@ -61,15 +80,26 @@ export function AccountDisplayNameField({
 
   return (
     <View style={styles.section}>
-      <AuthField
-        label="Full name"
-        placeholder="Your full name"
-        value={displayName}
-        onChangeText={setDisplayName}
-        autoCapitalize="words"
-        editable={!isSaving}
-        validated={isSaved}
-      />
+      <View style={styles.row}>
+        <AuthField
+          label="First name"
+          placeholder="First name"
+          value={firstName}
+          onChangeText={setFirstName}
+          autoCapitalize="words"
+          editable={!isSaving}
+          validated={isSaved}
+        />
+        <AuthField
+          label="Last name"
+          placeholder="Last name"
+          value={lastName}
+          onChangeText={setLastName}
+          autoCapitalize="words"
+          editable={!isSaving}
+          validated={isSaved}
+        />
+      </View>
       <Text style={styles.hint}>
         Shown on your profile and new applications to clinics. Applications you already sent keep
         the name from when you applied.
@@ -77,7 +107,7 @@ export function AccountDisplayNameField({
       {isDirty ? (
         <OnboardingButton
           label={isSaving ? 'Saving…' : 'Save name'}
-          disabled={isSaving || !trimmed}
+          disabled={isSaving || !trimmedFirst || !trimmedLast}
           onPress={() => void handleSave()}
         />
       ) : null}

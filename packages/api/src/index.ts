@@ -355,17 +355,31 @@ export {
   type ScreeningSubmissionInput,
 } from './screening';
 export {
+  getAppleCachedName,
+  setAppleCachedName,
+} from './appleNameCache';
+export {
+  applePartsToPersonName,
   formatAppleFullName,
   getUserMetadataDisplayName,
+  getUserMetadataNameParts,
+  joinDisplayName,
+  resolveAppleNamePartsToPersist,
   resolveAppleNameToPersist,
   resolveAuthDisplayName,
+  resolveAuthNameParts,
+  splitDisplayName,
+  type AppleNameParts,
+  type PersonNameParts,
 } from './authDisplayName';
 export {
   ensureProfileDisplayName,
+  ensureProfileName,
   getProfile,
   resolveAuthProfile,
   setProfileRole,
   updateProfileDisplayName,
+  updateProfileName,
 } from './profile';
 export {
   getNotificationPreference,

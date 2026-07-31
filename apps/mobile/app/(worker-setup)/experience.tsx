@@ -35,7 +35,14 @@ export default function WorkerExperienceScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useWorkerSetupStepGuard('experience', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
+  useWorkerSetupStepGuard(
+    'experience',
+    workerProfile,
+    profile?.first_name,
+    profile?.last_name,
+    isWorkerProfileReady,
+    isEditMode,
+  );
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },

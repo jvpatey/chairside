@@ -53,11 +53,12 @@ export function validateClinicPracticeStep(softwareUsed: string[]): SetupValidat
 }
 
 export function validateWorkerBasicsStep(values: {
-  displayName: string;
+  firstName: string;
+  lastName: string;
   roleTypes: RoleType[];
 }): SetupValidationResult {
-  if (!values.displayName.trim()) {
-    return { ok: false, message: 'Enter your name to continue.' };
+  if (!values.firstName.trim() || !values.lastName.trim()) {
+    return { ok: false, message: 'Enter your first and last name.' };
   }
   if (values.roleTypes.length === 0) {
     return { ok: false, message: 'Select at least one role you are qualified for.' };
@@ -87,10 +88,12 @@ export function isClinicPracticeComplete(profile: ClinicProfile | null): boolean
 
 export function isWorkerBasicsComplete(
   profile: WorkerProfile | null,
-  displayName: string | null | undefined,
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
 ): boolean {
   return validateWorkerBasicsStep({
-    displayName: displayName ?? '',
+    firstName: firstName ?? '',
+    lastName: lastName ?? '',
     roleTypes: getWorkerRoleTypes(profile),
   }).ok;
 }
@@ -131,11 +134,12 @@ export function getClinicSetupStepGuard(
 
 export function getWorkerSetupStepGuard(
   profile: WorkerProfile | null,
-  displayName: string | null | undefined,
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
   step: WorkerSetupStepId,
 ): Href | null {
   if (step === 'basics') return null;
-  if (!isWorkerBasicsComplete(profile, displayName)) return WORKER_SETUP_BASICS;
+  if (!isWorkerBasicsComplete(profile, firstName, lastName)) return WORKER_SETUP_BASICS;
   if (step === 'experience' || step === 'skills') return null;
   if (step === 'location') return null;
   if (!isWorkerLocationComplete(profile)) return WORKER_SETUP_LOCATION;

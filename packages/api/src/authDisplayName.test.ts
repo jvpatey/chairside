@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  applePartsToPersonName,
   formatAppleFullName,
   getUserMetadataDisplayName,
+  getUserMetadataNameParts,
+  joinDisplayName,
+  resolveAppleNamePartsToPersist,
   resolveAppleNameToPersist,
   resolveAuthDisplayName,
+  resolveAuthNameParts,
+  splitDisplayName,
 } from './authDisplayName';
 
 describe('formatAppleFullName', () => {
@@ -29,6 +35,25 @@ describe('formatAppleFullName', () => {
   });
 });
 
+describe('splitDisplayName / joinDisplayName', () => {
+  it('splits on the first space', () => {
+    expect(splitDisplayName('Jane Doe')).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+    expect(splitDisplayName('Jane Q Doe')).toEqual({ firstName: 'Jane', lastName: 'Q Doe' });
+  });
+
+  it('handles single-token and empty names', () => {
+    expect(splitDisplayName('Jane')).toEqual({ firstName: 'Jane', lastName: '' });
+    expect(splitDisplayName('')).toEqual({ firstName: '', lastName: '' });
+    expect(splitDisplayName(null)).toEqual({ firstName: '', lastName: '' });
+  });
+
+  it('joins first and last', () => {
+    expect(joinDisplayName('Jane', 'Doe')).toBe('Jane Doe');
+    expect(joinDisplayName('Jane', '')).toBe('Jane');
+    expect(joinDisplayName('', 'Doe')).toBe('Doe');
+  });
+});
+
 describe('getUserMetadataDisplayName', () => {
   it('prefers full_name over name', () => {
     expect(
@@ -47,6 +72,25 @@ describe('getUserMetadataDisplayName', () => {
     expect(getUserMetadataDisplayName(null)).toBe('');
     expect(getUserMetadataDisplayName({})).toBe('');
     expect(getUserMetadataDisplayName({ full_name: '  ' })).toBe('');
+  });
+});
+
+describe('getUserMetadataNameParts', () => {
+  it('uses given_name and family_name when present', () => {
+    expect(
+      getUserMetadataNameParts({
+        given_name: 'Jane',
+        family_name: 'Doe',
+        full_name: 'Other',
+      }),
+    ).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+  });
+
+  it('falls back to splitting full_name', () => {
+    expect(getUserMetadataNameParts({ full_name: 'Jane Doe' })).toEqual({
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
   });
 });
 
@@ -69,6 +113,90 @@ describe('resolveAuthDisplayName', () => {
   });
 });
 
+describe('resolveAuthNameParts', () => {
+  it('prefers profile first/last', () => {
+    expect(
+      resolveAuthNameParts({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        displayName: 'Other',
+        userMetadata: { given_name: 'Meta', family_name: 'Data' },
+      }),
+    ).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+  });
+
+  it('splits profile display_name when first/last are empty', () => {
+    expect(
+      resolveAuthNameParts({
+        displayName: 'Jane Doe',
+        userMetadata: { given_name: 'Meta', family_name: 'Data' },
+      }),
+    ).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+  });
+
+  it('falls back to Apple metadata given/family', () => {
+    expect(
+      resolveAuthNameParts({
+        userMetadata: { given_name: 'Jane', family_name: 'Doe' },
+      }),
+    ).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+  });
+});
+
+describe('applePartsToPersonName', () => {
+  it('maps Apple credential parts to first/last', () => {
+    expect(
+      applePartsToPersonName({
+        givenName: 'Jane',
+        middleName: 'Q',
+        familyName: 'Doe',
+      }),
+    ).toEqual({ firstName: 'Jane Q', lastName: 'Doe' });
+  });
+});
+
+describe('resolveAppleNamePartsToPersist', () => {
+  it('uses Apple credential name when present', () => {
+    expect(
+      resolveAppleNamePartsToPersist({
+        appleFullName: { givenName: 'Jane', familyName: 'Doe' },
+        cachedName: { firstName: 'Cached', lastName: 'Name' },
+        userMetadata: { full_name: 'Old Name' },
+      }),
+    ).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+  });
+
+  it('falls back to SecureStore cache when Apple omits name', () => {
+    expect(
+      resolveAppleNamePartsToPersist({
+        appleFullName: null,
+        cachedName: { firstName: 'Jane', lastName: 'Doe' },
+        userMetadata: {},
+      }),
+    ).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+  });
+
+  it('falls back to metadata when credential and cache miss', () => {
+    expect(
+      resolveAppleNamePartsToPersist({
+        appleFullName: null,
+        cachedName: null,
+        userMetadata: { given_name: 'Jane', family_name: 'Doe' },
+      }),
+    ).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+  });
+
+  it('returns empty parts when all sources miss', () => {
+    expect(
+      resolveAppleNamePartsToPersist({
+        appleFullName: null,
+        cachedName: null,
+        userMetadata: {},
+      }),
+    ).toEqual({ firstName: '', lastName: '' });
+  });
+});
+
 describe('resolveAppleNameToPersist', () => {
   it('uses Apple credential name when present', () => {
     expect(
@@ -84,6 +212,12 @@ describe('resolveAppleNameToPersist', () => {
       resolveAppleNameToPersist(null, {
         full_name: 'Jane Doe',
       }),
+    ).toBe('Jane Doe');
+  });
+
+  it('uses cache before metadata', () => {
+    expect(
+      resolveAppleNameToPersist(null, { full_name: 'Meta Name' }, { firstName: 'Jane', lastName: 'Doe' }),
     ).toBe('Jane Doe');
   });
 

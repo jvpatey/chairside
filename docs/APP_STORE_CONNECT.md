@@ -129,6 +129,10 @@ Web uses OAuth; iOS uses native `signInWithIdToken` against the bundle ID audien
 
 If native Apple still fails with Client IDs correct, check **Supabase → Logs → Auth** for `/token` errors right after a failed attempt (e.g. issuer mismatch / unacceptable audience). Prefer a physical device TestFlight build over the simulator.
 
+Apple only returns the user’s name on the **first** authorization for that Apple ID + app. Later sign-ins send `fullName: null`. Chairside caches the name in SecureStore (keyed by Apple’s user id) and also writes `profiles.first_name` / `last_name` / `display_name`.
+
+To re-test first-time name delivery on TestFlight: **Settings → Apple ID → Sign in with Apple → Chairside → Stop Using**, then Sign in with Apple again.
+
 ## After approval
 
 Update `APP_STORE_URL` in [`apps/mobile/src/constants/index.ts`](../apps/mobile/src/constants/index.ts) with the live App Store link and rebuild if the welcome web pitch should link to the store.

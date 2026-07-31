@@ -62,7 +62,14 @@ export default function WorkerLocationScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
-  useWorkerSetupStepGuard('location', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
+  useWorkerSetupStepGuard(
+    'location',
+    workerProfile,
+    profile?.first_name,
+    profile?.last_name,
+    isWorkerProfileReady,
+    isEditMode,
+  );
 
   const validation = validateAddressStep(address);
 

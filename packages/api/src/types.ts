@@ -11,6 +11,8 @@ export type Profile = {
   id: string;
   role: UserRole | null;
   display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -213,6 +215,8 @@ export type Database = {
           id: string;
           role?: UserRole | null;
           display_name?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
           onboarding_completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -220,6 +224,8 @@ export type Database = {
         Update: {
           role?: UserRole | null;
           display_name?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
           onboarding_completed_at?: string | null;
           updated_at?: string;
         };
