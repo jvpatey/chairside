@@ -1,10 +1,25 @@
-import type { ClinicPlan } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { openClinicBillingScreen } from '@/components/billing/ClinicBillingScreenContent';
 import { useThemedStyles } from '@/theme';
+
+export type { ClinicUpgradeReason } from '@/components/billing/clinicUpgradePromptCopy';
+export {
+  getClinicAddLocationUpgradeMessage,
+  getClinicAddManagerUpgradeMessage,
+  getClinicCrmUpgradeMessage,
+  getClinicDiscoverUpgradeMessage,
+  getClinicGeneralMessagingUpgradeMessage,
+  getClinicOutreachUpgradeMessage,
+  getClinicPdfExportUpgradeMessage,
+  getClinicPublishLimitMessage,
+  getClinicScreeningUpgradeMessage,
+  getClinicSmsUpgradeMessage,
+  getClinicUpgradePromptMessage,
+  getClinicUpgradePromptTitle,
+} from '@/components/billing/clinicUpgradePromptCopy';
 
 type ClinicUpgradePromptProps = {
   visible: boolean;
@@ -67,34 +82,4 @@ export function ClinicUpgradePrompt({ visible, title, message, onClose }: Clinic
       </View>
     </Modal>
   );
-}
-
-export function getClinicPublishLimitMessage(
-  plan: ClinicPlan,
-  publishType: 'role' | 'fill-in' = 'role',
-): string {
-  const postingLabel = publishType === 'fill-in' ? 'fill-in' : 'role';
-  const postingLabelPlural = publishType === 'fill-in' ? 'fill-ins' : 'roles';
-
-  if (plan === 'free') {
-    return `Your free plan includes 1 active ${postingLabel}. Upgrade to publish more ${postingLabelPlural}.`;
-  }
-
-  if (plan === 'starter') {
-    return `Your Starter plan includes 5 active ${postingLabelPlural}. Upgrade to Pro for unlimited posting.`;
-  }
-
-  if (plan === 'group_starter') {
-    return `Your Group Starter plan includes 5 active ${postingLabelPlural} org-wide. Upgrade to Group Pro for unlimited posting.`;
-  }
-
-  return 'Upgrade your plan for unlimited active roles and fill-ins.';
-}
-
-export function getClinicOutreachUpgradeMessage(): string {
-  return 'Direct fill-in outreach is available on Starter, Pro, and Group plans.';
-}
-
-export function getClinicSmsUpgradeMessage(): string {
-  return 'SMS fill-in alerts are available on Starter, Pro, and Group plans.';
 }

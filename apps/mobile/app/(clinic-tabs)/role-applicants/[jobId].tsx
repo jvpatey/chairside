@@ -21,6 +21,7 @@ import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   APPLICANT_FILTER_SECTION_TITLES,
@@ -47,12 +48,14 @@ const FILTER_EMPTY_MESSAGES: Record<Exclude<ApplicantListFilter, 'all'>, string>
 
 export default function ClinicRoleApplicationsScreen() {
   const { user } = useAuth();
+  const { billing, upgradePrompt, showCrmUpgrade } = useClinicUpgradePrompt();
   const { jobId, returnTo } = useLocalSearchParams<{
     jobId?: string;
     returnTo?: string;
   }>();
   const resolvedJobId = typeof jobId === 'string' ? jobId : '';
   const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
+  const crmLocked = billing != null && !billing.canUseCrmFollowups;
 
   const goBack = useCallback(() => {
     navigateAfterRoleApplicants(router, resolvedReturnTo);
@@ -222,7 +225,9 @@ export default function ClinicRoleApplicationsScreen() {
   };
 
   return (
-    <OnboardingShell atmosphere="subtle">
+    <>
+      {upgradePrompt}
+      <OnboardingShell atmosphere="subtle">
       <AuthScreenHeader
         eyebrow="Applications for"
         title={postTitle || 'Role'}
@@ -259,6 +264,8 @@ export default function ClinicRoleApplicationsScreen() {
                 selected={listFilter}
                 counts={filterCounts}
                 onChange={setListFilter}
+                lockedFilters={crmLocked ? ['follow_up'] : undefined}
+                onLockedFilterPress={() => showCrmUpgrade()}
               />
 
               {listFilter === 'all' ? (
@@ -299,5 +306,6 @@ export default function ClinicRoleApplicationsScreen() {
         )}
       </View>
     </OnboardingShell>
+    </>
   );
 }

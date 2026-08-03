@@ -38,6 +38,7 @@ import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { formatPhoneNumber } from '@/lib/phone';
 import { navigateToClinicProfileHub } from '@/lib/routing';
 import {
@@ -115,7 +116,14 @@ export default function ClinicLocationsSettingsScreen() {
     refreshClinicProfile,
   } = useClinicProfile();
   const { colors } = useTheme();
+  const {
+    billing,
+    upgradePrompt,
+    showAddLocationUpgrade,
+    handleBillingError,
+  } = useClinicUpgradePrompt();
   const groupsEnabled = isClinicGroupsEnabled();
+  const canAddLocation = billing == null || billing.canAddLocation;
 
   useEffect(() => {
     if (!isClinicProfileReady) return;
@@ -209,6 +217,10 @@ export default function ClinicLocationsSettingsScreen() {
   };
 
   const startAdd = () => {
+    if (!canAddLocation) {
+      showAddLocationUpgrade();
+      return;
+    }
     setEditingId(null);
     setName('');
     setAddress(createEmptyAddressValue());
@@ -291,6 +303,7 @@ export default function ClinicLocationsSettingsScreen() {
       await refreshClinicProfile();
       resetForm();
     } catch (saveError) {
+      if (handleBillingError(saveError)) return;
       setError(saveError instanceof Error ? saveError.message : 'Could not save location.');
     } finally {
       setIsSubmitting(false);
@@ -324,14 +337,16 @@ export default function ClinicLocationsSettingsScreen() {
 
   if (showForm && isOwner) {
     return (
-      <ProfileDetailScreen
-        title={editingId ? 'Edit location' : 'Add location'}
-        subtitle="Use the same practice details candidates see on roles and fill-ins."
-        onBack={handleBack}>
-        <View style={styles.form}>
-          <AuthField
-            label="Location name"
-            placeholder="Downtown clinic"
+      <>
+        {upgradePrompt}
+        <ProfileDetailScreen
+          title={editingId ? 'Edit location' : 'Add location'}
+          subtitle="Use the same practice details candidates see on roles and fill-ins."
+          onBack={handleBack}>
+          <View style={styles.form}>
+            <AuthField
+              label="Location name"
+              placeholder="Downtown clinic"
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -371,19 +386,22 @@ export default function ClinicLocationsSettingsScreen() {
           </Pressable>
         </View>
       </ProfileDetailScreen>
+      </>
     );
   }
 
   return (
-    <ProfileDetailScreen
-      title="Locations"
-      subtitle={listSubtitle}
-      actionLabel={isOwner ? 'Add location' : undefined}
-      onActionPress={isOwner ? startAdd : undefined}
-      onBack={handleBack}>
-      <View style={styles.content}>
-        {error ? (
-          <Text style={{ color: colors.destructive, fontWeight: '600' }}>{error}</Text>
+    <>
+      {upgradePrompt}
+      <ProfileDetailScreen
+        title="Locations"
+        subtitle={listSubtitle}
+        actionLabel={isOwner ? 'Add location' : undefined}
+        onActionPress={isOwner ? startAdd : undefined}
+        onBack={handleBack}>
+        <View style={styles.content}>
+          {error ? (
+            <Text style={{ color: colors.destructive, fontWeight: '600' }}>{error}</Text>
         ) : null}
 
         {visibleLocations.length === 0 ? (
@@ -436,5 +454,6 @@ export default function ClinicLocationsSettingsScreen() {
         )}
       </View>
     </ProfileDetailScreen>
+    </>
   );
 }

@@ -83,7 +83,7 @@ export default function ClinicFillInsScreen() {
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
   const { refreshPending } = useFillInPending();
-  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
+  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
   const [coverRequests, setCoverRequests] = useState<FillInCoverRequest[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
@@ -303,7 +303,13 @@ export default function ClinicFillInsScreen() {
           {!isTablet ? (
             <ClinicDiscoverBrowseLink
               title="Fill-ins from other clinics"
-              onPress={() => router.push(getClinicDiscoverRoute('fill-ins', 'fill-ins-tab'))}
+              onPress={() => {
+                if (billing != null && !billing.canUseClinicDiscover) {
+                  showDiscoverUpgrade();
+                  return;
+                }
+                router.push(getClinicDiscoverRoute('fill-ins', 'fill-ins-tab'));
+              }}
             />
           ) : null}
 

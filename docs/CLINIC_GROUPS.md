@@ -40,6 +40,10 @@ Practice doctors stay on the org profile (`practice_doctors` JSON) and can be as
 - **Owner** — one primary login with full org access, billing, locations, and invitations.
 - **Manager** — invited individual login with location assignments only. Sets personal profile after join via **Profile → Your profile**.
 
+## Free group trial caps
+
+Free group accounts (plan `free` + `account_type=group`) can use up to **2 locations** and **1 manager**. Hitting either cap shows an upgrade prompt toward Group Starter / Group Pro. Paid hiring tools (screening, CRM follow-ups, PDF export, Discover, general candidate messaging) stay locked on Free the same as individual Free clinics.
+
 ### Manager invitations
 
 Owners invite managers from setup **Team** or **Profile → Team & access**:

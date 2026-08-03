@@ -91,7 +91,8 @@ export default function PostJobScreen() {
     attribution,
     attributionLabel,
   } = useClinicActingContext();
-  const { billing, upgradePrompt, showPublishUpgrade, handleBillingError } = useClinicUpgradePrompt();
+  const { billing, upgradePrompt, showPublishUpgrade, showScreeningUpgrade, handleBillingError } =
+    useClinicUpgradePrompt();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const jobId = typeof id === 'string' ? id : undefined;
   const isEditing = Boolean(jobId);
@@ -363,6 +364,8 @@ export default function PostJobScreen() {
           onEnabledChange={setScreeningEnabled}
           onSelectedCatalogSlugsChange={setSelectedCatalogSlugs}
           onCustomQuestionsChange={setCustomQuestions}
+          locked={billing != null && !billing.canUseScreeningQuestions}
+          onLockedPress={showScreeningUpgrade}
         />
 
         {roleLimitReached && billing ? (

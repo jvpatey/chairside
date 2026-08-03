@@ -6,6 +6,7 @@ import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import {
   IS_WEB,
   webHover,
@@ -38,10 +39,13 @@ export function ClinicMessagingPreferences({
   const { colors } = useTheme();
   const { clinicProfile, refreshClinicProfile } = useClinicProfile();
   const { save } = useClinicSetupSave();
+  const { billing, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
+    useClinicUpgradePrompt();
   const [acceptsGeneralMessages, setAcceptsGeneralMessages] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
   const compact = variant === 'compact';
+  const messagingLocked = billing != null && !billing.canUseGeneralCandidateMessaging;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     stack: {
@@ -118,36 +122,52 @@ export function ClinicMessagingPreferences({
       await save({ accepts_general_candidate_messages: value });
       await refreshClinicProfile();
     } catch (error) {
+      if (handleBillingError(error)) {
+        setAcceptsGeneralMessages(!value);
+        return;
+      }
       Alert.alert(
         'Could not save',
         error instanceof Error ? error.message : 'Please try again.',
       );
+      setAcceptsGeneralMessages(!value);
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleToggle = (value: boolean) => {
+    if (messagingLocked && value) {
+      showGeneralMessagingUpgrade();
+      return;
+    }
+    setAcceptsGeneralMessages(value);
+    void persistAcceptsGeneralMessages(value);
+  };
+
   const title = compact ? 'Let candidates message you' : 'Allow candidates to message you';
-  const hint =
-    'Candidates in your province can message your clinic even when they are not applying to a specific posting.';
+  const hint = messagingLocked
+    ? 'Upgrade to Starter or Pro to let candidates message your clinic without applying.'
+    : 'Candidates in your province can message your clinic even when they are not applying to a specific posting.';
 
   if (!compact) {
     return (
-      <SettingsToggleRow
-        title={title}
-        hint={hint}
-        value={acceptsGeneralMessages}
-        disabled={isSaving}
-        onValueChange={(value) => {
-          setAcceptsGeneralMessages(value);
-          void persistAcceptsGeneralMessages(value);
-        }}
-      />
+      <>
+        {upgradePrompt}
+        <SettingsToggleRow
+          title={title}
+          hint={hint}
+          value={acceptsGeneralMessages && !messagingLocked}
+          disabled={isSaving}
+          onValueChange={handleToggle}
+        />
+      </>
     );
   }
 
   return (
     <View style={styles.stack}>
+      {upgradePrompt}
       <View style={styles.card}>
         <View style={styles.row}>
           <View style={styles.rowText}>
@@ -174,21 +194,15 @@ export function ClinicMessagingPreferences({
             ) : (
               <>
                 <Text style={styles.rowTitle}>{title}</Text>
-                <Text style={styles.rowHint}>
-                  Candidates in your province can message your clinic even when they are not applying
-                  to a specific posting.
-                </Text>
+                <Text style={styles.rowHint}>{hint}</Text>
               </>
             )}
           </View>
           <View style={styles.switchWrap}>
             <ThemedSwitch
-              value={acceptsGeneralMessages}
+              value={acceptsGeneralMessages && !messagingLocked}
               disabled={isSaving}
-              onValueChange={(value) => {
-                setAcceptsGeneralMessages(value);
-                void persistAcceptsGeneralMessages(value);
-              }}
+              onValueChange={handleToggle}
             />
           </View>
         </View>

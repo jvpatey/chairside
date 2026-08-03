@@ -21,6 +21,7 @@ import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -46,9 +47,11 @@ import { useThemedStyles } from '@/theme';
 export default function ClinicDiscoverScreen() {
   const { user } = useAuth();
   const { clinicProfile } = useClinicProfile();
+  const { billing, upgradePrompt, showDiscoverUpgrade } = useClinicUpgradePrompt();
   const { isTablet } = useResponsiveLayout();
   const { tab, returnTo } = useLocalSearchParams<{ tab?: string; returnTo?: string }>();
   const province = clinicProfile?.province ?? 'NS';
+  const discoverLocked = billing != null && !billing.canUseClinicDiscover;
   const [selectedTab, setSelectedTab] = useState<ClinicDiscoverTab>('roles');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
@@ -78,7 +81,7 @@ export default function ClinicDiscoverScreen() {
   }));
 
   const load = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.id || discoverLocked) {
       setJobs([]);
       setShifts([]);
       setIsLoading(false);
@@ -106,7 +109,7 @@ export default function ClinicDiscoverScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [province, user?.id]);
+  }, [discoverLocked, province, user?.id]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);
@@ -143,95 +146,110 @@ export default function ClinicDiscoverScreen() {
   const discoverBackLabel = discoverReturnTo === 'fill-ins-tab' ? 'Fill-ins' : 'Roles';
 
   return (
-    <Screen
-      title="Discover"
-      subtitle="Live roles and fill-ins posted by other clinics in your province."
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      onBack={
-        isTablet
-          ? undefined
-          : () => navigateAfterClinicDiscover(router, discoverReturnTo, selectedTab)
-      }
-      backLabel={discoverBackLabel}>
-      <View style={styles.wrap}>
-        <View style={styles.tabBar}>
-          <PageTabBar
-            options={CLINIC_DISCOVER_TAB_OPTIONS}
-            selected={selectedTab}
-            onChange={setSelectedTab}
-          />
-        </View>
-
-        {loadError ? <DashboardErrorBanner onRetry={() => void load()} /> : null}
-
-        {!isLoading && sourceCount > 0 ? (
-          <ListSearchFilterRow
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder={selectedTab === 'roles' ? 'Search roles or clinics' : 'Search fill-ins or clinics'}
-            accessibilityLabel="Search discover"
-            filter={
-              <RoleTypeFilters
-                roleTypeFilter={roleTypeFilter}
-                onRoleTypeChange={setRoleTypeFilter}
-                accessibilityLabel="Filter discover"
-                sheetTitle="Filter discover"
-              />
-            }
-          />
-        ) : null}
-
-        {isLoading ? (
-          <PageLoadingList message="Loading discover…" />
-        ) : sourceCount === 0 ? (
+    <>
+      {upgradePrompt}
+      <Screen
+        title="Discover"
+        subtitle="Live roles and fill-ins posted by other clinics in your province."
+        refreshing={discoverLocked ? undefined : refreshing}
+        onRefresh={discoverLocked ? undefined : onRefresh}
+        onBack={
+          isTablet
+            ? undefined
+            : () => navigateAfterClinicDiscover(router, discoverReturnTo, selectedTab)
+        }
+        backLabel={discoverBackLabel}>
+        {discoverLocked ? (
           <EmptyState
-            icon={selectedTab === 'roles' ? 'briefcase-outline' : 'calendar-outline'}
-            title={
-              selectedTab === 'roles'
-                ? 'No other clinic roles yet'
-                : 'No other clinic fill-ins yet'
-            }
-            message="When other clinics in your province post live opportunities, they will appear here."
+            icon="lock-closed-outline"
+            title="Discover is on Starter and Pro"
+            message="Browse live roles and fill-ins from other clinics in your province after you upgrade."
+            ctaLabel="View plans"
+            onCtaPress={showDiscoverUpgrade}
           />
-        ) : activeList.length === 0 ? (
-          <EmptyState
-            icon="filter-outline"
-            title={
-              hasSearch || hasActiveFilters
-                ? 'No listings match your search'
-                : 'No listings in this view'
-            }
-            message="Try a different search or filter."
-          />
-        ) : selectedTab === 'roles' ? (
-          <View style={styles.cardList}>
-            <StaggeredList>
-              {filteredJobs.map((job) => (
-                <RoleListingCard
-                  key={job.id}
-                  job={job}
-                  distanceLabel={job.distanceLabel}
-                  onPress={() => router.push(getClinicDiscoverJobDetailRoute(job.id))}
-                />
-              ))}
-            </StaggeredList>
-          </View>
         ) : (
-          <View style={styles.cardList}>
-            <StaggeredList>
-              {filteredShifts.map((shift) => (
-                <FillInListingCard
-                  key={shift.id}
-                  shift={shift}
-                  distanceLabel={shift.distanceLabel}
-                  onPress={() => router.push(getClinicDiscoverShiftDetailRoute(shift.id))}
-                />
-              ))}
-            </StaggeredList>
+          <View style={styles.wrap}>
+            <View style={styles.tabBar}>
+              <PageTabBar
+                options={CLINIC_DISCOVER_TAB_OPTIONS}
+                selected={selectedTab}
+                onChange={setSelectedTab}
+              />
+            </View>
+
+            {loadError ? <DashboardErrorBanner onRetry={() => void load()} /> : null}
+
+            {!isLoading && sourceCount > 0 ? (
+              <ListSearchFilterRow
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder={
+                  selectedTab === 'roles' ? 'Search roles or clinics' : 'Search fill-ins or clinics'
+                }
+                accessibilityLabel="Search discover"
+                filter={
+                  <RoleTypeFilters
+                    roleTypeFilter={roleTypeFilter}
+                    onRoleTypeChange={setRoleTypeFilter}
+                    accessibilityLabel="Filter discover"
+                    sheetTitle="Filter discover"
+                  />
+                }
+              />
+            ) : null}
+
+            {isLoading ? (
+              <PageLoadingList message="Loading discover…" />
+            ) : sourceCount === 0 ? (
+              <EmptyState
+                icon={selectedTab === 'roles' ? 'briefcase-outline' : 'calendar-outline'}
+                title={
+                  selectedTab === 'roles'
+                    ? 'No other clinic roles yet'
+                    : 'No other clinic fill-ins yet'
+                }
+                message="When other clinics in your province post live opportunities, they will appear here."
+              />
+            ) : activeList.length === 0 ? (
+              <EmptyState
+                icon="filter-outline"
+                title={
+                  hasSearch || hasActiveFilters
+                    ? 'No listings match your search'
+                    : 'No listings in this view'
+                }
+                message="Try a different search or filter."
+              />
+            ) : selectedTab === 'roles' ? (
+              <View style={styles.cardList}>
+                <StaggeredList>
+                  {filteredJobs.map((job) => (
+                    <RoleListingCard
+                      key={job.id}
+                      job={job}
+                      distanceLabel={job.distanceLabel}
+                      onPress={() => router.push(getClinicDiscoverJobDetailRoute(job.id))}
+                    />
+                  ))}
+                </StaggeredList>
+              </View>
+            ) : (
+              <View style={styles.cardList}>
+                <StaggeredList>
+                  {filteredShifts.map((shift) => (
+                    <FillInListingCard
+                      key={shift.id}
+                      shift={shift}
+                      distanceLabel={shift.distanceLabel}
+                      onPress={() => router.push(getClinicDiscoverShiftDetailRoute(shift.id))}
+                    />
+                  ))}
+                </StaggeredList>
+              </View>
+            )}
           </View>
         )}
-      </View>
-    </Screen>
+      </Screen>
+    </>
   );
 }

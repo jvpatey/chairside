@@ -40,6 +40,8 @@ type ClinicWorkerCrmSheetProps = {
   record: ClinicWorkerCrmRecord | null;
   onSaved: () => void;
   onClose: () => void;
+  /** Return true if the error was handled as a billing upgrade prompt. */
+  onBillingError?: (error: unknown) => boolean;
 };
 
 function resolveInitialFollowUpDate(record: ClinicWorkerCrmRecord | null): Date | null {
@@ -56,6 +58,7 @@ export function ClinicWorkerCrmSheet({
   record,
   onSaved,
   onClose,
+  onBillingError,
 }: ClinicWorkerCrmSheetProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -195,6 +198,10 @@ export function ClinicWorkerCrmSheet({
       onSaved();
       onClose();
     } catch (error) {
+      if (onBillingError?.(error)) {
+        onClose();
+        return;
+      }
       Alert.alert(
         'Could not save notes',
         error instanceof Error ? error.message : 'Please try again.',

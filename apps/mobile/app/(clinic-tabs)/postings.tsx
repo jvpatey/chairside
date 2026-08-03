@@ -60,7 +60,7 @@ export default function ClinicPostingsScreen() {
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
-  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
+  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
@@ -206,7 +206,13 @@ export default function ClinicPostingsScreen() {
           {!isTablet ? (
             <ClinicDiscoverBrowseLink
               title="Roles from other clinics"
-              onPress={() => router.push(getClinicDiscoverRoute('roles', 'postings-tab'))}
+              onPress={() => {
+                if (billing != null && !billing.canUseClinicDiscover) {
+                  showDiscoverUpgrade();
+                  return;
+                }
+                router.push(getClinicDiscoverRoute('roles', 'postings-tab'));
+              }}
             />
           ) : null}
 

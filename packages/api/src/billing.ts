@@ -130,7 +130,12 @@ export function isClinicBillingLimitError(message: string): boolean {
     normalized.includes('direct fill-in outreach requires a paid clinic plan') ||
     normalized.includes('sms fill-in alerts require a paid clinic plan') ||
     normalized.includes('location limit reached') ||
-    normalized.includes('manager limit reached')
+    normalized.includes('manager limit reached') ||
+    normalized.includes('screening questions require a paid clinic plan') ||
+    normalized.includes('crm notes and follow-ups require a paid clinic plan') ||
+    normalized.includes('application pdf export requires a paid clinic plan') ||
+    normalized.includes('clinic discover requires a paid clinic plan') ||
+    normalized.includes('general candidate messaging requires a paid clinic plan')
   );
 }
 

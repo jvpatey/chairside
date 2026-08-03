@@ -11,6 +11,11 @@ type ApplicantFilterBarProps = {
   selected: ApplicantListFilter;
   counts: ApplicantFilterCounts;
   onChange: (filter: ApplicantListFilter) => void;
+  /** Filters omitted from the bar (e.g. follow_up when CRM is locked). */
+  hiddenFilters?: ApplicantListFilter[];
+  /** Called instead of onChange when a locked filter is selected. */
+  lockedFilters?: ApplicantListFilter[];
+  onLockedFilterPress?: (filter: ApplicantListFilter) => void;
 };
 
 const FILTER_TABS: { value: ApplicantListFilter; label: string }[] = [
@@ -22,27 +27,66 @@ const FILTER_TABS: { value: ApplicantListFilter; label: string }[] = [
   { value: 'follow_up', label: 'Follow-up' },
 ];
 
-export function ApplicantFilterBar({ selected, counts, onChange }: ApplicantFilterBarProps) {
+function visibleFilterTabs(hiddenFilters?: ApplicantListFilter[]) {
+  if (!hiddenFilters?.length) return FILTER_TABS;
+  const hidden = new Set(hiddenFilters);
+  return FILTER_TABS.filter((tab) => !hidden.has(tab.value));
+}
+
+export function ApplicantFilterBar({
+  selected,
+  counts,
+  onChange,
+  hiddenFilters,
+  lockedFilters,
+  onLockedFilterPress,
+}: ApplicantFilterBarProps) {
+  const tabs = visibleFilterTabs(hiddenFilters);
+  const handleChange = (filter: ApplicantListFilter) => {
+    if (lockedFilters?.includes(filter)) {
+      onLockedFilterPress?.(filter);
+      return;
+    }
+    onChange(filter);
+  };
+
   if (Platform.OS === 'web') {
     return (
       <DashboardStatGrid
-        stats={FILTER_TABS.map((tab) => ({
+        stats={tabs.map((tab) => ({
           key: tab.value,
           label: tab.label,
           value: counts[tab.value],
         }))}
         selected={selected}
-        onSelect={onChange}
+        onSelect={handleChange}
         density="compact"
         accessibilityRole="tab"
       />
     );
   }
 
-  return <ApplicantFilterBarScroll selected={selected} counts={counts} onChange={onChange} />;
+  return (
+    <ApplicantFilterBarScroll
+      selected={selected}
+      counts={counts}
+      onChange={handleChange}
+      tabs={tabs}
+    />
+  );
 }
 
-function ApplicantFilterBarScroll({ selected, counts, onChange }: ApplicantFilterBarProps) {
+function ApplicantFilterBarScroll({
+  selected,
+  counts,
+  onChange,
+  tabs,
+}: {
+  selected: ApplicantListFilter;
+  counts: ApplicantFilterCounts;
+  onChange: (filter: ApplicantListFilter) => void;
+  tabs: typeof FILTER_TABS;
+}) {
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     row: {
       flexDirection: 'row',
@@ -109,7 +153,7 @@ function ApplicantFilterBarScroll({ selected, counts, onChange }: ApplicantFilte
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.row}
       accessibilityRole="tablist">
-      {FILTER_TABS.map((tab) => {
+      {tabs.map((tab) => {
         const isSelected = selected === tab.value;
         const count = counts[tab.value];
 

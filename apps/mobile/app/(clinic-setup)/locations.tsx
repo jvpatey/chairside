@@ -34,6 +34,7 @@ import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { formatPhoneNumber } from '@/lib/phone';
 import { CLINIC_SETUP_PRACTICE, CLINIC_SETUP_TEAM } from '@/lib/routing';
 import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
@@ -74,7 +75,14 @@ function specialtyLabel(specialty: string): string {
 export default function ClinicLocationsSetupScreen() {
   const { clinicId, clinicProfile, isGroup, refreshClinicProfile } = useClinicProfile();
   const { colors } = useTheme();
+  const {
+    billing,
+    upgradePrompt,
+    showAddLocationUpgrade,
+    handleBillingError,
+  } = useClinicUpgradePrompt();
   const progress = getClinicSetupStepNumber('locations', true);
+  const canAddLocation = billing == null || billing.canAddLocation;
   const [locations, setLocations] = useState<ClinicLocation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -153,6 +161,10 @@ export default function ClinicLocationsSetupScreen() {
   };
 
   const startAdd = () => {
+    if (!canAddLocation) {
+      showAddLocationUpgrade();
+      return;
+    }
     resetForm();
     setShowForm(true);
   };
@@ -213,6 +225,7 @@ export default function ClinicLocationsSetupScreen() {
       await refreshClinicProfile();
       setShowForm(false);
     } catch (error) {
+      if (handleBillingError(error)) return;
       setSubmitError(error instanceof Error ? error.message : 'Could not save location.');
     } finally {
       setIsSubmitting(false);
@@ -269,7 +282,9 @@ export default function ClinicLocationsSetupScreen() {
       : addressValidation.message ?? practiceValidation.message;
 
   return (
-    <OnboardingShell
+    <>
+      {upgradePrompt}
+      <OnboardingShell
       atmosphere="form"
       footer={
         <SetupStepFooter
@@ -390,5 +405,6 @@ export default function ClinicLocationsSetupScreen() {
         )}
       </View>
     </OnboardingShell>
+    </>
   );
 }
