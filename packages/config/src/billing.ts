@@ -217,6 +217,13 @@ export function isPriorityClinicPlan(plan: ClinicPlan): boolean {
   return plan === 'pro' || plan === 'group_pro';
 }
 
+export function getPublicClinicProBadgePlan(
+  plan: ClinicPlan | string | undefined,
+): 'pro' | 'group_pro' | null {
+  if (plan === 'pro' || plan === 'group_pro') return plan;
+  return null;
+}
+
 export function isPaidClinicPlan(plan: ClinicPlan): boolean {
   return plan !== 'free';
 }

@@ -6,12 +6,15 @@ export type ClinicUpgradeReason =
   | 'outreach'
   | 'sms'
   | 'screening'
+  | 'screening_cap'
   | 'crm'
   | 'pdf_export'
   | 'discover'
   | 'general_messaging'
   | 'add_location'
-  | 'add_manager';
+  | 'add_manager'
+  | 'hiring_insights'
+  | 'bulk_outreach';
 
 function paidPlanLabel(planFamily: ClinicPlanFamily): string {
   return planFamily === 'group' ? 'Group Starter or Group Pro' : 'Starter or Pro';
@@ -53,6 +56,30 @@ export function getClinicScreeningUpgradeMessage(
   planFamily: ClinicPlanFamily = 'clinic',
 ): string {
   return `Screening questions are available on ${paidPlanLabel(planFamily)} plans.`;
+}
+
+export function getClinicScreeningCapUpgradeMessage(
+  planFamily: ClinicPlanFamily = 'clinic',
+): string {
+  return planFamily === 'group'
+    ? 'Group Starter includes up to 5 custom screening questions. Upgrade to Group Pro for unlimited custom questions.'
+    : 'Starter includes up to 5 custom screening questions. Upgrade to Pro for unlimited custom questions.';
+}
+
+export function getClinicHiringInsightsUpgradeMessage(
+  planFamily: ClinicPlanFamily = 'clinic',
+): string {
+  return planFamily === 'group'
+    ? 'Hiring insights with per-location breakdown are available on Group Pro.'
+    : 'Hiring insights are available on Clinic Pro.';
+}
+
+export function getClinicBulkOutreachUpgradeMessage(
+  planFamily: ClinicPlanFamily = 'clinic',
+): string {
+  return planFamily === 'group'
+    ? 'Bulk fill-in outreach is available on Group Pro.'
+    : 'Bulk fill-in outreach is available on Clinic Pro.';
 }
 
 export function getClinicCrmUpgradeMessage(planFamily: ClinicPlanFamily = 'clinic'): string {
@@ -114,6 +141,12 @@ export function getClinicUpgradePromptTitle(reason: ClinicUpgradeReason): string
       return 'Upgrade for SMS alerts';
     case 'screening':
       return 'Upgrade for screening';
+    case 'screening_cap':
+      return 'Upgrade for more custom questions';
+    case 'hiring_insights':
+      return 'Upgrade for hiring insights';
+    case 'bulk_outreach':
+      return 'Upgrade for bulk outreach';
     case 'crm':
       return 'Upgrade for CRM';
     case 'pdf_export':
@@ -149,6 +182,12 @@ export function getClinicUpgradePromptMessage(
       return getClinicSmsUpgradeMessage(planFamily);
     case 'screening':
       return getClinicScreeningUpgradeMessage(planFamily);
+    case 'screening_cap':
+      return getClinicScreeningCapUpgradeMessage(planFamily);
+    case 'hiring_insights':
+      return getClinicHiringInsightsUpgradeMessage(planFamily);
+    case 'bulk_outreach':
+      return getClinicBulkOutreachUpgradeMessage(planFamily);
     case 'crm':
       return getClinicCrmUpgradeMessage(planFamily);
     case 'pdf_export':

@@ -21,9 +21,12 @@ export {
   listFillInOutreachWorkersForClinic,
   listAvailableFillInWorkersForClinic,
   startClinicFillInOutreach,
+  startClinicFillInOutreachBulk,
   type FillInOutreachWorker,
   type AvailableFillInWorker,
+  type FillInOutreachBulkResult,
   type ListFillInOutreachWorkersInput,
+  type StartClinicFillInOutreachBulkInput,
   type StartClinicFillInOutreachInput,
 } from './fillInOutreach';
 export {
@@ -174,10 +177,18 @@ export {
   type WorkerDashboardCounts,
 } from './posts';
 export {
+  getClinicHiringInsights,
+  type ClinicHiringInsights,
+  type GetClinicHiringInsightsInput,
+  type HiringInsightsLocationBreakdown,
+  type HiringInsightsMetrics,
+} from './hiringInsights';
+export {
   getPublicClinicPostings,
   getPublicClinicProfile,
   type PublicClinicPostings,
   type PublicClinicProfile,
+  type PublicClinicProBadgePlan,
 } from './publicClinicProfile';
 export {
   getSavedLiveJobPost,

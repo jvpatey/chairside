@@ -138,6 +138,7 @@ export {
   isGroupClinicPlan,
   isPaidClinicPlan,
   isPriorityClinicPlan,
+  getPublicClinicProBadgePlan,
   resolveClinicPlanFromEntitlements,
   type ClinicBillingFeature,
   type ClinicPlan,

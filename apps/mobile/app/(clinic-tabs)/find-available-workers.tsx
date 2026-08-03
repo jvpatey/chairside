@@ -11,8 +11,11 @@ import { Alert, Text, View } from 'react-native';
 import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWorkerCard';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
-import { getClinicOutreachUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
+import {
+  getClinicOutreachUpgradeMessage,
+} from '@/components/billing/ClinicUpgradePrompt';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
@@ -25,6 +28,7 @@ import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   CLINIC_SETUP_BASICS,
+  getClinicBulkOutreachComposeRoute,
   getClinicConversationRoute,
   getClinicOutreachComposeRoute,
   navigateAfterFillInSave,
@@ -48,7 +52,8 @@ const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
 export default function FindAvailableWorkersScreen() {
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
-  const { billing, upgradePrompt, showOutreachUpgrade } = useClinicUpgradePrompt();
+  const { billing, upgradePrompt, showOutreachUpgrade, showBulkOutreachUpgrade } =
+    useClinicUpgradePrompt();
   const { returnTo } = useLocalSearchParams<{ returnTo?: FillInReturnTarget }>();
   const resolvedReturnTo = returnTo ?? 'fill-ins-tab';
 
@@ -57,6 +62,8 @@ export default function FindAvailableWorkersScreen() {
   const [workers, setWorkers] = useState<FillInOutreachWorker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     form: { gap: spacing.lg },
@@ -78,6 +85,16 @@ export default function FindAvailableWorkersScreen() {
       color: colors.labelTertiary,
     },
     count: { ...typography.subtitle, fontSize: 13, color: colors.labelSecondary },
+    bulkBar: {
+      gap: spacing.sm,
+      paddingTop: spacing.sm,
+    },
+    bulkHint: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
   }));
 
   const filteredRoleLabel = useMemo(() => {
@@ -92,6 +109,8 @@ export default function FindAvailableWorkersScreen() {
 
   const hasSearch = hasActiveListSearch(searchQuery);
   const isOutreachLocked = Boolean(billing && !billing.canUseFillInOutreach);
+  const canUseBulkOutreach = Boolean(billing?.canUseBulkOutreach);
+  const bulkSelectionEnabled = canUseBulkOutreach && !isOutreachLocked;
 
   const loadWorkers = useCallback(async () => {
     if (!user?.id) {
@@ -176,6 +195,38 @@ export default function FindAvailableWorkersScreen() {
     );
   };
 
+  const toggleWorkerSelection = (workerId: string) => {
+    setSelectedWorkerIds((current) =>
+      current.includes(workerId)
+        ? current.filter((id) => id !== workerId)
+        : [...current, workerId],
+    );
+  };
+
+  const handleBulkCompose = () => {
+    if (!billing?.canUseBulkOutreach) {
+      showBulkOutreachUpgrade();
+      return;
+    }
+
+    const selectedWorkers = filteredWorkers.filter((worker) =>
+      selectedWorkerIds.includes(worker.workerId),
+    );
+    if (selectedWorkers.length === 0) return;
+
+    router.push(
+      getClinicBulkOutreachComposeRoute({
+        workerIds: selectedWorkers.map((worker) => worker.workerId),
+        workerNames: selectedWorkers.map((worker) => worker.displayName),
+        roleType:
+          roleFilter === 'all'
+            ? selectedWorkers[0]?.roleTypes[0] ?? 'hygienist'
+            : roleFilter,
+        returnTo: resolvedReturnTo,
+      }),
+    );
+  };
+
   return (
     <>
       {upgradePrompt}
@@ -191,9 +242,15 @@ export default function FindAvailableWorkersScreen() {
         {isProfileComplete && isOutreachLocked ? (
           <PlanUpgradeCallout
             title="Upgrade to message workers"
-            message={getClinicOutreachUpgradeMessage()}
+            message={getClinicOutreachUpgradeMessage(billing?.planFamily ?? 'clinic')}
             accent={FILL_IN_ACCENT}
           />
+        ) : null}
+
+        {bulkSelectionEnabled ? (
+          <Text style={styles.bulkHint}>
+            Pro tip: select multiple workers below, then message them together.
+          </Text>
         ) : null}
 
         <View style={styles.section}>
@@ -253,12 +310,24 @@ export default function FindAvailableWorkersScreen() {
             <Text style={styles.count}>
               {filteredWorkers.length} worker{filteredWorkers.length === 1 ? '' : 's'} available
             </Text>
+            {bulkSelectionEnabled && selectedWorkerIds.length > 0 ? (
+              <View style={styles.bulkBar}>
+                <OnboardingButton
+                  label={`Message ${selectedWorkerIds.length} selected`}
+                  accent={FILL_IN_ACCENT}
+                  onPress={handleBulkCompose}
+                />
+              </View>
+            ) : null}
             <View style={styles.list}>
               <StaggeredList>
                 {filteredWorkers.map((worker) => (
                   <AvailableFillInWorkerCard
                     key={worker.workerId}
                     worker={worker}
+                    selectable={bulkSelectionEnabled}
+                    selected={selectedWorkerIds.includes(worker.workerId)}
+                    onToggleSelected={() => toggleWorkerSelection(worker.workerId)}
                     onMessage={() => handleMessage(worker)}
                   />
                 ))}

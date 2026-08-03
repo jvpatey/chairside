@@ -195,6 +195,24 @@ export function getClinicOutreachComposeRoute(params: {
   } as Href;
 }
 
+export function getClinicBulkOutreachComposeRoute(params: {
+  workerIds: string[];
+  workerNames: string[];
+  roleType?: string;
+  returnTo?: FillInReturnTarget;
+}): Href {
+  return {
+    pathname: '/(clinic-tabs)/outreach-compose',
+    params: {
+      returnTo: params.returnTo ?? 'fill-ins-tab',
+      workerIds: params.workerIds.join(','),
+      workerNames: params.workerNames.join('|'),
+      ...(params.roleType ? { roleType: params.roleType } : {}),
+      bulk: '1',
+    },
+  } as Href;
+}
+
 export function getClinicFillInsRoute(): Href {
   return CLINIC_FILL_INS;
 }

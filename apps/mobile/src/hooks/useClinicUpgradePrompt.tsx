@@ -22,6 +22,9 @@ export function useClinicUpgradePrompt() {
   const showOutreachUpgrade = useCallback(() => setReason('outreach'), []);
   const showSmsUpgrade = useCallback(() => setReason('sms'), []);
   const showScreeningUpgrade = useCallback(() => setReason('screening'), []);
+  const showScreeningCapUpgrade = useCallback(() => setReason('screening_cap'), []);
+  const showHiringInsightsUpgrade = useCallback(() => setReason('hiring_insights'), []);
+  const showBulkOutreachUpgrade = useCallback(() => setReason('bulk_outreach'), []);
   const showCrmUpgrade = useCallback(() => setReason('crm'), []);
   const showPdfExportUpgrade = useCallback(() => setReason('pdf_export'), []);
   const showDiscoverUpgrade = useCallback(() => setReason('discover'), []);
@@ -38,8 +41,14 @@ export function useClinicUpgradePrompt() {
       setReason('sms');
     } else if (normalized.includes('fill-in outreach')) {
       setReason('outreach');
+    } else if (normalized.includes('custom screening question limit')) {
+      setReason('screening_cap');
     } else if (normalized.includes('screening')) {
       setReason('screening');
+    } else if (normalized.includes('hiring insights')) {
+      setReason('hiring_insights');
+    } else if (normalized.includes('bulk fill-in outreach')) {
+      setReason('bulk_outreach');
     } else if (normalized.includes('crm') || normalized.includes('follow-up')) {
       setReason('crm');
     } else if (normalized.includes('pdf')) {
@@ -68,7 +77,13 @@ export function useClinicUpgradePrompt() {
       ? planFamily === 'group' || billing?.accountType === 'group'
         ? 'group'
         : 'clinic'
-      : 'default';
+      : reason === 'hiring_insights' ||
+          reason === 'bulk_outreach' ||
+          reason === 'screening_cap'
+        ? planFamily === 'group' || billing?.accountType === 'group'
+          ? 'group'
+          : 'clinic'
+        : 'default';
 
   const promptTitle = reason ? getClinicUpgradePromptTitle(reason) : 'Upgrade';
   const promptMessage = reason
@@ -100,6 +115,9 @@ export function useClinicUpgradePrompt() {
     showOutreachUpgrade,
     showSmsUpgrade,
     showScreeningUpgrade,
+    showScreeningCapUpgrade,
+    showHiringInsightsUpgrade,
+    showBulkOutreachUpgrade,
     showCrmUpgrade,
     showPdfExportUpgrade,
     showDiscoverUpgrade,

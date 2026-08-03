@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './client';
-import { normalizePracticeDoctors, type PracticeDoctor } from '@chairside/config';
+import { getPublicClinicProBadgePlan, normalizePracticeDoctors, type PracticeDoctor } from '@chairside/config';
 import { getClinicPlanMap } from './billing';
 import {
   getJobPostScreeningQuestions,
@@ -7,6 +7,8 @@ import {
 } from './screening';
 import type { JobPost, ShiftPost } from './posts';
 import type { ClinicSummary, LiveJobPost, LiveShiftPost } from './posts';
+
+export type PublicClinicProBadgePlan = 'pro' | 'group_pro';
 
 export type PublicClinicProfile = {
   clinic_id: string;
@@ -26,6 +28,9 @@ export type PublicClinicProfile = {
   team_size_range: string | null;
   practice_doctors: PracticeDoctor[];
   accepts_general_candidate_messages: boolean;
+  /** Set when the org is on Clinic Pro or Group Pro — shown on worker-facing public profiles. */
+  is_pro_clinic: boolean;
+  pro_badge_plan: PublicClinicProBadgePlan | null;
 };
 
 export type PublicClinicPostings = {
@@ -37,25 +42,28 @@ export type PublicClinicPostings = {
 const PUBLIC_CLINIC_SELECT =
   'id, clinic_name, city, province, address_line1, address_line2, postal_code, latitude, longitude, specialty, software_used, logo_storage_path, description, website, team_size_range, practice_doctors, accepts_general_candidate_messages, setup_completed_at' as const;
 
-function mapPublicClinicProfile(row: {
-  id: string;
-  clinic_name: string;
-  city: string | null;
-  province: string;
-  address_line1: string | null;
-  address_line2: string | null;
-  postal_code: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  specialty: string;
-  software_used: string[] | null;
-  logo_storage_path: string | null;
-  description: string | null;
-  website: string | null;
-  team_size_range: string | null;
-  practice_doctors: unknown;
-  accepts_general_candidate_messages: boolean;
-}): PublicClinicProfile {
+function mapPublicClinicProfile(
+  row: {
+    id: string;
+    clinic_name: string;
+    city: string | null;
+    province: string;
+    address_line1: string | null;
+    address_line2: string | null;
+    postal_code: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    specialty: string;
+    software_used: string[] | null;
+    logo_storage_path: string | null;
+    description: string | null;
+    website: string | null;
+    team_size_range: string | null;
+    practice_doctors: unknown;
+    accepts_general_candidate_messages: boolean;
+  },
+  proBadgePlan: PublicClinicProBadgePlan | null = null,
+): PublicClinicProfile {
   return {
     clinic_id: row.id,
     clinic_name: row.clinic_name,
@@ -74,6 +82,8 @@ function mapPublicClinicProfile(row: {
     team_size_range: row.team_size_range,
     practice_doctors: normalizePracticeDoctors(row.practice_doctors),
     accepts_general_candidate_messages: row.accepts_general_candidate_messages,
+    is_pro_clinic: proBadgePlan != null,
+    pro_badge_plan: proBadgePlan,
   };
 }
 
@@ -105,7 +115,10 @@ export async function getPublicClinicProfile(
   if (error) throw error;
   if (!data) return null;
 
-  return mapPublicClinicProfile(data);
+  const planMap = await getClinicPlanMap([clinicId]);
+  const proBadgePlan = getPublicClinicProBadgePlan(planMap.get(clinicId));
+
+  return mapPublicClinicProfile(data, proBadgePlan);
 }
 
 export async function getPublicClinicPostings(
@@ -137,9 +150,7 @@ export async function getPublicClinicPostings(
   if (jobsResult.error) throw jobsResult.error;
   if (shiftsResult.error) throw shiftsResult.error;
 
-  const planMap = await getClinicPlanMap([clinicId]);
-  const hasPriorityListing =
-    planMap.get(clinicId) === 'pro' || planMap.get(clinicId) === 'group_pro';
+  const hasPriorityListing = profile.is_pro_clinic;
 
   const jobs = await Promise.all(
     ((jobsResult.data ?? []) as JobPost[]).map(async (job) => {

@@ -12,6 +12,7 @@ type DashboardBodyLayoutProps = {
   error?: ReactNode;
   spotlight?: ReactNode;
   statCards: ReactNode;
+  insights?: ReactNode;
   quickActions: ReactNode;
   overview: ReactNode;
   checklist?: ReactNode;
@@ -29,6 +30,7 @@ export function DashboardBodyLayout({
   error,
   spotlight,
   statCards,
+  insights,
   quickActions,
   overview,
   checklist,
@@ -58,6 +60,7 @@ export function DashboardBodyLayout({
       {error}
       {spotlight}
       {statCards}
+      {insights}
     </>
   );
 

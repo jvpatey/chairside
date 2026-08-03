@@ -91,7 +91,7 @@ export default function PostJobScreen() {
     attribution,
     attributionLabel,
   } = useClinicActingContext();
-  const { billing, upgradePrompt, showPublishUpgrade, showScreeningUpgrade, handleBillingError } =
+  const { billing, upgradePrompt, showPublishUpgrade, showScreeningUpgrade, showScreeningCapUpgrade, handleBillingError } =
     useClinicUpgradePrompt();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const jobId = typeof id === 'string' ? id : undefined;
@@ -223,6 +223,16 @@ export default function PostJobScreen() {
       if (Platform.OS !== 'web') {
         Alert.alert('Screening questions', message);
       }
+      return;
+    }
+
+    const customLimit = billing?.customScreeningLimit ?? null;
+    if (
+      screeningEnabled &&
+      customLimit != null &&
+      customQuestions.length > customLimit
+    ) {
+      showScreeningCapUpgrade();
       return;
     }
 
@@ -366,6 +376,12 @@ export default function PostJobScreen() {
           onCustomQuestionsChange={setCustomQuestions}
           locked={billing != null && !billing.canUseScreeningQuestions}
           onLockedPress={showScreeningUpgrade}
+          customScreeningLimit={
+            billing?.customScreeningLimit != null && billing.customScreeningLimit > 0
+              ? billing.customScreeningLimit
+              : null
+          }
+          onCustomCapPress={showScreeningCapUpgrade}
         />
 
         {roleLimitReached && billing ? (

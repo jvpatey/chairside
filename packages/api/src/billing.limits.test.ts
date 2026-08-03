@@ -29,6 +29,13 @@ describe('isClinicBillingLimitError', () => {
     expect(
       isClinicBillingLimitError('Manager limit reached. Upgrade your plan to invite more managers.'),
     ).toBe(true);
+    expect(
+      isClinicBillingLimitError(
+        'Custom screening question limit reached. Upgrade to Pro for unlimited custom questions.',
+      ),
+    ).toBe(true);
+    expect(isClinicBillingLimitError('Hiring insights require a Pro plan.')).toBe(true);
+    expect(isClinicBillingLimitError('Bulk fill-in outreach requires a Pro plan.')).toBe(true);
   });
 
   it('ignores unrelated errors', () => {

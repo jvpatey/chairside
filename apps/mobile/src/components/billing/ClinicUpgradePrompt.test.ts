@@ -6,7 +6,10 @@ import {
   getClinicCrmUpgradeMessage,
   getClinicDiscoverUpgradeMessage,
   getClinicGeneralMessagingUpgradeMessage,
+  getClinicHiringInsightsUpgradeMessage,
+  getClinicBulkOutreachUpgradeMessage,
   getClinicPdfExportUpgradeMessage,
+  getClinicScreeningCapUpgradeMessage,
   getClinicScreeningUpgradeMessage,
   getClinicUpgradePromptMessage,
   getClinicUpgradePromptTitle,
@@ -21,6 +24,11 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
     expect(getClinicUpgradePromptTitle('general_messaging')).toBe('Upgrade for messaging');
     expect(getClinicUpgradePromptTitle('add_location')).toBe('Upgrade to add locations');
     expect(getClinicUpgradePromptTitle('add_manager')).toBe('Upgrade to invite managers');
+    expect(getClinicUpgradePromptTitle('hiring_insights')).toBe('Upgrade for hiring insights');
+    expect(getClinicUpgradePromptTitle('bulk_outreach')).toBe('Upgrade for bulk outreach');
+    expect(getClinicUpgradePromptTitle('screening_cap')).toBe(
+      'Upgrade for more custom questions',
+    );
   });
 
   it('points Free clinics at Starter/Pro and Free groups at Group plans', () => {
@@ -30,6 +38,9 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
     expect(getClinicPdfExportUpgradeMessage('clinic')).toContain('Starter or Pro');
     expect(getClinicDiscoverUpgradeMessage('clinic')).toContain('Starter or Pro');
     expect(getClinicGeneralMessagingUpgradeMessage('group')).toContain('Group Starter');
+    expect(getClinicScreeningCapUpgradeMessage('clinic')).toContain('5 custom screening');
+    expect(getClinicHiringInsightsUpgradeMessage('group')).toContain('Group Pro');
+    expect(getClinicBulkOutreachUpgradeMessage('clinic')).toContain('Clinic Pro');
   });
 
   it('explains Free group location and manager caps', () => {

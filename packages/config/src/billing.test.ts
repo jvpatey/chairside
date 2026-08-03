@@ -10,6 +10,7 @@ import {
   getClinicMaxManagers,
   getClinicPlanFamily,
   getClinicPlanRank,
+  getPublicClinicProBadgePlan,
   isPriorityClinicPlan,
   resolveClinicPlanFromEntitlements,
 } from './billing';
@@ -54,6 +55,9 @@ describe('billing config', () => {
     expect(isPriorityClinicPlan('group_pro')).toBe(true);
     expect(isPriorityClinicPlan('pro')).toBe(true);
     expect(isPriorityClinicPlan('starter')).toBe(false);
+    expect(getPublicClinicProBadgePlan('pro')).toBe('pro');
+    expect(getPublicClinicProBadgePlan('group_pro')).toBe('group_pro');
+    expect(getPublicClinicProBadgePlan('starter')).toBeNull();
   });
 
   it('formats opportunity limits for starter at 5 and pro unlimited', () => {

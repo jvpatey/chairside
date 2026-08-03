@@ -37,6 +37,9 @@ type ScreeningToggleSectionProps = {
   /** When true, enabling screening shows an upgrade prompt instead. */
   locked?: boolean;
   onLockedPress?: () => void;
+  /** Max custom questions for current plan. `null` = unlimited. */
+  customScreeningLimit?: number | null;
+  onCustomCapPress?: () => void;
 };
 
 export function ScreeningToggleSection({
@@ -48,6 +51,8 @@ export function ScreeningToggleSection({
   onCustomQuestionsChange,
   locked = false,
   onLockedPress,
+  customScreeningLimit = null,
+  onCustomCapPress,
 }: ScreeningToggleSectionProps) {
   const { colors } = useTheme();
   const { clinicProfile } = useClinicProfile();
@@ -60,6 +65,8 @@ export function ScreeningToggleSection({
   );
 
   const totalSelected = selectedCatalogSlugs.length + customQuestions.length;
+  const customCapReached =
+    customScreeningLimit != null && customQuestions.length >= customScreeningLimit;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -127,6 +134,17 @@ export function ScreeningToggleSection({
       ...typography.subtitle,
       fontSize: 12,
     },
+    capText: {
+      ...typography.subtitle,
+      fontSize: 13,
+      color: colors.labelSecondary,
+    },
+    capLink: {
+      ...typography.subtitle,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
   }));
 
   const handleToggle = (next: boolean) => {
@@ -170,6 +188,24 @@ export function ScreeningToggleSection({
             {totalSelected} question{totalSelected === 1 ? '' : 's'} selected
           </Text>
 
+          {customScreeningLimit != null ? (
+            <Text style={styles.capText}>
+              {customQuestions.length} of {customScreeningLimit} custom question
+              {customScreeningLimit === 1 ? '' : 's'}
+              {customCapReached ? (
+                <>
+                  {' · '}
+                  <Text
+                    accessibilityRole="button"
+                    onPress={onCustomCapPress}
+                    style={styles.capLink}>
+                    Upgrade for unlimited
+                  </Text>
+                </>
+              ) : null}
+            </Text>
+          ) : null}
+
           {SCREENING_CATEGORIES.map((category) => (
             <ScreeningQuestionPicker
               key={category}
@@ -205,11 +241,20 @@ export function ScreeningToggleSection({
           ) : null}
 
           <Pressable
-            style={styles.addCustom}
+            style={[styles.addCustom, customCapReached && { opacity: 0.5 }]}
             accessibilityRole="button"
-            onPress={() => setCustomSheetOpen(true)}>
+            accessibilityState={{ disabled: customCapReached }}
+            onPress={() => {
+              if (customCapReached) {
+                onCustomCapPress?.();
+                return;
+              }
+              setCustomSheetOpen(true);
+            }}>
             <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-            <Text style={styles.addCustomText}>Add custom question</Text>
+            <Text style={styles.addCustomText}>
+              {customCapReached ? 'Custom question limit reached' : 'Add custom question'}
+            </Text>
           </Pressable>
 
           <Pressable onPress={() => setPreviewOpen(true)} accessibilityRole="button">
