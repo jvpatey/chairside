@@ -39,7 +39,7 @@ type ClinicBillingContextValue = {
   offerings: BillingOfferings | null;
   revenueCatPlan: ClinicPlan | null;
   refreshBilling: () => Promise<void>;
-  purchasePackage: (purchasePackage: BillingPackage) => Promise<void>;
+  purchasePackage: (purchasePackage: BillingPackage) => Promise<ClinicPlan | null>;
   restorePurchases: () => Promise<void>;
   manageSubscription: () => Promise<void>;
   isPurchasing: boolean;
@@ -184,8 +184,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
   }, [refreshBilling]);
 
   const purchasePackage = useCallback(
-    async (purchasePackageArg: BillingPackage) => {
-      if (!clinicId || !isPurchaseBillingAvailable || !isOwner) return;
+    async (purchasePackageArg: BillingPackage): Promise<ClinicPlan | null> => {
+      if (!clinicId || !isPurchaseBillingAvailable || !isOwner) return null;
 
       setIsPurchasing(true);
       setBillingError(null);
@@ -194,6 +194,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
         setRevenueCatPlan(nextPlan);
         await syncClinicSubscriptionFromRevenueCat();
         await refreshBilling();
+        return nextPlan;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Purchase failed.';
         if (!message.toLowerCase().includes('cancel')) {

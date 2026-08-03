@@ -2,7 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { openClinicBillingScreen } from '@/components/billing/ClinicBillingScreenContent';
+import {
+  openClinicBillingModal,
+  type ClinicBillingScrollFocus,
+} from '@/components/billing/ClinicBillingModal';
 import { useThemedStyles } from '@/theme';
 
 export type { ClinicUpgradeReason } from '@/components/billing/clinicUpgradePromptCopy';
@@ -26,9 +29,17 @@ type ClinicUpgradePromptProps = {
   title: string;
   message: string;
   onClose: () => void;
+  /** Scroll billing sheet to Group vs Clinic sections when opened. */
+  billingFocus?: ClinicBillingScrollFocus;
 };
 
-export function ClinicUpgradePrompt({ visible, title, message, onClose }: ClinicUpgradePromptProps) {
+export function ClinicUpgradePrompt({
+  visible,
+  title,
+  message,
+  onClose,
+  billingFocus = 'default',
+}: ClinicUpgradePromptProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     overlay: {
       flex: 1,
@@ -71,7 +82,7 @@ export function ClinicUpgradePrompt({ visible, title, message, onClose }: Clinic
               label="View plans"
               onPress={() => {
                 onClose();
-                openClinicBillingScreen();
+                openClinicBillingModal({ focus: billingFocus });
               }}
             />
             <Pressable style={styles.close} onPress={onClose}>

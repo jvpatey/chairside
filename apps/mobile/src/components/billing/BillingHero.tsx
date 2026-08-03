@@ -55,7 +55,10 @@ export function BillingHero({
   const statusBadge =
     plan !== 'free' ? formatSubscriptionStatusBadge(billing.status) : null;
   const renewalLabel = formatClinicSubscriptionStatus(billing.status, billing.currentPeriodEnd);
-  const recommendedPlan = getRecommendedUpgradePlan(plan);
+  const recommendedPlan = getRecommendedUpgradePlan(
+    plan,
+    billing.planFamily === 'group' || billing.accountType === 'group' ? 'group' : 'clinic',
+  );
 
   const statusColor =
     statusBadge?.tone === 'success'

@@ -81,20 +81,27 @@ export function getClinicAddLocationUpgradeMessage(
   planFamily: ClinicPlanFamily,
   maxLocations: number | null | undefined,
 ): string {
-  if (planFamily === 'group' || maxLocations === 2) {
-    return 'Your free group trial includes up to 2 locations. Upgrade to Group Starter for more locations and managers.';
+  if (planFamily === 'group' && maxLocations === 2) {
+    return 'Your free group trial includes up to 2 locations. Upgrade to Group Starter or Group Pro for more locations and managers. Clinic Starter and Pro add hiring tools only — they do not raise location or manager limits.';
+  }
+  if (planFamily === 'group') {
+    return 'You have reached your location limit on your current Group plan. Upgrade to Group Pro for unlimited locations, or choose a higher Group tier when available.';
   }
   return 'Single-clinic plans include one location. Upgrade to a Group plan to add more locations and invite managers.';
 }
 
 export function getClinicAddManagerUpgradeMessage(
   maxManagers: number | null | undefined,
+  planFamily: ClinicPlanFamily = 'clinic',
 ): string {
-  if (maxManagers === 1) {
-    return 'Your free group trial includes 1 manager. Upgrade to Group Starter for more managers and locations.';
+  if (planFamily === 'group' && maxManagers === 1) {
+    return 'Your free group trial includes 1 manager. Upgrade to Group Starter or Group Pro for more managers and locations. Clinic Starter and Pro add hiring tools only — they do not raise manager limits.';
   }
   if (maxManagers === 0) {
     return 'Manager invites require a Group plan. Upgrade to Group Starter to invite managers.';
+  }
+  if (planFamily === 'group') {
+    return 'You have reached your manager limit on your current Group plan. Upgrade to Group Pro for more managers, or choose a higher Group tier when available.';
   }
   return 'You have reached your manager limit. Upgrade your Group plan to invite more managers.';
 }
@@ -153,7 +160,7 @@ export function getClinicUpgradePromptMessage(
     case 'add_location':
       return getClinicAddLocationUpgradeMessage(planFamily, maxLocations);
     case 'add_manager':
-      return getClinicAddManagerUpgradeMessage(maxManagers);
+      return getClinicAddManagerUpgradeMessage(maxManagers, planFamily);
     case 'publish_fill_in':
       return getClinicPublishLimitMessage(plan, 'fill-in');
     case 'publish_role':

@@ -3,8 +3,14 @@ import {
   type ClinicPlan,
 } from '@chairside/config';
 import { router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 
 import { BillingCycleToggle } from '@/components/billing/BillingCycleToggle';
 import { BillingHero } from '@/components/billing/BillingHero';
@@ -21,6 +27,7 @@ import {
   formatBillingPackagePrice,
   type BillingCycle,
   type BillingPackage,
+  type BillingPlan,
 } from '@/lib/billingOfferings';
 import { getRecommendedUpgradePlan } from '@/lib/clinicPlanPresentation';
 import { CLINIC_PROFILE_BILLING } from '@/lib/routing';
@@ -42,7 +49,7 @@ function getBillingCycleLabel(
   return null;
 }
 
-function PlanComparisonIntro() {
+function PlanComparisonIntro({ isGroupFamily }: { isGroupFamily: boolean }) {
   const styles = useThemedStyles(({ colors, spacing, typography, radii, isDark }) => ({
     card: {
       backgroundColor: colorWithAlpha(colors.fillSubtle, isDark ? 0.65 : 1),
@@ -68,16 +75,53 @@ function PlanComparisonIntro() {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Choose the plan that fits your clinic</Text>
+      <Text style={styles.title}>
+        {isGroupFamily ? 'Choose the plan that fits your group' : 'Choose the plan that fits your clinic'}
+      </Text>
       <Text style={styles.body}>
-        Workers stay free. Upgrade when you need more active postings, direct outreach, SMS alerts,
-        or priority placement.
+        {isGroupFamily
+          ? 'Workers stay free. Upgrade for more locations and managers, hiring tools, and org-wide posting limits.'
+          : 'Workers stay free. Upgrade when you need more active postings, direct outreach, SMS alerts, or priority placement.'}
       </Text>
     </View>
   );
 }
 
-export function ClinicBillingScreenContent() {
+export type ClinicBillingScrollFocus = 'default' | 'group' | 'clinic';
+
+type ClinicBillingScreenContentProps = {
+  /** When rendered inside the billing modal, used to scroll to plan sections. */
+  parentScrollRef?: RefObject<ScrollView | null>;
+  scrollContentRef?: RefObject<View | null>;
+  scrollFocus?: ClinicBillingScrollFocus;
+  onPurchaseSuccess?: (plan: ClinicPlan) => void;
+};
+
+function scrollChildIntoScrollContent(
+  scrollRef: RefObject<ScrollView | null>,
+  scrollContentRef: RefObject<View | null>,
+  childRef: RefObject<View | null>,
+  offset = 24,
+) {
+  const scrollContent = scrollContentRef.current;
+  const child = childRef.current;
+  if (!scrollContent || !child || !scrollRef.current) return;
+
+  child.measureLayout(
+    scrollContent,
+    (_x, y) => {
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - offset), animated: true });
+    },
+    () => {},
+  );
+}
+
+export function ClinicBillingScreenContent({
+  parentScrollRef,
+  scrollContentRef,
+  scrollFocus = 'default',
+  onPurchaseSuccess,
+}: ClinicBillingScreenContentProps = {}) {
   const {
     billing,
     offerings,
@@ -98,7 +142,10 @@ export function ClinicBillingScreenContent() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const plansSectionRef = useRef<View>(null);
+  const groupPlansSectionRef = useRef<View>(null);
+  const clinicPlansSectionRef = useRef<View>(null);
   const profileScroll = useProfileDetailScroll();
+  const emphasizeGroupCaps = scrollFocus === 'group';
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: { gap: spacing.lg },
@@ -108,12 +155,39 @@ export function ClinicBillingScreenContent() {
       lineHeight: 20,
       color: colors.labelTertiary,
     },
+    notice: {
+      ...typography.subtitle,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+      backgroundColor: colors.fillSubtle,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+    },
+    noticeEmphasis: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySubtle,
+      color: colors.labelPrimary,
+    },
     actionLink: { alignSelf: 'center', paddingVertical: spacing.sm },
     actionLinkText: { ...typography.body, fontWeight: '600', color: colors.primary },
     loadingWrap: { alignItems: 'center', paddingVertical: spacing.xl },
     planList: { gap: spacing.md },
     compareSection: { gap: spacing.md },
+    sectionLabel: {
+      ...typography.label,
+      fontSize: 12,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+      marginTop: spacing.xs,
+    },
   }));
+
+  const isGroupFamily =
+    billing?.planFamily === 'group' || billing?.accountType === 'group';
 
   const starterMonthly = useMemo(
     () => findBillingPackage(offerings, 'starter', 'monthly'),
@@ -125,9 +199,34 @@ export function ClinicBillingScreenContent() {
   );
   const proMonthly = useMemo(() => findBillingPackage(offerings, 'pro', 'monthly'), [offerings]);
   const proYearly = useMemo(() => findBillingPackage(offerings, 'pro', 'yearly'), [offerings]);
+  const groupStarterMonthly = useMemo(
+    () => findBillingPackage(offerings, 'group_starter', 'monthly'),
+    [offerings],
+  );
+  const groupStarterYearly = useMemo(
+    () => findBillingPackage(offerings, 'group_starter', 'yearly'),
+    [offerings],
+  );
+  const groupProMonthly = useMemo(
+    () => findBillingPackage(offerings, 'group_pro', 'monthly'),
+    [offerings],
+  );
+  const groupProYearly = useMemo(
+    () => findBillingPackage(offerings, 'group_pro', 'yearly'),
+    [offerings],
+  );
 
-  const hasMonthly = Boolean(starterMonthly || proMonthly);
-  const hasYearly = Boolean(starterYearly || proYearly);
+  const hasGroupPackages = Boolean(
+    groupStarterMonthly || groupStarterYearly || groupProMonthly || groupProYearly,
+  );
+  const hasClinicPackages = Boolean(starterMonthly || starterYearly || proMonthly || proYearly);
+
+  const hasMonthly = isGroupFamily
+    ? Boolean(groupStarterMonthly || groupProMonthly || starterMonthly || proMonthly)
+    : Boolean(starterMonthly || proMonthly);
+  const hasYearly = isGroupFamily
+    ? Boolean(groupStarterYearly || groupProYearly || starterYearly || proYearly)
+    : Boolean(starterYearly || proYearly);
 
   const starterYearlySavings = useMemo(
     () => computeYearlySavings(starterMonthly, starterYearly),
@@ -137,12 +236,28 @@ export function ClinicBillingScreenContent() {
     () => computeYearlySavings(proMonthly, proYearly),
     [proMonthly, proYearly],
   );
+  const groupStarterYearlySavings = useMemo(
+    () => computeYearlySavings(groupStarterMonthly, groupStarterYearly),
+    [groupStarterMonthly, groupStarterYearly],
+  );
+  const groupProYearlySavings = useMemo(
+    () => computeYearlySavings(groupProMonthly, groupProYearly),
+    [groupProMonthly, groupProYearly],
+  );
   const maxYearlySavingsPercent = useMemo(() => {
-    const percents = [starterYearlySavings?.percent, proYearlySavings?.percent].filter(
-      (value): value is number => value != null && value > 0,
-    );
+    const percents = [
+      starterYearlySavings?.percent,
+      proYearlySavings?.percent,
+      groupStarterYearlySavings?.percent,
+      groupProYearlySavings?.percent,
+    ].filter((value): value is number => value != null && value > 0);
     return percents.length > 0 ? Math.max(...percents) : null;
-  }, [proYearlySavings?.percent, starterYearlySavings?.percent]);
+  }, [
+    groupProYearlySavings?.percent,
+    groupStarterYearlySavings?.percent,
+    proYearlySavings?.percent,
+    starterYearlySavings?.percent,
+  ]);
 
   const handlePurchase = async (purchasePackageArg: BillingPackage | undefined) => {
     if (!purchasePackageArg) {
@@ -156,11 +271,40 @@ export function ClinicBillingScreenContent() {
 
     setLocalError(null);
     try {
-      await purchasePackage(purchasePackageArg);
+      const nextPlan = await purchasePackage(purchasePackageArg);
+      if (nextPlan) {
+        onPurchaseSuccess?.(nextPlan);
+      }
     } catch {
       // Error state handled in context.
     }
   };
+
+  useEffect(() => {
+    if (
+      !parentScrollRef ||
+      !scrollContentRef ||
+      scrollFocus === 'default' ||
+      !isBillingReady ||
+      isRefreshing
+    ) {
+      return;
+    }
+
+    const targetRef =
+      scrollFocus === 'group'
+        ? groupPlansSectionRef
+        : scrollFocus === 'clinic'
+          ? clinicPlansSectionRef
+          : null;
+    if (!targetRef) return;
+
+    const timer = setTimeout(() => {
+      scrollChildIntoScrollContent(parentScrollRef, scrollContentRef, targetRef);
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [isBillingReady, isRefreshing, parentScrollRef, scrollContentRef, scrollFocus]);
 
   if (!isBillingReady || isRefreshing) {
     return (
@@ -171,10 +315,16 @@ export function ClinicBillingScreenContent() {
   }
 
   const currentPlan = billing?.plan ?? 'free';
-  const recommendedUpgrade = getRecommendedUpgradePlan(currentPlan);
+  const recommendedUpgrade = getRecommendedUpgradePlan(
+    currentPlan,
+    isGroupFamily ? 'group' : 'clinic',
+  );
 
   const starterPackage = billingCycle === 'monthly' ? starterMonthly : starterYearly;
   const proPackage = billingCycle === 'monthly' ? proMonthly : proYearly;
+  const groupStarterPackage =
+    billingCycle === 'monthly' ? groupStarterMonthly : groupStarterYearly;
+  const groupProPackage = billingCycle === 'monthly' ? groupProMonthly : groupProYearly;
 
   const starterPrice =
     formatBillingPackagePrice(starterPackage, billingCycle) ??
@@ -182,10 +332,27 @@ export function ClinicBillingScreenContent() {
   const proPrice =
     formatBillingPackagePrice(proPackage, billingCycle) ??
     CLINIC_PLAN_MARKETING.pro.fallbackPriceLabel;
+  const groupStarterPrice =
+    formatBillingPackagePrice(groupStarterPackage, billingCycle) ??
+    CLINIC_PLAN_MARKETING.group_starter.fallbackPriceLabel;
+  const groupProPrice =
+    formatBillingPackagePrice(groupProPackage, billingCycle) ??
+    CLINIC_PLAN_MARKETING.group_pro.fallbackPriceLabel;
 
-  const getRecommendedPackage = (plan: ClinicPlan): BillingPackage | undefined => {
+  const packageForPlan = (plan: BillingPlan): BillingPackage | undefined => {
     if (plan === 'starter') return starterPackage ?? starterMonthly ?? starterYearly;
     if (plan === 'pro') return proPackage ?? proMonthly ?? proYearly;
+    if (plan === 'group_starter') {
+      return groupStarterPackage ?? groupStarterMonthly ?? groupStarterYearly;
+    }
+    if (plan === 'group_pro') return groupProPackage ?? groupProMonthly ?? groupProYearly;
+    return undefined;
+  };
+
+  const getRecommendedPackage = (plan: ClinicPlan): BillingPackage | undefined => {
+    if (plan === 'starter' || plan === 'pro' || plan === 'group_starter' || plan === 'group_pro') {
+      return packageForPlan(plan);
+    }
     return undefined;
   };
 
@@ -207,6 +374,9 @@ export function ClinicBillingScreenContent() {
     );
   };
 
+  const isOnGroupPaidPlan = currentPlan === 'group_starter' || currentPlan === 'group_pro';
+  const isOnClinicPaidPlan = currentPlan === 'starter' || currentPlan === 'pro';
+
   return (
     <View style={styles.content}>
       {billing ? (
@@ -227,7 +397,16 @@ export function ClinicBillingScreenContent() {
           }}
           onUpgrade={
             recommendedUpgrade
-              ? () => void handlePurchase(getRecommendedPackage(recommendedUpgrade))
+              ? () => {
+                  const pkg = getRecommendedPackage(recommendedUpgrade);
+                  if (!pkg && (recommendedUpgrade === 'group_starter' || recommendedUpgrade === 'group_pro')) {
+                    setLocalError(
+                      'Group plans are not available for purchase in-app yet. Location and manager upgrades will unlock when Group Starter and Group Pro ship.',
+                    );
+                    return;
+                  }
+                  void handlePurchase(pkg);
+                }
               : undefined
           }
           onComparePlans={scrollToComparePlans}
@@ -235,7 +414,7 @@ export function ClinicBillingScreenContent() {
       ) : null}
 
       <View ref={plansSectionRef} style={styles.compareSection}>
-        <PlanComparisonIntro />
+        <PlanComparisonIntro isGroupFamily={isGroupFamily} />
 
         {isWebBillingAvailable ? (
           <Text style={styles.helper}>
@@ -251,7 +430,15 @@ export function ClinicBillingScreenContent() {
           </Text>
         ) : null}
 
-        {isPurchaseBillingAvailable ? (
+        {isGroupFamily && !hasGroupPackages ? (
+          <Text style={[styles.notice, emphasizeGroupCaps && styles.noticeEmphasis]}>
+            {emphasizeGroupCaps
+              ? 'To add more locations or managers, you need Group Starter or Group Pro. Those plans are not purchasable in-app yet — Clinic Starter and Pro below unlock hiring tools only, not extra locations or managers.'
+              : 'Group Starter and Group Pro are not purchasable in-app yet. You can still buy Clinic Starter or Pro for hiring tools — location and manager limits stay on your Free group trial until Group plans launch.'}
+          </Text>
+        ) : null}
+
+        {isPurchaseBillingAvailable && (hasClinicPackages || hasGroupPackages) ? (
           <BillingCycleToggle
             value={billingCycle}
             onChange={setBillingCycle}
@@ -265,12 +452,104 @@ export function ClinicBillingScreenContent() {
           <PlanComparisonCard
             plan="free"
             priceLabel={CLINIC_PLAN_MARKETING.free.fallbackPriceLabel}
-            billingCycleLabel="Includes 1 active role and 1 active fill-in"
+            billingCycleLabel={
+              isGroupFamily
+                ? 'Includes 2 locations, 1 manager, and 1+1 posts'
+                : 'Includes 1 active role and 1 active fill-in'
+            }
             isCurrent={currentPlan === 'free'}
             actionLabel={currentPlan === 'free' ? 'Current plan' : 'Included with your account'}
             actionVariant="secondary"
             disabled
           />
+
+          {isGroupFamily ? (
+            <>
+              <View ref={groupPlansSectionRef} collapsable={false}>
+                <Text style={styles.sectionLabel}>Group plans — locations & managers</Text>
+              </View>
+              <PlanComparisonCard
+                plan="group_starter"
+                priceLabel={groupStarterPrice}
+                billingCycleLabel={
+                  hasGroupPackages
+                    ? getBillingCycleLabel(billingCycle, groupStarterMonthly, groupStarterYearly)
+                    : 'Coming soon'
+                }
+                yearlySavings={billingCycle === 'yearly' ? groupStarterYearlySavings : null}
+                isCurrent={currentPlan === 'group_starter'}
+                isRecommended={currentPlan === 'free'}
+                actionLabel={
+                  currentPlan === 'group_starter'
+                    ? 'Current plan'
+                    : currentPlan === 'group_pro'
+                      ? 'Included in Group Pro'
+                      : hasGroupPackages
+                        ? 'Upgrade to Group Starter'
+                        : 'Coming soon'
+                }
+                actionVariant={currentPlan === 'free' ? 'primary' : 'secondary'}
+                disabled={
+                  !isPurchaseBillingAvailable ||
+                  !hasGroupPackages ||
+                  currentPlan === 'group_starter' ||
+                  currentPlan === 'group_pro' ||
+                  isPurchasing
+                }
+                loading={isPurchasing}
+                onPress={
+                  isPurchaseBillingAvailable &&
+                  hasGroupPackages &&
+                  currentPlan === 'free'
+                    ? () =>
+                        void handlePurchase(
+                          groupStarterPackage ?? groupStarterMonthly ?? groupStarterYearly,
+                        )
+                    : undefined
+                }
+              />
+
+              <PlanComparisonCard
+                plan="group_pro"
+                priceLabel={groupProPrice}
+                billingCycleLabel={
+                  hasGroupPackages
+                    ? getBillingCycleLabel(billingCycle, groupProMonthly, groupProYearly)
+                    : 'Coming soon'
+                }
+                yearlySavings={billingCycle === 'yearly' ? groupProYearlySavings : null}
+                isCurrent={currentPlan === 'group_pro'}
+                isRecommended={currentPlan === 'group_starter'}
+                actionLabel={
+                  currentPlan === 'group_pro'
+                    ? 'Current plan'
+                    : hasGroupPackages
+                      ? 'Upgrade to Group Pro'
+                      : 'Coming soon'
+                }
+                actionVariant="primary"
+                disabled={
+                  !isPurchaseBillingAvailable ||
+                  !hasGroupPackages ||
+                  currentPlan === 'group_pro' ||
+                  isPurchasing
+                }
+                loading={isPurchasing}
+                onPress={
+                  isPurchaseBillingAvailable &&
+                  hasGroupPackages &&
+                  currentPlan !== 'group_pro'
+                    ? () =>
+                        void handlePurchase(groupProPackage ?? groupProMonthly ?? groupProYearly)
+                    : undefined
+                }
+              />
+
+              <View ref={clinicPlansSectionRef} collapsable={false}>
+                <Text style={styles.sectionLabel}>Clinic plans — hiring tools only</Text>
+              </View>
+            </>
+          ) : null}
 
           <PlanComparisonCard
             plan="starter"
@@ -278,19 +557,20 @@ export function ClinicBillingScreenContent() {
             billingCycleLabel={getBillingCycleLabel(billingCycle, starterMonthly, starterYearly)}
             yearlySavings={billingCycle === 'yearly' ? starterYearlySavings : null}
             isCurrent={currentPlan === 'starter'}
-            isRecommended={currentPlan === 'free'}
+            isRecommended={!isGroupFamily && currentPlan === 'free'}
             actionLabel={
               currentPlan === 'starter'
                 ? 'Current plan'
-                : currentPlan === 'pro'
-                  ? 'Included in Pro'
+                : currentPlan === 'pro' || isOnGroupPaidPlan
+                  ? 'Included in higher plan'
                   : 'Upgrade to Starter'
             }
-            actionVariant={currentPlan === 'free' ? 'primary' : 'secondary'}
+            actionVariant={!isGroupFamily && currentPlan === 'free' ? 'primary' : 'secondary'}
             disabled={
               !isPurchaseBillingAvailable ||
               currentPlan === 'starter' ||
               currentPlan === 'pro' ||
+              isOnGroupPaidPlan ||
               isPurchasing
             }
             loading={isPurchasing}
@@ -307,13 +587,24 @@ export function ClinicBillingScreenContent() {
             billingCycleLabel={getBillingCycleLabel(billingCycle, proMonthly, proYearly)}
             yearlySavings={billingCycle === 'yearly' ? proYearlySavings : null}
             isCurrent={currentPlan === 'pro'}
-            isRecommended={currentPlan === 'starter'}
-            actionLabel={currentPlan === 'pro' ? 'Current plan' : 'Upgrade to Pro'}
+            isRecommended={!isGroupFamily && currentPlan === 'starter'}
+            actionLabel={
+              currentPlan === 'pro'
+                ? 'Current plan'
+                : isOnGroupPaidPlan
+                  ? 'Included in higher plan'
+                  : 'Upgrade to Pro'
+            }
             actionVariant="primary"
-            disabled={!isPurchaseBillingAvailable || currentPlan === 'pro' || isPurchasing}
+            disabled={
+              !isPurchaseBillingAvailable ||
+              currentPlan === 'pro' ||
+              isOnGroupPaidPlan ||
+              isPurchasing
+            }
             loading={isPurchasing}
             onPress={
-              isPurchaseBillingAvailable && currentPlan !== 'pro'
+              isPurchaseBillingAvailable && !isOnClinicPaidPlan && !isOnGroupPaidPlan
                 ? () => void handlePurchase(proPackage ?? proMonthly ?? proYearly)
                 : undefined
             }

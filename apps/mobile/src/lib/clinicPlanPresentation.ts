@@ -68,8 +68,11 @@ export function getClinicPlanTierLabel(plan: ClinicPlan): string {
   return `${CLINIC_PLAN_LABELS[plan]} plan`;
 }
 
-export function getRecommendedUpgradePlan(plan: ClinicPlan): ClinicPlan | null {
-  if (plan === 'free') return 'starter';
+export function getRecommendedUpgradePlan(
+  plan: ClinicPlan,
+  planFamily: 'clinic' | 'group' = 'clinic',
+): ClinicPlan | null {
+  if (plan === 'free') return planFamily === 'group' ? 'group_starter' : 'starter';
   if (plan === 'starter') return 'pro';
   if (plan === 'group_starter') return 'group_pro';
   return null;

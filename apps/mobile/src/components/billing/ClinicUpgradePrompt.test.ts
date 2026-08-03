@@ -34,9 +34,11 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
 
   it('explains Free group location and manager caps', () => {
     expect(getClinicAddLocationUpgradeMessage('group', 2)).toContain('2 locations');
+    expect(getClinicAddLocationUpgradeMessage('group', 2)).toContain('hiring tools only');
     expect(getClinicAddLocationUpgradeMessage('clinic', 1)).toContain('Group plan');
-    expect(getClinicAddManagerUpgradeMessage(1)).toContain('1 manager');
-    expect(getClinicAddManagerUpgradeMessage(0)).toContain('Group plan');
+    expect(getClinicAddManagerUpgradeMessage(1, 'group')).toContain('1 manager');
+    expect(getClinicAddManagerUpgradeMessage(1, 'group')).toContain('hiring tools only');
+    expect(getClinicAddManagerUpgradeMessage(0, 'clinic')).toContain('Group plan');
   });
 
   it('routes messages through getClinicUpgradePromptMessage', () => {
@@ -47,6 +49,13 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
         maxLocations: 2,
       }),
     ).toContain('2 locations');
+    expect(
+      getClinicUpgradePromptMessage('add_manager', {
+        plan: 'free',
+        planFamily: 'group',
+        maxManagers: 1,
+      }),
+    ).toContain('1 manager');
     expect(
       getClinicUpgradePromptMessage('screening', {
         plan: 'free',

@@ -19,6 +19,7 @@ import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { buildClinicManagerInviteUrl, formatInviteExpiry } from '@/lib/clinicInviteLinks';
@@ -309,6 +310,7 @@ export default function ClinicTeamSetupScreen() {
             <Text style={styles.addLabel}>Invite a manager</Text>
           </Pressable>
         )}
+        <SetupBillingUpsellLink label="Need more managers? View plans" />
       </View>
     </OnboardingShell>
     </>
