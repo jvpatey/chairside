@@ -52,7 +52,8 @@ export function PlanComparisonCard({
   const emphasized = isCurrent || (isRecommended && !isCurrent);
   const brandAccent = getClinicPlanBrandAccentColor(plan, colors);
   const featureAccent = getClinicPlanFeatureAccentColor(plan, colors, emphasized);
-  const actionAccent: GradientAccent = plan === 'pro' ? 'secondary' : 'primary';
+  const actionAccent: GradientAccent =
+    plan === 'pro' || plan === 'group_pro' ? 'secondary' : 'primary';
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     card: {
@@ -155,7 +156,11 @@ export function PlanComparisonCard({
         {isCurrent ? (
           <PillBadge
             label="Current plan"
-            color={plan === 'pro' ? colors.secondaryOnSecondary : colors.primaryOnPrimary}
+            color={
+              plan === 'pro' || plan === 'group_pro'
+                ? colors.secondaryOnSecondary
+                : colors.primaryOnPrimary
+            }
             backgroundColor={brandAccent}
             size="sm"
           />
@@ -176,7 +181,11 @@ export function PlanComparisonCard({
           <Ionicons
             name={CLINIC_PLAN_ICONS[plan]}
             size={21}
-            color={emphasized || plan === 'pro' ? brandAccent : colors.labelSecondary}
+            color={
+              emphasized || plan === 'pro' || plan === 'group_pro'
+                ? brandAccent
+                : colors.labelSecondary
+            }
           />
         </View>
         <View style={styles.headerText}>

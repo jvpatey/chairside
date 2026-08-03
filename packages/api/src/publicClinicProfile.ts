@@ -138,7 +138,8 @@ export async function getPublicClinicPostings(
   if (shiftsResult.error) throw shiftsResult.error;
 
   const planMap = await getClinicPlanMap([clinicId]);
-  const hasPriorityListing = planMap.get(clinicId) === 'pro';
+  const hasPriorityListing =
+    planMap.get(clinicId) === 'pro' || planMap.get(clinicId) === 'group_pro';
 
   const jobs = await Promise.all(
     ((jobsResult.data ?? []) as JobPost[]).map(async (job) => {

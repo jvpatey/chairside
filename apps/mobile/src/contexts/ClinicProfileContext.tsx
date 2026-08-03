@@ -106,10 +106,8 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
 
       return nextProfile;
     } catch {
-      if (requestId === requestRef.current) {
-        setClinicProfile(null);
-        setWorkspace(null);
-      }
+      // Keep the last known profile on refresh failure so uploads (e.g. logo)
+      // are not wiped from the UI when a concurrent refresh errors.
       return null;
     }
   }, [user?.id, profile?.role]);

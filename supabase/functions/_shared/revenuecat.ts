@@ -10,8 +10,15 @@ type RevenueCatSubscriber = {
   };
 };
 
+export type ResolvedClinicPlan =
+  | 'free'
+  | 'starter'
+  | 'pro'
+  | 'group_starter'
+  | 'group_pro';
+
 export type ResolvedClinicSubscription = {
-  plan: 'free' | 'starter' | 'pro';
+  plan: ResolvedClinicPlan;
   status: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
   currentPeriodEnd: string | null;
 };
@@ -27,8 +34,26 @@ export function resolveClinicSubscriptionFromSubscriber(
   statusOverride?: ResolvedClinicSubscription['status'],
 ): ResolvedClinicSubscription {
   const entitlements = subscriber.subscriber?.entitlements ?? {};
+  const groupPro = entitlements.clinic_group_pro;
+  const groupStarter = entitlements.clinic_group_starter;
   const pro = entitlements.clinic_pro;
   const starter = entitlements.clinic_starter;
+
+  if (isEntitlementActive(groupPro)) {
+    return {
+      plan: 'group_pro',
+      status: statusOverride ?? 'active',
+      currentPeriodEnd: groupPro?.expires_date ?? null,
+    };
+  }
+
+  if (isEntitlementActive(groupStarter)) {
+    return {
+      plan: 'group_starter',
+      status: statusOverride ?? 'active',
+      currentPeriodEnd: groupStarter?.expires_date ?? null,
+    };
+  }
 
   if (isEntitlementActive(pro)) {
     return {

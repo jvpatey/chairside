@@ -1,12 +1,15 @@
 import {
+  REVENUECAT_ENTITLEMENT_GROUP_PRO,
+  REVENUECAT_ENTITLEMENT_GROUP_STARTER,
   REVENUECAT_ENTITLEMENT_PRO,
   REVENUECAT_ENTITLEMENT_STARTER,
   REVENUECAT_PACKAGE_LOOKUP,
+  resolveClinicPlanFromEntitlements,
   type ClinicPlan,
 } from '@chairside/config';
 
 export type BillingCycle = 'monthly' | 'yearly';
-export type BillingPlan = 'starter' | 'pro';
+export type BillingPlan = 'starter' | 'pro' | 'group_starter' | 'group_pro';
 
 export type BillingPackage = {
   identifier: string;
@@ -33,8 +36,20 @@ function matchesLookup(identifiers: string[], candidates: readonly string[]): bo
 export function resolveBillingPackageMeta(
   identifiers: string[],
 ): { plan: BillingPlan; billingCycle: BillingCycle } | null {
-  // Resolve Pro before Starter so RevenueCat package IDs like $rc_monthly_pro
-  // never collide with starter defaults like $rc_monthly.
+  // Resolve higher tiers first so RevenueCat package IDs never collide
+  // (e.g. $rc_monthly_pro vs $rc_monthly).
+  if (matchesLookup(identifiers, REVENUECAT_PACKAGE_LOOKUP.groupProMonthly)) {
+    return { plan: 'group_pro', billingCycle: 'monthly' };
+  }
+  if (matchesLookup(identifiers, REVENUECAT_PACKAGE_LOOKUP.groupProYearly)) {
+    return { plan: 'group_pro', billingCycle: 'yearly' };
+  }
+  if (matchesLookup(identifiers, REVENUECAT_PACKAGE_LOOKUP.groupStarterMonthly)) {
+    return { plan: 'group_starter', billingCycle: 'monthly' };
+  }
+  if (matchesLookup(identifiers, REVENUECAT_PACKAGE_LOOKUP.groupStarterYearly)) {
+    return { plan: 'group_starter', billingCycle: 'yearly' };
+  }
   if (matchesLookup(identifiers, REVENUECAT_PACKAGE_LOOKUP.proMonthly)) {
     return { plan: 'pro', billingCycle: 'monthly' };
   }
@@ -140,7 +155,10 @@ export function formatYearlySavingsLabel(
 export function getClinicPlanFromEntitlements(
   activeEntitlements: Record<string, unknown>,
 ): ClinicPlan {
-  if (activeEntitlements[REVENUECAT_ENTITLEMENT_PRO]) return 'pro';
-  if (activeEntitlements[REVENUECAT_ENTITLEMENT_STARTER]) return 'starter';
-  return 'free';
+  return resolveClinicPlanFromEntitlements({
+    clinic_group_pro: Boolean(activeEntitlements[REVENUECAT_ENTITLEMENT_GROUP_PRO]),
+    clinic_group_starter: Boolean(activeEntitlements[REVENUECAT_ENTITLEMENT_GROUP_STARTER]),
+    clinic_pro: Boolean(activeEntitlements[REVENUECAT_ENTITLEMENT_PRO]),
+    clinic_starter: Boolean(activeEntitlements[REVENUECAT_ENTITLEMENT_STARTER]),
+  });
 }

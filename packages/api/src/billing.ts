@@ -1,4 +1,4 @@
-import type { ClinicPlan } from '@chairside/config';
+import type { ClinicPlan, ClinicPlanFamily } from '@chairside/config';
 import { getSupabaseClient } from './client';
 import { throwWithMessage } from './errors';
 
@@ -11,6 +11,8 @@ export type ClinicSubscriptionStatus =
 
 export type ClinicBillingState = {
   plan: ClinicPlan;
+  planFamily: ClinicPlanFamily;
+  accountType: 'individual' | 'group';
   status: ClinicSubscriptionStatus;
   activeRoleCount: number;
   activeRoleLimit: number | null;
@@ -24,11 +26,27 @@ export type ClinicBillingState = {
   canUseFillInOutreach: boolean;
   canUseFillInSms: boolean;
   hasPriorityListing: boolean;
+  canUseScreeningQuestions: boolean;
+  canUseCrmFollowups: boolean;
+  canUseApplicationPdfExport: boolean;
+  canUseClinicDiscover: boolean;
+  canUseGeneralCandidateMessaging: boolean;
+  canUseBulkOutreach: boolean;
+  canUseHiringInsights: boolean;
+  customScreeningLimit: number | null;
+  locationCount: number;
+  maxLocations: number | null;
+  canAddLocation: boolean;
+  managerCount: number;
+  maxManagers: number | null;
+  canAddManager: boolean;
   currentPeriodEnd: string | null;
 };
 
 type ClinicBillingStateRow = {
   plan: ClinicPlan;
+  plan_family?: ClinicPlanFamily;
+  account_type?: 'individual' | 'group';
   status: ClinicSubscriptionStatus;
   active_role_count: number;
   active_role_limit: number | null;
@@ -42,12 +60,36 @@ type ClinicBillingStateRow = {
   can_use_fill_in_outreach: boolean;
   can_use_fill_in_sms: boolean;
   has_priority_listing: boolean;
+  can_use_screening_questions?: boolean;
+  can_use_crm_followups?: boolean;
+  can_use_application_pdf_export?: boolean;
+  can_use_clinic_discover?: boolean;
+  can_use_general_candidate_messaging?: boolean;
+  can_use_bulk_outreach?: boolean;
+  can_use_hiring_insights?: boolean;
+  custom_screening_limit?: number | null;
+  location_count?: number;
+  max_locations?: number | null;
+  can_add_location?: boolean;
+  manager_count?: number;
+  max_managers?: number | null;
+  can_add_manager?: boolean;
   current_period_end: string | null;
 };
 
 function mapClinicBillingState(row: ClinicBillingStateRow): ClinicBillingState {
+  const plan = row.plan;
+  const accountType = row.account_type ?? 'individual';
+  const planFamily =
+    row.plan_family ??
+    (plan === 'group_starter' || plan === 'group_pro' || accountType === 'group'
+      ? 'group'
+      : 'clinic');
+
   return {
-    plan: row.plan,
+    plan,
+    planFamily,
+    accountType,
     status: row.status,
     activeRoleCount: row.active_role_count,
     activeRoleLimit: row.active_role_limit,
@@ -61,6 +103,20 @@ function mapClinicBillingState(row: ClinicBillingStateRow): ClinicBillingState {
     canUseFillInOutreach: row.can_use_fill_in_outreach,
     canUseFillInSms: row.can_use_fill_in_sms,
     hasPriorityListing: row.has_priority_listing,
+    canUseScreeningQuestions: row.can_use_screening_questions ?? false,
+    canUseCrmFollowups: row.can_use_crm_followups ?? false,
+    canUseApplicationPdfExport: row.can_use_application_pdf_export ?? false,
+    canUseClinicDiscover: row.can_use_clinic_discover ?? false,
+    canUseGeneralCandidateMessaging: row.can_use_general_candidate_messaging ?? false,
+    canUseBulkOutreach: row.can_use_bulk_outreach ?? false,
+    canUseHiringInsights: row.can_use_hiring_insights ?? false,
+    customScreeningLimit: row.custom_screening_limit ?? 0,
+    locationCount: row.location_count ?? 0,
+    maxLocations: row.max_locations ?? 1,
+    canAddLocation: row.can_add_location ?? true,
+    managerCount: row.manager_count ?? 0,
+    maxManagers: row.max_managers ?? 0,
+    canAddManager: row.can_add_manager ?? false,
     currentPeriodEnd: row.current_period_end,
   };
 }
@@ -72,7 +128,9 @@ export function isClinicBillingLimitError(message: string): boolean {
     normalized.includes('active role limit reached') ||
     normalized.includes('active fill-in limit reached') ||
     normalized.includes('direct fill-in outreach requires a paid clinic plan') ||
-    normalized.includes('sms fill-in alerts require a paid clinic plan')
+    normalized.includes('sms fill-in alerts require a paid clinic plan') ||
+    normalized.includes('location limit reached') ||
+    normalized.includes('manager limit reached')
   );
 }
 

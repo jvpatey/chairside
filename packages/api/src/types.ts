@@ -542,7 +542,7 @@ export type Database = {
           clinic_id: string;
           provider: string;
           provider_customer_id: string | null;
-          plan: 'free' | 'starter' | 'pro';
+          plan: 'free' | 'starter' | 'pro' | 'group_starter' | 'group_pro';
           status: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
           current_period_end: string | null;
           created_at: string;
@@ -552,7 +552,7 @@ export type Database = {
           clinic_id: string;
           provider?: string;
           provider_customer_id?: string | null;
-          plan?: 'free' | 'starter' | 'pro';
+          plan?: 'free' | 'starter' | 'pro' | 'group_starter' | 'group_pro';
           status?: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
           current_period_end?: string | null;
           created_at?: string;
@@ -674,25 +674,50 @@ export type Database = {
       get_clinic_billing_state: {
         Args: { p_clinic_id?: string };
         Returns: {
-          plan: 'free' | 'starter' | 'pro';
+          plan: 'free' | 'starter' | 'pro' | 'group_starter' | 'group_pro';
+          plan_family: 'clinic' | 'group';
+          account_type: 'individual' | 'group';
           status: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
+          active_role_count: number;
+          active_role_limit: number | null;
+          active_fill_in_count: number;
+          active_fill_in_limit: number | null;
+          can_publish_role: boolean;
+          can_publish_fill_in: boolean;
           active_opportunity_count: number;
           active_opportunity_limit: number | null;
           can_publish_opportunity: boolean;
           can_use_fill_in_outreach: boolean;
           can_use_fill_in_sms: boolean;
           has_priority_listing: boolean;
+          can_use_screening_questions: boolean;
+          can_use_crm_followups: boolean;
+          can_use_application_pdf_export: boolean;
+          can_use_clinic_discover: boolean;
+          can_use_general_candidate_messaging: boolean;
+          can_use_bulk_outreach: boolean;
+          can_use_hiring_insights: boolean;
+          custom_screening_limit: number | null;
+          location_count: number;
+          max_locations: number | null;
+          can_add_location: boolean;
+          manager_count: number;
+          max_managers: number | null;
+          can_add_manager: boolean;
           current_period_end: string | null;
         };
       };
       get_clinic_plan_map: {
         Args: { p_clinic_ids: string[] };
-        Returns: { clinic_id: string; plan: 'free' | 'starter' | 'pro' }[];
+        Returns: {
+          clinic_id: string;
+          plan: 'free' | 'starter' | 'pro' | 'group_starter' | 'group_pro';
+        }[];
       };
       upsert_clinic_subscription: {
         Args: {
           p_clinic_id: string;
-          p_plan: 'free' | 'starter' | 'pro';
+          p_plan: 'free' | 'starter' | 'pro' | 'group_starter' | 'group_pro';
           p_status: 'active' | 'trialing' | 'grace_period' | 'cancelled' | 'expired';
           p_current_period_end?: string | null;
           p_provider_customer_id?: string | null;

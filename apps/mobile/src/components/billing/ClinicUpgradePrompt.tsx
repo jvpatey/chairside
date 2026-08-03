@@ -1,3 +1,4 @@
+import type { ClinicPlan } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, Text, View } from 'react-native';
 
@@ -69,30 +70,31 @@ export function ClinicUpgradePrompt({ visible, title, message, onClose }: Clinic
 }
 
 export function getClinicPublishLimitMessage(
-  plan: 'free' | 'starter' | 'pro',
+  plan: ClinicPlan,
   publishType: 'role' | 'fill-in' = 'role',
 ): string {
+  const postingLabel = publishType === 'fill-in' ? 'fill-in' : 'role';
+  const postingLabelPlural = publishType === 'fill-in' ? 'fill-ins' : 'roles';
+
   if (plan === 'free') {
-    if (publishType === 'fill-in') {
-      return 'Your free plan includes 1 active fill-in. Upgrade to publish more fill-ins.';
-    }
-    return 'Your free plan includes 1 active role. Upgrade to publish more roles.';
+    return `Your free plan includes 1 active ${postingLabel}. Upgrade to publish more ${postingLabelPlural}.`;
   }
 
   if (plan === 'starter') {
-    if (publishType === 'fill-in') {
-      return 'Your Starter plan includes 3 active fill-ins. Upgrade to Pro for unlimited posting.';
-    }
-    return 'Your Starter plan includes 3 active roles. Upgrade to Pro for unlimited posting.';
+    return `Your Starter plan includes 5 active ${postingLabelPlural}. Upgrade to Pro for unlimited posting.`;
   }
 
-  return 'Upgrade to Pro for unlimited active roles and fill-ins.';
+  if (plan === 'group_starter') {
+    return `Your Group Starter plan includes 5 active ${postingLabelPlural} org-wide. Upgrade to Group Pro for unlimited posting.`;
+  }
+
+  return 'Upgrade your plan for unlimited active roles and fill-ins.';
 }
 
 export function getClinicOutreachUpgradeMessage(): string {
-  return 'Direct fill-in outreach is available on Starter and Pro plans.';
+  return 'Direct fill-in outreach is available on Starter, Pro, and Group plans.';
 }
 
 export function getClinicSmsUpgradeMessage(): string {
-  return 'SMS fill-in alerts are available on Starter and Pro plans.';
+  return 'SMS fill-in alerts are available on Starter, Pro, and Group plans.';
 }

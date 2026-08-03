@@ -38,6 +38,14 @@ describe('billingOfferings', () => {
       plan: 'pro',
       billingCycle: 'yearly',
     });
+    expect(resolveBillingPackageMeta(['group_starter_monthly'])).toEqual({
+      plan: 'group_starter',
+      billingCycle: 'monthly',
+    });
+    expect(resolveBillingPackageMeta(['group_pro_yearly'])).toEqual({
+      plan: 'group_pro',
+      billingCycle: 'yearly',
+    });
     expect(resolveBillingPackageMeta(['$rc_monthly_pro'])).not.toEqual({
       plan: 'starter',
       billingCycle: 'monthly',

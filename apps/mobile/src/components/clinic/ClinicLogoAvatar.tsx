@@ -61,7 +61,13 @@ export function ClinicLogoAvatar({
   return (
     <View style={styles.wrap}>
       {logoUri ? (
-        <Image source={{ uri: logoUri }} style={styles.image} accessibilityLabel="Clinic logo" />
+        <Image
+          source={{ uri: logoUri }}
+          style={styles.image}
+          accessibilityLabel="Clinic logo"
+          // Do not fall back to initials on load error — that caused a flash of
+          // the logo then initials when remote URLs failed after preview cleared.
+        />
       ) : initials ? (
         <Text style={styles.initials}>{initials}</Text>
       ) : (

@@ -56,6 +56,8 @@ const ClinicBillingContext = createContext<ClinicBillingContextValue | null>(nul
 
 const DEFAULT_BILLING: ClinicBillingState = {
   plan: 'free',
+  planFamily: 'clinic',
+  accountType: 'individual',
   status: 'active',
   activeRoleCount: 0,
   activeRoleLimit: 1,
@@ -69,6 +71,20 @@ const DEFAULT_BILLING: ClinicBillingState = {
   canUseFillInOutreach: false,
   canUseFillInSms: false,
   hasPriorityListing: false,
+  canUseScreeningQuestions: false,
+  canUseCrmFollowups: false,
+  canUseApplicationPdfExport: false,
+  canUseClinicDiscover: false,
+  canUseGeneralCandidateMessaging: false,
+  canUseBulkOutreach: false,
+  canUseHiringInsights: false,
+  customScreeningLimit: 0,
+  locationCount: 0,
+  maxLocations: 1,
+  canAddLocation: true,
+  managerCount: 0,
+  maxManagers: 0,
+  canAddManager: false,
   currentPeriodEnd: null,
 };
 
