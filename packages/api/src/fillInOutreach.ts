@@ -102,3 +102,49 @@ export async function startClinicFillInOutreach(
   }
   return data;
 }
+
+export type StartClinicFillInOutreachBulkInput = {
+  workerIds: string[];
+  message: string;
+  roleType?: RoleType | null;
+  shiftDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+};
+
+export type FillInOutreachBulkResult = {
+  successes: Array<{ workerId: string; conversationId: string }>;
+  failures: Array<{ workerId: string; error: string }>;
+};
+
+type FillInOutreachBulkRow = {
+  successes: Array<{ worker_id: string; conversation_id: string }> | null;
+  failures: Array<{ worker_id: string; error: string }> | null;
+};
+
+export async function startClinicFillInOutreachBulk(
+  input: StartClinicFillInOutreachBulkInput,
+): Promise<FillInOutreachBulkResult> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('start_clinic_fill_in_outreach_bulk', {
+    p_worker_ids: input.workerIds,
+    p_message: input.message.trim(),
+    p_role_type: input.roleType ?? null,
+    p_shift_date: input.shiftDate ?? null,
+    p_start_time: toPgTime(input.startTime),
+    p_end_time: toPgTime(input.endTime),
+  });
+
+  if (error) throwWithMessage(error, 'Could not send bulk outreach.');
+  const row = (data ?? {}) as FillInOutreachBulkRow;
+  return {
+    successes: (row.successes ?? []).map((item) => ({
+      workerId: item.worker_id,
+      conversationId: item.conversation_id,
+    })),
+    failures: (row.failures ?? []).map((item) => ({
+      workerId: item.worker_id,
+      error: item.error,
+    })),
+  };
+}

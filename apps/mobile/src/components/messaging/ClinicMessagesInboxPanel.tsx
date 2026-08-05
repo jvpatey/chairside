@@ -1,7 +1,7 @@
 import type { Conversation } from '@chairside/api';
-import { listConversationsForClinic } from '@chairside/api';
+import { getErrorMessage, listConversationsForClinic } from '@chairside/api';
 import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { ClinicMessagingPreferences } from '@/components/clinic/ClinicMessagingPreferences';
@@ -68,17 +68,14 @@ export function ClinicMessagesInboxPanel({
     },
   }));
 
-  const publishConversations = useCallback(
-    (rows: Conversation[]) => {
-      setConversations(rows);
-      onConversationsChange?.(rows);
-    },
-    [onConversationsChange],
-  );
+  // Notify parent after commit — never during render or setState updaters.
+  useEffect(() => {
+    onConversationsChange?.(conversations);
+  }, [conversations, onConversationsChange]);
 
   const load = useCallback(async () => {
     if (!clinicId) {
-      publishConversations([]);
+      setConversations([]);
       setIsLoading(false);
       setLoadError(null);
       return;
@@ -89,16 +86,16 @@ export function ClinicMessagesInboxPanel({
       const rows = await listConversationsForClinic(clinicId, {
         locationIds: scopedLocationIds,
       });
-      publishConversations(rows);
+      setConversations(rows);
       setLoadError(null);
       await refreshUnread();
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Could not load conversations.');
-      publishConversations([]);
+      setLoadError(getErrorMessage(error, 'Could not load conversations.'));
+      setConversations([]);
     } finally {
       setIsLoading(false);
     }
-  }, [clinicId, publishConversations, refreshUnread, scopedLocationIds]);
+  }, [clinicId, refreshUnread, scopedLocationIds]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);
@@ -111,9 +108,7 @@ export function ClinicMessagesInboxPanel({
 
       const next = [...current];
       next[index] = patchConversationFromRealtimeUpdate(next[index]!, update, user.id, 'clinic');
-      const sorted = sortConversations(next);
-      onConversationsChange?.(sorted);
-      return sorted;
+      return sortConversations(next);
     });
     void refreshUnread();
   });
@@ -137,9 +132,7 @@ export function ClinicMessagesInboxPanel({
         last_sender_id: message.sender_id,
         unread: message.sender_id === row.worker_id,
       };
-      const sorted = sortConversations(next);
-      onConversationsChange?.(sorted);
-      return sorted;
+      return sortConversations(next);
     });
     void refreshUnread();
   });

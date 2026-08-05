@@ -4,12 +4,16 @@ import { Text, View } from 'react-native';
 
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useThemedStyles, type GradientAccent } from '@/theme';
 
 type AvailableFillInWorkerCardProps = {
   worker: FillInOutreachWorker;
   onMessage: () => void;
   accent?: GradientAccent;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelected?: () => void;
 };
 
 function formatRoleLabels(roleTypes: string[]): string {
@@ -30,15 +34,27 @@ export function AvailableFillInWorkerCard({
   worker,
   onMessage,
   accent = 'secondary',
+  selectable = false,
+  selected = false,
+  onToggleSelected,
 }: AvailableFillInWorkerCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: selected ? colors.primary : colors.separator,
       padding: spacing.md,
       gap: spacing.md,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    headerContent: {
+      flex: 1,
+      minWidth: 0,
     },
     availabilityBlock: {
       gap: spacing.xs,
@@ -76,15 +92,26 @@ export function AvailableFillInWorkerCard({
 
   return (
     <View style={styles.card}>
-      <ApplicantPostHeader
-        displayName={worker.displayName}
-        photoStoragePath={worker.photoStoragePath}
-        eyebrow=""
-        title={worker.displayName}
-        location={location || null}
-        detail={experience}
-        avatarAlign="center"
-      />
+      <View style={styles.headerRow}>
+        {selectable ? (
+          <ThemedSwitch
+            value={selected}
+            onValueChange={() => onToggleSelected?.()}
+            accessibilityLabel={`Select ${worker.displayName}`}
+          />
+        ) : null}
+        <View style={styles.headerContent}>
+          <ApplicantPostHeader
+            displayName={worker.displayName}
+            photoStoragePath={worker.photoStoragePath}
+            eyebrow=""
+            title={worker.displayName}
+            location={location || null}
+            detail={experience}
+            avatarAlign="center"
+          />
+        </View>
+      </View>
 
       {scheduleLines.length > 0 ? (
         <View style={styles.availabilityBlock}>

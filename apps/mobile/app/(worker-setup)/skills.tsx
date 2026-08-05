@@ -35,7 +35,14 @@ export default function WorkerSkillsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useWorkerSetupStepGuard('skills', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
+  useWorkerSetupStepGuard(
+    'skills',
+    workerProfile,
+    profile?.first_name,
+    profile?.last_name,
+    isWorkerProfileReady,
+    isEditMode,
+  );
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },

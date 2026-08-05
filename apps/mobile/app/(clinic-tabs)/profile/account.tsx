@@ -24,6 +24,8 @@ export default function ClinicProfileAccountScreen() {
       <AccountScreenContent
         user={user}
         displayName={profile?.display_name}
+        firstName={profile?.first_name}
+        lastName={profile?.last_name}
         accountTypeLabel={getAccountTypeLabel('clinic')}
         onProfileRefresh={refreshProfile}
         isSigningOut={isSigningOut}

@@ -81,4 +81,24 @@ describe('patchConversationFromRealtimeUpdate', () => {
 
     expect(patched.unread).toBe(false);
   });
+
+  it('clears can_send when messaging is closed', () => {
+    const patched = patchConversationFromRealtimeUpdate(
+      makeConversation({ can_send: true }),
+      {
+        id: 'conversation-1',
+        last_message_at: '2026-06-26T13:00:00.000Z',
+        last_message_preview: 'Closed',
+        last_sender_id: 'clinic-1',
+        worker_last_read_at: '2026-06-26T11:00:00.000Z',
+        clinic_last_read_at: '2026-06-26T13:00:00.000Z',
+        messaging_closed_at: '2026-06-26T13:00:00.000Z',
+      },
+      'worker-1',
+      'worker',
+    );
+
+    expect(patched.can_send).toBe(false);
+    expect(patched.messaging_closed_at).toBe('2026-06-26T13:00:00.000Z');
+  });
 });

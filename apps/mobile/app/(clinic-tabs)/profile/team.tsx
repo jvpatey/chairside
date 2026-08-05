@@ -30,6 +30,7 @@ import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { buildClinicManagerInviteUrl, formatInviteExpiry } from '@/lib/clinicInviteLinks';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import {
@@ -75,7 +76,14 @@ export default function ClinicTeamSettingsScreen() {
     refreshClinicProfile,
   } = useClinicProfile();
   const { colors } = useTheme();
+  const {
+    billing,
+    upgradePrompt,
+    showAddManagerUpgrade,
+    handleBillingError,
+  } = useClinicUpgradePrompt();
   const groupsEnabled = isClinicGroupsEnabled();
+  const canAddManager = billing == null || billing.canAddManager;
 
   useEffect(() => {
     if (!isClinicProfileReady) return;
@@ -239,6 +247,10 @@ export default function ClinicTeamSettingsScreen() {
   };
 
   const startInvite = () => {
+    if (!canAddManager) {
+      showAddManagerUpgrade();
+      return;
+    }
     setSelectedLocationIds([]);
     setShowForm(true);
     setError(null);
@@ -314,6 +326,7 @@ export default function ClinicTeamSettingsScreen() {
       resetInviteForm();
       await reload();
     } catch (inviteError) {
+      if (handleBillingError(inviteError)) return;
       setError(inviteError instanceof Error ? inviteError.message : 'Could not send invitation.');
     } finally {
       setIsSubmitting(false);
@@ -440,78 +453,83 @@ export default function ClinicTeamSettingsScreen() {
 
   if (showForm) {
     return (
-      <ProfileDetailScreen
-        title="Invite manager"
-        subtitle={`Give someone access to help run ${groupName}.`}
-        onBack={handleBack}>
-        <View style={styles.form}>
-          {locationOptions.length === 0 ? (
-            <EmptyState
-              icon="business-outline"
-              title="Add locations first"
-              message="Create at least one location before inviting managers."
-              ctaLabel="Go to Locations"
-              onCtaPress={() => router.push(CLINIC_PROFILE_LOCATIONS)}
-            />
-          ) : (
-            <>
-              <AuthField
-                label="Manager name"
-                placeholder="Sarah Mitchell"
-                value={displayName}
-                onChangeText={setDisplayName}
-                autoCapitalize="words"
+      <>
+        {upgradePrompt}
+        <ProfileDetailScreen
+          title="Invite manager"
+          subtitle={`Give someone access to help run ${groupName}.`}
+          onBack={handleBack}>
+          <View style={styles.form}>
+            {locationOptions.length === 0 ? (
+              <EmptyState
+                icon="business-outline"
+                title="Add locations first"
+                message="Create at least one location before inviting managers."
+                ctaLabel="Go to Locations"
+                onCtaPress={() => router.push(CLINIC_PROFILE_LOCATIONS)}
               />
-              <AuthField
-                label="Email"
-                placeholder="manager@clinic.com"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                invalid={Boolean(error) && !email.trim()}
-              />
-              <AuthField
-                label="Title"
-                placeholder="Office Manager"
-                value={title}
-                onChangeText={setTitle}
-                autoCapitalize="words"
-              />
-              <Text style={styles.hint}>Assign the clinics this manager can access.</Text>
-              <ChipSelector
-                options={locationOptions}
-                selected={selectedLocationIds}
-                multiple
-                horizontal={false}
-                onChange={(value) => setSelectedLocationIds(value as string[])}
-              />
-              <SetupStepFooter
-                canContinue={canInvite}
-                validationMessage={inviteValidationMessage}
-                showValidation={showInviteValidation}
-                submitError={error}
-                isSubmitting={isSubmitting}
-                continueLabel="Send invitation"
-                onContinue={() => void handleInvite()}
-              />
-              <Pressable style={styles.cancel} onPress={resetInviteForm}>
-                <Text style={styles.cancelLabel}>Cancel</Text>
-              </Pressable>
-            </>
-          )}
-        </View>
-      </ProfileDetailScreen>
+            ) : (
+              <>
+                <AuthField
+                  label="Manager name"
+                  placeholder="Sarah Mitchell"
+                  value={displayName}
+                  onChangeText={setDisplayName}
+                  autoCapitalize="words"
+                />
+                <AuthField
+                  label="Email"
+                  placeholder="manager@clinic.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  invalid={Boolean(error) && !email.trim()}
+                />
+                <AuthField
+                  label="Title"
+                  placeholder="Office Manager"
+                  value={title}
+                  onChangeText={setTitle}
+                  autoCapitalize="words"
+                />
+                <Text style={styles.hint}>Assign the clinics this manager can access.</Text>
+                <ChipSelector
+                  options={locationOptions}
+                  selected={selectedLocationIds}
+                  multiple
+                  horizontal={false}
+                  onChange={(value) => setSelectedLocationIds(value as string[])}
+                />
+                <SetupStepFooter
+                  canContinue={canInvite}
+                  validationMessage={inviteValidationMessage}
+                  showValidation={showInviteValidation}
+                  submitError={error}
+                  isSubmitting={isSubmitting}
+                  continueLabel="Send invitation"
+                  onContinue={() => void handleInvite()}
+                />
+                <Pressable style={styles.cancel} onPress={resetInviteForm}>
+                  <Text style={styles.cancelLabel}>Cancel</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </ProfileDetailScreen>
+      </>
     );
   }
 
   return (
-    <ProfileDetailScreen
-      title="Team & access"
-      subtitle={`Manage who can help run ${groupName}.`}
-      actionLabel={locationOptions.length > 0 ? 'Invite manager' : undefined}
-      onActionPress={locationOptions.length > 0 ? startInvite : undefined}
-      onBack={handleBack}>
+    <>
+      {upgradePrompt}
+      <ProfileDetailScreen
+        title="Team & access"
+        subtitle={`Manage who can help run ${groupName}.`}
+        actionLabel={locationOptions.length > 0 ? 'Invite manager' : undefined}
+        onActionPress={locationOptions.length > 0 ? startInvite : undefined}
+        onBack={handleBack}>
       <View style={styles.content}>
         {error ? (
           <Text style={{ color: colors.destructive, fontWeight: '600' }}>{error}</Text>
@@ -695,5 +713,6 @@ export default function ClinicTeamSettingsScreen() {
         </ProfileDetailStack>
       </View>
     </ProfileDetailScreen>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
-import { openClinicBillingScreen } from '@/components/billing/ClinicBillingScreenContent';
+import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
@@ -9,7 +9,7 @@ import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 type PlanUpgradeCalloutProps = {
   title: string;
   message: string;
-  /** Defaults to the clinic billing screen — the callout already explains the upgrade. */
+  /** Defaults to the clinic billing modal — keeps the current screen on-stack. */
   onUpgrade?: () => void;
   accent?: GradientAccent;
   buttonLabel?: string;
@@ -20,7 +20,7 @@ type PlanUpgradeCalloutProps = {
 export function PlanUpgradeCallout({
   title,
   message,
-  onUpgrade = openClinicBillingScreen,
+  onUpgrade = openClinicBillingModal,
   accent = 'primary',
   buttonLabel = 'View plans',
   compact = false,

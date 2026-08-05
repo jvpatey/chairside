@@ -680,9 +680,10 @@ function attachPriorityListing<T extends { clinic_id: string }>(
   post: T,
   planMap: Map<string, ClinicPlan>,
 ): T & { has_priority_listing: boolean } {
+  const plan = planMap.get(post.clinic_id);
   return {
     ...post,
-    has_priority_listing: planMap.get(post.clinic_id) === 'pro',
+    has_priority_listing: plan === 'pro' || plan === 'group_pro',
   };
 }
 
@@ -692,8 +693,10 @@ function sortPostsByClinicPlanPriority<T extends { clinic_id: string; created_at
   secondarySort: (left: T, right: T) => number,
 ): T[] {
   return [...posts].sort((left, right) => {
-    const leftPriority = planMap.get(left.clinic_id) === 'pro' ? 1 : 0;
-    const rightPriority = planMap.get(right.clinic_id) === 'pro' ? 1 : 0;
+    const leftPlan = planMap.get(left.clinic_id);
+    const rightPlan = planMap.get(right.clinic_id);
+    const leftPriority = leftPlan === 'pro' || leftPlan === 'group_pro' ? 1 : 0;
+    const rightPriority = rightPlan === 'pro' || rightPlan === 'group_pro' ? 1 : 0;
     if (leftPriority !== rightPriority) {
       return rightPriority - leftPriority;
     }

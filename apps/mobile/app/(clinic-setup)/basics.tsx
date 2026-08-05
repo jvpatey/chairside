@@ -1,9 +1,17 @@
 import {
+  isClinicGroupsEnabled,
+  joinDisplayName,
+  resolveAuthNameParts,
   updateClinicMembershipProfile,
   uploadClinicMemberPhotoFromBase64,
 } from '@chairside/api';
 import { router } from 'expo-router';
-import { CLINIC_SETUP_LOCATION, CLINIC_SETUP_LOCATIONS } from '@/lib/routing';
+import {
+  CLINIC_SETUP_ACCOUNT_TYPE,
+  CLINIC_SETUP_LOCATION,
+  CLINIC_SETUP_LOCATIONS,
+  ONBOARDING_CHANGE_ROLE,
+} from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -20,7 +28,6 @@ import { useClinicMemberPhotoUri } from '@/hooks/useClinicMemberPhotoUri';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
-import { useSignOut } from '@/hooks/useSignOut';
 import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { validateClinicBasicsStep } from '@/lib/setupStepValidation';
@@ -42,7 +49,7 @@ type PendingMemberPhoto = {
 };
 
 export default function ClinicBasicsScreen() {
-  const { profile: authProfile } = useAuth();
+  const { user, profile: authProfile } = useAuth();
   const {
     clinicProfile,
     isClinicProfileReady,
@@ -53,7 +60,6 @@ export default function ClinicBasicsScreen() {
   } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
-  const { isSigningOut, signOut } = useSignOut();
   const savedMemberPhotoUri = useClinicMemberPhotoUri(membership?.photo_storage_path);
   const [clinicName, setClinicName] = useState('');
   const [contactName, setContactName] = useState('');
@@ -66,6 +72,14 @@ export default function ClinicBasicsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
+
+  const authNameParts = resolveAuthNameParts({
+    firstName: authProfile?.first_name,
+    lastName: authProfile?.last_name,
+    displayName: authProfile?.display_name,
+    userMetadata: user?.user_metadata as Record<string, unknown> | undefined,
+  });
+  const authDisplayName = joinDisplayName(authNameParts.firstName, authNameParts.lastName);
 
   useClinicSetupStepGuard('basics', clinicProfile, isClinicProfileReady, isEditMode);
 
@@ -94,24 +108,17 @@ export default function ClinicBasicsScreen() {
     const isBootstrapPlaceholder =
       !isEditMode && rawName.toLowerCase() === 'clinic';
     setClinicName(isBootstrapPlaceholder ? '' : (clinicProfile.clinic_name ?? ''));
-    setContactName(clinicProfile.contact_name ?? '');
+    const savedContact = clinicProfile.contact_name?.trim() ?? '';
+    setContactName(savedContact || authDisplayName);
     setPhone(clinicProfile.phone ? formatPhoneNumber(clinicProfile.phone) : '');
-  }, [clinicProfile, isEditMode]);
+  }, [authDisplayName, clinicProfile, isEditMode]);
 
   useEffect(() => {
     if (!isGroup) return;
-    setMemberDisplayName(
-      seedMembershipDisplayName(membership?.display_name, authProfile?.display_name),
-    );
+    setMemberDisplayName(seedMembershipDisplayName(membership?.display_name, authDisplayName));
     setMemberTitle(membership?.title?.trim() || 'Owner');
     setMemberBio(membership?.bio?.trim() || '');
-  }, [
-    authProfile?.display_name,
-    isGroup,
-    membership?.bio,
-    membership?.display_name,
-    membership?.title,
-  ]);
+  }, [authDisplayName, isGroup, membership?.bio, membership?.display_name, membership?.title]);
 
   const handlePickPhoto = async () => {
     try {
@@ -176,6 +183,20 @@ export default function ClinicBasicsScreen() {
 
   if (!isClinicProfileReady) return null;
 
+  const groupsEnabled = isClinicGroupsEnabled();
+  const canStepBackToAccountType = groupsEnabled && Boolean(clinicProfile?.account_type);
+  const handleBack = () => {
+    if (isEditMode) {
+      router.replace(exitHref);
+      return;
+    }
+    if (canStepBackToAccountType) {
+      router.replace(CLINIC_SETUP_ACCOUNT_TYPE);
+      return;
+    }
+    router.replace(ONBOARDING_CHANGE_ROLE);
+  };
+
   return (
     <OnboardingShell
       atmosphere="form"
@@ -197,8 +218,8 @@ export default function ClinicBasicsScreen() {
             ? 'Name your clinic group, your role, and primary contact.'
             : 'Tell us about your practice.'
         }
-        backLabel={isEditMode ? undefined : isSigningOut ? 'Signing out…' : 'Sign out'}
-        onBack={() => (isEditMode ? router.replace(exitHref) : void signOut())}
+        backLabel={isEditMode ? undefined : 'Back'}
+        onBack={handleBack}
       />
       {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
       <View style={styles.form}>

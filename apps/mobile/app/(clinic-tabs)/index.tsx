@@ -44,6 +44,9 @@ import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSpotlights';
+import { HiringInsightsPanel } from '@/components/clinic/HiringInsightsPanel';
+import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
+import { getClinicHiringInsightsUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
@@ -84,7 +87,7 @@ export default function ClinicDashboardScreen() {
     groupDisplayName,
   } = useClinicActingContext();
   const { isTablet } = useResponsiveLayout();
-  const { billing, isBillingReady, refreshBilling } = useClinicUpgradePrompt();
+  const { billing, isBillingReady, refreshBilling, upgradePrompt } = useClinicUpgradePrompt();
   const { logoUri } = useClinicLogo();
   const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
@@ -402,6 +405,26 @@ export default function ClinicDashboardScreen() {
           />
         </FadeInSection>
       }
+      insights={
+        clinicId ? (
+          <FadeInSection delayMs={120}>
+            <HiringInsightsPanel
+              clinicId={clinicId}
+              locationIds={scopedLocationIds}
+              canUseHiringInsights={Boolean(billing?.canUseHiringInsights)}
+              showLocationBreakdown={billing?.plan === 'group_pro'}
+              lockedMessage={getClinicHiringInsightsUpgradeMessage(
+                billing?.planFamily ?? (isGroup ? 'group' : 'clinic'),
+              )}
+              onUpgrade={() =>
+                openClinicBillingModal({
+                  focus: billing?.planFamily === 'group' || isGroup ? 'group' : 'clinic',
+                })
+              }
+            />
+          </FadeInSection>
+        ) : null
+      }
       quickActions={
         <FadeInSection delayMs={140}>
           <DashboardQuickActionsRow
@@ -480,6 +503,7 @@ export default function ClinicDashboardScreen() {
 
   return (
     <DashboardScreen>
+      {upgradePrompt}
       {isLoading && !hasLoadedOnce.current ? <DashboardLoadingShell /> : dashboardBody}
     </DashboardScreen>
   );

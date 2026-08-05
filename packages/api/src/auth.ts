@@ -3,9 +3,16 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
+import { getAppleCachedName, setAppleCachedName } from './appleNameCache';
+import {
+  applePartsToPersonName,
+  joinDisplayName,
+  resolveAppleNamePartsToPersist,
+} from './authDisplayName';
 import { getSupabaseClient } from './client';
 import { getErrorMessage } from './errors';
 import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
+import { ensureProfileName } from './profile';
 import type { UserRole } from './types';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -231,24 +238,41 @@ export async function signInWithApple() {
     throw new Error(getErrorMessage(error, 'Apple sign-in failed when verifying with Supabase.'));
   }
 
-  if (credential.fullName) {
-    const nameParts = [
-      credential.fullName.givenName,
-      credential.fullName.middleName,
-      credential.fullName.familyName,
-    ].filter(Boolean);
+  const appleUserId = credential.user;
+  const fromCredential = applePartsToPersonName(credential.fullName);
+  if (fromCredential.firstName || fromCredential.lastName) {
+    // Apple only returns fullName on first authorization — cache for later sign-ins.
+    await setAppleCachedName(appleUserId, fromCredential);
+  }
 
-    const fullName = nameParts.join(' ');
+  const cachedName = await getAppleCachedName(appleUserId);
+  const nameParts = resolveAppleNamePartsToPersist({
+    appleFullName: credential.fullName,
+    cachedName,
+    userMetadata: data.user?.user_metadata as Record<string, unknown> | undefined,
+  });
+  const appleName = joinDisplayName(nameParts.firstName, nameParts.lastName);
 
-    if (fullName) {
-      await supabase.auth.updateUser({
-        data: {
-          full_name: fullName,
-          given_name: credential.fullName.givenName ?? undefined,
-          family_name: credential.fullName.familyName ?? undefined,
-        },
-      });
-    }
+  if (appleName) {
+    await supabase.auth.updateUser({
+      data: {
+        full_name: appleName,
+        given_name: nameParts.firstName || undefined,
+        family_name: nameParts.lastName || undefined,
+      },
+    });
+  }
+
+  const userId = data.user?.id;
+  if (userId && appleName) {
+    // Copy Apple identity into the app profile so setup does not re-ask for name.
+    await ensureProfileName(userId, nameParts);
+  }
+
+  // Refresh so AuthContext sees updated metadata before setup screens mount.
+  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+  if (!refreshError && refreshed) {
+    return refreshed;
   }
 
   return data;

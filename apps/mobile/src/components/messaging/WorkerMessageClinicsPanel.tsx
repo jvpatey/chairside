@@ -1,4 +1,5 @@
 import {
+  getErrorMessage,
   getOrCreateGeneralConversation,
   listMessageableClinicsForWorker,
   type MessageableClinic,
@@ -173,7 +174,7 @@ export function WorkerMessageClinicsPanel({
     } catch (error) {
       Alert.alert(
         'Could not start conversation',
-        error instanceof Error ? error.message : 'Please try again.',
+        getErrorMessage(error, 'Please try again.'),
       );
     } finally {
       setIsStarting(false);

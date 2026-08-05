@@ -1,7 +1,11 @@
 import { ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
-import { getWorkerRoleTypes, updateProfileDisplayName } from '@chairside/api';
+import {
+  getWorkerRoleTypes,
+  resolveAuthNameParts,
+  updateProfileName,
+} from '@chairside/api';
 import { router } from 'expo-router';
-import { WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
+import { ONBOARDING_CHANGE_ROLE, WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -16,7 +20,6 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
-import { useSignOut } from '@/hooks/useSignOut';
 import { validateWorkerBasicsStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
@@ -25,26 +28,42 @@ export default function WorkerBasicsScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
-  const { isSigningOut, signOut } = useSignOut();
-  const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
-  useWorkerSetupStepGuard('basics', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
+  const seededName = resolveAuthNameParts({
+    firstName: profile?.first_name,
+    lastName: profile?.last_name,
+    displayName: profile?.display_name,
+    userMetadata: user?.user_metadata as Record<string, unknown> | undefined,
+  });
 
-  const validation = validateWorkerBasicsStep({ displayName, roleTypes });
+  useWorkerSetupStepGuard(
+    'basics',
+    workerProfile,
+    seededName.firstName,
+    seededName.lastName,
+    isWorkerProfileReady,
+    isEditMode,
+  );
+
+  const validation = validateWorkerBasicsStep({ firstName, lastName, roleTypes });
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
     section: { gap: spacing.sm },
+    nameRow: { gap: spacing.md },
     label: { ...typography.body, fontWeight: '600' },
   }));
 
   useEffect(() => {
-    setDisplayName(profile?.display_name ?? '');
-  }, [profile?.display_name]);
+    setFirstName(seededName.firstName);
+    setLastName(seededName.lastName);
+  }, [seededName.firstName, seededName.lastName]);
 
   useEffect(() => {
     if (!workerProfile) return;
@@ -61,7 +80,10 @@ export default function WorkerBasicsScreen() {
     setIsSubmitting(true);
     try {
       if (user?.id) {
-        await updateProfileDisplayName(user.id, displayName.trim());
+        await updateProfileName(user.id, {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+        });
         await refreshProfile();
       }
       await save({ role_types: roleTypes });
@@ -96,19 +118,31 @@ export default function WorkerBasicsScreen() {
       <AuthScreenHeader
         title="Professional background · Basics"
         subtitle="Tell clinics who you are and which roles you are qualified for."
-        backLabel={isEditMode ? undefined : isSigningOut ? 'Signing out…' : 'Sign out'}
-        onBack={() => (isEditMode ? router.replace(exitHref) : void signOut())}
+        backLabel={isEditMode ? undefined : 'Back'}
+        onBack={() =>
+          isEditMode ? router.replace(exitHref) : router.replace(ONBOARDING_CHANGE_ROLE)
+        }
       />
       {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
       <View style={styles.form}>
-        <AuthField
-          label="Full name"
-          placeholder="Your full name"
-          value={displayName}
-          onChangeText={setDisplayName}
-          autoCapitalize="words"
-          invalid={showValidation && !validation.ok && !displayName.trim()}
-        />
+        <View style={styles.nameRow}>
+          <AuthField
+            label="First name"
+            placeholder="First name"
+            value={firstName}
+            onChangeText={setFirstName}
+            autoCapitalize="words"
+            invalid={showValidation && !firstName.trim()}
+          />
+          <AuthField
+            label="Last name"
+            placeholder="Last name"
+            value={lastName}
+            onChangeText={setLastName}
+            autoCapitalize="words"
+            invalid={showValidation && !lastName.trim()}
+          />
+        </View>
         <View style={styles.section}>
           <Text style={styles.label}>Roles</Text>
           <ChipSelector

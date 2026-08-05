@@ -157,22 +157,32 @@ See [APP_STORE_CONNECT.md](./APP_STORE_CONNECT.md) for listing copy, privacy ans
 When you are ready to sell plans in-app:
 
 1. Accept the Paid Apps agreement and complete banking/tax in App Store Connect.
-2. Create subscription group `Clinic Plans` with products:
-   - `clinic_starter_monthly`
-   - `clinic_starter_yearly`
-   - `clinic_pro_monthly`
-   - `clinic_pro_yearly`
-3. In RevenueCat, map those products to entitlements `clinic_starter` and `clinic_pro`, then add them to the default offering.
-4. Enable In-App Purchase capability on the iOS App ID if EAS credentials do not add it automatically.
-5. Test purchase, restore purchases, posting limits, outreach gating, SMS gating, and Pro listing priority on TestFlight.
+2. Create subscription group **Clinic Plans** with products:
+   - `clinic_starter_monthly_v2` / `clinic_starter_yearly_v2` (Starter — CA$59.99/mo · CA$599.99/yr)
+   - `clinic_pro_monthly_v2` / `clinic_pro_yearly_v2` (Pro — CA$99.99/mo · CA$999.99/yr)
+3. Create subscription group **Group Plans** with products:
+   - `group_starter_monthly` / `group_starter_yearly_v2` (Group Starter — CA$129.99/mo · CA$1,199.99/yr)
+   - `group_pro_monthly` / `group_pro_yearly` (Group Pro — CA$199.99/mo · CA$1,399.99/yr)
+4. In RevenueCat, map products to entitlements:
+   - `clinic_starter`, `clinic_pro`, `clinic_group_starter`, `clinic_group_pro`
+5. Add all **8 packages** to the default offering.
+6. Enable In-App Purchase capability on the iOS App ID if EAS credentials do not add it automatically.
+7. Attach **both** subscription groups to the app version you submit for review.
+8. Test purchase, restore, group trial caps, cross-platform sync, and Phase B/C feature gates on TestFlight.
 
-For web-only clinic checkout on `chairside.app`, configure RevenueCat Web Billing separately. See [WEB_BILLING.md](./WEB_BILLING.md). Web purchases use the same entitlements and Supabase sync path; no iOS resubmit is required for the first web billing release.
+Full ASC localization (display names + descriptions for all 8 SKUs): [APP_STORE_CONNECT.md](./APP_STORE_CONNECT.md#localization-english--canada).
 
-Launch tiers:
+For web clinic checkout on `chairside.app`, configure RevenueCat Web Billing for all 8 products. See [WEB_BILLING.md](./WEB_BILLING.md). Web purchases use the same entitlements and Supabase sync path.
 
-- **Free:** 1 active role and 1 active fill-in, applicant messaging, screening
-- **Starter:** 3 active roles and 3 active fill-ins, direct outreach, SMS alerts
-- **Pro:** unlimited active opportunities, outreach, SMS alerts, priority listings
+Current tier summary:
+
+- **Free:** 1 active role + 1 fill-in (individual) or Free group trial (2 loc, 1 mgr, 1+1 posts)
+- **Clinic Starter:** 5/5 posts, screening, CRM, outreach, SMS, Discover (single location)
+- **Clinic Pro:** Unlimited posts, priority listing, insights, bulk outreach, unlimited screening
+- **Group Starter:** 5 loc / 3 mgr / 5+5 posts org-wide + Clinic Starter hiring features
+- **Group Pro:** Unlimited loc/mgr/posts + Clinic Pro premium features org-wide
+
+See [CLINIC_GROUPS.md](./CLINIC_GROUPS.md) for group-specific billing rules.
 
 ## 8. TestFlight validation
 

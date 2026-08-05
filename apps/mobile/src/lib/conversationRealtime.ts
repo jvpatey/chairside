@@ -37,6 +37,8 @@ export function patchConversationFromRealtimeUpdate(
     worker_last_read_at: update.worker_last_read_at,
     clinic_last_read_at: update.clinic_last_read_at,
     messaging_closed_at: update.messaging_closed_at,
+    // Closed threads must not keep a stale can_send=true from the initial load.
+    can_send: update.messaging_closed_at ? false : conversation.can_send,
     unread,
   };
 }

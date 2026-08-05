@@ -12,6 +12,7 @@ import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import type { MessageThreadFocus } from '@/lib/routing';
+import { scheduleSplitViewUpdate } from '@/lib/scheduleSplitViewUpdate';
 
 const MASTER_WIDTH = 380;
 
@@ -82,28 +83,34 @@ export function MessageSplitView({
 
   const handleConversationsChange = useCallback(
     (rows: Conversation[]) => {
-      setConversations(rows);
-      setSelectedId((current) => {
-        if (current && rows.some((row) => row.id === current)) {
-          return current;
-        }
-        if (initialConversationId && rows.some((row) => row.id === initialConversationId)) {
-          return initialConversationId;
-        }
-        return rows[0]?.id ?? null;
+      scheduleSplitViewUpdate(() => {
+        setConversations(rows);
+        setSelectedId((current) => {
+          if (current && rows.some((row) => row.id === current)) {
+            return current;
+          }
+          if (initialConversationId && rows.some((row) => row.id === initialConversationId)) {
+            return initialConversationId;
+          }
+          return rows[0]?.id ?? null;
+        });
       });
     },
     [initialConversationId],
   );
 
   const handleInboxVisibilityChange = useCallback((state: { isFilteredEmpty: boolean }) => {
-    setInboxFilteredEmpty(state.isFilteredEmpty);
+    scheduleSplitViewUpdate(() => {
+      setInboxFilteredEmpty(state.isFilteredEmpty);
+    });
   }, []);
 
   const handleConversationChange = useCallback((conversation: Conversation) => {
-    setConversations((current) =>
-      current.map((row) => (row.id === conversation.id ? conversation : row)),
-    );
+    scheduleSplitViewUpdate(() => {
+      setConversations((current) =>
+        current.map((row) => (row.id === conversation.id ? conversation : row)),
+      );
+    });
   }, []);
 
   const selectedConversation = conversations.find((row) => row.id === selectedId) ?? null;
@@ -191,7 +198,9 @@ export function MessageThreadSplitView({
   const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
 
   const handleInboxVisibilityChange = useCallback((state: { isFilteredEmpty: boolean }) => {
-    setInboxFilteredEmpty(state.isFilteredEmpty);
+    scheduleSplitViewUpdate(() => {
+      setInboxFilteredEmpty(state.isFilteredEmpty);
+    });
   }, []);
 
   const inboxProps = {

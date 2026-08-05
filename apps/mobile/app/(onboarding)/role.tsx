@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams, Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, Text, View } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { setProfileRole } from '@chairside/api';
@@ -17,9 +17,12 @@ import { RoleCard } from '@/components/onboarding/RoleCard';
 import { ChairsideBrandText } from '@/components/brand/ChairsideWordmark';
 import { ROLE_OPTIONS } from '@/constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useSignOut } from '@/hooks/useSignOut';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { getChangeRoleGateDecision } from '@/lib/changeRoleGate';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
@@ -27,13 +30,23 @@ import type { UserRole } from '@/types';
 const ROLE_TRUST_LINE = 'Same-day fill-ins · Apply in one tap · Start free';
 
 export default function RoleScreen() {
-  const { fromAuth } = useLocalSearchParams<{ fromAuth?: string }>();
-  const { session, refreshProfile } = useAuth();
+  const { fromAuth, changeRole } = useLocalSearchParams<{
+    fromAuth?: string;
+    changeRole?: string;
+  }>();
+  const { session, profile, refreshProfile } = useAuth();
+  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+  const { clinicProfile, isClinicProfileReady } = useClinicProfile();
   const { completeOnboarding } = useOnboarding();
   const { isSigningOut, signOut } = useSignOut();
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const isPostAuth = fromAuth === '1';
+  const isChangingRole = changeRole === '1';
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(
+    isChangingRole && (profile?.role === 'worker' || profile?.role === 'clinic')
+      ? profile.role
+      : null,
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { isWide } = useResponsiveLayout();
   const reducedMotion = useReducedMotion();
   const useTileCards = Platform.OS === 'web';
@@ -59,8 +72,33 @@ export default function RoleScreen() {
     },
   }));
 
+  useEffect(() => {
+    if (!isChangingRole) return;
+    if (profile?.role === 'worker' || profile?.role === 'clinic') {
+      setSelectedRole((current) => current ?? profile.role);
+    }
+  }, [isChangingRole, profile?.role]);
+
+  const changeRoleGate = isChangingRole
+    ? getChangeRoleGateDecision({
+        profile,
+        workerProfile,
+        clinicProfile,
+        isWorkerProfileReady,
+        isClinicProfileReady,
+      })
+    : null;
+
+  if (changeRoleGate?.type === 'loading') {
+    return null;
+  }
+
+  if (changeRoleGate?.type === 'redirect') {
+    return <Redirect href={changeRoleGate.href} />;
+  }
+
   const handleBack = async () => {
-    if (isPostAuth) {
+    if (isPostAuth || isChangingRole) {
       if (isSubmitting || isSigningOut) return;
       await signOut();
       return;
@@ -77,7 +115,7 @@ export default function RoleScreen() {
   const handleContinue = async () => {
     if (!selectedRole || isSubmitting) return;
 
-    if (isPostAuth && session?.user) {
+    if ((isPostAuth || isChangingRole) && session?.user) {
       setIsSubmitting(true);
       try {
         await setProfileRole(session.user.id, selectedRole);
@@ -106,6 +144,12 @@ export default function RoleScreen() {
     });
   };
 
+  const subtitle = isChangingRole
+    ? 'You can change this if you picked the wrong path.'
+    : isPostAuth
+      ? 'Choose worker or clinic — then set up your profile.'
+      : 'Choose the path that fits you.';
+
   return (
     <OnboardingShell
       webLayout="centeredDecision"
@@ -128,12 +172,10 @@ export default function RoleScreen() {
               How will you use <ChairsideBrandText />?
             </AuthScreenTitle>
           }
-          subtitle={
-            isPostAuth
-              ? 'Choose worker or clinic — then set up your profile.'
-              : 'Choose the path that fits you.'
+          subtitle={subtitle}
+          backLabel={
+            isPostAuth || isChangingRole ? (isSigningOut ? 'Signing out…' : 'Sign out') : 'Back'
           }
-          backLabel={isPostAuth ? (isSigningOut ? 'Signing out…' : 'Sign out') : 'Back'}
           onBack={handleBack}
         />
       </Animated.View>

@@ -94,20 +94,46 @@ export async function uploadClinicLogoFromBase64(
     await supabase.storage.from(LOGO_BUCKET).remove([existingStoragePath]);
   }
 
+  const uploadBody =
+    typeof Blob !== 'undefined'
+      ? new Blob(
+          [bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer],
+          { type: normalizedType },
+        )
+      : bytes;
+
   const { error: uploadError } = await supabase.storage
     .from(LOGO_BUCKET)
-    .upload(storagePath, bytes, {
+    .upload(storagePath, uploadBody, {
       upsert: true,
       contentType: normalizedType,
+      cacheControl: '3600',
     });
 
   if (uploadError) throw uploadError;
 
   const now = new Date().toISOString();
-  await upsertClinicProfile(clinicId, {
-    logo_storage_path: storagePath,
-    logo_uploaded_at: now,
-  });
+  // Prefer UPDATE so we only touch logo columns on an existing setup profile.
+  // Match by id or organization_id — both are the owner clinic id for orgs.
+  const { data: updatedRows, error: updateError } = await supabase
+    .from('clinic_profiles')
+    .update({
+      logo_storage_path: storagePath,
+      logo_uploaded_at: now,
+      updated_at: now,
+    })
+    .or(`id.eq.${clinicId},organization_id.eq.${clinicId}`)
+    .select('id, logo_storage_path');
+
+  if (updateError) throw updateError;
+
+  const updated = (updatedRows ?? []).find((row) => row.logo_storage_path === storagePath);
+  if (!updated) {
+    await upsertClinicProfile(clinicId, {
+      logo_storage_path: storagePath,
+      logo_uploaded_at: now,
+    });
+  }
 
   return { storagePath };
 }
@@ -230,10 +256,29 @@ export async function deleteClinicLocationLogo(
 }
 
 export async function getClinicLogoSignedUrl(storagePath: string): Promise<string | null> {
+  const normalized = normalizeStoragePath(storagePath);
+
+  // On web, prefer authenticated download → object URL. Signed URLs often
+  // appear briefly then fail to render in <img>, which looked like a logo flash.
+  if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+    try {
+      const { url, headers } = await getClinicLogoDownloadRequest(normalized);
+      const response = await fetch(url, { headers });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size > 0) {
+          return URL.createObjectURL(blob);
+        }
+      }
+    } catch {
+      // Fall through to signed URL.
+    }
+  }
+
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.storage
     .from(LOGO_BUCKET)
-    .createSignedUrl(normalizeStoragePath(storagePath), 60 * 60);
+    .createSignedUrl(normalized, 60 * 60);
 
   if (error) throw error;
   return data?.signedUrl ?? null;

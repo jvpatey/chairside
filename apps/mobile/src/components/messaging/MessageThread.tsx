@@ -1,5 +1,6 @@
 import {
   getConversation,
+  getErrorMessage,
   getMessageDeliveryStatus,
   listMessages,
   markConversationRead,
@@ -423,7 +424,7 @@ export function MessageThread({
       await refreshUnread();
       markReadLocally(nextConversation);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Could not load messages.');
+      setLoadError(getErrorMessage(error, 'Could not load messages.'));
     } finally {
       setIsLoading(false);
     }
@@ -458,6 +459,7 @@ export function MessageThread({
         worker_last_read_at: update.worker_last_read_at,
         clinic_last_read_at: update.clinic_last_read_at,
         messaging_closed_at: update.messaging_closed_at,
+        can_send: update.messaging_closed_at ? false : current.can_send,
       };
       return updated;
     });
@@ -537,7 +539,7 @@ export function MessageThread({
     } catch (error) {
       Alert.alert(
         'Could not load earlier messages',
-        error instanceof Error ? error.message : 'Please try again.',
+        getErrorMessage(error, 'Please try again.'),
       );
     } finally {
       setIsLoadingEarlier(false);
@@ -624,7 +626,7 @@ export function MessageThread({
         replaceMessage(pending.id, { ...pending, clientStatus: 'failed' });
         Alert.alert(
           'Could not send message',
-          error instanceof Error ? error.message : 'Please try again.',
+          getErrorMessage(error, 'Please try again.'),
         );
         throw error;
       } finally {

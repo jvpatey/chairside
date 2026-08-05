@@ -17,7 +17,11 @@ export function PlanTierBadge({ plan, size = 'md' }: PlanTierBadgeProps) {
   const { colors, isDark } = useTheme();
 
   const accent =
-    plan === 'pro' ? colors.primary : plan === 'starter' ? colors.secondary : colors.labelSecondary;
+    plan === 'pro' || plan === 'group_pro'
+      ? colors.primary
+      : plan === 'starter' || plan === 'group_starter'
+        ? colors.secondary
+        : colors.labelSecondary;
 
   return (
     <PillBadge

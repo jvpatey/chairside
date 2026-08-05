@@ -10,6 +10,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { PracticeDoctorReviewSection } from '@/components/clinic/PracticeDoctorList';
+import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -161,6 +162,14 @@ export default function ClinicReviewScreen() {
         />
         <ReviewRow label="Description" value={clinicProfile.description ?? ''} />
       </View>
+      <SetupBillingUpsellLink
+        label={
+          isGroup
+            ? 'Need more locations, managers, or hiring tools? View plans'
+            : 'Want hiring tools on day one? View plans'
+        }
+        focus={isGroup ? 'group' : 'clinic'}
+      />
     </OnboardingShell>
   );
 }

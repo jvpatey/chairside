@@ -50,6 +50,8 @@ export type MessageThreadFocus = Pick<MessageThreadPreview, 'scrollToMessageId' 
 
 export const CLINIC_HOME: Href = '/(clinic-tabs)' as Href;
 export const WORKER_HOME: Href = '/(tabs)' as Href;
+/** Post-auth role picker when correcting worker vs clinic during incomplete setup. */
+export const ONBOARDING_CHANGE_ROLE: Href = '/(onboarding)/role?fromAuth=1&changeRole=1' as Href;
 export const CLINIC_SETUP_ACCOUNT_TYPE: Href = '/(clinic-setup)/account-type' as Href;
 export const CLINIC_SETUP_BASICS: Href = '/(clinic-setup)/basics' as Href;
 export const CLINIC_SETUP_LOCATION: Href = '/(clinic-setup)/location' as Href;
@@ -189,6 +191,24 @@ export function getClinicOutreachComposeRoute(params: {
       workerName: params.workerName,
       ...(params.roleType ? { roleType: params.roleType } : {}),
       smsOptIn: params.smsOptIn ? '1' : '0',
+    },
+  } as Href;
+}
+
+export function getClinicBulkOutreachComposeRoute(params: {
+  workerIds: string[];
+  workerNames: string[];
+  roleType?: string;
+  returnTo?: FillInReturnTarget;
+}): Href {
+  return {
+    pathname: '/(clinic-tabs)/outreach-compose',
+    params: {
+      returnTo: params.returnTo ?? 'fill-ins-tab',
+      workerIds: params.workerIds.join(','),
+      workerNames: params.workerNames.join('|'),
+      ...(params.roleType ? { roleType: params.roleType } : {}),
+      bulk: '1',
     },
   } as Href;
 }

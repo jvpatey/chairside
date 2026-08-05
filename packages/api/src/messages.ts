@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './client';
 import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
 import type { ApplicationStatus } from './applications';
+import { throwWithMessage } from './errors';
 import {
   isActiveLocationScope,
   isEmptyLocationScope,
@@ -231,6 +232,7 @@ function canSendApplicationMessages(
     return false;
   }
   return (
+    applicationStatus === 'screening_submitted' ||
     applicationStatus === 'applied' ||
     applicationStatus === 'reviewed' ||
     applicationStatus === 'in_progress' ||
@@ -915,7 +917,7 @@ export async function sendMessage(
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) throwWithMessage(error, 'Could not send message.');
   return data as Message;
 }
 

@@ -9,13 +9,59 @@ import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { readFileAsBase64 } from '@/lib/readFileAsBase64';
 
+/** Survives React remounts (Strict Mode / screen refresh) during setup upload. */
+const logoPreviewByClinicId = new Map<string, string>();
+const logoPathByClinicId = new Map<string, string>();
+
+function normalizeImageContentType(contentType: string | null | undefined): string {
+  const raw = (contentType ?? '').toLowerCase();
+  if (raw === 'image/jpg' || raw === 'image/jpeg') return 'image/jpeg';
+  if (raw === 'image/png') return 'image/png';
+  if (raw === 'image/webp') return 'image/webp';
+  return 'image/jpeg';
+}
+
+function toDataUri(base64: string, contentType: string): string {
+  return `data:${normalizeImageContentType(contentType)};base64,${base64}`;
+}
+
 export function useClinicLogo() {
   const { user } = useAuth();
   const { clinicId, clinicProfile, refreshClinicProfile } = useClinicProfile();
-  const storagePath = clinicProfile?.logo_storage_path;
-  const logoUri = useClinicLogoUri(storagePath);
+  const ownerClinicId = clinicId ?? user?.id ?? null;
+  const cacheKey = ownerClinicId ?? 'pending';
+
+  const savedPath = clinicProfile?.logo_storage_path?.trim() || null;
+  const [previewUri, setPreviewUriState] = useState<string | null>(
+    () => logoPreviewByClinicId.get(cacheKey) ?? null,
+  );
+  const [optimisticPath, setOptimisticPathState] = useState<string | null>(
+    () => logoPathByClinicId.get(cacheKey) ?? null,
+  );
   const [isUploading, setIsUploading] = useState(false);
-  const ownerClinicId = clinicId ?? user?.id;
+
+  const setPreviewUri = (uri: string | null) => {
+    if (uri) logoPreviewByClinicId.set(cacheKey, uri);
+    else logoPreviewByClinicId.delete(cacheKey);
+    setPreviewUriState(uri);
+  };
+
+  const setOptimisticPath = (path: string | null) => {
+    if (path) logoPathByClinicId.set(cacheKey, path);
+    else logoPathByClinicId.delete(cacheKey);
+    setOptimisticPathState(path);
+  };
+
+  const storagePath = savedPath || optimisticPath || logoPathByClinicId.get(cacheKey) || null;
+  const remoteUri = useClinicLogoUri(storagePath);
+
+  // Always prefer the local preview for this session. Do not clear it when a
+  // remote URL arrives — signed/remote loads were flashing then failing and
+  // wiping the avatar back to initials.
+  const logoUri =
+    previewUri ||
+    logoPreviewByClinicId.get(cacheKey) ||
+    remoteUri;
 
   const pickLogo = async () => {
     if (!ownerClinicId) return;
@@ -40,19 +86,30 @@ export function useClinicLogo() {
       if (result.canceled || !result.assets[0]) return;
 
       const asset = result.assets[0];
+      const contentType = normalizeImageContentType(asset.mimeType);
       setIsUploading(true);
+
       const base64 = await readFileAsBase64(
         asset.uri,
         Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
       );
-      await uploadClinicLogoFromBase64(
+      setPreviewUri(toDataUri(base64, contentType));
+
+      const { storagePath: uploadedPath } = await uploadClinicLogoFromBase64(
         ownerClinicId,
         base64,
-        asset.mimeType ?? 'image/jpeg',
-        clinicProfile?.logo_storage_path,
+        contentType,
+        savedPath ?? optimisticPath,
       );
-      await refreshClinicProfile();
+      setOptimisticPath(uploadedPath);
+
+      const refreshed = await refreshClinicProfile();
+      const refreshedPath = refreshed?.logo_storage_path?.trim() || null;
+      if (refreshedPath) {
+        setOptimisticPath(refreshedPath);
+      }
     } catch (error) {
+      // Keep any preview that already rendered unless upload never started.
       Alert.alert(
         'Upload failed',
         error instanceof Error ? error.message : 'Please try again.',
@@ -63,7 +120,12 @@ export function useClinicLogo() {
   };
 
   const removeLogo = async () => {
-    if (!ownerClinicId || !storagePath) return;
+    const pathToRemove = storagePath;
+    if (!ownerClinicId || !pathToRemove) {
+      setPreviewUri(null);
+      setOptimisticPath(null);
+      return;
+    }
 
     showConfirmActionSheet({
       title: 'Remove logo',
@@ -73,7 +135,9 @@ export function useClinicLogo() {
       onConfirm: async () => {
         setIsUploading(true);
         try {
-          await deleteClinicLogo(ownerClinicId, storagePath);
+          await deleteClinicLogo(ownerClinicId, pathToRemove);
+          setPreviewUri(null);
+          setOptimisticPath(null);
           await refreshClinicProfile();
         } catch (error) {
           Alert.alert(
@@ -89,7 +153,7 @@ export function useClinicLogo() {
 
   return {
     logoUri,
-    hasLogo: Boolean(storagePath),
+    hasLogo: Boolean(storagePath) || Boolean(logoUri),
     isUploading,
     pickLogo,
     removeLogo,

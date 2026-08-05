@@ -267,6 +267,7 @@ export function WorkerPublicClinicProfileView({
         logoUri={logoUri}
         specialtyLabel={specialtyLabel}
         locationLabel={locationLabel || null}
+        plan={profile.pro_badge_plan ?? undefined}
       />
 
       {showGeneralMessageHint ? (

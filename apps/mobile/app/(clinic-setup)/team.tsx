@@ -19,7 +19,9 @@ import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { buildClinicManagerInviteUrl, formatInviteExpiry } from '@/lib/clinicInviteLinks';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import { CLINIC_SETUP_ABOUT } from '@/lib/routing';
@@ -28,6 +30,13 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 export default function ClinicTeamSetupScreen() {
   const { clinicId, isGroup } = useClinicProfile();
+  const {
+    billing,
+    upgradePrompt,
+    showAddManagerUpgrade,
+    handleBillingError,
+  } = useClinicUpgradePrompt();
+  const canAddManager = billing == null || billing.canAddManager;
   const { colors } = useTheme();
   const progress = getClinicSetupStepNumber('team', true);
   const [invitations, setInvitations] = useState<ClinicInvitation[]>([]);
@@ -102,6 +111,10 @@ export default function ClinicTeamSetupScreen() {
   };
 
   const handleInvite = async () => {
+    if (!canAddManager) {
+      showAddManagerUpgrade();
+      return;
+    }
     if (!clinicId || !email.trim()) {
       setSubmitError('Enter a manager email to send an invitation.');
       return;
@@ -132,6 +145,7 @@ export default function ClinicTeamSetupScreen() {
       setShowForm(false);
       await reload();
     } catch (error) {
+      if (handleBillingError(error)) return;
       setSubmitError(error instanceof Error ? error.message : 'Could not send invitation.');
     } finally {
       setIsSubmitting(false);
@@ -154,7 +168,9 @@ export default function ClinicTeamSetupScreen() {
   };
 
   return (
-    <OnboardingShell
+    <>
+      {upgradePrompt}
+      <OnboardingShell
       atmosphere="form"
       footer={
         <SetupStepFooter
@@ -282,11 +298,21 @@ export default function ClinicTeamSetupScreen() {
             />
           </View>
         ) : (
-          <Pressable style={styles.addButton} onPress={() => setShowForm(true)}>
+          <Pressable
+            style={styles.addButton}
+            onPress={() => {
+              if (!canAddManager) {
+                showAddManagerUpgrade();
+                return;
+              }
+              setShowForm(true);
+            }}>
             <Text style={styles.addLabel}>Invite a manager</Text>
           </Pressable>
         )}
+        <SetupBillingUpsellLink label="Need more managers? View plans" />
       </View>
     </OnboardingShell>
+    </>
   );
 }

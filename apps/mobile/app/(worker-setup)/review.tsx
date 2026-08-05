@@ -52,7 +52,14 @@ export default function WorkerReviewScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useWorkerSetupStepGuard('review', workerProfile, profile?.display_name, isWorkerProfileReady, isEditMode);
+  useWorkerSetupStepGuard(
+    'review',
+    workerProfile,
+    profile?.first_name,
+    profile?.last_name,
+    isWorkerProfileReady,
+    isEditMode,
+  );
 
   const missingFields = getMissingWorkerProfileFields(workerProfile);
 

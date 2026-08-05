@@ -236,7 +236,11 @@ export function ConversationInboxList({
   const isFilteredEmpty = conversations.length > 0 && filteredConversations.length === 0;
 
   useEffect(() => {
-    onInboxVisibilityChange?.({ isFilteredEmpty });
+    // Defer so we never update MessageSplitView during this list's render.
+    const handle = requestAnimationFrame(() => {
+      onInboxVisibilityChange?.({ isFilteredEmpty });
+    });
+    return () => cancelAnimationFrame(handle);
   }, [isFilteredEmpty, onInboxVisibilityChange]);
 
   const listBody =

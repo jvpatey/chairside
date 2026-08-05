@@ -62,6 +62,7 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useDismissedScreeningReviews } from '@/hooks/useDismissedScreeningReviews';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
@@ -634,6 +635,13 @@ export function ClinicApplicationDetailCard({
   } = useApplicationTabBadge();
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
+  const {
+    billing,
+    upgradePrompt,
+    showCrmUpgrade,
+    showPdfExportUpgrade,
+    handleBillingError,
+  } = useClinicUpgradePrompt();
   const [crmSheetVisible, setCrmSheetVisible] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfPreviewVisible, setPdfPreviewVisible] = useState(false);
@@ -871,14 +879,28 @@ export function ClinicApplicationDetailCard({
 
   const canRemoveFromList = canClinicHideApplication(application);
   const canManageCrm = !workerDeleted;
+  const crmUnlocked = billing == null || billing.canUseCrmFollowups;
+  const pdfExportUnlocked = billing == null || billing.canUseApplicationPdfExport;
   const crmRecord = application.clinic_crm;
 
   const handleMessage = () => {
     router.push(getClinicApplicationMessagesRoute(application.id, returnTo));
   };
 
+  const handleOpenCrm = () => {
+    if (!crmUnlocked) {
+      showCrmUpgrade();
+      return;
+    }
+    setCrmSheetVisible(true);
+  };
+
   const handleOpenCandidatePacket = async () => {
     if (!canGenerateApplicationPdfPacket(application) || isGeneratingPdf) return;
+    if (!pdfExportUnlocked) {
+      showPdfExportUpgrade();
+      return;
+    }
 
     setIsGeneratingPdf(true);
     setPdfPreviewError(null);
@@ -895,6 +917,10 @@ export function ClinicApplicationDetailCard({
         Alert.alert('Candidate packet ready', result.resumeMergeWarning);
       }
     } catch (error) {
+      if (handleBillingError(error)) {
+        setIsGeneratingPdf(false);
+        return;
+      }
       setPdfPreview(null);
       setPdfPreviewError(
         error instanceof Error ? error.message : 'Could not create candidate packet.',
@@ -1335,14 +1361,14 @@ export function ClinicApplicationDetailCard({
         {canManageCrm ? (
           <SurfaceCard padding="md" gap>
             <ClinicWorkerCrmSection
-              record={crmRecord}
-              onEdit={() => setCrmSheetVisible(true)}
+              record={crmUnlocked ? crmRecord : null}
+              onEdit={handleOpenCrm}
             />
           </SurfaceCard>
         ) : null}
       </View>
 
-      {canManageCrm ? (
+      {canManageCrm && crmUnlocked ? (
         <ClinicWorkerCrmSheet
           visible={crmSheetVisible}
           clinicId={clinicId}
@@ -1351,8 +1377,11 @@ export function ClinicApplicationDetailCard({
           record={crmRecord}
           onSaved={() => onUpdated?.()}
           onClose={() => setCrmSheetVisible(false)}
+          onBillingError={handleBillingError}
         />
       ) : null}
+
+      {upgradePrompt}
 
       <ApplicationPdfPacketPreviewModal
         visible={pdfPreviewVisible}

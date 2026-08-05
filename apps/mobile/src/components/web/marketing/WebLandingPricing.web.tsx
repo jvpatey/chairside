@@ -4,17 +4,22 @@ import {
   type ClinicPlan,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, View } from 'react-native';
+import { useState } from 'react';
+import { Animated, Pressable, Text, View } from 'react-native';
 
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
 import { CLINIC_PLAN_ICONS } from '@/lib/clinicPlanPresentation';
 import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
+import { useContentSwapAnimation } from '@/lib/webMotion.web';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
-const PLANS: readonly ClinicPlan[] = ['free', 'starter', 'pro'];
+type PricingAudience = 'clinic' | 'group';
+
+const CLINIC_AUDIENCE_PLANS: readonly ClinicPlan[] = ['free', 'starter', 'pro'];
+const GROUP_AUDIENCE_PLANS: readonly ClinicPlan[] = ['free', 'group_starter', 'group_pro'];
 
 const TRUST_POINTS = [
   { icon: 'leaf-outline' as const, label: 'Start free' },
@@ -22,27 +27,186 @@ const TRUST_POINTS = [
   { icon: 'medical-outline' as const, label: 'Professionals stay free' },
 ] as const;
 
-/** Starter = brand blue; Pro = brand purple; Free stays neutral. */
+const GROUP_FREE_TAGLINE = 'Try multi-location hiring at no cost';
+const GROUP_FREE_FEATURES = [
+  'Up to 2 locations and 1 manager',
+  '1 active role and 1 fill-in org-wide',
+  'Review applications and message candidates',
+] as const;
+
+/** Free = success green; Starter / Group Starter = brand blue; Pro / Group Pro = brand purple. */
 function planBrandAccent(
   plan: ClinicPlan,
   colors: ReturnType<typeof useTheme>['colors'],
 ): string | null {
-  if (plan === 'starter') return colors.primary;
-  if (plan === 'pro') return colors.secondary;
+  if (plan === 'free') return colors.success;
+  if (plan === 'starter' || plan === 'group_starter') return colors.primary;
+  if (plan === 'pro' || plan === 'group_pro') return colors.secondary;
   return null;
+}
+
+type PlanLandingPrice = {
+  monthly: string;
+  yearly: string;
+  annualSavingsPercent: number;
+};
+
+const PLAN_LANDING_PRICES: Partial<Record<ClinicPlan, PlanLandingPrice>> = {
+  starter: { monthly: '59.99', yearly: '599.99', annualSavingsPercent: 17 },
+  pro: { monthly: '99.99', yearly: '999.99', annualSavingsPercent: 17 },
+  group_starter: { monthly: '129.99', yearly: '1,199.99', annualSavingsPercent: 23 },
+  group_pro: { monthly: '199.99', yearly: '1,399.99', annualSavingsPercent: 42 },
+};
+
+function PricingCardPrice({
+  plan,
+  audience,
+  styles,
+}: {
+  plan: ClinicPlan;
+  audience: PricingAudience;
+  styles: {
+    priceBlock: object;
+    priceRow: object;
+    priceCurrency: object;
+    priceAmount: object;
+    pricePeriod: object;
+    priceSecondary: object;
+  };
+}) {
+  const pricing = PLAN_LANDING_PRICES[plan];
+
+  if (plan === 'free') {
+    const secondary =
+      audience === 'group'
+        ? '2 locations and 1 manager · No subscription required'
+        : '1 role and 1 fill-in included · No subscription required';
+    return (
+      <View style={styles.priceBlock}>
+        <View style={styles.priceRow}>
+          <Text style={styles.priceAmount}>Free</Text>
+        </View>
+        <Text style={styles.priceSecondary}>{secondary}</Text>
+      </View>
+    );
+  }
+
+  if (!pricing) return null;
+
+  return (
+    <View style={styles.priceBlock}>
+      <View style={styles.priceRow}>
+        <Text style={styles.priceCurrency}>CA$</Text>
+        <Text style={styles.priceAmount}>{pricing.monthly}</Text>
+        <Text style={styles.pricePeriod}>/mo</Text>
+      </View>
+      <Text style={styles.priceSecondary}>
+        CA${pricing.yearly}/yr · Save {pricing.annualSavingsPercent}% annually
+      </Text>
+    </View>
+  );
+}
+
+function PricingAudienceToggle({
+  value,
+  onChange,
+}: {
+  value: PricingAudience;
+  onChange: (audience: PricingAudience) => void;
+}) {
+  const { colors, isDark } = useTheme();
+
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
+    wrap: {
+      alignSelf: 'center' as const,
+      width: '100%' as const,
+      maxWidth: 440,
+      marginBottom: spacing.xl,
+    },
+    row: {
+      flexDirection: 'row' as const,
+      backgroundColor: colors.fillSubtle,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: 3,
+      gap: 3,
+    },
+    option: {
+      flex: 1,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radii.sm + 2,
+      minHeight: 44,
+      ...webOnlyStyle({
+        transition: 'background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease',
+        cursor: 'pointer',
+      } as object),
+    },
+    optionSelected: {
+      backgroundColor: colors.primary,
+      borderWidth: 1,
+      borderColor: colorWithAlpha(colors.primaryOnPrimary, isDark ? 0.12 : 0.2),
+    },
+    label: {
+      ...typography.body,
+      fontSize: 13,
+      fontWeight: '600' as const,
+      color: colors.labelSecondary,
+      textAlign: 'center' as const,
+    },
+    labelSelected: {
+      color: colors.primaryOnPrimary,
+      fontWeight: '700' as const,
+    },
+  }));
+
+  const options: { id: PricingAudience; label: string }[] = [
+    { id: 'clinic', label: 'Individual clinics' },
+    { id: 'group', label: 'Multi-location groups' },
+  ];
+
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.row} accessibilityRole="tablist">
+        {options.map((option) => {
+          const selected = value === option.id;
+          return (
+            <Pressable
+              key={option.id}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              onPress={() => onChange(option.id)}
+              style={[styles.option, selected && styles.optionSelected]}>
+              <Text style={[styles.label, selected && styles.labelSelected]}>{option.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 }
 
 function PricingPlanCard({
   plan,
+  audience,
   enterDelayMs,
+  animate = true,
 }: {
   plan: ClinicPlan;
+  audience: PricingAudience;
   enterDelayMs?: number;
+  animate?: boolean;
 }) {
   const { colors, isDark } = useTheme();
   const marketing = CLINIC_PLAN_MARKETING[plan];
   const brand = planBrandAccent(plan, colors);
   const featureAccent = brand ?? colors.success;
+  const isGroupFree = plan === 'free' && audience === 'group';
+  const tagline = isGroupFree ? GROUP_FREE_TAGLINE : marketing.tagline;
+  const features = isGroupFree ? GROUP_FREE_FEATURES : marketing.features;
 
   const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => {
     const accent = planBrandAccent(plan, colors);
@@ -79,15 +243,19 @@ function PricingPlanCard({
           bottom: 0,
           pointerEvents: 'none',
           backgroundImage:
-            plan === 'starter'
+            plan === 'free'
               ? isDark
-                ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 65%)'
-                : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(26, 111, 212, 0.12) 0%, transparent 65%)'
-              : plan === 'pro'
+                ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(48, 209, 88, 0.16) 0%, transparent 65%)'
+                : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(52, 199, 89, 0.1) 0%, transparent 65%)'
+              : plan === 'starter' || plan === 'group_starter'
                 ? isDark
-                  ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(152, 150, 255, 0.2) 0%, transparent 65%)'
-                  : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(88, 86, 214, 0.12) 0%, transparent 65%)'
-                : undefined,
+                  ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 65%)'
+                  : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(26, 111, 212, 0.12) 0%, transparent 65%)'
+                : plan === 'pro' || plan === 'group_pro'
+                  ? isDark
+                    ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(152, 150, 255, 0.2) 0%, transparent 65%)'
+                    : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(88, 86, 214, 0.12) 0%, transparent 65%)'
+                  : undefined,
         } as object),
       },
       content: {
@@ -127,14 +295,36 @@ function PricingPlanCard({
       },
       priceBlock: {
         gap: spacing.xs,
+        minHeight: 56,
       },
-      price: {
-        fontSize: 24,
-        lineHeight: 30,
+      priceRow: {
+        flexDirection: 'row' as const,
+        alignItems: 'flex-end' as const,
+        gap: 2,
+      },
+      priceCurrency: {
+        fontSize: 18,
+        lineHeight: 22,
+        fontWeight: '600' as const,
+        color: colors.labelSecondary,
+        paddingBottom: 4,
+      },
+      priceAmount: {
+        fontSize: 36,
+        lineHeight: 40,
         fontWeight: '700' as const,
         color: colors.labelPrimary,
+        letterSpacing: -0.5,
       },
-      priceMeta: {
+      pricePeriod: {
+        fontSize: 15,
+        lineHeight: 20,
+        fontWeight: '500' as const,
+        color: colors.labelSecondary,
+        paddingBottom: 5,
+        marginLeft: 2,
+      },
+      priceSecondary: {
         fontSize: 13,
         lineHeight: 18,
         color: colors.labelTertiary,
@@ -158,7 +348,7 @@ function PricingPlanCard({
   });
 
   return (
-    <WebPageEnter delayMs={enterDelayMs} style={styles.cardWrap}>
+    <WebPageEnter delayMs={enterDelayMs} style={styles.cardWrap} animate={animate}>
       <View style={styles.card}>
         {brand ? <View style={styles.atmosphere} /> : null}
         <View style={styles.content}>
@@ -172,19 +362,14 @@ function PricingPlanCard({
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title}>{CLINIC_PLAN_LABELS[plan]}</Text>
-              <Text style={styles.tagline}>{marketing.tagline}</Text>
+              <Text style={styles.tagline}>{tagline}</Text>
             </View>
           </View>
 
-          <View style={styles.priceBlock}>
-            <Text style={styles.price}>{marketing.fallbackPriceLabel}</Text>
-            {plan !== 'free' ? (
-              <Text style={styles.priceMeta}>Upgrade anytime after signup</Text>
-            ) : null}
-          </View>
+          <PricingCardPrice plan={plan} audience={audience} styles={styles} />
 
           <View style={styles.features}>
-            {marketing.features.map((feature) => (
+            {features.map((feature) => (
               <View key={feature} style={styles.featureRow}>
                 <Ionicons
                   name="checkmark-circle"
@@ -246,8 +431,71 @@ function PricingTrustStrip() {
   );
 }
 
+function PricingAudiencePanel({
+  audience,
+  isWide,
+}: {
+  audience: PricingAudience;
+  isWide: boolean;
+}) {
+  const { opacity, translateY, displayKey } = useContentSwapAnimation(audience);
+  const displayAudience = displayKey as PricingAudience;
+  const plans =
+    displayAudience === 'clinic' ? CLINIC_AUDIENCE_PLANS : GROUP_AUDIENCE_PLANS;
+
+  const subtitle =
+    displayAudience === 'clinic'
+      ? 'Post your first role and fill-in at no cost. Professionals always join free.'
+      : 'Try up to 2 locations and 1 manager free. Upgrade for more sites and org-wide hiring.';
+
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    panel: {
+      gap: spacing.xl,
+    },
+    subtitle: {
+      ...webTypography.subtitle,
+      fontSize: 17,
+      lineHeight: 26,
+      color: colors.labelSecondary,
+      textAlign: 'center' as const,
+      maxWidth: 520,
+      alignSelf: 'center' as const,
+    },
+    cards: {
+      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      gap: spacing.lg,
+      alignItems: 'stretch' as const,
+    },
+  }));
+
+  return (
+    <Animated.View
+      style={[styles.panel, { opacity, transform: [{ translateY }] }]}
+      accessibilityLiveRegion="polite">
+      <Text style={styles.subtitle}>{subtitle}</Text>
+
+      <View style={styles.cards}>
+        {plans.map((plan) => (
+          <PricingPlanCard
+            key={`${displayAudience}-${plan}`}
+            plan={plan}
+            audience={displayAudience}
+            animate={false}
+          />
+        ))}
+      </View>
+    </Animated.View>
+  );
+}
+
 export function WebLandingPricing() {
   const { isWide } = useResponsiveLayout();
+  const [audience, setAudience] = useState<PricingAudience>('clinic');
+
+  const handleAudienceChange = (next: PricingAudience) => {
+    if (next === audience) return;
+    setAudience(next);
+  };
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     bleed: {
@@ -271,7 +519,7 @@ export function WebLandingPricing() {
     },
     header: {
       gap: spacing.sm,
-      marginBottom: spacing.xl + spacing.sm,
+      marginBottom: spacing.lg,
       alignItems: 'center' as const,
     },
     eyebrow: webSectionEyebrowStyle(colors),
@@ -280,44 +528,22 @@ export function WebLandingPricing() {
       color: colors.labelPrimary,
       textAlign: 'center' as const,
     },
-    subtitle: {
-      ...webTypography.subtitle,
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.labelSecondary,
-      textAlign: 'center' as const,
-      maxWidth: 520,
-    },
-    cards: {
-      flexDirection: isWide ? ('row' as const) : ('column' as const),
-      gap: spacing.lg,
-      alignItems: isWide ? ('stretch' as const) : ('stretch' as const),
-    },
   }));
 
   return (
     <WebMarketingSection
       style={styles.bleed}
       atmosphere={<View style={styles.atmosphere} />}>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>For clinics</Text>
-          <Text style={styles.title}>Start free, upgrade when you need more</Text>
-          <Text style={styles.subtitle}>
-            Post your first role and fill-in at no cost. Professionals always join free.
-          </Text>
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.eyebrow}>Pricing</Text>
+        <Text style={styles.title}>Start free, upgrade when you need more</Text>
+      </View>
 
-        <View style={styles.cards}>
-          {PLANS.map((plan, index) => (
-            <PricingPlanCard
-              key={plan}
-              plan={plan}
-              enterDelayMs={80 + index * 80}
-            />
-          ))}
-        </View>
+      <PricingAudienceToggle value={audience} onChange={handleAudienceChange} />
 
-        <PricingTrustStrip />
+      <PricingAudiencePanel audience={audience} isWide={isWide} />
+
+      <PricingTrustStrip />
     </WebMarketingSection>
   );
 }

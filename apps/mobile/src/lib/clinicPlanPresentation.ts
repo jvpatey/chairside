@@ -10,6 +10,8 @@ export const CLINIC_PLAN_ICONS: Record<ClinicPlan, keyof typeof Ionicons.glyphMa
   free: 'leaf-outline',
   starter: 'rocket-outline',
   pro: 'diamond-outline',
+  group_starter: 'business-outline',
+  group_pro: 'diamond-outline',
 };
 
 export function getClinicPlanHeroSummary(plan: ClinicPlan): string {
@@ -21,9 +23,13 @@ export function getClinicPlanLimitSummary(plan: ClinicPlan): string {
     case 'free':
       return '1 active role and 1 active fill-in';
     case 'starter':
-      return 'Up to 3 active roles and fill-ins';
+      return 'Up to 5 active roles and fill-ins';
     case 'pro':
       return 'Unlimited active opportunities';
+    case 'group_starter':
+      return 'Up to 5 locations, 3 managers, and 5+5 posts';
+    case 'group_pro':
+      return 'Unlimited locations, managers, and postings';
   }
 }
 
@@ -62,9 +68,13 @@ export function getClinicPlanTierLabel(plan: ClinicPlan): string {
   return `${CLINIC_PLAN_LABELS[plan]} plan`;
 }
 
-export function getRecommendedUpgradePlan(plan: ClinicPlan): ClinicPlan | null {
-  if (plan === 'free') return 'starter';
+export function getRecommendedUpgradePlan(
+  plan: ClinicPlan,
+  planFamily: 'clinic' | 'group' = 'clinic',
+): ClinicPlan | null {
+  if (plan === 'free') return planFamily === 'group' ? 'group_starter' : 'starter';
   if (plan === 'starter') return 'pro';
+  if (plan === 'group_starter') return 'group_pro';
   return null;
 }
 
@@ -117,7 +127,7 @@ export function getClinicPostingLimitReachedMessage(
   });
   const removeLabel = getActivePostingLabel(publishType, { forRemoval: true });
 
-  if (billing.plan === 'pro' || limit == null) {
+  if (billing.plan === 'pro' || billing.plan === 'group_pro' || limit == null) {
     return `Remove an ${removeLabel} or upgrade your plan to post more.`;
   }
 
@@ -128,7 +138,7 @@ export function getClinicPlanBrandAccentColor(
   plan: ClinicPlan,
   colors: { primary: string; secondary: string },
 ): string {
-  return plan === 'pro' ? colors.secondary : colors.primary;
+  return plan === 'pro' || plan === 'group_pro' ? colors.secondary : colors.primary;
 }
 
 export function getClinicPlanFeatureAccentColor(
@@ -136,7 +146,7 @@ export function getClinicPlanFeatureAccentColor(
   colors: { primary: string; secondary: string; success: string },
   emphasized = false,
 ): string {
-  if (plan === 'pro') return colors.secondary;
+  if (plan === 'pro' || plan === 'group_pro') return colors.secondary;
   if (emphasized) return colors.primary;
   return colors.success;
 }

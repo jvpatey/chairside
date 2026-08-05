@@ -39,7 +39,7 @@ type ClinicBillingContextValue = {
   offerings: BillingOfferings | null;
   revenueCatPlan: ClinicPlan | null;
   refreshBilling: () => Promise<void>;
-  purchasePackage: (purchasePackage: BillingPackage) => Promise<void>;
+  purchasePackage: (purchasePackage: BillingPackage) => Promise<ClinicPlan | null>;
   restorePurchases: () => Promise<void>;
   manageSubscription: () => Promise<void>;
   isPurchasing: boolean;
@@ -56,6 +56,8 @@ const ClinicBillingContext = createContext<ClinicBillingContextValue | null>(nul
 
 const DEFAULT_BILLING: ClinicBillingState = {
   plan: 'free',
+  planFamily: 'clinic',
+  accountType: 'individual',
   status: 'active',
   activeRoleCount: 0,
   activeRoleLimit: 1,
@@ -69,6 +71,20 @@ const DEFAULT_BILLING: ClinicBillingState = {
   canUseFillInOutreach: false,
   canUseFillInSms: false,
   hasPriorityListing: false,
+  canUseScreeningQuestions: false,
+  canUseCrmFollowups: false,
+  canUseApplicationPdfExport: false,
+  canUseClinicDiscover: false,
+  canUseGeneralCandidateMessaging: false,
+  canUseBulkOutreach: false,
+  canUseHiringInsights: false,
+  customScreeningLimit: 0,
+  locationCount: 0,
+  maxLocations: 1,
+  canAddLocation: true,
+  managerCount: 0,
+  maxManagers: 0,
+  canAddManager: false,
   currentPeriodEnd: null,
 };
 
@@ -168,8 +184,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
   }, [refreshBilling]);
 
   const purchasePackage = useCallback(
-    async (purchasePackageArg: BillingPackage) => {
-      if (!clinicId || !isPurchaseBillingAvailable || !isOwner) return;
+    async (purchasePackageArg: BillingPackage): Promise<ClinicPlan | null> => {
+      if (!clinicId || !isPurchaseBillingAvailable || !isOwner) return null;
 
       setIsPurchasing(true);
       setBillingError(null);
@@ -178,6 +194,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
         setRevenueCatPlan(nextPlan);
         await syncClinicSubscriptionFromRevenueCat();
         await refreshBilling();
+        return nextPlan;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Purchase failed.';
         if (!message.toLowerCase().includes('cancel')) {

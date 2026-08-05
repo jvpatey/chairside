@@ -2,12 +2,13 @@ import {
   getConversation,
   getErrorMessage,
   startClinicFillInOutreach,
+  startClinicFillInOutreachBulk,
   type RoleType,
 } from '@chairside/api';
 import { getRoleTypeLabel, ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { ShiftDateInput } from '@/components/clinic/ShiftDateInput';
@@ -23,7 +24,7 @@ import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { todayISO } from '@/lib/dates';
-import { getClinicConversationRoute, type FillInReturnTarget } from '@/lib/routing';
+import { getClinicConversationRoute, navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { formatShiftPostDateLabel } from '@/lib/shiftPostDisplay';
 import { isValidTimeRange, normalizeTime24h, formatTimeRangePreview } from '@/lib/time';
@@ -31,15 +32,28 @@ import { useThemedStyles } from '@/theme';
 
 export default function OutreachComposeScreen() {
   const { user } = useAuth();
-  const { billing, upgradePrompt, showSmsUpgrade, handleBillingError } = useClinicUpgradePrompt();
+  const { billing, upgradePrompt, showSmsUpgrade, showBulkOutreachUpgrade, handleBillingError } =
+    useClinicUpgradePrompt();
   const params = useLocalSearchParams<{
     workerId?: string;
     workerName?: string;
+    workerIds?: string;
+    workerNames?: string;
     roleType?: string;
     smsOptIn?: string;
+    bulk?: string;
     returnTo?: FillInReturnTarget;
   }>();
 
+  const isBulk = params.bulk === '1';
+  const bulkWorkerIds =
+    typeof params.workerIds === 'string'
+      ? params.workerIds.split(',').map((id) => id.trim()).filter(Boolean)
+      : [];
+  const bulkWorkerNames =
+    typeof params.workerNames === 'string'
+      ? params.workerNames.split('|').map((name) => name.trim()).filter(Boolean)
+      : [];
   const workerId = typeof params.workerId === 'string' ? params.workerId : '';
   const workerName = typeof params.workerName === 'string' ? params.workerName : 'Candidate';
   const defaultRoleType = (
@@ -58,7 +72,14 @@ export default function OutreachComposeScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
 
-  const canOfferSms = workerSmsOptIn && (billing?.canUseFillInSms ?? false);
+  const canOfferSms = !isBulk && workerSmsOptIn && (billing?.canUseFillInSms ?? false);
+  const resolvedReturnTo = params.returnTo ?? 'fill-ins-tab';
+  const composeTitle = isBulk
+    ? `Message ${bulkWorkerIds.length} workers`
+    : `Message ${workerName}`;
+  const composeSubtitle = isBulk
+    ? 'Send the same fill-in outreach message to every selected worker.'
+    : 'Ask if they can cover a fill-in. Add shift details only if you want.';
 
   const resetForm = useCallback(() => {
     setMessage('');
@@ -143,11 +164,18 @@ export default function OutreachComposeScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!user?.id || !workerId) return;
+    if (!user?.id) return;
+    if (!isBulk && !workerId) return;
+    if (isBulk && bulkWorkerIds.length === 0) return;
 
     const trimmed = message.trim();
     if (!trimmed) {
       setFormError('Write a message before sending.');
+      return;
+    }
+
+    if (isBulk && !billing?.canUseBulkOutreach) {
+      showBulkOutreachUpgrade();
       return;
     }
 
@@ -177,6 +205,33 @@ export default function OutreachComposeScreen() {
     setFormError(null);
     setIsSubmitting(true);
     try {
+      if (isBulk) {
+        const result = await startClinicFillInOutreachBulk({
+          workerIds: bulkWorkerIds,
+          message: trimmed,
+          roleType: outreachRoleType,
+          shiftDate: outreachShiftDate,
+          startTime: outreachStartTime,
+          endTime: outreachEndTime,
+        });
+
+        const successCount = result.successes.length;
+        const failureCount = result.failures.length;
+        if (successCount === 0) {
+          setFormError('Could not send outreach to any selected workers.');
+          return;
+        }
+
+        Alert.alert(
+          'Bulk outreach sent',
+          failureCount > 0
+            ? `Sent to ${successCount} worker${successCount === 1 ? '' : 's'}. ${failureCount} could not be reached.`
+            : `Sent to ${successCount} worker${successCount === 1 ? '' : 's'}.`,
+          [{ text: 'OK', onPress: () => navigateAfterFillInSave(router, resolvedReturnTo) }],
+        );
+        return;
+      }
+
       const conversationId = await startClinicFillInOutreach({
         workerId,
         message: trimmed,
@@ -203,15 +258,22 @@ export default function OutreachComposeScreen() {
       <OnboardingShell>
       <View style={styles.form}>
         <AuthScreenHeader
-          title={`Message ${workerName}`}
-          subtitle="Ask if they can cover a fill-in. Add shift details only if you want."
+          title={composeTitle}
+          subtitle={composeSubtitle}
           onBack={() => router.back()}
         />
 
         <View style={styles.summary}>
-          <Text style={styles.summaryTitle}>Fill-in outreach</Text>
+          <Text style={styles.summaryTitle}>
+            {isBulk ? 'Bulk fill-in outreach' : 'Fill-in outreach'}
+          </Text>
           <Text style={styles.summaryMeta}>
-            {shiftSummary ?? 'Send a direct message without posting a fill-in first.'}
+            {isBulk
+              ? bulkWorkerNames.slice(0, 3).join(', ') +
+                (bulkWorkerNames.length > 3
+                  ? ` + ${bulkWorkerNames.length - 3} more`
+                  : '')
+              : shiftSummary ?? 'Send a direct message without posting a fill-in first.'}
           </Text>
         </View>
 
@@ -284,7 +346,13 @@ export default function OutreachComposeScreen() {
         {formError ? <FormErrorBanner message={formError} /> : null}
 
         <OnboardingButton
-          label={isSubmitting ? 'Sending…' : 'Send message'}
+          label={
+            isSubmitting
+              ? 'Sending…'
+              : isBulk
+                ? `Send to ${bulkWorkerIds.length} workers`
+                : 'Send message'
+          }
           disabled={isSubmitting}
           onPress={() => void handleSubmit()}
         />

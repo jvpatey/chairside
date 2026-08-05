@@ -28,16 +28,17 @@ export function useClinicSetupStepGuard(
 export function useWorkerSetupStepGuard(
   step: WorkerSetupStepId,
   profile: WorkerProfile | null,
-  displayName: string | null | undefined,
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
   isReady: boolean,
   isEditMode: boolean,
 ) {
   useEffect(() => {
     if (isEditMode || !isReady) return;
 
-    const redirectHref = getWorkerSetupStepGuard(profile, displayName, step);
+    const redirectHref = getWorkerSetupStepGuard(profile, firstName, lastName, step);
     if (redirectHref) {
       router.replace(redirectHref);
     }
-  }, [displayName, isEditMode, isReady, profile, step]);
+  }, [firstName, isEditMode, isReady, lastName, profile, step]);
 }

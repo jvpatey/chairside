@@ -22,6 +22,7 @@ import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { WebAuthCallbackHandler } from '@/components/auth/WebAuthCallbackHandler';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
+import { ClinicBillingModalHost } from '@/components/billing/ClinicBillingModal';
 import { GetStartedBrowseProgressProvider } from '@/contexts/GetStartedBrowseProgressContext';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -82,6 +83,7 @@ export default function RootLayout() {
                   <WebAuthCallbackHandler />
                   <PushRegistration />
                   <ConfirmActionSheetHost />
+                  <ClinicBillingModalHost />
                   <VercelAnalytics />
                   <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                   <Stack
