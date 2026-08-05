@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useThemedStyles } from '@/theme';
 import { getWebShadow } from '@/theme/web';
@@ -31,7 +31,9 @@ export function MasterDetailLayout({
   const { isTablet, isXWide } = useResponsiveLayout();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
-  const showAtmosphere = tabAtmosphere !== 'none';
+  const shellAtmosphere = useShellAtmosphere();
+  const showAtmosphere = tabAtmosphere !== 'none' && !shellAtmosphere;
+  const passThroughAtmosphere = showAtmosphere || shellAtmosphere;
   const atmosphereLayer = showAtmosphere ? (
     <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
   ) : null;
@@ -39,7 +41,7 @@ export function MasterDetailLayout({
     root: {
       flex: 1,
       minHeight: 0,
-      backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped,
+      backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
     },
     row: {
       flex: 1,
@@ -56,19 +58,19 @@ export function MasterDetailLayout({
       flexShrink: 0,
       borderRightWidth: 0.5,
       borderRightColor: colors.separator,
-      backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped,
+      backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
     },
     detail: {
       flex: 1,
       minWidth: 0,
-      backgroundColor: showAtmosphere ? 'transparent' : colors.background,
+      backgroundColor: passThroughAtmosphere ? 'transparent' : colors.background,
     },
     context: {
       width: CONTEXT_WIDTH,
       flexShrink: 0,
       borderLeftWidth: 0.5,
       borderLeftColor: colors.separator,
-      backgroundColor: showAtmosphere ? 'transparent' : colors.surface,
+      backgroundColor: passThroughAtmosphere ? 'transparent' : colors.surface,
       // @ts-expect-error web shadow
       boxShadow: getWebShadow(isDark, 'subtle'),
     },

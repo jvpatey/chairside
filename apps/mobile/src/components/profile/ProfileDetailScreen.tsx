@@ -6,7 +6,7 @@ import { PageHeroGlow } from '@/components/ui/PageHeroGlow';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
@@ -50,12 +50,14 @@ export function ProfileDetailScreen({
   const { colors } = useTheme();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
-  const showAtmosphere = tabAtmosphere !== 'none';
+  const shellAtmosphere = useShellAtmosphere();
+  const showAtmosphere = tabAtmosphere !== 'none' && !shellAtmosphere;
+  const passThroughAtmosphere = showAtmosphere || shellAtmosphere;
   const atmosphereLayer =
     showAtmosphere && Platform.OS === 'web' ? (
       <PageHeroGlow variant="subtle" accent={tabAtmosphereAccent} />
     ) : null;
-  const containerBackground = showAtmosphere ? 'transparent' : colors.backgroundGrouped;
+  const containerBackground = passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped;
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     container: {
@@ -127,7 +129,10 @@ export function ProfileDetailScreen({
       <ScrollView
         ref={scrollRef}
         style={[
-          { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
+          {
+            flex: 1,
+            backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
+          },
           webScrollbarStyles(),
         ]}
         contentContainerStyle={[

@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
+import { useShellAtmosphere } from '@/contexts/TabAtmosphereContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
@@ -44,7 +45,7 @@ import {
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
-import { fontSemibold, useTheme, useThemedStyles, colorWithAlpha } from '@/theme';
+import { fontSemibold, getGlassTokens, useTheme, useThemedStyles } from '@/theme';
 
 export {
   TABLET_SIDEBAR_COLLAPSED_WIDTH,
@@ -144,13 +145,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const individualPlan = billing?.plan ?? 'free';
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
+  const shellAtmosphere = useShellAtmosphere();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outerWeb: {
       flex: 1,
       width: '100%',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: isWeb ? spacing.xs : spacing.sm,
+      paddingVertical: isWeb ? spacing.xs : spacing.sm,
       backgroundColor: 'transparent',
       minHeight: 0,
       position: 'relative',
@@ -718,13 +720,18 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   );
 
   if (isWeb) {
+    // Floating chrome (radius/border/shadow) with no tint and no blur when the
+    // shell owns the wash — blur would shift the panel color vs the gaps/content.
+    const glass = getGlassTokens(isDark);
+    const sidebarGlassOverlay = shellAtmosphere ? 'transparent' : glass.fallbackBackground;
+
     return (
       <View style={[styles.outerWeb, isCollapsed && { paddingHorizontal: spacing.xs }]}>
         <LiquidGlassSurface
           borderRadius={28}
           style={styles.glassPanel}
-          overlayColor={colorWithAlpha(colors.surfaceElevated, isDark ? 0.72 : 0.78)}
-          backdropBlur
+          overlayColor={sidebarGlassOverlay}
+          backdropBlur={false}
         >
           <View style={[styles.sidebarWebInner, panelPadding]}>{sidebarContent}</View>
         </LiquidGlassSurface>

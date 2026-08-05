@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useThemedStyles } from '@/theme';
 
 type MessageThreadLoadingShellProps = {
@@ -19,8 +19,9 @@ export function MessageThreadLoadingShell({
   const insets = useSafeAreaInsets();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const shellAtmosphere = useShellAtmosphere();
   const showTabAtmosphere = tabAtmosphere !== 'none';
-  const paintOwnAtmosphere = showTabAtmosphere;
+  const paintOwnAtmosphere = showTabAtmosphere && !shellAtmosphere;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {

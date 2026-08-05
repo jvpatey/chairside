@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useCallback, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -15,13 +17,16 @@ import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInse
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { WEB_SIDEBAR_OUTER_INSET } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { webHover, webOnlyStyle, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
+import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
-import { webTypography } from '@/theme/web';
+import { webStickyHeaderGlass, webTransition, webTypography } from '@/theme/web';
+
+const HEADER_SCROLL_THRESHOLD = 8;
+const HEADER_GLASS_RAMP = 56;
 
 type ScreenProps = {
   title?: string;
@@ -43,6 +48,11 @@ type ScreenProps = {
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
+function headerGlassProgress(scrollY: number) {
+  if (scrollY <= HEADER_SCROLL_THRESHOLD) return 0;
+  return Math.min((scrollY - HEADER_SCROLL_THRESHOLD) / HEADER_GLASS_RAMP, 1);
+}
+
 /** Web Screen with sticky header and refined typography. */
 export function Screen({
   title,
@@ -63,44 +73,52 @@ export function Screen({
   contentContainerStyle,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
+  const [scrollY, setScrollY] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(() => insets.top + 84);
+  const glassProgress = scroll ? headerGlassProgress(scrollY) : 0;
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setScrollY(event.nativeEvent.contentOffset.y);
+  }, []);
+
+  const handleHeaderLayout = useCallback((height: number) => {
+    if (height > 0) setHeaderHeight(height);
+  }, []);
+
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
-  const showAtmosphere = tabAtmosphere !== 'none' && !hideAtmosphere;
+  const shellAtmosphere = useShellAtmosphere();
+  // Shell owns the wash — skip local gradient, but stay transparent so it shows through.
+  const showAtmosphere = tabAtmosphere !== 'none' && !hideAtmosphere && !shellAtmosphere;
   const atmosphereLayer =
     showAtmosphere && Platform.OS === 'web' ? (
       <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
     ) : null;
+  const passThroughAtmosphere = showAtmosphere || shellAtmosphere;
   const containerBackground =
-    showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
+    passThroughAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
-  const topPadding =
-    isTablet && !showHeader ? WEB_SIDEBAR_OUTER_INSET : insets.top + 16;
+  const topPadding = isTablet && !showHeader ? WEB_SIDEBAR_OUTER_INSET : insets.top + 16;
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {
       flex: 1,
       overflow: 'hidden',
+      position: 'relative' as const,
     },
-    stickyHeader: {
-      position: 'sticky' as const,
+    overlayHeader: {
+      position: 'absolute' as const,
       top: 0,
+      left: 0,
+      right: 0,
       zIndex: 10,
       paddingTop: insets.top + spacing.sm,
       paddingBottom: spacing.sm,
       paddingHorizontal: spacing.lg,
-      backgroundColor: isDark ? 'transparent' : 'rgba(244, 246, 251, 0.92)',
-      borderBottomWidth: isDark ? 0 : StyleSheet.hairlineWidth,
-      borderBottomColor: colors.separator,
-      ...webOnlyStyle(
-        (isDark
-          ? {}
-          : {
-              backdropFilter: 'blur(12px) saturate(160%)',
-            }) as object,
-      ),
+      ...webTransition(['background-color', 'border-color', 'backdrop-filter']),
     },
     stickyInner: {
       flexDirection: 'row' as const,
@@ -163,42 +181,70 @@ export function Screen({
       fontWeight: '600' as const,
       color: colors.primary,
     },
+    staticHeader: {
+      paddingTop: insets.top + spacing.sm,
+      paddingBottom: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      backgroundColor: 'transparent',
+    },
   }));
 
-  const paddingStyle = {
-    paddingTop: showTopBar && scroll ? spacing.md : topPadding,
+  const scrollPaddingStyle = {
     paddingBottom: spacing.lg + tabDockInset,
   };
 
-  const headerBlock = showTopBar ? (
-    <View style={styles.stickyHeader}>
-      <View style={styles.stickyInner}>
-        <View style={styles.headerText}>
-          {onBack ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={backLabel}
-              onPress={onBack}
-              style={({ pressed, hovered }) => [
-                styles.back,
-                webHover(hovered, pressed, styles.backHovered),
-                pressed && { opacity: 0.75 },
-              ]}
-            >
-              <Text style={styles.backText}>{backLabel}</Text>
-            </Pressable>
-          ) : null}
-          {showHeader && title ? <Text style={styles.title}>{title}</Text> : null}
-          {showHeader && subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        </View>
-        {headerAccessory || showNotifications ? (
-          <View style={styles.headerActions}>
-            {headerAccessory}
-            {showNotifications ? <NotificationBell /> : null}
-          </View>
+  const staticPaddingStyle = {
+    paddingTop: topPadding,
+    paddingBottom: spacing.lg + tabDockInset,
+  };
+
+  const headerInner = (
+    <View style={styles.stickyInner}>
+      <View style={styles.headerText}>
+        {onBack ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={backLabel}
+            onPress={onBack}
+            style={({ pressed, hovered }) => [
+              styles.back,
+              webHover(hovered, pressed, styles.backHovered),
+              pressed && { opacity: 0.75 },
+            ]}
+          >
+            <Text style={styles.backText}>{backLabel}</Text>
+          </Pressable>
         ) : null}
+        {showHeader && title ? <Text style={styles.title}>{title}</Text> : null}
+        {showHeader && subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
+      {headerAccessory || showNotifications ? (
+        <View style={styles.headerActions}>
+          {headerAccessory}
+          {showNotifications ? <NotificationBell /> : null}
+        </View>
+      ) : null}
     </View>
+  );
+
+  const overlayHeaderBlock = showTopBar ? (
+    <View
+      onLayout={(event) => handleHeaderLayout(event.nativeEvent.layout.height)}
+      style={[
+        styles.overlayHeader,
+        webStickyHeaderGlass(isDark, glassProgress),
+        glassProgress <= 0 && {
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: 'transparent',
+        },
+      ]}
+    >
+      {headerInner}
+    </View>
+  ) : null;
+
+  const staticHeaderBlock = showTopBar ? (
+    <View style={styles.staticHeader}>{headerInner}</View>
   ) : null;
 
   if (!scroll) {
@@ -211,7 +257,7 @@ export function Screen({
         ]}
       >
         {atmosphereLayer}
-        {headerBlock}
+        {staticHeaderBlock}
         <WebPageEnter
           animate={animateEntry}
           style={fillsContainer ? { flex: 1, minHeight: 0 } : { flex: 1 }}
@@ -219,7 +265,7 @@ export function Screen({
           <View
             style={[
               styles.content,
-              paddingStyle,
+              staticPaddingStyle,
               fillsContainer && styles.contentFill,
               contentContainerStyle,
             ]}
@@ -234,15 +280,24 @@ export function Screen({
   return (
     <View style={[styles.container, { backgroundColor: containerBackground }]}>
       {atmosphereLayer}
-      {headerBlock}
+      {overlayHeaderBlock}
       <ScrollView
         scrollEnabled={scrollEnabled}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         style={[
-          { flex: 1, backgroundColor: showAtmosphere ? 'transparent' : colors.backgroundGrouped },
+          {
+            flex: 1,
+            backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
+          },
           webScrollbarStyles(),
         ]}
-        contentContainerStyle={[styles.content, paddingStyle, contentContainerStyle]}
-        stickyHeaderIndices={undefined}
+        contentContainerStyle={[
+          styles.content,
+          scrollPaddingStyle,
+          showTopBar ? { paddingTop: headerHeight + spacing.md } : { paddingTop: topPadding },
+          contentContainerStyle,
+        ]}
       >
         <WebPageEnter animate={animateEntry}>{children}</WebPageEnter>
       </ScrollView>

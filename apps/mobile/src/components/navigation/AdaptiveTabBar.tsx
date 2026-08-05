@@ -1,12 +1,17 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Platform, View, type ViewStyle } from 'react-native';
 
+import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { MobileTabDock } from '@/components/navigation/MobileTabDock';
 import { TabletSidebar } from '@/components/navigation/TabletSidebar';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
+import {
+  useShellAtmosphere,
+  useTabAtmosphere,
+  useTabAtmosphereAccent,
+} from '@/contexts/TabAtmosphereContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
-import { useTheme } from '@/theme';
 
 type AdaptiveTabBarProps = BottomTabBarProps & {
   role: 'worker' | 'clinic';
@@ -14,8 +19,14 @@ type AdaptiveTabBarProps = BottomTabBarProps & {
 
 function AdaptiveTabBar({ role, ...props }: AdaptiveTabBarProps) {
   const { isTablet } = useResponsiveLayout();
-  const { colors } = useTheme();
   const { sidebarWidth } = useSidebarCollapse();
+  const shellAtmosphere = useShellAtmosphere();
+  const tabAtmosphere = useTabAtmosphere();
+  const tabAtmosphereAccent = useTabAtmosphereAccent();
+  // Paint the same viewport-fixed wash inside the sidebar column so gaps around
+  // the floating glass aren't left on a flat navigator/theme surface.
+  const showSidebarAtmosphere =
+    shellAtmosphere && Platform.OS === 'web' && tabAtmosphere !== 'none';
 
   if (isTablet) {
     return (
@@ -30,7 +41,9 @@ function AdaptiveTabBar({ role, ...props }: AdaptiveTabBarProps) {
           ...(Platform.OS === 'web'
             ? ({
                 height: '100%',
+                // visible so glass shadow isn't clipped; atmosphere is fixed anyway
                 overflow: 'visible',
+                position: 'relative',
                 ...webOnlyStyle({
                   transitionProperty: 'width, max-width',
                   transitionDuration: '220ms',
@@ -39,6 +52,13 @@ function AdaptiveTabBar({ role, ...props }: AdaptiveTabBarProps) {
               } as ViewStyle)
             : {}),
         }}>
+        {showSidebarAtmosphere ? (
+          <AppAtmosphere
+            intensity={tabAtmosphere}
+            accent={tabAtmosphereAccent}
+            viewportFixed
+          />
+        ) : null}
         <TabletSidebar {...props} role={role} />
       </View>
     );

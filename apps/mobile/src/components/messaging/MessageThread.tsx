@@ -34,7 +34,7 @@ import { TypingIndicator } from '@/components/messaging/TypingIndicator';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useConversationRealtime } from '@/hooks/useConversationRealtime';
 import { useMessageRealtime } from '@/hooks/useMessageRealtime';
@@ -165,9 +165,11 @@ export function MessageThread({
 
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const shellAtmosphere = useShellAtmosphere();
   const showTabAtmosphere = tabAtmosphere !== 'none';
   const transparentShell = showTabAtmosphere || (embedded && Platform.OS === 'web');
-  const paintOwnAtmosphere = showTabAtmosphere && !(embedded && Platform.OS === 'web');
+  const paintOwnAtmosphere =
+    showTabAtmosphere && !(embedded && Platform.OS === 'web') && !shellAtmosphere;
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     container: {

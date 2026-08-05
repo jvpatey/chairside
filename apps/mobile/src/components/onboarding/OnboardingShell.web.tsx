@@ -7,7 +7,7 @@ import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { OnboardingWebCenteredLayout } from '@/components/onboarding/OnboardingWebCenteredLayout.web';
 import { PageHeroGlow, type PageHeroGlowVariant } from '@/components/ui/PageHeroGlow';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -58,11 +58,12 @@ export function OnboardingShell({
   const { colors } = useTheme();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const shellAtmosphere = useShellAtmosphere();
   const showTabAtmosphere = tabAtmosphere !== 'none';
-  const useTabGlow = showTabAtmosphere && atmosphere === 'none';
-  const showGlow = atmosphere !== 'none' || showTabAtmosphere;
+  const useTabGlow = showTabAtmosphere && atmosphere === 'none' && !shellAtmosphere;
+  const showGlow = atmosphere !== 'none' || (showTabAtmosphere && !shellAtmosphere);
   const containerBackground =
-    transparentBackground || showGlow ? 'transparent' : colors.backgroundGrouped;
+    transparentBackground || showGlow || shellAtmosphere ? 'transparent' : colors.backgroundGrouped;
   const resolvedBackgroundAccessory =
     backgroundAccessory ??
     (atmosphere !== 'none' ? (

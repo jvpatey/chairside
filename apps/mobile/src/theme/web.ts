@@ -1,4 +1,4 @@
-import { Platform, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import type { Colors } from './colors';
 import { fontBold, fontRegular, fontSemibold } from './fonts';
@@ -122,6 +122,32 @@ export function webGlassSurface(colors: Colors, isDark: boolean): ViewStyle {
     borderWidth: 1,
     borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
     boxShadow: getWebShadow(isDark, 'subtle'),
+  } as ViewStyle);
+}
+
+/** Lighter frosted wash for in-app sticky headers — content shows through while scrolling. */
+export function webStickyHeaderGlass(isDark: boolean, progress = 1): ViewStyle {
+  const clamped = Math.min(Math.max(progress, 0), 1);
+  if (clamped <= 0) {
+    return {
+      backgroundColor: 'transparent',
+      borderBottomColor: 'transparent',
+    };
+  }
+
+  const bgAlpha = isDark ? 0.1 + clamped * 0.32 : 0.08 + clamped * 0.36;
+  const blurPx = 6 + clamped * 14;
+
+  return webOnlyStyle({
+    backgroundColor: isDark
+      ? `rgba(11, 13, 18, ${bgAlpha})`
+      : `rgba(244, 246, 251, ${bgAlpha})`,
+    backdropFilter: `blur(${blurPx}px) saturate(${110 + clamped * 50}%)`,
+    WebkitBackdropFilter: `blur(${blurPx}px) saturate(${110 + clamped * 50}%)`,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: isDark
+      ? `rgba(255, 255, 255, ${clamped * 0.1})`
+      : `rgba(0, 0, 0, ${clamped * 0.07})`,
   } as ViewStyle);
 }
 
