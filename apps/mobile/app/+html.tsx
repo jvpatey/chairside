@@ -52,6 +52,7 @@ export default function Root({ children }: { children: ReactNode }) {
 const globalStyles = `
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 html,

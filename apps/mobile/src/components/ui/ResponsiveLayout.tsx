@@ -1,7 +1,8 @@
 import { Children, ReactNode } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type ResponsiveColumnsProps = {
@@ -9,6 +10,8 @@ type ResponsiveColumnsProps = {
   style?: StyleProp<ViewStyle>;
   /** When to switch to side-by-side. Default tablet (≥768); use `wide` for ≥1024. */
   breakpoint?: 'tablet' | 'wide';
+  /** Stretch columns to equal height (desktop master/detail style panes). */
+  stretch?: boolean;
 };
 
 /** Stacks children on narrow widths; places them side-by-side above the breakpoint. */
@@ -16,18 +19,39 @@ export function ResponsiveColumns({
   children,
   style,
   breakpoint = 'tablet',
+  stretch = false,
 }: ResponsiveColumnsProps) {
   const { isTablet, isWide } = useResponsiveLayout();
   const useRow = breakpoint === 'wide' ? isWide : isTablet;
+  const useWebEqualHeight = stretch && Platform.OS === 'web';
   const styles = useThemedStyles(({ spacing }) => ({
     row: {
-      flexDirection: 'row',
+      flexDirection: 'row' as const,
       gap: spacing.lg,
-      alignItems: 'flex-start',
+      alignItems: stretch ? ('stretch' as const) : ('flex-start' as const),
+      // CSS grid gives reliable equal-height columns inside ScrollViews on web.
+      ...(useWebEqualHeight
+        ? webOnlyStyle({
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            alignItems: 'stretch',
+          } as ViewStyle)
+        : null),
     },
     column: {
       flex: 1,
       minWidth: 0,
+      ...(stretch
+        ? {
+            alignSelf: 'stretch' as const,
+            ...webOnlyStyle({
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              minHeight: '100%',
+            } as ViewStyle),
+          }
+        : null),
     },
   }));
 

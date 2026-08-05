@@ -32,7 +32,7 @@ function renderGateDecision(
 }
 
 export function ClinicSetupGate({ children }: { children: ReactNode }) {
-  const { session, isAuthReady, profile } = useAuth();
+  const { session, isAuthReady, isProfileReady, profile } = useAuth();
   const { clinicProfile, isClinicProfileReady, membership, isOwner } = useClinicProfile();
   const hasShownAppRef = useRef(false);
 
@@ -40,6 +40,7 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
     isAuthReady,
     session,
     profile,
+    isProfileReady,
     isClinicProfileReady,
     clinicProfile,
     membership,
@@ -59,7 +60,7 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
 }
 
 export function WorkerSetupGate({ children }: { children: ReactNode }) {
-  const { session, isAuthReady, profile } = useAuth();
+  const { session, isAuthReady, isProfileReady, profile } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const hasShownAppRef = useRef(false);
 
@@ -67,6 +68,7 @@ export function WorkerSetupGate({ children }: { children: ReactNode }) {
     isAuthReady,
     session,
     profile,
+    isProfileReady,
     isWorkerProfileReady,
     workerProfile,
     isWorkerSetupComplete,

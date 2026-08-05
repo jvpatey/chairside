@@ -13,6 +13,10 @@ type EmptyStateProps = {
   ctaLabel?: string;
   onCtaPress?: () => void;
   ctaAccent?: GradientAccent;
+  /** Drop card chrome when nested inside a parent panel. */
+  embedded?: boolean;
+  /** Grow to fill the parent and vertically center content (desktop columns). */
+  fill?: boolean;
 };
 
 /** Branded empty state card used across lists, inboxes, and dashboard panels. */
@@ -24,6 +28,8 @@ export function EmptyState({
   ctaLabel,
   onCtaPress,
   ctaAccent,
+  embedded = false,
+  fill = false,
 }: EmptyStateProps) {
   const { colors, isDark } = useTheme();
   const tabAccent = useTabAtmosphereAccent();
@@ -33,16 +39,18 @@ export function EmptyState({
 
   const styles = useThemedStyles(({ colors, spacing, radii, elevation }) => ({
     card: {
-      backgroundColor: colors.surface,
-      borderRadius: radii.lg,
-      borderWidth: StyleSheet.hairlineWidth,
+      backgroundColor: embedded ? 'transparent' : colors.surface,
+      borderRadius: embedded ? 0 : radii.lg,
+      borderWidth: embedded ? 0 : StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      padding: spacing.xl,
+      padding: embedded ? spacing.md : spacing.xl,
       alignItems: 'center',
+      justifyContent: fill ? ('center' as const) : undefined,
       gap: spacing.md,
       width: '100%',
       alignSelf: 'stretch' as const,
-      ...elevation('subtle'),
+      ...(fill ? { flex: 1, minHeight: 220 } : null),
+      ...(embedded ? null : elevation('subtle')),
     },
     motif: {
       width: 72,
