@@ -37,7 +37,7 @@ export type ClinicPlanMarketing = {
 export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
   free: {
     tagline: 'Try Chairside with one role and one fill-in',
-    fallbackPriceLabel: 'Free forever',
+    fallbackPriceLabel: 'Free',
     features: [
       '1 active role and 1 active fill-in',
       'Review applications and message candidates',

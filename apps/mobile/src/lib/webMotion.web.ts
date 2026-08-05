@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated } from 'react-native';
 
 function prefersReducedMotion() {
@@ -95,6 +95,68 @@ export function useEnterAnimation(delayMs = 0) {
   }, [delayMs, opacity, translateY]);
 
   return { opacity, translateY };
+}
+
+/** Fade out, swap content via displayKey, then fade in — for tab/toggle panels. */
+export function useContentSwapAnimation(activeKey: string) {
+  const opacity = useRef(new Animated.Value(1)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const [displayKey, setDisplayKey] = useState(activeKey);
+  const activeKeyRef = useRef(activeKey);
+  const isFirstRender = useRef(true);
+
+  activeKeyRef.current = activeKey;
+
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setDisplayKey(activeKey);
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (activeKey === displayKey) return;
+
+    const fadeOut = Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 10,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    fadeOut.start(({ finished }) => {
+      if (!finished) return;
+      const nextKey = activeKeyRef.current;
+      setDisplayKey(nextKey);
+      translateY.setValue(-8);
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          tension: 260,
+          friction: 22,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  }, [activeKey, displayKey, opacity, translateY]);
+
+  return { opacity, translateY, displayKey };
 }
 
 /** Scale + fade entrance for centered web dialogs. */
