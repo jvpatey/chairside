@@ -4,16 +4,21 @@ import {
   type ClinicPlan,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
+import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
 import { CLINIC_PLAN_ICONS } from '@/lib/clinicPlanPresentation';
-import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
+import { webCardLiftBase, webOnlyStyle, useWebCardLift } from '@/lib/webPressableStyles';
 import { useContentSwapAnimation } from '@/lib/webMotion.web';
-import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
+import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
+
+const ONBOARDING_HREF = '/(onboarding)/role' as Href;
 
 type PricingAudience = 'clinic' | 'group';
 
@@ -200,6 +205,7 @@ function PricingPlanCard({
   animate?: boolean;
 }) {
   const { colors, isDark } = useTheme();
+  const { liftStyle, hoverHandlers } = useWebCardLift(isDark);
   const marketing = CLINIC_PLAN_MARKETING[plan];
   const brand = planBrandAccent(plan, colors);
   const featureAccent = brand ?? colors.success;
@@ -343,12 +349,23 @@ function PricingPlanCard({
         lineHeight: 20,
         color: colors.labelSecondary,
       },
+      cta: {
+        alignSelf: 'stretch' as const,
+        marginTop: 'auto' as const,
+      },
     };
   });
 
+  const ctaLabel = plan === 'free' ? 'Start free' : 'Get started';
+
   return (
-    <WebPageEnter delayMs={enterDelayMs} style={styles.cardWrap} animate={animate}>
-      <View style={styles.card}>
+    <WebPageEnter
+      delayMs={enterDelayMs}
+      style={styles.cardWrap}
+      animate={animate}
+      trigger="visible"
+    >
+      <View style={[styles.card, liftStyle]} {...hoverHandlers}>
         {brand ? <View style={styles.atmosphere} /> : null}
         <View style={styles.content}>
           <View style={styles.header}>
@@ -380,6 +397,13 @@ function PricingPlanCard({
               </View>
             ))}
           </View>
+
+          <OnboardingButton
+            label={ctaLabel}
+            onPress={() => router.push(ONBOARDING_HREF)}
+            variant={brand ? 'primary' : 'secondary'}
+            style={styles.cta}
+          />
         </View>
       </View>
     </WebPageEnter>
@@ -418,7 +442,7 @@ function PricingTrustStrip() {
   }));
 
   return (
-    <WebPageEnter delayMs={320}>
+    <WebPageEnter delayMs={320} trigger="visible">
       <View style={styles.strip}>
         {TRUST_POINTS.map((point) => (
           <View key={point.label} style={styles.item}>
@@ -533,6 +557,7 @@ export function WebLandingPricing() {
   return (
     <WebMarketingSection
       style={styles.bleed}
+      sectionId="pricing"
       atmosphere={<View style={styles.atmosphere} />}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Pricing</Text>

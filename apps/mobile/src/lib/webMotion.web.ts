@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, type View } from 'react-native';
 
 function prefersReducedMotion() {
   return (
@@ -67,34 +67,141 @@ export function useFadeIn() {
   return { opacity, translateY };
 }
 
-export function useEnterAnimation(delayMs = 0) {
+type EnterAnimationOptions = {
+  trigger?: 'mount' | 'visible';
+  /** Intersection ratio (0–1) before visible-trigger animations run. */
+  visibleThreshold?: number;
+};
+
+function runEnterAnimation(
+  opacity: Animated.Value,
+  translateY: Animated.Value,
+  delayMs: number,
+) {
+  if (prefersReducedMotion()) {
+    opacity.setValue(1);
+    translateY.setValue(0);
+    return;
+  }
+
+  Animated.parallel([
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 380,
+      delay: delayMs,
+      useNativeDriver: true,
+    }),
+    Animated.timing(translateY, {
+      toValue: 0,
+      duration: 320,
+      delay: delayMs,
+      useNativeDriver: true,
+    }),
+  ]).start();
+}
+
+export function useEnterAnimation(
+  delayMs = 0,
+  { trigger = 'mount', visibleThreshold = 0.12 }: EnterAnimationOptions = {},
+) {
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(16)).current;
+  const ref = useRef<View>(null);
+  const hasAnimated = useRef(false);
+
+  const animate = useCallback(() => {
+    if (hasAnimated.current) return;
+    hasAnimated.current = true;
+    runEnterAnimation(opacity, translateY, delayMs);
+  }, [delayMs, opacity, translateY]);
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
-      opacity.setValue(1);
-      translateY.setValue(0);
+    if (trigger === 'mount') {
+      animate();
       return;
     }
 
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 380,
-        delay: delayMs,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: 320,
-        delay: delayMs,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [delayMs, opacity, translateY]);
+    if (prefersReducedMotion()) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      hasAnimated.current = true;
+      return;
+    }
 
-  return { opacity, translateY };
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      animate();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          animate();
+          observer.disconnect();
+        }
+      },
+      { threshold: visibleThreshold, rootMargin: '0px 0px -6% 0px' },
+    );
+
+    observer.observe(node as unknown as Element);
+    return () => observer.disconnect();
+  }, [animate, opacity, translateY, trigger, visibleThreshold]);
+
+  return { opacity, translateY, ref: trigger === 'visible' ? ref : undefined };
+}
+
+/** Width draw (0 → 100%) for connector lines on scroll reveal. */
+export function useConnectorDrawAnimation(delayMs = 0) {
+  const scaleX = useRef(new Animated.Value(0)).current;
+  const ref = useRef<View>(null);
+  const hasAnimated = useRef(false);
+
+  const animate = useCallback(() => {
+    if (hasAnimated.current) return;
+    hasAnimated.current = true;
+
+    if (prefersReducedMotion()) {
+      scaleX.setValue(1);
+      return;
+    }
+
+    Animated.timing(scaleX, {
+      toValue: 1,
+      duration: 520,
+      delay: delayMs,
+      useNativeDriver: true,
+    }).start();
+  }, [delayMs, scaleX]);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      scaleX.setValue(1);
+      hasAnimated.current = true;
+      return;
+    }
+
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      animate();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          animate();
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.2, rootMargin: '0px 0px -10% 0px' },
+    );
+
+    observer.observe(node as unknown as Element);
+    return () => observer.disconnect();
+  }, [animate, scaleX]);
+
+  return { scaleX, ref };
 }
 
 /** Fade out, swap content via displayKey, then fade in — for tab/toggle panels. */

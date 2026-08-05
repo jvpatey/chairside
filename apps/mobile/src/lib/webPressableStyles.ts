@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Platform, type ViewStyle } from 'react-native';
 
 export const IS_WEB = Platform.OS === 'web';
@@ -161,4 +162,23 @@ export function webCardLiftBase(): ViewStyle {
     transitionDuration: '220ms',
     transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
   } as ViewStyle);
+}
+
+/** Hover lift handlers + composed styles for marketing cards. */
+export function useWebCardLift(isDark: boolean) {
+  const [hovered, setHovered] = useState(false);
+
+  const liftStyle: ViewStyle = {
+    ...webCardLiftBase(),
+    ...webCardLiftHover(isDark, hovered, false),
+  };
+
+  const hoverHandlers = IS_WEB
+    ? {
+        onMouseEnter: () => setHovered(true),
+        onMouseLeave: () => setHovered(false),
+      }
+    : {};
+
+  return { liftStyle, hoverHandlers };
 }

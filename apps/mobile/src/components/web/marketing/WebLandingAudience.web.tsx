@@ -12,6 +12,7 @@ import {
   webOnlyStyle,
   webPointer,
   webTextLinkHoverStyles,
+  useWebCardLift,
 } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webGlassSurface, webSectionEyebrowStyle, webTypography } from '@/theme/web';
@@ -74,7 +75,8 @@ function panelGlow(accent: Accent, isDark: boolean) {
 }
 
 function AudiencePanel({ audience }: { audience: Audience }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { liftStyle, hoverHandlers } = useWebCardLift(isDark);
   const tint = accentColor(audience.accent, colors);
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
@@ -163,7 +165,7 @@ function AudiencePanel({ audience }: { audience: Audience }) {
   }));
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, liftStyle]} {...hoverHandlers}>
       <View style={styles.atmosphere} />
       <View style={styles.content}>
         <View style={styles.top}>
@@ -323,11 +325,11 @@ function AudienceGrid() {
   if (!isWide) {
     return (
       <View style={styles.stack}>
-        <WebPageEnter delayMs={0}>
+        <WebPageEnter delayMs={0} trigger="visible">
           <AudienceBridge compact />
         </WebPageEnter>
         {AUDIENCES.map((audience, index) => (
-          <WebPageEnter key={audience.id} delayMs={80 + index * 80}>
+          <WebPageEnter key={audience.id} delayMs={80 + index * 80} trigger="visible">
             <AudiencePanel audience={audience} />
           </WebPageEnter>
         ))}
@@ -339,15 +341,15 @@ function AudienceGrid() {
 
   return (
     <View style={styles.row}>
-      <WebPageEnter delayMs={0} style={{ flex: 1, minWidth: 0, alignSelf: 'stretch' }}>
+      <WebPageEnter delayMs={0} style={{ flex: 1, minWidth: 0, alignSelf: 'stretch' }} trigger="visible">
         <AudiencePanel audience={clinic} />
       </WebPageEnter>
       <AudienceConnector side="left" />
-      <WebPageEnter delayMs={80} style={{ alignSelf: 'center' }}>
+      <WebPageEnter delayMs={80} style={{ alignSelf: 'center' }} trigger="visible">
         <AudienceBridge />
       </WebPageEnter>
       <AudienceConnector side="right" />
-      <WebPageEnter delayMs={160} style={{ flex: 1, minWidth: 0, alignSelf: 'stretch' }}>
+      <WebPageEnter delayMs={160} style={{ flex: 1, minWidth: 0, alignSelf: 'stretch' }} trigger="visible">
         <AudiencePanel audience={worker} />
       </WebPageEnter>
     </View>
@@ -383,14 +385,6 @@ export function WebLandingAudience() {
       ...webTypography.headline,
       color: colors.labelPrimary,
       textAlign: 'center' as const,
-    },
-    subtitle: {
-      ...webTypography.subtitle,
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.labelSecondary,
-      textAlign: 'center' as const,
-      maxWidth: 480,
     },
   }));
 

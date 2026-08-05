@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WebLandingAudience } from '@/components/web/marketing/WebLandingAudience.web';
 import { WebLandingCta } from '@/components/web/marketing/WebLandingCta.web';
+import { WebLandingFaq } from '@/components/web/marketing/WebLandingFaq.web';
 import { WebLandingFeatures } from '@/components/web/marketing/WebLandingFeatures.web';
 import { WebLandingHero } from '@/components/web/marketing/WebLandingHero.web';
 import { WebLandingHowItWorks } from '@/components/web/marketing/WebLandingHowItWorks.web';
@@ -47,6 +48,7 @@ export function WelcomeWebLayout() {
         <WebLandingFeatures />
         <WebLandingHowItWorks />
         <WebLandingPricing />
+        <WebLandingFaq />
         <WebLandingCta />
         <WebMarketingFooter />
       </Animated.ScrollView>

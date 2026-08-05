@@ -3,11 +3,6 @@ import { Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import {
-  APP_STORE_COMING_SOON_HINT,
-  APP_STORE_COMING_SOON_LABEL,
-  APP_STORE_URL,
-} from '@/constants';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
@@ -55,20 +50,6 @@ export function WebLandingCta() {
       color: colors.labelSecondary,
       textAlign: 'center' as const,
     },
-    appNote: {
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelTertiary,
-      textAlign: 'center' as const,
-      maxWidth: 420,
-    },
-    appNoteTitle: {
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: '600' as const,
-      color: colors.labelSecondary,
-      textAlign: 'center' as const,
-    },
     ctaButton: {
       alignSelf: 'auto' as const,
       flexShrink: 0,
@@ -77,7 +58,7 @@ export function WebLandingCta() {
 
   return (
     <View style={styles.section}>
-      <WebPageEnter style={{ width: '100%' }}>
+      <WebPageEnter style={{ width: '100%' }} trigger="visible">
         <View style={styles.card}>
           <View style={styles.copy}>
             <Text style={styles.title}>Post a role or find your next one</Text>
@@ -91,12 +72,6 @@ export function WebLandingCta() {
             variant="primary"
             style={styles.ctaButton}
           />
-          {!APP_STORE_URL ? (
-            <View style={styles.copy}>
-              <Text style={styles.appNoteTitle}>{APP_STORE_COMING_SOON_LABEL}</Text>
-              <Text style={styles.appNote}>{APP_STORE_COMING_SOON_HINT}</Text>
-            </View>
-          ) : null}
         </View>
       </WebPageEnter>
     </View>
