@@ -11,6 +11,10 @@ import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnrea
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
+export const unstable_settings = {
+  initialRouteName: 'index',
+};
+
 function WorkerTabNavigator() {
   const { unreadCount } = useMessageUnread();
   const { pendingCount: applicationPendingCount, fillInPendingCount } = useApplicationTabBadge();
@@ -19,6 +23,7 @@ function WorkerTabNavigator() {
 
   return (
     <Tabs tabBar={renderWorkerTabBar} screenOptions={screenOptions}>
+      <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
       <Tabs.Screen
         name="browse"
         options={{
@@ -43,7 +48,6 @@ function WorkerTabNavigator() {
           ),
         }}
       />
-      <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
       <Tabs.Screen
         name="fillins"
         options={{

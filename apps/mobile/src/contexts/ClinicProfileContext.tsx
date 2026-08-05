@@ -60,6 +60,8 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
   const [locationScope, setLocationScopeState] = useState<ClinicLocationScope>('all');
   const [isClinicProfileReady, setIsClinicProfileReady] = useState(false);
   const requestRef = useRef(0);
+  /** Once settled for a user, keep the gate open during auth/token-driven refreshes. */
+  const settledUserIdRef = useRef<string | null>(null);
 
   const setLocationScope = useCallback(
     (scope: ClinicLocationScope) => {
@@ -118,11 +120,13 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
     async function load() {
       if (!isAuthReady) {
         setIsClinicProfileReady(false);
+        settledUserIdRef.current = null;
         return;
       }
 
       if (!user?.id) {
         requestRef.current += 1;
+        settledUserIdRef.current = null;
         setClinicProfile(null);
         setWorkspace(null);
         setIsClinicProfileReady(true);
@@ -132,6 +136,7 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       if (profile === null) {
         // Auth settled with no profile row — treat as ready so gates can redirect.
         requestRef.current += 1;
+        settledUserIdRef.current = null;
         setClinicProfile(null);
         setWorkspace(null);
         setIsClinicProfileReady(true);
@@ -140,6 +145,7 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
 
       if (profile.role !== 'clinic') {
         requestRef.current += 1;
+        settledUserIdRef.current = null;
         setClinicProfile(null);
         setWorkspace(null);
         setIsClinicProfileReady(true);
@@ -147,7 +153,13 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       }
 
       const requestId = ++requestRef.current;
-      setIsClinicProfileReady(false);
+      const isSoftRefresh = settledUserIdRef.current === user.id;
+      // Hard-block SetupGate only on first load for this user. Soft refreshes
+      // (e.g. profile identity change after browser-tab token refresh) must not
+      // unmount the tab navigator — that resets web tabs to Roles.
+      if (!isSoftRefresh) {
+        setIsClinicProfileReady(false);
+      }
 
       try {
         let nextWorkspace: ClinicWorkspace | null = null;
@@ -174,7 +186,10 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
           setWorkspace(null);
         }
       } finally {
-        if (!cancelled) setIsClinicProfileReady(true);
+        if (!cancelled && requestId === requestRef.current) {
+          settledUserIdRef.current = user.id;
+          setIsClinicProfileReady(true);
+        }
       }
     }
 

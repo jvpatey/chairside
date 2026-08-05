@@ -71,7 +71,8 @@ function ShellNavigationTheme({
     };
   }, [enabled, navigationTheme]);
 
-  if (!enabled) return children;
+  // Always wrap so enabling/disabling shell atmosphere does not remount the tab navigator
+  // (a remount resets to the first declared tab — Roles/postings — on web).
   return <ThemeProvider value={shellTheme}>{children}</ThemeProvider>;
 }
 

@@ -16,6 +16,10 @@ import {
 } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
+export const unstable_settings = {
+  initialRouteName: 'index',
+};
+
 function ClinicTabNavigator() {
   const { unreadCount } = useMessageUnread();
   const { pendingCount } = useFillInPending();
@@ -26,6 +30,7 @@ function ClinicTabNavigator() {
   return (
     <>
       <Tabs tabBar={renderClinicTabBar} screenOptions={screenOptions}>
+        <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
         <Tabs.Screen
           name="postings"
           options={{
@@ -63,7 +68,6 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
         <Tabs.Screen
           name="fill-ins"
           options={{

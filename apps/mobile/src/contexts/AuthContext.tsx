@@ -46,6 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isPasswordRecoveryPendingState, setIsPasswordRecoveryPendingState] = useState(false);
   const profileRequestRef = useRef(0);
   const signingOutRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    userIdRef.current = user?.id ?? null;
+  }, [user?.id]);
 
   const markRecoveryPending = useCallback(() => {
     setIsPasswordRecoveryPendingState(true);
@@ -143,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const supabase = getSupabaseClient();
-      const result = supabase.auth.onAuthStateChange((event) => {
+      const result = supabase.auth.onAuthStateChange((event, nextSession) => {
         if (signingOutRef.current && event !== 'SIGNED_OUT') {
           return;
         }
@@ -161,6 +166,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'PASSWORD_RECOVERY') {
           void markPasswordRecoveryPending();
           setIsPasswordRecoveryPendingState(true);
+        }
+
+        // Browser tab focus often refreshes the JWT. Updating session tokens is enough —
+        // a full profile reload unmounts SetupGate children and resets tabs to Roles.
+        if (event === 'TOKEN_REFRESHED') {
+          if (nextSession) {
+            setSession(nextSession);
+            setUser(nextSession.user);
+          }
+          return;
+        }
+
+        // Same-user SIGNED_IN can fire when the tab regains focus / recovers storage.
+        // Avoid a full profile cascade if we already have this user loaded.
+        if (
+          event === 'SIGNED_IN' &&
+          nextSession?.user?.id &&
+          nextSession.user.id === userIdRef.current
+        ) {
+          setSession(nextSession);
+          setUser(nextSession.user);
+          return;
         }
 
         void applySessionFromStorage();
