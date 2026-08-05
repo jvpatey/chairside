@@ -3,7 +3,11 @@ import { Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { APP_STORE_COMING_SOON_HINT } from '@/constants';
+import {
+  APP_STORE_COMING_SOON_HINT,
+  APP_STORE_COMING_SOON_LABEL,
+  APP_STORE_URL,
+} from '@/constants';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
@@ -58,6 +62,13 @@ export function WebLandingCta() {
       textAlign: 'center' as const,
       maxWidth: 420,
     },
+    appNoteTitle: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600' as const,
+      color: colors.labelSecondary,
+      textAlign: 'center' as const,
+    },
     ctaButton: {
       alignSelf: 'auto' as const,
       flexShrink: 0,
@@ -80,7 +91,12 @@ export function WebLandingCta() {
             variant="primary"
             style={styles.ctaButton}
           />
-          <Text style={styles.appNote}>{APP_STORE_COMING_SOON_HINT}</Text>
+          {!APP_STORE_URL ? (
+            <View style={styles.copy}>
+              <Text style={styles.appNoteTitle}>{APP_STORE_COMING_SOON_LABEL}</Text>
+              <Text style={styles.appNote}>{APP_STORE_COMING_SOON_HINT}</Text>
+            </View>
+          ) : null}
         </View>
       </WebPageEnter>
     </View>

@@ -30,36 +30,41 @@ export const lightColors: Colors = {
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
   labelPrimary: '#0E1B2C',
-  labelSecondary: '#3C3C4399',
-  labelTertiary: '#3C3C434D',
-  separator: '#C6C6C8',
-  fillSubtle: '#78788014',
-  // Brand blue — distinct from system `info`; meets contrast for white label on fills
+  // Brand-temperature neutrals — alphas tuned for AA body text on white/grouped
+  labelSecondary: '#3C485CC2',
+  labelTertiary: '#3C485C80',
+  separator: '#C9D0DC',
+  fillSubtle: '#3C485C14',
+  // Brand blue — roles / primary actions
   primary: '#1A6FD4',
   primaryPressed: '#155EB8',
   primarySubtle: '#D6E8FA',
   primaryOnPrimary: '#FFFFFF',
+  // Purple — fill-ins only
   secondary: '#5856D6',
   secondaryPressed: '#4A48B8',
   secondarySubtle: '#E6E4FF',
   secondaryOnSecondary: '#FFFFFF',
   success: '#248A3D',
-  warning: '#C93400',
-  urgent: '#D97706',
+  // Amber warning (distinct from destructive red)
+  warning: '#B45309',
+  // Same hue as warning — use filled vs tonal badge treatments, not a third color
+  urgent: '#B45309',
   destructive: '#D70015',
-  info: '#007AFF',
-  tabInactive: '#8E8E93',
+  // Alias of primary — do not introduce a second blue
+  info: '#1A6FD4',
+  tabInactive: '#6B7589',
 };
 
 export const darkColors: Colors = {
   background: '#0B0D12',
   backgroundGrouped: '#0B0D12',
-  surface: '#1C1C1E',
-  surfaceElevated: '#242428',
+  surface: '#14161D',
+  surfaceElevated: '#1B1E27',
   labelPrimary: '#FFFFFF',
-  labelSecondary: '#EBEBF599',
-  labelTertiary: '#EBEBF54D',
-  separator: '#38383A',
+  labelSecondary: '#E5EAF599',
+  labelTertiary: '#E5EAF54D',
+  separator: '#2A2E3A',
   fillSubtle: '#78788024',
   primary: '#4A9AFF',
   primaryPressed: '#3588F0',
@@ -71,9 +76,10 @@ export const darkColors: Colors = {
   secondaryOnSecondary: '#FFFFFF',
   success: '#30D158',
   warning: '#FF9F0A',
-  urgent: '#FFB340',
+  // Same hue family as warning — treatment differs in components, not hue
+  urgent: '#FF9F0A',
   destructive: '#FF453A',
-  info: '#0A84FF',
+  info: '#4A9AFF',
   tabInactive: '#636366',
 };
 

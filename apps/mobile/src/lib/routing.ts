@@ -77,7 +77,6 @@ export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
 export const CLINIC_DISCOVER: Href = '/(clinic-tabs)/discover' as Href;
 export const CLINIC_FIND_AVAILABLE_WORKERS: Href = '/(clinic-tabs)/find-available-workers' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
-export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const CLINIC_PROFILE_PRACTICE: Href = '/(clinic-tabs)/profile/practice' as Href;
 export const CLINIC_PROFILE_ABOUT: Href = '/(clinic-tabs)/profile/about' as Href;
@@ -346,7 +345,7 @@ export function navigateAfterWorkerShift(
     return;
   }
   if (returnTo === 'open-fill-ins') {
-    router.replace(WORKER_OPEN_FILLINS);
+    router.replace(WORKER_FILLINS);
     return;
   }
   if (returnTo === 'dashboard-fill-ins') {
@@ -777,7 +776,6 @@ const NOTIFICATION_TAB_ROOT_ROUTES = new Set([
   '/(clinic-tabs)/applications',
   '/(clinic-tabs)/calendar',
   '/(clinic-tabs)/messages',
-  '/(clinic-tabs)/clinic',
   '/(clinic-tabs)/profile',
 ]);
 

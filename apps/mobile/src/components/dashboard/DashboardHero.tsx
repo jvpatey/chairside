@@ -144,7 +144,7 @@ export function DashboardHero({
       width: 140,
       height: 140,
       borderRadius: 70,
-      backgroundColor: colorWithAlpha(colors.secondary, isDark ? 0.22 : 0.18),
+      backgroundColor: colorWithAlpha(colors.primary, isDark ? 0.22 : 0.14),
     },
     row: {
       position: 'relative' as const,
@@ -194,7 +194,9 @@ export function DashboardHero({
       borderRadius: radii.pill,
       backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.16 : 0.72),
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colorWithAlpha(colors.primaryOnPrimary, isDark ? 0.18 : 0.35),
+      borderColor: isDark
+        ? colorWithAlpha(colors.primaryOnPrimary, 0.18)
+        : colorWithAlpha(colors.primary, 0.22),
     },
     chipLabel: {
       fontSize: 12,

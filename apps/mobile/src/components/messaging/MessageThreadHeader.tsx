@@ -78,7 +78,7 @@ export function MessageThreadHeader({
   const display = conversation ? formatConversationDisplay(conversation, role) : null;
   const typeChip = conversation ? getConversationTypeChip(conversation) : null;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     container: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -102,7 +102,7 @@ export function MessageThreadHeader({
       alignItems: 'center',
       gap: spacing.md,
       minWidth: 0,
-      borderRadius: 12,
+      borderRadius: radii.md,
       paddingVertical: spacing.xs,
       ...webPointer(),
     },

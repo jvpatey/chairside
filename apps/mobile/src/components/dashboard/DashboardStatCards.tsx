@@ -1,13 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
+import { useCountUp } from '@/hooks/useCountUp';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   colorWithAlpha,
   fontExtraBold,
-  fontRegular,
   fontSemibold,
   getStatCardIdleGradient,
   getStatCardSelectedGradient,
@@ -15,7 +16,7 @@ import {
   useThemedStyles,
   type GradientAccent,
 } from '@/theme';
-import { webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { webCardLiftBase, webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
 
 export type DashboardStatCardItem<T extends string = string> = {
   key: T;
@@ -23,6 +24,8 @@ export type DashboardStatCardItem<T extends string = string> = {
   value: number;
   badgeCount?: number;
   accent?: GradientAccent;
+  /** Net change over the last 7 days (positive = up). */
+  weekDelta?: number;
 };
 
 type DashboardStatCardsProps<T extends string = string> = {
@@ -31,7 +34,46 @@ type DashboardStatCardsProps<T extends string = string> = {
   onSelect: (key: T) => void;
 };
 
-function StatCardValue({ value, color }: { value: number; color?: string }) {
+function usePrefersReducedMotion() {
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (!cancelled) setReduceMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, []);
+
+  return reduceMotion;
+}
+
+function formatWeekDelta(delta: number): string {
+  if (delta > 0) return `▲${delta} this week`;
+  return `▼${Math.abs(delta)} this week`;
+}
+
+function StatCardValue({
+  value,
+  color,
+  delayMs,
+  animate,
+}: {
+  value: number;
+  color?: string;
+  delayMs: number;
+  animate: boolean;
+}) {
+  const displayValue = useCountUp(value, {
+    durationMs: 640,
+    delayMs,
+    enabled: animate,
+  });
+
   const styles = useThemedStyles(({ colors }) => ({
     value: {
       fontSize: 28,
@@ -45,7 +87,7 @@ function StatCardValue({ value, color }: { value: number; color?: string }) {
     },
   }));
 
-  return <Text style={styles.value}>{value}</Text>;
+  return <Text style={styles.value}>{displayValue}</Text>;
 }
 
 export function DashboardStatCards<T extends string = string>({
@@ -56,6 +98,7 @@ export function DashboardStatCards<T extends string = string>({
   const { colors, isDark } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const isWeb = Platform.OS === 'web';
+  const reduceMotion = usePrefersReducedMotion();
 
   const styles = useThemedStyles(({ colors, spacing, radii, elevation, isDark }) => ({
     row: {
@@ -70,11 +113,12 @@ export function DashboardStatCards<T extends string = string>({
       minWidth: 0,
       borderRadius: radii.lg,
       overflow: 'hidden',
-      borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      minHeight: isTablet ? 96 : 88,
+      minHeight: isTablet ? 104 : 96,
       ...elevation('subtle'),
       ...webPointer(),
+      ...webCardLiftBase(),
       ...(isWeb ? { width: 0 } : null),
     },
     cardSelected: {
@@ -91,7 +135,7 @@ export function DashboardStatCards<T extends string = string>({
       paddingVertical: spacing.sm + 4,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: spacing.xs,
+      gap: 2,
     },
     badgeAnchor: {
       position: 'absolute',
@@ -108,6 +152,21 @@ export function DashboardStatCards<T extends string = string>({
     },
     labelSelected: {
       color: colors.labelPrimary,
+    },
+    delta: {
+      fontSize: 10,
+      lineHeight: 12,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelSecondary,
+      textAlign: 'center' as const,
+      marginTop: 1,
+    },
+    deltaUp: {
+      color: colors.success,
+    },
+    deltaDown: {
+      color: colors.destructive,
     },
     cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: {
@@ -126,7 +185,7 @@ export function DashboardStatCards<T extends string = string>({
 
   return (
     <View style={styles.row} accessibilityRole="tablist">
-      {stats.map((stat) => {
+      {stats.map((stat, index) => {
         const isSelected = selected === stat.key;
         const isEmpty = stat.value === 0;
         const accent = stat.accent ?? 'primary';
@@ -140,13 +199,17 @@ export function DashboardStatCards<T extends string = string>({
           ? getStatCardSelectedGradient(colors, isDark, accent)
           : getStatCardIdleGradient(colors, isDark);
         const badgeCount = stat.badgeCount ?? 0;
+        const weekDelta = stat.weekDelta;
+        const showDelta = weekDelta != null && weekDelta !== 0;
 
         return (
           <Pressable
             key={stat.key}
             accessibilityRole="tab"
             accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={`${stat.label}: ${stat.value}${badgeCount > 0 ? `, ${badgeCount} updates` : ''}`}
+            accessibilityLabel={`${stat.label}: ${stat.value}${
+              showDelta ? `, ${formatWeekDelta(weekDelta)}` : ''
+            }${badgeCount > 0 ? `, ${badgeCount} updates` : ''}`}
             onPress={() => handleSelect(stat.key)}
             style={({ pressed, hovered }) => [
               styles.card,
@@ -162,7 +225,12 @@ export function DashboardStatCards<T extends string = string>({
                   <NotificationCountBadge count={badgeCount} />
                 </View>
               ) : null}
-              <StatCardValue value={stat.value} color={selectedForeground} />
+              <StatCardValue
+                value={stat.value}
+                color={selectedForeground}
+                delayMs={index * 60}
+                animate={!reduceMotion}
+              />
               <Text
                 style={[
                   styles.label,
@@ -173,6 +241,21 @@ export function DashboardStatCards<T extends string = string>({
               >
                 {stat.label}
               </Text>
+              {showDelta ? (
+                <Text
+                  style={[
+                    styles.delta,
+                    weekDelta > 0 ? styles.deltaUp : null,
+                    weekDelta < 0 ? styles.deltaDown : null,
+                    selectedForeground && weekDelta === 0
+                      ? { color: selectedForeground }
+                      : null,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {formatWeekDelta(weekDelta)}
+                </Text>
+              ) : null}
             </View>
           </Pressable>
         );

@@ -13,6 +13,7 @@ import {
   webHover,
   webPointer,
   webTileHoverStyles,
+  webCardLiftBase,
 } from '@/lib/webPressableStyles';
 import {
   getSurfaceGradient,
@@ -44,14 +45,16 @@ function SurfaceCardContent({
   children,
   gap,
   contentStyle,
-  styles,
+  contentLayerStyle,
+  contentGapStyle,
 }: {
   children: ReactNode;
   gap: boolean;
   contentStyle?: StyleProp<ViewStyle>;
-  styles: ReturnType<typeof useThemedStyles<{ content: ViewStyle }>>;
+  contentLayerStyle: StyleProp<ViewStyle>;
+  contentGapStyle: StyleProp<ViewStyle>;
 }) {
-  return <View style={[styles.contentLayer, gap && styles.content, contentStyle]}>{children}</View>;
+  return <View style={[contentLayerStyle, gap && contentGapStyle, contentStyle]}>{children}</View>;
 }
 
 export function SurfaceCard({
@@ -74,18 +77,17 @@ export function SurfaceCard({
     card: {
       borderRadius: radii.lg,
       overflow: 'hidden',
-      borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor:
         variant === 'success'
           ? `${colors.success}40`
-          : isDark
-            ? colors.separator
-            : 'transparent',
+          : colors.separator,
       ...(padding === 'none' ? null : { padding: padding === 'lg' ? spacing.lg : spacing.md }),
       ...(gap ? { gap: spacing.sm } : null),
       ...(minHeight != null ? { minHeight } : null),
       ...(elevationLevel !== 'none' ? elevation(elevationLevel) : null),
       ...webPointer(onPress ? 'pointer' : 'default'),
+      ...(onPress ? webCardLiftBase() : null),
     },
     cardDefault: {
       backgroundColor: variant === 'success' ? `${colors.success}10` : colors.surface,
@@ -116,15 +118,20 @@ export function SurfaceCard({
       ) : null}
       {featuredOverlay ? (
         <LinearGradient
-          colors={featuredOverlay.colors}
-          locations={[...featuredOverlay.locations]}
+          colors={featuredOverlay.colors as [string, string, ...string[]]}
+          locations={featuredOverlay.locations as [number, number, ...number[]]}
           start={featuredOverlay.start}
           end={featuredOverlay.end}
           style={styles.gradient}
           pointerEvents="none"
         />
       ) : null}
-      <SurfaceCardContent gap={gap} contentStyle={contentStyle} styles={styles}>
+      <SurfaceCardContent
+        gap={gap}
+        contentStyle={contentStyle}
+        contentLayerStyle={styles.contentLayer}
+        contentGapStyle={styles.content}
+      >
         {children}
       </SurfaceCardContent>
     </>

@@ -6,7 +6,7 @@ import {
   type ConversationInboxFilter,
 } from '@/lib/conversationInbox';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { colorWithAlpha, useThemedStyles } from '@/theme';
 
 type ConversationInboxFiltersProps = {
   selected: ConversationInboxFilter;
@@ -24,7 +24,7 @@ export function ConversationInboxFilters({
   counts,
   onChange,
 }: ConversationInboxFiltersProps) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     row: {
       flexDirection: 'row',
       gap: spacing.xs,
@@ -67,13 +67,13 @@ export function ConversationInboxFilters({
       minWidth: 20,
       height: 20,
       paddingHorizontal: 6,
-      borderRadius: 10,
+      borderRadius: radii.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.separator,
     },
     countActive: {
-      backgroundColor: 'rgba(255, 255, 255, 0.22)',
+      backgroundColor: colorWithAlpha('#FFFFFF', 0.22),
     },
     countText: {
       fontSize: 11,

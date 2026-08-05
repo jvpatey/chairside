@@ -2,15 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
-import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { webPointer } from '@/lib/webPressableStyles';
+import { colorWithAlpha, fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type DashboardErrorBannerProps = {
   message?: string;
   onRetry: () => void;
 };
 
-/** Inline retry banner when dashboard data fails to load. */
+/** Inline retry banner when screen data fails to load. */
 export function DashboardErrorBanner({
   message = 'Could not refresh your dashboard.',
   onRetry,
@@ -25,7 +25,7 @@ export function DashboardErrorBanner({
       backgroundColor: colors.primarySubtle,
       borderRadius: radii.lg,
       borderWidth: 1,
-      borderColor: `${colors.primary}44`,
+      borderColor: colorWithAlpha(colors.primary, 0.267),
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
     },
@@ -37,7 +37,7 @@ export function DashboardErrorBanner({
       color: colors.labelPrimary,
     },
     retryPressable: {
-      borderRadius: 8,
+      borderRadius: radii.sm,
       paddingHorizontal: 4,
       paddingVertical: 2,
       ...webPointer(),

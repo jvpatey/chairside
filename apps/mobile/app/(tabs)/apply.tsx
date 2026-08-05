@@ -53,11 +53,11 @@ export default function ApplyScreen() {
   const [isReRequest, setIsReRequest] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     content: { gap: spacing.lg },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
@@ -70,7 +70,7 @@ export default function ApplyScreen() {
     compensation: {
       fontSize: 15,
       fontWeight: '600',
-      color: colors.primary,
+      color: colors.secondary,
     },
     footer: {
       flexDirection: 'row',
@@ -83,7 +83,7 @@ export default function ApplyScreen() {
       alignItems: 'flex-start',
       gap: spacing.md,
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: radii.md,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
@@ -91,7 +91,7 @@ export default function ApplyScreen() {
     screeningIconWrap: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: radii.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primarySubtle,

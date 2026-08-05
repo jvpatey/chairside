@@ -13,9 +13,9 @@ import {
 } from '@/lib/getStartedChecklist';
 import {
   CLINIC_APPLICATIONS,
-  CLINIC_MESSAGES,
   CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
+  getClinicMessagesRoute,
 } from '@/lib/routing';
 
 type ClinicReadinessChecklistProps = {
@@ -82,7 +82,8 @@ export function ClinicReadinessChecklist({
           : 'Respond to applicants and keep hiring moving.',
         complete: hasEngagement,
         onPress: () => {
-          const target: Href = totalApplications > 0 ? CLINIC_APPLICATIONS : CLINIC_MESSAGES;
+          const target: Href =
+            totalApplications > 0 ? CLINIC_APPLICATIONS : getClinicMessagesRoute();
           router.push(target);
         },
       },

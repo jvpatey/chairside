@@ -1,15 +1,12 @@
 import * as Linking from 'expo-linking';
 import { Image, Pressable, Text, View } from 'react-native';
 
-import {
-  APP_STORE_COMING_SOON_HINT,
-  APP_STORE_COMING_SOON_LABEL,
-  APP_STORE_URL,
-} from '@/constants';
-import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { APP_STORE_URL } from '@/constants';
+import { webHover, webOnlyStyle, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
+import { useTheme, useThemedStyles } from '@/theme';
 
-const WEB_SCREENSHOT = require('../../../assets/images/web_screenshot.png');
+const WEB_SCREENSHOT_LIGHT = require('../../../assets/images/web_screenshot.png');
+const WEB_SCREENSHOT_DARK = require('../../../assets/images/web_screenshot_dark.png');
 const SCREENSHOT_ASPECT_RATIO = 1556 / 890;
 
 type WelcomeHeroAppPanelProps = {
@@ -17,7 +14,8 @@ type WelcomeHeroAppPanelProps = {
 };
 
 export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
-  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
+  const { isDark } = useTheme();
+  const styles = useThemedStyles(({ colors, spacing, isDark: dark }) => ({
     wrap: {
       position: 'relative' as const,
       alignItems: 'center' as const,
@@ -30,13 +28,15 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
       top: '6%',
       left: '4%',
       right: '4%',
-      bottom: '18%',
+      bottom: APP_STORE_URL ? '18%' : '4%',
       borderRadius: 32,
-      // @ts-expect-error — web-only gradient
-      backgroundImage: isDark
-        ? 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(74, 154, 255, 0.22) 0%, rgba(152, 150, 255, 0.08) 42%, transparent 72%)'
-        : 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(26, 111, 212, 0.18) 0%, rgba(88, 86, 214, 0.08) 42%, transparent 72%)',
       pointerEvents: 'none' as const,
+      ...webOnlyStyle({
+        // Blue-only wash for clinic-flagship marketing (no purple blend)
+        backgroundImage: dark
+          ? 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(74, 154, 255, 0.22) 0%, rgba(74, 154, 255, 0.06) 42%, transparent 72%)'
+          : 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(26, 111, 212, 0.18) 0%, rgba(26, 111, 212, 0.06) 42%, transparent 72%)',
+      } as object),
     },
     windowShell: {
       width: '100%',
@@ -45,10 +45,11 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
       borderColor: colors.separator,
       backgroundColor: colors.surface,
       overflow: 'hidden' as const,
-      // @ts-expect-error — web-only
-      boxShadow: isDark
-        ? '0 24px 48px rgba(0, 0, 0, 0.35)'
-        : '0 20px 40px rgba(26, 111, 212, 0.12)',
+      ...webOnlyStyle({
+        boxShadow: dark
+          ? '0 24px 48px rgba(0, 0, 0, 0.35)'
+          : '0 20px 40px rgba(26, 111, 212, 0.12)',
+      } as object),
     },
     windowChrome: {
       flexDirection: 'row' as const,
@@ -74,28 +75,12 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
     screenshot: {
       width: '100%',
       height: '100%',
-      // @ts-expect-error — objectFit is web-only
-      objectFit: 'contain',
     },
     appPitch: {
       marginTop: spacing.md,
       alignItems: 'center' as const,
       gap: spacing.xs,
       width: '100%',
-    },
-    appPitchTitle: {
-      ...typography.body,
-      fontSize: 15,
-      fontWeight: '600' as const,
-      color: colors.labelPrimary,
-      textAlign: 'center' as const,
-    },
-    appPitchHint: {
-      ...typography.subtitle,
-      fontSize: 13,
-      lineHeight: 18,
-      textAlign: 'center' as const,
-      maxWidth: 320,
     },
     appStoreLink: {
       marginTop: spacing.xs,
@@ -112,21 +97,7 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
     },
   }));
 
-  const appStoreContent = APP_STORE_URL ? (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel="Download on the App Store"
-      onPress={() => void Linking.openURL(APP_STORE_URL)}
-      style={({ pressed, hovered }) => [
-        styles.appStoreLink,
-        webHover(hovered, pressed, styles.appStoreLinkHovered),
-        pressed && { opacity: 0.75 },
-      ]}>
-      <Text style={styles.appStoreLinkText}>Download for iPhone</Text>
-    </Pressable>
-  ) : (
-    <Text style={styles.appPitchTitle}>{APP_STORE_COMING_SOON_LABEL}</Text>
-  );
+  const appStoreUrl = APP_STORE_URL;
 
   return (
     <View style={styles.wrap}>
@@ -139,7 +110,7 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
         </View>
         <View style={styles.screenshotFrame}>
           <Image
-            source={WEB_SCREENSHOT}
+            source={isDark ? WEB_SCREENSHOT_DARK : WEB_SCREENSHOT_LIGHT}
             style={styles.screenshot}
             resizeMode="contain"
             accessibilityRole="image"
@@ -147,10 +118,21 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
           />
         </View>
       </View>
-      <View style={styles.appPitch}>
-        {appStoreContent}
-        <Text style={styles.appPitchHint}>{APP_STORE_COMING_SOON_HINT}</Text>
-      </View>
+      {appStoreUrl ? (
+        <View style={styles.appPitch}>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Download on the App Store"
+            onPress={() => void Linking.openURL(appStoreUrl)}
+            style={({ pressed, hovered }) => [
+              styles.appStoreLink,
+              webHover(hovered, pressed, styles.appStoreLinkHovered),
+              pressed && { opacity: 0.75 },
+            ]}>
+            <Text style={styles.appStoreLinkText}>Download for iPhone</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }

@@ -7,7 +7,7 @@ import {
   enterFadeUp,
 } from '@/components/onboarding/onboardingAnimations';
 import { ONBOARDING_SUBTITLE } from '@/constants';
-import { useThemedStyles } from '@/theme';
+import { fontExtraBold, useThemedStyles } from '@/theme';
 
 const MOBILE_HEADLINE = 'Dental staffing, simplified.';
 
@@ -25,11 +25,13 @@ export function WelcomeHero() {
     },
     headline: {
       ...typography.title,
-      fontSize: 31,
-      lineHeight: 37,
+      fontFamily: fontExtraBold,
+      fontWeight: '800',
+      fontSize: 38,
+      lineHeight: 44,
       textAlign: 'center',
-      letterSpacing: -0.4,
-      maxWidth: 320,
+      letterSpacing: -0.6,
+      maxWidth: 340,
       marginTop: spacing.xs,
     },
     subtitle: {

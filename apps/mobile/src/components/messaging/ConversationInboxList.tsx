@@ -67,7 +67,7 @@ export function ConversationInboxList({
   const [isSearchingMessages, setIsSearchingMessages] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, colors, typography, isDark }) => ({
+  const styles = useThemedStyles(({ spacing, colors, typography, isDark, radii }) => ({
     content: {
       flex: compact ? 1 : undefined,
       minHeight: compact ? 0 : undefined,
@@ -91,7 +91,7 @@ export function ConversationInboxList({
       alignItems: 'center',
       gap: spacing.sm,
       backgroundColor: colors.fillSubtle,
-      borderRadius: 12,
+      borderRadius: radii.md,
       borderWidth: 1,
       borderColor: 'transparent',
       paddingHorizontal: spacing.md,

@@ -169,7 +169,7 @@ export function MessageThread({
   const transparentShell = showTabAtmosphere || (embedded && Platform.OS === 'web');
   const paintOwnAtmosphere = showTabAtmosphere && !(embedded && Platform.OS === 'web');
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     container: {
       flex: 1,
       overflow: 'hidden',
@@ -193,7 +193,7 @@ export function MessageThread({
       marginHorizontal: spacing.lg,
       marginBottom: spacing.sm,
       padding: spacing.md,
-      borderRadius: 12,
+      borderRadius: radii.md,
       backgroundColor: colors.backgroundGrouped,
     },
     closedText: typography.subtitle,
@@ -257,7 +257,7 @@ export function MessageThread({
     scrollToLatestBadge: {
       minWidth: 20,
       height: 20,
-      borderRadius: 10,
+      borderRadius: radii.sm,
       paddingHorizontal: 6,
       alignItems: 'center',
       justifyContent: 'center',

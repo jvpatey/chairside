@@ -29,7 +29,6 @@ const CLINIC_STACK_FRAGMENTS = [
   '/shift-applicants/',
   '/role-history',
   '/discover/',
-  '/clinic',
 ] as const;
 
 function normalizePath(pathname: string): string {

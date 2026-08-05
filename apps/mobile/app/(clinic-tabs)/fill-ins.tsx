@@ -23,12 +23,14 @@ import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { PageTabBar } from '@/components/ui/PageTabBar';
+import { ResponsiveColumns } from '@/components/ui/ResponsiveLayout';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
@@ -77,7 +79,7 @@ function sectionTitleWithCount(title: string, count: number) {
 
 export default function ClinicFillInsScreen() {
   const { colors } = useTheme();
-  const { isTablet } = useResponsiveLayout();
+  const { isTablet, isWide } = useResponsiveLayout();
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
@@ -100,6 +102,7 @@ export default function ClinicFillInsScreen() {
   const [shiftSearchQuery, setShiftSearchQuery] = useState('');
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
@@ -109,6 +112,9 @@ export default function ClinicFillInsScreen() {
     list: { gap: spacing.md },
     section: { gap: spacing.sm },
     sectionBody: { gap: spacing.lg },
+    desktopFillInsColumn: { gap: spacing.xl, flex: 1, minWidth: 0 },
+    stackOrderNeeds: { order: 1 },
+    stackOrderFillIns: { order: 2 },
     filterToolbar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -170,6 +176,7 @@ export default function ClinicFillInsScreen() {
     if (!clinicId) {
       setCoverRequests([]);
       setShifts([]);
+      setLoadError(false);
       setIsLoading(false);
       return;
     }
@@ -177,6 +184,7 @@ export default function ClinicFillInsScreen() {
     if (!hasLoadedOnce.current) {
       setIsLoading(true);
     }
+    setLoadError(false);
 
     try {
       const locationOpts = { locationIds: scopedLocationIds } as const;
@@ -204,11 +212,8 @@ export default function ClinicFillInsScreen() {
       await refreshPending();
       await refreshBilling();
       hasLoadedOnce.current = true;
-    } catch (error) {
-      Alert.alert(
-        'Could not load fill-ins',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+    } catch {
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -280,6 +285,12 @@ export default function ClinicFillInsScreen() {
         onRefresh={onRefresh}
         refreshAccent="secondary">
         <View style={styles.wrap}>
+          {loadError ? (
+            <DashboardErrorBanner
+              message="Could not load fill-ins."
+              onRetry={() => void load()}
+            />
+          ) : null}
           <DashboardQuickActionsRow
             actions={[
               {
@@ -322,49 +333,8 @@ export default function ClinicFillInsScreen() {
             />
           ) : null}
 
-          <View style={styles.section}>
-            <DashboardSectionHeader
-              title={sectionTitleWithCount('Needs response', coverRequests.length)}
-            />
-            {coverRequests.length === 0 ? (
-              <EmptyState
-                icon="checkmark-circle-outline"
-                title="No pending cover requests"
-                message="New requests from workers will appear here when they apply to cover a fill-in."
-              />
-            ) : (
-              <View style={styles.list}>
-                <ListSearchFilterRow
-                  value={coverSearchQuery}
-                  onChange={setCoverSearchQuery}
-                  placeholder="Search applicant name"
-                  accessibilityLabel="Search cover requests"
-                />
-                {filteredCoverRequests.length === 0 ? (
-                  <EmptyState
-                    icon="search-outline"
-                    title="No matching cover requests"
-                    message="Try a different search term."
-                  />
-                ) : (
-                  <StaggeredList>
-                    {filteredCoverRequests.map((request) => (
-                      <FillInApplicantCard
-                        key={request.id}
-                        application={request}
-                        clinicId={user?.id ?? ''}
-                        returnTo="fill-ins-tab"
-                        hasUnreadMessages={Boolean(unreadMap[request.id])}
-                        onUpdated={() => void load()}
-                        onConfirmed={(payload) => showCelebration(payload)}
-                      />
-                    ))}
-                  </StaggeredList>
-                )}
-              </View>
-            )}
-          </View>
-
+          <ResponsiveColumns breakpoint="wide">
+          <View style={[styles.desktopFillInsColumn, !isWide ? styles.stackOrderFillIns : null]}>
           {confirmedRows.length > 0 ? (
             <View style={styles.section}>
               <DashboardSectionHeader
@@ -513,6 +483,51 @@ export default function ClinicFillInsScreen() {
               </View>
             )}
           </View>
+          </View>
+
+          <View style={[styles.section, !isWide ? styles.stackOrderNeeds : null]}>
+            <DashboardSectionHeader
+              title={sectionTitleWithCount('Needs response', coverRequests.length)}
+            />
+            {coverRequests.length === 0 ? (
+              <EmptyState
+                icon="checkmark-circle-outline"
+                title="No pending cover requests"
+                message="New requests from workers will appear here when they apply to cover a fill-in."
+              />
+            ) : (
+              <View style={styles.list}>
+                <ListSearchFilterRow
+                  value={coverSearchQuery}
+                  onChange={setCoverSearchQuery}
+                  placeholder="Search applicant name"
+                  accessibilityLabel="Search cover requests"
+                />
+                {filteredCoverRequests.length === 0 ? (
+                  <EmptyState
+                    icon="search-outline"
+                    title="No matching cover requests"
+                    message="Try a different search term."
+                  />
+                ) : (
+                  <StaggeredList>
+                    {filteredCoverRequests.map((request) => (
+                      <FillInApplicantCard
+                        key={request.id}
+                        application={request}
+                        clinicId={user?.id ?? ''}
+                        returnTo="fill-ins-tab"
+                        hasUnreadMessages={Boolean(unreadMap[request.id])}
+                        onUpdated={() => void load()}
+                        onConfirmed={(payload) => showCelebration(payload)}
+                      />
+                    ))}
+                  </StaggeredList>
+                )}
+              </View>
+            )}
+          </View>
+          </ResponsiveColumns>
         </View>
       </Screen>
       <HiringCelebrationModal

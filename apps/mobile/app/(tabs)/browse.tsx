@@ -13,6 +13,7 @@ import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewTogg
 import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
@@ -99,6 +100,7 @@ export default function BrowseScreen() {
   );
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [controlsHeight, setControlsHeight] = useState(132);
   const { height: windowHeight } = useWindowDimensions();
   const { isWide } = useResponsiveLayout();
@@ -107,6 +109,7 @@ export default function BrowseScreen() {
 
   const load = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(false);
     try {
       const [jobRows, appliedIds, savedIds] = await Promise.all([
         listLiveJobPosts(province),
@@ -120,6 +123,7 @@ export default function BrowseScreen() {
       setJobs([]);
       setAppliedJobIds(new Set());
       setSavedJobIds(new Set());
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -396,9 +400,15 @@ export default function BrowseScreen() {
       onRefresh={onRefresh}
     >
       <View style={styles.wrap}>
+        {loadError ? (
+          <DashboardErrorBanner
+            message="Could not load roles."
+            onRetry={() => void load()}
+          />
+        ) : null}
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
-        ) : jobs.length === 0 ? (
+        ) : loadError ? null : jobs.length === 0 ? (
           <EmptyState
             icon="briefcase-outline"
             title="No open roles"

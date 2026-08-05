@@ -96,6 +96,9 @@ export default function ClinicDashboardScreen() {
     fillInsPosted: 0,
     totalApplications: 0,
     newApplications: 0,
+    openRolesWeekDelta: 0,
+    fillInsWeekDelta: 0,
+    applicationsWeekDelta: 0,
   });
   const [selectedOverview, setSelectedOverview] = useState<OverviewStat>('roles');
   const [jobs, setJobs] = useState<JobPost[]>([]);
@@ -170,7 +173,15 @@ export default function ClinicDashboardScreen() {
     } catch {
       setLoadError(true);
       if (!hasLoadedOnce.current) {
-        setCounts({ openRoles: 0, fillInsPosted: 0, totalApplications: 0, newApplications: 0 });
+        setCounts({
+          openRoles: 0,
+          fillInsPosted: 0,
+          totalApplications: 0,
+          newApplications: 0,
+          openRolesWeekDelta: 0,
+          fillInsWeekDelta: 0,
+          applicationsWeekDelta: 0,
+        });
         setJobs([]);
         setShifts([]);
         setJobApplicationSummaries([]);
@@ -385,12 +396,14 @@ export default function ClinicDashboardScreen() {
                 key: 'roles',
                 label: 'Open roles',
                 value: counts.openRoles,
+                weekDelta: counts.openRolesWeekDelta,
                 accent: 'primary',
               },
               {
                 key: 'fill-ins',
                 label: 'Fill-ins',
                 value: counts.fillInsPosted,
+                weekDelta: counts.fillInsWeekDelta,
                 badgeCount: fillInUpdateCount,
                 accent: 'secondary',
               },
@@ -398,6 +411,7 @@ export default function ClinicDashboardScreen() {
                 key: 'applications',
                 label: 'Applications',
                 value: counts.totalApplications,
+                weekDelta: counts.applicationsWeekDelta,
                 badgeCount: applicationUpdateCount,
                 accent: 'primary',
               },

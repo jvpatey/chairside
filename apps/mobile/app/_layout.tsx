@@ -22,6 +22,7 @@ import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { WebAuthCallbackHandler } from '@/components/auth/WebAuthCallbackHandler';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
+import { armBootSplashFallback } from '@/lib/bootSplash';
 import { ClinicBillingModalHost } from '@/components/billing/ClinicBillingModal';
 import { GetStartedBrowseProgressProvider } from '@/contexts/GetStartedBrowseProgressContext';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
@@ -56,7 +57,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsReady) {
-      void SplashScreen.hideAsync().catch(() => {});
+      armBootSplashFallback();
     }
   }, [fontsReady]);
 

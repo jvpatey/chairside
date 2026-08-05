@@ -46,11 +46,11 @@ export default function ApplyScreeningScreen() {
   const pages = useMemo(() => buildScreeningWizardPages(questions), [questions]);
   const currentPage = pages[pageIndex];
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     content: { gap: spacing.lg },
     reviewCard: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.lg,

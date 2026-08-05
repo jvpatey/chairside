@@ -77,11 +77,11 @@ export default function WorkerShiftDetailScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     content: { gap: spacing.lg },
     clinicCard: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,

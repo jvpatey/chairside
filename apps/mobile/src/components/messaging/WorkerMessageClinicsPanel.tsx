@@ -54,7 +54,7 @@ export function WorkerMessageClinicsPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [isStarting, setIsStarting] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
+  const styles = useThemedStyles(({ spacing, typography, colors, radii }) => ({
     content: { gap: spacing.lg },
     scroll: { flex: 1 },
     scrollContent: {
@@ -63,7 +63,7 @@ export function WorkerMessageClinicsPanel({
     },
     searchWrap: {
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: radii.md,
       borderWidth: 1,
       borderColor: colors.separator,
       paddingHorizontal: spacing.md,
@@ -78,7 +78,7 @@ export function WorkerMessageClinicsPanel({
       alignItems: 'center',
       gap: spacing.md,
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.xl,

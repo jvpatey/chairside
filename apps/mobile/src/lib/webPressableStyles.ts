@@ -38,12 +38,16 @@ type HoverColors = {
   primarySubtle?: string;
 };
 
-/** Hover styles for bordered tile/card pressables. */
+/** Hover styles for bordered tile/card pressables — lift + brighter border. */
 export function webTileHoverStyles(colors: HoverColors, isDark: boolean): ViewStyle {
   return webOnlyStyle({
     backgroundColor: colors.fillSubtle,
-    borderColor: colors.labelTertiary,
-    boxShadow: webTileHoverShadow(isDark),
+    borderColor: isDark ? 'rgba(255,255,255,0.22)' : colors.labelTertiary,
+    borderWidth: 1,
+    transform: [{ translateY: -2 }],
+    boxShadow: isDark
+      ? '0 8px 24px rgba(0, 0, 0, 0.32)'
+      : '0 8px 24px rgba(0, 0, 0, 0.1)',
   } as ViewStyle);
 }
 
@@ -153,7 +157,7 @@ export function webFocusRing(primary: string, focused: boolean): ViewStyle {
 /** Card lift transition base styles. */
 export function webCardLiftBase(): ViewStyle {
   return webOnlyStyle({
-    transitionProperty: 'transform, box-shadow',
+    transitionProperty: 'transform, box-shadow, border-color, background-color',
     transitionDuration: '220ms',
     transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
   } as ViewStyle);

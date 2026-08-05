@@ -34,7 +34,7 @@ export function getElevationStyle({ isDark, level }: ElevationOptions): ViewStyl
       ? {
           shadowColor: isDark ? '#000' : `rgb(${brandRgb})`,
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: isDark ? 0.24 : 0.07,
+          shadowOpacity: isDark ? 0.24 : 0.1,
           shadowRadius: isDark ? 10 : 16,
           elevation: 2,
         }
@@ -42,14 +42,14 @@ export function getElevationStyle({ isDark, level }: ElevationOptions): ViewStyl
         ? {
             shadowColor: isDark ? '#000' : `rgb(${brandRgb})`,
             shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: isDark ? 0.32 : 0.1,
+            shadowOpacity: isDark ? 0.32 : 0.12,
             shadowRadius: isDark ? 18 : 24,
             elevation: 4,
           }
         : {
             shadowColor: isDark ? '#000' : `rgb(${brandRgb})`,
             shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: isDark ? 0.38 : 0.14,
+            shadowOpacity: isDark ? 0.38 : 0.16,
             shadowRadius: isDark ? 28 : 32,
             elevation: 8,
           };
@@ -58,11 +58,11 @@ export function getElevationStyle({ isDark, level }: ElevationOptions): ViewStyl
     level === 'subtle'
       ? isDark
         ? '0 4px 16px rgba(0, 0, 0, 0.28)'
-        : `0 8px 28px rgba(${brandRgb}, 0.07)`
+        : `0 8px 28px rgba(${brandRgb}, 0.1)`
       : level === 'raised'
         ? isDark
           ? '0 8px 24px rgba(0, 0, 0, 0.34)'
-          : `0 12px 32px rgba(${brandRgb}, 0.1)`
+          : `0 12px 32px rgba(${brandRgb}, 0.12)`
         : isDark
           ? '0 12px 40px rgba(0, 0, 0, 0.4)'
           : `0 16px 40px rgba(${brandRgb}, 0.14)`;

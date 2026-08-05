@@ -73,14 +73,14 @@ function ContextActionRow({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     row: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
-      borderRadius: 12,
+      borderRadius: radii.md,
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
@@ -92,7 +92,7 @@ function ContextActionRow({
     iconWrap: {
       width: 32,
       height: 32,
-      borderRadius: 8,
+      borderRadius: radii.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primarySubtle,

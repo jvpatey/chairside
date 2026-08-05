@@ -7,6 +7,7 @@ import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInse
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -45,6 +46,7 @@ export function ProfileDetailScreen({
   const scrollContentRef = useRef<ViewType>(null);
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset();
+  const { contentMaxWidth } = useResponsiveLayout();
   const { colors } = useTheme();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
@@ -55,7 +57,7 @@ export function ProfileDetailScreen({
     ) : null;
   const containerBackground = showAtmosphere ? 'transparent' : colors.backgroundGrouped;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     container: {
       flex: 1,
       overflow: 'hidden',
@@ -63,6 +65,10 @@ export function ProfileDetailScreen({
     content: {
       flexGrow: 1,
       paddingHorizontal: spacing.lg,
+      width: '100%',
+      ...(contentMaxWidth
+        ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const }
+        : {}),
     },
     header: {
       gap: spacing.sm,
@@ -75,7 +81,7 @@ export function ProfileDetailScreen({
       alignSelf: 'flex-start',
       paddingHorizontal: spacing.xs,
       marginLeft: -spacing.xs,
-      borderRadius: 8,
+      borderRadius: radii.sm,
       ...webPointer(),
     },
     backHovered: webTextLinkHoverStyles(colors),

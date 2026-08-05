@@ -97,7 +97,6 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen name="clinic" options={{ href: null }} />
         <Tabs.Screen name="profile" options={{ href: null }} />
         <Tabs.Screen name="application" options={{ href: null }} />
         <Tabs.Screen name="conversation/[id]" options={{ href: null }} />

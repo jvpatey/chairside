@@ -15,8 +15,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { PageTabBar } from '@/components/ui/PageTabBar';
+import { ResponsiveGrid } from '@/components/ui/ResponsiveLayout';
 import { Screen } from '@/components/ui/Screen';
-import { StaggeredList } from '@/components/ui/StaggeredList';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -222,7 +222,7 @@ export default function ClinicDiscoverScreen() {
               />
             ) : selectedTab === 'roles' ? (
               <View style={styles.cardList}>
-                <StaggeredList>
+                <ResponsiveGrid>
                   {filteredJobs.map((job) => (
                     <RoleListingCard
                       key={job.id}
@@ -231,11 +231,11 @@ export default function ClinicDiscoverScreen() {
                       onPress={() => router.push(getClinicDiscoverJobDetailRoute(job.id))}
                     />
                   ))}
-                </StaggeredList>
+                </ResponsiveGrid>
               </View>
             ) : (
               <View style={styles.cardList}>
-                <StaggeredList>
+                <ResponsiveGrid>
                   {filteredShifts.map((shift) => (
                     <FillInListingCard
                       key={shift.id}
@@ -244,7 +244,7 @@ export default function ClinicDiscoverScreen() {
                       onPress={() => router.push(getClinicDiscoverShiftDetailRoute(shift.id))}
                     />
                   ))}
-                </StaggeredList>
+                </ResponsiveGrid>
               </View>
             )}
           </View>

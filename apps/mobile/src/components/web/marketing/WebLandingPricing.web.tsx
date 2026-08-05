@@ -13,8 +13,7 @@ import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSect
 import { CLINIC_PLAN_ICONS } from '@/lib/clinicPlanPresentation';
 import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
 import { useContentSwapAnimation } from '@/lib/webMotion.web';
-import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
 type PricingAudience = 'clinic' | 'group';
 
@@ -395,14 +394,15 @@ function PricingTrustStrip() {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
       justifyContent: 'center' as const,
-      gap: spacing.md,
+      gap: spacing.lg,
       marginTop: spacing.xl,
       paddingVertical: spacing.lg,
       paddingHorizontal: spacing.lg,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      backgroundColor: colorWithAlpha(colors.fillSubtle, isDark ? 0.65 : 1),
+      // fillSubtle is already translucent — never force it opaque via colorWithAlpha(..., 1).
+      backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
     },
     item: {
       flexDirection: 'row' as const,

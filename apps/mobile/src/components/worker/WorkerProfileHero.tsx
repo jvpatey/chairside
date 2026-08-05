@@ -45,7 +45,7 @@ export function WorkerProfileHero({
     card: {
       borderRadius: radii.hero,
       overflow: 'hidden',
-      borderWidth: isDark ? 1 : 0,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       position: 'relative',
       ...elevation('subtle'),

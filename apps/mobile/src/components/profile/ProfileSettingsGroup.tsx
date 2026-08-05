@@ -10,10 +10,10 @@ type ProfileSettingsGroupProps = {
 };
 
 export function ProfileSettingsGroup({ children }: ProfileSettingsGroupProps) {
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       paddingHorizontal: spacing.lg,

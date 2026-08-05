@@ -109,7 +109,7 @@ export function DashboardUnreadMessagesCard({
       color: colors.primary,
     },
     viewAllPressable: {
-      borderRadius: 8,
+      borderRadius: radii.sm,
       paddingHorizontal: 4,
       paddingVertical: 2,
       ...webPointer(),

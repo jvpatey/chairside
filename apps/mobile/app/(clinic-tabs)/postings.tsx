@@ -22,14 +22,15 @@ import { Alert, View } from 'react-native';
 import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { ResponsiveGrid } from '@/components/ui/ResponsiveLayout';
 import { Screen } from '@/components/ui/Screen';
-import { StaggeredList } from '@/components/ui/StaggeredList';
 import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
@@ -69,6 +70,7 @@ export default function ClinicPostingsScreen() {
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (tab === 'fill-ins') {
@@ -133,11 +135,13 @@ export default function ClinicPostingsScreen() {
   const load = useCallback(async () => {
     if (!clinicId) {
       setJobs([]);
+      setLoadError(false);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
+    setLoadError(false);
     try {
       const [jobPosts, counts] = await Promise.all([
         listJobPosts(clinicId, { locationIds: scopedLocationIds }),
@@ -146,13 +150,10 @@ export default function ClinicPostingsScreen() {
       setJobs(jobPosts);
       setApplicantCounts(counts);
       await refreshBilling();
-    } catch (error) {
+    } catch {
       setJobs([]);
       setApplicantCounts({});
-      Alert.alert(
-        'Could not load roles',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -224,6 +225,13 @@ export default function ClinicPostingsScreen() {
             />
           ) : null}
 
+          {loadError ? (
+            <DashboardErrorBanner
+              message="Could not load roles."
+              onRetry={() => void load()}
+            />
+          ) : null}
+
         {showRoleControls ? (
           <ListSearchFilterRow
             value={searchQuery}
@@ -243,7 +251,7 @@ export default function ClinicPostingsScreen() {
 
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
-        ) : (
+        ) : loadError ? null : (
           <>
             {jobs.length === 0 ? (
               <EmptyState
@@ -273,7 +281,7 @@ export default function ClinicPostingsScreen() {
               />
             ) : (
               <View style={styles.cardList}>
-                <StaggeredList>
+                <ResponsiveGrid>
                   {filteredJobs.map((job) => (
                     <RolePostingCard
                       key={job.id}
@@ -294,7 +302,7 @@ export default function ClinicPostingsScreen() {
                       }
                     />
                   ))}
-                </StaggeredList>
+                </ResponsiveGrid>
               </View>
             )}
 

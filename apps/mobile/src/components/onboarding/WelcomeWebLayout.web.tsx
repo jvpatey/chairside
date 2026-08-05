@@ -8,15 +8,13 @@ import { WebLandingFeatures } from '@/components/web/marketing/WebLandingFeature
 import { WebLandingHero } from '@/components/web/marketing/WebLandingHero.web';
 import { WebLandingHowItWorks } from '@/components/web/marketing/WebLandingHowItWorks.web';
 import { WebLandingPricing } from '@/components/web/marketing/WebLandingPricing.web';
-import { WebLandingSocialProof } from '@/components/web/marketing/WebLandingSocialProof.web';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
 import { WebMarketingNav } from '@/components/web/marketing/WebMarketingNav.web';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 export function WelcomeWebLayout() {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const styles = useThemedStyles(({ colors }) => ({
@@ -45,7 +43,6 @@ export function WelcomeWebLayout() {
         showsVerticalScrollIndicator={false}
       >
         <WebLandingHero />
-        <WebLandingSocialProof />
         <WebLandingAudience />
         <WebLandingFeatures />
         <WebLandingHowItWorks />

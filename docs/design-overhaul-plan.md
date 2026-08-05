@@ -18,8 +18,9 @@
 
 ---
 
-## Phase 0 — Foundation (colors, tokens, splash)
+## Phase 0 — Foundation (colors, tokens, splash) — DONE
 
+**Status:** Implemented on `feat/design-update` (Aug 4, 2026).  
 **Priority:** P0 — do first. Low risk, propagates everywhere via theme layer.  
 **Estimated scope:** ~2 files for colors, ~1 for gradients, ~3 for splash/HTML alignment.
 
@@ -100,8 +101,9 @@ Splash/HTML use iOS system grays; app uses brand-tinted backgrounds. Align all t
 
 ---
 
-## Phase 1 — Cross-cutting consistency
+## Phase 1 — Cross-cutting consistency — DONE
 
+**Status:** Implemented on `feat/design-update` (Aug 4, 2026).  
 **Priority:** P0 — high user-visible impact, mechanical changes.  
 **Estimated scope:** ~15–20 files.
 
@@ -189,8 +191,9 @@ Also: move logout from top-level header icon into avatar/profile menu on dashboa
 
 ---
 
-## Phase 2 — Dashboard overhaul (clinic + worker)
+## Phase 2 — Dashboard overhaul (clinic + worker) — DEFERRED
 
+**Status:** Implemented then **reverted** (Aug 5, 2026) so other phases can land first. Re-apply after Phases 3–6.  
 **Priority:** P1 — highest wow-factor for clinic users.  
 **Estimated scope:** ~10–15 files.
 
@@ -279,8 +282,9 @@ Every empty state should contain its own action button ("Post your first role"),
 
 ---
 
-## Phase 3 — Tab desktop layouts & map parity
+## Phase 3 — Tab desktop layouts & map parity — DONE
 
+**Status:** Implemented on `feat/design-update` (Aug 5, 2026).  
 **Priority:** P1 — fixes "stretched phone app" on web.  
 **Estimated scope:** ~12–18 files.
 
@@ -325,8 +329,9 @@ Roles browse has `WorkerBrowseWebLayout` (list + map side-by-side at wide). Fill
 
 ---
 
-## Phase 4 — Welcome, splash, and boot sequence
+## Phase 4 — Welcome, splash, and boot sequence — DONE
 
+**Status:** Implemented on `feat/design-update` (Aug 5, 2026).  
 **Priority:** P1 — first impressions.  
 **Estimated scope:** ~8–10 files.
 
@@ -345,7 +350,7 @@ Current sequence: splash → font load hide → `PageLoadingSpinner` → dashboa
 
 | Item | Action |
 |------|--------|
-| Social proof band | Restyle as honest feature strip OR replace with real metrics/logos when available |
+| Social proof band | Removed — redundant with hero / features / pricing |
 | OG image | Add `og:image` meta + create 1200×630 branded share card |
 | Theme-aware screenshot | Provide light + dark `web_screenshot.png`; swap on `isDark` in `WelcomeHeroAppPanel` |
 | App Store "coming soon" | Move below fold until `APP_STORE_URL` is live |
@@ -354,7 +359,6 @@ Current sequence: splash → font load hide → `PageLoadingSpinner` → dashboa
 - `apps/mobile/app/+html.tsx` (og:image meta)
 - `apps/mobile/assets/images/` (new OG card, dark screenshot)
 - `apps/mobile/src/components/onboarding/WelcomeHeroAppPanel.web.tsx`
-- `apps/mobile/src/components/web/marketing/WebLandingSocialProof.web.tsx`
 - `apps/mobile/src/components/web/marketing/WebLandingHero.web.tsx`
 - `apps/mobile/src/constants/index.ts` (`APP_STORE_URL`)
 
@@ -368,12 +372,13 @@ Current sequence: splash → font load hide → `PageLoadingSpinner` → dashboa
 
 ---
 
-## Phase 5 — Motion, polish, and future enhancements
+## Phase 5 — Motion, polish, and future enhancements — DONE (5.1–5.2)
 
+**Status:** Implemented on `feat/design-update` (Aug 5, 2026).  
 **Priority:** P2 — high perceived quality, lower urgency.  
 **Estimated scope:** scattered across dashboard + list components.
 
-### 5.1 Motion pass
+### 5.1 Motion pass — DONE
 
 Leverage existing tokens (`140ms` / `220ms` / `420ms`, spring easing).
 
@@ -389,14 +394,15 @@ Leverage existing tokens (`140ms` / `220ms` / `420ms`, spring easing).
 - `apps/mobile/src/components/ui/SurfaceCard.tsx`
 - `apps/mobile/src/components/ui/StaggeredList.tsx`
 - `apps/mobile/src/theme/web.ts` (hover styles)
+- `apps/mobile/src/components/ui/skeletons/CalendarSkeleton.tsx`
 
-### 5.2 Trend deltas on stats
+### 5.2 Trend deltas on stats — DONE
 
-Replace bare counts with context: "12 applications, ▲4 this week". Requires storing/computing week-over-week counts in dashboard data layer.
+Clinic dashboard stats show “▲N this week” when posts/applications were created in the last 7 days.
 
 **Files:**
 - `apps/mobile/src/components/dashboard/DashboardStatCards.tsx`
-- Dashboard data hooks / API queries in `packages/api/` or screen-level fetch logic
+- `packages/api/src/posts.ts` (`getClinicDashboardCounts` week deltas)
 
 ### 5.3 Manual theme toggle (future)
 
@@ -406,7 +412,7 @@ System-only is fine for now. Add Light / Dark / System picker in Settings when f
 - `apps/mobile/src/theme/index.ts` (override hook)
 - `apps/mobile/app/(clinic-tabs)/profile/account.tsx` or new appearance setting
 
-### 5.4 Optional accent color exploration
+### 5.4 Optional accent color exploration (deferred)
 
 Consider a mint/teal accent (`~#2DD4BF`, tuned) used sparingly for success/filled states. Only pursue if blue/purple semantic cleanup (Phase 0) doesn't feel distinctive enough.
 
@@ -415,8 +421,9 @@ Consider a mint/teal accent (`~#2DD4BF`, tuned) used sparingly for success/fille
 
 ---
 
-## Phase 6 — Light mode as clinic flagship
+## Phase 6 — Light mode as clinic flagship — DONE
 
+**Status:** Implemented on `feat/design-update` (Aug 5, 2026).  
 **Priority:** P2 — strategic, not blocking.  
 Do after Phase 0 (palette) so light mode looks intentional.
 
@@ -424,6 +431,15 @@ Do after Phase 0 (palette) so light mode looks intentional.
 - Ensure dashboard hero/atmosphere is tuned for light (Phase 0.4 intensity cap)
 - Default marketing/welcome screenshots to light mode
 - QA shared front-desk scenarios (bright rooms, large monitors)
+
+**Shipped in this phase:**
+- Stronger light neutrals (`labelSecondary`/`labelTertiary`/`separator`/`fillSubtle`/`tabInactive`)
+- Hairline borders on light cards (SurfaceCard, EmptyState, stats, calendar, heroes)
+- Stronger light elevation; brand-aligned glass
+- Dashboard hero: primary orb + visible chip border
+- Sidebar dividers at full separator; plan eyebrow readable
+- Web sticky header frosted in light
+- Marketing panel swaps light/dark product screenshots with the system theme; blue-only glow
 
 ---
 

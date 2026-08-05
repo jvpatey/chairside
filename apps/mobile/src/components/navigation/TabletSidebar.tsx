@@ -212,7 +212,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       paddingBottom: spacing.sm,
       marginBottom: spacing.sm,
       borderBottomWidth: 0.5,
-      borderBottomColor: colorWithAlpha(colors.separator, 0.55),
+      borderBottomColor: colors.separator,
     },
     profileSectionCollapsed: {
       alignItems: 'center',
@@ -236,7 +236,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       fontSize: 11,
       lineHeight: 14,
       fontWeight: '600',
-      color: colors.labelTertiary,
+      color: colors.labelSecondary,
       textTransform: 'uppercase',
       letterSpacing: 0.4,
     },
@@ -288,7 +288,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       height: 0.5,
       marginVertical: spacing.sm,
       marginHorizontal: spacing.sm,
-      backgroundColor: colorWithAlpha(colors.separator, 0.45),
+      backgroundColor: colors.separator,
     },
     sectionLabel: {
       fontSize: 11,
@@ -303,7 +303,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     footer: {
       flexShrink: 0,
       borderTopWidth: 0.5,
-      borderTopColor: colorWithAlpha(colors.separator, 0.55),
+      borderTopColor: colors.separator,
       paddingTop: spacing.sm,
       paddingBottom: spacing.sm,
       marginTop: spacing.sm,

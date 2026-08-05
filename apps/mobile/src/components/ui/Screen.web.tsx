@@ -3,6 +3,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
   type StyleProp,
@@ -17,7 +18,7 @@ import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { WEB_SIDEBAR_OUTER_INSET } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
+import { webHover, webOnlyStyle, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
@@ -78,7 +79,7 @@ export function Screen({
   const topPadding =
     isTablet && !showHeader ? WEB_SIDEBAR_OUTER_INSET : insets.top + 16;
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     container: {
       flex: 1,
       overflow: 'hidden',
@@ -90,7 +91,16 @@ export function Screen({
       paddingTop: insets.top + spacing.sm,
       paddingBottom: spacing.sm,
       paddingHorizontal: spacing.lg,
-      backgroundColor: 'transparent',
+      backgroundColor: isDark ? 'transparent' : 'rgba(244, 246, 251, 0.92)',
+      borderBottomWidth: isDark ? 0 : StyleSheet.hairlineWidth,
+      borderBottomColor: colors.separator,
+      ...webOnlyStyle(
+        (isDark
+          ? {}
+          : {
+              backdropFilter: 'blur(12px) saturate(160%)',
+            }) as object,
+      ),
     },
     stickyInner: {
       flexDirection: 'row' as const,

@@ -25,7 +25,7 @@ import {
   WORKER_PROFILE_NOTIFICATIONS,
   WORKER_PROFILE_PROFESSIONAL,
 } from '@/lib/routing';
-import { useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 export default function WorkerProfileScreen() {
   const { profile, user } = useAuth();
@@ -80,7 +80,7 @@ export default function WorkerProfileScreen() {
             title="Notifications"
             subtitle={getNotificationsSubtitle(workerProfile)}
             iconColor={colors.info}
-            iconBackgroundColor={`${colors.info}18`}
+            iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
             onPress={() => router.push(WORKER_PROFILE_NOTIFICATIONS)}
           />
           {isCompact ? (
@@ -89,7 +89,7 @@ export default function WorkerProfileScreen() {
               title="Support"
               subtitle={getSupportSubtitle()}
               iconColor={colors.success}
-              iconBackgroundColor={`${colors.success}18`}
+              iconBackgroundColor={colorWithAlpha(colors.success, 0.094)}
               onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
             />
           ) : null}
@@ -98,7 +98,7 @@ export default function WorkerProfileScreen() {
             title="Account"
             subtitle={getAccountSubtitle(user?.email)}
             iconColor={colors.warning}
-            iconBackgroundColor={`${colors.warning}18`}
+            iconBackgroundColor={colorWithAlpha(colors.warning, 0.094)}
             onPress={() => router.push(WORKER_PROFILE_ACCOUNT)}
           />
         </ProfileSettingsGroup>

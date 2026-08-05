@@ -132,7 +132,7 @@ export function ConversationListItem({
   const primaryTitle = compact ? display.inboxContextLine : display.cardName;
   const secondaryLine = compact ? display.cardName : display.cardTitle;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     row: {
       flexDirection: 'row',
       alignItems: 'stretch',
@@ -179,7 +179,7 @@ export function ConversationListItem({
     counterpart: {
       fontSize: 12,
       lineHeight: 16,
-      color: colors.labelTertiary,
+      color: colors.labelSecondary,
       fontWeight: '500',
     },
     metaRow: {
@@ -245,7 +245,7 @@ export function ConversationListItem({
     },
     timestamp: {
       fontSize: 12,
-      color: conversation.unread ? colors.primary : colors.labelTertiary,
+      color: conversation.unread ? colors.primary : colors.labelSecondary,
       fontWeight: conversation.unread ? '600' : '400',
     },
     unreadDot: {
@@ -261,7 +261,7 @@ export function ConversationListItem({
       zIndex: 2,
       width: 32,
       height: 32,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       alignItems: 'center',
       justifyContent: 'center',
       ...webPointer(),

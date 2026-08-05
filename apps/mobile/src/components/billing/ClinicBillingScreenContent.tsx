@@ -31,7 +31,7 @@ import {
 } from '@/lib/billingOfferings';
 import { getRecommendedUpgradePlan } from '@/lib/clinicPlanPresentation';
 import { CLINIC_PROFILE_BILLING } from '@/lib/routing';
-import { colorWithAlpha, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 function getBillingCycleLabel(
   billingCycle: BillingCycle,
@@ -52,7 +52,7 @@ function getBillingCycleLabel(
 function PlanComparisonIntro({ isGroupFamily }: { isGroupFamily: boolean }) {
   const styles = useThemedStyles(({ colors, spacing, typography, radii, isDark }) => ({
     card: {
-      backgroundColor: colorWithAlpha(colors.fillSubtle, isDark ? 0.65 : 1),
+      backgroundColor: isDark ? colors.surfaceElevated : colors.fillSubtle,
       borderRadius: radii.md,
       borderWidth: 1,
       borderColor: colors.separator,

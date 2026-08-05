@@ -9,7 +9,6 @@ import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
-import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
 import { DashboardHeroName, DashboardHeroSubtitle } from '@/components/dashboard/DashboardHeroIdentity';
 import {
@@ -73,35 +72,6 @@ export function WorkerSetupBanner({ onPress }: WorkerSetupBannerProps) {
       </View>
       <OnboardingButton label="Continue setup" onPress={onPress} />
     </View>
-  );
-}
-
-type WorkerDashboardHeroProps = {
-  displayName?: string | null;
-  workerProfile?: WorkerProfile | null;
-  showActions?: boolean;
-};
-
-export function WorkerDashboardHero({
-  displayName,
-  workerProfile,
-  showActions = true,
-}: WorkerDashboardHeroProps) {
-  const { photoUri } = useProfilePhoto();
-  const subtitle =
-    (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
-    'Dental professional';
-
-  return (
-    <DashboardHeroCard
-      profileHref={WORKER_PROFILE}
-      avatarKind="worker"
-      displayName={displayName}
-      photoUri={photoUri}
-      namePlaceholder="Your profile"
-      subtitle={subtitle}
-      showActions={showActions}
-    />
   );
 }
 

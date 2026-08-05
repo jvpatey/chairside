@@ -5,8 +5,10 @@ import {
 } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 
 import { ScheduleCalendarView } from '@/components/calendar/ScheduleCalendarView';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { parseInitialCalendarDate } from '@/lib/calendarEvents';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -14,6 +16,7 @@ import {
   getClinicApplicationRoute,
   getWorkerApplicationRoute,
 } from '@/lib/routing';
+import { useThemedStyles } from '@/theme';
 
 type ScheduleCalendarScreenPanelProps = {
   role: 'worker' | 'clinic';
@@ -37,6 +40,10 @@ export function ScheduleCalendarScreenPanel({
   const [selectedDate, setSelectedDate] = useState(() => parseInitialCalendarDate(initialDate));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const styles = useThemedStyles(({ spacing }) => ({
+    root: { gap: spacing.md },
+  }));
 
   useEffect(() => {
     if (initialDate) {
@@ -47,11 +54,13 @@ export function ScheduleCalendarScreenPanel({
   const load = useCallback(async () => {
     if (!userId) {
       setEvents([]);
+      setLoadError(false);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
+    setLoadError(false);
     try {
       const rows =
         role === 'worker'
@@ -60,6 +69,7 @@ export function ScheduleCalendarScreenPanel({
       setEvents(rows);
     } catch {
       setEvents([]);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -89,15 +99,23 @@ export function ScheduleCalendarScreenPanel({
   );
 
   return (
-    <ScheduleCalendarView
-      events={events}
-      selectedDate={selectedDate}
-      onSelectDate={setSelectedDate}
-      onEventPress={handleEventPress}
-      isLoading={isLoading}
-      role={role}
-      emptyCtaLabel={emptyCtaLabel}
-      onEmptyCtaPress={onEmptyCtaPress}
-    />
+    <View style={styles.root}>
+      {loadError ? (
+        <DashboardErrorBanner
+          message="Could not load your schedule."
+          onRetry={() => void load()}
+        />
+      ) : null}
+      <ScheduleCalendarView
+        events={events}
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        onEventPress={handleEventPress}
+        isLoading={isLoading}
+        role={role}
+        emptyCtaLabel={loadError ? undefined : emptyCtaLabel}
+        onEmptyCtaPress={loadError ? undefined : onEmptyCtaPress}
+      />
+    </View>
   );
 }

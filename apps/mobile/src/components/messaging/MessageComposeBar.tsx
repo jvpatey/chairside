@@ -20,7 +20,7 @@ import Animated, {
 
 import { clearMessageDraft, getMessageDraft, setMessageDraft } from '@/lib/messageDrafts';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 const MESSAGE_BODY_MAX_LENGTH = 2000;
 const NEAR_LIMIT_THRESHOLD = 1800;
@@ -134,7 +134,7 @@ export function MessageComposeBar({
       overflow: 'hidden' as const,
       ...webPointer('default'),
       ...webOnlyStyle({
-        boxShadow: `0 4px 12px ${colors.primary}44`,
+        boxShadow: `0 4px 12px ${colorWithAlpha(colors.primary, 0.267)}`,
       }),
     },
     sendButtonDisabled: {

@@ -24,7 +24,7 @@ export function WorkerMessageClinicAction({
   const { colors } = useTheme();
   const [infoVisible, setInfoVisible] = useState(false);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -38,7 +38,7 @@ export function WorkerMessageClinicAction({
       gap: spacing.xs,
       minHeight: compact ? 40 : 44,
       paddingHorizontal: spacing.md,
-      borderRadius: 12,
+      borderRadius: radii.md,
       backgroundColor: colors.primary,
       ...webPointer(),
     },
@@ -57,7 +57,7 @@ export function WorkerMessageClinicAction({
     infoButton: {
       width: compact ? 40 : 44,
       height: compact ? 40 : 44,
-      borderRadius: 12,
+      borderRadius: radii.md,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
@@ -69,7 +69,7 @@ export function WorkerMessageClinicAction({
       opacity: 0.75,
     },
     infoPanel: {
-      borderRadius: 12,
+      borderRadius: radii.md,
       borderWidth: 1,
       borderColor: colors.separator,
       paddingHorizontal: spacing.md,
