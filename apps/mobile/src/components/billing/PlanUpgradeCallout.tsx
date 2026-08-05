@@ -9,7 +9,7 @@ import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 type PlanUpgradeCalloutProps = {
   title: string;
   message: string;
-  /** Defaults to the clinic billing modal — keeps the current screen on-stack. */
+  /** Defaults to opening Plans & billing. */
   onUpgrade?: () => void;
   accent?: GradientAccent;
   buttonLabel?: string;

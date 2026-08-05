@@ -1,6 +1,6 @@
 import type { ClinicBillingState } from '@chairside/api';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { BillingMetricTile } from '@/components/billing/BillingMetricTile';
@@ -25,6 +25,8 @@ type BillingHeroProps = {
   onManageSubscription?: () => void;
   onUpgrade?: () => void;
   onComparePlans?: () => void;
+  /** Compact surface layout for the web plans dialog. */
+  compact?: boolean;
 };
 
 function formatMetricValue(active: number, limit: number | null | undefined): string {
@@ -49,6 +51,7 @@ export function BillingHero({
   onManageSubscription,
   onUpgrade,
   onComparePlans,
+  compact = Platform.OS === 'web',
 }: BillingHeroProps) {
   const { colors, isDark } = useTheme();
   const plan = billing.plan;
@@ -76,6 +79,14 @@ export function BillingHero({
       position: 'relative',
       ...elevation('subtle'),
     },
+    compactCard: {
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
     gradient: {
       ...StyleSheet.absoluteFillObject,
     },
@@ -89,6 +100,16 @@ export function BillingHero({
       gap: spacing.sm,
       width: '100%',
     },
+    compactHeader: {
+      gap: spacing.xs,
+    },
+    eyebrow: {
+      ...typography.label,
+      fontSize: 12,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+    },
     heading: {
       ...typography.title,
       fontSize: 22,
@@ -99,6 +120,9 @@ export function BillingHero({
     badgeRow: {
       justifyContent: 'center',
     },
+    compactBadgeRow: {
+      justifyContent: 'flex-start',
+    },
     summary: {
       ...typography.subtitle,
       fontSize: 15,
@@ -107,12 +131,23 @@ export function BillingHero({
       color: colors.labelSecondary,
       maxWidth: 320,
     },
+    compactSummary: {
+      ...typography.subtitle,
+      fontSize: 14,
+      lineHeight: 20,
+      textAlign: 'left' as const,
+      color: colors.labelSecondary,
+      maxWidth: undefined,
+    },
     renewal: {
       ...typography.subtitle,
       fontSize: 13,
       lineHeight: 18,
       textAlign: 'center',
       color: colors.labelTertiary,
+    },
+    compactRenewal: {
+      textAlign: 'left' as const,
     },
     metricsRow: {
       flexDirection: 'row',
@@ -124,15 +159,30 @@ export function BillingHero({
       gap: spacing.sm,
       alignSelf: 'stretch',
     },
+    compactActions: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+    },
     secondaryLink: {
       alignSelf: 'center',
       paddingVertical: spacing.xs,
+    },
+    compactSecondaryLink: {
+      alignSelf: 'center' as const,
+      paddingVertical: 0,
     },
     secondaryLinkText: {
       ...typography.body,
       fontSize: 14,
       fontWeight: '600',
       color: colors.primary,
+    },
+    upgradeButton: {
+      flexGrow: 1,
+      flexShrink: 1,
+      minWidth: 200,
     },
   }));
 
@@ -142,6 +192,85 @@ export function BillingHero({
     billing.activeRoleLimit != null && billing.activeRoleCount >= billing.activeRoleLimit;
   const fillInAtLimit =
     billing.activeFillInLimit != null && billing.activeFillInCount >= billing.activeFillInLimit;
+
+  const metrics = (
+    <View style={styles.metricsRow}>
+      <BillingMetricTile
+        label="Active roles"
+        value={formatMetricValue(billing.activeRoleCount, billing.activeRoleLimit)}
+        hint={formatMetricHint(billing.activeRoleCount, billing.activeRoleLimit)}
+        atLimit={roleAtLimit}
+      />
+      <BillingMetricTile
+        label="Active fill-ins"
+        value={formatMetricValue(billing.activeFillInCount, billing.activeFillInLimit)}
+        hint={formatMetricHint(billing.activeFillInCount, billing.activeFillInLimit)}
+        atLimit={fillInAtLimit}
+      />
+    </View>
+  );
+
+  const upgradeOrManage =
+    canManageSubscription && onManageSubscription ? (
+      <OnboardingButton
+        label={isManagingSubscription ? 'Opening…' : 'Manage subscription'}
+        variant="primary"
+        disabled={isManagingSubscription}
+        onPress={onManageSubscription}
+      />
+    ) : isPurchaseBillingAvailable && recommendedPlan && onUpgrade ? (
+      <OnboardingButton
+        label={
+          isPurchasing
+            ? 'Processing…'
+            : (recommendedUpgradeLabel ?? `Upgrade to ${recommendedPlan}`)
+        }
+        variant="primary"
+        disabled={isPurchasing}
+        onPress={onUpgrade}
+      />
+    ) : null;
+
+  if (compact) {
+    return (
+      <View style={styles.compactCard}>
+        <View style={styles.compactHeader}>
+          <Text style={styles.eyebrow}>Current plan</Text>
+          <View style={[styles.badgeRow, styles.compactBadgeRow]}>
+            <BadgeRow>
+              <PlanTierBadge plan={plan} size="sm" />
+              {statusBadge ? (
+                <PillBadge
+                  label={statusBadge.label}
+                  color={statusColor}
+                  backgroundColor={colorWithAlpha(statusColor, isDark ? 0.18 : 0.1)}
+                  borderColor={colorWithAlpha(statusColor, 0.28)}
+                  size="sm"
+                />
+              ) : null}
+            </BadgeRow>
+          </View>
+          <Text style={styles.compactSummary}>{getClinicPlanHeroSummary(plan)}</Text>
+          {renewalLabel ? (
+            <Text style={[styles.renewal, styles.compactRenewal]}>{renewalLabel}</Text>
+          ) : null}
+        </View>
+
+        {metrics}
+
+        {upgradeOrManage || (onComparePlans && plan !== 'pro') ? (
+          <View style={styles.compactActions}>
+            {upgradeOrManage ? <View style={styles.upgradeButton}>{upgradeOrManage}</View> : null}
+            {onComparePlans && plan !== 'pro' ? (
+              <Pressable style={styles.compactSecondaryLink} onPress={onComparePlans}>
+                <Text style={styles.secondaryLinkText}>Compare plans</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.card}>
@@ -174,42 +303,10 @@ export function BillingHero({
           {renewalLabel ? <Text style={styles.renewal}>{renewalLabel}</Text> : null}
         </View>
 
-        <View style={styles.metricsRow}>
-          <BillingMetricTile
-            label="Active roles"
-            value={formatMetricValue(billing.activeRoleCount, billing.activeRoleLimit)}
-            hint={formatMetricHint(billing.activeRoleCount, billing.activeRoleLimit)}
-            atLimit={roleAtLimit}
-          />
-          <BillingMetricTile
-            label="Active fill-ins"
-            value={formatMetricValue(billing.activeFillInCount, billing.activeFillInLimit)}
-            hint={formatMetricHint(billing.activeFillInCount, billing.activeFillInLimit)}
-            atLimit={fillInAtLimit}
-          />
-        </View>
+        {metrics}
 
         <View style={styles.actions}>
-          {canManageSubscription && onManageSubscription ? (
-            <OnboardingButton
-              label={isManagingSubscription ? 'Opening…' : 'Manage subscription'}
-              variant="primary"
-              disabled={isManagingSubscription}
-              onPress={onManageSubscription}
-            />
-          ) : isPurchaseBillingAvailable && recommendedPlan && onUpgrade ? (
-            <OnboardingButton
-              label={
-                isPurchasing
-                  ? 'Processing…'
-                  : (recommendedUpgradeLabel ?? `Upgrade to ${recommendedPlan}`)
-              }
-              variant="primary"
-              disabled={isPurchasing}
-              onPress={onUpgrade}
-            />
-          ) : null}
-
+          {upgradeOrManage}
           {onComparePlans && plan !== 'pro' ? (
             <Pressable style={styles.secondaryLink} onPress={onComparePlans}>
               <Text style={styles.secondaryLinkText}>Compare plans</Text>

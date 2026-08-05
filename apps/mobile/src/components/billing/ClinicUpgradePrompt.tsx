@@ -32,7 +32,7 @@ type ClinicUpgradePromptProps = {
   title: string;
   message: string;
   onClose: () => void;
-  /** Scroll billing sheet to Group vs Clinic sections when opened. */
+  /** Scroll billing page to Group vs Clinic sections when opened. */
   billingFocus?: ClinicBillingScrollFocus;
 };
 

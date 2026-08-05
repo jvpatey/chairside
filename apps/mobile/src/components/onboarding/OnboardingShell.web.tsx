@@ -60,13 +60,16 @@ export function OnboardingShell({
   const tabAtmosphereAccent = useTabAtmosphereAccent();
   const shellAtmosphere = useShellAtmosphere();
   const showTabAtmosphere = tabAtmosphere !== 'none';
-  const useTabGlow = showTabAtmosphere && atmosphere === 'none' && !shellAtmosphere;
-  const showGlow = atmosphere !== 'none' || (showTabAtmosphere && !shellAtmosphere);
-  const containerBackground =
-    transparentBackground || showGlow || shellAtmosphere ? 'transparent' : colors.backgroundGrouped;
+  // Under the shared shell wash, stay transparent and skip a second AppAtmosphere.
+  // Outside the shell, paint local atmosphere when the tab route asks for it.
+  const useTabGlow = showTabAtmosphere && !shellAtmosphere;
+  const passThroughAtmosphere = transparentBackground || shellAtmosphere || useTabGlow;
+  const containerBackground = passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped;
+  // Shell already paints the shared wash — a local PageHeroGlow double-tints the
+  // content pane and makes it diverge from the sidebar/gaps.
   const resolvedBackgroundAccessory =
     backgroundAccessory ??
-    (atmosphere !== 'none' ? (
+    (atmosphere !== 'none' && !shellAtmosphere ? (
       <PageHeroGlow variant={atmosphere} accent={atmosphereAccent} />
     ) : null);
   const tabAtmosphereLayer =
@@ -74,7 +77,7 @@ export function OnboardingShell({
       <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
     ) : null;
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {
       flex: 1,
       overflow: 'hidden',
@@ -100,7 +103,6 @@ export function OnboardingShell({
       gap: spacing.md,
       paddingHorizontal: spacing.lg,
       paddingBottom: insets.bottom + spacing.md,
-      backgroundColor: colors.backgroundGrouped,
     },
   }));
 
@@ -158,7 +160,19 @@ export function OnboardingShell({
         >
           {body}
         </ScrollView>
-        {footer ? <View style={styles.footerInner}>{footer}</View> : null}
+        {footer ? (
+          <View
+            style={[
+              styles.footerInner,
+              {
+                backgroundColor: passThroughAtmosphere
+                  ? 'transparent'
+                  : colors.backgroundGrouped,
+              },
+            ]}>
+            {footer}
+          </View>
+        ) : null}
       </View>
     </FormScrollContext.Provider>
   );

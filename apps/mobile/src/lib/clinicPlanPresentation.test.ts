@@ -51,6 +51,7 @@ describe('clinicPlanPresentation posting limits', () => {
     const colors = { primary: '#1A6FD4', secondary: '#5856D6', success: '#34C759' };
     expect(getClinicPlanBrandAccentColor('pro', colors)).toBe('#5856D6');
     expect(getClinicPlanBrandAccentColor('starter', colors)).toBe('#1A6FD4');
+    expect(getClinicPlanBrandAccentColor('free', colors)).toBe('#34C759');
     expect(getClinicPlanFeatureAccentColor('pro', colors, false)).toBe('#5856D6');
     expect(getClinicPlanFeatureAccentColor('starter', colors, true)).toBe('#1A6FD4');
     expect(getClinicPlanFeatureAccentColor('free', colors, false)).toBe('#34C759');

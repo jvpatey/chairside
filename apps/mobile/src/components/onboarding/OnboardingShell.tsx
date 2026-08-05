@@ -22,7 +22,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { PageHeroGlow, type PageHeroGlowVariant } from '@/components/ui/PageHeroGlow';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import {
+  useShellAtmosphere,
+  useTabAtmosphere,
+  useTabAtmosphereAccent,
+} from '@/contexts/TabAtmosphereContext';
 import { useTheme, useThemedStyles, spacing, type GradientAccent } from '@/theme';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 
@@ -80,16 +84,22 @@ export function OnboardingShell({
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const shellAtmosphere = useShellAtmosphere();
   const { colors } = useTheme();
   const showTabAtmosphere = tabAtmosphere !== 'none';
-  const containerBackground =
-    transparentBackground && showTabAtmosphere ? 'transparent' : colors.backgroundGrouped;
-  const atmosphereLayer = showTabAtmosphere ? (
-    <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
-  ) : null;
+  // Match Screen / web shell: stay transparent under the shared tab wash.
+  const passThroughAtmosphere =
+    transparentBackground || shellAtmosphere || showTabAtmosphere;
+  const containerBackground = passThroughAtmosphere
+    ? 'transparent'
+    : colors.backgroundGrouped;
+  const atmosphereLayer =
+    showTabAtmosphere && !shellAtmosphere ? (
+      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+    ) : null;
   const resolvedBackgroundAccessory =
     backgroundAccessory ??
-    (atmosphere !== 'none' ? (
+    (atmosphere !== 'none' && !shellAtmosphere ? (
       <PageHeroGlow variant={atmosphere} accent={atmosphereAccent} />
     ) : null);
   const scrollRef = useRef<ScrollView>(null);
@@ -284,7 +294,13 @@ export function OnboardingShell({
     >
       {scrollView}
       <View
-        style={[styles.footer, { paddingBottom: footerPaddingBottom }]}
+        style={[
+          styles.footer,
+          {
+            paddingBottom: footerPaddingBottom,
+            backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
+          },
+        ]}
         onLayout={(event) => {
           const height = event.nativeEvent.layout.height;
           footerHeightRef.current = height;

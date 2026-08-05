@@ -136,9 +136,11 @@ export function getClinicPostingLimitReachedMessage(
 
 export function getClinicPlanBrandAccentColor(
   plan: ClinicPlan,
-  colors: { primary: string; secondary: string },
+  colors: { primary: string; secondary: string; success: string },
 ): string {
-  return plan === 'pro' || plan === 'group_pro' ? colors.secondary : colors.primary;
+  if (plan === 'pro' || plan === 'group_pro') return colors.secondary;
+  if (plan === 'free') return colors.success;
+  return colors.primary;
 }
 
 export function getClinicPlanFeatureAccentColor(

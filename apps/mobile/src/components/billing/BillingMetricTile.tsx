@@ -1,56 +1,155 @@
-import { Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
+import { getWebShadow } from '@/theme/web';
 
 type BillingMetricTileProps = {
   label: string;
   value: string;
   hint?: string | null;
   atLimit?: boolean;
+  accent?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
 };
 
-export function BillingMetricTile({ label, value, hint, atLimit = false }: BillingMetricTileProps) {
-  const { colors, isDark } = useTheme();
+const IS_WEB = Platform.OS === 'web';
 
-  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
-    tile: {
-      flex: 1,
-      minWidth: 96,
-      backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.55 : 0.72),
-      borderRadius: radii.md,
-      borderWidth: 1,
-      borderColor: colorWithAlpha(colors.separator, isDark ? 0.9 : 1),
-      paddingVertical: spacing.sm + 2,
-      paddingHorizontal: spacing.sm,
-      gap: 2,
+export function BillingMetricTile({
+  label,
+  value,
+  hint,
+  atLimit = false,
+  accent,
+  icon,
+}: BillingMetricTileProps) {
+  const { colors, isDark } = useTheme();
+  const tone = atLimit ? colors.warning : (accent ?? colors.primary);
+
+  const styles = useThemedStyles(({ colors, spacing, typography, radii, isDark }) => ({
+    tile: IS_WEB
+      ? {
+          flex: 1,
+          minWidth: 120,
+          backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
+          borderRadius: 14,
+          borderWidth: 1,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.md,
+          gap: spacing.xs,
+          overflow: 'hidden' as const,
+          position: 'relative' as const,
+          // @ts-expect-error web shadow
+          boxShadow: getWebShadow(isDark, 'subtle'),
+        }
+      : {
+          flex: 1,
+          minWidth: 96,
+          backgroundColor: colors.fillSubtle,
+          borderRadius: radii.md,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.separator,
+          paddingVertical: spacing.sm + 2,
+          paddingHorizontal: spacing.sm,
+          gap: 4,
+          overflow: 'hidden' as const,
+        },
+    topRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: IS_WEB ? spacing.sm : spacing.xs,
+    },
+    iconWrap: {
+      width: 28,
+      height: 28,
+      borderRadius: radii.sm + 2,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     label: {
       ...typography.subtitle,
+      flex: 1,
       fontSize: 11,
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: 0.4,
+      fontWeight: IS_WEB ? ('700' as const) : ('600' as const),
+      textTransform: 'uppercase' as const,
+      letterSpacing: IS_WEB ? 0.5 : 0.4,
       color: colors.labelTertiary,
     },
     value: {
       ...typography.body,
-      fontSize: 18,
-      fontWeight: '700',
-      color: atLimit ? colors.warning : colors.labelPrimary,
+      fontSize: IS_WEB ? 26 : 18,
+      lineHeight: IS_WEB ? 30 : undefined,
+      fontWeight: '700' as const,
+      letterSpacing: IS_WEB ? -0.4 : undefined,
+      marginTop: IS_WEB ? 2 : 0,
     },
-    hint: {
+    hintPill: {
+      alignSelf: 'flex-start' as const,
+      marginTop: 2,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+    },
+    hintText: {
       ...typography.subtitle,
       fontSize: 12,
       lineHeight: 16,
-      color: atLimit ? colors.warning : colors.labelSecondary,
+      fontWeight: IS_WEB ? ('600' as const) : ('400' as const),
     },
   }));
 
   return (
-    <View style={styles.tile}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+    <View
+      style={[
+        styles.tile,
+        {
+          borderColor: colorWithAlpha(tone, isDark ? 0.32 : IS_WEB ? 0.18 : 0.16),
+        },
+      ]}>
+      <View style={styles.topRow}>
+        {icon && IS_WEB ? (
+          <View
+            style={[
+              styles.iconWrap,
+              { backgroundColor: colorWithAlpha(tone, isDark ? 0.2 : 0.1) },
+            ]}>
+            <Ionicons name={icon} size={15} color={tone} />
+          </View>
+        ) : icon ? (
+          <Ionicons name={icon} size={14} color={tone} />
+        ) : null}
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      <Text style={[styles.value, { color: atLimit ? colors.warning : colors.labelPrimary }]}>
+        {value}
+      </Text>
+      {hint ? (
+        IS_WEB ? (
+          <View
+            style={[
+              styles.hintPill,
+              {
+                backgroundColor: colorWithAlpha(tone, isDark ? 0.18 : 0.1),
+                borderColor: colorWithAlpha(tone, isDark ? 0.28 : 0.2),
+              },
+            ]}>
+            <Text style={[styles.hintText, { color: atLimit ? colors.warning : tone }]}>
+              {hint}
+            </Text>
+          </View>
+        ) : (
+          <Text
+            style={[
+              styles.hintText,
+              { color: atLimit ? colors.warning : colors.labelSecondary },
+            ]}>
+            {hint}
+          </Text>
+        )
+      ) : null}
     </View>
   );
 }

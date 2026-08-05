@@ -1,16 +1,7 @@
 import { Stack } from 'expo-router';
 
-import { useTheme } from '@/theme';
+import { useShellPassThroughStackOptions } from '@/components/navigation/useShellPassThroughStackOptions';
 
 export default function ApplicationLayout() {
-  const { colors } = useTheme();
-
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    />
-  );
+  return <Stack screenOptions={useShellPassThroughStackOptions()} />;
 }
