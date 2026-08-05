@@ -133,6 +133,83 @@ Apple only returns the user’s name on the **first** authorization for that App
 
 To re-test first-time name delivery on TestFlight: **Settings → Apple ID → Sign in with Apple → Chairside → Stop Using**, then Sign in with Apple again.
 
+## Subscriptions (Clinic + Group)
+
+Create **two** auto-renewable subscription groups. Product IDs must match [`packages/config/src/billing.ts`](../packages/config/src/billing.ts).
+
+> **Burned IDs:** Apple permanently reserves deleted **product IDs**. If you created Clinic Plans at old prices, create new **`_v2`** SKUs (below) instead of reusing `clinic_starter_monthly`, etc.
+>
+> **Reference names** (ASC internal label) must also be **unique app-wide** — including on deleted subscriptions. When recreating SKUs, suffix reference names with **`v2`** (e.g. `Clinic Starter Monthly v2`). Reference names are not used in code; only **product IDs** must match `billing.ts`.
+
+### All product IDs & prices (CAD)
+
+| Product ID | Reference name (ASC internal) | Group | Duration | Price |
+| ---------- | ----------------------------- | ----- | -------- | ----- |
+| `clinic_starter_monthly_v2` | Clinic Starter Monthly v2 | Clinic Plans | 1 month | $59.99 |
+| `clinic_starter_yearly_v2` | Clinic Starter Yearly v2 | Clinic Plans | 1 year | $599.99 |
+| `clinic_pro_monthly_v2` | Clinic Pro Monthly v2 | Clinic Plans | 1 month | $99.99 |
+| `clinic_pro_yearly_v2` | Clinic Pro Yearly v2 | Clinic Plans | 1 year | $999.99 |
+| `group_starter_monthly` | Group Starter Monthly v2 | Group Plans | 1 month | $129.99 |
+| `group_starter_yearly_v2` | Group Starter Yearly v2 | Group Plans | 1 year | $1,199.99 |
+| `group_pro_monthly` | Group Pro Monthly v2 | Group Plans | 1 month | $199.99 |
+| `group_pro_yearly` | Group Pro Yearly v2 | Group Plans | 1 year | $1,399.99 |
+
+### Subscription ranking
+
+**Clinic Plans** (highest → lowest):
+
+1. `clinic_pro_yearly_v2`
+2. `clinic_pro_monthly_v2`
+3. `clinic_starter_yearly_v2`
+4. `clinic_starter_monthly_v2`
+
+**Group Plans** (highest → lowest):
+
+1. `group_pro_yearly`
+2. `group_pro_monthly`
+3. `group_starter_yearly_v2`
+4. `group_starter_monthly`
+
+### Localization (English — Canada)
+
+Set **Subscription Duration** in ASC separately (1 month / 1 year). Use the same **Display Name** for monthly and yearly pairs.
+
+**Description** field is limited to **55 characters** in App Store Connect.
+
+#### Clinic Starter (`clinic_starter_monthly_v2` / `clinic_starter_yearly_v2`)
+
+| Field | Copy |
+| ----- | ---- |
+| **Reference name** (internal) | **Clinic Starter Monthly v2** / **Clinic Starter Yearly v2** |
+| **Display name** | Clinic Starter |
+| **Description** (≤55 chars) | `5 roles & fill-ins, screening, CRM & outreach` (45) |
+
+#### Clinic Pro (`clinic_pro_monthly_v2` / `clinic_pro_yearly_v2`)
+
+| Field | Copy |
+| ----- | ---- |
+| **Reference name** (internal) | **Clinic Pro Monthly v2** / **Clinic Pro Yearly v2** |
+| **Display name** | Clinic Pro |
+| **Description** (≤55 chars) | `Unlimited posts, insights, bulk outreach & badge` (48) |
+
+#### Group Starter (`group_starter_monthly` / `group_starter_yearly_v2`)
+
+| Field | Copy |
+| ----- | ---- |
+| **Reference name** (internal) | **Group Starter Monthly v2** / **Group Starter Yearly v2** |
+| **Display name** | Group Starter |
+| **Description** (≤55 chars) | `5 locations, 3 managers, org-wide hiring tools` (46) |
+
+#### Group Pro (`group_pro_monthly` / `group_pro_yearly`)
+
+| Field | Copy |
+| ----- | ---- |
+| **Reference name** (internal) | **Group Pro Monthly v2** / **Group Pro Yearly v2** |
+| **Display name** | Group Pro |
+| **Description** (≤55 chars) | `Unlimited locations, managers & org-wide hiring` (47) |
+
+Attach both groups to the app version you submit. Map all products in RevenueCat to entitlements `clinic_starter`, `clinic_pro`, `clinic_group_starter`, and `clinic_group_pro`. Full runbook: [APP_STORE_RELEASE.md](./APP_STORE_RELEASE.md) and [WEB_BILLING.md](./WEB_BILLING.md).
+
 ## After approval
 
 Update `APP_STORE_URL` in [`apps/mobile/src/constants/index.ts`](../apps/mobile/src/constants/index.ts) with the live App Store link and rebuild if the welcome web pitch should link to the store.

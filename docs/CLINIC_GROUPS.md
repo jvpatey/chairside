@@ -76,6 +76,36 @@ Host from web static assets (served without SPA rewrite):
 
 Subscriptions and posting limits remain organization-scoped (owner / `clinic_id`). Managers can read billing state but cannot purchase or restore.
 
+### Plan families
+
+Chairside has two product lines:
+
+| Family | Plans | Best for |
+| ------ | ----- | -------- |
+| **Clinic** | Free, Starter, Pro | Single-location clinics |
+| **Group** | Free trial, Group Starter, Group Pro | Multi-location orgs and DSOs |
+
+**Free group trial:** up to 2 locations, 1 manager, 1 active role + 1 fill-in org-wide. Same hiring-tool gates as individual Free.
+
+**Clinic Starter / Pro on a group account** unlock hiring tools (screening, CRM, outreach, etc.) but **do not** increase location or manager limits. For more sites or managers, upgrade to **Group Starter** or **Group Pro**.
+
+**Clinic Pro ≠ multi-location.** A single-location Pro subscriber who adds a second location must move to a Group plan (Free trial or paid).
+
+### Group plan caps (paid)
+
+| Plan | Locations | Managers | Active roles / fill-ins |
+| ---- | --------- | -------- | ----------------------- |
+| Group Starter | 5 | 3 | 5 / 5 org-wide |
+| Group Pro | Unlimited | Unlimited | Unlimited org-wide |
+
+Group Pro also includes priority listing, hiring insights (with per-location breakdown), bulk fill-in outreach, and unlimited custom screening.
+
+### Purchasing
+
+- Owners purchase from **Profile → Plans & billing** (or the billing modal during setup).
+- iOS: App Store IAP via RevenueCat. Web: Stripe via RevenueCat Web Billing.
+- Product IDs and entitlements: see [WEB_BILLING.md](./WEB_BILLING.md).
+
 ## Schema
 
 See `supabase/migrations/092_clinic_organizations.sql` (and follow-ups `093`–`100`) for organizations, locations, memberships (including bio/photo), invitations, preview/resend RPCs, and post attribution columns.

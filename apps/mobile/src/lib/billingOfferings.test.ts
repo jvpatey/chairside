@@ -14,9 +14,17 @@ import {
 
 describe('billingOfferings', () => {
   it('resolves starter and pro package metadata from identifiers', () => {
+    expect(resolveBillingPackageMeta(['clinic_starter_monthly_v2'])).toEqual({
+      plan: 'starter',
+      billingCycle: 'monthly',
+    });
     expect(resolveBillingPackageMeta(['clinic_starter_monthly'])).toEqual({
       plan: 'starter',
       billingCycle: 'monthly',
+    });
+    expect(resolveBillingPackageMeta(['clinic_pro_yearly_v2'])).toEqual({
+      plan: 'pro',
+      billingCycle: 'yearly',
     });
     expect(resolveBillingPackageMeta(['clinic_pro_yearly'])).toEqual({
       plan: 'pro',
@@ -42,8 +50,12 @@ describe('billingOfferings', () => {
       plan: 'group_starter',
       billingCycle: 'monthly',
     });
-    expect(resolveBillingPackageMeta(['group_pro_yearly'])).toEqual({
-      plan: 'group_pro',
+    expect(resolveBillingPackageMeta(['group_starter_yearly_v2'])).toEqual({
+      plan: 'group_starter',
+      billingCycle: 'yearly',
+    });
+    expect(resolveBillingPackageMeta(['group_starter_yearly'])).toEqual({
+      plan: 'group_starter',
       billingCycle: 'yearly',
     });
     expect(resolveBillingPackageMeta(['$rc_monthly_pro'])).not.toEqual({

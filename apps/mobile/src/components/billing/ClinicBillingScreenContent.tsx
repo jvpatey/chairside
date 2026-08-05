@@ -374,6 +374,21 @@ export function ClinicBillingScreenContent({
     );
   };
 
+  const scrollToGroupPlans = () => {
+    if (parentScrollRef && scrollContentRef) {
+      scrollChildIntoScrollContent(
+        parentScrollRef,
+        scrollContentRef,
+        groupPlansSectionRef,
+      );
+      return;
+    }
+    scrollToComparePlans();
+  };
+
+  const isGroupUpgradePlan = (plan: ClinicPlan) =>
+    plan === 'group_starter' || plan === 'group_pro';
+
   const isOnGroupPaidPlan = currentPlan === 'group_starter' || currentPlan === 'group_pro';
   const isOnClinicPaidPlan = currentPlan === 'starter' || currentPlan === 'pro';
 
@@ -399,10 +414,15 @@ export function ClinicBillingScreenContent({
             recommendedUpgrade
               ? () => {
                   const pkg = getRecommendedPackage(recommendedUpgrade);
-                  if (!pkg && (recommendedUpgrade === 'group_starter' || recommendedUpgrade === 'group_pro')) {
-                    setLocalError(
-                      'Group plans are not available for purchase in-app yet. Location and manager upgrades will unlock when Group Starter and Group Pro ship.',
-                    );
+                  if (!pkg && isGroupUpgradePlan(recommendedUpgrade)) {
+                    if (!hasGroupPackages) {
+                      setLocalError(
+                        'Group plans are not available for purchase yet. Check back after Group Starter and Group Pro are configured in the App Store and RevenueCat.',
+                      );
+                      return;
+                    }
+                    setLocalError(null);
+                    scrollToGroupPlans();
                     return;
                   }
                   void handlePurchase(pkg);
@@ -433,8 +453,8 @@ export function ClinicBillingScreenContent({
         {isGroupFamily && !hasGroupPackages ? (
           <Text style={[styles.notice, emphasizeGroupCaps && styles.noticeEmphasis]}>
             {emphasizeGroupCaps
-              ? 'To add more locations or managers, you need Group Starter or Group Pro. Those plans are not purchasable in-app yet — Clinic Starter and Pro below unlock hiring tools only, not extra locations or managers.'
-              : 'Group Starter and Group Pro are not purchasable in-app yet. You can still buy Clinic Starter or Pro for hiring tools — location and manager limits stay on your Free group trial until Group plans launch.'}
+              ? 'To add more locations or managers, you need Group Starter or Group Pro. Clinic Starter and Pro below unlock hiring tools only — not extra locations or managers.'
+              : 'Group Starter and Group Pro will appear here once configured in App Store Connect and RevenueCat. Until then, Clinic Starter or Pro can unlock hiring tools — location and manager limits stay on your Free group trial.'}
           </Text>
         ) : null}
 

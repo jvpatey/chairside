@@ -144,12 +144,12 @@ export const REVENUECAT_ENTITLEMENT_GROUP_STARTER = 'clinic_group_starter';
 export const REVENUECAT_ENTITLEMENT_GROUP_PRO = 'clinic_group_pro';
 
 export const REVENUECAT_PRODUCT_IDS = {
-  starterMonthly: 'clinic_starter_monthly',
-  starterYearly: 'clinic_starter_yearly',
-  proMonthly: 'clinic_pro_monthly',
-  proYearly: 'clinic_pro_yearly',
+  starterMonthly: 'clinic_starter_monthly_v2',
+  starterYearly: 'clinic_starter_yearly_v2',
+  proMonthly: 'clinic_pro_monthly_v2',
+  proYearly: 'clinic_pro_yearly_v2',
   groupStarterMonthly: 'group_starter_monthly',
-  groupStarterYearly: 'group_starter_yearly',
+  groupStarterYearly: 'group_starter_yearly_v2',
   groupProMonthly: 'group_pro_monthly',
   groupProYearly: 'group_pro_yearly',
 } as const;
@@ -159,21 +159,25 @@ export const REVENUECAT_PACKAGE_LOOKUP = {
   starterMonthly: [
     'starter_monthly',
     REVENUECAT_PRODUCT_IDS.starterMonthly,
+    'clinic_starter_monthly', // retired ASC product ID
     '$rc_monthly',
   ],
   starterYearly: [
     'starter_yearly',
     REVENUECAT_PRODUCT_IDS.starterYearly,
+    'clinic_starter_yearly', // retired ASC product ID
     '$rc_annual',
   ],
   proMonthly: [
     'pro_monthly',
     REVENUECAT_PRODUCT_IDS.proMonthly,
+    'clinic_pro_monthly', // retired ASC product ID
     '$rc_monthly_pro',
   ],
   proYearly: [
     'pro_yearly',
     REVENUECAT_PRODUCT_IDS.proYearly,
+    'clinic_pro_yearly', // retired ASC product ID
     '$rc_annual_pro',
   ],
   groupStarterMonthly: [
@@ -182,8 +186,9 @@ export const REVENUECAT_PACKAGE_LOOKUP = {
     '$rc_monthly_group_starter',
   ],
   groupStarterYearly: [
-    'group_starter_yearly',
+    'group_starter_yearly_v2',
     REVENUECAT_PRODUCT_IDS.groupStarterYearly,
+    'group_starter_yearly', // retired ASC product ID; keep for restore / sandbox
     '$rc_annual_group_starter',
   ],
   groupProMonthly: [

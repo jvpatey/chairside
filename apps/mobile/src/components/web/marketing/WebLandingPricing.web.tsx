@@ -14,7 +14,8 @@ import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
-const PLANS: readonly ClinicPlan[] = ['free', 'starter', 'pro'];
+const CLINIC_PLANS: readonly ClinicPlan[] = ['free', 'starter', 'pro'];
+const GROUP_PLANS: readonly ClinicPlan[] = ['group_starter', 'group_pro'];
 
 const TRUST_POINTS = [
   { icon: 'leaf-outline' as const, label: 'Start free' },
@@ -22,13 +23,19 @@ const TRUST_POINTS = [
   { icon: 'medical-outline' as const, label: 'Professionals stay free' },
 ] as const;
 
-/** Starter = brand blue; Pro = brand purple; Free stays neutral. */
+/** Starter / Group Starter = brand blue; Pro / Group Pro = brand purple; Free stays neutral. */
 function planBrandAccent(
   plan: ClinicPlan,
   colors: ReturnType<typeof useTheme>['colors'],
 ): string | null {
-  if (plan === 'starter') return colors.primary;
-  if (plan === 'pro') return colors.secondary;
+  if (plan === 'starter' || plan === 'group_starter') return colors.primary;
+  if (plan === 'pro' || plan === 'group_pro') return colors.secondary;
+  return null;
+}
+
+function groupPlanPriceHint(plan: ClinicPlan): string | null {
+  if (plan === 'group_starter') return 'From CA$129.99/mo · CA$1,199.99/yr';
+  if (plan === 'group_pro') return 'From CA$199.99/mo · CA$1,399.99/yr';
   return null;
 }
 
@@ -43,6 +50,7 @@ function PricingPlanCard({
   const marketing = CLINIC_PLAN_MARKETING[plan];
   const brand = planBrandAccent(plan, colors);
   const featureAccent = brand ?? colors.success;
+  const priceHint = groupPlanPriceHint(plan);
 
   const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => {
     const accent = planBrandAccent(plan, colors);
@@ -79,11 +87,11 @@ function PricingPlanCard({
           bottom: 0,
           pointerEvents: 'none',
           backgroundImage:
-            plan === 'starter'
+            plan === 'starter' || plan === 'group_starter'
               ? isDark
                 ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 65%)'
                 : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(26, 111, 212, 0.12) 0%, transparent 65%)'
-              : plan === 'pro'
+              : plan === 'pro' || plan === 'group_pro'
                 ? isDark
                   ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(152, 150, 255, 0.2) 0%, transparent 65%)'
                   : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(88, 86, 214, 0.12) 0%, transparent 65%)'
@@ -177,9 +185,13 @@ function PricingPlanCard({
           </View>
 
           <View style={styles.priceBlock}>
-            <Text style={styles.price}>{marketing.fallbackPriceLabel}</Text>
+            <Text style={styles.price}>
+              {priceHint ?? marketing.fallbackPriceLabel}
+            </Text>
             {plan !== 'free' ? (
-              <Text style={styles.priceMeta}>Upgrade anytime after signup</Text>
+              <Text style={styles.priceMeta}>
+                {priceHint ? 'Billed monthly or annually' : 'Upgrade anytime after signup'}
+              </Text>
             ) : null}
           </View>
 
@@ -293,6 +305,23 @@ export function WebLandingPricing() {
       gap: spacing.lg,
       alignItems: isWide ? ('stretch' as const) : ('stretch' as const),
     },
+    groupSection: {
+      marginTop: spacing.xl * 2,
+      gap: spacing.lg,
+    },
+    groupIntro: {
+      gap: spacing.sm,
+      alignItems: 'center' as const,
+      maxWidth: 640,
+      alignSelf: 'center' as const,
+    },
+    groupNote: {
+      ...webTypography.subtitle,
+      fontSize: 15,
+      lineHeight: 22,
+      color: colors.labelSecondary,
+      textAlign: 'center' as const,
+    },
   }));
 
   return (
@@ -308,13 +337,38 @@ export function WebLandingPricing() {
         </View>
 
         <View style={styles.cards}>
-          {PLANS.map((plan, index) => (
+          {CLINIC_PLANS.map((plan, index) => (
             <PricingPlanCard
               key={plan}
               plan={plan}
               enterDelayMs={80 + index * 80}
             />
           ))}
+        </View>
+
+        <View style={styles.groupSection}>
+          <View style={styles.groupIntro}>
+            <Text style={styles.eyebrow}>Multi-location groups</Text>
+            <Text style={styles.title}>Plans for dental groups and DSOs</Text>
+            <Text style={styles.subtitle}>
+              Try groups free with up to 2 locations and 1 manager. Upgrade when you need more
+              sites, managers, and org-wide hiring volume.
+            </Text>
+            <Text style={styles.groupNote}>
+              Clinic Starter and Pro on a group account unlock hiring tools only — they do not raise
+              location or manager limits. Group plans cover locations and managers.
+            </Text>
+          </View>
+
+          <View style={styles.cards}>
+            {GROUP_PLANS.map((plan, index) => (
+              <PricingPlanCard
+                key={plan}
+                plan={plan}
+                enterDelayMs={400 + index * 80}
+              />
+            ))}
+          </View>
         </View>
 
         <PricingTrustStrip />
