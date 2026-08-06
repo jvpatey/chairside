@@ -133,6 +133,12 @@ const FILTER_STATUS_MAP: Record<Exclude<ApplicantListFilter, 'all' | 'follow_up'
   decided: ['selected', 'rejected', 'hired'],
 };
 
+export function getDueFollowUpApplications(applications: ClinicApplication[]): ClinicApplication[] {
+  return applications
+    .filter((application) => isClinicWorkerCrmFollowUpDue(application.clinic_crm?.follow_up_at))
+    .sort(compareFollowUpApplications);
+}
+
 export function hasApplicantFollowUpScheduled(application: ClinicApplication): boolean {
   return isClinicWorkerCrmFollowUpScheduled(application.clinic_crm?.follow_up_at);
 }

@@ -22,6 +22,7 @@ function ActionMenuDialog({
   visible,
   title,
   message,
+  headerContent,
   actions,
   onClose,
 }: ActionMenuSheetProps) {
@@ -92,11 +93,9 @@ function ActionMenuDialog({
       flex: 1,
       minWidth: 0,
     },
-    menuHeader: {
+    menuHeaderRich: {
       gap: spacing.xs,
       paddingBottom: spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.separator,
       marginBottom: spacing.xs,
     },
     menuTitle: {
@@ -154,8 +153,13 @@ function ActionMenuDialog({
         </>
       ) : (
         <>
-          {title || message ? (
-            <View style={styles.menuHeader}>
+          {headerContent ? (
+            <View style={styles.menuHeaderRich}>{headerContent}</View>
+          ) : title || message ? (
+            <View style={[styles.menuHeaderRich, {
+              borderBottomWidth: 1,
+              borderBottomColor: colors.separator,
+            }]}>
               {title ? <Text style={styles.menuTitle}>{title}</Text> : null}
               {message ? <Text style={styles.menuMessage}>{message}</Text> : null}
             </View>

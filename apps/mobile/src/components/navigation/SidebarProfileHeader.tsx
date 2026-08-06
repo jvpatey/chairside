@@ -5,12 +5,12 @@ import { Platform, Pressable, Text, View, type ViewStyle, type ReactNode } from 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 const DEFAULT_AVATAR_SIZE = 56;
 
 type SidebarProfileHeaderProps = {
-  href: Href;
+  href?: Href;
   avatarKind: 'worker' | 'clinic';
   displayName?: string | null;
   photoUri?: string | null;
@@ -25,6 +25,10 @@ type SidebarProfileHeaderProps = {
   avatarRingColor?: string;
   /** Inside sidebar header card — drops extra pressable padding. */
   embeddedInCard?: boolean;
+  /** Header tap opens account menu instead of navigating to profile. */
+  onMenuPress?: () => void;
+  /** When false, renders static content (parent handles press/hover). */
+  interactive?: boolean;
 };
 
 export function SidebarProfileHeader({
@@ -39,7 +43,10 @@ export function SidebarProfileHeader({
   avatarSize = DEFAULT_AVATAR_SIZE,
   avatarRingColor,
   embeddedInCard = false,
+  onMenuPress,
+  interactive = true,
 }: SidebarProfileHeaderProps) {
+  const { colors } = useTheme();
   const name = displayName?.trim() || 'Your profile';
   const trimmedSubtitle = subtitle?.trim() || null;
   const trimmedMeta = meta?.trim() || null;
@@ -76,6 +83,8 @@ export function SidebarProfileHeader({
       paddingHorizontal: 0,
       gap: spacing.sm,
       alignItems: 'flex-start',
+      flex: 1,
+      minWidth: 0,
     },
     textBlock: {
       flex: 1,
@@ -119,23 +128,19 @@ export function SidebarProfileHeader({
 
   const isWeb = Platform.OS === 'web';
 
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={
-        trimmedMeta ? `Profile, ${name}, ${trimmedMeta}` : `Profile, ${name}`
-      }
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(href);
-      }}
-      style={({ pressed, hovered }) => [
-        styles.pressable,
-        embeddedInCard && styles.pressableEmbedded,
-        collapsed && styles.pressableCollapsed,
-        isWeb && hovered && !pressed && styles.pressableHovered,
-        pressed && styles.pressablePressed,
-      ]}>
+  const handlePress = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onMenuPress) {
+      onMenuPress();
+      return;
+    }
+    if (href) {
+      router.push(href);
+    }
+  };
+
+  const content = (
+    <>
       {avatarKind === 'worker' ? (
         <View
           style={avatarRingColor ? [styles.avatarRing, { borderColor: avatarRingColor }] : undefined}>
@@ -167,6 +172,38 @@ export function SidebarProfileHeader({
           {planBadge ? <View style={styles.planBadgeRow}>{planBadge}</View> : null}
         </View>
       ) : null}
+    </>
+  );
+
+  const layoutStyle = [
+    styles.pressable,
+    embeddedInCard && styles.pressableEmbedded,
+    collapsed && styles.pressableCollapsed,
+  ];
+
+  if (!interactive) {
+    return <View style={layoutStyle}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        onMenuPress
+          ? trimmedMeta
+            ? `Account menu, ${name}, ${trimmedMeta}`
+            : `Account menu, ${name}`
+          : trimmedMeta
+            ? `Profile, ${name}, ${trimmedMeta}`
+            : `Profile, ${name}`
+      }
+      onPress={handlePress}
+      style={({ pressed, hovered }) => [
+        ...layoutStyle,
+        isWeb && hovered && !pressed && styles.pressableHovered,
+        pressed && styles.pressablePressed,
+      ]}>
+      {content}
     </Pressable>
   );
 }

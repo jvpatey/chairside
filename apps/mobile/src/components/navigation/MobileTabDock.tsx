@@ -14,18 +14,19 @@ import { MOBILE_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SlidingSegmentIndicator } from '@/components/ui/SlidingSegmentIndicator';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { webPointer } from '@/lib/webPressableStyles';
 import { resolveAccentColor } from '@/lib/accentColors';
-import { fontSemibold, getGlassTokens, useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, getGlassTokens, radii, useTheme, useThemedStyles } from '@/theme';
 
 const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
 const ICON_ONLY_BREAKPOINT = 360;
-/** Outer glass shell — end tabs use a matching inner radius on the dock-facing edge. */
-const DOCK_SHELL_RADIUS = 30;
-const TAB_INDICATOR_RADIUS = 18;
+/** Matches dashboard card corners — less pill-like than the prior floating capsule. */
+const DOCK_SHELL_RADIUS = radii.lg;
+const TAB_INDICATOR_RADIUS = radii.sm;
 
 function getDockIndicatorCornerRadii(
   index: number,
@@ -162,6 +163,8 @@ function DockTabItem({
 
 export function MobileTabDock({ state, descriptors, navigation, insets, role }: MobileTabDockProps) {
   const { colors, isDark, spacing } = useTheme();
+  const { isTablet } = useResponsiveLayout();
+  const useSolidDock = !isTablet;
   const pathname = usePathname();
   const { width: windowWidth } = useWindowDimensions();
   const showLabels = windowWidth >= ICON_ONLY_BREAKPOINT;
@@ -205,16 +208,22 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
     },
     dockElevated: Platform.select({
       ios: {
-        shadowColor: '#1A6FD4',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: isDark ? 0.28 : 0.14,
-        shadowRadius: 24,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: isDark ? 0.24 : 0.08,
+        shadowRadius: 16,
       },
       android: {
-        elevation: 10,
+        elevation: 6,
       },
       default: {},
     }),
+    dockSolid: {
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      borderRadius: DOCK_SHELL_RADIUS,
+    },
     indicator: {
       position: 'absolute',
       top: dockInset,
@@ -277,58 +286,68 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
   };
   });
 
+  const dockBody = (
+    <>
+      <SlidingSegmentIndicator
+        animatedStyle={indicatorStyle}
+        style={[styles.indicator, indicatorCornerStyle, { backgroundColor: indicatorColor }]}>
+      </SlidingSegmentIndicator>
+      {visibleRoutes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const routeIndex = state.routes.findIndex((item) => item.key === route.key);
+        const isFocused = isRouteFocused(route.name, routeIndex);
+
+        const onPress = () => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          handleTabBarPress({
+            route,
+            navigation,
+            state,
+            isFocused,
+            pathname,
+            role,
+          });
+        };
+
+        const onLongPress = () => {
+          navigation.emit({
+            type: 'tabLongPress',
+            target: route.key,
+          });
+        };
+
+        return (
+          <DockTabItem
+            key={route.key}
+            route={route}
+            index={index}
+            isFocused={isFocused}
+            showLabels={showLabels}
+            options={options}
+            colors={colors}
+            styles={styles}
+            onSegmentLayout={onSegmentLayout}
+            onPress={onPress}
+            onLongPress={onLongPress}
+            isWeb={isWeb}
+          />
+        );
+      })}
+    </>
+  );
+
   return (
     <View
       style={styles.outer}
       pointerEvents="box-none"
       onLayout={(event) => onHeightChange?.(event.nativeEvent.layout.height)}>
-      <LiquidGlassSurface borderRadius={DOCK_SHELL_RADIUS} style={[styles.dock, styles.dockElevated]}>
-        <SlidingSegmentIndicator
-          animatedStyle={indicatorStyle}
-          style={[styles.indicator, indicatorCornerStyle, { backgroundColor: indicatorColor }]}>
-        </SlidingSegmentIndicator>
-        {visibleRoutes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const routeIndex = state.routes.findIndex((item) => item.key === route.key);
-          const isFocused = isRouteFocused(route.name, routeIndex);
-
-          const onPress = () => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            handleTabBarPress({
-              route,
-              navigation,
-              state,
-              isFocused,
-              pathname,
-              role,
-            });
-          };
-
-          const onLongPress = () => {
-            navigation.emit({
-              type: 'tabLongPress',
-              target: route.key,
-            });
-          };
-
-          return (
-            <DockTabItem
-              key={route.key}
-              route={route}
-              index={index}
-              isFocused={isFocused}
-              showLabels={showLabels}
-              options={options}
-              colors={colors}
-              styles={styles}
-              onSegmentLayout={onSegmentLayout}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              isWeb={isWeb}
-            />
-          );
-        })}
-      </LiquidGlassSurface>
+      {useSolidDock ? (
+        <View style={[styles.dock, styles.dockSolid, styles.dockElevated]}>{dockBody}</View>
+      ) : (
+        <LiquidGlassSurface borderRadius={DOCK_SHELL_RADIUS} style={[styles.dock, styles.dockElevated]}>
+          {dockBody}
+        </LiquidGlassSurface>
+      )}
     </View>
   );
 }

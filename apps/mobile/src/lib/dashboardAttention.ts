@@ -1,16 +1,20 @@
-import type { Conversation, JobApplicationSummary } from '@chairside/api';
+import type { ClinicApplication, Conversation, JobApplicationSummary } from '@chairside/api';
 
 import type { DashboardAttentionItem } from '@/components/dashboard/DashboardNeedsAttention';
+import { getDueFollowUpApplications } from '@/lib/applicationPipeline';
 
 type BuildClinicAttentionInput = {
   newApplications: number;
   applicationUpdateCount: number;
   fillInUpdateCount: number;
   unreadConversations: Conversation[];
+  applications?: ClinicApplication[];
+  canUseCrmFollowups?: boolean;
   onOpenApplications: () => void;
   onOpenFillIns: () => void;
   onOpenMessages: () => void;
   onOpenConversation: (conversation: Conversation) => void;
+  onOpenFollowUp?: (application: ClinicApplication) => void;
 };
 
 export function buildClinicAttentionItems({
@@ -18,10 +22,13 @@ export function buildClinicAttentionItems({
   applicationUpdateCount,
   fillInUpdateCount,
   unreadConversations,
+  applications = [],
+  canUseCrmFollowups = false,
   onOpenApplications,
   onOpenFillIns,
   onOpenMessages,
   onOpenConversation,
+  onOpenFollowUp,
 }: BuildClinicAttentionInput): DashboardAttentionItem[] {
   const items: DashboardAttentionItem[] = [];
 
@@ -52,6 +59,20 @@ export function buildClinicAttentionItems({
       urgent: true,
       onPress: onOpenFillIns,
     });
+  }
+
+  if (canUseCrmFollowups && onOpenFollowUp) {
+    const dueFollowUps = getDueFollowUpApplications(applications);
+    if (dueFollowUps.length > 0) {
+      items.push({
+        id: 'crm-follow-ups',
+        label: `${dueFollowUps.length} follow-up${dueFollowUps.length === 1 ? '' : 's'} due`,
+        icon: 'alarm-outline',
+        accent: 'tertiary',
+        urgent: true,
+        onPress: () => onOpenFollowUp(dueFollowUps[0]),
+      });
+    }
   }
 
   const unread = unreadConversations.filter((c) => c.unread);

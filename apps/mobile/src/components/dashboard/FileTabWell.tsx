@@ -4,6 +4,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { SurfaceWell } from '@/components/ui/SurfaceWell';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import { webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import {
@@ -43,6 +44,8 @@ export function FileTabWell<T extends string = string>({
   onLockedTabPress,
 }: FileTabWellProps<T>) {
   const { colors } = useTheme();
+  const { isTablet } = useResponsiveLayout();
+  const compactTabs = !isTablet;
   const isWeb = Platform.OS === 'web';
 
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
@@ -61,13 +64,15 @@ export function FileTabWell<T extends string = string>({
       backgroundColor: colors.backgroundGrouped,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.separator,
+      paddingHorizontal: compactTabs ? spacing.xs : 0,
+      gap: compactTabs ? 2 : 0,
     },
     tab: {
       flex: 1,
       minWidth: 0,
-      paddingTop: spacing.sm + 2,
-      paddingBottom: spacing.sm + 2,
-      paddingHorizontal: spacing.md,
+      paddingTop: compactTabs ? spacing.sm + 4 : spacing.sm + 2,
+      paddingBottom: compactTabs ? spacing.sm + 4 : spacing.sm + 2,
+      paddingHorizontal: compactTabs ? spacing.sm + 2 : spacing.md,
       backgroundColor: 'transparent',
       ...webPointer(),
       ...webOnlyStyle({
@@ -89,14 +94,14 @@ export function FileTabWell<T extends string = string>({
     tabInner: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: compactTabs ? spacing.sm : spacing.sm,
       minWidth: 0,
       width: '100%',
     },
     iconBadge: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
+      width: compactTabs ? 30 : 36,
+      height: compactTabs ? 30 : 36,
+      borderRadius: compactTabs ? 8 : 10,
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
@@ -104,18 +109,18 @@ export function FileTabWell<T extends string = string>({
     textColumn: {
       flex: 1,
       minWidth: 0,
-      gap: 2,
+      gap: compactTabs ? 4 : 2,
     },
     labelRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: compactTabs ? spacing.xs + 2 : spacing.xs,
       minWidth: 0,
     },
     tabLabel: {
       flexShrink: 1,
-      fontSize: 12,
-      lineHeight: 15,
+      fontSize: compactTabs ? 11 : 12,
+      lineHeight: compactTabs ? 14 : 15,
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelSecondary,
@@ -124,20 +129,31 @@ export function FileTabWell<T extends string = string>({
       color: colors.labelPrimary,
     },
     tabValue: {
-      fontSize: 26,
-      lineHeight: 30,
+      fontSize: compactTabs ? 18 : 26,
+      lineHeight: compactTabs ? 22 : 30,
       fontFamily: fontExtraBold,
       fontWeight: '800',
       color: colors.labelPrimary,
       fontVariant: ['tabular-nums'] as const,
-      letterSpacing: -0.6,
+      letterSpacing: compactTabs ? -0.4 : -0.6,
+    },
+    tabCountInline: {
+      fontSize: 11,
+      lineHeight: 14,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelTertiary,
+      fontVariant: ['tabular-nums'] as const,
+    },
+    tabCountInlineSelected: {
+      color: colors.labelSecondary,
     },
     tabValueInactive: {
       color: colors.labelTertiary,
     },
     panel: {
       backgroundColor: colors.surface,
-      padding: spacing.md,
+      padding: compactTabs ? spacing.sm : spacing.md,
     },
     tabHovered: webListRowHoverStyles(colors),
     tabPressed: {
@@ -155,74 +171,87 @@ export function FileTabWell<T extends string = string>({
     onSelect(value);
   };
 
-  return (
-    <SurfaceWell contentStyle={{ padding: 0 }}>
-      <View style={styles.shell}>
-        <View style={styles.tabRow} accessibilityRole="tablist">
-          {tabs.map((tab) => {
-            const isSelected = selected === tab.value;
-            const isLocked = lockedTab === tab.value;
-            const accent = tab.accent ?? 'primary';
-            const accentColor = resolveAccentColor(colors, accent);
-            const accentSubtle = resolveAccentSubtle(colors, accent);
+  const shell = (
+    <View style={styles.shell}>
+      <View style={styles.tabRow} accessibilityRole="tablist">
+        {tabs.map((tab) => {
+          const isSelected = selected === tab.value;
+          const isLocked = lockedTab === tab.value;
+          const accent = tab.accent ?? 'primary';
+          const accentColor = resolveAccentColor(colors, accent);
+          const accentSubtle = resolveAccentSubtle(colors, accent);
 
-            return (
-              <Pressable
-                key={tab.value}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: isSelected }}
-                accessibilityLabel={`${tab.label}${tab.count != null ? `: ${tab.count}` : ''}`}
-                onPress={() => handleSelect(tab.value, isLocked)}
-                style={({ pressed, hovered }) => [
-                  styles.tab,
-                  isSelected && styles.tabSelected,
-                  isLocked && styles.tabLocked,
-                  isWeb && hovered && !pressed && !isSelected && styles.tabHovered,
-                  pressed && !isSelected && styles.tabPressed,
-                ]}>
-                <View style={styles.tabInner}>
-                  {tab.icon ? (
-                    <View
-                      style={[
-                        styles.iconBadge,
-                        { backgroundColor: isSelected ? accentColor : accentSubtle },
-                      ]}>
-                      <Ionicons
-                        name={tab.icon}
-                        size={18}
-                        color={isSelected ? colors.primaryOnPrimary : accentColor}
-                      />
-                    </View>
-                  ) : null}
-                  <View style={styles.textColumn}>
-                    <View style={styles.labelRow}>
-                      <Text
-                        style={[styles.tabLabel, isSelected && styles.tabLabelSelected]}
-                        numberOfLines={1}>
-                        {tab.label}
-                      </Text>
-                      {tab.badgeCount != null && tab.badgeCount > 0 ? (
-                        <NotificationCountBadge count={tab.badgeCount} />
-                      ) : null}
-                    </View>
-                    {tab.count != null ? (
+          return (
+            <Pressable
+              key={tab.value}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={`${tab.label}${tab.count != null ? `: ${tab.count}` : ''}`}
+              onPress={() => handleSelect(tab.value, isLocked)}
+              style={({ pressed, hovered }) => [
+                styles.tab,
+                isSelected && styles.tabSelected,
+                isLocked && styles.tabLocked,
+                isWeb && hovered && !pressed && !isSelected && styles.tabHovered,
+                pressed && !isSelected && styles.tabPressed,
+              ]}>
+              <View style={styles.tabInner}>
+                {tab.icon ? (
+                  <View
+                    style={[
+                      styles.iconBadge,
+                      { backgroundColor: isSelected ? accentColor : accentSubtle },
+                    ]}>
+                    <Ionicons
+                      name={tab.icon}
+                      size={compactTabs ? 15 : 18}
+                      color={isSelected ? colors.primaryOnPrimary : accentColor}
+                    />
+                  </View>
+                ) : null}
+                <View style={styles.textColumn}>
+                  <View style={styles.labelRow}>
+                    <Text
+                      style={[styles.tabLabel, isSelected && styles.tabLabelSelected]}
+                      numberOfLines={1}>
+                      {compactTabs && tab.label === 'Applications' ? 'Apps' : tab.label}
+                    </Text>
+                    {compactTabs && tab.count != null && !isSelected ? (
                       <Text
                         style={[
-                          styles.tabValue,
-                          !isSelected && styles.tabValueInactive,
-                          isSelected ? { color: accentColor } : null,
+                          styles.tabCountInline,
+                          isSelected && styles.tabCountInlineSelected,
                         ]}>
                         {tab.count}
                       </Text>
                     ) : null}
+                    {tab.badgeCount != null && tab.badgeCount > 0 ? (
+                      <NotificationCountBadge count={tab.badgeCount} />
+                    ) : null}
                   </View>
+                  {tab.count != null && (!compactTabs || isSelected) ? (
+                    <Text
+                      style={[
+                        styles.tabValue,
+                        !isSelected && styles.tabValueInactive,
+                        isSelected ? { color: accentColor } : null,
+                      ]}>
+                      {tab.count}
+                    </Text>
+                  ) : null}
                 </View>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View style={styles.panel}>{children}</View>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
-    </SurfaceWell>
+      <View style={styles.panel}>{children}</View>
+    </View>
+  );
+
+  return isTablet ? (
+    <SurfaceWell contentStyle={{ padding: 0 }}>{shell}</SurfaceWell>
+  ) : (
+    shell
   );
 }

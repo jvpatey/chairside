@@ -330,13 +330,20 @@ export default function ClinicDashboardScreen() {
         applicationUpdateCount,
         fillInUpdateCount,
         unreadConversations: conversations,
+        applications,
+        canUseCrmFollowups: Boolean(billing?.canUseCrmFollowups),
         onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
         onOpenFillIns: () => router.push(CLINIC_FILL_INS),
         onOpenMessages: () => router.push(getClinicMessagesRoute()),
         onOpenConversation: openConversation,
+        onOpenFollowUp: (application) => {
+          router.push(getClinicApplicationRoute(application.id, 'dashboard-applications'));
+        },
       }),
     [
       applicationUpdateCount,
+      applications,
+      billing?.canUseCrmFollowups,
       conversations,
       counts.newApplications,
       fillInUpdateCount,

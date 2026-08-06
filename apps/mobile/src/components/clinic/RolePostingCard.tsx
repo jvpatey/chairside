@@ -20,6 +20,7 @@ import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -57,6 +58,8 @@ export function RolePostingCard({
   applicantPreview,
 }: RolePostingCardProps) {
   const { colors } = useTheme();
+  const { isTablet } = useResponsiveLayout();
+  const mobileEmbedded = embedded && !isTablet;
   const { clinicProfile } = useClinicProfile();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment();
@@ -173,6 +176,8 @@ export function RolePostingCard({
 
   const locationEyebrow =
     [locationName, location].filter(Boolean).join(' · ') || clinicName;
+  const embeddedEyebrow =
+    [locationName, location].filter(Boolean).join(' · ') || null;
 
   const roleIconFallback = (
     <View style={[styles.roleIconWrap, { backgroundColor: colors.primarySubtle }]}>
@@ -192,6 +197,8 @@ export function RolePostingCard({
         style={isFeatured ? featuredTreatment.styles.card : undefined}
         featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
         <BrowseListRow
+          layout={mobileEmbedded ? 'stacked' : 'split'}
+          compact={mobileEmbedded}
           avatar={
             embedded
               ? applicantLead ?? roleIconFallback
@@ -200,20 +207,34 @@ export function RolePostingCard({
                 )
           }
           eyebrow={
-            embedded
-              ? locationEyebrow
-              : applicantPreview
-                ? `${applicantCount} applicant${applicantCount === 1 ? '' : 's'}`
-                : clinicName
+            mobileEmbedded
+              ? embeddedEyebrow
+              : embedded
+                ? locationEyebrow
+                : applicantPreview
+                  ? `${applicantCount} applicant${applicantCount === 1 ? '' : 's'}`
+                  : clinicName
           }
           title={job.title}
-          meta={embedded ? roleMeta : [locationName, location].filter(Boolean).join(' · ') || null}
-          postedLabel={postedLabel || null}
+          meta={
+            mobileEmbedded && job.wage_range ? `${roleMeta} · ${job.wage_range}` : roleMeta
+          }
+          detail={mobileEmbedded ? postedLabel || null : undefined}
+          postedLabel={mobileEmbedded ? null : postedLabel || null}
           postedLabelPlacement="header"
-          headerDetail={embedded ? null : roleMeta}
-          headerAccent={job.wage_range || null}
-          topTrailing={headerActions}
-          contentAccessory={applicantControl}
+          headerDetail={embedded || mobileEmbedded ? null : roleMeta}
+          headerAccent={mobileEmbedded ? null : job.wage_range || null}
+          topTrailing={mobileEmbedded ? undefined : headerActions}
+          statusFooter={
+            mobileEmbedded ? (
+              <>
+                {applicantControl}
+                {headerActions}
+              </>
+            ) : undefined
+          }
+          statusFooterAlign={mobileEmbedded ? 'end' : 'start'}
+          contentAccessory={mobileEmbedded ? undefined : applicantControl}
           showChevron={Boolean(onPress)}
         />
       </SurfaceCard>

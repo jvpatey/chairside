@@ -41,7 +41,9 @@ type BrowseListRowProps = {
   /** Renders below the text block, aligned with the title column. */
   textFooter?: ReactNode;
   /** Renders on its own line at the bottom of the card content. */
+  /** Renders below the row; use with `statusFooterAlign`. */
   statusFooter?: ReactNode;
+  statusFooterAlign?: 'start' | 'end';
   /** Renders in the top-right of the header row. */
   topTrailing?: ReactNode;
   trailing?: ReactNode;
@@ -52,6 +54,8 @@ type BrowseListRowProps = {
   action?: ReactNode;
   onPress?: () => void;
   showChevron?: boolean;
+  /** Tighter padding and type for phone dashboard rows. */
+  compact?: boolean;
   /** `split` — header above a tinted content band (matches tile cards). */
   layout?: 'stacked' | 'split';
 };
@@ -68,6 +72,7 @@ export function BrowseListRow({
   headerAccent,
   textFooter,
   statusFooter,
+  statusFooterAlign = 'start',
   topTrailing,
   trailing,
   contentAccessory,
@@ -75,6 +80,7 @@ export function BrowseListRow({
   action,
   onPress,
   showChevron = true,
+  compact = false,
   layout = 'split',
 }: BrowseListRowProps) {
   const { colors } = useTheme();
@@ -95,8 +101,8 @@ export function BrowseListRow({
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
+      paddingVertical: compact ? spacing.sm : spacing.md,
+      paddingHorizontal: compact ? spacing.sm : spacing.md,
       gap: spacing.xs,
       position: 'relative',
       overflow: 'hidden',
@@ -136,8 +142,8 @@ export function BrowseListRow({
     },
     title: {
       ...typography.body,
-      fontSize: isSplit ? 18 : 17,
-      lineHeight: isSplit ? 23 : 22,
+      fontSize: compact ? 16 : isSplit ? 18 : 17,
+      lineHeight: compact ? 21 : isSplit ? 23 : 22,
       fontWeight: '700',
       letterSpacing: -0.3,
       color: colors.labelPrimary,
@@ -235,6 +241,13 @@ export function BrowseListRow({
     },
     statusFooterRow: {
       paddingTop: spacing.xs,
+      alignSelf: 'stretch',
+    },
+    statusFooterEnd: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: spacing.sm,
       alignSelf: 'stretch',
     },
     rowAction: {
@@ -397,7 +410,15 @@ export function BrowseListRow({
   const content = (
     <>
       {isSplit ? splitLayout : stackedLayout}
-      {!isSplit && statusFooter ? <View style={styles.statusFooterRow}>{statusFooter}</View> : null}
+      {!isSplit && statusFooter ? (
+        <View
+          style={[
+            styles.statusFooterRow,
+            statusFooterAlign === 'end' && styles.statusFooterEnd,
+          ]}>
+          {statusFooter}
+        </View>
+      ) : null}
     </>
   );
 

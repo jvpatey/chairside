@@ -31,6 +31,8 @@ export type ActionMenuSheetProps = {
   visible: boolean;
   title?: string;
   message?: string;
+  /** Replaces title/message when set (e.g. account summary header). */
+  headerContent?: ReactNode;
   actions: ActionMenuSheetItem[];
   onClose: () => void;
 };
@@ -40,6 +42,7 @@ export function ActionMenuSheetBottom({
   visible,
   title,
   message,
+  headerContent,
   actions,
   onClose,
 }: ActionMenuSheetProps) {
@@ -156,7 +159,9 @@ export function ActionMenuSheetBottom({
           <Animated.View entering={SHEET_ENTER}>
             <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
               <View style={styles.handle} />
-              {title || message ? (
+              {headerContent ? (
+                <View style={styles.header}>{headerContent}</View>
+              ) : title || message ? (
                 <View style={styles.header}>
                   {title ? <Text style={styles.title}>{title}</Text> : null}
                   {message ? <Text style={styles.message}>{message}</Text> : null}
