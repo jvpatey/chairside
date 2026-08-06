@@ -12,7 +12,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
-import { CLINIC_PLAN_ICONS } from '@/lib/clinicPlanPresentation';
+import { CLINIC_PLAN_ICONS, getClinicPlanBrandAccentColor, getClinicPlanSubtleBackground } from '@/lib/clinicPlanPresentation';
 import { webCardLiftBase, webOnlyStyle, useWebCardLift } from '@/lib/webPressableStyles';
 import { useContentSwapAnimation } from '@/lib/webMotion.web';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
@@ -37,17 +37,6 @@ const GROUP_FREE_FEATURES = [
   '1 active role and 1 fill-in org-wide',
   'Review applications and message candidates',
 ] as const;
-
-/** Free = success green; Starter / Group Starter = brand blue; Pro / Group Pro = brand purple. */
-function planBrandAccent(
-  plan: ClinicPlan,
-  colors: ReturnType<typeof useTheme>['colors'],
-): string | null {
-  if (plan === 'free') return colors.success;
-  if (plan === 'starter' || plan === 'group_starter') return colors.primary;
-  if (plan === 'pro' || plan === 'group_pro') return colors.secondary;
-  return null;
-}
 
 type PlanLandingPrice = {
   monthly: string;
@@ -207,154 +196,118 @@ function PricingPlanCard({
   const { colors, isDark } = useTheme();
   const { liftStyle, hoverHandlers } = useWebCardLift(isDark);
   const marketing = CLINIC_PLAN_MARKETING[plan];
-  const brand = planBrandAccent(plan, colors);
-  const featureAccent = brand ?? colors.success;
+  const brand = getClinicPlanBrandAccentColor(plan, colors);
+  const featureAccent = getClinicPlanBrandAccentColor(plan, colors);
   const isGroupFree = plan === 'free' && audience === 'group';
   const tagline = isGroupFree ? GROUP_FREE_TAGLINE : marketing.tagline;
   const features = isGroupFree ? GROUP_FREE_FEATURES : marketing.features;
 
-  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => {
-    const accent = planBrandAccent(plan, colors);
-    return {
-      cardWrap: {
-        flex: 1,
-        minWidth: 0,
-      },
-      card: {
-        flex: 1,
-        borderRadius: 24,
-        padding: spacing.xl,
-        backgroundColor: accent
-          ? colorWithAlpha(accent, isDark ? 0.08 : 0.04)
-          : colors.surface,
-        borderWidth: accent ? 2 : 1,
-        borderColor: accent
-          ? colorWithAlpha(accent, isDark ? 0.45 : 0.35)
-          : colors.separator,
-        gap: spacing.lg,
-        overflow: 'hidden' as const,
-        position: 'relative' as const,
-        ...webCardLiftBase(),
-        ...webOnlyStyle({
-          boxShadow: getWebShadow(isDark, accent ? 'raised' : 'subtle'),
-        } as object),
-      },
-      atmosphere: {
-        ...webOnlyStyle({
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          pointerEvents: 'none',
-          backgroundImage:
-            plan === 'free'
-              ? isDark
-                ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(48, 209, 88, 0.16) 0%, transparent 65%)'
-                : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(52, 199, 89, 0.1) 0%, transparent 65%)'
-              : plan === 'starter' || plan === 'group_starter'
-                ? isDark
-                  ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 65%)'
-                  : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(26, 111, 212, 0.12) 0%, transparent 65%)'
-                : plan === 'pro' || plan === 'group_pro'
-                  ? isDark
-                    ? 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(152, 150, 255, 0.2) 0%, transparent 65%)'
-                    : 'radial-gradient(ellipse 90% 70% at 50% 0%, rgba(88, 86, 214, 0.12) 0%, transparent 65%)'
-                  : undefined,
-        } as object),
-      },
-      content: {
-        flex: 1,
-        gap: spacing.lg,
-        zIndex: 1,
-      },
-      header: {
-        flexDirection: 'row' as const,
-        alignItems: 'flex-start' as const,
-        gap: spacing.md,
-      },
-      iconWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: radii.md,
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
-        backgroundColor: accent
-          ? colorWithAlpha(accent, isDark ? 0.2 : 0.12)
-          : colors.fillSubtle,
-      },
-      headerText: {
-        flex: 1,
-        gap: 4,
-      },
-      title: {
-        fontSize: 20,
-        lineHeight: 26,
-        fontWeight: '700' as const,
-        color: colors.labelPrimary,
-      },
-      tagline: {
-        fontSize: 14,
-        lineHeight: 20,
-        color: colors.labelSecondary,
-      },
-      priceBlock: {
-        gap: spacing.xs,
-        minHeight: 56,
-      },
-      priceRow: {
-        flexDirection: 'row' as const,
-        alignItems: 'flex-end' as const,
-        gap: 2,
-      },
-      priceCurrency: {
-        fontSize: 18,
-        lineHeight: 22,
-        fontWeight: '600' as const,
-        color: colors.labelSecondary,
-        paddingBottom: 4,
-      },
-      priceAmount: {
-        fontSize: 36,
-        lineHeight: 40,
-        fontWeight: '700' as const,
-        color: colors.labelPrimary,
-        letterSpacing: -0.5,
-      },
-      pricePeriod: {
-        fontSize: 15,
-        lineHeight: 20,
-        fontWeight: '500' as const,
-        color: colors.labelSecondary,
-        paddingBottom: 5,
-        marginLeft: 2,
-      },
-      priceSecondary: {
-        fontSize: 13,
-        lineHeight: 18,
-        color: colors.labelTertiary,
-      },
-      features: {
-        gap: spacing.sm,
-        flex: 1,
-      },
-      featureRow: {
-        flexDirection: 'row' as const,
-        gap: spacing.sm,
-        alignItems: 'flex-start' as const,
-      },
-      feature: {
-        flex: 1,
-        fontSize: 14,
-        lineHeight: 20,
-        color: colors.labelSecondary,
-      },
-      cta: {
-        alignSelf: 'stretch' as const,
-        marginTop: 'auto' as const,
-      },
-    };
-  });
+  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
+    cardWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    card: {
+      flex: 1,
+      borderRadius: radii.lg,
+      padding: spacing.xl,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      gap: spacing.lg,
+      ...webCardLiftBase(),
+      ...webOnlyStyle({
+        boxShadow: getWebShadow(isDark, 'subtle'),
+      } as object),
+    },
+    content: {
+      flex: 1,
+      gap: spacing.lg,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: spacing.md,
+    },
+    iconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.md,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: getClinicPlanSubtleBackground(plan, colors),
+    },
+    headerText: {
+      flex: 1,
+      gap: 4,
+    },
+    title: {
+      fontSize: 20,
+      lineHeight: 26,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    tagline: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
+    priceBlock: {
+      gap: spacing.xs,
+      minHeight: 56,
+    },
+    priceRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-end' as const,
+      gap: 2,
+    },
+    priceCurrency: {
+      fontSize: 18,
+      lineHeight: 22,
+      fontWeight: '600' as const,
+      color: colors.labelSecondary,
+      paddingBottom: 4,
+    },
+    priceAmount: {
+      fontSize: 36,
+      lineHeight: 40,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+      letterSpacing: -0.5,
+    },
+    pricePeriod: {
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '500' as const,
+      color: colors.labelSecondary,
+      paddingBottom: 5,
+      marginLeft: 2,
+    },
+    priceSecondary: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelTertiary,
+    },
+    features: {
+      gap: spacing.sm,
+      flex: 1,
+    },
+    featureRow: {
+      flexDirection: 'row' as const,
+      gap: spacing.sm,
+      alignItems: 'flex-start' as const,
+    },
+    feature: {
+      flex: 1,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
+    cta: {
+      alignSelf: 'stretch' as const,
+      marginTop: 'auto' as const,
+    },
+  }));
 
   const ctaLabel = plan === 'free' ? 'Start free' : 'Get started';
 
@@ -366,15 +319,10 @@ function PricingPlanCard({
       trigger="visible"
     >
       <View style={[styles.card, liftStyle]} {...hoverHandlers}>
-        {brand ? <View style={styles.atmosphere} /> : null}
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.iconWrap}>
-              <Ionicons
-                name={CLINIC_PLAN_ICONS[plan]}
-                size={22}
-                color={brand ?? colors.labelSecondary}
-              />
+              <Ionicons name={CLINIC_PLAN_ICONS[plan]} size={22} color={brand} />
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title}>{CLINIC_PLAN_LABELS[plan]}</Text>
@@ -521,25 +469,12 @@ export function WebLandingPricing() {
     setAudience(next);
   };
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     bleed: {
       paddingVertical: spacing.xl * 2.5,
       overflow: 'hidden' as const,
       borderTopWidth: 1,
       borderTopColor: colors.separator,
-    },
-    atmosphere: {
-      ...webOnlyStyle({
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        pointerEvents: 'none',
-        backgroundImage: isDark
-          ? 'radial-gradient(ellipse 55% 50% at 50% 20%, rgba(74, 154, 255, 0.1) 0%, transparent 55%), radial-gradient(ellipse 40% 40% at 80% 80%, rgba(152, 150, 255, 0.06) 0%, transparent 50%)'
-          : 'radial-gradient(ellipse 55% 50% at 50% 20%, rgba(26, 111, 212, 0.08) 0%, transparent 55%), radial-gradient(ellipse 40% 40% at 80% 80%, rgba(88, 86, 214, 0.05) 0%, transparent 50%)',
-      } as object),
     },
     header: {
       gap: spacing.sm,
@@ -555,10 +490,7 @@ export function WebLandingPricing() {
   }));
 
   return (
-    <WebMarketingSection
-      style={styles.bleed}
-      sectionId="pricing"
-      atmosphere={<View style={styles.atmosphere} />}>
+    <WebMarketingSection style={styles.bleed} sectionId="pricing">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Pricing</Text>
         <Text style={styles.title}>Start free, upgrade when you need more</Text>

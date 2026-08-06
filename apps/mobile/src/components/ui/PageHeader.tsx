@@ -52,6 +52,13 @@ export function PageHeader({
       gap: isTabletSection ? 0 : spacing.sm,
       width: '100%',
     },
+    wrapCompact: {
+      gap: 0,
+    },
+    compactChromeRow: {
+      alignItems: 'center' as const,
+      minHeight: 44,
+    },
     back: {
       alignSelf: 'flex-start',
       paddingVertical: spacing.xs,
@@ -64,6 +71,11 @@ export function PageHeader({
       ...webPointer(),
     },
     backHovered: webTextLinkHoverStyles(colors),
+    backInline: {
+      marginBottom: 0,
+      minHeight: 40,
+      flexShrink: 0,
+    },
     backText: {
       fontSize: isWeb ? 15 : 16,
       fontWeight: '600',
@@ -137,23 +149,47 @@ export function PageHeader({
 
   const showTrailing = Boolean(trailing) || showNotifications;
   const showTitleBlock = Boolean(eyebrow || title || subtitle);
+  const compactChrome = Boolean(onBack) && !showTitleBlock;
+
+  const backControl = onBack ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={backLabel}
+      onPress={onBack}
+      style={({ pressed, hovered }) => [
+        styles.back,
+        compactChrome && styles.backInline,
+        webHover(hovered, pressed, styles.backHovered),
+        pressed && { opacity: 0.75 },
+      ]}
+    >
+      <Text style={styles.backText}>{backLabel}</Text>
+    </Pressable>
+  ) : null;
+
+  const trailingBlock = showTrailing ? (
+    <View style={styles.trailing}>
+      {trailing}
+      {showNotifications ? (
+        <NotificationBell placement={isTabletSection ? 'hero' : 'header'} />
+      ) : null}
+    </View>
+  ) : null;
+
+  if (compactChrome) {
+    return (
+      <View style={[styles.wrap, styles.wrapCompact, style]}>
+        <View style={[styles.topRow, styles.compactChromeRow]}>
+          {backControl}
+          {trailingBlock}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.wrap, style]}>
-      {onBack ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={backLabel}
-          onPress={onBack}
-          style={({ pressed, hovered }) => [
-            styles.back,
-            webHover(hovered, pressed, styles.backHovered),
-            pressed && { opacity: 0.75 },
-          ]}
-        >
-          <Text style={styles.backText}>{backLabel}</Text>
-        </Pressable>
-      ) : null}
+      {backControl}
       {showTitleBlock || showTrailing ? (
         <View style={styles.topRow}>
           {showTitleBlock ? (
@@ -175,14 +211,7 @@ export function PageHeader({
           ) : (
             <View style={styles.textBlock} />
           )}
-          {showTrailing ? (
-            <View style={styles.trailing}>
-              {trailing}
-              {showNotifications ? (
-                <NotificationBell placement={isTabletSection ? 'hero' : 'header'} />
-              ) : null}
-            </View>
-          ) : null}
+          {trailingBlock}
         </View>
       ) : null}
     </View>

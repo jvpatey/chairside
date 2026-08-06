@@ -1,5 +1,10 @@
 import { getSupabaseClient } from './client';
-import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
+import {
+  DELETED_CANDIDATE_LABEL,
+  DELETED_CLINIC_LABEL,
+  formatFillInInquiryPostTitle,
+  formatFillInPostTitle,
+} from '@chairside/config';
 import type { ApplicationStatus } from './applications';
 import { throwWithMessage } from './errors';
 import {
@@ -362,7 +367,7 @@ async function enrichWorkerConversations(
         conversations.push({
           ...row,
           application_status: status,
-          post_title: `Fill-in · ${shift.shift_date}`,
+          post_title: formatFillInPostTitle(shift.shift_date),
           post_type: 'shift',
           post_role_type: shift.role_type ?? null,
           shift_date: shift.shift_date,
@@ -432,7 +437,7 @@ async function enrichWorkerConversations(
         ...row,
         application_status: null,
         post_title: row.outreach_shift_date
-          ? `Fill-in inquiry · ${row.outreach_shift_date}`
+          ? formatFillInInquiryPostTitle(row.outreach_shift_date)
           : 'Fill-in outreach',
         post_type: 'shift',
         post_role_type: row.outreach_role_type,
@@ -582,7 +587,7 @@ async function enrichClinicConversations(
         conversations.push({
           ...row,
           application_status: status,
-          post_title: `Fill-in · ${shift.shift_date}`,
+          post_title: formatFillInPostTitle(shift.shift_date),
           post_type: 'shift',
           post_role_type: shift.role_type ?? null,
           shift_date: shift.shift_date,
@@ -669,7 +674,7 @@ async function enrichClinicConversations(
         ...row,
         application_status: null,
         post_title: row.outreach_shift_date
-          ? `Fill-in inquiry · ${row.outreach_shift_date}`
+          ? formatFillInInquiryPostTitle(row.outreach_shift_date)
           : 'Fill-in outreach',
         post_type: 'shift',
         post_role_type: row.outreach_role_type,

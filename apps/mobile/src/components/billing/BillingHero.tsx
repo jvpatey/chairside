@@ -1,5 +1,5 @@
 import type { ClinicBillingState } from '@chairside/api';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -8,12 +8,15 @@ import { PlanTierBadge } from '@/components/billing/PlanTierBadge';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { PillBadge } from '@/components/ui/PillBadge';
 import {
+  CLINIC_PLAN_ICONS,
   formatClinicSubscriptionStatus,
   formatSubscriptionStatusBadge,
+  getClinicPlanBrandAccentColor,
   getClinicPlanHeroSummary,
+  getClinicPlanSubtleBackground,
   getRecommendedUpgradePlan,
 } from '@/lib/clinicPlanPresentation';
-import { colorWithAlpha, getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 type BillingHeroProps = {
   billing: ClinicBillingState;
@@ -55,6 +58,7 @@ export function BillingHero({
 }: BillingHeroProps) {
   const { colors, isDark } = useTheme();
   const plan = billing.plan;
+  const brandAccent = getClinicPlanBrandAccentColor(plan, colors);
   const statusBadge =
     plan !== 'free' ? formatSubscriptionStatusBadge(billing.status) : null;
   const renewalLabel = formatClinicSubscriptionStatus(billing.status, billing.currentPeriodEnd);
@@ -70,14 +74,14 @@ export function BillingHero({
         ? colors.warning
         : colors.labelTertiary;
 
-  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
-    card: {
-      borderRadius: radii.hero,
-      overflow: 'hidden',
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
+    band: {
+      borderRadius: radii.lg,
+      backgroundColor: colors.surface,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      position: 'relative',
-      ...elevation('subtle'),
+      padding: spacing.lg,
+      gap: spacing.lg,
     },
     compactCard: {
       borderRadius: radii.lg,
@@ -87,67 +91,55 @@ export function BillingHero({
       padding: spacing.lg,
       gap: spacing.md,
     },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    content: {
-      padding: spacing.lg,
-      alignItems: 'center',
+    topRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
       gap: spacing.md,
     },
-    headingBlock: {
-      alignItems: 'center',
-      gap: spacing.sm,
-      width: '100%',
+    iconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      flexShrink: 0,
+      backgroundColor: getClinicPlanSubtleBackground(plan, colors),
+    },
+    identity: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.xs,
     },
     compactHeader: {
       gap: spacing.xs,
     },
     eyebrow: {
       ...typography.label,
-      fontSize: 12,
-      letterSpacing: 0.4,
+      fontSize: 11,
+      letterSpacing: 0.5,
       textTransform: 'uppercase' as const,
       color: colors.labelTertiary,
     },
     heading: {
       ...typography.title,
-      fontSize: 22,
-      lineHeight: 28,
-      textAlign: 'center',
+      fontSize: 24,
+      lineHeight: 30,
       color: colors.labelPrimary,
     },
     badgeRow: {
-      justifyContent: 'center',
-    },
-    compactBadgeRow: {
       justifyContent: 'flex-start',
     },
     summary: {
-      ...typography.subtitle,
-      fontSize: 15,
-      lineHeight: 22,
-      textAlign: 'center',
-      color: colors.labelSecondary,
-      maxWidth: 320,
-    },
-    compactSummary: {
-      ...typography.subtitle,
+      ...typography.body,
       fontSize: 14,
       lineHeight: 20,
-      textAlign: 'left' as const,
       color: colors.labelSecondary,
-      maxWidth: undefined,
     },
     renewal: {
       ...typography.subtitle,
       fontSize: 13,
       lineHeight: 18,
-      textAlign: 'center',
       color: colors.labelTertiary,
-    },
-    compactRenewal: {
-      textAlign: 'left' as const,
     },
     metricsRow: {
       flexDirection: 'row',
@@ -186,8 +178,6 @@ export function BillingHero({
     },
   }));
 
-  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
-
   const roleAtLimit =
     billing.activeRoleLimit != null && billing.activeRoleCount >= billing.activeRoleLimit;
   const fillInAtLimit =
@@ -200,12 +190,16 @@ export function BillingHero({
         value={formatMetricValue(billing.activeRoleCount, billing.activeRoleLimit)}
         hint={formatMetricHint(billing.activeRoleCount, billing.activeRoleLimit)}
         atLimit={roleAtLimit}
+        accent={colors.primary}
+        icon="briefcase-outline"
       />
       <BillingMetricTile
         label="Active fill-ins"
         value={formatMetricValue(billing.activeFillInCount, billing.activeFillInLimit)}
         hint={formatMetricHint(billing.activeFillInCount, billing.activeFillInLimit)}
         atLimit={fillInAtLimit}
+        accent={colors.secondary}
+        icon="calendar-outline"
       />
     </View>
   );
@@ -231,29 +225,31 @@ export function BillingHero({
       />
     ) : null;
 
+  const statusBadges = (
+    <View style={styles.badgeRow}>
+      <BadgeRow>
+        <PlanTierBadge plan={plan} size="sm" />
+        {statusBadge ? (
+          <PillBadge
+            label={statusBadge.label}
+            color={statusColor}
+            backgroundColor={colorWithAlpha(statusColor, isDark ? 0.18 : 0.1)}
+            borderColor={colorWithAlpha(statusColor, 0.28)}
+            size="sm"
+          />
+        ) : null}
+      </BadgeRow>
+    </View>
+  );
+
   if (compact) {
     return (
       <View style={styles.compactCard}>
         <View style={styles.compactHeader}>
           <Text style={styles.eyebrow}>Current plan</Text>
-          <View style={[styles.badgeRow, styles.compactBadgeRow]}>
-            <BadgeRow>
-              <PlanTierBadge plan={plan} size="sm" />
-              {statusBadge ? (
-                <PillBadge
-                  label={statusBadge.label}
-                  color={statusColor}
-                  backgroundColor={colorWithAlpha(statusColor, isDark ? 0.18 : 0.1)}
-                  borderColor={colorWithAlpha(statusColor, 0.28)}
-                  size="sm"
-                />
-              ) : null}
-            </BadgeRow>
-          </View>
-          <Text style={styles.compactSummary}>{getClinicPlanHeroSummary(plan)}</Text>
-          {renewalLabel ? (
-            <Text style={[styles.renewal, styles.compactRenewal]}>{renewalLabel}</Text>
-          ) : null}
+          {statusBadges}
+          <Text style={styles.summary}>{getClinicPlanHeroSummary(plan)}</Text>
+          {renewalLabel ? <Text style={styles.renewal}>{renewalLabel}</Text> : null}
         </View>
 
         {metrics}
@@ -273,38 +269,22 @@ export function BillingHero({
   }
 
   return (
-    <View style={styles.card}>
-      <LinearGradient
-        colors={heroGradient}
-        locations={[0, 0.35, 0.65, 0.85, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
-      <View style={styles.content}>
-        <View style={styles.headingBlock}>
-          <Text style={styles.heading}>Your plan</Text>
-          <View style={styles.badgeRow}>
-            <BadgeRow>
-              <PlanTierBadge plan={plan} size="sm" />
-              {statusBadge ? (
-                <PillBadge
-                  label={statusBadge.label}
-                  color={statusColor}
-                  backgroundColor={colorWithAlpha(statusColor, isDark ? 0.18 : 0.1)}
-                  borderColor={colorWithAlpha(statusColor, 0.28)}
-                  size="sm"
-                />
-              ) : null}
-            </BadgeRow>
-          </View>
+    <View style={styles.band}>
+      <View style={styles.topRow}>
+        <View style={styles.iconWrap}>
+          <Ionicons name={CLINIC_PLAN_ICONS[plan]} size={26} color={brandAccent} />
+        </View>
+        <View style={styles.identity}>
+          <Text style={styles.eyebrow}>Your plan</Text>
+          {statusBadges}
           <Text style={styles.summary}>{getClinicPlanHeroSummary(plan)}</Text>
           {renewalLabel ? <Text style={styles.renewal}>{renewalLabel}</Text> : null}
         </View>
+      </View>
 
-        {metrics}
+      {metrics}
 
+      {(upgradeOrManage || (onComparePlans && plan !== 'pro')) && (
         <View style={styles.actions}>
           {upgradeOrManage}
           {onComparePlans && plan !== 'pro' ? (
@@ -313,7 +293,7 @@ export function BillingHero({
             </Pressable>
           ) : null}
         </View>
-      </View>
+      )}
     </View>
   );
 }

@@ -17,6 +17,7 @@ import {
   formatApplicationResumeStatus,
   formatApplicationDate,
   formatInterviewDateTime,
+  formatISODateLabel,
   hasApplicationKitSubmitted,
   hasPendingInterviewProposal,
   canClinicHideApplication,
@@ -43,7 +44,7 @@ import { Alert, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
-import { ApplicationStatusSummaryCard } from '@/components/matching/ApplicationStatusSummaryCard';
+import { ApplicantReviewHero } from '@/components/matching/ApplicantReviewHero';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import {
   ClinicWorkerCrmSection,
@@ -262,115 +263,6 @@ function ApplicationActionButtons({
         ),
       )}
     </>
-  );
-}
-
-function ApplicantHeroCard({
-  application,
-  applicantName,
-  workerDeleted,
-  experienceLabel,
-  appliedLabel,
-  showNewBadge,
-  showStatusBadge,
-  jobMatch,
-  matchContext,
-  accent = 'primary',
-}: {
-  application: ClinicApplication;
-  applicantName: string;
-  workerDeleted: boolean;
-  experienceLabel: string | null;
-  appliedLabel: string | null;
-  showNewBadge: boolean;
-  showStatusBadge: boolean;
-  jobMatch: ReturnType<typeof parseApplicationJobMatch>;
-  matchContext: ReturnType<typeof getApplicationMatchDisplayContext>;
-  accent?: GradientAccent;
-}) {
-  const photoUri = useWorkerPhotoUri(
-    workerDeleted ? null : application.worker_photo_storage_path,
-  );
-
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    wrap: {
-      gap: spacing.md,
-    },
-    topRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
-    },
-    identity: {
-      flex: 1,
-      minWidth: 0,
-      gap: spacing.xs,
-    },
-    name: {
-      ...typography.title,
-      fontSize: 22,
-      lineHeight: 28,
-      color: colors.labelPrimary,
-    },
-    metaLine: {
-      ...typography.body,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-  }));
-
-  const metaParts = [
-    workerDeleted ? null : application.worker_address?.trim(),
-    experienceLabel,
-    appliedLabel,
-  ].filter(Boolean);
-
-  return (
-    <SurfaceCard padding="md" gap>
-      <View style={styles.wrap}>
-        <View style={styles.topRow}>
-          <WorkerProfileAvatar displayName={applicantName} photoUri={photoUri} size={56} />
-          <View style={styles.identity}>
-            <Text style={styles.name} numberOfLines={2}>
-              {applicantName}
-            </Text>
-            {metaParts.length > 0 ? (
-              <Text style={styles.metaLine} numberOfLines={3}>
-                {metaParts.join(' · ')}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={styles.badgeRow}>
-          {showNewBadge ? <ApplicationCardBadge accent={accent} /> : null}
-          {showStatusBadge ? (
-            <ClinicApplicationStatusBadge
-              status={application.status}
-              postType={application.post_type}
-              applicationKitRequestedAt={application.application_kit_requested_at}
-              applicationKitSubmittedAt={application.application_kit_submitted_at}
-              statusClosedBy={application.status_closed_by}
-            />
-          ) : null}
-          {jobMatch && matchContext ? (
-            <MatchTierBadge
-              breakdown={jobMatch}
-              context={matchContext}
-              subtitle={application.post_title}
-              audience="clinic"
-            />
-          ) : null}
-        </View>
-      </View>
-    </SurfaceCard>
   );
 }
 
@@ -877,6 +769,15 @@ export function ClinicApplicationDetailCard({
   const appliedDateLabel = formatApplicationDate(application.created_at);
   const appliedLabel = appliedDateLabel ? `Applied ${appliedDateLabel}` : null;
 
+  const photoUri = useWorkerPhotoUri(
+    workerDeleted ? null : application.worker_photo_storage_path,
+  );
+  const metaParts = [
+    workerDeleted ? null : application.worker_address?.trim(),
+    experienceLabel,
+    appliedLabel,
+  ].filter(Boolean);
+
   const canRemoveFromList = canClinicHideApplication(application);
   const canManageCrm = !workerDeleted;
   const crmUnlocked = billing == null || billing.canUseCrmFollowups;
@@ -946,7 +847,9 @@ export function ClinicApplicationDetailCard({
             audience: 'clinic',
             counterpartName: applicantName,
             postTitle: getRoleTypeLabel(application.post_role_type),
-            shiftDateLabel: application.post_title.replace(/^Fill-in · /, ''),
+            shiftDateLabel: application.shift_date
+              ? formatISODateLabel(application.shift_date)
+              : null,
             applicationUpdatedAt: confirmed.updated_at,
           });
           onUpdated?.();
@@ -1192,30 +1095,50 @@ export function ClinicApplicationDetailCard({
   return (
     <>
       <View style={styles.stack}>
-        <ApplicantHeroCard
-          application={application}
-          applicantName={applicantName}
-          workerDeleted={workerDeleted}
-          experienceLabel={experienceLabel}
-          appliedLabel={appliedLabel}
-          showNewBadge={showNewBadge}
-          showStatusBadge={showStatusBadge}
-          jobMatch={jobMatch}
-          matchContext={matchContext}
-          accent={accent}
-        />
-
-        <ApplicationStatusSummaryCard
-          audience="clinic"
-          status={application.status}
-          postType={application.post_type}
-          applicationKitRequestedAt={application.application_kit_requested_at}
-          applicationKitSubmittedAt={application.application_kit_submitted_at}
-          interviewProposedAt={application.interview_proposed_at}
-          statusNote={application.status_note}
-          statusClosedBy={application.status_closed_by}
-          workerAccountDeleted={workerDeleted}
-          isHighlighted={hasNewApplication}
+        <ApplicantReviewHero
+          avatar={
+            <WorkerProfileAvatar displayName={applicantName} photoUri={photoUri} size={56} />
+          }
+          title={applicantName}
+          meta={metaParts.length > 0 ? metaParts.join(' · ') : null}
+          trailingBadge={
+            showStatusBadge ? (
+              <ClinicApplicationStatusBadge
+                status={application.status}
+                postType={application.post_type}
+                applicationKitRequestedAt={application.application_kit_requested_at}
+                applicationKitSubmittedAt={application.application_kit_submitted_at}
+                statusClosedBy={application.status_closed_by}
+              />
+            ) : null
+          }
+          badges={
+            showNewBadge || (jobMatch && matchContext) ? (
+              <>
+                {showNewBadge ? <ApplicationCardBadge accent={accent} /> : null}
+                {jobMatch && matchContext ? (
+                  <MatchTierBadge
+                    breakdown={jobMatch}
+                    context={matchContext}
+                    subtitle={application.post_title}
+                    audience="clinic"
+                  />
+                ) : null}
+              </>
+            ) : undefined
+          }
+          status={{
+            audience: 'clinic',
+            status: application.status,
+            postType: application.post_type,
+            applicationKitRequestedAt: application.application_kit_requested_at,
+            applicationKitSubmittedAt: application.application_kit_submitted_at,
+            interviewProposedAt: application.interview_proposed_at,
+            statusNote: application.status_note,
+            statusClosedBy: application.status_closed_by,
+            workerAccountDeleted: workerDeleted,
+            isHighlighted: hasNewApplication,
+          }}
         />
 
         {!workerDeleted ? (

@@ -71,7 +71,7 @@ export default function ClinicAccountProfileScreen() {
     : null;
 
   const styles = useThemedStyles(({ spacing }) => ({
-    content: { gap: spacing.xl },
+    content: { gap: spacing.lg },
   }));
 
   if (!isClinicProfileReady) {

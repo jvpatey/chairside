@@ -2,6 +2,7 @@ import type { Conversation } from '@chairside/api';
 import {
   formatApplicationStatus,
   formatClinicApplicationStatus,
+  formatPostTitleDisplay,
   getRoleTypeLabel,
   SPECIALTY_OPTIONS,
 } from '@chairside/config';
@@ -97,7 +98,7 @@ function formatInboxContextLine(conversation: Conversation, role: 'worker' | 'cl
       .join(' · ');
   }
 
-  return [roleLabel, conversation.post_title, statusLabel, deletedNote]
+  return [roleLabel, formatPostTitleDisplay(conversation.post_title ?? ''), statusLabel, deletedNote]
     .filter(Boolean)
     .join(' · ');
 }
@@ -135,7 +136,7 @@ function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): 
     return [dateLabel, hours, statusLabel, deletedNote].filter(Boolean).join(' · ');
   }
 
-  return [conversation.post_title, statusLabel, deletedNote].filter(Boolean).join(' · ');
+  return [formatPostTitleDisplay(conversation.post_title ?? ''), statusLabel, deletedNote].filter(Boolean).join(' · ');
 }
 
 function formatStatusLabel(conversation: Conversation, role: 'worker' | 'clinic'): string {
@@ -155,7 +156,7 @@ function formatJobContext(conversation: Conversation, role: 'worker' | 'clinic')
     ? getRoleTypeLabel(conversation.post_role_type)
     : 'Role';
   const statusLabel = formatStatusLabel(conversation, role);
-  return `${roleLabel} · ${conversation.post_title} · ${statusLabel}`;
+  return `${roleLabel} · ${formatPostTitleDisplay(conversation.post_title ?? '')} · ${statusLabel}`;
 }
 
 function formatShiftContext(conversation: Conversation, role: 'worker' | 'clinic'): string {

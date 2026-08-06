@@ -34,7 +34,7 @@ export default function WorkerProfileScreen() {
   const { colors } = useTheme();
 
   const styles = useThemedStyles(({ spacing }) => ({
-    content: { gap: spacing.xl },
+    content: { gap: spacing.lg },
   }));
 
   if (!isWorkerProfileReady) {

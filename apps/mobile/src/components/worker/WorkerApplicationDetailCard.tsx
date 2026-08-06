@@ -15,6 +15,7 @@ import {
   formatApplicationEducation,
   formatApplicationResumeStatus,
   formatInterviewDateTime,
+  formatPostTitleDisplay,
   formatRoleTypesLabel,
   getSpecialtyLabel,
   hasApplicationKitSubmitted,
@@ -41,7 +42,7 @@ import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScre
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
-import { ApplicationStatusSummaryCard } from '@/components/matching/ApplicationStatusSummaryCard';
+import { ApplicantReviewHero } from '@/components/matching/ApplicantReviewHero';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
@@ -224,133 +225,6 @@ function ApplicationActionButtons({ actions }: { actions: ActionButtonSpec[] }) 
         ),
       )}
     </>
-  );
-}
-
-function WorkerApplicationHeroCard({
-  application,
-  appliedLabel,
-  clinicLocation,
-  jobMatch,
-  matchContext,
-  onClinicPress,
-}: {
-  application: WorkerApplication;
-  appliedLabel: string | null;
-  clinicLocation: string | null;
-  jobMatch: ReturnType<typeof parseApplicationJobMatch>;
-  matchContext: ReturnType<typeof getApplicationMatchDisplayContext>;
-  onClinicPress?: () => void;
-}) {
-  const logoUri = useClinicLogoUri(application.clinic_logo_storage_path);
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    wrap: {
-      gap: spacing.md,
-    },
-    topRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
-    },
-    identity: {
-      flex: 1,
-      minWidth: 0,
-      gap: spacing.xs,
-    },
-    clinicName: {
-      ...typography.body,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-    clinicNameLink: {
-      ...typography.body,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.primary,
-    },
-    clinicNamePressable: {
-      alignSelf: 'flex-start',
-      borderRadius: 8,
-    },
-    title: {
-      ...typography.title,
-      fontSize: 22,
-      lineHeight: 28,
-      color: colors.labelPrimary,
-    },
-    metaLine: {
-      ...typography.body,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.labelSecondary,
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-  }));
-
-  const metaParts = [clinicLocation, appliedLabel].filter(Boolean);
-
-  return (
-    <SurfaceCard padding="md" gap>
-      <View style={styles.wrap}>
-        <View style={styles.topRow}>
-          <ClinicLogoAvatar
-            clinicName={application.clinic_name}
-            logoUri={logoUri}
-            size={56}
-          />
-          <View style={styles.identity}>
-            {onClinicPress ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`View ${application.clinic_name} profile`}
-                onPress={onClinicPress}
-                style={({ pressed }) => [
-                  styles.clinicNamePressable,
-                  pressed && { opacity: 0.75 },
-                ]}>
-                <Text style={styles.clinicNameLink} numberOfLines={2}>
-                  {application.clinic_name}
-                </Text>
-              </Pressable>
-            ) : (
-              <Text style={styles.clinicName} numberOfLines={2}>
-                {application.clinic_name}
-              </Text>
-            )}
-            <Text style={styles.title} numberOfLines={2}>
-              {application.post_title}
-            </Text>
-            {metaParts.length > 0 ? (
-              <Text style={styles.metaLine} numberOfLines={3}>
-                {metaParts.join(' · ')}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={styles.badgeRow}>
-          <WorkerApplicationStatusBadge
-            status={application.status}
-            postType={application.post_type}
-            statusNote={application.status_note}
-            statusClosedBy={application.status_closed_by}
-          />
-          {jobMatch && matchContext ? (
-            <MatchTierBadge
-              breakdown={jobMatch}
-              context={matchContext}
-              subtitle={application.post_title}
-            />
-          ) : null}
-        </View>
-      </View>
-    </SurfaceCard>
   );
 }
 
@@ -616,10 +490,22 @@ export function WorkerApplicationDetailCard({
     application.status === 'interview_scheduled' &&
     hasMappableWorkerApplicationClinicLocation(application);
   const appliedLabel = formatAppliedLabel(application);
+  const logoUri = useClinicLogoUri(application.clinic_logo_storage_path);
+  const metaParts = [clinicLocation, appliedLabel].filter(Boolean);
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ spacing, colors, typography }) => ({
     stack: {
       gap: spacing.lg,
+    },
+    clinicNameLink: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.primary,
+    },
+    clinicNamePressable: {
+      alignSelf: 'flex-start',
+      borderRadius: 8,
     },
   }));
 
@@ -1003,25 +889,62 @@ export function WorkerApplicationDetailCard({
   return (
     <>
       <View style={styles.stack}>
-        <WorkerApplicationHeroCard
-          application={application}
-          appliedLabel={appliedLabel}
-          clinicLocation={clinicLocation}
-          jobMatch={jobMatch}
-          matchContext={matchContext}
-          onClinicPress={canViewClinicProfile ? handleViewClinicProfile : undefined}
-        />
-
-        <ApplicationStatusSummaryCard
-          audience="worker"
-          status={application.status}
-          postType={application.post_type}
-          applicationKitRequestedAt={application.application_kit_requested_at}
-          applicationKitSubmittedAt={application.application_kit_submitted_at}
-          interviewProposedAt={application.interview_proposed_at}
-          statusNote={application.status_note}
-          statusClosedBy={application.status_closed_by}
-          clinicAccountDeleted={clinicDeleted}
+        <ApplicantReviewHero
+          avatar={
+            <ClinicLogoAvatar
+              clinicName={application.clinic_name}
+              logoUri={logoUri}
+              size={56}
+            />
+          }
+          label={
+            canViewClinicProfile ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`View ${application.clinic_name} profile`}
+                onPress={handleViewClinicProfile}
+                style={({ pressed }) => [
+                  styles.clinicNamePressable,
+                  pressed && { opacity: 0.75 },
+                ]}>
+                <Text style={styles.clinicNameLink} numberOfLines={2}>
+                  {application.clinic_name}
+                </Text>
+              </Pressable>
+            ) : (
+              application.clinic_name
+            )
+          }
+          title={formatPostTitleDisplay(application.post_title)}
+          meta={metaParts.length > 0 ? metaParts.join(' · ') : null}
+          trailingBadge={
+            <WorkerApplicationStatusBadge
+              status={application.status}
+              postType={application.post_type}
+              statusNote={application.status_note}
+              statusClosedBy={application.status_closed_by}
+            />
+          }
+          badges={
+            jobMatch && matchContext ? (
+              <MatchTierBadge
+                breakdown={jobMatch}
+                context={matchContext}
+                subtitle={application.post_title}
+              />
+            ) : undefined
+          }
+          status={{
+            audience: 'worker',
+            status: application.status,
+            postType: application.post_type,
+            applicationKitRequestedAt: application.application_kit_requested_at,
+            applicationKitSubmittedAt: application.application_kit_submitted_at,
+            interviewProposedAt: application.interview_proposed_at,
+            statusNote: application.status_note,
+            statusClosedBy: application.status_closed_by,
+            clinicAccountDeleted: clinicDeleted,
+          }}
         />
 
         {clinicDeleted ? (

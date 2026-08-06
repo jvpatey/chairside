@@ -1,6 +1,8 @@
 import type { ShiftPost } from '@chairside/api';
 import { getRoleTypeLabel } from '@chairside/config';
 
+import { formatFillInPostTitle } from '@chairside/config';
+
 import {
   addDays,
   formatShiftDateLabel,
@@ -15,9 +17,7 @@ export function formatShiftPostRoleTitle(roleType: string): string {
 }
 
 export function formatFillInRoleLabel(shiftDate: string): string {
-  const date = parseISODate(shiftDate);
-  const dateLabel = date ? formatShiftDateLabel(date) : shiftDate;
-  return `Fill-in · ${dateLabel}`;
+  return formatFillInPostTitle(shiftDate);
 }
 
 export function formatShiftPostDateLabel(shiftDate: string): string {

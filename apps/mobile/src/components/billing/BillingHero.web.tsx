@@ -1,6 +1,5 @@
 import type { ClinicBillingState } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BillingMetricTile } from '@/components/billing/BillingMetricTile';
@@ -12,6 +11,7 @@ import {
   formatSubscriptionStatusBadge,
   getClinicPlanBrandAccentColor,
   getClinicPlanHeroSummary,
+  getClinicPlanSubtleBackground,
 } from '@/lib/clinicPlanPresentation';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webTypography } from '@/theme/web';
@@ -41,23 +41,7 @@ function formatMetricHint(active: number, limit: number | null | undefined): str
   return `${remaining} left`;
 }
 
-function planHeroWash(plan: ClinicBillingState['plan'], isDark: boolean): [string, string] {
-  if (plan === 'free') {
-    return isDark
-      ? ['rgba(48, 209, 88, 0.22)', 'rgba(28, 28, 30, 0.94)']
-      : ['rgba(52, 199, 89, 0.16)', 'rgba(255, 255, 255, 0.95)'];
-  }
-  if (plan === 'pro' || plan === 'group_pro') {
-    return isDark
-      ? ['rgba(152, 150, 255, 0.24)', 'rgba(28, 28, 30, 0.94)']
-      : ['rgba(88, 86, 214, 0.16)', 'rgba(255, 255, 255, 0.95)'];
-  }
-  return isDark
-    ? ['rgba(74, 154, 255, 0.22)', 'rgba(28, 28, 30, 0.94)']
-    : ['rgba(26, 111, 212, 0.14)', 'rgba(255, 255, 255, 0.95)'];
-}
-
-/** Web billing hero — plan-tinted card with usage metrics. */
+/** Web billing hero — flat plan card with usage metrics. */
 export function BillingHero({ billing }: BillingHeroProps) {
   const { colors, isDark } = useTheme();
   const plan = billing.plan;
@@ -81,16 +65,13 @@ export function BillingHero({ billing }: BillingHeroProps) {
       gap: spacing.lg,
       paddingVertical: spacing.lg,
       paddingHorizontal: spacing.lg,
-      borderRadius: radii.xl,
-      borderWidth: 2,
-      overflow: 'hidden' as const,
-      position: 'relative' as const,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
+      flexWrap: 'wrap' as const,
       // @ts-expect-error web shadow
       boxShadow: getWebShadow(isDark, 'subtle'),
-      flexWrap: 'wrap' as const,
-    },
-    wash: {
-      ...StyleSheet.absoluteFillObject,
     },
     identity: {
       flexDirection: 'row' as const,
@@ -98,16 +79,15 @@ export function BillingHero({ billing }: BillingHeroProps) {
       gap: spacing.md,
       flex: 1,
       minWidth: 240,
-      zIndex: 1,
     },
     motif: {
       width: 56,
       height: 56,
-      borderRadius: 16,
+      borderRadius: 14,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       flexShrink: 0,
-      borderWidth: 1,
+      backgroundColor: getClinicPlanSubtleBackground(plan, colors),
     },
     copy: {
       flex: 1,
@@ -151,7 +131,6 @@ export function BillingHero({ billing }: BillingHeroProps) {
       minWidth: 280,
       maxWidth: 380,
       flexGrow: 1,
-      zIndex: 1,
       alignItems: 'stretch' as const,
     },
   }));
@@ -162,30 +141,9 @@ export function BillingHero({ billing }: BillingHeroProps) {
     billing.activeFillInLimit != null && billing.activeFillInCount >= billing.activeFillInLimit;
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: colorWithAlpha(brandAccent, isDark ? 0.12 : 0.06),
-          borderColor: colorWithAlpha(brandAccent, isDark ? 0.42 : 0.28),
-        },
-      ]}>
-      <LinearGradient
-        colors={planHeroWash(plan, isDark)}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.wash}
-        pointerEvents="none"
-      />
+    <View style={styles.card}>
       <View style={styles.identity}>
-        <View
-          style={[
-            styles.motif,
-            {
-              backgroundColor: colorWithAlpha(brandAccent, isDark ? 0.22 : 0.14),
-              borderColor: colorWithAlpha(brandAccent, isDark ? 0.35 : 0.22),
-            },
-          ]}>
+        <View style={styles.motif}>
           <Ionicons name={CLINIC_PLAN_ICONS[plan]} size={26} color={brandAccent} />
         </View>
         <View style={styles.copy}>

@@ -1,3 +1,4 @@
+import { formatFillInPostTitle } from '@chairside/config';
 import {
   getShiftPost,
   getUnreadConversationMap,
@@ -65,7 +66,7 @@ export default function ClinicShiftApplicationsScreen() {
         listClinicApplicationsForShift(user.id, resolvedShiftId),
         getUnreadConversationMap(user.id, 'clinic'),
       ]);
-      setPostTitle(shift ? `Fill-in · ${shift.shift_date}` : 'Fill-in applicants');
+      setPostTitle(shift ? formatFillInPostTitle(shift.shift_date) : 'Fill-in applicants');
       setApplications(rows);
       setUnreadMap(unread);
     } catch (error) {

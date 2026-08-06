@@ -1,6 +1,6 @@
 import { getSupabaseClient } from './client';
 import { throwWithMessage } from './errors';
-import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
+import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL, formatFillInPostTitle } from '@chairside/config';
 import {
   APPLICATION_UPDATE_GRACE_MS,
   FILL_IN_PENDING_STATUSES,
@@ -270,7 +270,7 @@ function buildWorkerShiftApplication(
 
   return {
     ...application,
-    post_title: `Fill-in · ${shiftDate}`,
+    post_title: formatFillInPostTitle(shiftDate),
     post_type: 'shift',
     post_status: shift?.status ?? null,
     post_role_type: roleType,
@@ -410,7 +410,7 @@ export async function listClinicApplications(
   const shiftMap = new Map(
     (shiftsResult.data ?? []).map((shift) => [
       shift.id,
-      { title: `Fill-in · ${shift.shift_date}`, role_type: shift.role_type },
+      { title: formatFillInPostTitle(shift.shift_date), role_type: shift.role_type },
     ]),
   );
 
@@ -510,7 +510,7 @@ export async function listWorkerApplications(
     (shiftsResult.data ?? []).map((shift) => [
       shift.id,
       {
-        title: `Fill-in · ${shift.shift_date}`,
+        title: formatFillInPostTitle(shift.shift_date),
         clinic_id: shift.clinic_id,
         status: shift.status,
         role_type: shift.role_type,
@@ -758,7 +758,7 @@ export async function getClinicApplication(
 
     const enriched: ClinicApplication = {
       ...application,
-      post_title: `Fill-in · ${shift.shift_date}`,
+      post_title: formatFillInPostTitle(shift.shift_date),
       post_type: 'shift',
       post_role_type: shift.role_type,
       worker_account_deleted: Boolean(application.worker_account_deleted_at),
@@ -1593,7 +1593,7 @@ export async function listFillInCoverRequests(
     shifts.map((shift) => [
       shift.id,
       {
-        title: `Fill-in · ${shift.shift_date}`,
+        title: formatFillInPostTitle(shift.shift_date),
         role_type: shift.role_type,
         shift_date: shift.shift_date,
         start_time: shift.start_time,
@@ -1717,7 +1717,7 @@ export async function listUpcomingConfirmedFillIns(
       workerPhotoStoragePath: row.worker_account_deleted_at
         ? null
         : (row.worker_photo_storage_path ?? null),
-      postTitle: `Fill-in · ${shift.shift_date}`,
+      postTitle: formatFillInPostTitle(shift.shift_date),
       shiftDate: shift.shift_date,
       startTime: shift.start_time,
       endTime: shift.end_time,

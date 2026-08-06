@@ -3,6 +3,7 @@ import {
   getUnreadConversationMap,
   type ClinicApplication,
 } from '@chairside/api';
+import { formatPostTitleDisplay } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
@@ -127,7 +128,7 @@ export default function ClinicApplicationDetailScreen() {
     <>
       <FormScreen
         eyebrow="Application review"
-        title={application?.post_title || 'Applicant'}
+        title={formatPostTitleDisplay(application?.post_title || 'Applicant')}
         onBack={goBack}>
         <View style={styles.content}>
           <FormErrorBanner message={formError} />

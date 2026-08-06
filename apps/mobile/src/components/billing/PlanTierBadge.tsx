@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { PillBadge } from '@/components/ui/PillBadge';
 import {
   CLINIC_PLAN_ICONS,
+  getClinicPlanBrandAccentColor,
+  getClinicPlanSubtleBackground,
   getClinicPlanTierLabel,
 } from '@/lib/clinicPlanPresentation';
 import { colorWithAlpha, useTheme } from '@/theme';
@@ -14,20 +16,15 @@ type PlanTierBadgeProps = {
 };
 
 export function PlanTierBadge({ plan, size = 'md' }: PlanTierBadgeProps) {
-  const { colors, isDark } = useTheme();
-
-  const accent =
-    plan === 'pro' || plan === 'group_pro'
-      ? colors.primary
-      : plan === 'starter' || plan === 'group_starter'
-        ? colors.secondary
-        : colors.labelSecondary;
+  const { colors } = useTheme();
+  const accent = getClinicPlanBrandAccentColor(plan, colors);
+  const backgroundColor = getClinicPlanSubtleBackground(plan, colors);
 
   return (
     <PillBadge
       label={getClinicPlanTierLabel(plan)}
       color={accent}
-      backgroundColor={colorWithAlpha(accent, isDark ? 0.2 : 0.12)}
+      backgroundColor={backgroundColor}
       borderColor={colorWithAlpha(accent, 0.28)}
       size={size}
       leading={

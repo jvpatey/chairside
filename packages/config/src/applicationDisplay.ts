@@ -290,6 +290,53 @@ export function formatApplicationDate(value: string | null | undefined): string 
   });
 }
 
+/** Calendar date from YYYY-MM-DD, e.g. "Jun 29, 2026". */
+export function formatISODateLabel(isoDate: string): string {
+  const trimmed = isoDate.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) return trimmed;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const date = new Date(year, month, day);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month ||
+    date.getDate() !== day
+  ) {
+    return trimmed;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function formatFillInPostTitle(shiftDate: string): string {
+  return `Fill-in · ${formatISODateLabel(shiftDate)}`;
+}
+
+export function formatFillInInquiryPostTitle(shiftDate: string): string {
+  return `Fill-in inquiry · ${formatISODateLabel(shiftDate)}`;
+}
+
+/** Rewrites ISO date suffixes in fill-in post titles for display. */
+export function formatPostTitleDisplay(postTitle: string): string {
+  const trimmed = postTitle.trim();
+  if (!trimmed) return postTitle;
+
+  const fillInMatch = /^(Fill-in(?: inquiry)? · )(\d{4}-\d{2}-\d{2})$/.exec(trimmed);
+  if (fillInMatch) {
+    return `${fillInMatch[1]}${formatISODateLabel(fillInMatch[2])}`;
+  }
+
+  return postTitle;
+}
+
 export function formatApplicationScreeningStatus(
   status: 'completed' | 'skipped' | null | undefined,
 ): string | null {

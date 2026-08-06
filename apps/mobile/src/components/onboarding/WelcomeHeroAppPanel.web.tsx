@@ -157,18 +157,7 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
       alignSelf: 'stretch' as const,
     },
     glow: {
-      position: 'absolute' as const,
-      top: '6%',
-      left: '4%',
-      right: '4%',
-      bottom: APP_STORE_URL ? '18%' : '4%',
-      borderRadius: 32,
-      pointerEvents: 'none' as const,
-      ...webOnlyStyle({
-        backgroundImage: dark
-          ? 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(74, 154, 255, 0.22) 0%, rgba(74, 154, 255, 0.06) 42%, transparent 72%)'
-          : 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(26, 111, 212, 0.18) 0%, rgba(26, 111, 212, 0.06) 42%, transparent 72%)',
-      } as object),
+      display: 'none' as const,
     },
     windowShell: {
       width: '100%',

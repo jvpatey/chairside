@@ -3,8 +3,7 @@ import {
   type ClinicPlan,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, Text, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { PillBadge } from '@/components/ui/PillBadge';
@@ -18,6 +17,7 @@ import {
   CLINIC_PLAN_ICONS,
   getClinicPlanBrandAccentColor,
   getClinicPlanFeatureAccentColor,
+  getClinicPlanSubtleBackground,
 } from '@/lib/clinicPlanPresentation';
 import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
 import { colorWithAlpha, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
@@ -38,23 +38,6 @@ export type PlanComparisonCardProps = {
 };
 
 const IS_WEB = Platform.OS === 'web';
-
-/** Soft top wash tinted to the plan brand (landing pricing style). */
-function planWashColors(plan: ClinicPlan, isDark: boolean): [string, string] {
-  if (plan === 'free') {
-    return isDark
-      ? ['rgba(48, 209, 88, 0.2)', 'transparent']
-      : ['rgba(52, 199, 89, 0.14)', 'transparent'];
-  }
-  if (plan === 'pro' || plan === 'group_pro') {
-    return isDark
-      ? ['rgba(152, 150, 255, 0.22)', 'transparent']
-      : ['rgba(88, 86, 214, 0.14)', 'transparent'];
-  }
-  return isDark
-    ? ['rgba(74, 154, 255, 0.2)', 'transparent']
-    : ['rgba(26, 111, 212, 0.12)', 'transparent'];
-}
 
 export function PlanComparisonCard({
   plan,
@@ -87,12 +70,10 @@ export function PlanComparisonCard({
     card: {
       backgroundColor: colors.surface,
       borderRadius: IS_WEB ? 16 : radii.lg,
-      borderWidth: IS_WEB ? 2 : isCurrent ? 2 : 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       padding: spacing.lg,
       gap: spacing.md,
-      overflow: 'hidden' as const,
-      position: 'relative' as const,
       ...(IS_WEB
         ? ({
             height: '100%',
@@ -103,29 +84,16 @@ export function PlanComparisonCard({
           } as object)
         : null),
     },
-    // Current keeps plan wash — only border strengthens; badge carries “current”.
     cardCurrent: {
+      borderWidth: 2,
       borderColor: brandAccent,
-      backgroundColor: colorWithAlpha(brandAccent, isDark ? 0.1 : 0.05),
     },
-    cardRecommended: IS_WEB
-      ? {
-          backgroundColor: colorWithAlpha(brandAccent, isDark ? 0.08 : 0.04),
-          borderColor: colorWithAlpha(brandAccent, isDark ? 0.45 : 0.32),
-        }
-      : {
-          borderColor: colorWithAlpha(brandAccent, isDark ? 0.32 : 0.22),
-        },
-    wash: {
-      position: 'absolute' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+    cardRecommended: {
+      borderWidth: 2,
+      borderColor: colorWithAlpha(brandAccent, isDark ? 0.45 : 0.32),
     },
     content: {
       gap: spacing.md,
-      zIndex: 1,
       ...(IS_WEB ? { flexGrow: 1 } : null),
     },
     badgeRow: {
@@ -145,7 +113,7 @@ export function PlanComparisonCard({
       borderRadius: IS_WEB ? 14 : radii.md,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      backgroundColor: colorWithAlpha(brandAccent, isDark ? 0.18 : 0.1),
+      backgroundColor: getClinicPlanSubtleBackground(plan, colors),
     },
     headerText: {
       flex: 1,
@@ -214,16 +182,6 @@ export function PlanComparisonCard({
         isCurrent ? styles.cardCurrent : null,
         !isCurrent && isRecommended ? styles.cardRecommended : null,
       ]}>
-      {IS_WEB ? (
-        <LinearGradient
-          colors={planWashColors(plan, isDark)}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.wash}
-          pointerEvents="none"
-        />
-      ) : null}
-
       <View style={styles.content}>
         <View style={styles.badgeRow}>
           {isCurrent ? (
