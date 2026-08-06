@@ -3,7 +3,6 @@ import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
-import { SurfaceWell } from '@/components/ui/SurfaceWell';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import { webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
@@ -418,9 +417,5 @@ export function FileTabWell<T extends string = string>({
     </View>
   );
 
-  return isTablet ? (
-    <SurfaceWell contentStyle={{ padding: 0 }}>{shell}</SurfaceWell>
-  ) : (
-    shell
-  );
+  return shell;
 }

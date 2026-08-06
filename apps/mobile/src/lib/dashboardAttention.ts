@@ -1,4 +1,4 @@
-import type { ClinicApplication, Conversation, JobApplicationSummary } from '@chairside/api';
+import type { ClinicApplication, JobApplicationSummary } from '@chairside/api';
 
 import type { DashboardAttentionItem } from '@/components/dashboard/DashboardNeedsAttention';
 import { getDueFollowUpApplications } from '@/lib/applicationPipeline';
@@ -7,13 +7,10 @@ type BuildClinicAttentionInput = {
   newApplications: number;
   applicationUpdateCount: number;
   fillInUpdateCount: number;
-  unreadConversations: Conversation[];
   applications?: ClinicApplication[];
   canUseCrmFollowups?: boolean;
   onOpenApplications: () => void;
   onOpenFillIns: () => void;
-  onOpenMessages: () => void;
-  onOpenConversation: (conversation: Conversation) => void;
   onOpenFollowUp?: (application: ClinicApplication) => void;
 };
 
@@ -21,13 +18,10 @@ export function buildClinicAttentionItems({
   newApplications,
   applicationUpdateCount,
   fillInUpdateCount,
-  unreadConversations,
   applications = [],
   canUseCrmFollowups = false,
   onOpenApplications,
   onOpenFillIns,
-  onOpenMessages,
-  onOpenConversation,
   onOpenFollowUp,
 }: BuildClinicAttentionInput): DashboardAttentionItem[] {
   const items: DashboardAttentionItem[] = [];
@@ -75,46 +69,21 @@ export function buildClinicAttentionItems({
     }
   }
 
-  const unread = unreadConversations.filter((c) => c.unread);
-  if (unread.length === 1) {
-    items.push({
-      id: `message-${unread[0].id}`,
-      label: 'Unread message',
-      icon: 'chatbubble-outline',
-      accent: 'primary',
-      onPress: () => onOpenConversation(unread[0]),
-    });
-  } else if (unread.length > 1) {
-    items.push({
-      id: 'unread-messages',
-      label: `${unread.length} unread messages`,
-      icon: 'chatbubble-outline',
-      accent: 'primary',
-      onPress: onOpenMessages,
-    });
-  }
-
   return items;
 }
 
 type BuildWorkerAttentionInput = {
   applicationUpdateCount: number;
   fillInPendingCount: number;
-  unreadConversations: Conversation[];
   onOpenApplications: () => void;
   onOpenFillIns: () => void;
-  onOpenMessages: () => void;
-  onOpenConversation: (conversation: Conversation) => void;
 };
 
 export function buildWorkerAttentionItems({
   applicationUpdateCount,
   fillInPendingCount,
-  unreadConversations,
   onOpenApplications,
   onOpenFillIns,
-  onOpenMessages,
-  onOpenConversation,
 }: BuildWorkerAttentionInput): DashboardAttentionItem[] {
   const items: DashboardAttentionItem[] = [];
 
@@ -135,25 +104,6 @@ export function buildWorkerAttentionItems({
       icon: 'calendar-outline',
       accent: 'secondary',
       onPress: onOpenFillIns,
-    });
-  }
-
-  const unread = unreadConversations.filter((c) => c.unread);
-  if (unread.length === 1) {
-    items.push({
-      id: `message-${unread[0].id}`,
-      label: 'Unread message',
-      icon: 'chatbubble-outline',
-      accent: 'primary',
-      onPress: () => onOpenConversation(unread[0]),
-    });
-  } else if (unread.length > 1) {
-    items.push({
-      id: 'unread-messages',
-      label: `${unread.length} unread messages`,
-      icon: 'chatbubble-outline',
-      accent: 'primary',
-      onPress: onOpenMessages,
     });
   }
 

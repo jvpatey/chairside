@@ -35,13 +35,13 @@ import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanne
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
 import { DashboardNeedsAttention } from '@/components/dashboard/DashboardNeedsAttention';
-import { DashboardNextUp } from '@/components/dashboard/DashboardNextUp';
+import { DashboardCalendarWidget } from '@/components/dashboard/DashboardCalendarWidget';
 import { DashboardPlanUsage } from '@/components/dashboard/DashboardPlanUsage';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
-import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
+import { DashboardMessagesWidget } from '@/components/messaging/DashboardMessagesWidget';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -329,13 +329,10 @@ export default function ClinicDashboardScreen() {
         newApplications: counts.newApplications,
         applicationUpdateCount,
         fillInUpdateCount,
-        unreadConversations: conversations,
         applications,
         canUseCrmFollowups: Boolean(billing?.canUseCrmFollowups),
         onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
         onOpenFillIns: () => router.push(CLINIC_FILL_INS),
-        onOpenMessages: () => router.push(getClinicMessagesRoute()),
-        onOpenConversation: openConversation,
         onOpenFollowUp: (application) => {
           router.push(getClinicApplicationRoute(application.id, 'dashboard-applications'));
         },
@@ -344,10 +341,8 @@ export default function ClinicDashboardScreen() {
       applicationUpdateCount,
       applications,
       billing?.canUseCrmFollowups,
-      conversations,
       counts.newApplications,
       fillInUpdateCount,
-      openConversation,
     ],
   );
 
@@ -365,22 +360,10 @@ export default function ClinicDashboardScreen() {
       isProfileComplete
         ? buildClinicHeroPulse({
             newApplications: counts.newApplications,
-            upcomingEvents: upcomingCalendarEvents,
-            unreadConversations: conversations,
             onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
-            onOpenEvent: handleCalendarEventPress,
-            onOpenMessages: () => router.push(getClinicMessagesRoute()),
-            onOpenConversation: openConversation,
           })
         : null,
-    [
-      conversations,
-      counts.newApplications,
-      handleCalendarEventPress,
-      isProfileComplete,
-      openConversation,
-      upcomingCalendarEvents,
-    ],
+    [counts.newApplications, isProfileComplete],
   );
 
   const showChecklist =
@@ -442,12 +425,14 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       needsAttention={<DashboardNeedsAttention items={attentionItems} />}
-      nextUp={
-        <DashboardNextUp
-          events={upcomingCalendarEvents}
-          onEventPress={handleCalendarEventPress}
-          onViewCalendar={() => router.push('/(clinic-tabs)/calendar' as Href)}
-        />
+      calendar={
+        <FadeInSection delayMs={60}>
+          <DashboardCalendarWidget
+            events={upcomingCalendarEvents}
+            onEventPress={handleCalendarEventPress}
+            onViewAllPress={() => router.push('/(clinic-tabs)/calendar' as Href)}
+          />
+        </FadeInSection>
       }
       quickActions={
         <FadeInSection delayMs={100}>
@@ -581,17 +566,15 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       messages={
-        conversations.some((conversation) => conversation.unread) ? (
-          <FadeInSection delayMs={200}>
-            <DashboardUnreadMessagesCard
-              conversations={conversations}
-              avatarKind="worker"
-              role="clinic"
-              onConversationPress={openConversation}
-              onViewAllPress={() => router.push(getClinicMessagesRoute())}
-            />
-          </FadeInSection>
-        ) : null
+        <FadeInSection delayMs={200}>
+          <DashboardMessagesWidget
+            conversations={conversations}
+            avatarKind="worker"
+            role="clinic"
+            onConversationPress={openConversation}
+            onViewAllPress={() => router.push(getClinicMessagesRoute())}
+          />
+        </FadeInSection>
       }
     />
   );

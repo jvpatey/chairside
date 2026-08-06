@@ -33,7 +33,7 @@ import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingSh
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { DashboardNeedsAttention } from '@/components/dashboard/DashboardNeedsAttention';
-import { DashboardNextUp } from '@/components/dashboard/DashboardNextUp';
+import { DashboardCalendarWidget } from '@/components/dashboard/DashboardCalendarWidget';
 import { FileTabWell, type FileTabOption } from '@/components/dashboard/FileTabWell';
 import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -46,7 +46,7 @@ import {
   WorkerOverviewPanel,
   type WorkerOverviewStat,
 } from '@/components/worker/WorkerCards';
-import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
+import { DashboardMessagesWidget } from '@/components/messaging/DashboardMessagesWidget';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
@@ -259,13 +259,10 @@ export default function WorkerDashboardScreen() {
       buildWorkerAttentionItems({
         applicationUpdateCount,
         fillInPendingCount,
-        unreadConversations: conversations,
         onOpenApplications: () => router.push(WORKER_APPLICATIONS),
         onOpenFillIns: () => router.push(WORKER_FILLINS),
-        onOpenMessages: () => router.push(getWorkerMessagesRoute()),
-        onOpenConversation: openConversation,
       }),
-    [applicationUpdateCount, conversations, fillInPendingCount, openConversation],
+    [applicationUpdateCount, fillInPendingCount],
   );
 
   const upcomingCalendarEvents = useMemo(() => {
@@ -282,22 +279,10 @@ export default function WorkerDashboardScreen() {
       isProfileComplete
         ? buildWorkerHeroPulse({
             applicationUpdateCount,
-            upcomingEvents: upcomingCalendarEvents,
-            unreadConversations: conversations,
             onOpenApplications: () => router.push(WORKER_APPLICATIONS),
-            onOpenEvent: handleCalendarEventPress,
-            onOpenMessages: () => router.push(getWorkerMessagesRoute()),
-            onOpenConversation: openConversation,
           })
         : null,
-    [
-      applicationUpdateCount,
-      conversations,
-      handleCalendarEventPress,
-      isProfileComplete,
-      openConversation,
-      upcomingCalendarEvents,
-    ],
+    [applicationUpdateCount, isProfileComplete],
   );
 
   const workerSubtitle =
@@ -390,12 +375,14 @@ export default function WorkerDashboardScreen() {
         ) : null
       }
       needsAttention={<DashboardNeedsAttention items={attentionItems} />}
-      nextUp={
-        <DashboardNextUp
-          events={upcomingCalendarEvents}
-          onEventPress={handleCalendarEventPress}
-          onViewCalendar={() => router.push('/(tabs)/calendar' as Href)}
-        />
+      calendar={
+        <FadeInSection delayMs={60}>
+          <DashboardCalendarWidget
+            events={upcomingCalendarEvents}
+            onEventPress={handleCalendarEventPress}
+            onViewAllPress={() => router.push('/(tabs)/calendar' as Href)}
+          />
+        </FadeInSection>
       }
       quickActions={
         <FadeInSection delayMs={100}>
@@ -463,17 +450,15 @@ export default function WorkerDashboardScreen() {
         ) : null
       }
       messages={
-        conversations.some((conversation) => conversation.unread) ? (
-          <FadeInSection delayMs={180}>
-            <DashboardUnreadMessagesCard
-              conversations={conversations}
-              avatarKind="clinic"
-              role="worker"
-              onConversationPress={openConversation}
-              onViewAllPress={() => router.push(getWorkerMessagesRoute())}
-            />
-          </FadeInSection>
-        ) : null
+        <FadeInSection delayMs={180}>
+          <DashboardMessagesWidget
+            conversations={conversations}
+            avatarKind="clinic"
+            role="worker"
+            onConversationPress={openConversation}
+            onViewAllPress={() => router.push(getWorkerMessagesRoute())}
+          />
+        </FadeInSection>
       }
     />
   );

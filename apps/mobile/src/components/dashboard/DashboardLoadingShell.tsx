@@ -18,11 +18,8 @@ export function DashboardLoadingShell() {
     attentionNextUpStack: {
       ...getDashboardLayoutStyles(theme).attentionNextUpStack,
     },
-    nextUpCard: {
-      height: 88,
-      borderRadius: theme.radii.xl,
-      flex: 1,
-      minWidth: 160,
+    widgetCard: {
+      borderRadius: theme.radii.lg,
     },
     workspaceWell: {
       borderRadius: theme.radii.hero,
@@ -71,11 +68,10 @@ export function DashboardLoadingShell() {
       </View>
 
       <View style={styles.attentionNextUpStack}>
-        <View style={styles.attentionNextUpRow}>
-          <ShimmerBlock height={88} width="100%" borderRadius={16} style={styles.nextUpCard} />
-          <ShimmerBlock height={88} width="100%" borderRadius={16} style={styles.nextUpCard} />
-        </View>
+        <ShimmerBlock height={40} width="100%" borderRadius={20} />
       </View>
+
+      <ShimmerBlock height={120} width="100%" borderRadius={16} style={styles.widgetCard} />
 
       <View style={styles.workspaceWell}>
         <View style={styles.tabRow}>

@@ -10,7 +10,7 @@ type DashboardBodyLayoutProps = {
   hero?: ReactNode;
   error?: ReactNode;
   needsAttention?: ReactNode;
-  nextUp?: ReactNode;
+  calendar?: ReactNode;
   quickActions?: ReactNode;
   workspace: ReactNode;
   insights?: ReactNode;
@@ -29,7 +29,7 @@ export function DashboardBodyLayout({
   hero,
   error,
   needsAttention,
-  nextUp,
+  calendar,
   quickActions,
   workspace,
   insights,
@@ -46,6 +46,7 @@ export function DashboardBodyLayout({
     <View style={styles.asideStack}>
       {planUsage}
       {insights}
+      {calendar}
       {messages}
       {checklist}
       {alerts}
@@ -55,14 +56,14 @@ export function DashboardBodyLayout({
   const hasAside =
     hasRenderableContent(planUsage) ||
     hasRenderableContent(insights) ||
+    hasRenderableContent(calendar) ||
     hasRenderableContent(messages) ||
     hasRenderableContent(checklist) ||
     hasRenderableContent(alerts);
 
-  const attentionNextUp = hasRenderableContent(needsAttention) || hasRenderableContent(nextUp) ? (
+  const attentionRow = hasRenderableContent(needsAttention) ? (
     <View style={useDesktopGrid ? styles.attentionNextUpRow : styles.attentionNextUpStack}>
       {needsAttention}
-      {nextUp}
     </View>
   ) : null;
 
@@ -72,7 +73,7 @@ export function DashboardBodyLayout({
         {hero}
         {quickActions}
         {error}
-        {attentionNextUp}
+        {attentionRow}
         <View style={hasAside ? styles.desktopGrid : undefined}>
           <View style={hasAside ? styles.desktopMain : styles.desktopMainFull}>
             {workspace}
@@ -88,7 +89,8 @@ export function DashboardBodyLayout({
       {hero}
       {quickActions}
       {error}
-      {attentionNextUp}
+      {attentionRow}
+      {calendar}
       {workspace}
       {planUsage}
       {insights}
