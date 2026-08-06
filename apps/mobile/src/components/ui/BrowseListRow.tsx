@@ -234,6 +234,24 @@ export function BrowseListRow({
       justifyContent: 'center',
       gap: spacing.xs,
     },
+    cornerTrailing: {
+      position: 'absolute',
+      top: compact ? spacing.sm : spacing.md,
+      right: compact ? spacing.sm : spacing.md,
+      zIndex: 2,
+      alignItems: 'flex-end',
+    },
+    chevronTrailing: {
+      position: 'absolute',
+      right: compact ? spacing.sm : spacing.md,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      zIndex: 1,
+    },
+    stackedChevronInset: {
+      paddingRight: spacing.lg,
+    },
     trailingBottom: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -369,8 +387,10 @@ export function BrowseListRow({
     </View>
   ) : null;
 
+  const useStackedCornerLayout = !isSplit && compact && Boolean(topTrailing);
+
   const stackedTrailingColumn =
-    topTrailing || trailing || showChevron ? (
+    useStackedCornerLayout || !(topTrailing || trailing || showChevron) ? null : (
       <View style={styles.trailingCol}>
         {topTrailing ?? null}
         {trailing || showChevron ? (
@@ -382,7 +402,35 @@ export function BrowseListRow({
           </View>
         ) : null}
       </View>
-    ) : null;
+    );
+
+  const stackedMainRow = (
+    <View style={[styles.headerRow, useStackedCornerLayout && showChevron && styles.stackedChevronInset]}>
+      {avatar}
+      <View style={styles.headerBody}>{stackedTextBlock}</View>
+      {stackedTrailingColumn}
+    </View>
+  );
+
+  const stackedLayout = useStackedCornerLayout ? stackedMainRow : (
+    <View style={styles.headerRow}>
+      {avatar}
+      <View style={styles.headerBody}>{stackedTextBlock}</View>
+      {topTrailing || trailing || showChevron ? (
+        <View style={styles.trailingCol}>
+          {topTrailing ?? null}
+          {trailing || showChevron ? (
+            <View style={styles.trailingBottom}>
+              {trailing}
+              {showChevron ? (
+                <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
 
   const splitLayout = (
     <>
@@ -399,18 +447,37 @@ export function BrowseListRow({
     </>
   );
 
-  const stackedLayout = (
-    <View style={styles.headerRow}>
-      {avatar}
-      <View style={styles.headerBody}>{stackedTextBlock}</View>
-      {stackedTrailingColumn}
-    </View>
-  );
+  const stackedStatusFooter =
+    !isSplit && statusFooter ? (
+      <View
+        style={[
+          styles.statusFooterRow,
+          statusFooterAlign === 'end' && styles.statusFooterEnd,
+          useStackedCornerLayout && showChevron && styles.stackedChevronInset,
+        ]}>
+        {statusFooter}
+      </View>
+    ) : null;
 
   const content = (
     <>
-      {isSplit ? splitLayout : stackedLayout}
-      {!isSplit && statusFooter ? (
+      {isSplit ? (
+        splitLayout
+      ) : (
+        <>
+          {useStackedCornerLayout && topTrailing ? (
+            <View style={styles.cornerTrailing}>{topTrailing}</View>
+          ) : null}
+          {stackedLayout}
+          {stackedStatusFooter}
+          {useStackedCornerLayout && showChevron ? (
+            <View style={styles.chevronTrailing} pointerEvents="none">
+              <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+            </View>
+          ) : null}
+        </>
+      )}
+      {isSplit && statusFooter ? (
         <View
           style={[
             styles.statusFooterRow,

@@ -145,16 +145,6 @@ export function RolePostingCard({
   const statusBadge = <JobPostStatusBadge status={job.status} />;
   const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
 
-  const headerActions = (
-    <View style={styles.headerActions}>
-      <BadgeRow>
-        {isFeatured ? <FeaturedListingBadge /> : null}
-        {statusBadge}
-      </BadgeRow>
-      {manageButton}
-    </View>
-  );
-
   const showApplicantPill = !hideActions && hasApplicants && Boolean(onApplicantsPress);
 
   const applicantControl = showApplicantPill ? (
@@ -164,6 +154,27 @@ export function RolePostingCard({
       accessibilityLabel={`Review ${applicantCount} applicants`}
     />
   ) : null;
+
+  const statusBadges = (
+    <BadgeRow>
+      {isFeatured ? <FeaturedListingBadge /> : null}
+      {statusBadge}
+    </BadgeRow>
+  );
+
+  const headerActions = (
+    <View style={styles.headerActions}>
+      {!mobileEmbedded ? statusBadges : null}
+      {!mobileEmbedded ? manageButton : null}
+    </View>
+  );
+
+  const mobileEmbeddedFooter = (
+    <View style={styles.headerActions}>
+      {applicantControl}
+      {manageButton}
+    </View>
+  );
 
   const wageLabel = job.wage_range ? (
     <Text style={styles.wage}>{job.wage_range}</Text>
@@ -224,15 +235,8 @@ export function RolePostingCard({
           postedLabelPlacement="header"
           headerDetail={embedded || mobileEmbedded ? null : roleMeta}
           headerAccent={mobileEmbedded ? null : job.wage_range || null}
-          topTrailing={mobileEmbedded ? undefined : headerActions}
-          statusFooter={
-            mobileEmbedded ? (
-              <>
-                {applicantControl}
-                {headerActions}
-              </>
-            ) : undefined
-          }
+          topTrailing={mobileEmbedded ? statusBadges : headerActions}
+          statusFooter={mobileEmbedded ? mobileEmbeddedFooter : undefined}
           statusFooterAlign={mobileEmbedded ? 'end' : 'start'}
           contentAccessory={mobileEmbedded ? undefined : applicantControl}
           showChevron={Boolean(onPress)}
