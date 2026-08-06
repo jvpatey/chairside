@@ -42,6 +42,7 @@ type ConfirmedFillInCardProps = {
   onExpandChange?: (expanded: boolean) => void;
   returnTo?: ClinicApplicationReturnTarget;
   onUpdated?: () => void;
+  embedded?: boolean;
 };
 
 export function ConfirmedFillInCard({
@@ -57,6 +58,7 @@ export function ConfirmedFillInCard({
   onExpandChange,
   returnTo = 'fill-ins-tab',
   onUpdated,
+  embedded = false,
 }: ConfirmedFillInCardProps) {
   const { colors } = useTheme();
   const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
@@ -139,7 +141,7 @@ export function ConfirmedFillInCard({
         header={header}
         expanded={expanded}
         onToggleExpand={toggleExpanded}
-        variant="success"
+        variant={embedded ? 'inner' : 'success'}
         accent="secondary">
         <CardDetailSection title="Shift details">
           <View style={styles.detailsCard}>

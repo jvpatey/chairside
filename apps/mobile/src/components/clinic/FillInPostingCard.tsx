@@ -48,6 +48,7 @@ type FillInPostingCardProps = {
   onShiftUpdated?: (shift: ShiftPost) => void;
   onShiftDeleted?: () => void;
   accent?: GradientAccent;
+  embedded?: boolean;
 };
 
 export function FillInPostingCard({
@@ -61,6 +62,7 @@ export function FillInPostingCard({
   onShiftUpdated,
   onShiftDeleted,
   accent = 'secondary',
+  embedded = false,
 }: FillInPostingCardProps) {
   const { colors } = useTheme();
   const { billing } = useClinicBilling();
@@ -159,6 +161,7 @@ export function FillInPostingCard({
       header={header}
       expanded={expanded}
       onToggleExpand={toggleExpanded}
+      variant={embedded ? 'inner' : 'default'}
       accent={accent}
       style={isFeatured ? featuredTreatment.styles.card : undefined}
       featuredGradient={isFeatured ? featuredTreatment.gradient : null}>

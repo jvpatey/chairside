@@ -280,6 +280,7 @@ export function WorkerOverviewPanel({
               <RoleListingCard
                 key={job.id}
                 job={job}
+                embedded={embedded}
                 isSaved={savedJobIds?.has(job.id) ?? false}
                 onToggleSaved={
                   onToggleSavedJob
@@ -313,6 +314,7 @@ export function WorkerOverviewPanel({
                   <FillInListingCard
                     key={shift.id}
                     shift={shift}
+                    embedded={embedded}
                     accent="secondary"
                     isSaved={savedShiftIds?.has(shift.id) ?? false}
                     onToggleSaved={
@@ -333,6 +335,7 @@ export function WorkerOverviewPanel({
                   <WorkerApplicationListCard
                     key={application.id}
                     application={application}
+                    embedded={embedded}
                     hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                     returnTo="dashboard-fill-ins"
                   />
@@ -346,6 +349,7 @@ export function WorkerOverviewPanel({
                   <WorkerApplicationListCard
                     key={application.id}
                     application={application}
+                    embedded={embedded}
                     hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                     returnTo="dashboard-fill-ins"
                   />
@@ -369,6 +373,7 @@ export function WorkerOverviewPanel({
               <WorkerApplicationListCard
                 key={application.id}
                 application={application}
+                embedded={embedded}
                 hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                 returnTo="dashboard-applications"
               />
@@ -393,6 +398,7 @@ export function WorkerOverviewPanel({
                 <RoleListingCard
                   key={job.id}
                   job={job}
+                  embedded={embedded}
                   isSaved
                   onToggleSaved={
                     onToggleSavedJob
@@ -409,6 +415,7 @@ export function WorkerOverviewPanel({
                 <FillInListingCard
                   key={shift.id}
                   shift={shift}
+                  embedded={embedded}
                   accent="secondary"
                   isSaved
                   onToggleSaved={

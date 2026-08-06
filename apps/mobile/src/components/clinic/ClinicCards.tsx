@@ -183,6 +183,7 @@ function DashboardListCard({
   applicantCount = 0,
   statusBadge,
   highlighted = false,
+  embedded = false,
   onPress,
 }: {
   title: string;
@@ -192,6 +193,7 @@ function DashboardListCard({
   applicantCount?: number;
   statusBadge?: ReactNode;
   highlighted?: boolean;
+  embedded?: boolean;
   onPress?: () => void;
 }) {
   const { clinicProfile } = useClinicProfile();
@@ -219,7 +221,7 @@ function DashboardListCard({
   );
 
   return (
-    <SurfaceCard onPress={onPress}>
+    <SurfaceCard variant={embedded ? 'inner' : 'default'} onPress={onPress}>
       {header}
     </SurfaceCard>
   );
@@ -297,6 +299,7 @@ export function DashboardOverviewPanel({
                 <RolePostingCard
                   key={job.id}
                   job={job}
+                  embedded={embedded}
                   applicantPreview={applicantPreviewByJobId?.[job.id]}
                   applicantCount={applicantCounts?.[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
@@ -334,6 +337,7 @@ export function DashboardOverviewPanel({
                 {confirmedFillIns.map((row) => (
                   <ConfirmedFillInCard
                     key={row.applicationId}
+                    embedded={embedded}
                     clinicId={clinicId ?? ''}
                     workerName={row.workerName}
                     workerPhotoStoragePath={row.workerPhotoStoragePath}
@@ -360,6 +364,7 @@ export function DashboardOverviewPanel({
                 {liveShifts.map((shift) => (
                   <FillInPostingCard
                     key={shift.id}
+                    embedded={embedded}
                     shift={shift}
                     pendingRequestCount={shiftPendingCounts[shift.id] ?? 0}
                     applicationCount={shiftApplicationCounts[shift.id] ?? 0}
@@ -392,6 +397,7 @@ export function DashboardOverviewPanel({
               return (
                 <DashboardListCard
                   key={summary.job_post_id}
+                  embedded={embedded}
                   title={summary.post_title}
                   applicantCount={summary.applicant_count}
                   unseenCount={summary.unseen_count}

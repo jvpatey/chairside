@@ -19,6 +19,7 @@ type WorkerApplicationListCardProps = {
   hasUnreadMessages?: boolean;
   returnTo?: WorkerApplicationReturnTarget;
   compact?: boolean;
+  embedded?: boolean;
 };
 
 export function WorkerApplicationListCard({
@@ -26,6 +27,7 @@ export function WorkerApplicationListCard({
   hasUnreadMessages = false,
   returnTo = 'applications-tab',
   compact = false,
+  embedded = false,
 }: WorkerApplicationListCardProps) {
   const { colors } = useTheme();
   const { isApplicationHighlighted, getApplicationHighlightLabel, markApplicationSeen } =
@@ -101,7 +103,15 @@ export function WorkerApplicationListCard({
 
   return (
     <SurfaceCard
-      variant={isConfirmedShift ? 'success' : isCancelledShift ? 'default' : 'default'}
+      variant={
+        embedded
+          ? 'inner'
+          : isConfirmedShift
+            ? 'success'
+            : isCancelledShift
+              ? 'default'
+              : 'default'
+      }
       padding={compact ? 'sm' : 'md'}
       gap
       onPress={openDetail}

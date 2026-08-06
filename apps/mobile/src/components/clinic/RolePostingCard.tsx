@@ -36,6 +36,8 @@ type RolePostingCardProps = {
   /** Dashboard: show applicant faces instead of clinic logo. */
   applicantPreview?: { names: string[] };
   layout?: ListingLayout;
+  /** Dashboard file-tab panel: inner surface + applicant-first identity. */
+  embedded?: boolean;
   onPress?: () => void;
   onApplicantsPress?: () => void;
   manage?: RolePostingCardManageProps;
@@ -47,6 +49,7 @@ export function RolePostingCard({
   job,
   applicantCount = 0,
   layout = 'tile',
+  embedded = false,
   onPress,
   onApplicantsPress,
   manage,
@@ -101,6 +104,13 @@ export function RolePostingCard({
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
+    },
+    roleIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   }));
 
@@ -161,25 +171,46 @@ export function RolePostingCard({
       <ApplicantAvatarStack names={applicantPreview.names} size={40} />
     ) : null;
 
-  if (layout === 'list') {
+  const locationEyebrow =
+    [locationName, location].filter(Boolean).join(' · ') || clinicName;
+
+  const roleIconFallback = (
+    <View style={[styles.roleIconWrap, { backgroundColor: colors.primarySubtle }]}>
+      <Ionicons name="briefcase-outline" size={18} color={colors.primary} />
+    </View>
+  );
+
+  const useListLayout = layout === 'list' || embedded;
+  const surfaceVariant = embedded ? 'inner' : 'default';
+
+  if (useListLayout) {
     return (
       <SurfaceCard
+        variant={surfaceVariant}
         padding="none"
         onPress={onPress}
         style={isFeatured ? featuredTreatment.styles.card : undefined}
         featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
         <BrowseListRow
           avatar={
-            applicantLead ?? (
-              <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />
-            )
+            embedded
+              ? applicantLead ?? roleIconFallback
+              : applicantLead ?? (
+                  <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />
+                )
           }
-          eyebrow={applicantPreview ? `${applicantCount} applicant${applicantCount === 1 ? '' : 's'}` : clinicName}
+          eyebrow={
+            embedded
+              ? locationEyebrow
+              : applicantPreview
+                ? `${applicantCount} applicant${applicantCount === 1 ? '' : 's'}`
+                : clinicName
+          }
           title={job.title}
-          meta={[locationName, location].filter(Boolean).join(' · ') || null}
+          meta={embedded ? roleMeta : [locationName, location].filter(Boolean).join(' · ') || null}
           postedLabel={postedLabel || null}
           postedLabelPlacement="header"
-          headerDetail={roleMeta}
+          headerDetail={embedded ? null : roleMeta}
           headerAccent={job.wage_range || null}
           topTrailing={headerActions}
           contentAccessory={applicantControl}

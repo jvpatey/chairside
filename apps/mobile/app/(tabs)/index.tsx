@@ -38,6 +38,8 @@ import { FileTabWell, type FileTabOption } from '@/components/dashboard/FileTabW
 import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { buildWorkerAttentionItems } from '@/lib/dashboardAttention';
+import { buildWorkerHeroPulse } from '@/lib/dashboardPulse';
+import { getFirstName } from '@/lib/greeting';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import {
@@ -275,6 +277,29 @@ export default function WorkerDashboardScreen() {
     router.push(getWorkerApplicationRoute(event.applicationId, 'dashboard-applications'));
   }, []);
 
+  const heroPulse = useMemo(
+    () =>
+      isProfileComplete
+        ? buildWorkerHeroPulse({
+            applicationUpdateCount,
+            upcomingEvents: upcomingCalendarEvents,
+            unreadConversations: conversations,
+            onOpenApplications: () => router.push(WORKER_APPLICATIONS),
+            onOpenEvent: handleCalendarEventPress,
+            onOpenMessages: () => router.push(getWorkerMessagesRoute()),
+            onOpenConversation: openConversation,
+          })
+        : null,
+    [
+      applicationUpdateCount,
+      conversations,
+      handleCalendarEventPress,
+      isProfileComplete,
+      openConversation,
+      upcomingCalendarEvents,
+    ],
+  );
+
   const workerSubtitle =
     (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
     'Dental professional';
@@ -351,6 +376,8 @@ export default function WorkerDashboardScreen() {
             photoUri={isProfileComplete ? photoUri : null}
             namePlaceholder={isProfileComplete ? 'Your profile' : 'Welcome to Chairside'}
             subtitle={isProfileComplete ? workerSubtitle : 'Finish your profile setup'}
+            greetingName={isProfileComplete ? getFirstName(profile?.display_name) : null}
+            pulse={heroPulse}
             hideProfileOnWebTablet
           />
         </FadeInSection>

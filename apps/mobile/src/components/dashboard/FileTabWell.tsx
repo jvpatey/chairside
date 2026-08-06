@@ -2,10 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { DeltaChip } from '@/components/ui/DeltaChip';
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
+import { SurfaceWell } from '@/components/ui/SurfaceWell';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
-import { webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import {
   fontExtraBold,
   fontSemibold,
@@ -19,7 +19,6 @@ export type FileTabOption<T extends string = string> = {
   label: string;
   count?: number;
   badgeCount?: number;
-  weekDelta?: number;
   accent?: GradientAccent;
   icon?: keyof typeof Ionicons.glyphMap;
 };
@@ -34,7 +33,7 @@ type FileTabWellProps<T extends string = string> = {
   onLockedTabPress?: () => void;
 };
 
-/** File-tab workspace: overlapping tabs + well content panel. */
+/** File-tab workspace: one bordered shell; tabs share the panel surface. */
 export function FileTabWell<T extends string = string>({
   tabs,
   selected,
@@ -43,79 +42,80 @@ export function FileTabWell<T extends string = string>({
   lockedTab,
   onLockedTabPress,
 }: FileTabWellProps<T>) {
-  const { colors, isDark, radii } = useTheme();
+  const { colors } = useTheme();
   const isWeb = Platform.OS === 'web';
-  const selectedIndex = tabs.findIndex((tab) => tab.value === selected);
-  const panelTopLeftRadius = selectedIndex <= 0 ? 0 : radii.lg;
-  const panelTopRightRadius = selectedIndex >= tabs.length - 1 ? 0 : radii.lg;
 
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
-    root: {
+    shell: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      borderRadius: radii.lg,
+      overflow: 'hidden' as const,
+      backgroundColor: colors.surface,
       width: '100%',
       alignSelf: 'stretch' as const,
     },
     tabRow: {
       flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: spacing.xs,
-      paddingHorizontal: spacing.sm,
-      zIndex: 2,
-      position: 'relative' as const,
+      alignItems: 'stretch',
+      backgroundColor: colors.backgroundGrouped,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.separator,
     },
     tab: {
       flex: 1,
       minWidth: 0,
-      paddingTop: spacing.sm,
-      paddingBottom: spacing.sm,
-      paddingHorizontal: spacing.sm,
-      borderTopLeftRadius: radii.lg,
-      borderTopRightRadius: radii.lg,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      backgroundColor: colors.backgroundGrouped,
+      paddingTop: spacing.sm + 2,
+      paddingBottom: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
+      backgroundColor: 'transparent',
       ...webPointer(),
+      ...webOnlyStyle({
+        transitionProperty: 'background-color, opacity',
+        transitionDuration: '140ms',
+      } as const),
     },
     tabSelected: {
       backgroundColor: colors.surface,
-      borderBottomWidth: 0,
-      paddingBottom: spacing.sm + StyleSheet.hairlineWidth,
+      borderTopLeftRadius: radii.md,
+      borderTopRightRadius: radii.md,
+      paddingBottom: spacing.sm + 2 + StyleSheet.hairlineWidth,
       marginBottom: -StyleSheet.hairlineWidth,
-      zIndex: 3,
+      zIndex: 1,
     },
     tabLocked: {
       opacity: 0.72,
     },
     tabInner: {
-      gap: spacing.xs - 2,
-      alignItems: 'flex-start' as const,
-    },
-    tabHeaderRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: spacing.sm,
       minWidth: 0,
       width: '100%',
     },
     iconBadge: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
+      width: 36,
+      height: 36,
+      borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
     },
-    tabLabelRow: {
+    textColumn: {
       flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    labelRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
       minWidth: 0,
     },
     tabLabel: {
-      flex: 1,
-      fontSize: 13,
-      lineHeight: 17,
+      flexShrink: 1,
+      fontSize: 12,
+      lineHeight: 15,
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelSecondary,
@@ -124,46 +124,24 @@ export function FileTabWell<T extends string = string>({
       color: colors.labelPrimary,
     },
     tabValue: {
-      fontSize: 22,
-      lineHeight: 26,
+      fontSize: 26,
+      lineHeight: 30,
       fontFamily: fontExtraBold,
       fontWeight: '800',
       color: colors.labelPrimary,
       fontVariant: ['tabular-nums'] as const,
-      letterSpacing: -0.5,
+      letterSpacing: -0.6,
     },
-    tabValueWithIcon: {
-      paddingLeft: 28 + spacing.xs,
-    },
-    tabMetaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-      minHeight: 18,
-    },
-    tabMetaRowWithIcon: {
-      paddingLeft: 28 + spacing.xs,
-    },
-    accentRail: {
-      position: 'absolute',
-      left: 0,
-      top: spacing.sm,
-      bottom: spacing.sm,
-      width: 3,
-      borderRadius: 2,
+    tabValueInactive: {
+      color: colors.labelTertiary,
     },
     panel: {
-      zIndex: 1,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      borderBottomLeftRadius: radii.lg,
-      borderBottomRightRadius: radii.lg,
       backgroundColor: colors.surface,
-      padding: spacing.lg,
+      padding: spacing.md,
     },
-    tabHovered: webTileHoverStyles(colors, isDark),
+    tabHovered: webListRowHoverStyles(colors),
     tabPressed: {
-      opacity: 0.9,
+      opacity: 0.88,
     },
   }));
 
@@ -178,75 +156,73 @@ export function FileTabWell<T extends string = string>({
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.tabRow} accessibilityRole="tablist">
-        {tabs.map((tab) => {
-          const isSelected = selected === tab.value;
-          const isLocked = lockedTab === tab.value;
-          const accent = tab.accent ?? 'primary';
-          const accentColor = resolveAccentColor(colors, accent);
-          const accentSubtle = resolveAccentSubtle(colors, accent);
+    <SurfaceWell contentStyle={{ padding: 0 }}>
+      <View style={styles.shell}>
+        <View style={styles.tabRow} accessibilityRole="tablist">
+          {tabs.map((tab) => {
+            const isSelected = selected === tab.value;
+            const isLocked = lockedTab === tab.value;
+            const accent = tab.accent ?? 'primary';
+            const accentColor = resolveAccentColor(colors, accent);
+            const accentSubtle = resolveAccentSubtle(colors, accent);
 
-          return (
-            <Pressable
-              key={tab.value}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={`${tab.label}${tab.count != null ? `: ${tab.count}` : ''}`}
-              onPress={() => handleSelect(tab.value, isLocked)}
-              style={({ pressed, hovered }) => [
-                styles.tab,
-                isSelected && styles.tabSelected,
-                isLocked && styles.tabLocked,
-                isWeb && hovered && !pressed && !isSelected && styles.tabHovered,
-                pressed && styles.tabPressed,
-              ]}>
-              {isSelected ? (
-                <View style={[styles.accentRail, { backgroundColor: accentColor }]} />
-              ) : null}
-              <View style={styles.tabInner}>
-                <View style={styles.tabHeaderRow}>
+            return (
+              <Pressable
+                key={tab.value}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${tab.label}${tab.count != null ? `: ${tab.count}` : ''}`}
+                onPress={() => handleSelect(tab.value, isLocked)}
+                style={({ pressed, hovered }) => [
+                  styles.tab,
+                  isSelected && styles.tabSelected,
+                  isLocked && styles.tabLocked,
+                  isWeb && hovered && !pressed && !isSelected && styles.tabHovered,
+                  pressed && !isSelected && styles.tabPressed,
+                ]}>
+                <View style={styles.tabInner}>
                   {tab.icon ? (
-                    <View style={[styles.iconBadge, { backgroundColor: accentSubtle }]}>
-                      <Ionicons name={tab.icon} size={15} color={accentColor} />
+                    <View
+                      style={[
+                        styles.iconBadge,
+                        { backgroundColor: isSelected ? accentColor : accentSubtle },
+                      ]}>
+                      <Ionicons
+                        name={tab.icon}
+                        size={18}
+                        color={isSelected ? colors.primaryOnPrimary : accentColor}
+                      />
                     </View>
                   ) : null}
-                  <View style={styles.tabLabelRow}>
-                    <Text
-                      style={[styles.tabLabel, isSelected && styles.tabLabelSelected]}
-                      numberOfLines={1}>
-                      {tab.label}
-                    </Text>
-                    {tab.badgeCount != null && tab.badgeCount > 0 ? (
-                      <NotificationCountBadge count={tab.badgeCount} />
+                  <View style={styles.textColumn}>
+                    <View style={styles.labelRow}>
+                      <Text
+                        style={[styles.tabLabel, isSelected && styles.tabLabelSelected]}
+                        numberOfLines={1}>
+                        {tab.label}
+                      </Text>
+                      {tab.badgeCount != null && tab.badgeCount > 0 ? (
+                        <NotificationCountBadge count={tab.badgeCount} />
+                      ) : null}
+                    </View>
+                    {tab.count != null ? (
+                      <Text
+                        style={[
+                          styles.tabValue,
+                          !isSelected && styles.tabValueInactive,
+                          isSelected ? { color: accentColor } : null,
+                        ]}>
+                        {tab.count}
+                      </Text>
                     ) : null}
                   </View>
                 </View>
-                {tab.count != null ? (
-                  <Text
-                    style={[
-                      styles.tabValue,
-                      tab.icon ? styles.tabValueWithIcon : null,
-                      isSelected ? { color: accentColor } : null,
-                    ]}>
-                    {tab.count}
-                  </Text>
-                ) : null}
-                <View style={[styles.tabMetaRow, tab.icon ? styles.tabMetaRowWithIcon : null]}>
-                  {tab.weekDelta != null ? <DeltaChip delta={tab.weekDelta} /> : null}
-                </View>
-              </View>
-            </Pressable>
-          );
-        })}
+              </Pressable>
+            );
+          })}
+        </View>
+        <View style={styles.panel}>{children}</View>
       </View>
-      <View
-        style={[
-          styles.panel,
-          { borderTopLeftRadius: panelTopLeftRadius, borderTopRightRadius: panelTopRightRadius },
-        ]}>
-        {children}
-      </View>
-    </View>
+    </SurfaceWell>
   );
 }

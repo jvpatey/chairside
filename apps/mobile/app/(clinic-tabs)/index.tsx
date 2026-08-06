@@ -61,6 +61,8 @@ import {
   buildClinicAttentionItems,
   summarizeJobApplicantPreviews,
 } from '@/lib/dashboardAttention';
+import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
+import { getFirstName } from '@/lib/greeting';
 import {
   isFillInPostingLimitReached,
   isRolePostingLimitReached,
@@ -351,6 +353,29 @@ export default function ClinicDashboardScreen() {
     router.push(getClinicApplicationRoute(event.applicationId, 'dashboard-applications'));
   }, []);
 
+  const heroPulse = useMemo(
+    () =>
+      isProfileComplete
+        ? buildClinicHeroPulse({
+            newApplications: counts.newApplications,
+            upcomingEvents: upcomingCalendarEvents,
+            unreadConversations: conversations,
+            onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
+            onOpenEvent: handleCalendarEventPress,
+            onOpenMessages: () => router.push(getClinicMessagesRoute()),
+            onOpenConversation: openConversation,
+          })
+        : null,
+    [
+      conversations,
+      counts.newApplications,
+      handleCalendarEventPress,
+      isProfileComplete,
+      openConversation,
+      upcomingCalendarEvents,
+    ],
+  );
+
   const showChecklist =
     isProfileComplete &&
     (counts.openRoles === 0 || counts.fillInsPosted === 0 || counts.totalApplications === 0);
@@ -391,6 +416,8 @@ export default function ClinicDashboardScreen() {
             }
             subtitle={heroSubtitle}
             identityLine={heroIdentityLine}
+            greetingName={isProfileComplete ? getFirstName(memberDisplayName) : null}
+            pulse={heroPulse}
             hideProfileOnWebTablet
             contextSlot={
               isGroup && !isTablet ? (
@@ -449,7 +476,6 @@ export default function ClinicDashboardScreen() {
                 value: 'roles',
                 label: 'Roles',
                 count: counts.openRoles,
-                weekDelta: counts.openRolesWeekDelta,
                 accent: 'primary',
                 icon: 'briefcase-outline',
               },
@@ -457,7 +483,6 @@ export default function ClinicDashboardScreen() {
                 value: 'fill-ins',
                 label: 'Fill-ins',
                 count: counts.fillInsPosted,
-                weekDelta: counts.fillInsWeekDelta,
                 badgeCount: fillInUpdateCount,
                 accent: 'secondary',
                 icon: 'calendar-outline',
@@ -466,7 +491,6 @@ export default function ClinicDashboardScreen() {
                 value: 'applications',
                 label: 'Applications',
                 count: counts.totalApplications,
-                weekDelta: counts.applicationsWeekDelta,
                 badgeCount: applicationUpdateCount || counts.newApplications,
                 accent: 'primary',
                 icon: 'people-outline',

@@ -1,7 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router, type Href } from 'expo-router';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import {
+  AccessibilityInfo,
+  Animated,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
 import {
@@ -9,9 +18,16 @@ import {
   DashboardHeroSubtitle,
 } from '@/components/dashboard/DashboardHeroIdentity';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { getTimeOfDayGreeting } from '@/lib/greeting';
-import { IS_WEB } from '@/lib/webPressableStyles';
-import { fontRegular, fontSemibold, useThemedStyles } from '@/theme';
+import type { DashboardHeroPulse } from '@/lib/dashboardPulse';
+import { getTimeOfDayGreeting, getTimeOfDayIcon } from '@/lib/greeting';
+import { useEnterAnimation } from '@/lib/motion';
+import {
+  IS_WEB,
+  webListRowHoverStyles,
+  webOnlyStyle,
+  webPointer,
+} from '@/lib/webPressableStyles';
+import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
   profileHref: Href;
@@ -24,6 +40,8 @@ type DashboardHeroProps = {
   identityLine?: string;
   /** Optional first name for "Good afternoon, Sarah". */
   greetingName?: string | null;
+  /** Live one-line summary; tap opens highest-priority destination. */
+  pulse?: DashboardHeroPulse | null;
   /** Static context chip (e.g. read-only label). Ignored when `contextSlot` is set. */
   contextLine?: string;
   /** Interactive or custom context under the subtitle (e.g. location scope picker). */
@@ -41,6 +59,44 @@ function formatDashboardDate(date = new Date()) {
   });
 }
 
+function usePrefersReducedMotion() {
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (!cancelled) setReduceMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, []);
+
+  return reduceMotion;
+}
+
+function HeroStaggerBlock({
+  delayMs,
+  reduceMotion,
+  children,
+}: {
+  delayMs: number;
+  reduceMotion: boolean;
+  children: ReactNode;
+}) {
+  const { opacity, translateY } = useEnterAnimation(reduceMotion ? 0 : delayMs);
+
+  if (reduceMotion) {
+    return <View>{children}</View>;
+  }
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>{children}</Animated.View>
+  );
+}
+
 /** Compact dashboard header — flat surface, no gradient wash. */
 export function DashboardHero({
   profileHref,
@@ -51,15 +107,20 @@ export function DashboardHero({
   subtitle,
   identityLine,
   greetingName,
+  pulse,
   contextLine,
   contextSlot,
   showActions = true,
   hideProfileOnWebTablet = false,
 }: DashboardHeroProps) {
+  const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
+  const reduceMotion = usePrefersReducedMotion();
   const overlayActions = !isTablet && showActions;
   const heroOpensProfile = Platform.OS !== 'web';
   const hideProfileInActions = hideProfileOnWebTablet && IS_WEB && isTablet;
+  const isWeb = Platform.OS === 'web';
+  const timeIcon = getTimeOfDayIcon();
 
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     band: {
@@ -68,17 +129,19 @@ export function DashboardHero({
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       position: 'relative' as const,
+      overflow: 'hidden' as const,
       ...(overlayActions
         ? null
         : {
             paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.lg,
+            paddingTop: spacing.lg,
+            paddingBottom: pulse ? 0 : spacing.lg,
           }),
     },
     bandContent: {
       paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.lg,
       paddingTop: spacing.lg,
+      paddingBottom: pulse ? spacing.md : spacing.lg,
     },
     row: {
       position: 'relative' as const,
@@ -96,7 +159,7 @@ export function DashboardHero({
       gap: spacing.xs + 2,
     },
     identityStack: {
-      gap: spacing.xs + 2,
+      gap: spacing.xs,
     },
     identityPressed: {
       opacity: 0.85,
@@ -107,7 +170,23 @@ export function DashboardHero({
       right: spacing.sm,
       zIndex: 2,
     },
+    greetingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs + 2,
+    },
+    greetingGlyph: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.tertiarySubtle,
+      flexShrink: 0,
+    },
     greeting: {
+      flex: 1,
+      minWidth: 0,
       fontSize: IS_WEB && isTablet ? 15 : 14,
       lineHeight: 20,
       fontFamily: fontRegular,
@@ -136,12 +215,59 @@ export function DashboardHero({
       fontWeight: '600',
       color: colors.labelPrimary,
     },
+    pulseDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+    },
+    pulseRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm + 2,
+      ...webPointer(),
+      ...webOnlyStyle({
+        transitionProperty: 'background-color, opacity',
+        transitionDuration: '140ms',
+      } as const),
+    },
+    pulseRowHovered: webListRowHoverStyles(colors),
+    pulseRowPressed: {
+      opacity: 0.88,
+    },
+    pulseIconBadge: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySubtle,
+      flexShrink: 0,
+    },
+    pulseLabel: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 13,
+      lineHeight: 18,
+      fontFamily: fontRegular,
+      color: colors.labelSecondary,
+    },
+    pulseChevron: {
+      flexShrink: 0,
+      opacity: 0.45,
+    },
   }));
 
   const openProfile = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(profileHref);
   }, [profileHref]);
+
+  const handlePulsePress = useCallback(() => {
+    if (!pulse) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    pulse.onPress();
+  }, [pulse]);
 
   const hasContext = Boolean(contextSlot) || Boolean(contextLine);
   const trimmedIdentity = identityLine?.trim() || null;
@@ -158,15 +284,26 @@ export function DashboardHero({
 
   const identityCore = (
     <View style={styles.identityStack}>
-      <Text style={styles.greeting} accessibilityRole="text">
-        {getTimeOfDayGreeting(greetingName)}
-      </Text>
-      <DashboardHeroName displayName={displayName} namePlaceholder={namePlaceholder} />
-      <DashboardHeroSubtitle
-        subtitle={subtitle}
-        detail={trimmedIdentity}
-        trailing={hasContext || trimmedIdentity ? undefined : formatDashboardDate()}
-      />
+      <HeroStaggerBlock delayMs={0} reduceMotion={reduceMotion}>
+        <View style={styles.greetingRow}>
+          <View style={styles.greetingGlyph}>
+            <Ionicons name={timeIcon} size={15} color={colors.tertiary} />
+          </View>
+          <Text style={styles.greeting} accessibilityRole="text" numberOfLines={1}>
+            {getTimeOfDayGreeting(greetingName)}
+          </Text>
+        </View>
+      </HeroStaggerBlock>
+      <HeroStaggerBlock delayMs={40} reduceMotion={reduceMotion}>
+        <DashboardHeroName displayName={displayName} namePlaceholder={namePlaceholder} />
+      </HeroStaggerBlock>
+      <HeroStaggerBlock delayMs={80} reduceMotion={reduceMotion}>
+        <DashboardHeroSubtitle
+          subtitle={subtitle}
+          detail={trimmedIdentity}
+          trailing={hasContext || trimmedIdentity || pulse ? undefined : formatDashboardDate()}
+        />
+      </HeroStaggerBlock>
     </View>
   );
 
@@ -187,6 +324,38 @@ export function DashboardHero({
       {contextContent}
     </View>
   );
+
+  const pulseFooter = pulse ? (
+    <HeroStaggerBlock delayMs={120} reduceMotion={reduceMotion}>
+      <View>
+        <View style={styles.pulseDivider} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={pulse.label}
+          onPress={handlePulsePress}
+          style={({ pressed, hovered }) => [
+            styles.pulseRow,
+            isWeb && hovered && !pressed && styles.pulseRowHovered,
+            pressed && styles.pulseRowPressed,
+          ]}>
+          <View style={styles.pulseIconBadge}>
+            <Ionicons name={pulse.icon} size={15} color={colors.primary} />
+          </View>
+          <Text style={styles.pulseLabel} numberOfLines={1}>
+            {pulse.label}
+          </Text>
+          {isWeb ? (
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.labelTertiary}
+              style={styles.pulseChevron}
+            />
+          ) : null}
+        </Pressable>
+      </View>
+    </HeroStaggerBlock>
+  ) : null;
 
   return (
     <View style={styles.band}>
@@ -224,6 +393,7 @@ export function DashboardHero({
           )}
         </View>
       </View>
+      {pulseFooter}
     </View>
   );
 }
