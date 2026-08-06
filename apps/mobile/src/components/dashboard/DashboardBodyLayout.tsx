@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { DashboardSectionDivider } from '@/components/dashboard/DashboardSectionDivider';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { IS_WEB } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
@@ -10,14 +9,15 @@ import { useThemedStyles } from '@/theme';
 type DashboardBodyLayoutProps = {
   hero?: ReactNode;
   error?: ReactNode;
-  spotlight?: ReactNode;
-  statCards: ReactNode;
+  needsAttention?: ReactNode;
+  nextUp?: ReactNode;
+  quickActions?: ReactNode;
+  workspace: ReactNode;
   insights?: ReactNode;
-  quickActions: ReactNode;
-  overview: ReactNode;
   checklist?: ReactNode;
   messages?: ReactNode;
   alerts?: ReactNode;
+  planUsage?: ReactNode;
 };
 
 function hasRenderableContent(node: ReactNode) {
@@ -28,14 +28,15 @@ function hasRenderableContent(node: ReactNode) {
 export function DashboardBodyLayout({
   hero,
   error,
-  spotlight,
-  statCards,
-  insights,
+  needsAttention,
+  nextUp,
   quickActions,
-  overview,
+  workspace,
+  insights,
   checklist,
   messages,
   alerts,
+  planUsage,
 }: DashboardBodyLayoutProps) {
   const { isWide } = useResponsiveLayout();
   const useDesktopGrid = IS_WEB && isWide;
@@ -43,6 +44,8 @@ export function DashboardBodyLayout({
 
   const asideColumn = (
     <View style={styles.asideStack}>
+      {planUsage}
+      {insights}
       {messages}
       {checklist}
       {alerts}
@@ -50,38 +53,32 @@ export function DashboardBodyLayout({
   );
 
   const hasAside =
+    hasRenderableContent(planUsage) ||
+    hasRenderableContent(insights) ||
     hasRenderableContent(messages) ||
     hasRenderableContent(checklist) ||
     hasRenderableContent(alerts);
 
-  const statsBlock = (
-    <>
-      <DashboardSectionDivider />
-      {error}
-      {spotlight}
-      {statCards}
-      {insights}
-    </>
-  );
-
-  const phoneColumn = (
-    <>
-      {statsBlock}
-      {overview}
-      {checklist}
-      {messages}
-      {alerts}
-    </>
-  );
+  const attentionNextUp = hasRenderableContent(needsAttention) || hasRenderableContent(nextUp) ? (
+    <View style={useDesktopGrid ? styles.attentionNextUpRow : styles.attentionNextUpStack}>
+      {needsAttention}
+      {nextUp}
+    </View>
+  ) : null;
 
   if (useDesktopGrid) {
     return (
       <View style={styles.desktopShell}>
         {hero}
         {quickActions}
-        {statsBlock}
-        {overview}
-        {hasAside ? <View style={styles.desktopSupplementary}>{asideColumn}</View> : null}
+        {error}
+        {attentionNextUp}
+        <View style={hasAside ? styles.desktopGrid : undefined}>
+          <View style={hasAside ? styles.desktopMain : styles.desktopMainFull}>
+            {workspace}
+          </View>
+          {hasAside ? <View style={styles.desktopAside}>{asideColumn}</View> : null}
+        </View>
       </View>
     );
   }
@@ -90,7 +87,14 @@ export function DashboardBodyLayout({
     <View style={styles.content}>
       {hero}
       {quickActions}
-      {phoneColumn}
+      {error}
+      {attentionNextUp}
+      {workspace}
+      {planUsage}
+      {insights}
+      {checklist}
+      {messages}
+      {alerts}
     </View>
   );
 }

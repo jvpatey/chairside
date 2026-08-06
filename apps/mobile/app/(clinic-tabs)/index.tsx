@@ -4,10 +4,14 @@ import {
   getMissingClinicProfileFields,
   getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
+  listClinicApplications,
+  listClinicCalendarEvents,
   listConversationsForClinic,
   listJobApplicationSummaries,
   listJobPosts,
   listShiftPosts,
+  type CalendarEvent,
+  type ClinicApplication,
   type ClinicDashboardCounts,
   listUpcomingConfirmedFillIns,
   type ConfirmedFillInSummary,
@@ -25,15 +29,17 @@ import {
   DashboardOverviewPanel,
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
-import { DashboardCoverRequestsCard } from '@/components/clinic/DashboardCoverRequestsCard';
+import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
+import { DashboardNeedsAttention } from '@/components/dashboard/DashboardNeedsAttention';
+import { DashboardNextUp } from '@/components/dashboard/DashboardNextUp';
+import { DashboardPlanUsage } from '@/components/dashboard/DashboardPlanUsage';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
-import { DashboardSpotlightCard } from '@/components/dashboard/DashboardSpotlightCard';
-import { DashboardStatCards } from '@/components/dashboard/DashboardStatCards';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
@@ -43,7 +49,6 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
-import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSpotlights';
 import { HiringInsightsPanel } from '@/components/clinic/HiringInsightsPanel';
 import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { getClinicHiringInsightsUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
@@ -52,7 +57,10 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { pickClinicSpotlight } from '@/lib/dashboardSpotlight';
+import {
+  buildClinicAttentionItems,
+  summarizeJobApplicantPreviews,
+} from '@/lib/dashboardAttention';
 import {
   isFillInPostingLimitReached,
   isRolePostingLimitReached,
@@ -65,6 +73,7 @@ import {
   CLINIC_POST_JOB,
   CLINIC_PROFILE,
   CLINIC_SETUP_BASICS,
+  getClinicApplicationRoute,
   getClinicMessagesRoute,
   getClinicRoleApplicationsRoute,
   getConversationMessagesRoute,
@@ -111,15 +120,11 @@ export default function ClinicDashboardScreen() {
   const [shiftApplicationCounts, setShiftApplicationCounts] = useState<Record<string, number>>({});
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [confirmedFillIns, setConfirmedFillIns] = useState<ConfirmedFillInSummary[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
-  const {
-    isHydrated: isSpotlightDismissHydrated,
-    dismissedIds: dismissedSpotlightIds,
-    dismiss: dismissSpotlight,
-  } = useDismissedDashboardSpotlights('clinic');
-
   const loadDashboard = useCallback(async () => {
     if (!clinicId) return;
 
@@ -138,6 +143,8 @@ export default function ClinicDashboardScreen() {
         pendingShiftCounts,
         conversationRows,
         confirmed,
+        clinicApplications,
+        calendarRows,
       ] = await Promise.all([
         getClinicDashboardCounts(clinicId, { locationIds: scopedLocationIds }),
         listJobPosts(clinicId, { locationIds: scopedLocationIds }),
@@ -149,6 +156,8 @@ export default function ClinicDashboardScreen() {
         }),
         listConversationsForClinic(clinicId, { locationIds: scopedLocationIds }),
         listUpcomingConfirmedFillIns(clinicId, { locationIds: scopedLocationIds }),
+        listClinicApplications(clinicId, 'active', { locationIds: scopedLocationIds }),
+        listClinicCalendarEvents(clinicId),
       ]);
 
       const shiftApplicationCountEntries = await Promise.all(
@@ -167,6 +176,8 @@ export default function ClinicDashboardScreen() {
       setShiftApplicationCounts(Object.fromEntries(shiftApplicationCountEntries));
       setConversations(conversationRows);
       setConfirmedFillIns(confirmed);
+      setApplications(clinicApplications);
+      setCalendarEvents(calendarRows);
       await refreshUnread();
       await refreshBilling();
       hasLoadedOnce.current = true;
@@ -276,7 +287,8 @@ export default function ClinicDashboardScreen() {
     ? 'Finish your clinic setup'
     : isGroup
       ? groupName
-      : 'Dental Clinic';
+      : [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ') ||
+        'Dental practice';
   const heroIdentityLine =
     isGroup && isProfileComplete && memberRoleLabel ? memberRoleLabel : undefined;
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
@@ -297,33 +309,51 @@ export default function ClinicDashboardScreen() {
     );
   }, []);
 
-  const spotlight = useMemo(
+  const applicantPreviewByJobId = useMemo(
     () =>
-      isSpotlightDismissHydrated
-        ? pickClinicSpotlight({
-            fillInUpdateCount,
-            applicationUpdateCount,
-            confirmedFillIns,
-            jobs,
-            jobApplicationSummaries,
-            dismissedIds: dismissedSpotlightIds,
-            onOpenFillIns: () => router.push(CLINIC_FILL_INS),
-            onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
-            onOpenConfirmedFillIn: () => router.push(CLINIC_FILL_INS),
-            onOpenJobApplicants: (jobId) =>
-              router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications')),
-          })
-        : null,
+      summarizeJobApplicantPreviews(
+        applications.map((application) => ({
+          job_post_id: application.job_post_id,
+          worker_display_name: application.worker_display_name,
+          worker_photo_storage_path: application.worker_photo_storage_path,
+        })),
+      ),
+    [applications],
+  );
+
+  const attentionItems = useMemo(
+    () =>
+      buildClinicAttentionItems({
+        newApplications: counts.newApplications,
+        applicationUpdateCount,
+        fillInUpdateCount,
+        unreadConversations: conversations,
+        onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
+        onOpenFillIns: () => router.push(CLINIC_FILL_INS),
+        onOpenMessages: () => router.push(getClinicMessagesRoute()),
+        onOpenConversation: openConversation,
+      }),
     [
       applicationUpdateCount,
-      confirmedFillIns,
-      dismissedSpotlightIds,
+      conversations,
+      counts.newApplications,
       fillInUpdateCount,
-      isSpotlightDismissHydrated,
-      jobApplicationSummaries,
-      jobs,
+      openConversation,
     ],
   );
+
+  const upcomingCalendarEvents = useMemo(() => {
+    const now = Date.now();
+    return calendarEvents.filter((event) => new Date(event.startsAt).getTime() >= now);
+  }, [calendarEvents]);
+
+  const handleCalendarEventPress = useCallback((event: CalendarEvent) => {
+    router.push(getClinicApplicationRoute(event.applicationId, 'dashboard-applications'));
+  }, []);
+
+  const showChecklist =
+    isProfileComplete &&
+    (counts.openRoles === 0 || counts.fillInsPosted === 0 || counts.totalApplications === 0);
 
   const overviewViewAll = useCallback(() => {
     if (selectedOverview === 'roles') {
@@ -361,6 +391,7 @@ export default function ClinicDashboardScreen() {
             }
             subtitle={heroSubtitle}
             identityLine={heroIdentityLine}
+            hideProfileOnWebTablet
             contextSlot={
               isGroup && !isTablet ? (
                 <ClinicLocationScopeSwitcher variant="hero" />
@@ -376,71 +407,16 @@ export default function ClinicDashboardScreen() {
           </FadeInSection>
         ) : null
       }
-      spotlight={
-        spotlight ? (
-          <FadeInSection delayMs={60}>
-            <DashboardSpotlightCard
-              item={spotlight}
-              onDismiss={() => void dismissSpotlight(spotlight.id)}
-            />
-          </FadeInSection>
-        ) : null
-      }
-      statCards={
-        <FadeInSection delayMs={100}>
-          <DashboardStatCards
-            selected={selectedOverview}
-            onSelect={setSelectedOverview}
-            stats={[
-              {
-                key: 'roles',
-                label: 'Open roles',
-                value: counts.openRoles,
-                weekDelta: counts.openRolesWeekDelta,
-                accent: 'primary',
-              },
-              {
-                key: 'fill-ins',
-                label: 'Fill-ins',
-                value: counts.fillInsPosted,
-                weekDelta: counts.fillInsWeekDelta,
-                badgeCount: fillInUpdateCount,
-                accent: 'secondary',
-              },
-              {
-                key: 'applications',
-                label: 'Applications',
-                value: counts.totalApplications,
-                weekDelta: counts.applicationsWeekDelta,
-                badgeCount: applicationUpdateCount,
-                accent: 'primary',
-              },
-            ]}
-          />
-        </FadeInSection>
-      }
-      insights={
-        clinicId ? (
-          <FadeInSection delayMs={120}>
-            <HiringInsightsPanel
-              clinicId={clinicId}
-              locationIds={scopedLocationIds}
-              canUseHiringInsights={Boolean(billing?.canUseHiringInsights)}
-              showLocationBreakdown={billing?.plan === 'group_pro'}
-              lockedMessage={getClinicHiringInsightsUpgradeMessage(
-                billing?.planFamily ?? (isGroup ? 'group' : 'clinic'),
-              )}
-              onUpgrade={() =>
-                openClinicBillingModal({
-                  focus: billing?.planFamily === 'group' || isGroup ? 'group' : 'clinic',
-                })
-              }
-            />
-          </FadeInSection>
-        ) : null
+      needsAttention={<DashboardNeedsAttention items={attentionItems} />}
+      nextUp={
+        <DashboardNextUp
+          events={upcomingCalendarEvents}
+          onEventPress={handleCalendarEventPress}
+          onViewCalendar={() => router.push('/(clinic-tabs)/calendar' as Href)}
+        />
       }
       quickActions={
-        <FadeInSection delayMs={140}>
+        <FadeInSection delayMs={100}>
           <DashboardQuickActionsRow
             actions={[
               {
@@ -463,51 +439,124 @@ export default function ClinicDashboardScreen() {
           />
         </FadeInSection>
       }
-      overview={
-        <FadeInSection delayMs={180}>
-          <DashboardOverviewPanel
+      workspace={
+        <FadeInSection delayMs={120}>
+          <FileTabWell
             selected={selectedOverview}
-            jobs={jobs}
-            shifts={shifts}
-            confirmedFillIns={confirmedFillIns}
-            jobApplicationSummaries={jobApplicationSummaries}
-            applicantCounts={applicantCounts}
-            shiftPendingCounts={shiftPendingCounts}
-            shiftApplicationCounts={shiftApplicationCounts}
-            clinicId={user?.id}
-            fillInReturnTo="dashboard-fill-ins"
-            onJobUpdated={handleJobUpdated}
-            onJobDeleted={handleJobDeleted}
-            onShiftUpdated={handleShiftUpdated}
-            onShiftDeleted={handleShiftDeleted}
-            onConfirmedFillInsUpdated={() => void loadDashboard()}
-            onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
-            onJobApplicationsPress={(jobId) =>
-              router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
-            }
-            onViewAllPress={overviewViewAll}
-          />
+            onSelect={setSelectedOverview}
+            tabs={[
+              {
+                value: 'roles',
+                label: 'Roles',
+                count: counts.openRoles,
+                weekDelta: counts.openRolesWeekDelta,
+                accent: 'primary',
+                icon: 'briefcase-outline',
+              },
+              {
+                value: 'fill-ins',
+                label: 'Fill-ins',
+                count: counts.fillInsPosted,
+                weekDelta: counts.fillInsWeekDelta,
+                badgeCount: fillInUpdateCount,
+                accent: 'secondary',
+                icon: 'calendar-outline',
+              },
+              {
+                value: 'applications',
+                label: 'Applications',
+                count: counts.totalApplications,
+                weekDelta: counts.applicationsWeekDelta,
+                badgeCount: applicationUpdateCount || counts.newApplications,
+                accent: 'primary',
+                icon: 'people-outline',
+              },
+            ]}>
+            <DashboardOverviewPanel
+              embedded
+              selected={selectedOverview}
+              applicantPreviewByJobId={applicantPreviewByJobId}
+              jobs={jobs}
+              shifts={shifts}
+              confirmedFillIns={confirmedFillIns}
+              jobApplicationSummaries={jobApplicationSummaries}
+              applicantCounts={applicantCounts}
+              shiftPendingCounts={shiftPendingCounts}
+              shiftApplicationCounts={shiftApplicationCounts}
+              clinicId={user?.id}
+              fillInReturnTo="dashboard-fill-ins"
+              onJobUpdated={handleJobUpdated}
+              onJobDeleted={handleJobDeleted}
+              onShiftUpdated={handleShiftUpdated}
+              onShiftDeleted={handleShiftDeleted}
+              onConfirmedFillInsUpdated={() => void loadDashboard()}
+              onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
+              onJobApplicationsPress={(jobId) =>
+                router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
+              }
+              onViewAllPress={overviewViewAll}
+            />
+          </FileTabWell>
         </FadeInSection>
+      }
+      planUsage={
+        billing && isBillingReady && billing.activeRoleLimit != null ? (
+          <FadeInSection delayMs={140}>
+            <DashboardPlanUsage
+              label="Open roles"
+              used={billing.activeRoleCount}
+              limit={billing.activeRoleLimit}
+              secondaryLabel="Fill-ins"
+              secondaryUsed={billing.activeFillInCount}
+              secondaryLimit={billing.activeFillInLimit}
+            />
+          </FadeInSection>
+        ) : null
+      }
+      insights={
+        clinicId ? (
+          <FadeInSection delayMs={160}>
+            <HiringInsightsPanel
+              clinicId={clinicId}
+              locationIds={Array.isArray(scopedLocationIds) ? scopedLocationIds : undefined}
+              canUseHiringInsights={Boolean(billing?.canUseHiringInsights)}
+              showLocationBreakdown={billing?.plan === 'group_pro'}
+              lockedMessage={getClinicHiringInsightsUpgradeMessage(
+                billing?.planFamily ?? (isGroup ? 'group' : 'clinic'),
+              )}
+              onUpgrade={() =>
+                openClinicBillingModal({
+                  focus: billing?.planFamily === 'group' || isGroup ? 'group' : 'clinic',
+                })
+              }
+            />
+          </FadeInSection>
+        ) : null
+      }
+      checklist={
+        showChecklist ? (
+          <FadeInSection delayMs={180}>
+            <ClinicReadinessChecklist
+              clinicProfile={clinicProfile}
+              fillInsPosted={counts.fillInsPosted}
+              openRoles={counts.openRoles}
+              totalApplications={counts.totalApplications}
+              conversationCount={conversations.length}
+              onPostFillIn={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
+              onPostRole={() => guardPosting(CLINIC_POST_JOB)}
+            />
+          </FadeInSection>
+        ) : null
       }
       messages={
         conversations.some((conversation) => conversation.unread) ? (
-          <FadeInSection delayMs={160}>
+          <FadeInSection delayMs={200}>
             <DashboardUnreadMessagesCard
               conversations={conversations}
               avatarKind="worker"
               role="clinic"
               onConversationPress={openConversation}
               onViewAllPress={() => router.push(getClinicMessagesRoute())}
-            />
-          </FadeInSection>
-        ) : null
-      }
-      alerts={
-        fillInUpdateCount > 0 ? (
-          <FadeInSection delayMs={200}>
-            <DashboardCoverRequestsCard
-              pendingCount={fillInUpdateCount}
-              onPress={() => router.push(CLINIC_FILL_INS)}
             />
           </FadeInSection>
         ) : null

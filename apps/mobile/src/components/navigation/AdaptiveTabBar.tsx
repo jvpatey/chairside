@@ -41,9 +41,9 @@ function AdaptiveTabBar({ role, ...props }: AdaptiveTabBarProps) {
           ...(Platform.OS === 'web'
             ? ({
                 height: '100%',
-                // visible so glass shadow isn't clipped; atmosphere is fixed anyway
                 overflow: 'visible',
                 position: 'relative',
+                zIndex: 10,
                 ...webOnlyStyle({
                   transitionProperty: 'width, max-width',
                   transitionDuration: '220ms',

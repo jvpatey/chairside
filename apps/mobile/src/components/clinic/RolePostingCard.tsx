@@ -7,6 +7,7 @@ import { Pressable, Text, View } from 'react-native';
 import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
 import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { BadgeRow } from '@/components/ui/BadgeRow';
@@ -32,6 +33,8 @@ export type RolePostingCardManageProps = {
 type RolePostingCardProps = {
   job: JobPost;
   applicantCount?: number;
+  /** Dashboard: show applicant faces instead of clinic logo. */
+  applicantPreview?: { names: string[] };
   layout?: ListingLayout;
   onPress?: () => void;
   onApplicantsPress?: () => void;
@@ -48,6 +51,7 @@ export function RolePostingCard({
   onApplicantsPress,
   manage,
   hideActions = false,
+  applicantPreview,
 }: RolePostingCardProps) {
   const { colors } = useTheme();
   const { clinicProfile } = useClinicProfile();
@@ -152,6 +156,11 @@ export function RolePostingCard({
     <Text style={styles.wage}>{job.wage_range}</Text>
   ) : null;
 
+  const applicantLead =
+    applicantPreview && applicantPreview.names.length > 0 ? (
+      <ApplicantAvatarStack names={applicantPreview.names} size={40} />
+    ) : null;
+
   if (layout === 'list') {
     return (
       <SurfaceCard
@@ -160,8 +169,12 @@ export function RolePostingCard({
         style={isFeatured ? featuredTreatment.styles.card : undefined}
         featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
         <BrowseListRow
-          avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
-          eyebrow={clinicName}
+          avatar={
+            applicantLead ?? (
+              <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />
+            )
+          }
+          eyebrow={applicantPreview ? `${applicantCount} applicant${applicantCount === 1 ? '' : 's'}` : clinicName}
           title={job.title}
           meta={[locationName, location].filter(Boolean).join(' · ') || null}
           postedLabel={postedLabel || null}
@@ -195,7 +208,16 @@ export function RolePostingCard({
           footer={showApplicantPill ? (wageLabel ?? undefined) : undefined}
           avatarSize={44}
           accessory={headerActions}
-          detailAccessory={applicantControl}
+          detailAccessory={
+            applicantLead ? (
+              <View style={{ gap: 8 }}>
+                {applicantLead}
+                {applicantControl}
+              </View>
+            ) : (
+              applicantControl
+            )
+          }
         />
       </View>
     </SurfaceCard>

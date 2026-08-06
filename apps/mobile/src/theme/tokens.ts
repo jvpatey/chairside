@@ -20,37 +20,32 @@ type ElevationOptions = {
   level: ElevationLevel;
 };
 
-const BRAND_SHADOW_LIGHT = '26, 111, 212';
-const BRAND_SHADOW_DARK = '74, 154, 255';
-
-/** Shared elevation tokens for cards, tiles, and stat cells. */
+/** Shared elevation tokens — ambient neutral shadows for dashboard surfaces. */
 export function getElevationStyle({ isDark, level }: ElevationOptions): ViewStyle {
   if (level === 'none') return {};
-
-  const brandRgb = isDark ? BRAND_SHADOW_DARK : BRAND_SHADOW_LIGHT;
 
   const nativeShadow =
     level === 'subtle'
       ? {
-          shadowColor: isDark ? '#000' : `rgb(${brandRgb})`,
+          shadowColor: '#000',
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: isDark ? 0.24 : 0.1,
-          shadowRadius: isDark ? 10 : 16,
+          shadowOpacity: isDark ? 0.22 : 0.05,
+          shadowRadius: isDark ? 12 : 24,
           elevation: 2,
         }
       : level === 'raised'
         ? {
-            shadowColor: isDark ? '#000' : `rgb(${brandRgb})`,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: isDark ? 0.32 : 0.12,
-            shadowRadius: isDark ? 18 : 24,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: isDark ? 0.28 : 0.06,
+            shadowRadius: isDark ? 16 : 28,
             elevation: 4,
           }
         : {
-            shadowColor: isDark ? '#000' : `rgb(${brandRgb})`,
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: isDark ? 0.38 : 0.16,
-            shadowRadius: isDark ? 28 : 32,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: isDark ? 0.34 : 0.08,
+            shadowRadius: isDark ? 24 : 32,
             elevation: 8,
           };
 
@@ -58,14 +53,14 @@ export function getElevationStyle({ isDark, level }: ElevationOptions): ViewStyl
     level === 'subtle'
       ? isDark
         ? '0 4px 16px rgba(0, 0, 0, 0.28)'
-        : `0 8px 28px rgba(${brandRgb}, 0.1)`
+        : '0 4px 24px rgba(0, 0, 0, 0.05)'
       : level === 'raised'
         ? isDark
-          ? '0 8px 24px rgba(0, 0, 0, 0.34)'
-          : `0 12px 32px rgba(${brandRgb}, 0.12)`
+          ? '0 6px 20px rgba(0, 0, 0, 0.32)'
+          : '0 6px 28px rgba(0, 0, 0, 0.06)'
         : isDark
-          ? '0 12px 40px rgba(0, 0, 0, 0.4)'
-          : `0 16px 40px rgba(${brandRgb}, 0.14)`;
+          ? '0 10px 32px rgba(0, 0, 0, 0.38)'
+          : '0 10px 36px rgba(0, 0, 0, 0.08)';
 
   return Platform.select({
     web: webOnlyStyle({ boxShadow: webShadow } as ViewStyle),

@@ -14,11 +14,20 @@ type ProgressRingProps = {
   total: number;
   size?: number;
   strokeWidth?: number;
+  /** Arc and complete-state ring color. Defaults to primary. */
+  color?: string;
 };
 
 /** Circular progress ring with center label — no SVG dependency. */
-export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: ProgressRingProps) {
+export function ProgressRing({
+  completed,
+  total,
+  size = 48,
+  strokeWidth = 4,
+  color: colorProp,
+}: ProgressRingProps) {
   const { colors } = useTheme();
+  const ringColor = colorProp ?? colors.primary;
   const progress = total > 0 ? Math.max(0, Math.min(1, completed / total)) : 0;
   const isComplete = progress >= 1;
   const angle = useSharedValue(0);
@@ -63,7 +72,7 @@ export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: P
       opacity: 0.55,
     },
     trackComplete: {
-      borderColor: colors.primary,
+      borderColor: ringColor,
       opacity: 1,
     },
     clip: {
@@ -79,7 +88,7 @@ export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: P
       height: size,
       borderRadius: size / 2,
       borderWidth: strokeWidth,
-      borderColor: colors.primary,
+      borderColor: ringColor,
     },
     arcRight: {
       left: -half,

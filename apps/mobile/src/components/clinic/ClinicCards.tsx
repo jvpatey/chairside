@@ -154,6 +154,8 @@ const OVERVIEW_SECTION_TITLES: Record<OverviewStat, string> = {
 
 type DashboardOverviewPanelProps = {
   selected: OverviewStat;
+  embedded?: boolean;
+  applicantPreviewByJobId?: Record<string, { names: string[] }>;
   jobs: JobPost[];
   shifts: ShiftPost[];
   confirmedFillIns?: ConfirmedFillInSummary[];
@@ -225,6 +227,8 @@ function DashboardListCard({
 
 export function DashboardOverviewPanel({
   selected,
+  embedded = false,
+  applicantPreviewByJobId,
   jobs,
   shifts,
   confirmedFillIns = [],
@@ -272,11 +276,13 @@ export function DashboardOverviewPanel({
 
   return (
     <View style={styles.root}>
-      <DashboardSectionHeader
-        title={OVERVIEW_SECTION_TITLES[selected]}
-        actionLabel={onViewAllPress ? 'View all' : undefined}
-        onActionPress={onViewAllPress}
-      />
+      {!embedded ? (
+        <DashboardSectionHeader
+          title={OVERVIEW_SECTION_TITLES[selected]}
+          actionLabel={onViewAllPress ? 'View all' : undefined}
+          onActionPress={onViewAllPress}
+        />
+      ) : null}
       <FadeInSection key={selected} delayMs={0}>
         {selected === 'roles' ? (
         roleJobs.length === 0 ? (
@@ -291,6 +297,7 @@ export function DashboardOverviewPanel({
                 <RolePostingCard
                   key={job.id}
                   job={job}
+                  applicantPreview={applicantPreviewByJobId?.[job.id]}
                   applicantCount={applicantCounts?.[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                   onApplicantsPress={

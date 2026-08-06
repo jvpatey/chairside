@@ -1,17 +1,16 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DeltaChip } from '@/components/ui/DeltaChip';
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { resolveAccentColor } from '@/lib/accentColors';
 import {
   colorWithAlpha,
   fontExtraBold,
   fontSemibold,
-  getStatCardIdleGradient,
-  getStatCardSelectedGradient,
   useTheme,
   useThemedStyles,
   type GradientAccent,
@@ -26,6 +25,8 @@ export type DashboardStatCardItem<T extends string = string> = {
   accent?: GradientAccent;
   /** Net change over the last 7 days (positive = up). */
   weekDelta?: number;
+  /** Shown when value is zero instead of dimming the card. */
+  zeroHint?: string;
 };
 
 type DashboardStatCardsProps<T extends string = string> = {
@@ -50,11 +51,6 @@ function usePrefersReducedMotion() {
   }, []);
 
   return reduceMotion;
-}
-
-function formatWeekDelta(delta: number): string {
-  if (delta > 0) return `▲${delta} this week`;
-  return `▼${Math.abs(delta)} this week`;
 }
 
 function StatCardValue({
@@ -82,7 +78,7 @@ function StatCardValue({
       fontWeight: '800',
       color: color ?? colors.labelPrimary,
       letterSpacing: -0.8,
-      textAlign: 'center' as const,
+      textAlign: 'left' as const,
       fontVariant: ['tabular-nums'] as const,
     },
   }));
@@ -114,28 +110,33 @@ export function DashboardStatCards<T extends string = string>({
       borderRadius: radii.lg,
       overflow: 'hidden',
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
+      borderColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.08 : 0.05),
       minHeight: isTablet ? 104 : 96,
+      backgroundColor: colors.surface,
       ...elevation('subtle'),
       ...webPointer(),
       ...webCardLiftBase(),
       ...(isWeb ? { width: 0 } : null),
     },
     cardSelected: {
-      borderWidth: StyleSheet.hairlineWidth,
+      backgroundColor: colors.primarySubtle,
       borderColor: colorWithAlpha(colors.primary, isDark ? 0.42 : 0.28),
       ...elevation('raised'),
     },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
+    accentRail: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 3,
     },
     inner: {
       flex: 1,
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 4,
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'center',
-      gap: 2,
+      gap: 4,
     },
     badgeAnchor: {
       position: 'absolute',
@@ -148,33 +149,27 @@ export function DashboardStatCards<T extends string = string>({
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelSecondary,
-      textAlign: 'center' as const,
+      textAlign: 'left' as const,
     },
     labelSelected: {
       color: colors.labelPrimary,
     },
-    delta: {
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: 2,
+    },
+    zeroHint: {
       fontSize: 10,
-      lineHeight: 12,
-      fontFamily: fontSemibold,
-      fontWeight: '600',
+      lineHeight: 13,
       color: colors.labelSecondary,
-      textAlign: 'center' as const,
-      marginTop: 1,
-    },
-    deltaUp: {
-      color: colors.success,
-    },
-    deltaDown: {
-      color: colors.destructive,
+      textAlign: 'left' as const,
     },
     cardHovered: webTileHoverStyles(colors, isDark),
     cardPressed: {
       opacity: 0.9,
       transform: [{ scale: 0.98 }],
-    },
-    cardEmpty: {
-      opacity: 0.68,
     },
   }));
 
@@ -187,20 +182,13 @@ export function DashboardStatCards<T extends string = string>({
     <View style={styles.row} accessibilityRole="tablist">
       {stats.map((stat, index) => {
         const isSelected = selected === stat.key;
-        const isEmpty = stat.value === 0;
         const accent = stat.accent ?? 'primary';
-        const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
-        const selectedForeground = isSelected
-          ? isDark
-            ? colors.labelPrimary
-            : accentColor
-          : undefined;
-        const gradientColors = isSelected
-          ? getStatCardSelectedGradient(colors, isDark, accent)
-          : getStatCardIdleGradient(colors, isDark);
+        const accentColor = resolveAccentColor(colors, accent);
+        const selectedForeground = isSelected ? accentColor : undefined;
         const badgeCount = stat.badgeCount ?? 0;
         const weekDelta = stat.weekDelta;
         const showDelta = weekDelta != null && weekDelta !== 0;
+        const showZeroHint = stat.value === 0 && stat.zeroHint;
 
         return (
           <Pressable
@@ -208,17 +196,16 @@ export function DashboardStatCards<T extends string = string>({
             accessibilityRole="tab"
             accessibilityState={{ selected: isSelected }}
             accessibilityLabel={`${stat.label}: ${stat.value}${
-              showDelta ? `, ${formatWeekDelta(weekDelta)}` : ''
+              showDelta ? `, ${weekDelta > 0 ? 'up' : 'down'} ${Math.abs(weekDelta)} this week` : ''
             }${badgeCount > 0 ? `, ${badgeCount} updates` : ''}`}
             onPress={() => handleSelect(stat.key)}
             style={({ pressed, hovered }) => [
               styles.card,
               isSelected && styles.cardSelected,
-              isEmpty && !isSelected && styles.cardEmpty,
               isWeb && hovered && !pressed && styles.cardHovered,
               pressed && styles.cardPressed,
             ]}>
-            <LinearGradient colors={gradientColors} style={styles.gradient} />
+            <View style={[styles.accentRail, { backgroundColor: accentColor }]} />
             <View style={styles.inner}>
               {badgeCount > 0 ? (
                 <View style={styles.badgeAnchor}>
@@ -237,23 +224,16 @@ export function DashboardStatCards<T extends string = string>({
                   isSelected && styles.labelSelected,
                   selectedForeground ? { color: selectedForeground } : null,
                 ]}
-                numberOfLines={2}
-              >
+                numberOfLines={2}>
                 {stat.label}
               </Text>
               {showDelta ? (
-                <Text
-                  style={[
-                    styles.delta,
-                    weekDelta > 0 ? styles.deltaUp : null,
-                    weekDelta < 0 ? styles.deltaDown : null,
-                    selectedForeground && weekDelta === 0
-                      ? { color: selectedForeground }
-                      : null,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {formatWeekDelta(weekDelta)}
+                <View style={styles.metaRow}>
+                  <DeltaChip delta={weekDelta} />
+                </View>
+              ) : showZeroHint ? (
+                <Text style={styles.zeroHint} numberOfLines={2}>
+                  {stat.zeroHint}
                 </Text>
               ) : null}
             </View>

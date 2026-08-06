@@ -1,19 +1,22 @@
 import type { Colors } from './colors';
 
-export type GradientAccent = 'primary' | 'secondary';
+export type GradientAccent = 'primary' | 'secondary' | 'tertiary';
 
 /** Hue-shift partners for richer brand gradients (kept within each accent family). */
 const GRADIENT_HUE_SHIFT = {
   /** Blue-family end stop — not indigo/violet (avoids purple leak in role chrome). */
   primaryEnd: '#3B8AE8',
   secondaryEnd: '#8B5CF6',
+  tertiaryEnd: '#2EC4A8',
 } as const;
 
 function resolveAccentColor(colors: Colors, accent: GradientAccent): string {
+  if (accent === 'tertiary') return colors.tertiary;
   return accent === 'secondary' ? colors.secondary : colors.primary;
 }
 
 function resolveAccentSubtle(colors: Colors, accent: GradientAccent): string {
+  if (accent === 'tertiary') return colors.tertiarySubtle;
   return accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
 }
 

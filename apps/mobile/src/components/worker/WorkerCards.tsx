@@ -136,7 +136,7 @@ export { DashboardSectionHeader as WorkerSectionHeader } from '@/components/dash
 /** @deprecated Use `DashboardQuickActionTile` from `@/components/dashboard/DashboardQuickActionTile`. */
 export { DashboardQuickActionTile as QuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 
-export type WorkerOverviewStat = DashboardOverviewStat;
+export type WorkerOverviewStat = DashboardOverviewStat | 'saved';
 
 type WorkerStatGridProps = {
   openRoles: number;
@@ -178,13 +178,15 @@ export function WorkerStatGrid({
 }
 
 const OVERVIEW_TITLES: Record<WorkerOverviewStat, string> = {
-  roles: 'Open roles near you',
-  'fill-ins': 'Fill-in shifts',
-  applications: 'Your applications',
+  roles: 'Opportunities',
+  'fill-ins': 'Fill-ins',
+  applications: 'Applications',
+  saved: 'Saved',
 };
 
 type WorkerOverviewPanelProps = {
   selected: WorkerOverviewStat;
+  embedded?: boolean;
   jobs: LiveJobPost[];
   shifts: LiveShiftPost[];
   jobApplications: WorkerApplication[];
@@ -202,6 +204,7 @@ type WorkerOverviewPanelProps = {
 
 export function WorkerOverviewPanel({
   selected,
+  embedded = false,
   jobs,
   shifts,
   jobApplications,
@@ -256,11 +259,13 @@ export function WorkerOverviewPanel({
 
   return (
     <View style={styles.root}>
-      <DashboardSectionHeader
-        title={OVERVIEW_TITLES[selected]}
-        actionLabel={onViewAllPress ? 'View all' : undefined}
-        onActionPress={onViewAllPress}
-      />
+      {!embedded ? (
+        <DashboardSectionHeader
+          title={OVERVIEW_TITLES[selected]}
+          actionLabel={onViewAllPress ? 'View all' : undefined}
+          onActionPress={onViewAllPress}
+        />
+      ) : null}
       <FadeInSection key={selected} delayMs={0}>
         {selected === 'roles' ? (
         jobs.length === 0 ? (
@@ -371,6 +376,52 @@ export function WorkerOverviewPanel({
           </View>
         )
         ) : null}
+
+      {selected === 'saved' ? (
+        (savedJobIds?.size ?? 0) + (savedShiftIds?.size ?? 0) === 0 ? (
+          <DashboardEmptyState
+            icon="bookmark-outline"
+            title="No saved posts yet"
+            message="Save roles and fill-ins to review them here."
+          />
+        ) : (
+          <View style={styles.list}>
+            {jobs
+              .filter((job) => savedJobIds?.has(job.id))
+              .slice(0, 5)
+              .map((job) => (
+                <RoleListingCard
+                  key={job.id}
+                  job={job}
+                  isSaved
+                  onToggleSaved={
+                    onToggleSavedJob
+                      ? () => onToggleSavedJob(job.id, false)
+                      : undefined
+                  }
+                  onPress={onJobPress ? () => onJobPress(job.id) : undefined}
+                />
+              ))}
+            {shifts
+              .filter((shift) => savedShiftIds?.has(shift.id))
+              .slice(0, 5)
+              .map((shift) => (
+                <FillInListingCard
+                  key={shift.id}
+                  shift={shift}
+                  accent="secondary"
+                  isSaved
+                  onToggleSaved={
+                    onToggleSavedShift
+                      ? () => onToggleSavedShift(shift.id, false)
+                      : undefined
+                  }
+                  onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+                />
+              ))}
+          </View>
+        )
+      ) : null}
       </FadeInSection>
     </View>
   );

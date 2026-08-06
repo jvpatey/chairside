@@ -22,18 +22,23 @@ export type Colors = {
   destructive: string;
   info: string;
   tabInactive: string;
+  /** Mint — live, confirmed, healthy, positive deltas */
+  tertiary: string;
+  tertiaryPressed: string;
+  tertiarySubtle: string;
+  tertiaryOnTertiary: string;
 };
 
 export const lightColors: Colors = {
   background: '#FFFFFF',
-  backgroundGrouped: '#F4F6FB',
+  backgroundGrouped: '#EDF0F5',
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
   labelPrimary: '#0E1B2C',
   // Brand-temperature neutrals — alphas tuned for AA body text on white/grouped
   labelSecondary: '#3C485CC2',
   labelTertiary: '#3C485C80',
-  separator: '#C9D0DC',
+  separator: '#0E1B2C0D',
   fillSubtle: '#3C485C14',
   // Brand blue — roles / primary actions
   primary: '#1A6FD4',
@@ -54,11 +59,15 @@ export const lightColors: Colors = {
   // Alias of primary — do not introduce a second blue
   info: '#1A6FD4',
   tabInactive: '#6B7589',
+  tertiary: '#0F9F8A',
+  tertiaryPressed: '#0C8775',
+  tertiarySubtle: '#D4F5EF',
+  tertiaryOnTertiary: '#FFFFFF',
 };
 
 export const darkColors: Colors = {
   background: '#0B0D12',
-  backgroundGrouped: '#0B0D12',
+  backgroundGrouped: '#0E1016',
   surface: '#14161D',
   surfaceElevated: '#1B1E27',
   labelPrimary: '#FFFFFF',
@@ -81,6 +90,10 @@ export const darkColors: Colors = {
   destructive: '#FF453A',
   info: '#4A9AFF',
   tabInactive: '#636366',
+  tertiary: '#34D399',
+  tertiaryPressed: '#2BB88A',
+  tertiarySubtle: '#123528',
+  tertiaryOnTertiary: '#FFFFFF',
 };
 
 export function getColors(scheme: 'light' | 'dark' | null | undefined): Colors {

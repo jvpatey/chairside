@@ -1,18 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DashboardIconBadge } from '@/components/dashboard/DashboardIconBadge';
 import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
+import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
-  colorWithAlpha,
   fontBold,
   fontRegular,
   fontSemibold,
-  getPrimaryTileGradient,
-  getSecondaryTileGradient,
   useTheme,
   useThemedStyles,
 } from '@/theme';
@@ -26,9 +23,7 @@ type DashboardQuickActionTileProps = {
   icon: keyof typeof Ionicons.glyphMap;
   variant?: DashboardQuickActionVariant;
   compact?: boolean;
-  /** Blocks interaction and dims the tile. */
   disabled?: boolean;
-  /** Dims the tile while keeping it pressable (e.g. show upgrade on tap). */
   dimmed?: boolean;
   accessibilityHint?: string;
   onPress: () => void;
@@ -50,13 +45,11 @@ export function DashboardQuickActionTile({
   const isPrimary = variant === 'primary';
   const useStackedLayout = !isTablet;
   const isVisuallyMuted = disabled || dimmed;
-  const gradientColors = isPrimary
-    ? getPrimaryTileGradient(colors, isDark)
-    : getSecondaryTileGradient(colors, isDark);
-  const onGradient = isPrimary ? colors.primaryOnPrimary : colors.secondaryOnSecondary;
-  const onGradientMuted = colorWithAlpha(onGradient, 0.82);
+  const accent = isPrimary ? 'primary' : 'secondary';
+  const accentColor = resolveAccentColor(colors, accent);
+  const accentSubtle = resolveAccentSubtle(colors, accent);
 
-  const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, elevation }) => ({
     tile: {
       flex: 1,
       borderRadius: dashboardControlRadii.quickAction,
@@ -64,27 +57,35 @@ export function DashboardQuickActionTile({
       paddingVertical: useStackedLayout ? spacing.sm + 4 : spacing.md,
       overflow: 'hidden',
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: isPrimary
-        ? colorWithAlpha(colors.primary, isDark ? 0.45 : 0.34)
-        : colorWithAlpha(colors.secondary, isDark ? 0.32 : 0.3),
+      borderColor: colors.separator,
+      backgroundColor: accentSubtle,
       minHeight: compact ? 72 : useStackedLayout ? 84 : isTablet ? 108 : 96,
       justifyContent: 'center',
-      ...elevation('raised'),
+      position: 'relative' as const,
+      ...elevation('subtle'),
       ...webPointer(),
     },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
+    accentRail: {
+      position: 'absolute',
+      left: 0,
+      top: spacing.sm,
+      bottom: spacing.sm,
+      width: 3,
+      borderRadius: 2,
+      backgroundColor: accentColor,
     },
     row: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
+      paddingLeft: spacing.xs,
     },
     stacked: {
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.sm,
+      paddingLeft: spacing.xs,
     },
     textBlock: {
       flex: 1,
@@ -107,7 +108,7 @@ export function DashboardQuickActionTile({
       lineHeight: useStackedLayout ? 18 : 22,
       fontFamily: useStackedLayout ? fontSemibold : fontBold,
       fontWeight: useStackedLayout ? '600' : '700',
-      color: onGradient,
+      color: colors.labelPrimary,
       letterSpacing: -0.2,
       textAlign: useStackedLayout ? ('center' as const) : ('left' as const),
     },
@@ -115,11 +116,11 @@ export function DashboardQuickActionTile({
       fontSize: 13,
       lineHeight: 18,
       fontFamily: fontRegular,
-      color: onGradientMuted,
+      color: colors.labelSecondary,
     },
     chevron: {
       flexShrink: 0,
-      opacity: 0.72,
+      opacity: 0.5,
     },
   }));
 
@@ -150,16 +151,11 @@ export function DashboardQuickActionTile({
         isWeb && hovered && !pressed && !disabled && styles.tileHovered,
         pressed && !disabled && styles.tilePressed,
       ]}>
-      <LinearGradient colors={gradientColors} style={styles.gradient} />
+      <View style={styles.accentRail} />
       {useStackedLayout ? (
         <View style={styles.stacked}>
           <View style={styles.iconHalo}>
-            <DashboardIconBadge
-              icon={icon}
-              accent={isPrimary ? 'primary' : 'secondary'}
-              size="sm"
-              onGradient
-            />
+            <DashboardIconBadge icon={icon} accent={accent} size="sm" />
           </View>
           <Text style={styles.label} numberOfLines={2}>
             {label}
@@ -168,12 +164,7 @@ export function DashboardQuickActionTile({
       ) : (
         <View style={styles.row}>
           <View style={styles.iconHalo}>
-            <DashboardIconBadge
-              icon={icon}
-              accent={isPrimary ? 'primary' : 'secondary'}
-              size="md"
-              onGradient
-            />
+            <DashboardIconBadge icon={icon} accent={accent} size="md" />
           </View>
           <View style={styles.textBlock}>
             <Text style={styles.label} numberOfLines={1}>
@@ -183,7 +174,9 @@ export function DashboardQuickActionTile({
               {description}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={onGradient} style={styles.chevron} />
+          {Platform.OS !== 'web' ? (
+            <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} style={styles.chevron} />
+          ) : null}
         </View>
       )}
     </Pressable>

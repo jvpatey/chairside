@@ -1,13 +1,10 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, View } from 'react-native';
 
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { getDashboardSectionDividerGradient, useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
-/** Subtle brand-tinted rule between dashboard quick actions and stat cards. */
+/** Subtle rule between dashboard sections. */
 export function DashboardSectionDivider() {
-  const { colors, isDark } = useTheme();
-  const gradient = getDashboardSectionDividerGradient(colors, isDark);
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
     wrap: {
@@ -20,20 +17,16 @@ export function DashboardSectionDivider() {
     line: {
       height: StyleSheet.hairlineWidth,
       width: '100%',
-      borderRadius: 1,
-      overflow: 'hidden' as const,
+      backgroundColor: theme.colors.separator,
     },
   }));
 
   return (
-    <View style={styles.wrap} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <LinearGradient
-        colors={gradient}
-        locations={[0, 0.22, 0.5, 0.78, 1]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={styles.line}
-      />
+    <View
+      style={styles.wrap}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants">
+      <View style={styles.line} />
     </View>
   );
 }

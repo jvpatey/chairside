@@ -270,7 +270,7 @@ export function getTabAtmosphereIntensityFromPathname(
   }
 
   if (isHomePath(relative)) {
-    return 'prominent';
+    return 'none';
   }
 
   if (isProfilePath(relative)) {

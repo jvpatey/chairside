@@ -1,7 +1,6 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BottomTabBarHeightCallbackContext } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname } from 'expo-router';
 import { useContext, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -19,7 +18,8 @@ import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useSlidingSegmentIndicator } from '@/hooks/useSlidingSegmentIndicator';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { webPointer } from '@/lib/webPressableStyles';
-import { fontSemibold, getGlassTokens, getTabIndicatorGradient, useTheme, useThemedStyles } from '@/theme';
+import { resolveAccentColor } from '@/lib/accentColors';
+import { fontSemibold, getGlassTokens, useTheme, useThemedStyles } from '@/theme';
 
 const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
 const ICON_ONLY_BREAKPOINT = 360;
@@ -174,7 +174,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
   );
   const focusedRoute = visibleRoutes[indicatorIndex];
   const focusedAccent = focusedRoute ? getTabAccentForName(focusedRoute.name) : 'primary';
-  const indicatorGradient = getTabIndicatorGradient(colors, isDark, focusedAccent);
+  const indicatorColor = resolveAccentColor(colors, focusedAccent);
   const dockInset = spacing.xs;
   const dockEndRadius = DOCK_SHELL_RADIUS - dockInset;
   const indicatorCornerStyle = getDockIndicatorCornerRadii(
@@ -285,9 +285,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       <LiquidGlassSurface borderRadius={DOCK_SHELL_RADIUS} style={[styles.dock, styles.dockElevated]}>
         <SlidingSegmentIndicator
           animatedStyle={indicatorStyle}
-          style={[styles.indicator, indicatorCornerStyle]}
-        >
-          <LinearGradient colors={indicatorGradient} style={styles.indicatorGradient} />
+          style={[styles.indicator, indicatorCornerStyle, { backgroundColor: indicatorColor }]}>
         </SlidingSegmentIndicator>
         {visibleRoutes.map((route, index) => {
           const { options } = descriptors[route.key];
