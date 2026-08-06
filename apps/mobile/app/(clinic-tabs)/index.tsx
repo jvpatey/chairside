@@ -50,8 +50,6 @@ import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { HiringInsightsPanel } from '@/components/clinic/HiringInsightsPanel';
-import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
-import { getClinicHiringInsightsUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
@@ -531,21 +529,13 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       insights={
-        clinicId ? (
+        clinicId && billing?.canUseHiringInsights ? (
           <FadeInSection delayMs={160}>
             <HiringInsightsPanel
               clinicId={clinicId}
               locationIds={Array.isArray(scopedLocationIds) ? scopedLocationIds : undefined}
-              canUseHiringInsights={Boolean(billing?.canUseHiringInsights)}
-              showLocationBreakdown={billing?.plan === 'group_pro'}
-              lockedMessage={getClinicHiringInsightsUpgradeMessage(
-                billing?.planFamily ?? (isGroup ? 'group' : 'clinic'),
-              )}
-              onUpgrade={() =>
-                openClinicBillingModal({
-                  focus: billing?.planFamily === 'group' || isGroup ? 'group' : 'clinic',
-                })
-              }
+              canUseHiringInsights
+              showLocationBreakdown={billing.plan === 'group_pro'}
             />
           </FadeInSection>
         ) : null

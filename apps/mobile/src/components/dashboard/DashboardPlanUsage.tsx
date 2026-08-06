@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { ProgressRing } from '@/components/dashboard/ProgressRing';
+import { useDashboardAsideCompact } from '@/components/dashboard/DashboardAsideCompactContext';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
@@ -23,14 +24,17 @@ export function DashboardPlanUsage({
   secondaryLimit,
 }: DashboardPlanUsageProps) {
   const { colors } = useTheme();
+  const compact = useDashboardAsideCompact();
+  const ringSize = compact ? 32 : 44;
+  const ringStroke = compact ? 3 : 4;
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
-      gap: spacing.md,
+      gap: compact ? spacing.sm : spacing.md,
     },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
+      gap: compact ? spacing.sm : spacing.md,
     },
     textBlock: {
       flex: 1,
@@ -38,15 +42,15 @@ export function DashboardPlanUsage({
       gap: 2,
     },
     title: {
-      fontSize: 14,
-      lineHeight: 18,
+      fontSize: compact ? 12 : 14,
+      lineHeight: compact ? 16 : 18,
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelPrimary,
     },
     meta: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: compact ? 11 : 13,
+      lineHeight: compact ? 14 : 18,
       fontFamily: fontRegular,
       color: colors.labelSecondary,
     },
@@ -60,20 +64,22 @@ export function DashboardPlanUsage({
     secondaryLimit > 0;
 
   return (
-    <SurfaceCard padding="md" elevationLevel="subtle">
+    <SurfaceCard padding={compact ? 'sm' : 'md'} elevationLevel="subtle">
       <View style={styles.card}>
         <View style={styles.row}>
           <ProgressRing
             completed={used}
             total={primaryLimit || 1}
-            size={44}
-            strokeWidth={4}
+            size={ringSize}
+            strokeWidth={ringStroke}
             color={colors.tertiary}
           />
           <View style={styles.textBlock}>
-            <Text style={styles.title}>{label}</Text>
-            <Text style={styles.meta}>
-              {limit != null ? `${used} of ${limit} used` : `${used} active`}
+            <Text style={styles.title} numberOfLines={compact ? 1 : undefined}>
+              {label}
+            </Text>
+            <Text style={styles.meta} numberOfLines={compact ? 1 : undefined}>
+              {limit != null ? `${used}/${limit}` : `${used} active`}
             </Text>
           </View>
         </View>
@@ -82,15 +88,17 @@ export function DashboardPlanUsage({
             <ProgressRing
               completed={secondaryUsed}
               total={secondaryLimit || 1}
-              size={44}
-              strokeWidth={4}
+              size={ringSize}
+              strokeWidth={ringStroke}
               color={colors.secondary}
             />
             <View style={styles.textBlock}>
-              <Text style={styles.title}>{secondaryLabel}</Text>
-              <Text style={styles.meta}>
+              <Text style={styles.title} numberOfLines={compact ? 1 : undefined}>
+                {secondaryLabel}
+              </Text>
+              <Text style={styles.meta} numberOfLines={compact ? 1 : undefined}>
                 {secondaryLimit != null
-                  ? `${secondaryUsed} of ${secondaryLimit} used`
+                  ? `${secondaryUsed}/${secondaryLimit}`
                   : `${secondaryUsed} active`}
               </Text>
             </View>

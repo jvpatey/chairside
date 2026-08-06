@@ -52,6 +52,17 @@ export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
     asideStack: {
       gap: sectionGap,
     },
+    /** Side-by-side plan usage + insights on wide web aside. */
+    asideMetaRow: {
+      flexDirection: 'row' as const,
+      gap: spacing.sm,
+      alignItems: 'stretch' as const,
+      width: '100%' as const,
+    },
+    asideMetaCell: {
+      flex: 1,
+      minWidth: 0,
+    },
     desktopShell: {
       gap: sectionGap,
       width: '100%' as const,

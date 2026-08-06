@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { DashboardAsideCompactProvider } from '@/components/dashboard/DashboardAsideCompactContext';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { IS_WEB } from '@/lib/webPressableStyles';
@@ -24,6 +25,40 @@ function hasRenderableContent(node: ReactNode) {
   return node != null && node !== false;
 }
 
+function renderAsideMetaSection({
+  planUsage,
+  insights,
+  styles,
+  paired,
+}: {
+  planUsage?: ReactNode;
+  insights?: ReactNode;
+  styles: ReturnType<typeof getDashboardLayoutStyles>;
+  paired: boolean;
+}) {
+  const hasPlan = hasRenderableContent(planUsage);
+  const hasInsights = hasRenderableContent(insights);
+  if (!hasPlan && !hasInsights) return null;
+
+  if (paired && hasPlan && hasInsights) {
+    return (
+      <DashboardAsideCompactProvider compact>
+        <View style={styles.asideMetaRow}>
+          <View style={styles.asideMetaCell}>{planUsage}</View>
+          <View style={styles.asideMetaCell}>{insights}</View>
+        </View>
+      </DashboardAsideCompactProvider>
+    );
+  }
+
+  return (
+    <>
+      {planUsage}
+      {insights}
+    </>
+  );
+}
+
 /** Shared dashboard section ordering for phone, tablet, and wide web layouts. */
 export function DashboardBodyLayout({
   hero,
@@ -42,12 +77,18 @@ export function DashboardBodyLayout({
   const useDesktopGrid = IS_WEB && isWide;
   const styles = useThemedStyles((theme) => getDashboardLayoutStyles(theme));
 
+  const asideMeta = renderAsideMetaSection({
+    planUsage,
+    insights,
+    styles,
+    paired: useDesktopGrid,
+  });
+
   const asideColumn = (
     <View style={styles.asideStack}>
-      {planUsage}
-      {insights}
-      {calendar}
       {messages}
+      {calendar}
+      {asideMeta}
       {checklist}
       {alerts}
     </View>
@@ -92,10 +133,10 @@ export function DashboardBodyLayout({
       {attentionRow}
       {calendar}
       {workspace}
+      {messages}
       {planUsage}
       {insights}
       {checklist}
-      {messages}
       {alerts}
     </View>
   );

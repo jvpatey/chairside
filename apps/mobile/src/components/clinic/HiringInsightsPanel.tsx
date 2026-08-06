@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
+import { useDashboardAsideCompact } from '@/components/dashboard/DashboardAsideCompactContext';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useThemedStyles } from '@/theme';
@@ -13,8 +14,9 @@ type HiringInsightsPanelProps = {
   locationIds?: string[] | null;
   canUseHiringInsights: boolean;
   showLocationBreakdown?: boolean;
-  lockedMessage: string;
-  onUpgrade: () => void;
+  /** Shown when `canUseHiringInsights` is false (e.g. upgrade prompts elsewhere). */
+  lockedMessage?: string;
+  onUpgrade?: () => void;
 };
 
 function formatPipelineLabel(status: string): string {
@@ -48,6 +50,47 @@ function InsightStat({ label, value }: { label: string; value: string | number }
       <Text style={styles.value}>{value}</Text>
       <Text style={styles.label}>{label}</Text>
     </View>
+  );
+}
+
+function CompactMetricsSummary({ metrics }: { metrics: HiringInsightsMetrics }) {
+  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
+    card: {
+      gap: spacing.sm,
+    },
+    stat: {
+      gap: 2,
+    },
+    value: {
+      ...typography.body,
+      fontSize: 18,
+      lineHeight: 22,
+      fontWeight: '700',
+      color: colors.labelPrimary,
+    },
+    label: {
+      ...typography.subtitle,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.labelSecondary,
+    },
+  }));
+
+  return (
+    <SurfaceCard style={styles.card} padding="sm" elevationLevel="subtle">
+      <View style={styles.stat}>
+        <Text style={styles.value}>{metrics.newApplicants}</Text>
+        <Text style={styles.label} numberOfLines={1}>
+          New to review
+        </Text>
+      </View>
+      <View style={styles.stat}>
+        <Text style={styles.value}>{metrics.openRoles}</Text>
+        <Text style={styles.label} numberOfLines={1}>
+          Open roles
+        </Text>
+      </View>
+    </SurfaceCard>
   );
 }
 
@@ -124,13 +167,14 @@ export function HiringInsightsPanel({
   lockedMessage,
   onUpgrade,
 }: HiringInsightsPanelProps) {
+  const compact = useDashboardAsideCompact();
   const [insights, setInsights] = useState<ClinicHiringInsights | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     section: {
-      gap: spacing.md,
+      gap: compact ? spacing.sm : spacing.md,
     },
     card: {
       gap: spacing.md,
@@ -154,7 +198,7 @@ export function HiringInsightsPanel({
     },
     loading: {
       alignItems: 'center',
-      paddingVertical: spacing.lg,
+      paddingVertical: compact ? spacing.sm : spacing.lg,
     },
     error: {
       ...typography.subtitle,
@@ -192,24 +236,33 @@ export function HiringInsightsPanel({
 
   return (
     <View style={styles.section}>
-      <DashboardSectionHeader title="Hiring insights" />
-      <Text style={styles.helper}>
-        Track pipeline health, outreach threads, and time-to-applicant.
-      </Text>
+      {compact ? null : (
+        <>
+          <DashboardSectionHeader title="Hiring insights" />
+          <Text style={styles.helper}>
+            Track pipeline health, outreach threads, and time-to-applicant.
+          </Text>
+        </>
+      )}
 
       {!canUseHiringInsights ? (
         <PlanUpgradeCallout
-          title="Unlock hiring insights"
-          message={lockedMessage}
+          title={compact ? 'Hiring insights' : 'Unlock hiring insights'}
+          message={compact ? 'Available on Clinic Pro.' : (lockedMessage ?? '')}
           onUpgrade={onUpgrade}
+          compact={compact}
+          buttonLabel={compact ? 'Upgrade' : undefined}
         />
-        ) : isLoading ? (
-          <View style={styles.loading}>
-            <ActivityIndicator />
-          </View>
-        ) : error ? (
-          <Text style={styles.error}>{error}</Text>
-        ) : insights ? (
+      ) : isLoading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator />
+        </View>
+      ) : error ? (
+        <Text style={styles.error}>{error}</Text>
+      ) : insights ? (
+        compact ? (
+          <CompactMetricsSummary metrics={insights} />
+        ) : (
           <SurfaceCard style={styles.card}>
             <MetricsGrid metrics={insights} />
 
@@ -225,7 +278,8 @@ export function HiringInsightsPanel({
               </>
             ) : null}
           </SurfaceCard>
-        ) : null}
+        )
+      ) : null}
     </View>
   );
 }
