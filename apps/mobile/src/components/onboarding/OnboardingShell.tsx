@@ -44,6 +44,8 @@ export function useFormScroll() {
 type OnboardingShellProps = {
   children: ReactNode;
   footer?: ReactNode;
+  /** Fixed page header rendered above the scroll region (not inside scroll content). */
+  header?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   /** Renders behind scroll content (e.g. welcome screen top glow). Overrides `atmosphere`. */
   backgroundAccessory?: ReactNode;
@@ -73,6 +75,7 @@ const SCROLL_INTO_VIEW_MARGIN = 32;
 export function OnboardingShell({
   children,
   footer,
+  header,
   contentStyle,
   backgroundAccessory,
   transparentBackground = false,
@@ -93,13 +96,13 @@ export function OnboardingShell({
   const containerBackground = passThroughAtmosphere
     ? 'transparent'
     : colors.backgroundGrouped;
-  const atmosphereLayer =
-    showTabAtmosphere && !shellAtmosphere ? (
-      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
-    ) : null;
+  const paintTabWash = showTabAtmosphere && !shellAtmosphere;
+  const atmosphereLayer = paintTabWash ? (
+    <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+  ) : null;
   const resolvedBackgroundAccessory =
     backgroundAccessory ??
-    (atmosphere !== 'none' && !shellAtmosphere ? (
+    (atmosphere !== 'none' && !paintTabWash && !shellAtmosphere && !transparentBackground ? (
       <PageHeroGlow variant={atmosphere} accent={atmosphereAccent} />
     ) : null);
   const scrollRef = useRef<ScrollView>(null);
@@ -142,6 +145,16 @@ export function OnboardingShell({
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
       backgroundColor: colors.backgroundGrouped,
+    },
+    headerSlot: {
+      flexShrink: 0,
+      paddingTop: insets.top + spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    shellFlex: {
+      flex: 1,
+      minHeight: 0,
     },
   }));
 
@@ -266,7 +279,7 @@ export function OnboardingShell({
         styles.content,
         fillViewport && scrollViewportHeight > 0 ? { minHeight: scrollViewportHeight } : null,
         {
-          paddingTop: insets.top + 16,
+          paddingTop: header ? spacing.lg : insets.top + 16,
           paddingBottom:
             spacing.lg +
             scrollBottomInset +
@@ -325,7 +338,8 @@ export function OnboardingShell({
         {resolvedBackgroundAccessory ? (
           <View style={styles.backgroundLayer}>{resolvedBackgroundAccessory}</View>
         ) : null}
-        {shell}
+        {header ? <View style={styles.headerSlot}>{header}</View> : null}
+        <View style={styles.shellFlex}>{shell}</View>
       </View>
     </FormScrollContext.Provider>
   );

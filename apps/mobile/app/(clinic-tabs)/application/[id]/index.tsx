@@ -10,8 +10,7 @@ import { Alert, Platform, View } from 'react-native';
 import { ClinicApplicationDetailCard } from '@/components/clinic/ClinicApplicationDetailCard';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
@@ -126,12 +125,10 @@ export default function ClinicApplicationDetailScreen() {
 
   return (
     <>
-      <OnboardingShell atmosphere="subtle">
-        <AuthScreenHeader
-          eyebrow="Application review"
-          title={application?.post_title || 'Applicant'}
-          onBack={goBack}
-        />
+      <FormScreen
+        eyebrow="Application review"
+        title={application?.post_title || 'Applicant'}
+        onBack={goBack}>
         <View style={styles.content}>
           <FormErrorBanner message={formError} />
           {isLoading ? (
@@ -163,7 +160,7 @@ export default function ClinicApplicationDetailScreen() {
             />
           ) : null}
         </View>
-      </OnboardingShell>
+      </FormScreen>
 
       {scheduleTarget ? (
         <InterviewScheduleSheet

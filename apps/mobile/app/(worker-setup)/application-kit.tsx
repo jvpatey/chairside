@@ -5,14 +5,14 @@ import { Alert, Text, View } from 'react-native';
 
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { ResumeUpload } from '@/components/worker/ResumeUpload';
 import { WORKER_SETUP_REVIEW } from '@/lib/routing';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useThemedStyles } from '@/theme';
 
@@ -20,6 +20,7 @@ export default function WorkerApplicationKitScreen() {
   const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
   const [defaultCoverMessage, setDefaultCoverMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,7 +66,11 @@ export default function WorkerApplicationKitScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Application profile · Photo, resume & note"
+      subtitle="What clinics receive when you apply. Photo and resume are optional."
+      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <View style={styles.footer}>
           <OnboardingButton
@@ -75,11 +80,6 @@ export default function WorkerApplicationKitScreen() {
           />
         </View>
       }>
-      <AuthScreenHeader
-        title="Application profile · Photo, resume & note"
-        subtitle="What clinics receive when you apply. Photo and resume are optional."
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
-      />
       <View style={styles.form}>
         {!backgroundComplete ? (
           <View style={styles.badge}>
@@ -101,6 +101,6 @@ export default function WorkerApplicationKitScreen() {
 
         <ApplicationKitPreview profile={workerProfile} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

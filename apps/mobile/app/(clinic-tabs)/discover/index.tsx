@@ -14,7 +14,7 @@ import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
-import { PageTabBar } from '@/components/ui/PageTabBar';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveLayout';
 import { Screen } from '@/components/ui/Screen';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
@@ -31,11 +31,7 @@ import {
   filterClinicDiscoverShifts,
 } from '@/lib/clinicDiscoverFilters';
 import { hasActiveListSearch } from '@/lib/clinicListSearch';
-import {
-  CLINIC_DISCOVER_TAB_OPTIONS,
-  type ClinicDiscoverTab,
-  type RoleTypeFilter,
-} from '@/lib/postingFilters';
+import { type ClinicDiscoverTab, type RoleTypeFilter } from '@/lib/postingFilters';
 import {
   getClinicDiscoverJobDetailRoute,
   getClinicDiscoverShiftDetailRoute,
@@ -74,9 +70,6 @@ export default function ClinicDiscoverScreen() {
     },
     cardList: {
       gap: dashboardSectionGap(spacing),
-    },
-    tabBar: {
-      marginBottom: spacing.xs,
     },
   }));
 
@@ -145,6 +138,74 @@ export default function ClinicDiscoverScreen() {
         : 'postings-tab';
   const discoverBackLabel = discoverReturnTo === 'fill-ins-tab' ? 'Fill-ins' : 'Roles';
 
+  const discoverTabs = useMemo(
+    () => [
+      {
+        value: 'roles' as const,
+        label: 'Roles',
+        count: jobs.length,
+        accent: 'primary' as const,
+        icon: 'briefcase-outline' as const,
+      },
+      {
+        value: 'fill-ins' as const,
+        label: 'Fill-ins',
+        count: shifts.length,
+        accent: 'secondary' as const,
+        icon: 'calendar-outline' as const,
+      },
+    ],
+    [jobs.length, shifts.length],
+  );
+
+  const discoverPanelContent = isLoading ? (
+    <PageLoadingList message="Loading discover…" />
+  ) : sourceCount === 0 ? (
+    <EmptyState
+      embedded
+      icon={selectedTab === 'roles' ? 'briefcase-outline' : 'calendar-outline'}
+      title={
+        selectedTab === 'roles' ? 'No other clinic roles yet' : 'No other clinic fill-ins yet'
+      }
+      message="When other clinics in your province post live opportunities, they will appear here."
+    />
+  ) : activeList.length === 0 ? (
+    <EmptyState
+      embedded
+      icon="filter-outline"
+      title={
+        hasSearch || hasActiveFilters ? 'No listings match your search' : 'No listings in this view'
+      }
+      message="Try a different search or filter."
+    />
+  ) : selectedTab === 'roles' ? (
+    <View style={styles.cardList}>
+      <ResponsiveGrid>
+        {filteredJobs.map((job) => (
+          <RoleListingCard
+            key={job.id}
+            job={job}
+            distanceLabel={job.distanceLabel}
+            onPress={() => router.push(getClinicDiscoverJobDetailRoute(job.id))}
+          />
+        ))}
+      </ResponsiveGrid>
+    </View>
+  ) : (
+    <View style={styles.cardList}>
+      <ResponsiveGrid>
+        {filteredShifts.map((shift) => (
+          <FillInListingCard
+            key={shift.id}
+            shift={shift}
+            distanceLabel={shift.distanceLabel}
+            onPress={() => router.push(getClinicDiscoverShiftDetailRoute(shift.id))}
+          />
+        ))}
+      </ResponsiveGrid>
+    </View>
+  );
+
   return (
     <>
       {upgradePrompt}
@@ -169,14 +230,6 @@ export default function ClinicDiscoverScreen() {
           />
         ) : (
           <View style={styles.wrap}>
-            <View style={styles.tabBar}>
-              <PageTabBar
-                options={CLINIC_DISCOVER_TAB_OPTIONS}
-                selected={selectedTab}
-                onChange={setSelectedTab}
-              />
-            </View>
-
             {loadError ? <DashboardErrorBanner onRetry={() => void load()} /> : null}
 
             {!isLoading && sourceCount > 0 ? (
@@ -198,55 +251,9 @@ export default function ClinicDiscoverScreen() {
               />
             ) : null}
 
-            {isLoading ? (
-              <PageLoadingList message="Loading discover…" />
-            ) : sourceCount === 0 ? (
-              <EmptyState
-                icon={selectedTab === 'roles' ? 'briefcase-outline' : 'calendar-outline'}
-                title={
-                  selectedTab === 'roles'
-                    ? 'No other clinic roles yet'
-                    : 'No other clinic fill-ins yet'
-                }
-                message="When other clinics in your province post live opportunities, they will appear here."
-              />
-            ) : activeList.length === 0 ? (
-              <EmptyState
-                icon="filter-outline"
-                title={
-                  hasSearch || hasActiveFilters
-                    ? 'No listings match your search'
-                    : 'No listings in this view'
-                }
-                message="Try a different search or filter."
-              />
-            ) : selectedTab === 'roles' ? (
-              <View style={styles.cardList}>
-                <ResponsiveGrid>
-                  {filteredJobs.map((job) => (
-                    <RoleListingCard
-                      key={job.id}
-                      job={job}
-                      distanceLabel={job.distanceLabel}
-                      onPress={() => router.push(getClinicDiscoverJobDetailRoute(job.id))}
-                    />
-                  ))}
-                </ResponsiveGrid>
-              </View>
-            ) : (
-              <View style={styles.cardList}>
-                <ResponsiveGrid>
-                  {filteredShifts.map((shift) => (
-                    <FillInListingCard
-                      key={shift.id}
-                      shift={shift}
-                      distanceLabel={shift.distanceLabel}
-                      onPress={() => router.push(getClinicDiscoverShiftDetailRoute(shift.id))}
-                    />
-                  ))}
-                </ResponsiveGrid>
-              </View>
-            )}
+            <FileTabWell tabs={discoverTabs} selected={selectedTab} onSelect={setSelectedTab}>
+              {discoverPanelContent}
+            </FileTabWell>
           </View>
         )}
       </Screen>

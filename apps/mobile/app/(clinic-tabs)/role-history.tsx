@@ -10,8 +10,7 @@ import { Alert, Text, View } from 'react-native';
 import { RoleTypeFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { StaggeredList } from '@/components/ui/StaggeredList';
@@ -192,24 +191,21 @@ export default function RoleHistoryScreen() {
   }, []);
 
   return (
-    <OnboardingShell>
+    <FormScreen
+      title="Role history"
+      subtitle="Archived and filled roles"
+      onBack={() => router.back()}
+      headerAccessory={
+        showRoleFilter ? (
+          <RoleTypeFilters
+            roleTypeFilter={roleTypeFilter}
+            onRoleTypeChange={setRoleTypeFilter}
+            accessibilityLabel="Filter role history"
+            sheetTitle="Filter role history"
+          />
+        ) : undefined
+      }>
       <View style={styles.content}>
-        <AuthScreenHeader
-          title="Role history"
-          subtitle="Archived and filled roles"
-          onBack={() => router.back()}
-          accessory={
-            showRoleFilter ? (
-              <RoleTypeFilters
-                roleTypeFilter={roleTypeFilter}
-                onRoleTypeChange={setRoleTypeFilter}
-                accessibilityLabel="Filter role history"
-                sheetTitle="Filter role history"
-              />
-            ) : undefined
-          }
-        />
-
         {isLoading ? (
           <PageLoadingList message="Loading role history…" />
         ) : (
@@ -240,6 +236,6 @@ export default function RoleHistoryScreen() {
           </>
         )}
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

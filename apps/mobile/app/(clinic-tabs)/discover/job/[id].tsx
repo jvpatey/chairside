@@ -5,9 +5,9 @@ import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -20,16 +20,9 @@ export default function ClinicDiscoverJobDetailScreen() {
   const [job, setJob] = useState<LiveJobPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     content: {
       gap: spacing.lg,
-    },
-    clinicCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
     },
   }));
 
@@ -64,29 +57,25 @@ export default function ClinicDiscoverJobDetailScreen() {
 
   if (isLoading || !job) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title="Role details"
-          subtitle={isLoading ? undefined : 'Role not found.'}
-          onBack={() => router.back()}
-        />
+      <FormScreen
+        title="Role details"
+        subtitle={isLoading ? undefined : 'Role not found.'}
+        onBack={() => router.back()}>
         {isLoading ? <PageLoadingDetail /> : null}
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
 
   return (
-    <OnboardingShell atmosphere="subtle">
+    <FormScreen
+      eyebrow="Discover"
+      title="Role details"
+      subtitle={job.clinic.clinic_name}
+      onBack={() => router.back()}>
       <View style={styles.content}>
-        <AuthScreenHeader
-          eyebrow="Discover"
-          title="Role details"
-          subtitle={job.clinic.clinic_name}
-          onBack={() => router.back()}
-        />
-        <View style={styles.clinicCard}>
+        <SurfaceCard>
           <ClinicPostHeader
             layout="split"
             clinicName={job.clinic.clinic_name}
@@ -96,9 +85,9 @@ export default function ClinicDiscoverJobDetailScreen() {
             detail={formatJobPostRoleMeta(job)}
             avatarSize={44}
           />
-        </View>
+        </SurfaceCard>
         <JobPostDetailView job={job} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

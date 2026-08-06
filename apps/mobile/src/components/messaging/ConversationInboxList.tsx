@@ -9,6 +9,7 @@ import { ConversationInboxGroup } from '@/components/messaging/ConversationInbox
 import { MessagingEmptyState } from '@/components/messaging/MessagingEmptyState';
 import { ConversationListItem } from '@/components/messaging/ConversationListItem';
 import { StaggeredList } from '@/components/ui/StaggeredList';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { hideConversation } from '@/lib/conversationHide';
 import {
   buildConversationInboxSections,
@@ -67,7 +68,7 @@ export function ConversationInboxList({
   const [isSearchingMessages, setIsSearchingMessages] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, colors, typography, isDark, radii }) => ({
+  const styles = useThemedStyles(({ spacing, colors, typography, radii }) => ({
     content: {
       flex: compact ? 1 : undefined,
       minHeight: compact ? 0 : undefined,
@@ -126,19 +127,6 @@ export function ConversationInboxList({
     },
     listSections: {
       gap: spacing.md,
-    },
-    standaloneCard: {
-      backgroundColor: colors.surface,
-      borderRadius: compact ? 14 : 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      overflow: 'hidden',
-      ...(isDark
-        ? {}
-        : ({
-            // @ts-expect-error — boxShadow is web-only
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-          } as const)),
     },
   }));
 
@@ -283,7 +271,7 @@ export function ConversationInboxList({
               : null;
 
             return (
-              <View key={conversation.id} style={styles.standaloneCard}>
+              <SurfaceCard key={conversation.id} padding="none">
                 <ConversationListItem
                   conversation={conversation}
                   avatarKind={avatarKind}
@@ -301,7 +289,7 @@ export function ConversationInboxList({
                     onConversationHidden();
                   }}
                 />
-              </View>
+              </SurfaceCard>
             );
           })}
         </StaggeredList>

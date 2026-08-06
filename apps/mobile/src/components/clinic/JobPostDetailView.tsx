@@ -8,10 +8,9 @@ import {
   DetailBulletList,
   DetailProse,
   DetailRow,
-  DetailSection,
-  DetailSectionDivider,
   RowDivider,
 } from '@/components/clinic/DetailCard';
+import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { CultureFitScreeningBadge } from '@/components/clinic/CultureFitScreeningBadge';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
@@ -136,34 +135,28 @@ export function JobPostDetailView({ job, part = 'all' }: JobPostDetailViewProps)
       {showBody ? (
         <FadeInSection delayMs={showHero ? 80 : 0}>
         <View style={styles.card}>
-          <DetailSection>
+          <CardDetailSection>
             <DetailRow label="Compensation" value={job.wage_range} />
             <RowDivider />
             <DetailRow label="Schedule" value={job.schedule} />
-          </DetailSection>
+          </CardDetailSection>
 
-          <DetailSectionDivider>
-            <DetailSection title="Practice">
-              <DetailRow label="Specialty" value={getSpecialtyLabel(job.specialty)} />
-              <RowDivider />
-              <DetailRow label="Software" value={softwareLabel} />
-            </DetailSection>
-          </DetailSectionDivider>
+          <CardDetailSection title="Practice" divided>
+            <DetailRow label="Specialty" value={getSpecialtyLabel(job.specialty)} />
+            <RowDivider />
+            <DetailRow label="Software" value={softwareLabel} />
+          </CardDetailSection>
 
           {offeringLabels.length > 0 ? (
-            <DetailSectionDivider>
-              <DetailSection title="Perks & offerings">
-                <DetailBulletList items={offeringLabels} />
-              </DetailSection>
-            </DetailSectionDivider>
+            <CardDetailSection title="Perks & offerings" divided>
+              <DetailBulletList items={offeringLabels} />
+            </CardDetailSection>
           ) : null}
 
           {description ? (
-            <DetailSectionDivider>
-              <DetailSection title="About">
-                <DetailProse text={description} />
-              </DetailSection>
-            </DetailSectionDivider>
+            <CardDetailSection title="About" divided>
+              <DetailProse text={description} />
+            </CardDetailSection>
           ) : null}
         </View>
       </FadeInSection>

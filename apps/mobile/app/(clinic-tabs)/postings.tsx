@@ -19,7 +19,8 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 
-import { RolePostingFilters } from '@/components/clinic/PostingFilters';
+import { RoleTypeFilters } from '@/components/clinic/PostingFilters';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
@@ -66,7 +67,7 @@ export default function ClinicPostingsScreen() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
-  const [jobStatusFilter, setJobStatusFilter] = useState<JobStatusFilter>('all');
+  const [jobStatusFilter, setJobStatusFilter] = useState<Extract<JobStatusFilter, 'live' | 'paused'>>('live');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -89,10 +90,43 @@ export default function ClinicPostingsScreen() {
   );
 
   const hasSearch = hasActiveListSearch(searchQuery);
-  const hasActiveFilters = jobStatusFilter !== 'all' || jobRoleTypeFilter !== 'all';
+  const hasActiveFilters = jobRoleTypeFilter !== 'all';
 
   const historyCounts = useMemo(() => countHistoryJobs(jobs), [jobs]);
   const hasRoleHistory = historyCounts.archived > 0 || historyCounts.filled > 0;
+  const liveRoleCount = useMemo(
+    () => mainListJobs.filter((job) => job.status === 'live').length,
+    [mainListJobs],
+  );
+  const pausedRoleCount = useMemo(
+    () => mainListJobs.filter((job) => job.status === 'paused').length,
+    [mainListJobs],
+  );
+  const roleStatusTabs = useMemo(
+    () => [
+      {
+        value: 'live' as const,
+        label: 'Live',
+        count: liveRoleCount,
+        accent: 'primary' as const,
+        icon: 'radio-button-on-outline' as const,
+      },
+      {
+        value: 'paused' as const,
+        label: 'Paused',
+        count: pausedRoleCount,
+        accent: 'primary' as const,
+        icon: 'pause-circle-outline' as const,
+      },
+    ],
+    [liveRoleCount, pausedRoleCount],
+  );
+
+  useEffect(() => {
+    if (liveRoleCount === 0 && pausedRoleCount > 0 && jobStatusFilter === 'live') {
+      setJobStatusFilter('paused');
+    }
+  }, [jobStatusFilter, liveRoleCount, pausedRoleCount]);
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: {
@@ -239,11 +273,11 @@ export default function ClinicPostingsScreen() {
             placeholder="Search role title or type"
             accessibilityLabel="Search roles"
             filter={
-              <RolePostingFilters
-                statusFilter={jobStatusFilter}
+              <RoleTypeFilters
                 roleTypeFilter={jobRoleTypeFilter}
-                onStatusChange={setJobStatusFilter}
                 onRoleTypeChange={setJobRoleTypeFilter}
+                accessibilityLabel="Filter roles"
+                sheetTitle="Filter roles"
               />
             }
           />
@@ -265,45 +299,57 @@ export default function ClinicPostingsScreen() {
                 title="No active roles"
                 message="Paused and live roles appear here. View role history for archived and filled roles."
               />
-            ) : filteredJobs.length === 0 ? (
-              <EmptyState
-                icon="filter-outline"
-                title={
-                  hasSearch || hasActiveFilters
-                    ? 'No roles match your search'
-                    : 'No roles in this filter'
-                }
-                message={
-                  hasSearch || hasActiveFilters
-                    ? 'Try a different search or filter, or publish a new role.'
-                    : 'Try a different filter or publish a new role.'
-                }
-              />
             ) : (
-              <View style={styles.cardList}>
-                <ResponsiveGrid>
-                  {filteredJobs.map((job) => (
-                    <RolePostingCard
-                      key={job.id}
-                      job={job}
-                      applicantCount={applicantCounts[job.id] ?? 0}
-                      onPress={() => router.push(getJobDetailRoute(job.id))}
-                      onApplicantsPress={() =>
-                        router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
-                      }
-                      manage={
-                        user?.id
-                          ? {
-                              clinicId: clinicId ?? user.id,
-                              onUpdated: handleJobUpdated,
-                              onDeleted: () => handleJobDeleted(job.id),
-                            }
-                          : undefined
-                      }
-                    />
-                  ))}
-                </ResponsiveGrid>
-              </View>
+              <FileTabWell
+                tabs={roleStatusTabs}
+                selected={jobStatusFilter}
+                onSelect={setJobStatusFilter}>
+                {filteredJobs.length === 0 ? (
+                  <EmptyState
+                    embedded
+                    icon="filter-outline"
+                    title={
+                      hasSearch || hasActiveFilters
+                        ? 'No roles match your search'
+                        : jobStatusFilter === 'live'
+                          ? 'No live roles'
+                          : 'No paused roles'
+                    }
+                    message={
+                      hasSearch || hasActiveFilters
+                        ? 'Try a different search or filter, or publish a new role.'
+                        : jobStatusFilter === 'live'
+                          ? 'Publish a new role or check the Paused tab.'
+                          : 'Paused roles will appear here when you pause a live posting.'
+                    }
+                  />
+                ) : (
+                  <View style={styles.cardList}>
+                    <ResponsiveGrid>
+                      {filteredJobs.map((job) => (
+                        <RolePostingCard
+                          key={job.id}
+                          job={job}
+                          applicantCount={applicantCounts[job.id] ?? 0}
+                          onPress={() => router.push(getJobDetailRoute(job.id))}
+                          onApplicantsPress={() =>
+                            router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
+                          }
+                          manage={
+                            user?.id
+                              ? {
+                                  clinicId: clinicId ?? user.id,
+                                  onUpdated: handleJobUpdated,
+                                  onDeleted: () => handleJobDeleted(job.id),
+                                }
+                              : undefined
+                          }
+                        />
+                      ))}
+                    </ResponsiveGrid>
+                  </View>
+                )}
+              </FileTabWell>
             )}
 
             {hasRoleHistory ? (

@@ -26,9 +26,8 @@ import {
 } from '@/components/clinic/ScreeningToggleSection';
 import { WageRangeInput } from '@/components/clinic/WageRangeInput';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
@@ -119,7 +118,6 @@ export default function PostJobScreen() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
-    form: { gap: spacing.lg },
     section: { gap: spacing.sm },
     label: {
       ...typography.body,
@@ -291,31 +289,29 @@ export default function PostJobScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title={isEditing ? 'Edit role' : 'Post a role'}
-          onBack={() => router.back()}
-        />
+      <FormScreen
+        title={isEditing ? 'Edit role' : 'Post a role'}
+        onBack={() => router.back()}
+        constrainFormWidth
+      >
         <PageLoadingDetail />
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell>
-      <View style={styles.form}>
-        <AuthScreenHeader
-          title={isEditing ? 'Edit role' : 'Post a role'}
-          subtitle={
-            isEditing
-              ? 'Update your job posting details.'
-              : 'Create a full-time or part-time job posting.'
-          }
-          onBack={() => router.back()}
-        />
-
+      <FormScreen
+        title={isEditing ? 'Edit role' : 'Post a role'}
+        subtitle={
+          isEditing
+            ? 'Update your job posting details.'
+            : 'Create a full-time or part-time job posting.'
+        }
+        onBack={() => router.back()}
+        constrainFormWidth
+      >
         <FormErrorBanner message={formError} />
 
         {isGroup ? (
@@ -397,8 +393,7 @@ export default function PostJobScreen() {
           disabled={isSubmitting || roleLimitReached}
           onPress={handleSubmit}
         />
-      </View>
-    </OnboardingShell>
+      </FormScreen>
     </>
   );
 }

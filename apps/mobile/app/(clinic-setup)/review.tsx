@@ -5,17 +5,18 @@ import { CLINIC_HOME } from '@/lib/routing';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { PracticeDoctorReviewSection } from '@/components/clinic/PracticeDoctorList';
 import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormScreen } from '@/components/ui/FormScreen';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { useThemedStyles } from '@/theme';
 
@@ -53,6 +54,7 @@ export default function ClinicReviewScreen() {
     locations,
   } = useClinicProfile();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
+  const setupFormProps = useSetupFormScreenProps('clinic');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const progress = getClinicSetupStepNumber('review', isGroup);
@@ -61,14 +63,7 @@ export default function ClinicReviewScreen() {
 
   const missingFields = getMissingClinicProfileFields(clinicProfile);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-    },
+  const styles = useThemedStyles(({ spacing }) => ({
     footer: { gap: spacing.md, marginTop: spacing.lg },
   }));
 
@@ -110,7 +105,11 @@ export default function ClinicReviewScreen() {
   }
 
   return (
-    <OnboardingShell atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Review your profile"
+      subtitle="Confirm everything looks right before posting."
+      onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
           {submitError || missingFields.length > 0 ? (
@@ -128,13 +127,8 @@ export default function ClinicReviewScreen() {
           />
         </View>
       }>
-      <AuthScreenHeader
-        title="Review your profile"
-        subtitle="Confirm everything looks right before posting."
-        onBack={() => router.back()}
-      />
       <SetupStepProgress step={progress.step} total={progress.total} />
-      <View style={styles.card}>
+      <SurfaceCard padding="lg">
         <ReviewRow label="Clinic name" value={clinicProfile.clinic_name} />
         <ReviewRow label="Contact" value={clinicProfile.contact_name ?? ''} />
         <ReviewRow label="Phone" value={clinicProfile.phone ?? ''} />
@@ -161,7 +155,7 @@ export default function ClinicReviewScreen() {
             .map((location) => ({ id: location.id, name: location.name }))}
         />
         <ReviewRow label="Description" value={clinicProfile.description ?? ''} />
-      </View>
+      </SurfaceCard>
       <SetupBillingUpsellLink
         label={
           isGroup
@@ -170,6 +164,6 @@ export default function ClinicReviewScreen() {
         }
         focus={isGroup ? 'group' : 'clinic'}
       />
-    </OnboardingShell>
+    </FormScreen>
   );
 }

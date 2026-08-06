@@ -11,12 +11,12 @@ import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -28,6 +28,7 @@ export default function WorkerBasicsScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
@@ -102,8 +103,14 @@ export default function WorkerBasicsScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Professional background · Basics"
+      subtitle="Tell clinics who you are and which roles you are qualified for."
+      backLabel={isEditMode ? undefined : 'Back'}
+      onBack={() =>
+        isEditMode ? router.replace(exitHref) : router.replace(ONBOARDING_CHANGE_ROLE)
+      }
       footer={
         <SetupStepFooter
           canContinue={validation.ok}
@@ -115,14 +122,6 @@ export default function WorkerBasicsScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title="Professional background · Basics"
-        subtitle="Tell clinics who you are and which roles you are qualified for."
-        backLabel={isEditMode ? undefined : 'Back'}
-        onBack={() =>
-          isEditMode ? router.replace(exitHref) : router.replace(ONBOARDING_CHANGE_ROLE)
-        }
-      />
       {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
       <View style={styles.form}>
         <View style={styles.nameRow}>
@@ -153,6 +152,6 @@ export default function WorkerBasicsScreen() {
           />
         </View>
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

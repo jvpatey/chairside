@@ -5,9 +5,8 @@ import { Alert, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
 import { ShiftPostManageMenu } from '@/components/clinic/ShiftPostManageMenu';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -84,20 +83,20 @@ export default function ShiftDetailScreen() {
 
   if (isLoading || !shift) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title="Fill-in details"
-          subtitle={isLoading ? undefined : 'Fill-in not found.'}
-          accent={FILL_IN_ACCENT}
-          onBack={handleBack}
-        />
+      <FormScreen
+        title="Fill-in details"
+        subtitle={isLoading ? undefined : 'Fill-in not found.'}
+        accent={FILL_IN_ACCENT}
+        onBack={handleBack}>
         {isLoading ? <PageLoadingDetail /> : null}
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   return (
-    <OnboardingShell atmosphere="subtle"
+    <FormScreen
+      onBack={handleBack}
+      accent={FILL_IN_ACCENT}
       footer={
         <View style={styles.footer}>
           {applicationCount > 0 ? (
@@ -131,12 +130,10 @@ export default function ShiftDetailScreen() {
             ) : null}
           </View>
         </View>
-      }
-    >
+      }>
       <View style={styles.content}>
-        <AuthScreenHeader accent={FILL_IN_ACCENT} onBack={handleBack} />
         <ShiftPostDetailView shift={shift} accent={FILL_IN_ACCENT} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

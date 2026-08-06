@@ -39,7 +39,7 @@ import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrow
 import { AnimateHeight } from '@/components/ui/AnimateHeight';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
-import { PageTabBar } from '@/components/ui/PageTabBar';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { ResponsiveColumns } from '@/components/ui/ResponsiveLayout';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { Screen } from '@/components/ui/Screen';
@@ -53,7 +53,6 @@ import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  FILL_INS_LIST_MODE_OPTIONS,
   countActiveFillIns,
   filterShiftPostsForFillInsListMode,
   type FillInsListMode,
@@ -199,8 +198,8 @@ export default function ClinicFillInsScreen() {
         justifyContent: 'center',
       } as ViewStyle),
     },
-    stackOrderNeeds: { order: 1 },
-    stackOrderFillIns: { order: 2 },
+    stackOrderNeeds: webOnlyStyle({ order: 1 } as ViewStyle),
+    stackOrderFillIns: webOnlyStyle({ order: 2 } as ViewStyle),
     filterToolbar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -238,6 +237,29 @@ export default function ClinicFillInsScreen() {
 
   const hasShiftSearch = hasActiveListSearch(shiftSearchQuery);
   const activeFillInCount = useMemo(() => countActiveFillIns(shifts), [shifts]);
+  const historyFillInCount = useMemo(
+    () => filterShiftPostsForFillInsListMode(shifts, 'history', 'all', 'all', 'past').length,
+    [shifts],
+  );
+  const fillInsListTabs = useMemo(
+    () => [
+      {
+        value: 'active' as const,
+        label: 'Active',
+        count: activeFillInCount,
+        accent: 'secondary' as const,
+        icon: 'calendar-outline' as const,
+      },
+      {
+        value: 'history' as const,
+        label: 'History',
+        count: historyFillInCount,
+        accent: 'secondary' as const,
+        icon: 'time-outline' as const,
+      },
+    ],
+    [activeFillInCount, historyFillInCount],
+  );
   // Equal-height panes when both lists show empty states (incl. filtered-empty);
   // once either side has list cards, each column sizes to its own content.
   const equalEmptyColumns =
@@ -529,80 +551,75 @@ export default function ClinicFillInsScreen() {
                       />
                     }
                   />
-                  <View style={styles.filterToolbar}>
-                    <View style={styles.modeSwitch}>
-                      <PageTabBar
-                        options={FILL_INS_LIST_MODE_OPTIONS}
-                        selected={fillInsListMode}
-                        onChange={handleFillInsListModeChange}
-                        accent="secondary"
-                      />
-                    </View>
-                  </View>
-                  <Animated.View
-                    key={fillInsListMode}
-                    entering={LIST_BODY_ENTER}
-                    exiting={LIST_BODY_EXIT}>
-                    {filteredShifts.length === 0 ? (
-                      <View
-                        style={[
-                          styles.columnPanelBody,
-                          equalEmptyColumns ? styles.columnPanelBodyWide : null,
-                        ]}>
-                        <EmptyState
-                          embedded
-                          fill={equalEmptyColumns}
-                          icon="filter-outline"
-                          title={
-                            hasShiftSearch || hasShiftFilters
-                              ? 'No fill-ins match your search'
-                              : fillInsListMode === 'history'
-                                ? 'No past fill-ins'
-                                : 'No active fill-ins'
-                          }
-                          message={
-                            hasShiftSearch || hasShiftFilters
-                              ? 'Try a different search or filter, or post a new fill-in shift.'
-                              : fillInsListMode === 'history'
-                                ? 'Past, filled, and closed fill-ins will appear here.'
-                                : 'Try a different filter or post a new fill-in shift.'
-                          }
-                        />
-                      </View>
-                    ) : (
-                      <View style={styles.list}>
-                        <StaggeredList>
-                          {filteredShifts.map((shift) => (
-                            <FillInPostingCard
-                              key={shift.id}
-                              shift={shift}
-                              pendingRequestCount={pendingCounts[shift.id] ?? 0}
-                              applicationCount={applicationCounts[shift.id] ?? 0}
-                              clinicId={user?.id}
-                              returnTo="fill-ins-tab"
-                              expanded={expandedShiftId === shift.id}
-                              onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
-                              onShiftUpdated={(updated) => {
-                                setShifts((current) =>
-                                  current.map((row) => (row.id === updated.id ? updated : row)),
-                                );
-                                void refreshBilling();
-                              }}
-                              onShiftDeleted={() => {
-                                setShifts((current) =>
-                                  current.filter((row) => row.id !== shift.id),
-                                );
-                                setExpandedShiftId((current) =>
-                                  current === shift.id ? null : current,
-                                );
-                                void refreshBilling();
-                              }}
-                            />
-                          ))}
-                        </StaggeredList>
-                      </View>
-                    )}
-                  </Animated.View>
+                  <FileTabWell
+                    tabs={fillInsListTabs}
+                    selected={fillInsListMode}
+                    onSelect={handleFillInsListModeChange}>
+                    <Animated.View
+                      key={fillInsListMode}
+                      entering={LIST_BODY_ENTER}
+                      exiting={LIST_BODY_EXIT}>
+                      {filteredShifts.length === 0 ? (
+                        <View
+                          style={[
+                            styles.columnPanelBody,
+                            equalEmptyColumns ? styles.columnPanelBodyWide : null,
+                          ]}>
+                          <EmptyState
+                            embedded
+                            fill={equalEmptyColumns}
+                            icon="filter-outline"
+                            title={
+                              hasShiftSearch || hasShiftFilters
+                                ? 'No fill-ins match your search'
+                                : fillInsListMode === 'history'
+                                  ? 'No past fill-ins'
+                                  : 'No active fill-ins'
+                            }
+                            message={
+                              hasShiftSearch || hasShiftFilters
+                                ? 'Try a different search or filter, or post a new fill-in shift.'
+                                : fillInsListMode === 'history'
+                                  ? 'Past, filled, and closed fill-ins will appear here.'
+                                  : 'Try a different filter or post a new fill-in shift.'
+                            }
+                          />
+                        </View>
+                      ) : (
+                        <View style={styles.list}>
+                          <StaggeredList>
+                            {filteredShifts.map((shift) => (
+                              <FillInPostingCard
+                                key={shift.id}
+                                shift={shift}
+                                pendingRequestCount={pendingCounts[shift.id] ?? 0}
+                                applicationCount={applicationCounts[shift.id] ?? 0}
+                                clinicId={user?.id}
+                                returnTo="fill-ins-tab"
+                                expanded={expandedShiftId === shift.id}
+                                onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
+                                onShiftUpdated={(updated) => {
+                                  setShifts((current) =>
+                                    current.map((row) => (row.id === updated.id ? updated : row)),
+                                  );
+                                  void refreshBilling();
+                                }}
+                                onShiftDeleted={() => {
+                                  setShifts((current) =>
+                                    current.filter((row) => row.id !== shift.id),
+                                  );
+                                  setExpandedShiftId((current) =>
+                                    current === shift.id ? null : current,
+                                  );
+                                  void refreshBilling();
+                                }}
+                              />
+                            ))}
+                          </StaggeredList>
+                        </View>
+                      )}
+                    </Animated.View>
+                  </FileTabWell>
                 </>
               )}
             </AnimateHeight>

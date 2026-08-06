@@ -9,12 +9,12 @@ import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -27,6 +27,7 @@ export default function WorkerExperienceScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [graduationYear, setGraduationYear] = useState('');
   const [degreeType, setDegreeType] = useState<EducationDegreeType | null>(null);
@@ -111,8 +112,11 @@ export default function WorkerExperienceScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Professional background · Experience & education"
+      subtitle="Clinics will receive this with every application."
+      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
           canContinue
@@ -123,11 +127,6 @@ export default function WorkerExperienceScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title="Professional background · Experience & education"
-        subtitle="Clinics will receive this with every application."
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
-      />
       {!isEditMode ? <SetupStepProgress step={2} total={5} /> : null}
       <View style={styles.form}>
         <AuthField
@@ -174,6 +173,6 @@ export default function WorkerExperienceScreen() {
           </View>
         </View>
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

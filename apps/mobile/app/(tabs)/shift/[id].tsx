@@ -10,17 +10,17 @@ import {
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
 import {
   CancelledPillBadge,
   RequestedPillBadge,
 } from '@/components/matching/ApplicationStatusBadge';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
@@ -77,18 +77,8 @@ export default function WorkerShiftDetailScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     content: { gap: spacing.lg },
-    clinicCard: {
-      backgroundColor: colors.surface,
-      borderRadius: radii.lg,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-    },
-    clinicCardPressed: {
-      opacity: 0.92,
-    },
     footer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -161,14 +151,9 @@ export default function WorkerShiftDetailScreen() {
 
   if (isLoading || !shift) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title="Fill-in details"
-          subtitle={isLoading ? undefined : 'Fill-in not found.'}
-          onBack={goBack}
-        />
+      <FormScreen title="Fill-in details" subtitle={isLoading ? undefined : 'Fill-in not found.'} onBack={goBack}>
         {isLoading ? <PageLoadingDetail /> : null}
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
@@ -211,21 +196,17 @@ export default function WorkerShiftDetailScreen() {
   const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
 
   return (
-    <OnboardingShell atmosphere="subtle" footer={footerAction}>
-      <AuthScreenHeader
-        title="Fill-in details"
-        subtitle={shift.clinic.clinic_name}
-        onBack={goBack}
-        accessory={
-          user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
-        }
-      />
+    <FormScreen
+      title="Fill-in details"
+      subtitle={shift.clinic.clinic_name}
+      onBack={goBack}
+      headerAccessory={
+        user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
+      }
+      accent="secondary"
+      footer={footerAction}>
       <View style={styles.content}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`View ${shift.clinic.clinic_name} profile`}
-          onPress={() => router.push(getWorkerClinicProfileRoute(shift.clinic.clinic_id))}
-          style={({ pressed }) => [styles.clinicCard, pressed && styles.clinicCardPressed]}>
+        <SurfaceCard onPress={() => router.push(getWorkerClinicProfileRoute(shift.clinic.clinic_id))}>
           <ClinicPostHeader
             clinicName={shift.clinic.clinic_name}
             logoStoragePath={shift.clinic.logo_storage_path}
@@ -243,9 +224,9 @@ export default function WorkerShiftDetailScreen() {
             }
           />
           <ClinicProfileLinkFooter />
-        </Pressable>
+        </SurfaceCard>
         <ShiftPostDetailView shift={shift} softwareUsed={shift.clinic.software_used} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

@@ -33,7 +33,7 @@ import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewTogg
 import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
-import { PageTabBar } from '@/components/ui/PageTabBar';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
@@ -48,7 +48,6 @@ import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import {
-  FILL_INS_TAB_MODE_OPTIONS,
   partitionWorkerShiftApplications,
   type FillInsTabMode,
 } from '@/lib/fillInFilters';
@@ -320,10 +319,38 @@ export default function FillInsScreen() {
     applicationGroup: { gap: spacing.sm },
   }));
 
+  const fillInTabs = useMemo(
+    () => [
+      {
+        value: 'open' as const,
+        label: 'Open',
+        count: filteredShifts.length,
+        accent: 'secondary' as const,
+        icon: 'calendar-outline' as const,
+      },
+      {
+        value: 'confirmed' as const,
+        label: 'Confirmed',
+        count: activeFillInCount,
+        accent: 'secondary' as const,
+        icon: 'checkmark-circle-outline' as const,
+      },
+      {
+        value: 'history' as const,
+        label: 'History',
+        count: historyFillInCount,
+        accent: 'secondary' as const,
+        icon: 'time-outline' as const,
+      },
+    ],
+    [activeFillInCount, filteredShifts.length, historyFillInCount],
+  );
+
   const openListContent = isLoading ? (
     <PageLoadingList rowCount={4} />
   ) : filteredShifts.length === 0 ? (
     <DashboardEmptyState
+      embedded
       icon="calendar-outline"
       title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'}
       message={
@@ -370,16 +397,8 @@ export default function FillInsScreen() {
             />
           ) : null}
           <FillInAvailabilitySummaryCard />
-          <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
-            <View style={styles.controlRow}>
-              <PageTabBar
-                options={FILL_INS_TAB_MODE_OPTIONS}
-                selected={selectedMode}
-                onChange={setSelectedMode}
-                density="compact"
-              />
-            </View>
-            {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
+          {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
+            <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
               <View style={styles.browseControlsRow}>
                 <View style={styles.searchField}>
                   <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
@@ -402,28 +421,29 @@ export default function FillInsScreen() {
                   onSavedOnlyFilterChange={setSavedOnlyFilter}
                 />
               </View>
-            ) : null}
-          </View>
-
-          {selectedMode === 'open' ? (
-            useWebSplitMap ? (
-              <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
-            ) : (
-              <WorkerBrowseViewTransition
-                mode={showOpenMap ? 'map' : 'list'}
-                style={showOpenMap ? [styles.mapPanel, { height: mapPanelHeight }] : undefined}
-              >
-                {showOpenMap ? mapElement : <View style={styles.panel}>{openListContent}</View>}
-              </WorkerBrowseViewTransition>
-            )
+            </View>
           ) : null}
 
-          {selectedMode === 'confirmed' ? (
-            <View style={styles.panel}>
-              {isLoading ? (
+          <FileTabWell tabs={fillInTabs} selected={selectedMode} onSelect={setSelectedMode}>
+            {selectedMode === 'open' ? (
+              useWebSplitMap ? (
+                <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
+              ) : (
+                <WorkerBrowseViewTransition
+                  mode={showOpenMap ? 'map' : 'list'}
+                  style={showOpenMap ? [styles.mapPanel, { height: mapPanelHeight }] : undefined}
+                >
+                  {showOpenMap ? mapElement : openListContent}
+                </WorkerBrowseViewTransition>
+              )
+            ) : null}
+
+            {selectedMode === 'confirmed' ? (
+              isLoading ? (
                 <PageLoadingList rowCount={3} />
               ) : activeFillInCount === 0 ? (
                 <DashboardEmptyState
+                  embedded
                   icon="document-text-outline"
                   title="No fill-in shifts yet"
                   message="Request to cover an open shift and track confirmed and in-progress fill-ins here."
@@ -459,16 +479,15 @@ export default function FillInsScreen() {
                     </View>
                   ) : null}
                 </>
-              )}
-            </View>
-          ) : null}
+              )
+            ) : null}
 
-          {selectedMode === 'history' ? (
-            <View style={styles.panel}>
-              {isLoading ? (
+            {selectedMode === 'history' ? (
+              isLoading ? (
                 <PageLoadingList rowCount={3} />
               ) : historyFillInCount === 0 ? (
                 <DashboardEmptyState
+                  embedded
                   icon="time-outline"
                   title="No fill-in history yet"
                   message="Declined requests, cancelled shifts, and past fill-ins will appear here."
@@ -532,9 +551,9 @@ export default function FillInsScreen() {
                     </View>
                   ) : null}
                 </>
-              )}
-            </View>
-          ) : null}
+              )
+            ) : null}
+          </FileTabWell>
         </View>
       </Screen>
       <HiringCelebrationModal

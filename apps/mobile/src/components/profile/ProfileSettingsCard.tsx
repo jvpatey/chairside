@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useState, type ReactNode } from 'react';
-import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -78,7 +78,7 @@ export function ProfileSettingsCard({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: isDanger ? `${colors.destructive}33` : colors.separator,
       padding: spacing.lg,
       gap: spacing.md,

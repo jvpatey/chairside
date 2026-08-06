@@ -12,12 +12,12 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -28,6 +28,7 @@ export default function WorkerSkillsScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
   const [practiceTypes, setPracticeTypes] = useState<string[]>([]);
   const [preferredEmployment, setPreferredEmployment] = useState<string[]>([]);
@@ -85,8 +86,11 @@ export default function WorkerSkillsScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Professional background · Skills & preferences"
+      subtitle="Help clinics understand your fit."
+      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
           canContinue
@@ -97,11 +101,6 @@ export default function WorkerSkillsScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title="Professional background · Skills & preferences"
-        subtitle="Help clinics understand your fit."
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
-      />
       {!isEditMode ? <SetupStepProgress step={3} total={5} /> : null}
       <View style={styles.form}>
         <View style={styles.section}>
@@ -143,6 +142,6 @@ export default function WorkerSkillsScreen() {
           />
         </View>
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

@@ -8,6 +8,7 @@ import { SupportHelpTopics } from '@/components/support/SupportHelpTopics';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
 import { WebMarketingNav } from '@/components/web/marketing/WebMarketingNav.web';
+import { WebPublicHeroAtmosphere } from '@/components/web/marketing/WebPublicHeroAtmosphere.web';
 import { SUPPORT_PAGE_CONTENT } from '@/content/legal/support';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
@@ -37,18 +38,6 @@ export function SupportPageLayout() {
       paddingTop: insets.top + 96,
       paddingBottom: spacing.xl,
       paddingHorizontal: spacing.lg,
-    },
-    atmosphere: {
-      position: 'absolute' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      pointerEvents: 'none' as const,
-      // @ts-expect-error web gradient
-      backgroundImage: isDark
-        ? 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(152, 150, 255, 0.12) 0%, transparent 50%)'
-        : 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(88, 86, 214, 0.08) 0%, transparent 50%)',
     },
     heroInner: {
       maxWidth: CONTENT_MAX_WIDTH.xwide,
@@ -111,7 +100,7 @@ export function SupportPageLayout() {
         })}
       >
         <View style={styles.hero}>
-          <View style={styles.atmosphere} />
+          <WebPublicHeroAtmosphere />
           <WebPageEnter style={styles.heroInner}>
             <Text style={styles.title}>{SUPPORT_PAGE_CONTENT.title}</Text>
             <Text style={styles.intro}>{SUPPORT_PAGE_CONTENT.intro}</Text>

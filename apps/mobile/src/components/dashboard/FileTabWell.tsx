@@ -62,10 +62,8 @@ export function FileTabWell<T extends string = string>({
       flexDirection: 'row',
       alignItems: 'stretch',
       backgroundColor: colors.backgroundGrouped,
-      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomWidth: compactTabs ? 0 : StyleSheet.hairlineWidth,
       borderBottomColor: colors.separator,
-      paddingHorizontal: compactTabs ? spacing.xs : 0,
-      gap: compactTabs ? 2 : 0,
     },
     tab: {
       flex: 1,
@@ -84,9 +82,19 @@ export function FileTabWell<T extends string = string>({
       backgroundColor: colors.surface,
       borderTopLeftRadius: radii.md,
       borderTopRightRadius: radii.md,
-      paddingBottom: spacing.sm + 2 + StyleSheet.hairlineWidth,
-      marginBottom: -StyleSheet.hairlineWidth,
+      ...(compactTabs
+        ? null
+        : {
+            paddingBottom: spacing.sm + 2 + StyleSheet.hairlineWidth,
+            marginBottom: -StyleSheet.hairlineWidth,
+          }),
       zIndex: 1,
+    },
+    tabSelectedEdgeStart: {
+      borderTopLeftRadius: 0,
+    },
+    tabSelectedEdgeEnd: {
+      borderTopRightRadius: 0,
     },
     tabLocked: {
       opacity: 0.72,
@@ -174,9 +182,11 @@ export function FileTabWell<T extends string = string>({
   const shell = (
     <View style={styles.shell}>
       <View style={styles.tabRow} accessibilityRole="tablist">
-        {tabs.map((tab) => {
+        {tabs.map((tab, tabIndex) => {
           const isSelected = selected === tab.value;
           const isLocked = lockedTab === tab.value;
+          const isFirst = tabIndex === 0;
+          const isLast = tabIndex === tabs.length - 1;
           const accent = tab.accent ?? 'primary';
           const accentColor = resolveAccentColor(colors, accent);
           const accentSubtle = resolveAccentSubtle(colors, accent);
@@ -191,6 +201,8 @@ export function FileTabWell<T extends string = string>({
               style={({ pressed, hovered }) => [
                 styles.tab,
                 isSelected && styles.tabSelected,
+                compactTabs && isSelected && isFirst && styles.tabSelectedEdgeStart,
+                compactTabs && isSelected && isLast && styles.tabSelectedEdgeEnd,
                 isLocked && styles.tabLocked,
                 isWeb && hovered && !pressed && !isSelected && styles.tabHovered,
                 pressed && !isSelected && styles.tabPressed,

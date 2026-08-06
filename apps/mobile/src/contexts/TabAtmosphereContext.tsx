@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { Platform, View } from 'react-native';
 import { ThemeProvider, useTheme as useNavigationTheme } from '@react-navigation/native';
-import { usePathname, useSegments } from 'expo-router';
+import { usePathname } from 'expo-router';
 
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import {
@@ -79,15 +79,10 @@ function ShellNavigationTheme({
 /** Provides route-aware atmosphere intensity for tab screens. */
 export function TabAtmosphereShell({ role, children }: TabAtmosphereShellProps) {
   const pathname = usePathname();
-  const segments = useSegments();
   const { isTablet } = useResponsiveLayout();
   const { colors } = useTheme();
   let intensity = getTabAtmosphereIntensityFromPathname(pathname, role);
   const accent = getTabAtmosphereAccentFromPathname(pathname, role);
-
-  if (intensity === 'none' && segments.includes('profile')) {
-    intensity = 'subtle';
-  }
 
   const shellAtmosphere = Platform.OS === 'web' && isTablet && intensity !== 'none';
   const paintAtmosphere = intensity !== 'none' && (Platform.OS !== 'web' || shellAtmosphere);

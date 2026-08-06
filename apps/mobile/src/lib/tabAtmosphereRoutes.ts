@@ -266,7 +266,7 @@ export function getTabAtmosphereIntensityFromPathname(
   const relative = stripTabGroupPrefix(normalized, role);
 
   if (isStackDetailPath(normalized, role)) {
-    return isAtmosphereStackPath(relative) ? 'subtle' : 'none';
+    return 'none';
   }
 
   if (isHomePath(relative)) {
@@ -274,15 +274,15 @@ export function getTabAtmosphereIntensityFromPathname(
   }
 
   if (isProfilePath(relative)) {
-    return 'subtle';
+    return 'none';
   }
 
   if (isFillInOutreachPath(relative)) {
-    return 'subtle';
+    return 'none';
   }
 
   if (getMainTabFromRelativePath(relative, role)) {
-    return 'subtle';
+    return 'none';
   }
 
   return 'none';

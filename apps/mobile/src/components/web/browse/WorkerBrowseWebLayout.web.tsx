@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useThemedStyles } from '@/theme';
@@ -28,7 +28,7 @@ export function WorkerBrowseWebLayout({ list, map, showMap = false }: WorkerBrow
       minWidth: 0,
       borderRadius: 20,
       overflow: 'hidden' as const,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
     },
   }));

@@ -3,9 +3,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
 
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { WorkerPublicClinicProfileView } from '@/components/worker/WorkerPublicClinicProfileView';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,19 +99,20 @@ export default function WorkerClinicProfileScreen() {
 
   if (isLoading || !postings) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title="Clinic profile"
-          subtitle={isLoading ? undefined : 'Clinic not found.'}
-          onBack={() => router.back()}
-        />
+      <FormScreen
+        title="Clinic profile"
+        subtitle={isLoading ? undefined : 'Clinic not found.'}
+        onBack={() => router.back()}>
         {isLoading ? <PageLoadingDetail /> : null}
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   return (
-    <OnboardingShell atmosphere="subtle"
+    <FormScreen
+      title="Clinic profile"
+      subtitle={postings.profile.clinic_name}
+      onBack={() => router.back()}
       footer={
         canMessage ? (
           <View style={styles.footer}>
@@ -131,11 +131,6 @@ export default function WorkerClinicProfileScreen() {
           </View>
         ) : undefined
       }>
-      <AuthScreenHeader
-        title="Clinic profile"
-        subtitle={postings.profile.clinic_name}
-        onBack={() => router.back()}
-      />
       <View style={styles.content}>
         <WorkerPublicClinicProfileView
           profile={postings.profile}
@@ -145,6 +140,6 @@ export default function WorkerClinicProfileScreen() {
           onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
         />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

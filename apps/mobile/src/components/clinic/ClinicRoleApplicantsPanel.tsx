@@ -12,7 +12,7 @@ import { ApplicantFilterBar } from '@/components/clinic/ApplicantFilterBar';
 import { ApplicantPipelineSectionBlock } from '@/components/clinic/ApplicantPipelineSection';
 import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
@@ -332,15 +332,13 @@ export function ClinicRoleApplicantsPanel({
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell atmosphere="subtle">
-        <AuthScreenHeader
-          eyebrow="Applications for"
-          title={postTitle || 'Role'}
-          subtitle={postPostedLabel || undefined}
-          onBack={onBack}
-        />
+      <FormScreen
+        eyebrow="Applications for"
+        title={postTitle || 'Role'}
+        subtitle={postPostedLabel || undefined}
+        onBack={onBack}>
         {body}
-      </OnboardingShell>
+      </FormScreen>
     </>
   );
 }

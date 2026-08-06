@@ -8,7 +8,6 @@ import { SearchMatchText } from '@/components/messaging/SearchMatchText';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
-import { cardShellRadii } from '@/components/ui/cardLayout';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
@@ -337,11 +336,11 @@ export function ConversationInboxGroup({
   const isEmptyLeadPreview = leadPreview === 'No messages yet';
   const hasUnread = threads.some((thread) => thread.unread);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     shell: {
       backgroundColor: colors.surface,
-      borderRadius: compact ? 14 : cardShellRadii.group,
-      borderWidth: 1,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       overflow: 'hidden',
     },

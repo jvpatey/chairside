@@ -17,9 +17,8 @@ import { CompensationInput } from '@/components/clinic/CompensationInput';
 import { ShiftDateInput } from '@/components/clinic/ShiftDateInput';
 import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
@@ -94,7 +93,6 @@ export default function PostShiftScreen() {
   }, []);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
-    form: { gap: spacing.lg },
     section: { gap: spacing.sm },
     label: {
       ...typography.body,
@@ -265,33 +263,31 @@ export default function PostShiftScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
-          accent={FILL_IN_ACCENT}
-          onBack={handleBack}
-        />
+      <FormScreen
+        title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
+        accent={FILL_IN_ACCENT}
+        onBack={handleBack}
+        constrainFormWidth
+      >
         <PageLoadingDetail />
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell>
-      <View style={styles.form}>
-        <AuthScreenHeader
-          title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
-          subtitle={
-            isEditing
-              ? 'Update your fill-in shift details.'
-              : 'Publish a short-notice or temp shift.'
-          }
-          accent={FILL_IN_ACCENT}
-          onBack={handleBack}
-        />
-
+      <FormScreen
+        title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
+        subtitle={
+          isEditing
+            ? 'Update your fill-in shift details.'
+            : 'Publish a short-notice or temp shift.'
+        }
+        accent={FILL_IN_ACCENT}
+        onBack={handleBack}
+        constrainFormWidth
+      >
         <FormErrorBanner message={formError} />
 
         {isGroup ? (
@@ -395,8 +391,7 @@ export default function PostShiftScreen() {
           accent={FILL_IN_ACCENT}
           onPress={handleSubmit}
         />
-      </View>
-    </OnboardingShell>
+      </FormScreen>
     </>
   );
 }

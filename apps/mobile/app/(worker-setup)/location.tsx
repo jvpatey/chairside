@@ -9,12 +9,12 @@ import {
   type AddressFormValue,
 } from '@/components/clinic/AddressAutocomplete';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -54,6 +54,7 @@ export default function WorkerLocationScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
   const [address, setAddress] = useState<AddressFormValue>(() =>
     workerProfile ? profileToAddress(workerProfile) : createEmptyAddressValue(),
   );
@@ -118,8 +119,11 @@ export default function WorkerLocationScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Professional background · Location & bio"
+      subtitle="Your province determines which roles you can browse."
+      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
           canContinue={validation.ok}
@@ -131,11 +135,6 @@ export default function WorkerLocationScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title="Professional background · Location & bio"
-        subtitle="Your province determines which roles you can browse."
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
-      />
       {!isEditMode ? <SetupStepProgress step={4} total={5} /> : null}
       <View style={styles.form}>
         <AddressAutocomplete value={address} onChange={setAddress} />
@@ -148,6 +147,6 @@ export default function WorkerLocationScreen() {
           multiline
         />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

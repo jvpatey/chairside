@@ -1,5 +1,5 @@
 import { Children, ReactNode } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { RowDivider } from '@/components/clinic/DetailCard';
 import { useThemedStyles } from '@/theme';
@@ -14,7 +14,7 @@ export function ProfileSettingsGroup({ children }: ProfileSettingsGroupProps) {
     card: {
       backgroundColor: colors.surface,
       borderRadius: radii.lg,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.xs,

@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { isClinicGroupsEnabled } from '@chairside/api';
 import { router, usePathname } from 'expo-router';
 import { ReactNode, useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
@@ -14,7 +15,7 @@ import {
 } from '@/lib/clinicSetupSteps';
 import { navigateToWelcome } from '@/lib/publicRoutes';
 import { webHover, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { radii, useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webTypography } from '@/theme/web';
 
 type SetupStep = {
@@ -89,8 +90,8 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
       paddingTop: insets.top + spacing.lg,
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.lg,
-      borderRightWidth: isWide ? 1 : 0,
-      borderBottomWidth: isWide ? 0 : 1,
+      borderRightWidth: isWide ? StyleSheet.hairlineWidth : 0,
+      borderBottomWidth: isWide ? 0 : StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
       ...(isWide
@@ -120,7 +121,7 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
       gap: spacing.sm,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
-      borderRadius: 10,
+      borderRadius: radii.sm,
       ...webPointer(),
     },
     stepActive: {
@@ -135,11 +136,11 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
     stepNumber: {
       width: 28,
       height: 28,
-      borderRadius: 14,
+      borderRadius: radii.pill,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
     },
     stepNumberActive: {
@@ -171,6 +172,12 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
     content: {
       flex: 1,
       minWidth: 0,
+      position: 'relative' as const,
+      overflow: 'hidden' as const,
+    },
+    contentAtmosphere: {
+      ...StyleSheet.absoluteFillObject,
+      pointerEvents: 'none' as const,
     },
   }));
 
@@ -232,7 +239,12 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
           })}
         </View>
       </View>
-      <View style={styles.content}>{children}</View>
+      <View style={styles.content}>
+        <View style={styles.contentAtmosphere}>
+          <AppAtmosphere intensity="subtle" viewportFixed />
+        </View>
+        {children}
+      </View>
     </View>
   );
 }

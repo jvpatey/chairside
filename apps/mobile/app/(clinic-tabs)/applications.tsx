@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { ClinicApplicationSummaryFilters } from '@/components/clinic/ClinicApplicationSummaryFilters';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { ClinicRoleApplicantsPanel } from '@/components/clinic/ClinicRoleApplicantsPanel';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
@@ -147,8 +147,35 @@ export default function ClinicApplicationsScreen() {
     [summaries, summaryFilter, searchQuery],
   );
 
+  const needsAttentionCount = useMemo(
+    () => summaries.filter((summary) => summary.unseen_count > 0).length,
+    [summaries],
+  );
+
+  const applicationFilterTabs = useMemo(
+    () => [
+      {
+        value: 'all' as const,
+        label: 'All roles',
+        count: summaries.length,
+        accent: 'primary' as const,
+        icon: 'briefcase-outline' as const,
+      },
+      {
+        value: 'needs_attention' as const,
+        label: 'Needs attention',
+        count: needsAttentionCount,
+        badgeCount: needsAttentionCount,
+        accent: 'primary' as const,
+        icon: 'alert-circle-outline' as const,
+      },
+    ],
+    [needsAttentionCount, summaries.length],
+  );
+
   const hasSearch = hasActiveListSearch(searchQuery);
-  const hasActiveFilters = summaryFilter !== 'all';
+  const isNeedsAttentionFilter = summaryFilter === 'needs_attention';
+  const hasActiveFilters = isNeedsAttentionFilter;
 
   const load = useCallback(async () => {
     if (!clinicId) {
@@ -222,16 +249,23 @@ export default function ClinicApplicationsScreen() {
   const listBody =
     filteredSummaries.length === 0 ? (
       <EmptyState
+        embedded
         icon={hasSearch || hasActiveFilters ? 'search-outline' : 'document-text-outline'}
         title={
-          hasSearch || hasActiveFilters ? 'No roles match your search' : 'No applications yet'
+          hasSearch
+            ? 'No roles match your search'
+            : isNeedsAttentionFilter
+              ? 'No roles need attention'
+              : 'No applications yet'
         }
         message={
-          hasSearch || hasActiveFilters
+          hasSearch
             ? 'Try a different search or filter.'
-            : 'They will appear here when workers apply to your roles.'
+            : isNeedsAttentionFilter
+              ? 'Roles with new applicants will appear here.'
+              : 'They will appear here when workers apply to your roles.'
         }
-        {...(hasSearch || hasActiveFilters ? {} : postRoleCta)}
+        {...(hasSearch || isNeedsAttentionFilter ? {} : postRoleCta)}
       />
     ) : (
       <View style={styles.list}>
@@ -255,11 +289,13 @@ export default function ClinicApplicationsScreen() {
         onChange={setSearchQuery}
         placeholder="Search role title"
         accessibilityLabel="Search applications"
-        filter={
-          <ClinicApplicationSummaryFilters selected={summaryFilter} onChange={setSummaryFilter} />
-        }
       />
-      {listBody}
+      <FileTabWell
+        tabs={applicationFilterTabs}
+        selected={summaryFilter}
+        onSelect={setSummaryFilter}>
+        {listBody}
+      </FileTabWell>
     </>
   );
 

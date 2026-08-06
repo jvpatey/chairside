@@ -8,14 +8,14 @@ import {
   createEmptyAddressValue,
   type AddressFormValue,
 } from '@/components/clinic/AddressAutocomplete';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { validateAddressStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
@@ -50,6 +50,7 @@ export default function ClinicLocationScreen() {
   const { clinicProfile, isClinicProfileReady, isGroup } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
+  const setupFormProps = useSetupFormScreenProps('clinic');
   const [address, setAddress] = useState<AddressFormValue>(() =>
     clinicProfile ? profileToAddress(clinicProfile) : createEmptyAddressValue(),
   );
@@ -108,8 +109,15 @@ export default function ClinicLocationScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Clinic location"
+      subtitle={
+        isGroup
+          ? 'Start with your main clinic address. You can add more locations next.'
+          : 'Where is your practice located?'
+      }
+      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
           canContinue={validation.ok}
@@ -121,19 +129,10 @@ export default function ClinicLocationScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title="Clinic location"
-        subtitle={
-          isGroup
-            ? 'Start with your main clinic address. You can add more locations next.'
-            : 'Where is your practice located?'
-        }
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
-      />
       {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
       <View style={styles.form}>
         <AddressAutocomplete value={address} onChange={setAddress} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

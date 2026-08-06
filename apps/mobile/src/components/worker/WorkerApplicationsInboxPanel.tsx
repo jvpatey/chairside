@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
-import { PageTabBar } from '@/components/ui/PageTabBar';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,7 +23,6 @@ import { toJobCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
 import { getWorkerCalendarRoute, redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import { WORKER_BROWSE } from '@/lib/routing';
 import {
-  APPLICATIONS_TAB_MODE_OPTIONS,
   confirmClearPastWorkerApplications,
   partitionWorkerApplications,
   type ApplicationsTabMode,
@@ -187,6 +186,26 @@ export function WorkerApplicationsInboxPanel({
     wasOnApplicationDetailRef.current = onApplicationDetail;
   }, [load, pathname]);
 
+  const applicationTabs = useMemo(
+    () => [
+      {
+        value: 'active' as const,
+        label: 'Active',
+        count: active.length,
+        accent: 'primary' as const,
+        icon: 'document-text-outline' as const,
+      },
+      {
+        value: 'past' as const,
+        label: 'Past',
+        count: past.length,
+        accent: 'primary' as const,
+        icon: 'time-outline' as const,
+      },
+    ],
+    [active.length, past.length],
+  );
+
   const hasAnyApplications = applications.length > 0;
   const listProps = { unreadMap, compact };
 
@@ -209,18 +228,14 @@ export function WorkerApplicationsInboxPanel({
           <PageLoadingList rowCount={3} message="Loading applications…" />
         ) : (
           <View style={styles.content}>
-            <PageTabBar
-              options={APPLICATIONS_TAB_MODE_OPTIONS}
+            <FileTabWell
+              tabs={applicationTabs}
               selected={selectedMode}
-              onChange={setSelectedMode}
-              density="compact"
-              accent="primary"
-            />
-
-            {selectedMode === 'active' ? (
-              <View style={styles.panel}>
-                {!hasAnyApplications ? (
+              onSelect={setSelectedMode}>
+              {selectedMode === 'active' ? (
+                !hasAnyApplications ? (
                   <EmptyState
+                    embedded
                     icon="document-text-outline"
                     title="No applications yet"
                     message="Browse open roles and apply to track your progress here."
@@ -248,6 +263,7 @@ export function WorkerApplicationsInboxPanel({
                     ) : null}
                     {active.length === 0 ? (
                       <DashboardEmptyState
+                        embedded
                         icon="document-text-outline"
                         title="No active applications"
                         message="Applications in progress will appear here."
@@ -266,14 +282,13 @@ export function WorkerApplicationsInboxPanel({
                       </>
                     )}
                   </>
-                )}
-              </View>
-            ) : null}
+                )
+              ) : null}
 
-            {selectedMode === 'past' ? (
-              <View style={styles.panel}>
-                {!hasAnyApplications ? (
+              {selectedMode === 'past' ? (
+                !hasAnyApplications ? (
                   <EmptyState
+                    embedded
                     icon="time-outline"
                     title="No past applications"
                     message="Filled, closed, or decided roles will appear here."
@@ -299,6 +314,7 @@ export function WorkerApplicationsInboxPanel({
                     ) : null}
                     {past.length === 0 ? (
                       <DashboardEmptyState
+                        embedded
                         icon="time-outline"
                         title="No past applications"
                         message="Filled, closed, or decided roles will appear here."
@@ -307,9 +323,9 @@ export function WorkerApplicationsInboxPanel({
                       <ApplicationList applications={past} {...listProps} />
                     )}
                   </>
-                )}
-              </View>
-            ) : null}
+                )
+              ) : null}
+            </FileTabWell>
           </View>
         )}
       </Screen>

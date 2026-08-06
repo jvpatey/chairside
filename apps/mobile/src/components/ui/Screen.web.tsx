@@ -1,7 +1,6 @@
-import { ReactNode, useCallback, useState } from 'react';
+import { ReactNode, useCallback, useState, type RefObject } from 'react';
 import {
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,12 +14,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { PageHeader, type PageHeaderVariant } from '@/components/ui/PageHeader';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { WEB_SIDEBAR_OUTER_INSET } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { webStickyHeaderGlass, webTransition, webTypography } from '@/theme/web';
@@ -28,7 +26,8 @@ import { webStickyHeaderGlass, webTransition, webTypography } from '@/theme/web'
 const HEADER_SCROLL_THRESHOLD = 8;
 const HEADER_GLASS_RAMP = 56;
 
-type ScreenProps = {
+export type ScreenProps = {
+  eyebrow?: string;
   title?: string;
   subtitle?: string;
   children?: ReactNode;
@@ -37,15 +36,17 @@ type ScreenProps = {
   onBack?: () => void;
   backLabel?: string;
   headerAccessory?: ReactNode;
+  headerVariant?: PageHeaderVariant;
   constrainWidth?: boolean;
   scroll?: boolean;
   scrollEnabled?: boolean;
   fillsContainer?: boolean;
   animateEntry?: boolean;
   transparentBackground?: boolean;
-  /** When true, skip the tab atmosphere layer (e.g. master/detail panes paint their own). */
   hideAtmosphere?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  scrollRef?: RefObject<ScrollView | null>;
+  scrollContentRef?: RefObject<View | null>;
 };
 
 function headerGlassProgress(scrollY: number) {
@@ -53,8 +54,22 @@ function headerGlassProgress(scrollY: number) {
   return Math.min((scrollY - HEADER_SCROLL_THRESHOLD) / HEADER_GLASS_RAMP, 1);
 }
 
+function resolveHeaderVariant(
+  explicit: PageHeaderVariant | undefined,
+  isTablet: boolean,
+  onBack: (() => void) | undefined,
+  showHeader: boolean,
+): PageHeaderVariant {
+  if (explicit) return explicit;
+  if (!showHeader) return 'hub';
+  if (onBack) return 'detail';
+  if (isTablet) return 'tabletSection';
+  return 'hub';
+}
+
 /** Web Screen with sticky header and refined typography. */
 export function Screen({
+  eyebrow,
   title,
   subtitle,
   children,
@@ -63,6 +78,7 @@ export function Screen({
   onBack,
   backLabel = 'Back',
   headerAccessory,
+  headerVariant,
   constrainWidth = true,
   scroll = true,
   scrollEnabled = true,
@@ -71,6 +87,7 @@ export function Screen({
   transparentBackground = false,
   hideAtmosphere = false,
   contentContainerStyle,
+  scrollRef,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const { colors, spacing, isDark } = useTheme();
@@ -87,11 +104,11 @@ export function Screen({
   }, []);
 
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
+  const variant = resolveHeaderVariant(headerVariant, isTablet, onBack, showHeader);
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
   const shellAtmosphere = useShellAtmosphere();
-  // Shell owns the wash — skip local gradient, but stay transparent so it shows through.
   const showAtmosphere = tabAtmosphere !== 'none' && !hideAtmosphere && !shellAtmosphere;
   const atmosphereLayer =
     showAtmosphere && Platform.OS === 'web' ? (
@@ -100,7 +117,7 @@ export function Screen({
   const passThroughAtmosphere = showAtmosphere || shellAtmosphere;
   const containerBackground =
     passThroughAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
-  const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
+  const showTopBar = showHeader || showNotifications || Boolean(headerAccessory) || Boolean(onBack);
   const topPadding = isTablet && !showHeader ? WEB_SIDEBAR_OUTER_INSET : insets.top + 16;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -121,10 +138,6 @@ export function Screen({
       ...webTransition(['background-color', 'border-color', 'backdrop-filter']),
     },
     stickyInner: {
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start' as const,
-      justifyContent: 'space-between' as const,
-      gap: spacing.sm,
       width: '100%' as const,
       maxWidth: constrainWidth ? contentMaxWidth : undefined,
       alignSelf: 'center' as const,
@@ -148,44 +161,17 @@ export function Screen({
       width: fillsContainer ? '100%' : undefined,
       flexDirection: fillsContainer ? ('column' as const) : undefined,
     },
-    headerText: { flex: 1, minWidth: 0, gap: spacing.xs },
-    title: {
-      ...webTypography.title,
-      color: colors.labelPrimary,
-    },
-    subtitle: {
-      ...webTypography.subtitle,
-      fontSize: 15,
-      color: colors.labelSecondary,
-    },
-    headerActions: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: spacing.sm,
-      flexShrink: 0,
-    },
-    back: {
-      alignSelf: 'flex-start' as const,
-      paddingVertical: spacing.xs,
-      minHeight: 44,
-      justifyContent: 'center' as const,
-      paddingHorizontal: spacing.xs,
-      marginLeft: -spacing.xs,
-      marginBottom: spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    backHovered: webTextLinkHoverStyles(colors),
-    backText: {
-      fontSize: 15,
-      fontWeight: '600' as const,
-      color: colors.primary,
-    },
     staticHeader: {
       paddingTop: insets.top + spacing.sm,
       paddingBottom: spacing.sm,
       paddingHorizontal: spacing.lg,
       backgroundColor: 'transparent',
+    },
+    tabletSubtitle: {
+      ...webTypography.subtitle,
+      fontSize: 15,
+      color: colors.labelSecondary,
+      marginBottom: spacing.md,
     },
   }));
 
@@ -198,34 +184,20 @@ export function Screen({
     paddingBottom: spacing.lg + tabDockInset,
   };
 
-  const headerInner = (
+  const pageHeader = showTopBar ? (
     <View style={styles.stickyInner}>
-      <View style={styles.headerText}>
-        {onBack ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={backLabel}
-            onPress={onBack}
-            style={({ pressed, hovered }) => [
-              styles.back,
-              webHover(hovered, pressed, styles.backHovered),
-              pressed && { opacity: 0.75 },
-            ]}
-          >
-            <Text style={styles.backText}>{backLabel}</Text>
-          </Pressable>
-        ) : null}
-        {showHeader && title ? <Text style={styles.title}>{title}</Text> : null}
-        {showHeader && subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      </View>
-      {headerAccessory || showNotifications ? (
-        <View style={styles.headerActions}>
-          {headerAccessory}
-          {showNotifications ? <NotificationBell /> : null}
-        </View>
-      ) : null}
+      <PageHeader
+        eyebrow={eyebrow}
+        title={showHeader ? title : undefined}
+        subtitle={variant === 'tabletSection' ? undefined : showHeader ? subtitle : undefined}
+        onBack={onBack}
+        backLabel={backLabel}
+        trailing={headerAccessory}
+        showNotifications={showNotifications}
+        variant={variant}
+      />
     </View>
-  );
+  ) : null;
 
   const overlayHeaderBlock = showTopBar ? (
     <View
@@ -239,13 +211,18 @@ export function Screen({
         },
       ]}
     >
-      {headerInner}
+      {pageHeader}
     </View>
   ) : null;
 
   const staticHeaderBlock = showTopBar ? (
-    <View style={styles.staticHeader}>{headerInner}</View>
+    <View style={styles.staticHeader}>{pageHeader}</View>
   ) : null;
+
+  const tabletSubtitleBlock =
+    variant === 'tabletSection' && showHeader && subtitle ? (
+      <Text style={styles.tabletSubtitle}>{subtitle}</Text>
+    ) : null;
 
   if (!scroll) {
     return (
@@ -270,6 +247,7 @@ export function Screen({
               contentContainerStyle,
             ]}
           >
+            {tabletSubtitleBlock}
             <View style={styles.body}>{children}</View>
           </View>
         </WebPageEnter>
@@ -282,6 +260,7 @@ export function Screen({
       {atmosphereLayer}
       {overlayHeaderBlock}
       <ScrollView
+        ref={scrollRef}
         scrollEnabled={scrollEnabled}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -299,7 +278,10 @@ export function Screen({
           contentContainerStyle,
         ]}
       >
-        <WebPageEnter animate={animateEntry}>{children}</WebPageEnter>
+        <WebPageEnter animate={animateEntry}>
+          {tabletSubtitleBlock}
+          {children}
+        </WebPageEnter>
       </ScrollView>
     </View>
   );

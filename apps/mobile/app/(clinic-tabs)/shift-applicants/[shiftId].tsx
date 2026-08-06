@@ -10,8 +10,7 @@ import { Alert, View } from 'react-native';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
@@ -98,8 +97,11 @@ export default function ClinicShiftApplicationsScreen() {
 
   return (
     <>
-      <OnboardingShell>
-        <AuthScreenHeader title={postTitle || 'Fill-in applicants'} subtitle={subtitle} onBack={goBack} />
+      <FormScreen
+        title={postTitle || 'Fill-in applicants'}
+        subtitle={subtitle}
+        onBack={goBack}
+        accent="secondary">
         <View style={styles.content}>
           {isLoading ? (
             <PageLoadingList message="Loading cover requests…" />
@@ -147,7 +149,7 @@ export default function ClinicShiftApplicationsScreen() {
             </View>
           )}
         </View>
-      </OnboardingShell>
+      </FormScreen>
       <HiringCelebrationModal
         visible={celebrationVisible}
         payload={celebrationPayload}

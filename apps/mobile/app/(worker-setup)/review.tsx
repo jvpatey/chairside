@@ -10,13 +10,14 @@ import { WORKER_HOME } from '@/lib/routing';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormScreen } from '@/components/ui/FormScreen';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useThemedStyles } from '@/theme';
@@ -49,6 +50,7 @@ export default function WorkerReviewScreen() {
   const { user, profile } = useAuth();
   const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -63,14 +65,7 @@ export default function WorkerReviewScreen() {
 
   const missingFields = getMissingWorkerProfileFields(workerProfile);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-    },
+  const styles = useThemedStyles(({ spacing }) => ({
     footer: { gap: spacing.md, marginTop: spacing.lg },
   }));
 
@@ -112,8 +107,11 @@ export default function WorkerReviewScreen() {
     .join(', ');
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Review profile"
+      subtitle="Confirm your professional background before browsing roles."
+      onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
           {submitError || missingFields.length > 0 ? (
@@ -131,13 +129,8 @@ export default function WorkerReviewScreen() {
           />
         </View>
       }>
-      <AuthScreenHeader
-        title="Review profile"
-        subtitle="Confirm your professional background before browsing roles."
-        onBack={() => router.back()}
-      />
       <SetupStepProgress step={5} total={5} />
-      <View style={styles.card}>
+      <SurfaceCard padding="lg">
         <ReviewRow
           label="Roles"
           value={formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))}
@@ -159,7 +152,7 @@ export default function WorkerReviewScreen() {
           label="Travel distance"
           value={getTravelRadiusRangeLabel(workerProfile?.travel_radius_range)}
         />
-      </View>
-    </OnboardingShell>
+      </SurfaceCard>
+    </FormScreen>
   );
 }

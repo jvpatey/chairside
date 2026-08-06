@@ -191,9 +191,9 @@ Also: move logout from top-level header icon into avatar/profile menu on dashboa
 
 ---
 
-## Phase 2 — Dashboard overhaul (clinic + worker) — DEFERRED
+## Phase 2 — Dashboard overhaul (clinic + worker) — DONE
 
-**Status:** Implemented then **reverted** (Aug 5, 2026) so other phases can land first. Re-apply after Phases 3–6.  
+**Status:** Implemented (Aug 5, 2026). FileTabWell workspace, attention strip, next-up, flat hero, two-column desktop body, get-started checklist.  
 **Priority:** P1 — highest wow-factor for clinic users.  
 **Estimated scope:** ~10–15 files.
 

@@ -1,6 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
 import {
-  Platform,
   Pressable,
   Text,
   TextInput,
@@ -16,6 +15,12 @@ import {
   webIconButtonHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
+import {
+  formFieldInputRowFocusedStyle,
+  formFieldInputRowStyle,
+  formFieldInputStyle,
+  formFieldLabelStylePlain,
+} from '@/theme/formFieldTokens';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type AuthFieldProps = {
@@ -60,73 +65,31 @@ export function AuthField({
   const [isFocused, setIsFocused] = useState(false);
   const wrapRef = useRef<View>(null);
   const { scrollWrapIntoView } = useFormScroll();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles((theme) => ({
     wrap: {
-      gap: spacing.xs,
+      gap: theme.spacing.xs,
     },
-    label: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
-    inputRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      borderRadius: 12,
-      minHeight: multiline ? 120 : 50,
-      ...(Platform.OS === 'web' ? { overflow: 'hidden' as const } : {}),
-    },
+    label: formFieldLabelStylePlain(theme),
+    inputRow: formFieldInputRowStyle(theme, { multiline }),
     inputRowValidated: {
-      borderColor: colors.success,
+      borderColor: theme.colors.success,
     },
     inputRowInvalid: {
-      borderColor: colors.destructive,
+      borderColor: theme.colors.destructive,
     },
-    inputRowFocused: {
-      borderColor: colors.primary,
-      borderWidth: 1.5,
-      ...(Platform.OS === 'web'
-        ? ({
-            // @ts-expect-error — boxShadow is web-only
-            boxShadow: `0 0 0 3px ${colors.primarySubtle}`,
-          } as const)
-        : {}),
-    },
-    input: {
-      flex: 1,
-      fontSize: typography.body.fontSize,
-      fontWeight: '400',
-      paddingHorizontal: spacing.md,
-      paddingVertical: Platform.OS === 'ios' ? 14 : 10,
-      color: colors.labelPrimary,
-      minHeight: multiline ? 120 : 50,
-      ...(Platform.OS === 'web'
-        ? {
-            backgroundColor: 'transparent',
-            outlineStyle: 'none' as const,
-            borderWidth: 0,
-          }
-        : {}),
-      ...(multiline
-        ? { textAlignVertical: 'top' as const, paddingTop: Platform.OS === 'ios' ? 14 : 12 }
-        : Platform.OS === 'android'
-          ? { textAlignVertical: 'center' as const }
-          : {}),
-    },
+    inputRowFocused: formFieldInputRowFocusedStyle(theme),
+    input: formFieldInputStyle(theme, { multiline, editable }),
     inputDisabled: {
-      color: colors.labelTertiary,
+      color: theme.colors.labelTertiary,
     },
     inputRowDisabled: {
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: theme.colors.fillSubtle,
     },
     accessory: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
-      paddingRight: spacing.md,
+      gap: theme.spacing.sm,
+      paddingRight: theme.spacing.md,
     },
     visibilityButton: {
       minWidth: 44,
@@ -136,7 +99,7 @@ export function AuthField({
       borderRadius: 8,
       ...webPointer(),
     },
-    visibilityButtonHovered: webIconButtonHoverStyles(colors),
+    visibilityButtonHovered: webIconButtonHoverStyles(theme.colors),
   }));
 
   const isSecure = Boolean(secureTextEntry) && !passwordVisible;

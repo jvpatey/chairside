@@ -4,8 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
@@ -138,12 +137,11 @@ export default function WorkerApplicationDetailScreen() {
     : undefined;
 
   const detail = (
-    <OnboardingShell transparentBackground={Platform.OS === 'web' && isTablet}>
-      <AuthScreenHeader
-        title={headerTitle}
-        subtitle={headerSubtitle}
-        onBack={Platform.OS === 'web' && isTablet ? undefined : goBack}
-      />
+    <FormScreen
+      title={headerTitle}
+      subtitle={headerSubtitle}
+      onBack={Platform.OS === 'web' && isTablet ? undefined : goBack}
+      transparentBackground={Platform.OS === 'web' && isTablet}>
       <View style={styles.content}>
         <FormErrorBanner message={formError} />
         {isLoading ? (
@@ -168,7 +166,7 @@ export default function WorkerApplicationDetailScreen() {
           />
         ) : null}
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 
   if (isTablet) {

@@ -6,7 +6,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WELCOME_STAGGER, enterFadeUp } from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { WelcomeHero } from '@/components/onboarding/WelcomeHero';
-import { WelcomeHeroGlow } from '@/components/onboarding/WelcomeHeroGlow';
+import { PageHeroGlow } from '@/components/ui/PageHeroGlow';
 import { useThemedStyles } from '@/theme';
 
 export default function WelcomeScreen() {
@@ -28,7 +28,7 @@ export default function WelcomeScreen() {
   return (
     <OnboardingShell
       fillViewport
-      backgroundAccessory={<WelcomeHeroGlow />}
+      backgroundAccessory={<PageHeroGlow variant="accent" motion />}
       footer={
         <View style={styles.actions}>
           <Animated.View entering={enterFadeUp(WELCOME_STAGGER.primaryCta, reducedMotion)}>

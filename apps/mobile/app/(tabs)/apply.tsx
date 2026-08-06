@@ -15,9 +15,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
@@ -206,18 +205,26 @@ export default function ApplyScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell atmosphere="form">
-        <AuthScreenHeader
-          title={type === 'shift' ? 'Request to cover' : 'Apply'}
-          onBack={() => router.back()}
-        />
+      <FormScreen
+        title={type === 'shift' ? 'Request to cover' : 'Apply'}
+        onBack={() => router.back()}
+      >
         <PageLoadingDetail />
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   return (
-    <OnboardingShell atmosphere="form"
+    <FormScreen
+      title={type === 'job' ? 'Apply for role' : isReRequest ? 'Request to cover again' : 'Request to cover'}
+      subtitle={
+        type === 'shift'
+          ? 'Review the profile snapshot and cover note the clinic will receive.'
+          : screeningEnabled
+            ? undefined
+            : 'Review the profile snapshot and cover note the clinic will receive.'
+      }
+      onBack={() => router.back()}
       footer={
         <OnboardingButton
           label={
@@ -234,18 +241,8 @@ export default function ApplyScreen() {
           disabled={isSubmitting}
           onPress={handleContinue}
         />
-      }>
-      <AuthScreenHeader
-        title={type === 'job' ? 'Apply for role' : isReRequest ? 'Request to cover again' : 'Request to cover'}
-        subtitle={
-          type === 'shift'
-            ? 'Review the profile snapshot and cover note the clinic will receive.'
-            : screeningEnabled
-              ? undefined
-              : 'Review the profile snapshot and cover note the clinic will receive.'
-        }
-        onBack={() => router.back()}
-      />
+      }
+    >
       <View style={styles.content}>
         <FormErrorBanner message={formError} />
         {type === 'job' && job ? (
@@ -342,6 +339,6 @@ export default function ApplyScreen() {
           </>
         )}
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

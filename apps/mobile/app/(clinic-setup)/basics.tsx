@@ -18,16 +18,16 @@ import { Text, View } from 'react-native';
 import { ClinicMemberProfileFields } from '@/components/clinic/ClinicMemberProfileFields';
 import { pickLocationPhotoFile } from '@/components/clinic/ClinicLocationPhotoField';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicMemberPhotoUri } from '@/hooks/useClinicMemberPhotoUri';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { validateClinicBasicsStep } from '@/lib/setupStepValidation';
@@ -60,6 +60,7 @@ export default function ClinicBasicsScreen() {
   } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
+  const setupFormProps = useSetupFormScreenProps('clinic');
   const savedMemberPhotoUri = useClinicMemberPhotoUri(membership?.photo_storage_path);
   const [clinicName, setClinicName] = useState('');
   const [contactName, setContactName] = useState('');
@@ -198,8 +199,16 @@ export default function ClinicBasicsScreen() {
   };
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title={isGroup ? 'Group basics' : 'Clinic basics'}
+      subtitle={
+        isGroup
+          ? 'Name your clinic group, your role, and primary contact.'
+          : 'Tell us about your practice.'
+      }
+      backLabel={isEditMode ? undefined : 'Back'}
+      onBack={handleBack}
       footer={
         <SetupStepFooter
           canContinue={validationOk && !isUploadingPhoto}
@@ -211,16 +220,6 @@ export default function ClinicBasicsScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title={isGroup ? 'Group basics' : 'Clinic basics'}
-        subtitle={
-          isGroup
-            ? 'Name your clinic group, your role, and primary contact.'
-            : 'Tell us about your practice.'
-        }
-        backLabel={isEditMode ? undefined : 'Back'}
-        onBack={handleBack}
-      />
       {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
       <View style={styles.form}>
         <AuthField
@@ -290,6 +289,6 @@ export default function ClinicBasicsScreen() {
           />
         </View>
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }
