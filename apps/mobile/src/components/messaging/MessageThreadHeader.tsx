@@ -1,10 +1,10 @@
 import type { Conversation } from '@chairside/api';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
@@ -16,8 +16,8 @@ import {
   getWorkerApplicationRoute,
   getWorkerClinicProfileRoute,
 } from '@/lib/routing';
-import { webHover, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { webPointer } from '@/lib/webPressableStyles';
+import { useThemedStyles } from '@/theme';
 
 type MessageThreadHeaderProps = {
   conversation: Conversation | null;
@@ -74,30 +74,11 @@ export function MessageThreadHeader({
   showContextDetails = true,
   onBack,
 }: MessageThreadHeaderProps) {
-  const { colors } = useTheme();
   const display = conversation ? formatConversationDisplay(conversation, role) : null;
   const typeChip = conversation ? getConversationTypeChip(conversation) : null;
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
-    container: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      minWidth: 0,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-      ...webPointer(),
-    },
-    backButtonPressed: {
-      opacity: 0.75,
-    },
     identityPressable: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
@@ -119,14 +100,6 @@ export function MessageThreadHeader({
       fontSize: compact ? 16 : 17,
       fontWeight: '700',
       color: colors.labelPrimary,
-    },
-    titleMinimal: {
-      ...typography.body,
-      fontSize: compact ? 16 : 17,
-      fontWeight: '700',
-      color: colors.labelPrimary,
-      flex: 1,
-      minWidth: 0,
     },
     chipRow: {
       flexDirection: 'row',
@@ -176,76 +149,52 @@ export function MessageThreadHeader({
 
   if (!showContextDetails) {
     return (
-      <View style={styles.container}>
-        {onBack ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            onPress={onBack}
-            hitSlop={8}
-            style={({ pressed, hovered }) => [
-              styles.backButton,
-              webHover(hovered, pressed, { backgroundColor: colors.fillSubtle }),
-              pressed && styles.backButtonPressed,
-            ]}>
-            <Ionicons
-              name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
-              size={22}
-              color={colors.primary}
-            />
-          </Pressable>
-        ) : null}
-        <Text style={styles.titleMinimal} numberOfLines={1}>
-          {headerTitle}
-        </Text>
-      </View>
+      <PageHeader
+        variant="detail"
+        title={headerTitle}
+        onBack={onBack}
+        compact={compact}
+        showNotifications={false}
+      />
     );
   }
 
-  return (
-    <View style={styles.container}>
-      {onBack ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={onBack}
-          hitSlop={8}
-          style={({ pressed, hovered }) => [
-            styles.backButton,
-            webHover(hovered, pressed, { backgroundColor: colors.fillSubtle }),
-            pressed && styles.backButtonPressed,
-          ]}>
-          <Ionicons
-            name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
-            size={22}
-            color={colors.primary}
-          />
-        </Pressable>
+  const identityTitle = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${headerTitle}. ${headerSubtitle}`}
+      disabled={!conversation}
+      onPress={handleIdentityPress}
+      style={({ pressed }) => [styles.identityPressable, pressed && styles.identityPressed]}
+    >
+      {conversation ? (
+        <HeaderAvatar conversation={conversation} role={role} size={compact ? 36 : 40} />
       ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${headerTitle}. ${headerSubtitle}`}
-        disabled={!conversation}
-        onPress={handleIdentityPress}
-        style={({ pressed }) => [styles.identityPressable, pressed && styles.identityPressed]}>
-        {conversation ? <HeaderAvatar conversation={conversation} role={role} size={compact ? 36 : 40} /> : null}
-        <View style={styles.textWrap}>
-          <Text style={styles.title} numberOfLines={1}>
-            {headerTitle}
+      <View style={styles.textWrap}>
+        <Text style={styles.title} numberOfLines={1}>
+          {headerTitle}
+        </Text>
+        <View style={styles.chipRow}>
+          {typeChip ? (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>{typeChip.label}</Text>
+            </View>
+          ) : null}
+          <Text style={styles.subtitle} numberOfLines={compact ? 1 : 2}>
+            {headerSubtitle}
           </Text>
-          <View style={styles.chipRow}>
-            {typeChip ? (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>{typeChip.label}</Text>
-              </View>
-            ) : null}
-            <Text style={styles.subtitle} numberOfLines={compact ? 1 : 2}>
-              {headerSubtitle}
-            </Text>
-          </View>
         </View>
-      </Pressable>
-    </View>
+      </View>
+    </Pressable>
+  );
+
+  return (
+    <PageHeader
+      variant="detail"
+      title={identityTitle}
+      onBack={onBack}
+      compact={compact}
+      showNotifications={false}
+    />
   );
 }

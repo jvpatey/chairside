@@ -75,6 +75,7 @@ export function MessageSplitView({
   const [threadFocus, setThreadFocus] = useState<MessageThreadFocus | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
+  const [contextCollapsed, setContextCollapsed] = useState(false);
 
   useEffect(() => {
     if (initialConversationId) {
@@ -185,6 +186,8 @@ export function MessageSplitView({
     <MasterDetailLayout
       masterWidth={MASTER_WIDTH}
       showDetail
+      contextCollapsed={contextCollapsed}
+      onContextCollapsedChange={setContextCollapsed}
       master={
         role === 'worker' ? (
           <WorkerMessagesMasterPane
@@ -205,7 +208,13 @@ export function MessageSplitView({
         threadFocus,
         onConversationChange: handleConversationChange,
       })}
-      context={<MessageContextPanel conversation={selectedConversation} role={role} />}
+      context={
+        <MessageContextPanel
+          conversation={selectedConversation}
+          role={role}
+          onCollapse={() => setContextCollapsed(true)}
+        />
+      }
     />
   );
 }
@@ -233,6 +242,7 @@ export function MessageThreadSplitView({
       : null,
   );
   const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
+  const [contextCollapsed, setContextCollapsed] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const handleInboxVisibilityChange = useCallback((state: { isFilteredEmpty: boolean }) => {
@@ -281,6 +291,8 @@ export function MessageThreadSplitView({
     <MasterDetailLayout
       masterWidth={MASTER_WIDTH}
       showDetail
+      contextCollapsed={contextCollapsed}
+      onContextCollapsedChange={setContextCollapsed}
       master={
         role === 'worker' ? (
           <WorkerMessagesMasterPane
@@ -293,7 +305,13 @@ export function MessageThreadSplitView({
         )
       }
       detail={detail}
-      context={<MessageContextPanel conversation={selectedConversation} role={role} />}
+      context={
+        <MessageContextPanel
+          conversation={selectedConversation}
+          role={role}
+          onCollapse={() => setContextCollapsed(true)}
+        />
+      }
     />
   );
 }

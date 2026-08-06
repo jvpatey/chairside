@@ -123,7 +123,9 @@ export function Screen({
   const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {
       flex: 1,
+      minHeight: 0,
       overflow: 'hidden',
+      flexDirection: 'column' as const,
       position: 'relative' as const,
     },
     overlayHeader: {
@@ -162,6 +164,7 @@ export function Screen({
       flexDirection: fillsContainer ? ('column' as const) : undefined,
     },
     staticHeader: {
+      flexShrink: 0,
       paddingTop: insets.top + spacing.sm,
       paddingBottom: spacing.sm,
       paddingHorizontal: spacing.lg,
@@ -180,7 +183,7 @@ export function Screen({
   };
 
   const staticPaddingStyle = {
-    paddingTop: topPadding,
+    paddingTop: showTopBar ? spacing.md : topPadding,
     paddingBottom: spacing.lg + tabDockInset,
   };
 

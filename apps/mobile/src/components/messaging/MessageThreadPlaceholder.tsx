@@ -1,7 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Platform, Text, View } from 'react-native';
-
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useTabAtmosphere } from '@/contexts/TabAtmosphereContext';
+import { Platform, View } from 'react-native';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type MessageThreadPlaceholderProps = {
@@ -22,34 +21,12 @@ export function MessageThreadPlaceholder({
   const showTabAtmosphere = tabAtmosphere !== 'none';
   const transparentShell = showTabAtmosphere || (embedded && Platform.OS === 'web');
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors }) => ({
     container: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: spacing.xl,
-      gap: spacing.md,
       backgroundColor: transparentShell ? 'transparent' : colors.background,
-    },
-    iconWrap: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.fillSubtle,
-    },
-    title: {
-      ...typography.body,
-      fontSize: 18,
-      fontWeight: '700',
-      color: colors.labelPrimary,
-      textAlign: 'center',
-    },
-    body: {
-      ...typography.subtitle,
-      textAlign: 'center',
-      maxWidth: 320,
     },
   }));
 
@@ -70,11 +47,7 @@ export function MessageThreadPlaceholder({
 
   return (
     <View style={styles.container}>
-      <View style={styles.iconWrap}>
-        <Ionicons name="chatbubbles-outline" size={28} color={colors.primary} />
-      </View>
-      <Text style={styles.title}>{copy.title}</Text>
-      <Text style={styles.body}>{copy.body}</Text>
+      <EmptyState embedded icon="chatbubbles-outline" title={copy.title} message={copy.body} />
     </View>
   );
 }

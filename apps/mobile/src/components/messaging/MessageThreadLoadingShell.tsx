@@ -1,8 +1,8 @@
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useThemedStyles } from '@/theme';
@@ -46,7 +46,13 @@ export function MessageThreadLoadingShell({
       ) : null}
       <View style={{ flex: 1 }}>
         <View style={styles.header}>
-          <AuthScreenHeader title={title} onBack={onBack} />
+          <PageHeader
+            variant="detail"
+            title={title}
+            onBack={onBack}
+            compact
+            showNotifications={false}
+          />
         </View>
         <View style={styles.body}>
           <PageLoadingDetail />

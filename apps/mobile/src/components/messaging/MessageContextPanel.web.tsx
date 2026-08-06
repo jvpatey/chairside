@@ -26,6 +26,7 @@ import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 type MessageContextPanelProps = {
   conversation: Conversation | null;
   role: 'worker' | 'clinic';
+  onCollapse?: () => void;
 };
 
 function ContextAvatar({
@@ -125,7 +126,65 @@ function ContextActionRow({
   );
 }
 
-function EmptyContextPanel() {
+function PanelEyebrow({
+  label,
+  onCollapse,
+}: {
+  label: string;
+  onCollapse?: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ spacing }) => ({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    eyebrow: {
+      flex: 1,
+      fontSize: 11,
+      fontWeight: '600',
+      fontFamily: fontSemibold,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+    },
+    collapseButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.fillSubtle,
+      ...webPointer(),
+    },
+    collapseButtonPressed: {
+      opacity: 0.8,
+    },
+  }));
+
+  return (
+    <View style={styles.row}>
+      <Text style={styles.eyebrow}>{label}</Text>
+      {onCollapse ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Hide details panel"
+          onPress={onCollapse}
+          style={({ pressed }) => [
+            styles.collapseButton,
+            pressed && styles.collapseButtonPressed,
+          ]}
+        >
+          <Ionicons name="chevron-forward" size={18} color={colors.labelSecondary} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function EmptyContextPanel({ onCollapse }: { onCollapse?: () => void }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing }) => ({
     panel: {
@@ -135,14 +194,6 @@ function EmptyContextPanel() {
     scrollContent: {
       flexGrow: 1,
       gap: spacing.lg,
-    },
-    eyebrow: {
-      fontSize: 11,
-      fontWeight: '600',
-      fontFamily: fontSemibold,
-      letterSpacing: 0.6,
-      textTransform: 'uppercase' as const,
-      color: colors.labelTertiary,
     },
     emptyCard: {
       alignItems: 'center',
@@ -177,8 +228,9 @@ function EmptyContextPanel() {
       <ScrollView
         style={[{ flex: 1, backgroundColor: 'transparent' }, webScrollbarStyles()]}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>Thread details</Text>
+        showsVerticalScrollIndicator={false}
+      >
+        <PanelEyebrow label="Thread details" onCollapse={onCollapse} />
         <SurfaceCard padding="lg" gap>
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
@@ -200,7 +252,11 @@ function EmptyContextPanel() {
   );
 }
 
-export function MessageContextPanel({ conversation, role }: MessageContextPanelProps) {
+export function MessageContextPanel({
+  conversation,
+  role,
+  onCollapse,
+}: MessageContextPanelProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     panel: {
@@ -210,14 +266,6 @@ export function MessageContextPanel({ conversation, role }: MessageContextPanelP
     scrollContent: {
       gap: spacing.lg,
       paddingBottom: spacing.md,
-    },
-    eyebrow: {
-      fontSize: 11,
-      fontWeight: '600',
-      fontFamily: fontSemibold,
-      letterSpacing: 0.6,
-      textTransform: 'uppercase' as const,
-      color: colors.labelTertiary,
     },
     heroInner: {
       alignItems: 'center',
@@ -261,7 +309,7 @@ export function MessageContextPanel({ conversation, role }: MessageContextPanelP
   }));
 
   if (!conversation) {
-    return <EmptyContextPanel />;
+    return <EmptyContextPanel onCollapse={onCollapse} />;
   }
 
   const display = formatConversationDisplay(conversation, role);
@@ -314,7 +362,7 @@ export function MessageContextPanel({ conversation, role }: MessageContextPanelP
         style={[{ flex: 1, backgroundColor: 'transparent' }, webScrollbarStyles()]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>{eyebrowLabel}</Text>
+        <PanelEyebrow label={eyebrowLabel} onCollapse={onCollapse} />
 
         <SurfaceCard padding="lg" gap>
           <View style={styles.heroInner}>

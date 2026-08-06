@@ -422,6 +422,7 @@ export default function WorkerDashboardScreen() {
       workspace={
         <FadeInSection delayMs={120}>
           <FileTabWell
+            variant="dashboard"
             selected={selectedOverview}
             onSelect={setSelectedOverview}
             tabs={workerTabs}>

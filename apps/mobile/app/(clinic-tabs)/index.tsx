@@ -476,6 +476,7 @@ export default function ClinicDashboardScreen() {
       workspace={
         <FadeInSection delayMs={120}>
           <FileTabWell
+            variant="dashboard"
             selected={selectedOverview}
             onSelect={setSelectedOverview}
             tabs={[
