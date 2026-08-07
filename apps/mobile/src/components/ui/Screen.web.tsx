@@ -3,7 +3,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -21,7 +20,7 @@ import { WEB_SIDEBAR_OUTER_INSET } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
-import { webStickyHeaderGlass, webTransition, webTypography } from '@/theme/web';
+import { webStickyHeaderGlass, webTransition } from '@/theme/web';
 
 const HEADER_SCROLL_THRESHOLD = 8;
 const HEADER_GLASS_RAMP = 56;
@@ -56,14 +55,12 @@ function headerGlassProgress(scrollY: number) {
 
 function resolveHeaderVariant(
   explicit: PageHeaderVariant | undefined,
-  isTablet: boolean,
   onBack: (() => void) | undefined,
   showHeader: boolean,
 ): PageHeaderVariant {
   if (explicit) return explicit;
   if (!showHeader) return 'hub';
   if (onBack) return 'detail';
-  if (isTablet) return 'tabletSection';
   return 'hub';
 }
 
@@ -92,7 +89,7 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const { colors, spacing, isDark } = useTheme();
   const [scrollY, setScrollY] = useState(0);
-  const [headerHeight, setHeaderHeight] = useState(() => insets.top + 84);
+  const [headerHeight, setHeaderHeight] = useState(() => insets.top + 112);
   const glassProgress = scroll ? headerGlassProgress(scrollY) : 0;
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -104,7 +101,7 @@ export function Screen({
   }, []);
 
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
-  const variant = resolveHeaderVariant(headerVariant, isTablet, onBack, showHeader);
+  const variant = resolveHeaderVariant(headerVariant, onBack, showHeader);
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
@@ -135,7 +132,7 @@ export function Screen({
       right: 0,
       zIndex: 10,
       paddingTop: insets.top + spacing.sm,
-      paddingBottom: spacing.sm,
+      paddingBottom: spacing.md,
       paddingHorizontal: spacing.lg,
       ...webTransition(['background-color', 'border-color', 'backdrop-filter']),
     },
@@ -166,15 +163,9 @@ export function Screen({
     staticHeader: {
       flexShrink: 0,
       paddingTop: insets.top + spacing.sm,
-      paddingBottom: spacing.sm,
+      paddingBottom: spacing.md,
       paddingHorizontal: spacing.lg,
       backgroundColor: 'transparent',
-    },
-    tabletSubtitle: {
-      ...webTypography.subtitle,
-      fontSize: 15,
-      color: colors.labelSecondary,
-      marginBottom: spacing.md,
     },
   }));
 
@@ -192,7 +183,7 @@ export function Screen({
       <PageHeader
         eyebrow={eyebrow}
         title={showHeader ? title : undefined}
-        subtitle={variant === 'tabletSection' ? undefined : showHeader ? subtitle : undefined}
+        subtitle={showHeader ? subtitle : undefined}
         onBack={onBack}
         backLabel={backLabel}
         trailing={headerAccessory}
@@ -222,11 +213,6 @@ export function Screen({
     <View style={styles.staticHeader}>{pageHeader}</View>
   ) : null;
 
-  const tabletSubtitleBlock =
-    variant === 'tabletSection' && showHeader && subtitle ? (
-      <Text style={styles.tabletSubtitle}>{subtitle}</Text>
-    ) : null;
-
   if (!scroll) {
     return (
       <View
@@ -250,8 +236,7 @@ export function Screen({
               contentContainerStyle,
             ]}
           >
-            {tabletSubtitleBlock}
-            <View style={styles.body}>{children}</View>
+            {children}
           </View>
         </WebPageEnter>
       </View>
@@ -281,10 +266,7 @@ export function Screen({
           contentContainerStyle,
         ]}
       >
-        <WebPageEnter animate={animateEntry}>
-          {tabletSubtitleBlock}
-          {children}
-        </WebPageEnter>
+        <WebPageEnter animate={animateEntry}>{children}</WebPageEnter>
       </ScrollView>
     </View>
   );

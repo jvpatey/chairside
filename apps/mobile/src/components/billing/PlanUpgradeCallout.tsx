@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+
+type PlanUpgradeCalloutVariant = 'notice' | 'emphasis';
 
 type PlanUpgradeCalloutProps = {
   title: string;
@@ -13,7 +15,9 @@ type PlanUpgradeCalloutProps = {
   onUpgrade?: () => void;
   accent?: GradientAccent;
   buttonLabel?: string;
-  /** Inline variant for helper text areas (no full-width button). */
+  /** Quiet inline strip (default). Use `emphasis` for a stronger full-width CTA. */
+  variant?: PlanUpgradeCalloutVariant;
+  /** @deprecated Prefer `variant="notice"`. Kept for back-compat; maps to notice. */
   compact?: boolean;
 };
 
@@ -23,20 +27,76 @@ export function PlanUpgradeCallout({
   onUpgrade = openClinicBillingModal,
   accent = 'primary',
   buttonLabel = 'View plans',
+  variant,
   compact = false,
 }: PlanUpgradeCalloutProps) {
   const { colors } = useTheme();
+  const resolvedVariant: PlanUpgradeCalloutVariant = variant ?? 'notice';
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const noticeStyles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
+    strip: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
+    },
+    icon: {
+      marginTop: 1,
+      flexShrink: 0,
+    },
+    copy: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    title: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 18,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+    },
+    messageRow: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      alignItems: 'center' as const,
+      columnGap: spacing.xs,
+      rowGap: 2,
+    },
+    message: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+      flexShrink: 1,
+    },
+    link: {
+      paddingVertical: 1,
+      ...webPointer(),
+    },
+    linkText: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '600' as const,
+      color: colors.primary,
+    },
+  }));
+
+  const emphasisStyles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       borderRadius: 16,
       borderWidth: 1,
       borderColor: `${brandColor}44`,
       backgroundColor: brandSubtle,
-      padding: compact ? spacing.md : spacing.lg,
-      gap: compact ? spacing.sm : spacing.md,
+      padding: spacing.lg,
+      gap: spacing.md,
     },
     header: {
       flexDirection: 'row' as const,
@@ -44,9 +104,9 @@ export function PlanUpgradeCallout({
       gap: spacing.md,
     },
     iconWrap: {
-      width: compact ? 36 : 40,
-      height: compact ? 36 : 40,
-      borderRadius: compact ? 18 : 20,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       backgroundColor: colors.surface,
@@ -61,63 +121,65 @@ export function PlanUpgradeCallout({
     },
     title: {
       ...typography.body,
-      fontSize: compact ? 15 : 16,
+      fontSize: 16,
       fontWeight: '700' as const,
       color: colors.labelPrimary,
     },
     message: {
       ...typography.subtitle,
-      fontSize: compact ? 14 : 15,
-      lineHeight: compact ? 20 : 22,
+      fontSize: 15,
+      lineHeight: 22,
       color: colors.labelSecondary,
     },
-    link: {
-      alignSelf: 'flex-start' as const,
-      paddingVertical: spacing.xs,
-      ...webPointer(),
-    },
-    linkText: {
-      fontSize: 14,
-      fontWeight: '600' as const,
-      color: brandColor,
-    },
   }));
+
+  if (resolvedVariant === 'notice') {
+    return (
+      <View
+        accessibilityRole="summary"
+        accessibilityLabel={`${title}. ${message}`}
+        style={noticeStyles.strip}
+      >
+        <Ionicons
+          name="information-circle-outline"
+          size={18}
+          color={colors.labelTertiary}
+          style={noticeStyles.icon}
+        />
+        <View style={noticeStyles.copy}>
+          <Text style={noticeStyles.title}>{title}</Text>
+          <View style={noticeStyles.messageRow}>
+            <Text style={noticeStyles.message}>{message}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={buttonLabel}
+              onPress={onUpgrade}
+              style={noticeStyles.link}
+            >
+              <Text style={noticeStyles.linkText}>{buttonLabel}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View
       accessibilityRole="summary"
       accessibilityLabel={`${title}. ${message}`}
-      style={styles.card}
+      style={emphasisStyles.card}
     >
-      <View style={styles.header}>
-        <View style={styles.iconWrap}>
-          <Ionicons
-            name="sparkles-outline"
-            size={compact ? 18 : 20}
-            color={brandColor}
-          />
+      <View style={emphasisStyles.header}>
+        <View style={emphasisStyles.iconWrap}>
+          <Ionicons name="sparkles-outline" size={20} color={brandColor} />
         </View>
-        <View style={styles.copy}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+        <View style={emphasisStyles.copy}>
+          <Text style={emphasisStyles.title}>{title}</Text>
+          <Text style={emphasisStyles.message}>{message}</Text>
         </View>
       </View>
-      {compact ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={buttonLabel}
-          onPress={onUpgrade}
-          style={styles.link}
-        >
-          <Text style={styles.linkText}>{buttonLabel}</Text>
-        </Pressable>
-      ) : (
-        <OnboardingButton
-          label={buttonLabel}
-          variant="secondary"
-          onPress={onUpgrade}
-        />
-      )}
+      <OnboardingButton label={buttonLabel} variant="secondary" onPress={onUpgrade} />
     </View>
   );
 }
