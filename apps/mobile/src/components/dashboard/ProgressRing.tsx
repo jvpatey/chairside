@@ -16,6 +16,9 @@ type ProgressRingProps = {
   strokeWidth?: number;
   /** Arc and complete-state ring color. Defaults to primary. */
   color?: string;
+  /** When false, renders the ring without a center fraction label. Defaults to true. */
+  showLabel?: boolean;
+  accessibilityLabel?: string;
 };
 
 /** Circular progress ring with center label — no SVG dependency. */
@@ -25,6 +28,8 @@ export function ProgressRing({
   size = 48,
   strokeWidth = 4,
   color: colorProp,
+  showLabel = true,
+  accessibilityLabel,
 }: ProgressRingProps) {
   const { colors } = useTheme();
   const ringColor = colorProp ?? colors.primary;
@@ -111,7 +116,11 @@ export function ProgressRing({
   }));
 
   return (
-    <View style={styles.container} accessibilityLabel={`${completed} of ${total} steps complete`}>
+    <View
+      style={styles.container}
+      accessibilityLabel={
+        accessibilityLabel ?? `${completed} of ${total} steps complete`
+      }>
       <View style={styles.track} />
       {isComplete ? (
         <View style={[styles.track, styles.trackComplete]} />
@@ -125,9 +134,11 @@ export function ProgressRing({
           </View>
         </>
       ) : null}
-      <Text style={styles.label}>
-        {completed}/{total}
-      </Text>
+      {showLabel ? (
+        <Text style={styles.label}>
+          {completed}/{total}
+        </Text>
+      ) : null}
     </View>
   );
 }

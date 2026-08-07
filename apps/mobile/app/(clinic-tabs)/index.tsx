@@ -50,6 +50,7 @@ import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { HiringInsightsPanel } from '@/components/clinic/HiringInsightsPanel';
+import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
@@ -524,6 +525,11 @@ export default function ClinicDashboardScreen() {
               secondaryLabel="Fill-ins"
               secondaryUsed={billing.activeFillInCount}
               secondaryLimit={billing.activeFillInLimit}
+              onViewPlansPress={() =>
+                openClinicBillingModal({
+                  focus: billing.planFamily === 'group' || isGroup ? 'group' : 'clinic',
+                })
+              }
             />
           </FadeInSection>
         ) : null
