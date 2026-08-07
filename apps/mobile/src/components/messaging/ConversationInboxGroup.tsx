@@ -74,6 +74,7 @@ function GroupAvatar({
 
 type ThreadRowProps = {
   conversation: Conversation;
+  avatarKind: 'clinic' | 'worker';
   role: 'worker' | 'clinic';
   compact?: boolean;
   selected?: boolean;
@@ -86,6 +87,7 @@ type ThreadRowProps = {
 
 function ConversationInboxThreadRow({
   conversation,
+  avatarKind,
   role,
   compact = false,
   selected = false,
@@ -106,8 +108,9 @@ function ConversationInboxThreadRow({
   const previewText =
     messageSearchPreview ?? conversation.last_message_preview ?? 'No messages yet';
   const isEmptyPreview = previewText === 'No messages yet';
+  const avatarSize = compact ? 36 : 40;
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
       position: 'relative' as const,
       borderTopColor: colors.separator,
@@ -118,33 +121,49 @@ function ConversationInboxThreadRow({
     },
     rowHovered: webListRowHoverStyles(colors),
     pressable: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
       paddingVertical: spacing.md,
       paddingLeft: spacing.md + 6,
       paddingRight: spacing.xl + spacing.sm,
-      gap: 5,
       ...webPointer(),
     },
     pressablePressed: {
       opacity: 0.92,
     },
-    contextRow: {
+    content: {
+      flex: 1,
+      minWidth: 0,
+      gap: 4,
+    },
+    titleRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
+      justifyContent: 'space-between',
       gap: spacing.sm,
     },
-    context: {
-      flex: 1,
-      fontSize: 14,
-      lineHeight: 19,
-      fontWeight: '600',
+    name: {
+      ...typography.body,
+      fontSize: compact ? 15 : 16,
+      lineHeight: compact ? 20 : 21,
+      fontWeight: conversation.unread || selected ? '700' : '600',
+      letterSpacing: -0.2,
       color: colors.labelPrimary,
-      letterSpacing: -0.1,
+      flex: 1,
+    },
+    detailLine: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
     },
     timestamp: {
       fontSize: 12,
       lineHeight: 16,
-      color: colors.labelTertiary,
+      color: conversation.unread ? colors.primary : colors.labelTertiary,
+      fontWeight: conversation.unread ? '600' : '400',
       flexShrink: 0,
+      paddingTop: 2,
     },
     previewRow: {
       flexDirection: 'row',
@@ -186,7 +205,7 @@ function ConversationInboxThreadRow({
       borderRadius: 14,
       alignItems: 'center',
       justifyContent: 'center',
-      opacity: isWeb ? (rowHovered ? 1 : 0) : 0.7,
+      opacity: isWeb ? (rowHovered || menuVisible ? 1 : 0.85) : 0.85,
       ...webPointer(),
     },
     menuButtonHovered: webIconButtonHoverStyles(colors),
@@ -246,16 +265,25 @@ function ConversationInboxThreadRow({
         ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={[display.inboxContextLine, previewText].filter(Boolean).join('. ')}
+          accessibilityLabel={[display.cardName, display.inboxContextLine, previewText]
+            .filter(Boolean)
+            .join('. ')}
           accessibilityState={{ selected }}
           onPress={onPress}
           style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]}>
-          <View style={styles.contextRow}>
-            <Text style={styles.context} numberOfLines={compact ? 1 : 2}>
-              {display.inboxContextLine}
+          <GroupAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
+          <View style={styles.content}>
+          <View style={styles.titleRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {display.cardName}
             </Text>
             {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
           </View>
+          {display.inboxContextLine ? (
+            <Text style={styles.detailLine} numberOfLines={compact ? 1 : 2}>
+              {display.inboxContextLine}
+            </Text>
+          ) : null}
           <View style={styles.previewRow}>
             {activeSearchQuery && !isEmptyPreview ? (
               <SearchMatchText
@@ -271,6 +299,7 @@ function ConversationInboxThreadRow({
               </Text>
             )}
             {conversation.unread ? <View style={styles.unreadDot} /> : null}
+          </View>
           </View>
         </Pressable>
       </View>
@@ -541,6 +570,7 @@ export function ConversationInboxGroup({
               <ConversationInboxThreadRow
                 key={conversation.id}
                 conversation={conversation}
+                avatarKind={avatarKind}
                 role={role}
                 compact={compact}
                 isFirst={index === 0}

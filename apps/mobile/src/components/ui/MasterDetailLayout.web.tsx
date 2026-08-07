@@ -122,14 +122,17 @@ export function MasterDetailLayout({
       ...StyleSheet.absoluteFillObject,
       alignItems: 'center',
       paddingTop: spacing.md,
+      zIndex: 2,
     },
     contextRailButton: {
-      width: 32,
-      height: 32,
+      width: 36,
+      height: 36,
       borderRadius: 8,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
       ...webPointer(),
     },
     contextRailButtonPressed: {
@@ -198,7 +201,7 @@ export function MasterDetailLayout({
               <View style={styles.contextRail} pointerEvents="box-none">
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Show applicant details"
+                  accessibilityLabel="Show details panel"
                   onPress={() => onContextCollapsedChange?.(false)}
                   style={({ pressed }) => [
                     styles.contextRailButton,

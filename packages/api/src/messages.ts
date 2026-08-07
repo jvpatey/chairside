@@ -926,6 +926,20 @@ export async function sendMessage(
   return data as Message;
 }
 
+export async function deleteMessage(userId: string, messageId: string): Promise<Message> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('delete_own_message', {
+    p_message_id: messageId,
+  });
+
+  if (error) throwWithMessage(error, 'Could not delete message.');
+  const row = data as MessageRow | null;
+  if (!row || row.sender_id !== userId) {
+    throw new Error('Message not found or cannot be deleted');
+  }
+  return row;
+}
+
 export async function markConversationRead(conversationId: string): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase.rpc('mark_conversation_read', {

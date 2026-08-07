@@ -325,6 +325,7 @@ export {
   type WorkerApplication,
 } from './applications';
 export {
+  deleteMessage,
   getConversation,
   getConversationByApplicationId,
   getCounterpartLastReadAt,
