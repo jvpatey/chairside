@@ -95,10 +95,16 @@ export function ProfileSettingsCard({
       alignItems: 'center',
       gap: spacing.md,
     },
-    headerPressable: {
+    headerMain: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      minWidth: 0,
       borderRadius: 10,
       marginHorizontal: -spacing.xs,
       paddingHorizontal: spacing.xs,
+      paddingVertical: spacing.xs,
       ...webPointer(),
     },
     headerHovered: webListRowHoverStyles(colors),
@@ -125,57 +131,59 @@ export function ProfileSettingsCard({
     },
   }));
 
-  const resolvedAccessory = collapsible ? (
-    <Ionicons
-      name={expanded ? 'chevron-up' : 'chevron-down'}
-      size={18}
-      color={colors.labelTertiary}
-    />
-  ) : (
-    headerAccessory
-  );
-
-  const header = (
-    <View style={styles.header}>
-      {stepNumber != null ? (
-        <ProfileStepNumber value={stepNumber} accent={stepAccent} />
-      ) : icon ? (
-        iconAccent ? (
-          <DashboardWidgetIconBadge icon={icon} accent={iconAccent} />
-        ) : (
-          <View style={styles.iconWrap}>
-            <Ionicons name={icon} size={20} color={iconColor} />
-          </View>
-        )
-      ) : null}
-      <Text style={styles.title}>{title}</Text>
-      {resolvedAccessory ? <View style={styles.accessory}>{resolvedAccessory}</View> : null}
-    </View>
-  );
-
   const toggleExpanded = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setExpanded((current) => !current);
   };
 
+  const headerIcon =
+    stepNumber != null ? (
+      <ProfileStepNumber value={stepNumber} accent={stepAccent} />
+    ) : icon ? (
+      iconAccent ? (
+        <DashboardWidgetIconBadge icon={icon} accent={iconAccent} />
+      ) : (
+        <View style={styles.iconWrap}>
+          <Ionicons name={icon} size={20} color={iconColor} />
+        </View>
+      )
+    ) : null;
+
+  const headerTitle = <Text style={styles.title}>{title}</Text>;
+
+  const header = collapsible ? (
+    <View style={styles.header}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
+        accessibilityState={{ expanded }}
+        onPress={toggleExpanded}
+        style={({ pressed, hovered }) => [
+          styles.headerMain,
+          webHover(hovered, pressed, styles.headerHovered),
+          pressed && styles.headerPressed,
+        ]}>
+        {headerIcon}
+        {headerTitle}
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.labelTertiary}
+        />
+      </Pressable>
+      {headerAccessory ? <View style={styles.accessory}>{headerAccessory}</View> : null}
+    </View>
+  ) : (
+    <View style={styles.header}>
+      {headerIcon}
+      {headerTitle}
+      {headerAccessory ? <View style={styles.accessory}>{headerAccessory}</View> : null}
+    </View>
+  );
+
   return (
     <View style={[styles.card, style]}>
-      {collapsible ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
-          accessibilityState={{ expanded }}
-          onPress={toggleExpanded}
-          style={({ pressed, hovered }) => [
-            styles.headerPressable,
-            webHover(hovered, pressed, styles.headerHovered),
-            pressed && styles.headerPressed,
-          ]}>
-          {header}
-        </Pressable>
-      ) : (
-        header
-      )}
+      {header}
       {!collapsible || expanded ? children : null}
     </View>
   );

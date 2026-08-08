@@ -1,6 +1,6 @@
 import type { AvailabilityBlock } from '@chairside/api';
 import { DAY_OF_WEEK_OPTIONS } from '@chairside/config';
-import { formatTime12h } from '@/lib/time';
+import { formatAvailabilityTimeRange } from '@/lib/availabilitySchedule';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { Text, View, Pressable } from 'react-native';
 
@@ -78,8 +78,7 @@ export function AvailabilityScheduleSummary({
           >
             <Text style={styles.day}>{label}</Text>
             <Text style={styles.time}>
-              {formatTime12h(block!.start_time.slice(0, 5)) ?? block!.start_time} –{' '}
-              {formatTime12h(block!.end_time.slice(0, 5)) ?? block!.end_time}
+              {formatAvailabilityTimeRange(block!.start_time, block!.end_time)}
             </Text>
           </Pressable>
         </View>

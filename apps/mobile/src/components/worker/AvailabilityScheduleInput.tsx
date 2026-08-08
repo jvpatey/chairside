@@ -1,11 +1,10 @@
-import type { AvailabilityBlockInput } from '@chairside/api';
 import { DAY_OF_WEEK_OPTIONS } from '@chairside/config';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
 import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
-import { normalizeTime24h } from '@/lib/time';
+import type { DayAvailability } from '@/lib/availabilitySchedule';
 import {
   webHover,
   webListRowHoverStyles,
@@ -13,49 +12,12 @@ import {
 } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
-export type DayAvailability = {
-  day_of_week: number;
-  enabled: boolean;
-  start_time: string;
-  end_time: string;
-};
-
-export function createDefaultDayAvailability(): DayAvailability[] {
-  return DAY_OF_WEEK_OPTIONS.map((day) => ({
-    day_of_week: day.value,
-    enabled: false,
-    start_time: '09:00',
-    end_time: '17:00',
-  }));
-}
-
-export function blocksToDayAvailability(
-  blocks: { day_of_week: number; start_time: string; end_time: string }[],
-): DayAvailability[] {
-  const defaults = createDefaultDayAvailability();
-  if (blocks.length === 0) return defaults;
-
-  return defaults.map((day) => {
-    const block = blocks.find((item) => item.day_of_week === day.day_of_week);
-    if (!block) return { ...day, enabled: false };
-    return {
-      day_of_week: day.day_of_week,
-      enabled: true,
-      start_time: normalizeTime24h(block.start_time.slice(0, 5)),
-      end_time: normalizeTime24h(block.end_time.slice(0, 5)),
-    };
-  });
-}
-
-export function dayAvailabilityToBlocks(days: DayAvailability[]): AvailabilityBlockInput[] {
-  return days
-    .filter((day) => day.enabled)
-    .map((day) => ({
-      day_of_week: day.day_of_week,
-      start_time: normalizeTime24h(day.start_time),
-      end_time: normalizeTime24h(day.end_time),
-    }));
-}
+export type { DayAvailability } from '@/lib/availabilitySchedule';
+export {
+  blocksToDayAvailability,
+  createDefaultDayAvailability,
+  dayAvailabilityToBlocks,
+} from '@/lib/availabilitySchedule';
 
 type AvailabilityScheduleInputProps = {
   days: DayAvailability[];
@@ -100,15 +62,39 @@ export function AvailabilityScheduleInput({
       fontSize: 13,
       color: colors.labelSecondary,
     },
-    times: {
+    scheduleSection: {
       borderTopWidth: 1,
       borderTopColor: colors.separator,
       paddingTop: spacing.md,
+      gap: spacing.md,
+    },
+    optionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    optionLabel: {
+      ...typography.body,
+      fontSize: 15,
+      fontWeight: '500',
+      color: colors.labelPrimary,
+    },
+    optionHint: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
     },
   }));
 
   const updateDay = (dayOfWeek: number, patch: Partial<DayAvailability>) => {
     onChange(days.map((day) => (day.day_of_week === dayOfWeek ? { ...day, ...patch } : day)));
+  };
+
+  const getStatusLabel = (day: DayAvailability) => {
+    if (!day.enabled) return 'Unavailable';
+    if (day.all_day) return 'Available · All day';
+    return 'Available';
   };
 
   return (
@@ -133,7 +119,7 @@ export function AvailabilityScheduleInput({
                     styles.statusLabel,
                     day.enabled && { color: brandColor, fontWeight: '600' },
                   ]}>
-                  {day.enabled ? 'Available' : 'Unavailable'}
+                  {getStatusLabel(day)}
                 </Text>
               </View>
               <View style={styles.switchWrap}>
@@ -145,26 +131,40 @@ export function AvailabilityScheduleInput({
               </View>
             </View>
             {day.enabled ? (
-              <View style={styles.times}>
-                <TimeRangeInput
-                  accent={accent}
-                  schedule={{
-                    startTime: day.start_time,
-                    endTime: day.end_time,
-                  }}
-                  onChange={(schedule) =>
-                    updateDay(day.day_of_week, {
-                      start_time: schedule.startTime,
-                      end_time: schedule.endTime,
-                    })
-                  }
-                  onPickerOpenChange={(open) => {
-                    setPickerOpenDay((current) => {
-                      if (open) return day.day_of_week;
-                      return current === day.day_of_week ? null : current;
-                    });
-                  }}
-                />
+              <View style={styles.scheduleSection}>
+                <View style={styles.optionRow}>
+                  <View style={styles.headerText}>
+                    <Text style={styles.optionLabel}>All day</Text>
+                    <Text style={styles.optionHint}>Available any time on this day</Text>
+                  </View>
+                  <ThemedSwitch
+                    value={day.all_day}
+                    trackColorTrue={brandColor}
+                    onValueChange={(allDay) => updateDay(day.day_of_week, { all_day: allDay })}
+                  />
+                </View>
+                {day.all_day ? null : (
+                  <TimeRangeInput
+                    accent={accent}
+                    schedule={{
+                      startTime: day.start_time,
+                      endTime: day.end_time,
+                    }}
+                    onChange={(schedule) =>
+                      updateDay(day.day_of_week, {
+                        start_time: schedule.startTime,
+                        end_time: schedule.endTime,
+                        all_day: false,
+                      })
+                    }
+                    onPickerOpenChange={(open) => {
+                      setPickerOpenDay((current) => {
+                        if (open) return day.day_of_week;
+                        return current === day.day_of_week ? null : current;
+                      });
+                    }}
+                  />
+                )}
               </View>
             ) : null}
           </Pressable>

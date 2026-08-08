@@ -57,7 +57,7 @@ export default function WorkerAvailabilityScheduleScreen() {
       atmosphereAccent="secondary"
       transparentBackground={false}
       title="Available days"
-      subtitle="Choose the days of the week and hours you can cover fill-in shifts."
+      subtitle="Choose the days you can cover fill-in shifts, and set hours or mark days as all day."
       accent="secondary"
       onBack={() => router.back()}
       footer={

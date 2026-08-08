@@ -1,16 +1,31 @@
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
+import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useFillInAvailabilityToggle } from '@/hooks/useFillInAvailabilityToggle';
 import { useTheme } from '@/theme';
 
 type FillInAvailabilityPrimaryToggleProps = {
   bleedPadding?: number;
+  /** Switch only — for ProfileSettingsCard header accessory. */
+  variant?: 'full' | 'switchOnly';
 };
 
 export function FillInAvailabilityPrimaryToggle({
   bleedPadding,
+  variant = 'full',
 }: FillInAvailabilityPrimaryToggleProps) {
   const { colors } = useTheme();
   const { shortNoticeAvailable, isSaving, handleToggle } = useFillInAvailabilityToggle();
+
+  if (variant === 'switchOnly') {
+    return (
+      <ThemedSwitch
+        value={shortNoticeAvailable}
+        disabled={isSaving}
+        trackColorTrue={colors.secondary}
+        onValueChange={(value) => void handleToggle(value)}
+      />
+    );
+  }
 
   return (
     <SettingsToggleRow

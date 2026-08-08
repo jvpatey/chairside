@@ -16,7 +16,7 @@ type ProfileSettingsRowProps = {
   onPress: () => void;
   iconColor?: string;
   iconBackgroundColor?: string;
-  /** When nested inside ProfileSettingsCard — no negative bleed margins. */
+  /** When nested inside ProfileSettingsCard — uses inset padding instead of full-bleed hover. */
   embedded?: boolean;
 };
 
@@ -35,9 +35,9 @@ export function ProfileSettingsRow({
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
-      paddingVertical: spacing.sm + 2,
-      paddingHorizontal: embedded ? 0 : spacing.sm,
-      minHeight: subtitle ? 60 : 52,
+      paddingVertical: embedded ? spacing.md : spacing.sm + 2,
+      paddingHorizontal: spacing.sm,
+      minHeight: subtitle ? 68 : 52,
       borderRadius: radii.sm,
       ...webPointer(),
       ...webOnlyStyle({
