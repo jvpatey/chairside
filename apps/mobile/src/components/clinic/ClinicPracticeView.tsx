@@ -1,132 +1,36 @@
 import type { ClinicProfile } from '@chairside/api';
 import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel } from '@chairside/config';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { PracticeDoctorFieldValue } from '@/components/clinic/PracticeDoctorList';
+import { ClinicIdentityHeroCard } from '@/components/clinic/ClinicProfileHero';
 import {
   FieldBlock,
   FieldDivider,
   FieldValue,
   ProfileDetailStack,
   ProfileEmptyState,
-  ProfileSummaryBanner,
   ProfileTagRow,
   SectionPanel,
   profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
+import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { useThemedStyles } from '@/theme';
 
 type ClinicPracticeViewProps = {
   profile: ClinicProfile | null;
 };
 
-function PracticeHeroCard({
-  clinicName,
-  specialtyLabel,
-  locationLabel,
-}: {
-  clinicName: string;
-  specialtyLabel: string | null;
-  locationLabel: string | null;
-}) {
-  const { colors, isDark } = useTheme();
-  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
-
-  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
-    card: {
-      borderRadius: radii.hero,
-      overflow: 'hidden',
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      position: 'relative',
-      ...elevation('subtle'),
-    },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    content: {
-      padding: spacing.lg,
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    eyebrow: {
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
-      color: colors.primary,
-    },
-    title: {
-      ...typography.title,
-      fontSize: 26,
-      lineHeight: 32,
-      fontWeight: '700',
-      textAlign: 'center',
-      color: colors.labelPrimary,
-    },
-    meta: {
-      ...typography.subtitle,
-      fontSize: 15,
-      lineHeight: 22,
-      textAlign: 'center',
-      color: colors.labelSecondary,
-    },
-    empty: {
-      ...typography.body,
-      fontSize: 17,
-      lineHeight: 24,
-      textAlign: 'center',
-      color: colors.labelSecondary,
-      fontStyle: 'italic',
-    },
-    hint: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      textAlign: 'center',
-      color: colors.labelSecondary,
-      marginTop: spacing.xs,
-    },
-  }));
-
-  const metaLine = [specialtyLabel, locationLabel].filter(Boolean).join(' · ');
-
-  return (
-    <View style={styles.card}>
-      <LinearGradient
-        colors={heroGradient}
-        locations={[0, 0.35, 0.65, 0.85, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
-      <View style={styles.content}>
-        <Text style={styles.eyebrow}>Your practice</Text>
-        <Text style={styles.title}>{clinicName}</Text>
-        {metaLine ? (
-          <Text style={styles.meta}>{metaLine}</Text>
-        ) : (
-          <Text style={styles.empty}>Add your specialty and location so candidates know where you are.</Text>
-        )}
-        <Text style={styles.hint}>
-          The basics candidates see when browsing your roles, fill-ins, and clinic profile.
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
   const { locations } = useClinicProfile();
+  const { logoUri } = useClinicLogo();
   const doctorLocations = locations
     .filter((location) => location.is_active)
     .map((location) => ({ id: location.id, name: location.name }));
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     hint: profileSettingsHintStyle({ typography, colors }),
-    intro: profileSettingsHintStyle({ typography, colors }),
     doctorsBlock: { gap: spacing.sm },
   }));
 
@@ -161,20 +65,22 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
 
   return (
     <ProfileDetailStack>
-      <ProfileSummaryBanner icon="information-circle-outline" title="What candidates see">
-        <Text style={styles.intro}>
-          Candidates use your contact details, location, and practice setup to decide whether a
-          role or fill-in is a good fit before they apply or accept an interview.
-        </Text>
-      </ProfileSummaryBanner>
-
-      <PracticeHeroCard
+      <ClinicIdentityHeroCard
         clinicName={clinicName}
+        logoUri={logoUri}
         specialtyLabel={specialtyLabel}
         locationLabel={locationLabel || null}
+        emptyMetaFallback="Add your specialty and location so candidates know where you are."
       />
 
-      <SectionPanel stepNumber={1} stepAccent="primary" title="Contact">
+      <CardInfoPanel variant="info" icon="information-circle-outline" title="What candidates see">
+        <CardInfoPanelText>
+          Candidates use your contact details, location, and practice setup to decide whether a
+          role or fill-in is a good fit before they apply or accept an interview.
+        </CardInfoPanelText>
+      </CardInfoPanel>
+
+      <SectionPanel icon="call-outline" title="Contact">
         <Text style={styles.hint}>
           Who candidates can reach and how your team prefers to be contacted.
         </Text>
@@ -187,7 +93,7 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel stepNumber={2} stepAccent="secondary" title="Location">
+      <SectionPanel icon="location-outline" title="Location">
         <Text style={styles.hint}>
           Where your practice is based — shown on roles, fill-ins, and your public clinic profile.
         </Text>
@@ -200,7 +106,7 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel stepNumber={3} stepAccent="primary" title="Practice setup">
+      <SectionPanel icon="medkit-outline" title="Practice setup">
         <Text style={styles.hint}>
           Your clinical environment, team size, and doctors help candidates understand day-to-day
           work at your practice.
