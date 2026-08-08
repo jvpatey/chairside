@@ -3,11 +3,12 @@ import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
+import { dashboardTabTokens } from '@/components/dashboard/dashboardTokens';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import { webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import {
-  fontExtraBold,
+  fontBold,
   fontSemibold,
   useTheme,
   useThemedStyles,
@@ -185,9 +186,11 @@ export function FileTabWell<T extends string = string>({
       width: '100%',
     },
     iconBadge: {
-      width: compactTabs ? 30 : 36,
-      height: compactTabs ? 30 : 36,
-      borderRadius: compactTabs ? 8 : 10,
+      width: compactTabs ? dashboardTabTokens.iconBadge.compactSize : dashboardTabTokens.iconBadge.size,
+      height: compactTabs ? dashboardTabTokens.iconBadge.compactSize : dashboardTabTokens.iconBadge.size,
+      borderRadius: compactTabs
+        ? dashboardTabTokens.iconBadge.compactBorderRadius
+        : dashboardTabTokens.iconBadge.borderRadius,
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
@@ -215,13 +218,17 @@ export function FileTabWell<T extends string = string>({
       color: colors.labelPrimary,
     },
     tabValue: {
-      fontSize: compactTabs ? 18 : 26,
-      lineHeight: compactTabs ? 22 : 30,
-      fontFamily: fontExtraBold,
-      fontWeight: '800',
+      fontSize: compactTabs
+        ? dashboardTabTokens.tabValue.compactFontSize
+        : dashboardTabTokens.tabValue.fontSize,
+      lineHeight: compactTabs
+        ? dashboardTabTokens.tabValue.compactLineHeight
+        : dashboardTabTokens.tabValue.lineHeight,
+      fontFamily: fontBold,
+      fontWeight: '700',
       color: colors.labelPrimary,
       fontVariant: ['tabular-nums'] as const,
-      letterSpacing: compactTabs ? -0.4 : -0.6,
+      letterSpacing: compactTabs ? -0.4 : -0.5,
     },
     tabCountInline: {
       fontSize: 11,
@@ -351,7 +358,11 @@ export function FileTabWell<T extends string = string>({
                 >
                   <Ionicons
                     name={tab.icon}
-                    size={compactTabs ? 15 : 18}
+                    size={
+                      compactTabs
+                        ? dashboardTabTokens.iconBadge.compactIconSize
+                        : dashboardTabTokens.iconBadge.iconSize
+                    }
                     color={isSelected ? colors.primaryOnPrimary : accentColor}
                   />
                 </View>

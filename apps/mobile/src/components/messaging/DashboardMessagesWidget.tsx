@@ -4,13 +4,15 @@ import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { DashboardWidgetHeader } from '@/components/dashboard/DashboardWidgetHeader';
+import { dashboardWidgetTokens } from '@/components/dashboard/dashboardTokens';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { PillBadge } from '@/components/ui/PillBadge';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { colorWithAlpha, fontBold, fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, fontBold, useTheme, useThemedStyles } from '@/theme';
 
 const PREVIEW_LIMIT = 2;
 const IS_WEB = Platform.OS === 'web';
@@ -77,48 +79,6 @@ export function DashboardMessagesWidget({
       borderColor: colors.separator,
       overflow: 'hidden' as const,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.separator,
-    },
-    headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      flex: 1,
-      minWidth: 0,
-      flexShrink: 1,
-    },
-    iconBadge: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primarySubtle,
-      flexShrink: 0,
-    },
-    headerTitle: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontFamily: fontSemibold,
-      fontWeight: '600',
-      color: colors.labelPrimary,
-      flexShrink: 1,
-    },
-    headerMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      flexShrink: 0,
-      marginLeft: spacing.sm,
-    },
     viewAllPressable: {
       borderRadius: radii.sm,
       paddingHorizontal: 4,
@@ -127,7 +87,7 @@ export function DashboardMessagesWidget({
     },
     viewAllHovered: webListRowHoverStyles(colors),
     viewAll: {
-      fontSize: 14,
+      fontSize: dashboardWidgetTokens.headerAction.fontSize,
       fontWeight: '600',
       color: colors.primary,
     },
@@ -203,38 +163,35 @@ export function DashboardMessagesWidget({
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.iconBadge}>
-            <Ionicons name="chatbubbles-outline" size={17} color={colors.primary} />
-          </View>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Messages
-          </Text>
-        </View>
-        <View style={styles.headerMeta}>
-          {unreadBadgeLabel ? (
-            <PillBadge
-              label={unreadBadgeLabel}
-              color={colors.primary}
-              backgroundColor={colorWithAlpha(colors.primary, isDark ? 0.2 : 0.12)}
-              borderColor={colorWithAlpha(colors.primary, 0.28)}
-              size="sm"
-            />
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="View all messages"
-            hitSlop={8}
-            onPress={handleViewAll}
-            style={({ pressed, hovered }) => [
-              styles.viewAllPressable,
-              webHover(hovered, pressed, styles.viewAllHovered),
-            ]}>
-            <Text style={styles.viewAll}>View all</Text>
-          </Pressable>
-        </View>
-      </View>
+      <DashboardWidgetHeader
+        title="Messages"
+        icon="chatbubbles-outline"
+        accent="primary"
+        trailing={
+          <>
+            {unreadBadgeLabel ? (
+              <PillBadge
+                label={unreadBadgeLabel}
+                color={colors.primary}
+                backgroundColor={colorWithAlpha(colors.primary, isDark ? 0.2 : 0.12)}
+                borderColor={colorWithAlpha(colors.primary, 0.28)}
+                size="sm"
+              />
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View all messages"
+              hitSlop={8}
+              onPress={handleViewAll}
+              style={({ pressed, hovered }) => [
+                styles.viewAllPressable,
+                webHover(hovered, pressed, styles.viewAllHovered),
+              ]}>
+              <Text style={styles.viewAll}>View all</Text>
+            </Pressable>
+          </>
+        }
+      />
 
       {unreadCount === 0 ? (
         <View style={styles.emptyBody}>

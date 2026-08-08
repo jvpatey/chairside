@@ -700,14 +700,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const accountMenuActions = [
     {
       label: 'Account',
-      icon: <Ionicons name="person-outline" size={20} color={colors.primary} />,
+      icon: <Ionicons name="person-outline" size={20} color={colors.labelSecondary} />,
       onPress: () => {
         router.push(role === 'worker' ? WORKER_PROFILE_ACCOUNT : CLINIC_PROFILE_ACCOUNT);
       },
     },
     {
       label: 'Notifications',
-      icon: <Ionicons name="notifications-outline" size={20} color={colors.primary} />,
+      icon: <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />,
       onPress: () => {
         router.push(
           role === 'worker' ? WORKER_PROFILE_NOTIFICATIONS : CLINIC_PROFILE_NOTIFICATIONS,
@@ -718,7 +718,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       ? [
           {
             label: 'Billing',
-            icon: <Ionicons name="card-outline" size={20} color={colors.primary} />,
+            icon: <Ionicons name="card-outline" size={20} color={colors.labelSecondary} />,
             onPress: () => {
               router.push(CLINIC_PROFILE_BILLING);
             },

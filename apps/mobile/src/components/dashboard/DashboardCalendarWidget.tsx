@@ -4,6 +4,9 @@ import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PillBadge } from '@/components/ui/PillBadge';
+import { DashboardWidgetHeader } from '@/components/dashboard/DashboardWidgetHeader';
+import { DashboardWidgetIconBadge } from '@/components/dashboard/DashboardWidgetIconBadge';
+import { dashboardWidgetTokens } from '@/components/dashboard/dashboardTokens';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { colorWithAlpha, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
@@ -57,48 +60,6 @@ export function DashboardCalendarWidget({
       borderColor: colors.separator,
       overflow: 'hidden' as const,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.separator,
-    },
-    headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      flex: 1,
-      minWidth: 0,
-      flexShrink: 1,
-    },
-    iconBadge: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.tertiarySubtle,
-      flexShrink: 0,
-    },
-    headerTitle: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontFamily: fontSemibold,
-      fontWeight: '600',
-      color: colors.labelPrimary,
-      flexShrink: 1,
-    },
-    headerMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      flexShrink: 0,
-      marginLeft: spacing.sm,
-    },
     viewAllPressable: {
       borderRadius: radii.sm,
       paddingHorizontal: 4,
@@ -107,7 +68,7 @@ export function DashboardCalendarWidget({
     },
     viewAllHovered: webListRowHoverStyles(colors),
     viewAll: {
-      fontSize: 14,
+      fontSize: dashboardWidgetTokens.headerAction.fontSize,
       fontWeight: '600',
       color: colors.primary,
     },
@@ -178,38 +139,35 @@ export function DashboardCalendarWidget({
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.iconBadge}>
-            <Ionicons name="calendar-outline" size={17} color={colors.tertiary} />
-          </View>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Calendar
-          </Text>
-        </View>
-        <View style={styles.headerMeta}>
-          {upcomingBadgeLabel ? (
-            <PillBadge
-              label={upcomingBadgeLabel}
-              color={colors.tertiary}
-              backgroundColor={colorWithAlpha(colors.tertiary, isDark ? 0.2 : 0.12)}
-              borderColor={colorWithAlpha(colors.tertiary, 0.28)}
-              size="sm"
-            />
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="View calendar"
-            hitSlop={8}
-            onPress={handleViewAll}
-            style={({ pressed, hovered }) => [
-              styles.viewAllPressable,
-              webHover(hovered, pressed, styles.viewAllHovered),
-            ]}>
-            <Text style={styles.viewAll}>View all</Text>
-          </Pressable>
-        </View>
-      </View>
+      <DashboardWidgetHeader
+        title="Calendar"
+        icon="calendar-outline"
+        accent="tertiary"
+        trailing={
+          <>
+            {upcomingBadgeLabel ? (
+              <PillBadge
+                label={upcomingBadgeLabel}
+                color={colors.tertiary}
+                backgroundColor={colorWithAlpha(colors.tertiary, isDark ? 0.2 : 0.12)}
+                borderColor={colorWithAlpha(colors.tertiary, 0.28)}
+                size="sm"
+              />
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View calendar"
+              hitSlop={8}
+              onPress={handleViewAll}
+              style={({ pressed, hovered }) => [
+                styles.viewAllPressable,
+                webHover(hovered, pressed, styles.viewAllHovered),
+              ]}>
+              <Text style={styles.viewAll}>View all</Text>
+            </Pressable>
+          </>
+        }
+      />
 
       {upcomingCount === 0 ? (
         <View style={styles.emptyBody}>
@@ -236,9 +194,7 @@ export function DashboardCalendarWidget({
                 webHover(hovered, pressed, styles.previewRowHovered),
                 pressed && styles.previewRowPressed,
               ]}>
-              <View style={styles.iconBadge}>
-                <Ionicons name={eventIcon(event.kind)} size={17} color={colors.tertiary} />
-              </View>
+              <DashboardWidgetIconBadge icon={eventIcon(event.kind)} accent="tertiary" />
               <View style={styles.previewText}>
                 <Text style={styles.eventTitle} numberOfLines={1}>
                   {event.title}

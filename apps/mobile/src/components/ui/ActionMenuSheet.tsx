@@ -123,7 +123,7 @@ export function ActionMenuSheetBottom({
     actionLabel: {
       fontSize: 17,
       fontWeight: '500',
-      color: colors.primary,
+      color: colors.labelPrimary,
     },
     actionDestructive: {
       color: colors.destructive,
