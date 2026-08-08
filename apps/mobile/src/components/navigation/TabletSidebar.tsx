@@ -5,7 +5,7 @@ import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { router, usePathname } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -59,6 +59,7 @@ import {
   webTileHoverStyles,
 } from '@/lib/webPressableStyles';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { webMotion } from '@/theme/web';
 
 export {
   TABLET_SIDEBAR_COLLAPSED_WIDTH,
@@ -134,6 +135,16 @@ function labelRevealStyle(collapsed: boolean): TextStyle {
   } as TextStyle;
 }
 
+type SidebarActiveIndicator = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  backgroundColor: string;
+  accentColor: string;
+  borderRadius: number;
+};
+
 export function TabletSidebar({ state, descriptors, navigation, role }: TabletSidebarProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
@@ -159,6 +170,9 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
   const shellRef = useRef<View>(null);
+  const navRef = useRef<View>(null);
+  const navItemRefs = useRef<Map<string, View>>(new Map());
+  const [activeIndicator, setActiveIndicator] = useState<SidebarActiveIndicator | null>(null);
   const [edgeHovered, setEdgeHovered] = useState(false);
   const [accountMenuVisible, setAccountMenuVisible] = useState(false);
   const { signOut } = useSignOut();
@@ -402,6 +416,28 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       flex: 1,
       gap: 0,
       paddingTop: spacing.xs,
+      ...(isWeb ? { position: 'relative' as const } : null),
+    },
+    slidingIndicator: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      zIndex: 0,
+      overflow: 'hidden',
+      ...webOnlyStyle({
+        transitionProperty: 'transform, width, height, opacity, background-color, border-radius',
+        transitionDuration: webMotion.normal,
+        transitionTimingFunction: webMotion.easingOut,
+        willChange: 'transform, width, height',
+      } as ViewStyle),
+    },
+    slidingIndicatorAccent: {
+      position: 'absolute',
+      left: 0,
+      top: 8,
+      bottom: 8,
+      width: 3,
+      borderRadius: 2,
     },
     navCollapsed: {
       alignItems: 'center',
@@ -447,6 +483,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       borderRadius: isWeb ? 12 : 10,
       position: 'relative',
       overflow: 'hidden',
+      zIndex: 1,
       ...webPointer(),
       ...(isWeb
         ? webOnlyStyle({
@@ -482,7 +519,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       backgroundColor: colors.primarySubtle,
     },
     itemActiveHovered: webOnlyStyle({
-      backgroundColor: colors.primarySubtle,
       boxShadow: isDark
         ? '0 4px 12px rgba(74, 154, 255, 0.12)'
         : '0 4px 12px rgba(26, 111, 212, 0.1)',
@@ -545,6 +581,66 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const visibleRoutes = getSidebarRoutes(state, descriptors, role);
   const { isRouteFocused } = useResolvedTabBarFocus(state, visibleRoutes, role);
+  const focusedNavRouteKey = useMemo(() => {
+    const focusedRoute = visibleRoutes.find((route) => {
+      const routeIndex = state.routes.findIndex((entry) => entry.key === route.key);
+      return isRouteFocused(route.name, routeIndex);
+    });
+    return focusedRoute?.key ?? null;
+  }, [isRouteFocused, state.routes, visibleRoutes]);
+
+  const syncActiveIndicator = useCallback(() => {
+    if (!isWeb || !focusedNavRouteKey) {
+      setActiveIndicator(null);
+      return;
+    }
+
+    const itemNode = navItemRefs.current.get(focusedNavRouteKey);
+    const navNode = navRef.current;
+    if (!itemNode || !navNode) return;
+
+    const focusedRoute = visibleRoutes.find((route) => route.key === focusedNavRouteKey);
+    if (!focusedRoute) return;
+
+    const tabAccent = getTabAccentForName(focusedRoute.name);
+    const accentColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
+    const backgroundColor =
+      tabAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+
+    itemNode.measureLayout(
+      navNode,
+      (x, y, width, height) => {
+        setActiveIndicator({
+          x,
+          y,
+          width,
+          height,
+          backgroundColor,
+          accentColor,
+          borderRadius: isCollapsed ? width / 2 : 12,
+        });
+      },
+      () => {},
+    );
+  }, [colors, focusedNavRouteKey, isCollapsed, isWeb, visibleRoutes]);
+
+  useLayoutEffect(() => {
+    if (!isWeb) return;
+    const frame = requestAnimationFrame(() => {
+      syncActiveIndicator();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusedNavRouteKey, isCollapsed, isWeb, pathname, visibleRoutes.length, syncActiveIndicator]);
+
+  useEffect(() => {
+    if (!isWeb || typeof window === 'undefined') return;
+    const handleResize = () => {
+      syncActiveIndicator();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isWeb, syncActiveIndicator]);
+
   const profileHref = role === 'worker' ? WORKER_PROFILE : CLINIC_PROFILE;
   const isProfileActive = pathname.includes('/profile');
 
@@ -691,6 +787,13 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     return (
       <Pressable
         key={route.key}
+        ref={(node) => {
+          if (node) {
+            navItemRefs.current.set(route.key, node);
+          } else {
+            navItemRefs.current.delete(route.key);
+          }
+        }}
         accessibilityRole="button"
         accessibilityState={isFocused ? { selected: true } : {}}
         accessibilityLabel={itemLabel}
@@ -699,10 +802,15 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           : {})}
         onPress={onPress}
         onLongPress={onLongPress}
+        onLayout={() => {
+          if (isWeb && isFocused) {
+            syncActiveIndicator();
+          }
+        }}
         style={({ pressed, hovered }) => [
           styles.item,
           isCollapsed && styles.itemCollapsed,
-          !isCollapsed && isFocused && { backgroundColor: activeBackground },
+          !isWeb && !isCollapsed && isFocused && { backgroundColor: activeBackground },
           isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
           isWeb &&
             hovered &&
@@ -711,7 +819,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             !isCollapsed &&
             (tabAccent === 'secondary'
               ? webOnlyStyle({
-                  backgroundColor: colors.secondarySubtle,
                   boxShadow: isDark
                     ? '0 4px 12px rgba(139, 92, 246, 0.12)'
                     : '0 4px 12px rgba(88, 86, 214, 0.1)',
@@ -720,7 +827,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           pressed && styles.itemPressed,
         ]}
       >
-        {isFocused ? (
+        {!isWeb && isFocused ? (
           <View style={[styles.accentBar, { backgroundColor: activeColor }]} />
         ) : null}
         <View style={styles.iconWrap}>
@@ -849,7 +956,39 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         ) : null}
       </View>
 
-      <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
+      <View
+        ref={navRef}
+        style={[styles.nav, isCollapsed && styles.navCollapsed]}
+        onLayout={() => {
+          if (isWeb) {
+            syncActiveIndicator();
+          }
+        }}
+      >
+        {isWeb && activeIndicator ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.slidingIndicator,
+              {
+                width: activeIndicator.width,
+                height: activeIndicator.height,
+                backgroundColor: activeIndicator.backgroundColor,
+                borderRadius: activeIndicator.borderRadius,
+                transform: [
+                  { translateX: activeIndicator.x },
+                  { translateY: activeIndicator.y },
+                ],
+              },
+            ]}
+          >
+            {!isCollapsed ? (
+              <View
+                style={[styles.slidingIndicatorAccent, { backgroundColor: activeIndicator.accentColor }]}
+              />
+            ) : null}
+          </View>
+        ) : null}
         {sidebarSections.map((section, sectionIndex) => (
           <View
             key={section.routes[0]?.name ?? `section-${sectionIndex}`}
