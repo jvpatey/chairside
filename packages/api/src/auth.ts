@@ -9,7 +9,8 @@ import {
   joinDisplayName,
   resolveAppleNamePartsToPersist,
 } from './authDisplayName';
-import { getSupabaseClient } from './client';
+import { getAuthStorage } from './authStorage';
+import { getSupabaseClient, getSupabaseConfig } from './client';
 import { getErrorMessage } from './errors';
 import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
 import { ensureProfileName } from './profile';
@@ -82,18 +83,76 @@ export async function signUpWithEmail(email: string, password: string, role: Use
   return data;
 }
 
+/** Mirrors the supabase-js default: sb-<project-ref>-auth-token. */
+function getAuthStorageKey(): string {
+  const { url } = getSupabaseConfig();
+  return `sb-${new URL(url).hostname.split('.')[0]}-auth-token`;
+}
+
+/**
+ * supabase-js keeps the persisted session when it cannot reach /logout or when
+ * the token can no longer be refreshed — which is exactly the state right after
+ * the account is deleted. Left behind, that session is restored on the next
+ * load and the app looks signed in against a dead account.
+ */
+async function discardPersistedSession() {
+  const storage = getAuthStorage();
+  const storageKey = getAuthStorageKey();
+
+  try {
+    await storage.removeItem(storageKey);
+    await storage.removeItem(`${storageKey}-code-verifier`);
+  } catch {
+    // Storage unavailable (privacy mode, quota) — nothing else we can do.
+  }
+}
+
 export async function signOut() {
   const supabase = getSupabaseClient();
   // Clear local session immediately; avoids races with in-flight token refresh.
   const { error } = await supabase.auth.signOut({ scope: 'local' });
-  if (error) throw error;
+
+  // Signing out locally must always succeed from the caller's perspective, so a
+  // failed revoke falls back to dropping the stored session by hand.
+  if (error) {
+    await discardPersistedSession();
+  }
+}
+
+/** functions.invoke only reports a generic message — read the response body. */
+async function resolveFunctionErrorMessage(
+  error: unknown,
+  fallback: string,
+): Promise<string> {
+  const context = (error as { context?: { json?: () => Promise<unknown> } })?.context;
+
+  if (context && typeof context.json === 'function') {
+    try {
+      const body = await context.json();
+      if (body && typeof body === 'object' && 'error' in body) {
+        const message = (body as { error: unknown }).error;
+        if (message) return String(message);
+      }
+    } catch {
+      // Body was empty or not JSON — fall back to the generic message.
+    }
+  }
+
+  return getErrorMessage(error, fallback);
 }
 
 export async function deleteAccount() {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.functions.invoke('delete-account');
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(
+      await resolveFunctionErrorMessage(
+        error,
+        'Could not delete your account. Please try again or contact support.',
+      ),
+    );
+  }
 
   if (data && typeof data === 'object' && 'error' in data && data.error) {
     throw new Error(String(data.error));

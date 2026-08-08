@@ -263,11 +263,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       await clearRecoveryPending();
       await apiSignOut();
+    } finally {
+      // Clear local state even when a teardown step fails — after an account
+      // deletion the token can no longer be revoked, and keeping the session
+      // here would leave the app rendering a signed-in shell for a dead user.
+      applyGenerationRef.current += 1;
       setSession(null);
       setUser(null);
       setProfile(null);
       setIsProfileReady(true);
-    } finally {
       signingOutRef.current = false;
     }
   }, [clearRecoveryPending, user?.id]);

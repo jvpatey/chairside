@@ -20,16 +20,27 @@ export function useDeleteAccount() {
     if (isDeleting) return;
 
     setIsDeleting(true);
+
     try {
       await deleteAccount();
-      router.replace('/(onboarding)/welcome');
-      await signOut();
-      await resetOnboarding();
     } catch (error) {
       Alert.alert(
         'Could not delete account',
         error instanceof Error ? error.message : 'Please try again or contact support.',
       );
+      setIsDeleting(false);
+      return;
+    }
+
+    // The account is gone server-side, so local teardown is best-effort from
+    // here — surfacing a failure would wrongly imply the deletion didn't happen.
+    router.replace('/(onboarding)/welcome');
+
+    try {
+      await signOut();
+      await resetOnboarding();
+    } catch {
+      // Local cleanup only; the account has already been deleted.
     } finally {
       setIsDeleting(false);
     }
