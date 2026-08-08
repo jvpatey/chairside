@@ -5,10 +5,9 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { NotificationCountBadge } from '@/components/ui/NotificationCountBadge';
 import { dashboardTabTokens } from '@/components/dashboard/dashboardTokens';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
+import { resolveAccentColor, resolveAccentOnColor, resolveAccentSubtle } from '@/lib/accentColors';
 import { webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import {
-  fontBold,
   fontSemibold,
   useTheme,
   useThemedStyles,
@@ -107,9 +106,6 @@ export function FileTabWell<T extends string = string>({
       flexShrink: 0,
       ...webPointer(),
     },
-    inlineTabSelected: {
-      backgroundColor: colors.primary,
-    },
     inlineTabLocked: {
       opacity: 0.72,
     },
@@ -130,19 +126,12 @@ export function FileTabWell<T extends string = string>({
       color: colors.labelSecondary,
       letterSpacing: -0.1,
     },
-    inlineTabLabelSelected: {
-      color: colors.primaryOnPrimary,
-    },
     inlineTabCount: {
       fontSize: 12,
       fontWeight: '700',
       fontFamily: fontSemibold,
       color: colors.labelTertiary,
       fontVariant: ['tabular-nums'] as const,
-    },
-    inlineTabCountSelected: {
-      color: colors.primaryOnPrimary,
-      opacity: 0.85,
     },
     tab: {
       flex: 1,
@@ -181,7 +170,7 @@ export function FileTabWell<T extends string = string>({
     tabInner: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: compactTabs ? spacing.sm : spacing.sm,
+      gap: compactTabs ? spacing.xs + 2 : spacing.sm,
       minWidth: 0,
       width: '100%',
     },
@@ -195,21 +184,11 @@ export function FileTabWell<T extends string = string>({
       justifyContent: 'center',
       flexShrink: 0,
     },
-    textColumn: {
+    tabLabel: {
       flex: 1,
       minWidth: 0,
-      gap: compactTabs ? 4 : 2,
-    },
-    labelRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: compactTabs ? spacing.xs + 2 : spacing.xs,
-      minWidth: 0,
-    },
-    tabLabel: {
-      flexShrink: 1,
-      fontSize: compactTabs ? 11 : 12,
-      lineHeight: compactTabs ? 14 : 15,
+      fontSize: compactTabs ? 13 : 14,
+      lineHeight: compactTabs ? 18 : 20,
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelSecondary,
@@ -217,32 +196,17 @@ export function FileTabWell<T extends string = string>({
     tabLabelSelected: {
       color: colors.labelPrimary,
     },
-    tabValue: {
-      fontSize: compactTabs
-        ? dashboardTabTokens.tabValue.compactFontSize
-        : dashboardTabTokens.tabValue.fontSize,
-      lineHeight: compactTabs
-        ? dashboardTabTokens.tabValue.compactLineHeight
-        : dashboardTabTokens.tabValue.lineHeight,
-      fontFamily: fontBold,
-      fontWeight: '700',
-      color: colors.labelPrimary,
-      fontVariant: ['tabular-nums'] as const,
-      letterSpacing: compactTabs ? -0.4 : -0.5,
-    },
-    tabCountInline: {
-      fontSize: 11,
-      lineHeight: 14,
+    tabCount: {
+      fontSize: compactTabs ? 13 : 14,
+      lineHeight: compactTabs ? 18 : 20,
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelTertiary,
       fontVariant: ['tabular-nums'] as const,
+      flexShrink: 0,
     },
-    tabCountInlineSelected: {
+    tabCountSelected: {
       color: colors.labelSecondary,
-    },
-    tabValueInactive: {
-      color: colors.labelTertiary,
     },
     panel: {
       backgroundColor: colors.surface,
@@ -279,6 +243,9 @@ export function FileTabWell<T extends string = string>({
       {tabs.map((tab) => {
         const isSelected = selected === tab.value;
         const isLocked = lockedTab === tab.value;
+        const accent = tab.accent ?? 'primary';
+        const accentColor = resolveAccentColor(colors, accent);
+        const accentOn = resolveAccentOnColor(colors, accent);
 
         return (
           <Pressable
@@ -289,7 +256,7 @@ export function FileTabWell<T extends string = string>({
             onPress={() => handleSelect(tab.value, isLocked)}
             style={({ pressed, hovered }) => [
               styles.inlineTab,
-              isSelected && styles.inlineTabSelected,
+              isSelected && { backgroundColor: accentColor },
               isLocked && styles.inlineTabLocked,
               !isSelected && isWeb && hovered && !pressed && styles.inlineTabHovered,
               isSelected && isWeb && hovered && !pressed && styles.inlineTabSelectedHovered,
@@ -300,14 +267,18 @@ export function FileTabWell<T extends string = string>({
               <Ionicons
                 name={tab.icon}
                 size={14}
-                color={isSelected ? colors.primaryOnPrimary : colors.labelSecondary}
+                color={isSelected ? accentOn : colors.labelSecondary}
               />
             ) : null}
-            <Text style={[styles.inlineTabLabel, isSelected && styles.inlineTabLabelSelected]}>
+            <Text style={[styles.inlineTabLabel, isSelected && { color: accentOn }]}>
               {tab.label}
             </Text>
             {tab.count != null ? (
-              <Text style={[styles.inlineTabCount, isSelected && styles.inlineTabCountSelected]}>
+              <Text
+                style={[
+                  styles.inlineTabCount,
+                  isSelected && { color: accentOn, opacity: 0.85 },
+                ]}>
                 {tab.count}
               </Text>
             ) : null}
@@ -330,6 +301,7 @@ export function FileTabWell<T extends string = string>({
         const accent = tab.accent ?? 'primary';
         const accentColor = resolveAccentColor(colors, accent);
         const accentSubtle = resolveAccentSubtle(colors, accent);
+        const accentOn = resolveAccentOnColor(colors, accent);
 
         return (
           <Pressable
@@ -363,44 +335,30 @@ export function FileTabWell<T extends string = string>({
                         ? dashboardTabTokens.iconBadge.compactIconSize
                         : dashboardTabTokens.iconBadge.iconSize
                     }
-                    color={isSelected ? colors.primaryOnPrimary : accentColor}
+                    color={isSelected ? accentOn : accentColor}
                   />
                 </View>
               ) : null}
-              <View style={styles.textColumn}>
-                <View style={styles.labelRow}>
-                  <Text
-                    style={[styles.tabLabel, isSelected && styles.tabLabelSelected]}
-                    numberOfLines={1}
-                  >
-                    {compactTabs && tab.label === 'Applications' ? 'Apps' : tab.label}
-                  </Text>
-                  {compactTabs && tab.count != null && !isSelected ? (
-                    <Text
-                      style={[
-                        styles.tabCountInline,
-                        isSelected && styles.tabCountInlineSelected,
-                      ]}
-                    >
-                      {tab.count}
-                    </Text>
-                  ) : null}
-                  {tab.badgeCount != null && tab.badgeCount > 0 ? (
-                    <NotificationCountBadge count={tab.badgeCount} />
-                  ) : null}
-                </View>
-                {tab.count != null && (!compactTabs || isSelected) ? (
-                  <Text
-                    style={[
-                      styles.tabValue,
-                      !isSelected && styles.tabValueInactive,
-                      isSelected ? { color: accentColor } : null,
-                    ]}
-                  >
-                    {tab.count}
-                  </Text>
-                ) : null}
-              </View>
+              <Text
+                style={[styles.tabLabel, isSelected && styles.tabLabelSelected]}
+                numberOfLines={1}
+              >
+                {compactTabs && tab.label === 'Applications' ? 'Apps' : tab.label}
+              </Text>
+              {tab.count != null ? (
+                <Text
+                  style={[
+                    styles.tabCount,
+                    isSelected && styles.tabCountSelected,
+                    isSelected ? { color: accentColor } : null,
+                  ]}
+                >
+                  {tab.count}
+                </Text>
+              ) : null}
+              {tab.badgeCount != null && tab.badgeCount > 0 ? (
+                <NotificationCountBadge count={tab.badgeCount} />
+              ) : null}
             </View>
           </Pressable>
         );

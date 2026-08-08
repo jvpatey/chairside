@@ -21,12 +21,14 @@ import {
 } from '@/components/dashboard/DashboardStatGrid';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
+import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
 import {
   formatApplicantCountLabelWithNew,
 } from '@/components/ui/CountBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
@@ -155,7 +157,7 @@ const OVERVIEW_SECTION_TITLES: Record<OverviewStat, string> = {
 type DashboardOverviewPanelProps = {
   selected: OverviewStat;
   embedded?: boolean;
-  applicantPreviewByJobId?: Record<string, { names: string[] }>;
+  applicantPreviewByJobId?: Record<string, { names: string[]; photoPaths?: (string | null)[] }>;
   jobs: JobPost[];
   shifts: ShiftPost[];
   confirmedFillIns?: ConfirmedFillInSummary[];
@@ -181,6 +183,8 @@ function DashboardListCard({
   postedAt,
   unseenCount = 0,
   applicantCount = 0,
+  applicantPreview,
+  locationId,
   statusBadge,
   highlighted = false,
   embedded = false,
@@ -191,12 +195,15 @@ function DashboardListCard({
   postedAt?: string | null;
   unseenCount?: number;
   applicantCount?: number;
+  applicantPreview?: { names: string[]; photoPaths?: (string | null)[] };
+  locationId?: string | null;
   statusBadge?: ReactNode;
   highlighted?: boolean;
   embedded?: boolean;
   onPress?: () => void;
 }) {
   const { clinicProfile } = useClinicProfile();
+  const logoStoragePath = useResolvedClinicLogoPath(locationId);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const location = [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ');
   const countLabel = formatApplicantCountLabelWithNew(applicantCount, unseenCount);
@@ -204,13 +211,27 @@ function DashboardListCard({
   const hasApplicants = applicantCount > 0;
   const detailLine = [hasApplicants ? countLabel : null, meta].filter(Boolean).join(' · ') || null;
 
-  const accessory = highlighted ? (statusBadge ?? <ApplicationCardBadge />) : statusBadge;
+  const applicantStack =
+    applicantPreview && applicantPreview.names.length > 0 ? (
+      <ApplicantAvatarStack
+        names={applicantPreview.names}
+        photoPaths={applicantPreview.photoPaths}
+        size={32}
+      />
+    ) : null;
+  const accessory =
+    highlighted || applicantStack || statusBadge ? (
+      <View style={{ alignItems: 'flex-end', gap: 6 }}>
+        {applicantStack}
+        {highlighted ? (statusBadge ?? <ApplicationCardBadge />) : statusBadge}
+      </View>
+    ) : null;
 
   const header = (
     <ClinicPostHeader
       layout="split"
       clinicName={clinicName}
-      logoStoragePath={clinicProfile?.logo_storage_path}
+      logoStoragePath={logoStoragePath}
       title={title}
       location={location || null}
       detail={detailLine}
@@ -401,6 +422,10 @@ export function DashboardOverviewPanel({
                   title={summary.post_title}
                   applicantCount={summary.applicant_count}
                   unseenCount={summary.unseen_count}
+                  applicantPreview={applicantPreviewByJobId?.[summary.job_post_id]}
+                  locationId={
+                    jobs.find((job) => job.id === summary.job_post_id)?.location_id ?? null
+                  }
                   postedAt={summary.post_created_at}
                   meta={formatJobApplicationSummaryMeta(summary)}
                   highlighted={hasNewApplicants}

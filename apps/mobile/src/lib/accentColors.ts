@@ -10,3 +10,8 @@ export function resolveAccentSubtle(colors: Colors, accent: GradientAccent = 'pr
   if (accent === 'tertiary') return colors.tertiarySubtle;
   return accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
 }
+
+export function resolveAccentOnColor(colors: Colors, accent: GradientAccent = 'primary'): string {
+  if (accent === 'tertiary') return colors.tertiaryOnTertiary;
+  return accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
+}

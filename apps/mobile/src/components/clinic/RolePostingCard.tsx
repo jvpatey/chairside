@@ -19,6 +19,7 @@ import { useFeaturedListingTreatment } from '@/components/worker/featuredListing
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { formatPostedDateLabel } from '@/lib/dates';
@@ -35,7 +36,7 @@ type RolePostingCardProps = {
   job: JobPost;
   applicantCount?: number;
   /** Dashboard: show applicant faces instead of clinic logo. */
-  applicantPreview?: { names: string[] };
+  applicantPreview?: { names: string[]; photoPaths?: (string | null)[] };
   layout?: ListingLayout;
   /** Dashboard file-tab panel: inner surface + applicant-first identity. */
   embedded?: boolean;
@@ -63,7 +64,8 @@ export function RolePostingCard({
   const { clinicProfile } = useClinicProfile();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment();
-  const logoUri = useClinicLogoUri(clinicProfile?.logo_storage_path);
+  const logoStoragePath = useResolvedClinicLogoPath(job.location_id);
+  const logoUri = useClinicLogoUri(logoStoragePath);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const locations = useClinicProfile().locations;
   const locationRecord = locations.find((location) => location.id === job.location_id);
@@ -107,13 +109,6 @@ export function RolePostingCard({
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
-    },
-    roleIconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
   }));
 
@@ -169,8 +164,18 @@ export function RolePostingCard({
     </View>
   );
 
+  const applicantLead =
+    applicantPreview && applicantPreview.names.length > 0 ? (
+      <ApplicantAvatarStack
+        names={applicantPreview.names}
+        photoPaths={applicantPreview.photoPaths}
+        size={32}
+      />
+    ) : null;
+
   const mobileEmbeddedFooter = (
     <View style={styles.headerActions}>
+      {applicantLead}
       {applicantControl}
       {manageButton}
     </View>
@@ -180,20 +185,12 @@ export function RolePostingCard({
     <Text style={styles.wage}>{job.wage_range}</Text>
   ) : null;
 
-  const applicantLead =
-    applicantPreview && applicantPreview.names.length > 0 ? (
-      <ApplicantAvatarStack names={applicantPreview.names} size={40} />
-    ) : null;
-
   const locationEyebrow =
     [locationName, location].filter(Boolean).join(' · ') || clinicName;
   const embeddedEyebrow =
     [locationName, location].filter(Boolean).join(' · ') || null;
-
-  const roleIconFallback = (
-    <View style={[styles.roleIconWrap, { backgroundColor: colors.primarySubtle }]}>
-      <Ionicons name="briefcase-outline" size={18} color={colors.primary} />
-    </View>
+  const clinicAvatar = (
+    <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />
   );
 
   const useListLayout = layout === 'list' || embedded;
@@ -210,21 +207,13 @@ export function RolePostingCard({
         <BrowseListRow
           layout={mobileEmbedded ? 'stacked' : 'split'}
           compact={mobileEmbedded}
-          avatar={
-            embedded
-              ? applicantLead ?? roleIconFallback
-              : applicantLead ?? (
-                  <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />
-                )
-          }
+          avatar={clinicAvatar}
           eyebrow={
             mobileEmbedded
               ? embeddedEyebrow
               : embedded
                 ? locationEyebrow
-                : applicantPreview
-                  ? `${applicantCount} applicant${applicantCount === 1 ? '' : 's'}`
-                  : clinicName
+                : clinicName
           }
           title={job.title}
           meta={
@@ -238,8 +227,19 @@ export function RolePostingCard({
           topTrailing={mobileEmbedded ? statusBadges : headerActions}
           statusFooter={mobileEmbedded ? mobileEmbeddedFooter : undefined}
           statusFooterAlign={mobileEmbedded ? 'end' : 'start'}
-          contentAccessory={mobileEmbedded ? undefined : applicantControl}
-          showChevron={Boolean(onPress)}
+          contentAccessory={
+            mobileEmbedded
+              ? undefined
+              : applicantLead || applicantControl
+                ? (
+                    <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                      {applicantLead}
+                      {applicantControl}
+                    </View>
+                  )
+                : undefined
+          }
+          showChevron={!embedded && Boolean(onPress)}
         />
       </SurfaceCard>
     );
@@ -255,7 +255,7 @@ export function RolePostingCard({
         <ClinicPostHeader
           layout="split"
           clinicName={clinicName}
-          logoStoragePath={clinicProfile?.logo_storage_path}
+          logoStoragePath={logoStoragePath}
           title={job.title}
           location={[locationName, location].filter(Boolean).join(' · ') || null}
           detail={roleMeta}

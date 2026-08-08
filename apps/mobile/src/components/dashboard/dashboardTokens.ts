@@ -17,17 +17,11 @@ export const dashboardWidgetTokens = {
 /** File-tab workspace tabs — larger than aside widgets, still consistent across tabs. */
 export const dashboardTabTokens = {
   iconBadge: {
-    size: 36,
-    compactSize: 32,
+    size: 32,
+    compactSize: 28,
     borderRadius: 10,
     compactBorderRadius: 8,
-    iconSize: 18,
-    compactIconSize: 16,
-  },
-  tabValue: {
-    fontSize: 26,
-    compactFontSize: 22,
-    lineHeight: 30,
-    compactLineHeight: 26,
+    iconSize: 16,
+    compactIconSize: 15,
   },
 } as const;

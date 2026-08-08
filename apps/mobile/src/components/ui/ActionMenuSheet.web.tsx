@@ -115,6 +115,11 @@ function ActionMenuDialog({
     menuHeaderRich: {
       gap: spacing.xs,
     },
+    menuHeaderWithTitle: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.separator,
+      paddingBottom: spacing.sm,
+    },
     sectionEyebrow: {
       fontSize: 11,
       lineHeight: 14,
@@ -184,16 +189,7 @@ function ActionMenuDialog({
           {headerContent ? (
             <View style={styles.menuHeaderRich}>{headerContent}</View>
           ) : title || message ? (
-            <View
-              style={[
-                styles.menuHeaderRich,
-                {
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.separator,
-                  paddingBottom: spacing.sm,
-                },
-              ]}
-            >
+            <View style={[styles.menuHeaderRich, styles.menuHeaderWithTitle]}>
               {title ? <Text style={styles.menuTitle}>{title}</Text> : null}
               {message ? <Text style={styles.menuMessage}>{message}</Text> : null}
             </View>

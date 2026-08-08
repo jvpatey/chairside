@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ClinicRoleApplicantsPanel } from '@/components/clinic/ClinicRoleApplicantsPanel';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
@@ -18,9 +19,10 @@ import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -36,24 +38,13 @@ import {
 import { CLINIC_POST_JOB, getClinicRoleApplicationsRoute } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
-function RoleIconAvatar() {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ radii }) => ({
-    avatar: {
-      width: 44,
-      height: 44,
-      borderRadius: radii.md,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primarySubtle,
-    },
-  }));
+function RoleSummaryAvatar() {
+  const { clinicProfile } = useClinicProfile();
+  const logoStoragePath = useResolvedClinicLogoPath();
+  const logoUri = useClinicLogoUri(logoStoragePath);
+  const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
 
-  return (
-    <View style={styles.avatar}>
-      <Ionicons name="briefcase-outline" size={22} color={colors.primary} />
-    </View>
-  );
+  return <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={44} />;
 }
 
 function RoleApplicationSummaryRow({
@@ -91,7 +82,7 @@ function RoleApplicationSummaryRow({
           : undefined
       }>
       <BrowseListRow
-        avatar={<RoleIconAvatar />}
+        avatar={<RoleSummaryAvatar />}
         title={summary.post_title}
         meta={metaLine || null}
         postedLabel={postedLabel || null}

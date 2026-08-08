@@ -234,7 +234,7 @@ export function FillInApplicantCard({
             newCoverRequestLabel,
           ]
             .filter(Boolean)
-            .join(' Â· ')}
+            .join(' · ')}
           avatarSize={44}
           accessory={
             <View style={{ alignItems: 'flex-end', gap: 8 }}>

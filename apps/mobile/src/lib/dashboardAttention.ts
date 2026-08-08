@@ -110,6 +110,41 @@ export function buildWorkerAttentionItems({
   return items;
 }
 
+export function summarizeApplicantPreviews(
+  applications: Array<{
+    worker_display_name?: string | null;
+    worker_photo_storage_path?: string | null;
+  }>,
+  maxVisible = 3,
+): { names: string[]; photoPaths: (string | null)[] } {
+  const names: string[] = [];
+  const photoPaths: (string | null)[] = [];
+  for (const application of applications) {
+    const name = application.worker_display_name?.trim();
+    if (!name) continue;
+    names.push(name);
+    photoPaths.push(application.worker_photo_storage_path ?? null);
+    if (names.length >= maxVisible) break;
+  }
+  return { names, photoPaths };
+}
+
+export function summarizeClinicLogoPreviews(
+  posts: Array<{ logo_storage_path?: string | null; clinic?: { logo_storage_path?: string | null; clinic_name?: string | null } }>,
+  maxVisible = 3,
+): { names: string[]; photoPaths: (string | null)[] } {
+  const names: string[] = [];
+  const photoPaths: (string | null)[] = [];
+  for (const post of posts) {
+    const path = post.logo_storage_path?.trim() || post.clinic?.logo_storage_path?.trim() || null;
+    if (!path || photoPaths.includes(path)) continue;
+    names.push(post.clinic?.clinic_name?.trim() || 'Clinic');
+    photoPaths.push(path);
+    if (photoPaths.length >= maxVisible) break;
+  }
+  return { names, photoPaths };
+}
+
 export function summarizeJobApplicantPreviews(
   applications: Array<{
     job_post_id: string | null;

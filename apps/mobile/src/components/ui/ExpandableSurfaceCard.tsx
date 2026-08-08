@@ -1,18 +1,12 @@
 import type { ReactNode } from 'react';
-import * as Haptics from 'expo-haptics';
-import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import type { FeaturedListingGradient } from '@/theme';
-import {
-  webFullBleedRowInsets,
-  webHover,
-  webListRowHoverStyles,
-  webPointer,
-} from '@/lib/webPressableStyles';
 import { spacing, useThemedStyles, type GradientAccent } from '@/theme';
 
 import { CardExpandToggle } from './CardExpandToggle';
 import { SurfaceCard, type SurfaceCardVariant } from './SurfaceCard';
+import type { CardPaddingTier } from './cardLayout';
 
 type ExpandableSurfaceCardProps = {
   header: ReactNode;
@@ -20,7 +14,7 @@ type ExpandableSurfaceCardProps = {
   onToggleExpand: () => void;
   children?: ReactNode;
   variant?: SurfaceCardVariant;
-  padding?: 'md' | 'lg';
+  padding?: CardPaddingTier;
   bleedPadding?: number;
   style?: StyleProp<ViewStyle>;
   accent?: GradientAccent;
@@ -42,52 +36,34 @@ export function ExpandableSurfaceCard({
   accent,
   featuredGradient,
 }: ExpandableSurfaceCardProps) {
-  const bleed = bleedPadding ?? (padding === 'lg' ? spacing.lg : spacing.md);
+  const contentPadding = bleedPadding ?? (padding === 'lg' ? spacing.lg : spacing.md);
 
-  const styles = useThemedStyles(({ spacing, colors }) => ({
-    cardHeaderPressable: {
-      alignSelf: 'stretch',
-      borderRadius: 12,
-      ...webFullBleedRowInsets(bleed),
-      marginTop: -bleed,
-      paddingTop: bleed,
-      ...webPointer(),
+  const styles = useThemedStyles(({ spacing }) => ({
+    body: {
+      paddingHorizontal: contentPadding,
+      paddingTop: contentPadding,
+      paddingBottom: spacing.sm,
     },
-    cardHeaderHovered: webListRowHoverStyles(colors),
-    cardHeaderPressed: { opacity: 0.92 },
     expandedBody: {
       gap: spacing.md,
-      paddingTop: spacing.xs,
+      paddingHorizontal: contentPadding,
+      paddingBottom: contentPadding,
     },
   }));
 
   return (
     <SurfaceCard
       variant={variant}
-      padding={padding}
-      gap
+      padding="none"
       style={style}
       featuredOverlay={featuredGradient}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        onPress={() => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onToggleExpand();
-        }}
-        style={({ pressed, hovered }) => [
-          styles.cardHeaderPressable,
-          webHover(hovered, pressed, styles.cardHeaderHovered),
-          pressed && styles.cardHeaderPressed,
-        ]}>
-        {header}
-      </Pressable>
+      <View style={styles.body}>{header}</View>
 
       <CardExpandToggle
         expanded={expanded}
         onPress={onToggleExpand}
-        bleedPadding={bleed}
-        suppressHover
+        contentPadding={contentPadding}
+        roundedBottom={!expanded || !children}
         accent={accent}
       />
 

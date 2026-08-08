@@ -1,21 +1,40 @@
 import { Text, View } from 'react-native';
 
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { fontSemibold, useThemedStyles } from '@/theme';
 
 type ApplicantAvatarStackProps = {
   /** Display names for initials fallback. */
   names: string[];
-  /** Optional photo URIs aligned with names. */
+  /** Optional signed photo URIs aligned with names. */
   photoUris?: (string | null)[];
+  /** Optional storage paths resolved to signed URIs when `photoUris` is omitted. */
+  photoPaths?: (string | null)[];
   maxVisible?: number;
   size?: number;
 };
+
+function StackAvatar({
+  name,
+  photoUri,
+  photoPath,
+  size,
+}: {
+  name: string;
+  photoUri?: string | null;
+  photoPath?: string | null;
+  size: number;
+}) {
+  const resolvedUri = useWorkerPhotoUri(photoUri ? null : photoPath);
+  return <WorkerProfileAvatar displayName={name} photoUri={photoUri ?? resolvedUri} size={size} />;
+}
 
 /** Overlapping applicant avatars for role cards and lists. */
 export function ApplicantAvatarStack({
   names,
   photoUris = [],
+  photoPaths = [],
   maxVisible = 3,
   size = 32,
 }: ApplicantAvatarStackProps) {
@@ -62,9 +81,10 @@ export function ApplicantAvatarStack({
         <View
           key={`${name}-${index}`}
           style={[styles.avatarWrap, index > 0 ? { marginLeft: -overlap } : null]}>
-          <WorkerProfileAvatar
-            displayName={name}
-            photoUri={photoUris[index] ?? null}
+          <StackAvatar
+            name={name}
+            photoUri={photoUris[index]}
+            photoPath={photoPaths[index]}
             size={size}
           />
         </View>
