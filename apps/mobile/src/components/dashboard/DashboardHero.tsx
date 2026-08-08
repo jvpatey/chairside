@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router, type Href } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import {
-  AccessibilityInfo,
   Animated,
   Platform,
   Pressable,
@@ -20,7 +19,7 @@ import {
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { DashboardHeroPulse } from '@/lib/dashboardPulse';
 import { getTimeOfDayGreeting, getTimeOfDayIcon } from '@/lib/greeting';
-import { useEnterAnimation } from '@/lib/motion';
+import { useEnterAnimation, usePrefersReducedMotion } from '@/lib/motion';
 import {
   IS_WEB,
   webListRowHoverStyles,
@@ -57,24 +56,6 @@ function formatDashboardDate(date = new Date()) {
     month: 'long',
     day: 'numeric',
   });
-}
-
-function usePrefersReducedMotion() {
-  const [reduceMotion, setReduceMotion] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (!cancelled) setReduceMotion(enabled);
-    });
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => {
-      cancelled = true;
-      subscription.remove();
-    };
-  }, []);
-
-  return reduceMotion;
 }
 
 function HeroStaggerBlock({

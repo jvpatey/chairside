@@ -1,7 +1,10 @@
-import { Text } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Text, View, type TextStyle } from 'react-native';
 
 import { dashboardHeaderStackGap } from '@/components/dashboard/dashboardLayout';
 import { getTimeOfDayGreeting } from '@/lib/greeting';
+import { usePrefersReducedMotion } from '@/lib/motion';
+import { IS_WEB } from '@/lib/webPressableStyles';
 import { fontBold, fontRegular, fontSemibold, spacing, useThemedStyles } from '@/theme';
 
 /** Shared vertical gap between dashboard greeting, name, and subtitle. */
@@ -25,8 +28,32 @@ type DashboardHeroNameProps = {
   namePlaceholder: string;
 };
 
+const SHIMMER_STEP_MS = 28;
+const SHIMMER_LETTER_MS = 220;
+
+function shimmerHoldMs(letterCount: number) {
+  return Math.max(SHIMMER_LETTER_MS, Math.max(0, letterCount - 1) * SHIMMER_STEP_MS + SHIMMER_LETTER_MS);
+}
+
 export function DashboardHeroName({ displayName, namePlaceholder }: DashboardHeroNameProps) {
   const name = displayName?.trim();
+  const reduceMotion = usePrefersReducedMotion();
+  const [shimmering, setShimmering] = useState(false);
+  const shimmerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (shimmerTimer.current) clearTimeout(shimmerTimer.current);
+    },
+    [],
+  );
+
+  const startShimmer = () => {
+    if (shimmering || !name) return;
+    const letterCount = Array.from(name.replace(/\s+/g, '')).length;
+    setShimmering(true);
+    shimmerTimer.current = setTimeout(() => setShimmering(false), shimmerHoldMs(letterCount));
+  };
 
   const styles = useThemedStyles(({ colors }) => ({
     name: {
@@ -38,19 +65,73 @@ export function DashboardHeroName({ displayName, namePlaceholder }: DashboardHer
       color: colors.labelPrimary,
       letterSpacing: -0.6,
     },
+    nameShimmer: {
+      color: colors.tertiary,
+    },
     nameHidden: {
       opacity: 0,
     },
+    shimmerRow: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+    },
+    word: {
+      flexDirection: 'row' as const,
+    },
   }));
 
+  if (!IS_WEB || reduceMotion || !name) {
+    return (
+      <Text
+        style={[styles.name, !name && styles.nameHidden]}
+        numberOfLines={2}
+        accessibilityElementsHidden={!name}
+        importantForAccessibility={name ? 'yes' : 'no-hide-descendants'}>
+        {name || namePlaceholder}
+      </Text>
+    );
+  }
+
+  // Web: on hover, a band of accent color sweeps once through the letters.
+  // Words stay intact so wrapping matches normal text; letters ride staggered
+  // CSS color transitions (no JS animation loop).
+  let letterIndex = 0;
+  const words = name.split(/\s+/);
+
   return (
-    <Text
-      style={[styles.name, !name && styles.nameHidden]}
-      numberOfLines={2}
-      accessibilityElementsHidden={!name}
-      importantForAccessibility={name ? 'yes' : 'no-hide-descendants'}>
-      {name || namePlaceholder}
-    </Text>
+    <View
+      accessibilityRole="text"
+      aria-label={name}
+      style={styles.shimmerRow}
+      onMouseEnter={startShimmer}>
+      {words.map((word, wordIdx) => (
+        <View key={`${word}-${wordIdx}`} style={styles.word} aria-hidden>
+          {Array.from(word).map((letter, i) => {
+            const delayMs = letterIndex * SHIMMER_STEP_MS;
+            letterIndex += 1;
+            return (
+              <Text
+                key={`${letter}-${i}`}
+                style={[
+                  styles.name,
+                  shimmering && styles.nameShimmer,
+                  {
+                    transitionProperty: 'color',
+                    transitionDuration: `${SHIMMER_LETTER_MS}ms`,
+                    transitionTimingFunction: 'ease-in-out',
+                    transitionDelay: `${delayMs}ms`,
+                  } as TextStyle,
+                ]}>
+                {letter}
+              </Text>
+            );
+          })}
+          {wordIdx < words.length - 1 ? (
+            <Text style={styles.name}>{'\u00A0'}</Text>
+          ) : null}
+        </View>
+      ))}
+    </View>
   );
 }
 
