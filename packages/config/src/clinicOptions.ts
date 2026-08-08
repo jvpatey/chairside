@@ -31,6 +31,96 @@ export const SOFTWARE_OPTIONS = [
 
 export type ClinicSoftware = (typeof SOFTWARE_OPTIONS)[number];
 
+export const SOFTWARE_NONE_OPTION = 'None' as const;
+export const SOFTWARE_OTHER_OPTION = 'Other' as const;
+
+const STANDARD_SOFTWARE_SET = new Set<string>(SOFTWARE_OPTIONS);
+
+export function isStandardSoftwareOption(value: string): boolean {
+  return STANDARD_SOFTWARE_SET.has(value);
+}
+
+/** Split stored software into preset chips and free-text entries. */
+export function splitSoftwareUsed(softwareUsed: string[] | null | undefined): {
+  chipSelection: string[];
+  customSoftware: string[];
+} {
+  const items = softwareUsed ?? [];
+  const chipSelection = items.filter(isStandardSoftwareOption);
+  const customSoftware = items.filter((item) => !isStandardSoftwareOption(item));
+
+  if (customSoftware.length > 0 && !chipSelection.includes(SOFTWARE_OTHER_OPTION)) {
+    return { chipSelection: [...chipSelection, SOFTWARE_OTHER_OPTION], customSoftware };
+  }
+
+  return { chipSelection, customSoftware };
+}
+
+export function normalizeCustomSoftwareLabel(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+/** Typing a preset name should select that chip instead of creating a duplicate entry. */
+export function matchStandardSoftwareOption(value: string): string | null {
+  const normalized = normalizeCustomSoftwareLabel(value).toLowerCase();
+  if (!normalized) return null;
+
+  return (
+    SOFTWARE_OPTIONS.find(
+      (option) =>
+        option !== SOFTWARE_NONE_OPTION &&
+        option !== SOFTWARE_OTHER_OPTION &&
+        option.toLowerCase() === normalized,
+    ) ?? null
+  );
+}
+
+/** Split a typed draft so pasted lists like "Oscar, Tab32" become separate entries. */
+export function parseCustomSoftwareInput(input: string): string[] {
+  const seen = new Set<string>();
+  const entries: string[] = [];
+
+  for (const part of input.split(/[,;\n]/)) {
+    const label = normalizeCustomSoftwareLabel(part);
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    entries.push(label);
+  }
+
+  return entries;
+}
+
+/** Persist chip picks plus confirmed custom entries (never stores the literal "Other" chip). */
+export function buildSoftwareUsedFromParts(
+  chipSelection: string[],
+  customEntries: string[],
+): string[] {
+  const resolvedChips = resolveSoftwareSelection([], chipSelection);
+
+  if (resolvedChips.includes(SOFTWARE_NONE_OPTION)) {
+    return [SOFTWARE_NONE_OPTION];
+  }
+
+  const presets = resolvedChips.filter(
+    (item) => isStandardSoftwareOption(item) && item !== SOFTWARE_OTHER_OPTION,
+  );
+  const seen = new Set(presets.map((item) => item.toLowerCase()));
+  const custom: string[] = [];
+
+  for (const entry of customEntries) {
+    const label = normalizeCustomSoftwareLabel(entry);
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    custom.push(label);
+  }
+
+  return [...presets, ...custom];
+}
+
 /** "None" cannot be combined with other software selections. */
 export function resolveSoftwareSelection(current: string[], next: string[]): string[] {
   const selectedNone = next.includes('None') && !current.includes('None');
@@ -411,9 +501,16 @@ export const EDUCATION_DEGREE_TYPE_OPTIONS = [
   { value: 'masters' as const, label: "Master's degree" },
   { value: 'doctorate' as const, label: 'Doctorate' },
   { value: 'other' as const, label: 'Other' },
+  { value: 'none_post_secondary' as const, label: 'No post-secondary education' },
 ] as const;
 
 export type EducationDegreeType = (typeof EDUCATION_DEGREE_TYPE_OPTIONS)[number]['value'];
+
+export function isNoPostSecondaryEducation(
+  value: string | null | undefined,
+): value is 'none_post_secondary' {
+  return value === 'none_post_secondary';
+}
 
 export const DAY_OF_WEEK_OPTIONS = [
   { value: 0, label: 'Sunday' },
@@ -503,6 +600,10 @@ export function formatWorkerEducation(input: {
   education_field?: string | null;
   education_institution?: string | null;
 }): string {
+  if (isNoPostSecondaryEducation(input.education_degree_type)) {
+    return getEducationDegreeTypeLabel(input.education_degree_type);
+  }
+
   const parts = [
     getEducationDegreeTypeLabel(input.education_degree_type),
     input.education_field?.trim(),

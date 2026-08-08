@@ -26,6 +26,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
+import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
@@ -52,6 +53,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useDashboardWelcomeCelebration } from '@/hooks/useDashboardWelcomeCelebration';
 import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import {
@@ -68,6 +70,10 @@ import {
 
 export default function WorkerDashboardScreen() {
   const { user, profile } = useAuth();
+  const { visible: welcomeVisible, dismiss: dismissWelcome } = useDashboardWelcomeCelebration({
+    role: 'worker',
+    userId: user?.id,
+  });
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: applicationUpdateCount, fillInPendingCount } = useApplicationTabBadge();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
@@ -465,6 +471,11 @@ export default function WorkerDashboardScreen() {
 
   return (
     <DashboardScreen>
+      <DashboardWelcomeCelebration
+        visible={welcomeVisible}
+        role="worker"
+        onDismiss={() => void dismissWelcome()}
+      />
       {isLoading && !hasLoadedOnce.current ? <DashboardLoadingShell /> : dashboardBody}
     </DashboardScreen>
   );

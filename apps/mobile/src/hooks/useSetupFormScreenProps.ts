@@ -11,6 +11,8 @@ export function useSetupFormScreenProps(role: 'worker' | 'clinic') {
   return {
     atmosphere: 'none' as const,
     transparentBackground: passThroughShell,
-    constrainFormWidth: isWeb,
+    // Sidebar wizard: card + footer span the content column. Edit mode keeps a readable max width.
+    constrainFormWidth: isWeb && isEditMode,
+    elevatedCard: passThroughShell,
   };
 }

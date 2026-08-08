@@ -196,13 +196,12 @@ export function PageHeader({
             <View style={styles.textBlock}>
               {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
               {title != null ? (
-                typeof title === 'string' ? (
-                  <Text style={titleStyle} numberOfLines={variant === 'tabletSection' ? 1 : undefined}>
-                    {title}
-                  </Text>
-                ) : (
-                  title
-                )
+                // Inline nodes (e.g. the brand wordmark) stay inside the title
+                // Text so they inherit its typography instead of rendering as
+                // unstyled block text.
+                <Text style={titleStyle} numberOfLines={variant === 'tabletSection' ? 1 : undefined}>
+                  {title}
+                </Text>
               ) : null}
               {subtitle && variant !== 'tabletSection' ? (
                 <Text style={styles.subtitle}>{subtitle}</Text>

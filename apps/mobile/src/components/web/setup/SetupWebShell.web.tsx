@@ -1,83 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
-import { isClinicGroupsEnabled } from '@chairside/api';
 import { router, usePathname } from 'expo-router';
 import { ReactNode, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
-import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import {
-  getClinicSetupStepIndexFromPath,
-  getClinicSetupSteps,
-} from '@/lib/clinicSetupSteps';
 import { navigateToWelcome } from '@/lib/publicRoutes';
-import { webHover, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { radii, useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow, webTypography } from '@/theme/web';
-
-type SetupStep = {
-  id: string;
-  label: string;
-  href: string;
-};
-
-const WORKER_STEPS: SetupStep[] = [
-  { id: 'basics', label: 'Basics', href: '/(worker-setup)/basics' },
-  { id: 'experience', label: 'Experience', href: '/(worker-setup)/experience' },
-  { id: 'skills', label: 'Skills', href: '/(worker-setup)/skills' },
-  { id: 'location', label: 'Location', href: '/(worker-setup)/location' },
-  { id: 'availability', label: 'Availability', href: '/(worker-setup)/availability' },
-  { id: 'application-kit', label: 'Application profile', href: '/(worker-setup)/application-kit' },
-  { id: 'review', label: 'Review', href: '/(worker-setup)/review' },
-];
-
-const CLINIC_STEPS_LEGACY: SetupStep[] = [
-  { id: 'basics', label: 'Basics', href: '/(clinic-setup)/basics' },
-  { id: 'location', label: 'Location', href: '/(clinic-setup)/location' },
-  { id: 'practice', label: 'Practice', href: '/(clinic-setup)/practice' },
-  { id: 'about', label: 'About', href: '/(clinic-setup)/about' },
-  { id: 'review', label: 'Review', href: '/(clinic-setup)/review' },
-];
+import {
+  getSetupStepIndexFromPath,
+  getSetupSteps,
+  type SetupRole,
+} from '@/lib/setupSteps';
+import { webHover, webPointer } from '@/lib/webPressableStyles';
+import { useTheme, useThemedStyles } from '@/theme';
+import { radii } from '@/theme/tokens';
+import { webOnboardingAtmosphereStyle, webTypography } from '@/theme/web';
 
 type SetupWebShellProps = {
-  role: 'worker' | 'clinic';
+  role: SetupRole;
   children: ReactNode;
 };
-
-function getWorkerActiveStepIndex(pathname: string, steps: SetupStep[]): number {
-  const ordered = [...steps].sort((a, b) => b.id.length - a.id.length);
-  const match = ordered.find((step) => pathname.includes(`/${step.id}`) || pathname.endsWith(step.id));
-  if (!match) return 0;
-  return Math.max(
-    0,
-    steps.findIndex((step) => step.id === match.id),
-  );
-}
 
 export function SetupWebShell({ role, children }: SetupWebShellProps) {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { isWide } = useResponsiveLayout();
   const { isGroup } = useClinicProfile();
 
-  const steps = useMemo(() => {
-    if (role !== 'clinic') return WORKER_STEPS;
-    if (!isClinicGroupsEnabled()) return CLINIC_STEPS_LEGACY;
-    return getClinicSetupSteps(isGroup).map((step) => ({
-      id: step.id,
-      label: step.label,
-      href: String(step.href),
-    }));
-  }, [isGroup, role]);
-
-  const activeIndex =
-    role === 'clinic' && isClinicGroupsEnabled()
-      ? getClinicSetupStepIndexFromPath(pathname, isGroup)
-      : getWorkerActiveStepIndex(pathname, steps);
+  const steps = useMemo(() => getSetupSteps(role, isGroup), [isGroup, role]);
+  const activeIndex = getSetupStepIndexFromPath(role, pathname, isGroup);
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     root: {
@@ -93,10 +47,7 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
       borderRightWidth: isWide ? StyleSheet.hairlineWidth : 0,
       borderBottomWidth: isWide ? 0 : StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      backgroundColor: colors.surface,
-      ...(isWide
-        ? webOnlyStyle({ boxShadow: getWebShadow(isDark, 'subtle') } as object)
-        : {}),
+      backgroundColor: colors.backgroundGrouped,
     },
     railTitle: {
       ...webTypography.title,
@@ -128,28 +79,25 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
       backgroundColor: colors.primarySubtle,
     },
     stepComplete: {
-      opacity: 0.85,
+      opacity: 0.9,
     },
     stepHovered: {
       backgroundColor: colors.fillSubtle,
     },
-    stepNumber: {
+    stepBadge: {
       width: 28,
       height: 28,
-      borderRadius: radii.pill,
+      borderRadius: 10,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       backgroundColor: colors.fillSubtle,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
+      flexShrink: 0,
     },
-    stepNumberActive: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
+    stepBadgeActive: {
+      backgroundColor: colors.primarySubtle,
     },
-    stepNumberComplete: {
+    stepBadgeComplete: {
       backgroundColor: colors.success,
-      borderColor: colors.success,
     },
     stepNumberText: {
       fontSize: 12,
@@ -157,7 +105,7 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
       color: colors.labelSecondary,
     },
     stepNumberTextActive: {
-      color: colors.primaryOnPrimary,
+      color: colors.primary,
     },
     stepLabel: {
       fontSize: 15,
@@ -174,10 +122,12 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
       minWidth: 0,
       position: 'relative' as const,
       overflow: 'hidden' as const,
+      backgroundColor: colors.backgroundGrouped,
     },
     contentAtmosphere: {
       ...StyleSheet.absoluteFillObject,
       pointerEvents: 'none' as const,
+      ...webOnboardingAtmosphereStyle(isDark),
     },
   }));
 
@@ -213,9 +163,9 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
               >
                 <View
                   style={[
-                    styles.stepNumber,
-                    isActive && styles.stepNumberActive,
-                    isComplete && styles.stepNumberComplete,
+                    styles.stepBadge,
+                    isActive && styles.stepBadgeActive,
+                    isComplete && styles.stepBadgeComplete,
                   ]}
                 >
                   {isComplete ? (
@@ -224,7 +174,7 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
                     <Text
                       style={[
                         styles.stepNumberText,
-                        (isActive || isComplete) && styles.stepNumberTextActive,
+                        isActive && styles.stepNumberTextActive,
                       ]}
                     >
                       {index + 1}
@@ -240,9 +190,7 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
         </View>
       </View>
       <View style={styles.content}>
-        <View style={styles.contentAtmosphere}>
-          <AppAtmosphere intensity="subtle" viewportFixed />
-        </View>
+        <View style={styles.contentAtmosphere} />
         {children}
       </View>
     </View>

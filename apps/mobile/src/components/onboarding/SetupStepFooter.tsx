@@ -36,6 +36,7 @@ export function SetupStepFooter({
       <OnboardingButton
         label={isSubmitting ? 'Saving…' : continueLabel}
         disabled={isSubmitting}
+        solid
         onPress={onContinue}
       />
     </View>

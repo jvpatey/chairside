@@ -1,4 +1,5 @@
 import {
+  establishSessionAfterSignUp,
   getAuthErrorMessage,
   getProfile,
   getSupabaseClient,
@@ -20,13 +21,19 @@ import {
   enterFadeUp,
 } from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
-import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { PasswordRequirements } from '@/components/onboarding/PasswordRequirements';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { saveClinicInviteToken } from '@/lib/clinicInviteSession';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
+import {
+  evaluatePassword,
+  getPasswordPlaceholder,
+  getPasswordTooShortMessage,
+  passwordsMatch,
+} from '@/lib/passwordPolicy';
 import {
   webHover,
   webPointer,
@@ -57,6 +64,15 @@ export default function SignUpScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const passwordEvaluation = evaluatePassword(password, { email });
+  const confirmHasInput = confirmPassword.length > 0;
+  const passwordsDoMatch = passwordsMatch(password, confirmPassword);
+  const canSubmit =
+    Boolean(email.trim()) &&
+    passwordEvaluation.isValid &&
+    passwordsDoMatch &&
+    confirmHasInput;
+
   useEffect(() => {
     if (pendingInviteToken) {
       void saveClinicInviteToken(pendingInviteToken);
@@ -66,6 +82,19 @@ export default function SignUpScreen() {
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
       gap: spacing.md,
+    },
+    matchHint: {
+      fontSize: 13,
+      lineHeight: 18,
+      paddingHorizontal: spacing.xs,
+    },
+    matchHintSuccess: {
+      color: colors.success,
+      fontWeight: '500',
+    },
+    matchHintError: {
+      color: colors.destructive,
+      fontWeight: '500',
     },
     footer: {
       gap: spacing.md,
@@ -153,10 +182,24 @@ export default function SignUpScreen() {
       return;
     }
 
-    if (password.length < 6) {
-      setFormError('Use at least 6 characters.');
+    if (passwordEvaluation.maxLengthError) {
+      setFormError(passwordEvaluation.maxLengthError);
       if (Platform.OS !== 'web') {
-        Alert.alert('Password too short', 'Use at least 6 characters.');
+        Alert.alert('Password too long', passwordEvaluation.maxLengthError);
+      }
+      return;
+    }
+
+    if (!passwordEvaluation.isValid) {
+      const message = passwordEvaluation.requirements.find((requirement) => !requirement.met)?.label
+        ? `Password requirements not met: ${passwordEvaluation.requirements
+            .filter((requirement) => !requirement.met)
+            .map((requirement) => requirement.label.toLowerCase())
+            .join(', ')}.`
+        : getPasswordTooShortMessage();
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Password requirements not met', message);
       }
       return;
     }
@@ -164,25 +207,23 @@ export default function SignUpScreen() {
     setIsSubmitting(true);
     setFormError(null);
     try {
-      const { session, user } = await signUpWithEmail(email, password, role);
+      const signUpData = await signUpWithEmail(email, password, role);
+      const session = await establishSessionAfterSignUp(email, password, signUpData);
+      const user = signUpData.user ?? session?.user ?? null;
 
-      if (!session) {
-        const message =
-          'We sent a confirmation link. Open it to finish setting up your account, then sign in.';
-        setFormError(message);
-        if (Platform.OS !== 'web') {
-          Alert.alert('Confirm your email', message);
-        }
-        router.replace(
-          pendingInviteToken
-            ? (`/(onboarding)/sign-in?inviteToken=${encodeURIComponent(pendingInviteToken)}` as const)
-            : '/(onboarding)/sign-in',
-        );
+      if (session && user) {
+        await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
         return;
       }
 
       if (user) {
-        await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
+        const message =
+          'We sent a confirmation link. Open it to finish setting up your account.';
+        setFormError(message);
+        if (Platform.OS !== 'web') {
+          Alert.alert('Confirm your email', message);
+        }
+        return;
       }
     } catch (error) {
       const message = getAuthErrorMessage(error);
@@ -202,13 +243,12 @@ export default function SignUpScreen() {
   return (
     <OnboardingShell
       authSplit
-      backgroundAccessory={<AuthHeroGlow />}
       footer={
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
             <OnboardingButton
               label={isSubmitting ? 'Creating account…' : 'Create account'}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !canSubmit}
               onPress={handleCreateAccount}
             />
           </Animated.View>
@@ -265,13 +305,15 @@ export default function SignUpScreen() {
         />
         <AuthField
           label="Password"
-          placeholder="Create a password"
+          placeholder={getPasswordPlaceholder()}
           secureTextEntry
           enablePasswordVisibilityToggle
           value={password}
           onChangeText={setPassword}
           editable={!isSubmitting}
+          validated={passwordEvaluation.isValid}
         />
+        <PasswordRequirements password={password} email={email} evaluation={passwordEvaluation} />
         <AuthField
           label="Confirm password"
           placeholder="Confirm your password"
@@ -280,7 +322,18 @@ export default function SignUpScreen() {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           editable={!isSubmitting}
+          validated={canSubmit}
+          invalid={confirmHasInput && !passwordsDoMatch}
         />
+        {confirmHasInput ? (
+          <Text
+            style={[
+              styles.matchHint,
+              passwordsDoMatch ? styles.matchHintSuccess : styles.matchHintError,
+            ]}>
+            {passwordsDoMatch ? 'Passwords match' : 'Passwords do not match'}
+          </Text>
+        ) : null}
       </Animated.View>
     </OnboardingShell>
   );

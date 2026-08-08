@@ -7,7 +7,7 @@ type SetupStepProgressProps = {
   total: number;
 };
 
-/** Step indicator for native setup flows — dots with step count label. */
+/** Step indicator for native setup flows — segmented bar with step count label. */
 export function SetupStepProgress({ step, total }: SetupStepProgressProps) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
     row: {
@@ -17,27 +17,23 @@ export function SetupStepProgress({ step, total }: SetupStepProgressProps) {
       marginBottom: spacing.sm,
       gap: spacing.md,
     },
-    dots: {
+    segments: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: 4,
     },
-    dot: {
+    segment: {
       flex: 1,
       height: 4,
-      borderRadius: 999,
-      backgroundColor: colors.separator,
-      opacity: 0.55,
+      borderRadius: 2,
+      backgroundColor: colors.fillSubtle,
     },
-    dotCompleted: {
+    segmentComplete: {
       backgroundColor: colors.primary,
-      opacity: 1,
     },
-    dotCurrent: {
+    segmentCurrent: {
       backgroundColor: colors.primary,
-      opacity: 1,
-      transform: [{ scaleY: 1.35 }],
     },
     label: {
       fontSize: 13,
@@ -48,8 +44,11 @@ export function SetupStepProgress({ step, total }: SetupStepProgressProps) {
   }));
 
   return (
-    <View style={styles.row} accessibilityRole="progressbar" accessibilityLabel={`Step ${step} of ${total}`}>
-      <View style={styles.dots}>
+    <View
+      style={styles.row}
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Step ${step} of ${total}`}>
+      <View style={styles.segments}>
         {Array.from({ length: total }, (_, index) => {
           const stepIndex = index + 1;
           const isCompleted = stepIndex < step;
@@ -59,9 +58,9 @@ export function SetupStepProgress({ step, total }: SetupStepProgressProps) {
             <View
               key={stepIndex}
               style={[
-                styles.dot,
-                isCompleted && styles.dotCompleted,
-                isCurrent && styles.dotCurrent,
+                styles.segment,
+                isCompleted && styles.segmentComplete,
+                isCurrent && styles.segmentCurrent,
               ]}
             />
           );

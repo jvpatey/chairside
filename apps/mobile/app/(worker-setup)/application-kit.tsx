@@ -6,6 +6,8 @@ import { Alert, Text, View } from 'react-native';
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { ResumeUpload } from '@/components/worker/ResumeUpload';
@@ -13,6 +15,7 @@ import { WORKER_SETUP_REVIEW } from '@/lib/routing';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useThemedStyles } from '@/theme';
 
@@ -21,11 +24,13 @@ export default function WorkerApplicationKitScreen() {
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const setupFormProps = useSetupFormScreenProps('worker');
+  const progress = useSetupStepProgress('application-kit', { role: 'worker' });
   const [defaultCoverMessage, setDefaultCoverMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: { gap: spacing.lg },
+    uploadSection: { gap: spacing.sm },
     footer: { gap: spacing.md, marginTop: spacing.lg },
     badge: {
       alignSelf: 'flex-start',
@@ -76,10 +81,14 @@ export default function WorkerApplicationKitScreen() {
           <OnboardingButton
             label={isSubmitting ? 'Saving…' : isEditMode ? 'Save changes' : 'Continue'}
             disabled={isSubmitting}
+            solid
             onPress={handleSave}
           />
         </View>
       }>
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         {!backgroundComplete ? (
           <View style={styles.badge}>
@@ -87,16 +96,31 @@ export default function WorkerApplicationKitScreen() {
           </View>
         ) : null}
 
-        <ProfilePhotoUpload onUpdated={() => void refreshWorkerProfile()} />
-        <ResumeUpload onUploaded={() => void refreshWorkerProfile()} />
+        <View style={styles.uploadSection}>
+          <FormSectionHeader
+            icon="camera-outline"
+            label="Profile photo"
+            hint="Optional — included with role and fill-in applications."
+          />
+          <ProfilePhotoUpload embedded onUpdated={() => void refreshWorkerProfile()} />
+        </View>
+        <View style={styles.uploadSection}>
+          <FormSectionHeader
+            icon="document-text-outline"
+            label="Resume"
+            hint="Optional PDF attached to role applications."
+          />
+          <ResumeUpload embedded onUploaded={() => void refreshWorkerProfile()} />
+        </View>
 
         <AuthField
-          label="Default cover note (optional)"
+          label="Default cover note"
           placeholder="Optional message"
           value={defaultCoverMessage}
           onChangeText={setDefaultCoverMessage}
           multiline
           autoCapitalize="sentences"
+          icon="chatbubble-ellipses-outline"
         />
 
         <ApplicationKitPreview profile={workerProfile} />

@@ -29,7 +29,8 @@ export function formFieldLabelStyle({ colors, typography }: FormFieldTheme): Tex
 /** Sentence-case label for auth/onboarding forms. */
 export function formFieldLabelStylePlain({ colors }: FormFieldTheme): TextStyle {
   return {
-    fontSize: 13,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '600',
     fontFamily: fontSemibold,
     color: colors.labelSecondary,

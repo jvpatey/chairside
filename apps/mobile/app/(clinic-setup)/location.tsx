@@ -16,7 +16,7 @@ import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { validateAddressStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
@@ -60,7 +60,7 @@ export default function ClinicLocationScreen() {
 
   useClinicSetupStepGuard('location', clinicProfile, isClinicProfileReady, isEditMode);
 
-  const progress = getClinicSetupStepNumber('location', isGroup);
+  const progress = useSetupStepProgress('location', { role: 'clinic' });
   const validation = validateAddressStep(address);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -129,9 +129,16 @@ export default function ClinicLocationScreen() {
           onContinue={handleContinue}
         />
       }>
-      {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
-        <AddressAutocomplete value={address} onChange={setAddress} />
+        <AddressAutocomplete
+          value={address}
+          onChange={setAddress}
+          required
+          sectionIcon="location-outline"
+        />
       </View>
     </FormScreen>
   );

@@ -19,7 +19,6 @@ import {
   enterFadeUp,
 } from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
-import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -242,7 +241,6 @@ export default function SignInScreen() {
   return (
     <OnboardingShell
       authSplit
-      backgroundAccessory={<AuthHeroGlow />}
       footer={
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>

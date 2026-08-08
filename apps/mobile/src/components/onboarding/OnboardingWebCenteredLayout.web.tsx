@@ -2,10 +2,10 @@ import { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useThemedStyles } from '@/theme';
+import { webOnboardingAtmosphereStyle } from '@/theme/web';
 
 type OnboardingWebCenteredLayoutProps = {
   children: ReactNode;
@@ -24,11 +24,7 @@ export function OnboardingWebCenteredLayout({
     page: {
       flex: 1,
       backgroundColor: colors.backgroundGrouped,
-      ...webOnlyStyle({
-        backgroundImage: isDark
-          ? 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(74, 154, 255, 0.1) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(152, 150, 255, 0.08) 0%, transparent 50%)'
-          : 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(26, 111, 212, 0.08) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(88, 86, 214, 0.06) 0%, transparent 50%)',
-      } as object),
+      ...webOnboardingAtmosphereStyle(isDark),
     },
     scroll: {
       flex: 1,

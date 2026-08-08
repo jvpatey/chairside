@@ -1,8 +1,10 @@
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
+import type { ProfilePhotoCropTransform } from '@/lib/profilePhotoCrop';
 import {
   webHover,
   webPillButtonHoverStyles,
@@ -13,13 +15,28 @@ import { useTheme, useThemedStyles } from '@/theme';
 type ProfilePhotoUploadProps = {
   onUpdated?: () => void;
   embedded?: boolean;
+  displayName?: string | null;
 };
 
-export function ProfilePhotoUpload({ onUpdated, embedded = false }: ProfilePhotoUploadProps) {
+export function ProfilePhotoUpload({
+  onUpdated,
+  embedded = false,
+  displayName,
+}: ProfilePhotoUploadProps) {
   const { profile } = useAuth();
   const { colors } = useTheme();
-  const { photoUri, hasPhoto, isUploading, pickPhoto, removePhoto } = useProfilePhoto();
+  const {
+    photoUri,
+    hasPhoto,
+    isUploading,
+    cropCandidate,
+    pickPhoto,
+    cancelCrop,
+    confirmCrop,
+    removePhoto,
+  } = useProfilePhoto();
   const avatarSize = embedded ? 80 : 56;
+  const resolvedDisplayName = displayName?.trim() || profile?.display_name;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: embedded
@@ -74,16 +91,14 @@ export function ProfilePhotoUpload({ onUpdated, embedded = false }: ProfilePhoto
     },
     actionText: { fontSize: 14, fontWeight: '600', color: colors.primary },
     actionTextPrimary: { color: colors.primaryOnPrimary },
-    empty: typography.subtitle,
-    embeddedHint: {
-      ...typography.subtitle,
-      textAlign: 'center',
-      color: colors.labelSecondary,
-    },
   }));
 
   const handlePick = async () => {
     await pickPhoto();
+  };
+
+  const handleConfirmCrop = async (transform: ProfilePhotoCropTransform) => {
+    await confirmCrop(transform);
     onUpdated?.();
   };
 
@@ -120,46 +135,65 @@ export function ProfilePhotoUpload({ onUpdated, embedded = false }: ProfilePhoto
 
   if (embedded) {
     return (
-      <View style={styles.card}>
-        <WorkerProfileAvatar
-          displayName={profile?.display_name}
-          photoUri={photoUri}
-          size={avatarSize}
-          isLoading={isUploading}
-        />
-        {!hasPhoto ? (
-          <Text style={styles.embeddedHint}>Professional headshot recommended.</Text>
-        ) : null}
-        <View style={[styles.embeddedActions, !hasPhoto && styles.embeddedActionsSingle]}>
-          {actionButtons}
+      <>
+        <View style={styles.card}>
+          <WorkerProfileAvatar
+            displayName={resolvedDisplayName}
+            photoUri={photoUri}
+            size={avatarSize}
+            isLoading={isUploading}
+          />
+          <View style={[styles.embeddedActions, !hasPhoto && styles.embeddedActionsSingle]}>
+            {actionButtons}
+          </View>
         </View>
-      </View>
+        {cropCandidate ? (
+          <ProfilePhotoCropEditor
+            visible
+            imageUri={cropCandidate.uri}
+            imageWidth={cropCandidate.width}
+            imageHeight={cropCandidate.height}
+            isSaving={isUploading}
+            onCancel={cancelCrop}
+            onConfirm={(transform) => void handleConfirmCrop(transform)}
+          />
+        ) : null}
+      </>
     );
   }
 
   return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <WorkerProfileAvatar
-          displayName={profile?.display_name}
-          photoUri={photoUri}
-          size={avatarSize}
-          isLoading={isUploading}
-        />
-        <View style={styles.textBlock}>
-          <Text style={styles.title}>Profile photo</Text>
-          <Text style={styles.meta}>
-            Optional — included with role and fill-in applications.
-          </Text>
+    <>
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <WorkerProfileAvatar
+            displayName={resolvedDisplayName}
+            photoUri={photoUri}
+            size={avatarSize}
+            isLoading={isUploading}
+          />
+          <View style={styles.textBlock}>
+            <Text style={styles.title}>Profile photo</Text>
+            <Text style={styles.meta}>
+              Optional — included with role and fill-in applications.
+            </Text>
+          </View>
+          {isUploading ? <ActivityIndicator color={colors.primary} /> : null}
         </View>
-        {isUploading ? <ActivityIndicator color={colors.primary} /> : null}
+
+        <View style={styles.actions}>{actionButtons}</View>
       </View>
-
-      {!hasPhoto ? (
-        <Text style={styles.empty}>Professional headshot recommended.</Text>
+      {cropCandidate ? (
+        <ProfilePhotoCropEditor
+          visible
+          imageUri={cropCandidate.uri}
+          imageWidth={cropCandidate.width}
+          imageHeight={cropCandidate.height}
+          isSaving={isUploading}
+          onCancel={cancelCrop}
+          onConfirm={(transform) => void handleConfirmCrop(transform)}
+        />
       ) : null}
-
-      <View style={styles.actions}>{actionButtons}</View>
-    </View>
+    </>
   );
 }

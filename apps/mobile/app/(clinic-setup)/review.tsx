@@ -1,7 +1,7 @@
 import { completeClinicSetup, getMissingClinicProfileFields } from '@chairside/api';
 import { SPECIALTY_OPTIONS, getTeamSizeRangeLabel } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
-import { CLINIC_HOME } from '@/lib/routing';
+import { CLINIC_HOME_WELCOME } from '@/lib/routing';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -17,7 +17,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -57,7 +57,7 @@ export default function ClinicReviewScreen() {
   const setupFormProps = useSetupFormScreenProps('clinic');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const progress = getClinicSetupStepNumber('review', isGroup);
+  const progress = useSetupStepProgress('review', { role: 'clinic' });
 
   useClinicSetupStepGuard('review', clinicProfile, isClinicProfileReady, isEditMode);
 
@@ -88,7 +88,7 @@ export default function ClinicReviewScreen() {
     try {
       await completeClinicSetup(user.id);
       await refreshClinicProfile();
-      router.replace(CLINIC_HOME);
+      router.replace(CLINIC_HOME_WELCOME);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : 'Could not finish setup. Please try again.',
@@ -127,7 +127,9 @@ export default function ClinicReviewScreen() {
           />
         </View>
       }>
-      <SetupStepProgress step={progress.step} total={progress.total} />
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <SurfaceCard padding="lg">
         <ReviewRow label="Clinic name" value={clinicProfile.clinic_name} />
         <ReviewRow label="Contact" value={clinicProfile.contact_name ?? ''} />

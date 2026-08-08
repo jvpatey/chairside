@@ -14,6 +14,7 @@ import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -24,7 +25,7 @@ import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { buildClinicManagerInviteUrl, formatInviteExpiry } from '@/lib/clinicInviteLinks';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import { CLINIC_SETUP_ABOUT } from '@/lib/routing';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -38,7 +39,7 @@ export default function ClinicTeamSetupScreen() {
   } = useClinicUpgradePrompt();
   const canAddManager = billing == null || billing.canAddManager;
   const { colors } = useTheme();
-  const progress = getClinicSetupStepNumber('team', true);
+  const progress = useSetupStepProgress('team', { role: 'clinic', isGroupOverride: true });
   const setupFormProps = useSetupFormScreenProps('clinic');
   const [invitations, setInvitations] = useState<ClinicInvitation[]>([]);
   const [locations, setLocations] = useState<ClinicLocation[]>([]);
@@ -187,7 +188,9 @@ export default function ClinicTeamSetupScreen() {
           onContinue={() => router.push(CLINIC_SETUP_ABOUT)}
         />
       }>
-      <SetupStepProgress step={progress.step} total={progress.total} />
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         {invitations.length === 0 && !showForm ? (
           <EmptyState
@@ -251,6 +254,7 @@ export default function ClinicTeamSetupScreen() {
               value={displayName}
               onChangeText={setDisplayName}
               autoCapitalize="words"
+              icon="person-outline"
             />
             <AuthField
               label="Email"
@@ -259,6 +263,7 @@ export default function ClinicTeamSetupScreen() {
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
+              icon="mail-outline"
             />
             <AuthField
               label="Title"
@@ -266,10 +271,11 @@ export default function ClinicTeamSetupScreen() {
               value={title}
               onChangeText={setTitle}
               autoCapitalize="words"
+              icon="ribbon-outline"
             />
             {locationOptions.length > 0 ? (
               <View style={styles.form}>
-                <Text style={styles.cardTitle}>Assign locations</Text>
+                <FormSectionHeader icon="location-outline" label="Assign locations" />
                 <ChipSelector
                   options={locationOptions}
                   selected={selectedLocationIds}

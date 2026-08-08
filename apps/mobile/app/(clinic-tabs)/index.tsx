@@ -25,6 +25,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
+import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
 import {
   DashboardOverviewPanel,
   type OverviewStat,
@@ -48,6 +49,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { useDashboardWelcomeCelebration } from '@/hooks/useDashboardWelcomeCelebration';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { HiringInsightsPanel } from '@/components/clinic/HiringInsightsPanel';
 import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
@@ -84,6 +86,10 @@ import {
 
 export default function ClinicDashboardScreen() {
   const { user } = useAuth();
+  const { visible: welcomeVisible, dismiss: dismissWelcome } = useDashboardWelcomeCelebration({
+    role: 'clinic',
+    userId: user?.id,
+  });
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
@@ -577,6 +583,11 @@ export default function ClinicDashboardScreen() {
 
   return (
     <DashboardScreen>
+      <DashboardWelcomeCelebration
+        visible={welcomeVisible}
+        role="clinic"
+        onDismiss={() => void dismissWelcome()}
+      />
       {upgradePrompt}
       {isLoading && !hasLoadedOnce.current ? <DashboardLoadingShell /> : dashboardBody}
     </DashboardScreen>

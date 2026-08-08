@@ -9,9 +9,9 @@ import { FormScreen } from '@/components/ui/FormScreen';
 import { RoleCard } from '@/components/onboarding/RoleCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
-import { CLINIC_SETUP_BASICS, ONBOARDING_CHANGE_ROLE } from '@/lib/routing';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
+import { CLINIC_SETUP_BASICS, ONBOARDING_CHANGE_ROLE } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicAccountTypeScreen() {
@@ -24,7 +24,10 @@ export default function ClinicAccountTypeScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
-  const progress = getClinicSetupStepNumber('account-type', accountType === 'group');
+  const progress = useSetupStepProgress('account-type', {
+    role: 'clinic',
+    isGroupOverride: accountType === 'group',
+  });
   const setupFormProps = useSetupFormScreenProps('clinic');
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
@@ -82,7 +85,9 @@ export default function ClinicAccountTypeScreen() {
           onContinue={handleContinue}
         />
       }>
-      <SetupStepProgress step={progress.step} total={progress.total} />
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         <Text style={styles.hint}>Choose the structure that best matches your account.</Text>
         <RoleCard

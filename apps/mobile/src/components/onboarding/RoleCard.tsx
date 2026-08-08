@@ -76,10 +76,11 @@ export function RoleCard({
       width: 44,
       height: 44,
       borderRadius: radii.md,
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: accentSubtle,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
+    // Selected cards sit on the subtle accent wash, so the badge goes solid to stay legible.
     iconWrapSelected: {
       backgroundColor: accentColor,
     },
@@ -147,11 +148,7 @@ export function RoleCard({
         ]}>
         <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
           {iconNode ?? (
-            <Ionicons
-              name={icon}
-              size={22}
-              color={selected ? accentOn : colors.labelSecondary}
-            />
+            <Ionicons name={icon} size={22} color={selected ? accentOn : accentColor} />
           )}
         </View>
         <View style={styles.textBlock}>

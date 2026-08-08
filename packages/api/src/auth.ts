@@ -1,3 +1,4 @@
+import type { Session, User } from '@supabase/supabase-js';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -15,6 +16,8 @@ import { getErrorMessage } from './errors';
 import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
 import { ensureProfileName } from './profile';
 import type { UserRole } from './types';
+
+export const PASSWORD_MIN_LENGTH = 8;
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -81,6 +84,44 @@ export async function signUpWithEmail(email: string, password: string, role: Use
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * signUp sometimes omits session even when the account is immediately usable
+ * (e.g. confirm-email disabled). Fall back to storage, then password sign-in.
+ * Returns null when the account exists but email confirmation is still required.
+ */
+export async function establishSessionAfterSignUp(
+  email: string,
+  password: string,
+  signUpData: { session: Session | null; user: User | null },
+): Promise<Session | null> {
+  if (signUpData.session) {
+    return signUpData.session;
+  }
+
+  const supabase = getSupabaseClient();
+  const {
+    data: { session: storedSession },
+  } = await supabase.auth.getSession();
+  if (storedSession) {
+    return storedSession;
+  }
+
+  if (!signUpData.user) {
+    return null;
+  }
+
+  try {
+    const { session } = await signInWithEmail(email, password);
+    return session;
+  } catch (error) {
+    const message = getErrorMessage(error, '').toLowerCase();
+    if (message.includes('email not confirmed')) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /** Mirrors the supabase-js default: sb-<project-ref>-auth-token. */
@@ -368,6 +409,18 @@ export function getAuthErrorMessage(error: unknown): string {
 
   if (lower.includes('issuer did not match') || lower.includes('account.apple.com')) {
     return 'Apple sign-in failed due to an Apple/Supabase issuer mismatch. Check Supabase Auth logs or contact Supabase support.';
+  }
+
+  if (
+    lower.includes('pwned') ||
+    lower.includes('known to be weak') ||
+    lower.includes('weak_password')
+  ) {
+    return 'That password has appeared in a data breach. Choose a different one.';
+  }
+
+  if (lower.includes('password should be at least')) {
+    return `Use at least ${PASSWORD_MIN_LENGTH} characters.`;
   }
 
   return message;

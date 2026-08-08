@@ -11,7 +11,7 @@ import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getElevationStyle, radii } from '@/theme/tokens';
-import { webTypography } from '@/theme/web';
+import { webOnboardingAtmosphereStyle, webTypography } from '@/theme/web';
 
 type AuthWebBrandVisual = 'appPreview' | 'rolePaths';
 
@@ -34,23 +34,27 @@ export function AuthWebBrandPanel({
   subtitle = ONBOARDING_SUBTITLE,
   visual = 'appPreview',
 }: AuthWebBrandPanelProps) {
-  const { isDark } = useTheme();
   const { isWide } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     panel: {
       flex: isWide ? 1 : undefined,
+      position: 'relative' as const,
+      overflow: isWide ? ('hidden' as const) : ('visible' as const),
+      backgroundColor: colors.backgroundGrouped,
+    },
+    atmosphere: {
+      ...StyleSheet.absoluteFillObject,
+      pointerEvents: 'none' as const,
+      ...webOnboardingAtmosphereStyle(isDark),
+    },
+    content: {
       paddingTop: isWide ? spacing.xl * 1.5 : insets.top + spacing.lg,
       paddingBottom: isWide ? spacing.xl * 1.5 : spacing.lg,
       paddingHorizontal: isWide ? spacing.xl * 1.5 : spacing.lg,
       justifyContent: 'center' as const,
       gap: isWide ? spacing.xl : spacing.md,
-      position: 'relative' as const,
-      overflow: isWide ? ('hidden' as const) : ('visible' as const),
-      backgroundImage: isDark
-        ? 'linear-gradient(160deg, rgba(74, 154, 255, 0.14) 0%, rgba(152, 150, 255, 0.08) 40%, rgba(12, 12, 14, 1) 100%)'
-        : 'linear-gradient(160deg, rgba(26, 111, 212, 0.1) 0%, rgba(88, 86, 214, 0.06) 40%, rgba(242, 242, 247, 1) 100%)',
     },
     copy: {
       gap: spacing.md,
@@ -72,16 +76,19 @@ export function AuthWebBrandPanel({
 
   return (
     <View style={styles.panel}>
-      <ChairsideWordmark variant="small" />
-      <View style={styles.copy}>
-        <Text style={styles.headline}>{headline}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-      </View>
-      {isWide ? (
-        <View style={styles.visual}>
-          <AuthWebBrandVisualPanel visual={visual} />
+      <View style={styles.atmosphere} />
+      <View style={styles.content}>
+        <ChairsideWordmark variant="small" />
+        <View style={styles.copy}>
+          <Text style={styles.headline}>{headline}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-      ) : null}
+        {isWide ? (
+          <View style={styles.visual}>
+            <AuthWebBrandVisualPanel visual={visual} />
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }

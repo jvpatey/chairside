@@ -31,6 +31,7 @@ export {
 } from './fillInOutreach';
 export {
   createSessionFromUrl,
+  establishSessionAfterSignUp,
   getAuthErrorMessage,
   resetPasswordForEmail,
   updatePassword,

@@ -10,6 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { useFormScroll } from '@/components/onboarding/OnboardingShell';
+import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import {
   webHover,
   webIconButtonHoverStyles,
@@ -19,7 +21,6 @@ import {
   formFieldInputRowFocusedStyle,
   formFieldInputRowStyle,
   formFieldInputStyle,
-  formFieldLabelStylePlain,
 } from '@/theme/formFieldTokens';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -28,6 +29,9 @@ type AuthFieldProps = {
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
+  required?: boolean;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  hint?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoComplete?: 'email' | 'password' | 'username' | 'current-password' | 'new-password' | 'off';
@@ -57,6 +61,9 @@ export function AuthField({
   onBlur,
   validated = false,
   invalid = false,
+  required = false,
+  icon,
+  hint,
   enablePasswordVisibilityToggle = false,
   trailingAccessory,
 }: AuthFieldProps) {
@@ -69,7 +76,6 @@ export function AuthField({
     wrap: {
       gap: theme.spacing.xs,
     },
-    label: formFieldLabelStylePlain(theme),
     inputRow: formFieldInputRowStyle(theme, { multiline }),
     inputRowValidated: {
       borderColor: theme.colors.success,
@@ -165,7 +171,11 @@ export function AuthField({
 
   return (
     <View ref={wrapRef} style={styles.wrap} collapsable={false}>
-      <Text style={styles.label}>{label}</Text>
+      {icon ? (
+        <FormSectionHeader icon={icon} label={label} required={required} hint={hint} />
+      ) : (
+        <FormFieldLabel label={label} required={required} />
+      )}
       <View
         style={[
           styles.inputRow,

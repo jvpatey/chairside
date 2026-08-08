@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { OnboardingShell, useFormScroll } from '@/components/onboarding/OnboardingShell';
 import { PageHeader } from '@/components/ui/PageHeader';
 import {
@@ -7,6 +7,7 @@ import {
   formContentWidthStyle,
 } from '@/theme/formFieldTokens';
 import { useThemedStyles, type GradientAccent } from '@/theme';
+import { getElevationStyle, radii } from '@/theme/tokens';
 import type { PageHeroGlowVariant } from '@/components/ui/PageHeroGlow';
 
 export { useFormScroll };
@@ -29,6 +30,8 @@ type FormScreenProps = {
   constrainFormWidth?: boolean;
   formMaxWidth?: number;
   fillViewport?: boolean;
+  /** Web-only: wrap scroll body in an elevated surface card (setup wizard). */
+  elevatedCard?: boolean;
 };
 
 /**
@@ -53,11 +56,23 @@ export function FormScreen({
   constrainFormWidth = false,
   formMaxWidth = FORM_CONTENT_MAX_WIDTH,
   fillViewport = false,
+  elevatedCard = false,
 }: FormScreenProps) {
-  const styles = useThemedStyles(({ spacing }) => ({
+  const useElevatedCard = elevatedCard && Platform.OS === 'web';
+
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     body: {
       gap: spacing.lg,
       ...(constrainFormWidth ? formContentWidthStyle(formMaxWidth) : {}),
+    },
+    elevatedCard: {
+      borderRadius: radii.lg,
+      padding: spacing.xl,
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      gap: spacing.lg,
+      ...getElevationStyle({ isDark, level: 'subtle' }),
     },
   }));
 
@@ -77,6 +92,12 @@ export function FormScreen({
     />
   ) : null;
 
+  const bodyContent = useElevatedCard ? (
+    <View style={styles.elevatedCard}>{children}</View>
+  ) : (
+    children
+  );
+
   return (
     <OnboardingShell
       header={header}
@@ -87,7 +108,7 @@ export function FormScreen({
       fillViewport={fillViewport}
       contentStyle={[styles.body, contentStyle]}
     >
-      {children}
+      {bodyContent}
     </OnboardingShell>
   );
 }

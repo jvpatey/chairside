@@ -1,5 +1,6 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import { ChipScrollTrack } from '@/components/clinic/ChipScrollTrack';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
@@ -12,6 +13,8 @@ type ChipSelectorProps<T extends string> = {
   compact?: boolean;
   accent?: GradientAccent;
   disabled?: boolean;
+  /** Background color for edge fade gradients (defaults to colors.surface). */
+  fadeColor?: string;
   onChange: (value: T | T[]) => void;
 };
 
@@ -23,6 +26,7 @@ export function ChipSelector<T extends string>({
   compact = false,
   accent,
   disabled = false,
+  fadeColor,
   onChange,
 }: ChipSelectorProps<T>) {
   const { colors } = useTheme();
@@ -116,16 +120,16 @@ export function ChipSelector<T extends string>({
     );
   });
 
+  const resolvedFadeColor = fadeColor ?? colors.surface;
+
   return horizontal ? (
-    <ScrollView
-      horizontal
-      nestedScrollEnabled
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[styles.horizontalContent, disabled && styles.disabled]}
-      scrollEnabled={!disabled}
+    <ChipScrollTrack
+      disabled={disabled}
+      fadeColor={resolvedFadeColor}
+      contentContainerStyle={styles.horizontalContent}
     >
       {chips}
-    </ScrollView>
+    </ChipScrollTrack>
   ) : (
     <View style={[styles.wrap, disabled && styles.disabled]}>{chips}</View>
   );

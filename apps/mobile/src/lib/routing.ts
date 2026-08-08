@@ -50,6 +50,8 @@ export type MessageThreadFocus = Pick<MessageThreadPreview, 'scrollToMessageId' 
 
 export const CLINIC_HOME: Href = '/(clinic-tabs)' as Href;
 export const WORKER_HOME: Href = '/(tabs)' as Href;
+export const CLINIC_HOME_WELCOME: Href = '/(clinic-tabs)?welcome=1' as Href;
+export const WORKER_HOME_WELCOME: Href = '/(tabs)?welcome=1' as Href;
 /** Post-auth role picker when correcting worker vs clinic during incomplete setup. */
 export const ONBOARDING_CHANGE_ROLE: Href = '/(onboarding)/role?fromAuth=1&changeRole=1' as Href;
 export const CLINIC_SETUP_ACCOUNT_TYPE: Href = '/(clinic-setup)/account-type' as Href;

@@ -173,3 +173,12 @@ export function useWebTypographySafe(): typeof webTypography | null {
 export function isWebPlatform(): boolean {
   return Platform.OS === 'web';
 }
+
+/** Subtle dual radial wash shared by auth, role, and setup onboarding surfaces. */
+export function webOnboardingAtmosphereStyle(isDark: boolean): ViewStyle {
+  return webOnlyStyle({
+    backgroundImage: isDark
+      ? 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(74, 154, 255, 0.1) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(152, 150, 255, 0.08) 0%, transparent 50%)'
+      : 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(26, 111, 212, 0.08) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(88, 86, 214, 0.06) 0%, transparent 50%)',
+  } as ViewStyle);
+}

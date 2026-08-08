@@ -1,9 +1,7 @@
 import {
   EMPLOYMENT_TYPE_OPTIONS,
   PRACTICE_TYPE_OPTIONS,
-  SOFTWARE_OPTIONS,
   TRAVEL_RADIUS_RANGE_OPTIONS,
-  resolveSoftwareSelection,
   type TravelRadiusRange,
 } from '@chairside/config';
 import { router } from 'expo-router';
@@ -12,12 +10,15 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { SoftwareUsedSelector } from '@/components/clinic/SoftwareUsedSelector';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -29,6 +30,7 @@ export default function WorkerSkillsScreen() {
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const setupFormProps = useSetupFormScreenProps('worker');
+  const progress = useSetupStepProgress('skills', { role: 'worker' });
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
   const [practiceTypes, setPracticeTypes] = useState<string[]>([]);
   const [preferredEmployment, setPreferredEmployment] = useState<string[]>([]);
@@ -48,7 +50,6 @@ export default function WorkerSkillsScreen() {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
     section: { gap: spacing.sm },
-    label: { ...typography.body, fontWeight: '600' },
     hint: typography.subtitle,
   }));
 
@@ -101,21 +102,18 @@ export default function WorkerSkillsScreen() {
           onContinue={handleContinue}
         />
       }>
-      {!isEditMode ? <SetupStepProgress step={3} total={5} /> : null}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
+        <SoftwareUsedSelector
+          value={softwareUsed}
+          onChange={setSoftwareUsed}
+          label="Software familiarity"
+          icon="desktop-outline"
+        />
         <View style={styles.section}>
-          <Text style={styles.label}>Software familiarity (optional)</Text>
-          <ChipSelector
-            options={SOFTWARE_OPTIONS.map((item) => ({ value: item, label: item }))}
-            selected={softwareUsed}
-            multiple
-            onChange={(value) =>
-              setSoftwareUsed(resolveSoftwareSelection(softwareUsed, value as string[]))
-            }
-          />
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Practice types (optional)</Text>
+          <FormSectionHeader icon="business-outline" label="Practice types" />
           <ChipSelector
             options={PRACTICE_TYPE_OPTIONS}
             selected={practiceTypes}
@@ -124,7 +122,7 @@ export default function WorkerSkillsScreen() {
           />
         </View>
         <View style={styles.section}>
-          <Text style={styles.label}>Preferred employment (optional)</Text>
+          <FormSectionHeader icon="time-outline" label="Preferred employment" />
           <ChipSelector
             options={EMPLOYMENT_TYPE_OPTIONS}
             selected={preferredEmployment}
@@ -133,7 +131,7 @@ export default function WorkerSkillsScreen() {
           />
         </View>
         <View style={styles.section}>
-          <Text style={styles.label}>Travel distance (optional)</Text>
+          <FormSectionHeader icon="navigate-outline" label="Travel distance" />
           <Text style={styles.hint}>How far you are willing to commute for work.</Text>
           <ChipSelector
             options={[...TRAVEL_RADIUS_RANGE_OPTIONS]}

@@ -1,11 +1,10 @@
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Text, View } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { setProfileRole } from '@chairside/api';
 
-import { AuthHeroGlow } from '@/components/onboarding/AuthHeroGlow';
-import { AuthScreenHeader, AuthScreenTitle } from '@/components/onboarding/AuthScreenHeader';
+import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import {
   AUTH_STAGGER,
@@ -26,8 +25,6 @@ import { getChangeRoleGateDecision } from '@/lib/changeRoleGate';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
-
-const ROLE_TRUST_LINE = 'Same-day fill-ins · Apply in one tap · Start free';
 
 export default function RoleScreen() {
   const { fromAuth, changeRole } = useLocalSearchParams<{
@@ -52,21 +49,12 @@ export default function RoleScreen() {
   const useTileCards = Platform.OS === 'web';
   const cardsRow = useTileCards && isWide;
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     cards: {
       flexDirection: cardsRow ? ('row' as const) : ('column' as const),
       gap: spacing.md,
     },
     cardWrap: cardsRow ? { flex: 1, minWidth: 0 } : {},
-    trust: {
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: '600' as const,
-      letterSpacing: 0.2,
-      color: colors.labelTertiary,
-      textAlign: 'center' as const,
-      marginTop: useTileCards ? 0 : spacing.lg,
-    },
     footer: {
       gap: spacing.md,
     },
@@ -153,7 +141,6 @@ export default function RoleScreen() {
   return (
     <OnboardingShell
       webLayout="centeredDecision"
-      backgroundAccessory={<AuthHeroGlow />}
       footer={
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
@@ -168,9 +155,9 @@ export default function RoleScreen() {
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
         <AuthScreenHeader
           title={
-            <AuthScreenTitle>
+            <>
               How will you use <ChairsideBrandText />?
-            </AuthScreenTitle>
+            </>
           }
           subtitle={subtitle}
           backLabel={
@@ -197,9 +184,6 @@ export default function RoleScreen() {
           </Animated.View>
         ))}
       </View>
-      <Animated.View entering={enterFadeUp(AUTH_STAGGER.switchRow, reducedMotion)}>
-        <Text style={styles.trust}>{ROLE_TRUST_LINE}</Text>
-      </Animated.View>
     </OnboardingShell>
   );
 }

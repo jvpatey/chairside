@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { readFileAsBase64 } from '@/lib/readFileAsBase64';
@@ -89,8 +90,6 @@ export function ClinicLocationPhotoField({
   const styles = useThemedStyles(({ spacing, typography }) => ({
     section: { gap: spacing.sm, alignItems: 'center' as const },
     labelRow: { alignSelf: 'stretch' as const, gap: spacing.xs },
-    label: { ...typography.body, fontWeight: '600' as const },
-    hint: typography.subtitle,
     actions: {
       flexDirection: 'row' as const,
       gap: spacing.md,
@@ -168,10 +167,11 @@ export function ClinicLocationPhotoField({
   return (
     <View style={styles.section}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>Clinic photo (optional)</Text>
-        <Text style={styles.hint}>
-          Matches the photo candidates see for an individual clinic at this location.
-        </Text>
+        <FormSectionHeader
+          icon="camera-outline"
+          label="Clinic photo"
+          hint="Matches the photo candidates see for an individual clinic at this location."
+        />
       </View>
       <Pressable
         onPress={() => void handlePick()}

@@ -37,7 +37,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { formatPhoneNumber } from '@/lib/phone';
 import { CLINIC_SETUP_PRACTICE, CLINIC_SETUP_TEAM } from '@/lib/routing';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import {
   validateAddressStep,
@@ -82,7 +82,7 @@ export default function ClinicLocationsSetupScreen() {
     showAddLocationUpgrade,
     handleBillingError,
   } = useClinicUpgradePrompt();
-  const progress = getClinicSetupStepNumber('locations', true);
+  const progress = useSetupStepProgress('locations', { role: 'clinic', isGroupOverride: true });
   const setupFormProps = useSetupFormScreenProps('clinic');
   const canAddLocation = billing == null || billing.canAddLocation;
   const [locations, setLocations] = useState<ClinicLocation[]>([]);
@@ -302,7 +302,9 @@ export default function ClinicLocationsSetupScreen() {
           onContinue={handleContinue}
         />
       }>
-      <SetupStepProgress step={progress.step} total={progress.total} />
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         {activeLocations.length === 0 ? (
           <EmptyState
@@ -354,6 +356,8 @@ export default function ClinicLocationsSetupScreen() {
               onChangeText={setName}
               autoCapitalize="words"
               autoComplete="off"
+              icon="location-outline"
+              required
               invalid={showValidation && !name.trim()}
             />
             <ClinicLocationPhotoField
@@ -372,11 +376,17 @@ export default function ClinicLocationsSetupScreen() {
                 await refreshClinicProfile();
               }}
             />
-            <AddressAutocomplete value={address} onChange={setAddress} />
+            <AddressAutocomplete
+              value={address}
+              onChange={setAddress}
+              required
+              sectionIcon="location-outline"
+            />
             <ClinicLocationFormFields
               values={practice}
               onChange={setPractice}
               showValidation={showValidation}
+              softwareRequired
             />
             <SetupStepFooter
               canContinue={canSave}

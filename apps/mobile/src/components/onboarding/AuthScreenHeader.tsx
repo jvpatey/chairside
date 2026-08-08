@@ -14,24 +14,6 @@ type AuthScreenHeaderProps = {
   accent?: GradientAccent;
 };
 
-/** @deprecated Prefer PageHeader directly. Kept for embedded master/detail panes. */
-export function AuthScreenTitle({
-  children,
-  compact = false,
-}: {
-  children: ReactNode;
-  compact?: boolean;
-}) {
-  return (
-    <PageHeader
-      variant="detail"
-      title={children}
-      compact={compact}
-      showNotifications={false}
-    />
-  );
-}
-
 export function AuthScreenHeader({
   title,
   eyebrow,

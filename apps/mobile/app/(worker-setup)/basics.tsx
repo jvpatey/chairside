@@ -1,22 +1,27 @@
 import { ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
 import {
   getWorkerRoleTypes,
+  joinDisplayName,
   resolveAuthNameParts,
   updateProfileName,
 } from '@chairside/api';
 import { router } from 'expo-router';
 import { ONBOARDING_CHANGE_ROLE, WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { FormScreen } from '@/components/ui/FormScreen';
+import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -25,10 +30,12 @@ import { useThemedStyles } from '@/theme';
 
 export default function WorkerBasicsScreen() {
   const { user, profile, refreshProfile } = useAuth();
-  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+  const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const setupFormProps = useSetupFormScreenProps('worker');
+  const progress = useSetupStepProgress('basics', { role: 'worker' });
+  const { isWide } = useResponsiveLayout();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
@@ -54,11 +61,15 @@ export default function WorkerBasicsScreen() {
 
   const validation = validateWorkerBasicsStep({ firstName, lastName, roleTypes });
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    form: { gap: spacing.lg },
-    section: { gap: spacing.sm },
-    nameRow: { gap: spacing.md },
-    label: { ...typography.body, fontWeight: '600' },
+  const styles = useThemedStyles((theme) => ({
+    form: { gap: theme.spacing.lg },
+    section: { gap: theme.spacing.sm },
+    photoSection: { gap: theme.spacing.sm },
+    nameRow: {
+      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      gap: theme.spacing.md,
+    },
+    nameField: isWide ? { flex: 1, minWidth: 0 } : {},
   }));
 
   useEffect(() => {
@@ -106,7 +117,7 @@ export default function WorkerBasicsScreen() {
     <FormScreen
       {...setupFormProps}
       title="Professional background · Basics"
-      subtitle="Tell clinics who you are and which roles you are qualified for."
+      subtitle="Add a photo, your name, and the roles you are qualified for."
       backLabel={isEditMode ? undefined : 'Back'}
       onBack={() =>
         isEditMode ? router.replace(exitHref) : router.replace(ONBOARDING_CHANGE_ROLE)
@@ -122,28 +133,50 @@ export default function WorkerBasicsScreen() {
           onContinue={handleContinue}
         />
       }>
-      {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
-        <View style={styles.nameRow}>
-          <AuthField
-            label="First name"
-            placeholder="First name"
-            value={firstName}
-            onChangeText={setFirstName}
-            autoCapitalize="words"
-            invalid={showValidation && !firstName.trim()}
+        <View style={styles.photoSection}>
+          <FormSectionHeader
+            icon="camera-outline"
+            label="Profile photo"
+            hint="Optional — shown when you apply to clinics."
           />
-          <AuthField
-            label="Last name"
-            placeholder="Last name"
-            value={lastName}
-            onChangeText={setLastName}
-            autoCapitalize="words"
-            invalid={showValidation && !lastName.trim()}
+          <ProfilePhotoUpload
+            embedded
+            displayName={joinDisplayName(firstName, lastName)}
+            onUpdated={() => void refreshWorkerProfile()}
           />
         </View>
+        <View style={styles.nameRow}>
+          <View style={styles.nameField}>
+            <AuthField
+              label="First name"
+              placeholder="First name"
+              value={firstName}
+              onChangeText={setFirstName}
+              autoCapitalize="words"
+              icon="person-outline"
+              required
+              invalid={showValidation && !firstName.trim()}
+            />
+          </View>
+          <View style={styles.nameField}>
+            <AuthField
+              label="Last name"
+              placeholder="Last name"
+              value={lastName}
+              onChangeText={setLastName}
+              autoCapitalize="words"
+              icon="person-outline"
+              required
+              invalid={showValidation && !lastName.trim()}
+            />
+          </View>
+        </View>
         <View style={styles.section}>
-          <Text style={styles.label}>Roles</Text>
+          <FormSectionHeader icon="briefcase-outline" label="Roles" required />
           <ChipSelector
             options={[...ROLE_TYPE_OPTIONS]}
             selected={roleTypes}

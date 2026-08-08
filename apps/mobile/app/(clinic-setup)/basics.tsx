@@ -13,13 +13,14 @@ import {
   ONBOARDING_CHANGE_ROLE,
 } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ClinicMemberProfileFields } from '@/components/clinic/ClinicMemberProfileFields';
 import { pickLocationPhotoFile } from '@/components/clinic/ClinicLocationPhotoField';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -28,7 +29,7 @@ import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { validateClinicBasicsStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
@@ -84,7 +85,7 @@ export default function ClinicBasicsScreen() {
 
   useClinicSetupStepGuard('basics', clinicProfile, isClinicProfileReady, isEditMode);
 
-  const progress = getClinicSetupStepNumber('basics', isGroup);
+  const progress = useSetupStepProgress('basics', { role: 'clinic' });
   const basicsValidation = validateClinicBasicsStep({ clinicName, contactName, phone });
   const membershipNameMissing = isGroup && !memberDisplayName.trim();
   const validationOk = basicsValidation.ok && !membershipNameMissing;
@@ -95,11 +96,9 @@ export default function ClinicBasicsScreen() {
   const memberPhotoDisplayUri = pendingPhoto?.uri ?? savedMemberPhotoUri;
   const hasMemberPhoto = Boolean(memberPhotoDisplayUri);
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
     section: { gap: spacing.sm },
-    sectionLabel: { ...typography.body, fontWeight: '600' },
-    hint: typography.subtitle,
   }));
 
   useEffect(() => {
@@ -220,7 +219,9 @@ export default function ClinicBasicsScreen() {
           onContinue={handleContinue}
         />
       }>
-      {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         <AuthField
           label={isGroup ? 'Group name' : 'Clinic name'}
@@ -229,14 +230,17 @@ export default function ClinicBasicsScreen() {
           onChangeText={setClinicName}
           autoCapitalize="words"
           autoComplete="off"
+          icon="business-outline"
+          required
           invalid={showValidation && !basicsValidation.ok && !clinicName.trim()}
         />
         {isGroup ? (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Your profile</Text>
-            <Text style={styles.hint}>
-              Shown as your name and title when you post and manage the group.
-            </Text>
+            <FormSectionHeader
+              icon="person-circle-outline"
+              label="Your profile"
+              hint="Shown as your name and title when you post and manage the group."
+            />
             <ClinicMemberProfileFields
               displayName={memberDisplayName}
               title={memberTitle}
@@ -255,18 +259,24 @@ export default function ClinicBasicsScreen() {
               }
               showValidation={showValidation}
               nameInvalid={membershipNameMissing}
+              displayNameRequired
             />
           </View>
         ) : null}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Contact</Text>
-          <Text style={styles.hint}>Phone or contact name required.</Text>
+          <FormSectionHeader
+            icon="call-outline"
+            label="Contact"
+            required
+            hint="Provide at least a phone number or contact name."
+          />
           <AuthField
             label="Contact name"
             placeholder="Office manager or owner"
             value={contactName}
             onChangeText={setContactName}
             autoCapitalize="words"
+            icon="person-outline"
             invalid={
               showValidation &&
               !basicsValidation.ok &&
@@ -280,6 +290,7 @@ export default function ClinicBasicsScreen() {
             value={phone}
             onChangeText={(text) => setPhone(formatPhoneNumber(text))}
             keyboardType="phone-pad"
+            icon="call-outline"
             invalid={
               showValidation &&
               !basicsValidation.ok &&

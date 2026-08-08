@@ -291,6 +291,7 @@ export function OnboardingShell({
       ]}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
+      directionalLockEnabled
       automaticallyAdjustKeyboardInsets={Platform.OS === 'ios' && !footer}
       showsVerticalScrollIndicator={false}
     >

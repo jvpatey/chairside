@@ -16,7 +16,7 @@ import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicAboutScreen() {
@@ -24,7 +24,7 @@ export default function ClinicAboutScreen() {
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const setupFormProps = useSetupFormScreenProps('clinic');
-  const progress = getClinicSetupStepNumber('about', isGroup);
+  const progress = useSetupStepProgress('about', { role: 'clinic' });
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
   const [practiceDoctors, setPracticeDoctors] = useState<PracticeDoctor[]>([]);
@@ -94,7 +94,9 @@ export default function ClinicAboutScreen() {
           onContinue={handleContinue}
         />
       }>
-      {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         {!isGroup ? <ClinicLogoSetupField /> : null}
         {isGroup ? (
@@ -114,14 +116,16 @@ export default function ClinicAboutScreen() {
           onChangeText={setDescription}
           autoCapitalize="sentences"
           multiline
+          icon="text-outline"
         />
         <AuthField
-          label="Website (optional)"
+          label="Website"
           placeholder="https://yourclinic.ca"
           value={website}
           onChangeText={setWebsite}
           keyboardType="url"
           autoCapitalize="none"
+          icon="globe-outline"
         />
       </View>
     </FormScreen>
