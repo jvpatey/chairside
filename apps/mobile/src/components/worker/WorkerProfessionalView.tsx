@@ -2,14 +2,14 @@ import type { WorkerProfile } from '@chairside/api';
 import { getWorkerRoleTypes } from '@chairside/api';
 import {
   formatWorkerEducation,
+  getEmploymentTypeLabel,
   getProvinceLabel,
   getRoleTypeLabel,
   getSpecialtyLabel,
   getTravelRadiusRangeLabel,
 } from '@chairside/config';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { DetailProse } from '@/components/clinic/DetailCard';
 import { AuthField } from '@/components/onboarding/AuthField';
@@ -27,104 +27,11 @@ import {
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
-import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 type WorkerProfessionalViewProps = {
   profile: WorkerProfile | null;
 };
-
-function RolesHeroCard({ roles }: { roles: string[] }) {
-  const { colors, isDark } = useTheme();
-  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
-
-  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
-    card: {
-      borderRadius: radii.hero,
-      overflow: 'hidden',
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      position: 'relative',
-      ...elevation('subtle'),
-    },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    content: {
-      padding: spacing.lg,
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    eyebrow: {
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
-      color: colors.primary,
-    },
-    rolesWrap: {
-      alignItems: 'center',
-      gap: spacing.xs,
-      width: '100%',
-    },
-    roleTitle: {
-      ...typography.title,
-      fontSize: 26,
-      lineHeight: 32,
-      fontWeight: '700',
-      textAlign: 'center',
-      color: colors.labelPrimary,
-    },
-    empty: {
-      ...typography.body,
-      fontSize: 17,
-      lineHeight: 24,
-      textAlign: 'center',
-      color: colors.labelSecondary,
-      fontStyle: 'italic',
-    },
-    hint: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      textAlign: 'center',
-      color: colors.labelSecondary,
-      marginTop: spacing.xs,
-    },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <LinearGradient
-        colors={heroGradient}
-        locations={[0, 0.35, 0.65, 0.85, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
-      <View style={styles.content}>
-        <Text style={styles.eyebrow}>Roles</Text>
-        {roles.length === 0 ? (
-          <Text style={styles.empty}>
-            Add roles so clinics know what positions fit you.
-          </Text>
-        ) : (
-          <View style={styles.rolesWrap}>
-            {roles.map((role) => (
-              <Text key={role} style={styles.roleTitle}>
-                {getRoleTypeLabel(role)}
-              </Text>
-            ))}
-          </View>
-        )}
-        <Text style={styles.hint}>
-          The positions you are open to — clinics use this to match you with the right
-          opportunities.
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps) {
   const { refreshWorkerProfile } = useWorkerProfile();
@@ -147,7 +54,7 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
     );
   }
 
-  const roles = getWorkerRoleTypes(profile);
+  const roles = getWorkerRoleTypes(profile).map(getRoleTypeLabel);
   const locationLabel = [profile.city, profile.province ? getProvinceLabel(profile.province) : null]
     .filter(Boolean)
     .join(', ');
@@ -162,6 +69,7 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
   const education = formatWorkerEducation(profile);
   const softwareTags = profile.software_used;
   const specialtyTags = profile.practice_types.map(getSpecialtyLabel);
+  const employmentTags = (profile.preferred_employment_types ?? []).map(getEmploymentTypeLabel);
   const travelLabel = getTravelRadiusRangeLabel(profile.travel_radius_range);
   const hasBio = Boolean(profile.bio?.trim());
 
@@ -193,9 +101,20 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
         </Text>
       </ProfileSummaryBanner>
 
-      <RolesHeroCard roles={roles} />
+      <SectionPanel stepNumber={1} stepAccent="primary" title="Roles">
+        <Text style={styles.hint}>
+          The positions you are open to — clinics use this to match you with the right
+          opportunities.
+        </Text>
+        <FieldBlock label="Qualified roles">
+          <ProfileTagRow
+            tags={roles}
+            emptyText="Add roles so clinics know what positions fit you."
+          />
+        </FieldBlock>
+      </SectionPanel>
 
-      <SectionPanel stepNumber={1} stepAccent="primary" title="Experience">
+      <SectionPanel stepNumber={2} stepAccent="secondary" title="Experience">
         <Text style={styles.hint}>
           Your clinical background helps clinics quickly assess whether you are a strong fit.
         </Text>
@@ -214,7 +133,7 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel stepNumber={2} stepAccent="secondary" title="Location">
+      <SectionPanel stepNumber={3} stepAccent="primary" title="Location">
         <Text style={styles.hint}>
           Where you are based and how far you are willing to travel for work.
         </Text>
@@ -231,9 +150,9 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel stepNumber={3} stepAccent="primary" title="Skills">
+      <SectionPanel stepNumber={4} stepAccent="secondary" title="Skills & preferences">
         <Text style={styles.hint}>
-          Software and practice environments you are comfortable working in.
+          Software, practice environments, and employment types you prefer.
         </Text>
         <FieldBlock label="Software">
           <ProfileTagRow
@@ -246,6 +165,13 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
           <ProfileTagRow
             tags={specialtyTags}
             emptyText="Add practice environments you prefer."
+          />
+        </FieldBlock>
+        <FieldDivider />
+        <FieldBlock label="Preferred employment">
+          <ProfileTagRow
+            tags={employmentTags}
+            emptyText="Add employment types you are open to."
           />
         </FieldBlock>
       </SectionPanel>

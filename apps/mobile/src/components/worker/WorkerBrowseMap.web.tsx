@@ -9,9 +9,10 @@ import {
   type CSSProperties,
 } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { WorkerMapClinicSheet } from '@/components/worker/WorkerMapClinicSheet';
+import { WorkerMapNotices } from '@/components/worker/WorkerMapNotices';
 import { WorkerMapPin, WorkerMapWorkerPin } from '@/components/worker/WorkerMapPin';
 import { WorkerMapUnavailable } from '@/components/worker/WorkerMapUnavailable';
 import { WorkerMapControls } from '@/components/worker/WorkerMapControls';
@@ -142,34 +143,11 @@ export function WorkerBrowseMap({
     [groups],
   );
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors }) => ({
     root: {
       flex: 1,
       minHeight: 0,
       width: '100%',
-    },
-    notices: {
-      gap: spacing.sm,
-      marginBottom: spacing.md,
-      flexShrink: 0,
-    },
-    notice: {
-      backgroundColor: colors.fillSubtle,
-      borderRadius: 12,
-      padding: spacing.md,
-      gap: spacing.xs,
-    },
-    noticeTitle: {
-      ...typography.subtitle,
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.labelPrimary,
-    },
-    noticeBody: {
-      ...typography.subtitle,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelSecondary,
     },
     mapShell: {
       flex: 1,
@@ -361,34 +339,12 @@ export function WorkerBrowseMap({
     );
   }
 
-  const showNotices = !workerHasCoordinates || unmappableCount > 0;
-
   return (
     <View style={styles.root}>
-      {showNotices ? (
-        <View style={styles.notices}>
-          {!workerHasCoordinates ? (
-            <View style={styles.notice}>
-              <Text style={styles.noticeTitle}>Showing your province</Text>
-              <Text style={styles.noticeBody}>
-                Add your worker address in profile setup to center the map near you and improve
-                distance sorting.
-              </Text>
-            </View>
-          ) : null}
-          {unmappableCount > 0 ? (
-            <View style={styles.notice}>
-              <Text style={styles.noticeTitle}>
-                {unmappableCount} posting{unmappableCount === 1 ? '' : 's'} hidden from map
-              </Text>
-              <Text style={styles.noticeBody}>
-                Some clinics are missing coordinates. Switch to list view to see every matching
-                posting.
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+      <WorkerMapNotices
+        unmappableCount={unmappableCount}
+        workerHasCoordinates={workerHasCoordinates}
+      />
       <View style={styles.mapShell} collapsable={false}>
         <MapContainer onElement={handleMapContainer} />
         <View style={styles.mapOverlay} pointerEvents="box-none">

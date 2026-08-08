@@ -3,6 +3,10 @@ import * as Haptics from 'expo-haptics';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import {
+  DashboardWidgetIconBadge,
+  type DashboardWidgetAccent,
+} from '@/components/dashboard/DashboardWidgetIconBadge';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getElevationStyle } from '@/theme/tokens';
@@ -47,6 +51,7 @@ export function ProfileStepNumber({
 export type ProfileSettingsCardProps = {
   title: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  iconAccent?: DashboardWidgetAccent;
   stepNumber?: number;
   stepAccent?: ProfileStepAccent;
   children: ReactNode;
@@ -60,6 +65,7 @@ export type ProfileSettingsCardProps = {
 export function ProfileSettingsCard({
   title,
   icon,
+  iconAccent,
   stepNumber,
   stepAccent = 'primary',
   children,
@@ -134,9 +140,13 @@ export function ProfileSettingsCard({
       {stepNumber != null ? (
         <ProfileStepNumber value={stepNumber} accent={stepAccent} />
       ) : icon ? (
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={20} color={iconColor} />
-        </View>
+        iconAccent ? (
+          <DashboardWidgetIconBadge icon={icon} accent={iconAccent} />
+        ) : (
+          <View style={styles.iconWrap}>
+            <Ionicons name={icon} size={20} color={iconColor} />
+          </View>
+        )
       ) : null}
       <Text style={styles.title}>{title}</Text>
       {resolvedAccessory ? <View style={styles.accessory}>{resolvedAccessory}</View> : null}

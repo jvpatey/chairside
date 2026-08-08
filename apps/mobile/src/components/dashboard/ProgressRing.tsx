@@ -46,17 +46,19 @@ export function ProgressRing({
 
   const half = size / 2;
 
+  // Each visible border pair paints a semicircle whose trailing edge sits 135deg
+  // clockwise from 12 o'clock, so sweeping to `angle` means rotating by angle - 135.
   const rightHalfStyle = useAnimatedStyle(() => {
     const clamped = Math.min(angle.value, 180);
     return {
-      transform: [{ rotate: `${clamped - 180}deg` }],
+      transform: [{ rotate: `${clamped - 135}deg` }],
     };
   });
 
   const leftHalfStyle = useAnimatedStyle(() => {
     const clamped = Math.max(angle.value - 180, 0);
     return {
-      transform: [{ rotate: `${clamped - 180}deg` }],
+      transform: [{ rotate: `${clamped - 135}deg` }],
     };
   });
 
@@ -97,7 +99,7 @@ export function ProgressRing({
     },
     arcRight: {
       left: -half,
-      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
       borderLeftColor: 'transparent',
     },
     arcLeft: {
@@ -129,9 +131,11 @@ export function ProgressRing({
           <View style={[styles.clip, { left: half, width: half }]}>
             <Animated.View style={[styles.arc, styles.arcRight, rightHalfStyle]} />
           </View>
-          <View style={[styles.clip, { left: 0, width: half }]}>
-            <Animated.View style={[styles.arc, styles.arcLeft, leftHalfStyle]} />
-          </View>
+          {progress > 0.5 ? (
+            <View style={[styles.clip, { left: 0, width: half }]}>
+              <Animated.View style={[styles.arc, styles.arcLeft, leftHalfStyle]} />
+            </View>
+          ) : null}
         </>
       ) : null}
       {showLabel ? (

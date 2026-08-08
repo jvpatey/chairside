@@ -2,10 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme, useThemedStyles } from '@/theme';
+import { radii } from '@/theme/tokens';
 import {
-  webFullBleedRowInsets,
   webHover,
-  webListRowHoverStyles,
+  webOnlyStyle,
   webPointer,
 } from '@/lib/webPressableStyles';
 
@@ -35,15 +35,22 @@ export function ProfileSettingsRow({
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
-      paddingVertical: spacing.sm + 4,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: embedded ? 0 : spacing.sm,
       minHeight: subtitle ? 60 : 52,
-      borderRadius: 10,
-      ...(embedded ? null : webFullBleedRowInsets(spacing.lg)),
+      borderRadius: radii.sm,
       ...webPointer(),
+      ...webOnlyStyle({
+        transitionProperty: 'background-color',
+        transitionDuration: '140ms',
+      } as const),
     },
-    rowHovered: webListRowHoverStyles(colors),
+    rowHovered: {
+      backgroundColor: colors.primarySubtle,
+    },
     rowPressed: {
-      opacity: 0.65,
+      backgroundColor: colors.fillSubtle,
+      opacity: 0.95,
     },
     iconWrap: {
       width: 36,

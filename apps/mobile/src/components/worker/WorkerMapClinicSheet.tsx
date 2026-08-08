@@ -65,7 +65,7 @@ export function WorkerMapClinicSheet({
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: spacing.sm,
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
       paddingBottom: spacing.md,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.separator,
@@ -80,9 +80,16 @@ export function WorkerMapClinicSheet({
       gap: spacing.xs,
       marginTop: spacing.sm,
     },
+    // Negative margin + matching padding keeps cards aligned to the sheet gutter
+    // while giving the scroll viewport room for the web hover lift and its shadow.
+    scroll: {
+      marginHorizontal: -spacing.md,
+    },
     list: {
       gap: dashboardSectionGap(spacing),
-      paddingBottom: spacing.xs,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.md,
     },
     closeButton: {
       padding: spacing.xs,
@@ -145,7 +152,7 @@ export function WorkerMapClinicSheet({
               <Ionicons name="close" size={22} color={colors.labelSecondary} />
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={styles.list}>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.list}>
             {group.items.map((item) => (
               <WorkerMapPostCard
                 key={`${item.kind}-${item.id}`}
