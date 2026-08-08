@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function applySessionFromStorage() {
       const generation = ++applyGenerationRef.current;
-      await applyAuthSessionFromStorage({
+      return applyAuthSessionFromStorage({
         getSession: async () => {
           const supabase = getSupabaseClient();
           const {
@@ -142,25 +142,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
 
+    /**
+     * Auth is only "ready" once the winning apply has settled the session.
+     * On web, auth-js emits SIGNED_IN while cold start is still awaiting
+     * getSession; marking ready after the superseded apply left session null
+     * for a frame, which bounced the setup gates out to onboarding.
+     */
+    async function syncSession() {
+      try {
+        const applied = await applySessionFromStorage();
+        if (!applied) return;
+      } catch {
+        if (cancelled) return;
+        profileRequestRef.current += 1;
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setIsProfileReady(true);
+      }
+
+      if (!cancelled) setIsAuthReady(true);
+    }
+
     async function bootstrapAuth() {
       try {
         const recoveryPending = await isPasswordRecoveryPending();
         if (!cancelled) {
           setIsPasswordRecoveryPendingState(recoveryPending);
         }
-
-        await applySessionFromStorage();
       } catch {
-        if (!cancelled) {
-          profileRequestRef.current += 1;
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setIsProfileReady(true);
-        }
-      } finally {
-        if (!cancelled) setIsAuthReady(true);
+        // Recovery flag is best-effort — a storage failure must not block auth.
       }
+
+      await syncSession();
     }
 
     bootstrapAuth();
@@ -220,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        void applySessionFromStorage();
+        void syncSession();
       });
       subscription = result.data.subscription;
     } catch {
