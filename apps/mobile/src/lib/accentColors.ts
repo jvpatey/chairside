@@ -15,3 +15,8 @@ export function resolveAccentOnColor(colors: Colors, accent: GradientAccent = 'p
   if (accent === 'tertiary') return colors.tertiaryOnTertiary;
   return accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
 }
+
+export function resolveAccentPressed(colors: Colors, accent: GradientAccent = 'primary'): string {
+  if (accent === 'tertiary') return colors.tertiaryPressed;
+  return accent === 'secondary' ? colors.secondaryPressed : colors.primaryPressed;
+}

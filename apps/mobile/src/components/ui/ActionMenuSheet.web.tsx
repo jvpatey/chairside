@@ -104,13 +104,10 @@ function ActionMenuDialog({
     },
     confirmActions: {
       flexDirection: 'row',
+      alignItems: 'stretch',
       gap: spacing.sm,
       marginTop: spacing.xs,
       width: '100%' as const,
-    },
-    confirmButtonWrap: {
-      flex: 1,
-      minWidth: 0,
     },
     menuHeaderRich: {
       gap: spacing.xs,
@@ -165,23 +162,21 @@ function ActionMenuDialog({
             {message ? <Text style={styles.message}>{message}</Text> : null}
           </View>
           <View style={styles.confirmActions}>
-            <View style={styles.confirmButtonWrap}>
-              <OnboardingButton
-                label="Cancel"
-                variant="secondary"
-                onPress={onClose}
-              />
-            </View>
-            <View style={styles.confirmButtonWrap}>
-              <OnboardingButton
-                label={confirmAction.label}
-                variant={confirmAction.destructive ? 'destructive' : 'primary'}
-                onPress={() => {
-                  onClose();
-                  confirmAction.onPress();
-                }}
-              />
-            </View>
+            <OnboardingButton
+              label="Cancel"
+              variant="secondary"
+              split
+              onPress={onClose}
+            />
+            <OnboardingButton
+              label={confirmAction.label}
+              variant={confirmAction.destructive ? 'destructive' : 'primary'}
+              split
+              onPress={() => {
+                onClose();
+                confirmAction.onPress();
+              }}
+            />
           </View>
         </>
       ) : (

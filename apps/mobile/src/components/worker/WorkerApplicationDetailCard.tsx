@@ -52,6 +52,7 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ApplicationClinicMapsLink } from '@/components/worker/ApplicationClinicMapsLink';
 import { ApplicationPreviewField } from '@/components/worker/ApplicationPackageFields';
 import { WorkerApplicationKitSubmission } from '@/components/worker/WorkerApplicationKitSubmission';
+import { useToast } from '@/contexts/ToastContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import {
   getApplicationMatchDisplayContext,
@@ -66,6 +67,7 @@ import { getWorkerCalendarRoute } from '@/lib/calendarNavigation';
 import {
   getApplyRoute,
   getWorkerApplicationMessagesRoute,
+  getWorkerApplicationPostingReturnOptions,
   getWorkerClinicProfileRoute,
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
@@ -125,7 +127,7 @@ function WorkerApplicationDetailSection({
       borderRadius: 8,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.primarySubtle,
+      backgroundColor: colors.tertiarySubtle,
     },
     title: {
       ...typography.label,
@@ -145,7 +147,7 @@ function WorkerApplicationDetailSection({
     <View style={styles.section}>
       <View style={styles.header}>
         <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={15} color={colors.primary} />
+          <Ionicons name={icon} size={15} color={colors.tertiary} />
         </View>
         <Text style={styles.title}>{title}</Text>
       </View>
@@ -328,7 +330,7 @@ function WorkerApplicationSummaryCard({
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
       borderLeftWidth: 3,
-      borderLeftColor: colors.primary,
+      borderLeftColor: colors.tertiary,
       gap: spacing.xs,
     },
     quoteLabel: {
@@ -427,6 +429,7 @@ function WorkerActionPanel({
         <OnboardingButton
           label={messageAction.label}
           solid
+          accent="tertiary"
           onPress={messageAction.onPress}
         />
         {postingAction ? (
@@ -476,6 +479,7 @@ export function WorkerApplicationDetailCard({
   onHidden,
   hasUnreadMessages = false,
 }: WorkerApplicationDetailCardProps) {
+  const { showToast } = useToast();
   const [rescheduleVisible, setRescheduleVisible] = useState(false);
   const clinicDeleted = application.clinic_account_deleted;
   const canCancel = isActiveApplicationStatus(application.status) && !clinicDeleted;
@@ -501,7 +505,7 @@ export function WorkerApplicationDetailCard({
       ...typography.body,
       fontSize: 14,
       lineHeight: 20,
-      color: colors.primary,
+      color: colors.tertiary,
     },
     clinicNamePressable: {
       alignSelf: 'flex-start',
@@ -513,17 +517,22 @@ export function WorkerApplicationDetailCard({
     router.push(getWorkerApplicationMessagesRoute(application.id, returnTo));
   };
 
+  const postingReturnOptions = getWorkerApplicationPostingReturnOptions(
+    application.id,
+    returnTo,
+  );
+
   const handleViewPosting = () => {
     if (onViewPosting) {
       onViewPosting();
       return;
     }
     if (application.post_type === 'job' && application.job_post_id) {
-      router.push(getWorkerJobDetailRoute(application.job_post_id));
+      router.push(getWorkerJobDetailRoute(application.job_post_id, postingReturnOptions));
       return;
     }
     if (application.post_type === 'shift' && application.shift_post_id) {
-      router.push(getWorkerShiftDetailRoute(application.shift_post_id));
+      router.push(getWorkerShiftDetailRoute(application.shift_post_id, postingReturnOptions));
     }
   };
 
@@ -532,7 +541,7 @@ export function WorkerApplicationDetailCard({
 
   const handleViewClinicProfile = () => {
     if (!application.clinic_id) return;
-    router.push(getWorkerClinicProfileRoute(application.clinic_id));
+    router.push(getWorkerClinicProfileRoute(application.clinic_id, postingReturnOptions));
   };
 
   const canViewPosting =
@@ -700,12 +709,10 @@ export function WorkerApplicationDetailCard({
         try {
           await deleteApplication(application.worker_id, application.id);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert(
-            isShift ? 'Request withdrawn' : 'Application cancelled',
-            isShift
-              ? 'Your cover request has been removed.'
-              : 'Your application has been cancelled.',
-            [{ text: 'OK', onPress: () => onCancelled?.() }],
+          onCancelled?.();
+          showToast(
+            isShift ? 'Your cover request has been removed.' : 'Your application has been cancelled.',
+            'success',
           );
         } catch (error) {
           Alert.alert(
@@ -949,7 +956,7 @@ export function WorkerApplicationDetailCard({
 
         {clinicDeleted ? (
           <SurfaceCard padding="md" gap>
-            <OnboardingButton label="View messages" onPress={handleMessage} />
+            <OnboardingButton label="View messages" accent="tertiary" onPress={handleMessage} />
             {canHide ? (
               <OnboardingButton
                 label="Remove from list"

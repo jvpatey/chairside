@@ -1,7 +1,9 @@
 import {
   getMissingClinicProfileFields,
+  listClinicApplications,
   listJobPosts,
   getJobPostApplicationCountsMap,
+  type ClinicApplication,
   type JobPost,
 } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +15,7 @@ import {
   CLINIC_SETUP_BASICS,
   getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
+  getClinicApplicationRoute,
   getJobDetailRoute,
   getRoleHistoryRoute,
 } from '@/lib/routing';
@@ -49,6 +52,7 @@ import {
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
 import { hasActiveListSearch, matchesJobPostSearch } from '@/lib/clinicListSearch';
+import { summarizeJobApplicantPreviews } from '@/lib/dashboardAttention';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
@@ -66,6 +70,7 @@ export default function ClinicPostingsScreen() {
     useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
+  const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [jobStatusFilter, setJobStatusFilter] = useState<Extract<JobStatusFilter, 'live' | 'paused'>>('live');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
@@ -87,6 +92,19 @@ export default function ClinicPostingsScreen() {
         matchesJobPostSearch(job, searchQuery),
       ),
     [jobs, jobStatusFilter, jobRoleTypeFilter, searchQuery],
+  );
+
+  const applicantPreviewByJobId = useMemo(
+    () =>
+      summarizeJobApplicantPreviews(
+        applications.map((application) => ({
+          id: application.id,
+          job_post_id: application.job_post_id,
+          worker_display_name: application.worker_display_name,
+          worker_photo_storage_path: application.worker_photo_storage_path,
+        })),
+      ),
+    [applications],
   );
 
   const hasSearch = hasActiveListSearch(searchQuery);
@@ -169,6 +187,7 @@ export default function ClinicPostingsScreen() {
   const load = useCallback(async () => {
     if (!clinicId) {
       setJobs([]);
+      setApplications([]);
       setLoadError(false);
       setIsLoading(false);
       return;
@@ -177,16 +196,19 @@ export default function ClinicPostingsScreen() {
     setIsLoading(true);
     setLoadError(false);
     try {
-      const [jobPosts, counts] = await Promise.all([
+      const [jobPosts, counts, applicationRows] = await Promise.all([
         listJobPosts(clinicId, { locationIds: scopedLocationIds }),
         getJobPostApplicationCountsMap(clinicId),
+        listClinicApplications(clinicId, 'active', { locationIds: scopedLocationIds }),
       ]);
       setJobs(jobPosts);
       setApplicantCounts(counts);
+      setApplications(applicationRows);
       await refreshBilling();
     } catch {
       setJobs([]);
       setApplicantCounts({});
+      setApplications([]);
       setLoadError(true);
     } finally {
       setIsLoading(false);
@@ -331,9 +353,15 @@ export default function ClinicPostingsScreen() {
                           key={job.id}
                           job={job}
                           applicantCount={applicantCounts[job.id] ?? 0}
+                          applicants={applicantPreviewByJobId[job.id]}
                           onPress={() => router.push(getJobDetailRoute(job.id))}
                           onApplicantsPress={() =>
                             router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
+                          }
+                          onApplicantPress={(applicationId) =>
+                            router.push(
+                              getClinicApplicationRoute(applicationId, 'postings-tab', job.id),
+                            )
                           }
                           manage={
                             user?.id

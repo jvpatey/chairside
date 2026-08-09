@@ -33,6 +33,7 @@ type ClinicApplicationCardProps = {
   returnTo?: ClinicApplicationReturnTarget;
   roleJobId?: string;
   hasUnreadMessages?: boolean;
+  embedded?: boolean;
 };
 
 function buildQualificationsLine(application: ClinicApplication, roleJobId?: string): string | null {
@@ -90,6 +91,7 @@ export function ClinicApplicationCard({
   returnTo = 'applications-tab',
   roleJobId,
   hasUnreadMessages = false,
+  embedded = false,
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
   const { isApplicationHighlighted } = useApplicationTabBadge();
@@ -105,6 +107,7 @@ export function ClinicApplicationCard({
   );
   const qualificationsLine = buildQualificationsLine(application, roleJobId);
   const contextLine = buildContextLine(application, hasUnreadMessages, workerDeleted);
+  const postContextLine = !roleJobId ? application.post_title?.trim() || null : null;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
@@ -133,6 +136,12 @@ export function ClinicApplicationCard({
       letterSpacing: -0.3,
       color: colors.labelPrimary,
     },
+    postContext: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '500',
+      color: colors.labelSecondary,
+    },
     matchSlot: {
       flexShrink: 0,
       paddingTop: 1,
@@ -158,7 +167,7 @@ export function ClinicApplicationCard({
   };
 
   return (
-    <SurfaceCard padding="md" onPress={openDetail}>
+    <SurfaceCard variant={embedded ? 'inner' : 'default'} padding="md" onPress={openDetail}>
       <View style={styles.row}>
         <WorkerProfileAvatar displayName={applicantName} photoUri={photoUri} size={44} />
         <View style={styles.body}>
@@ -177,6 +186,12 @@ export function ClinicApplicationCard({
               </View>
             ) : null}
           </View>
+
+          {postContextLine ? (
+            <Text style={styles.postContext} numberOfLines={1}>
+              {postContextLine}
+            </Text>
+          ) : null}
 
           <BadgeRow>
             <ClinicApplicationStatusBadge

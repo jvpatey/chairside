@@ -29,7 +29,11 @@ export function buildClinicAttentionItems({
   if (newApplications > 0) {
     items.push({
       id: 'new-applications',
-      label: `${newApplications} new application${newApplications === 1 ? '' : 's'}`,
+      label: 'New applications',
+      description:
+        newApplications === 1
+          ? '1 applicant waiting for review'
+          : `${newApplications} applicants waiting for review`,
       icon: 'document-text-outline',
       accent: 'primary',
       onPress: onOpenApplications,
@@ -37,7 +41,11 @@ export function buildClinicAttentionItems({
   } else if (applicationUpdateCount > 0) {
     items.push({
       id: 'application-updates',
-      label: `${applicationUpdateCount} application update${applicationUpdateCount === 1 ? '' : 's'}`,
+      label: 'Application updates',
+      description:
+        applicationUpdateCount === 1
+          ? '1 update to review'
+          : `${applicationUpdateCount} updates to review`,
       icon: 'document-text-outline',
       accent: 'primary',
       onPress: onOpenApplications,
@@ -47,7 +55,11 @@ export function buildClinicAttentionItems({
   if (fillInUpdateCount > 0) {
     items.push({
       id: 'cover-requests',
-      label: `${fillInUpdateCount} cover request${fillInUpdateCount === 1 ? '' : 's'}`,
+      label: 'Cover requests',
+      description:
+        fillInUpdateCount === 1
+          ? '1 pending fill-in request'
+          : `${fillInUpdateCount} pending fill-in requests`,
       icon: 'calendar-outline',
       accent: 'secondary',
       urgent: true,
@@ -60,7 +72,11 @@ export function buildClinicAttentionItems({
     if (dueFollowUps.length > 0) {
       items.push({
         id: 'crm-follow-ups',
-        label: `${dueFollowUps.length} follow-up${dueFollowUps.length === 1 ? '' : 's'} due`,
+        label: 'Follow-ups due',
+        description:
+          dueFollowUps.length === 1
+            ? '1 candidate needs a follow-up'
+            : `${dueFollowUps.length} candidates need follow-up`,
         icon: 'alarm-outline',
         accent: 'tertiary',
         urgent: true,
@@ -90,9 +106,13 @@ export function buildWorkerAttentionItems({
   if (applicationUpdateCount > 0) {
     items.push({
       id: 'application-updates',
-      label: `${applicationUpdateCount} application update${applicationUpdateCount === 1 ? '' : 's'}`,
+      label: 'Application updates',
+      description:
+        applicationUpdateCount === 1
+          ? '1 update to check'
+          : `${applicationUpdateCount} updates to check`,
       icon: 'document-text-outline',
-      accent: 'primary',
+      accent: 'tertiary',
       onPress: onOpenApplications,
     });
   }
@@ -100,7 +120,11 @@ export function buildWorkerAttentionItems({
   if (fillInPendingCount > 0) {
     items.push({
       id: 'fill-in-updates',
-      label: `${fillInPendingCount} fill-in update${fillInPendingCount === 1 ? '' : 's'}`,
+      label: 'Fill-in updates',
+      description:
+        fillInPendingCount === 1
+          ? '1 update to check'
+          : `${fillInPendingCount} updates to check`,
       icon: 'calendar-outline',
       accent: 'secondary',
       onPress: onOpenFillIns,
@@ -145,23 +169,34 @@ export function summarizeClinicLogoPreviews(
   return { names, photoPaths };
 }
 
+export type JobApplicantPreview = {
+  id: string;
+  name: string;
+  photoPath: string | null;
+};
+
+export type JobApplicantPreviewMap = Record<string, JobApplicantPreview[]>;
+
 export function summarizeJobApplicantPreviews(
   applications: Array<{
+    id: string;
     job_post_id: string | null;
     worker_display_name: string | null;
     worker_photo_storage_path: string | null;
   }>,
-): Record<string, { names: string[]; photoPaths: (string | null)[] }> {
-  const map: Record<string, { names: string[]; photoPaths: (string | null)[] }> = {};
+): JobApplicantPreviewMap {
+  const map: JobApplicantPreviewMap = {};
 
   for (const application of applications) {
     if (!application.job_post_id) continue;
     const jobId = application.job_post_id;
-    const existing = map[jobId] ?? { names: [], photoPaths: [] };
-    if (existing.names.length >= 4) continue;
+    const existing = map[jobId] ?? [];
     const name = application.worker_display_name?.trim() || 'Applicant';
-    existing.names.push(name);
-    existing.photoPaths.push(application.worker_photo_storage_path);
+    existing.push({
+      id: application.id,
+      name,
+      photoPath: application.worker_photo_storage_path,
+    });
     map[jobId] = existing;
   }
 

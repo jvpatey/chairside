@@ -53,7 +53,7 @@ export function WorkerApplicationListCard({
       ...typography.subtitle,
       fontSize: 13,
       fontWeight: '600',
-      color: colors.primary,
+      color: colors.tertiary,
     },
     accessory: {
       alignItems: 'flex-end',
@@ -128,14 +128,14 @@ export function WorkerApplicationListCard({
         avatarSize={compact ? 40 : 44}
         accessory={compact ? undefined : (
           <View style={styles.accessory}>
-            {hasApplicationUpdate ? <ApplicationCardBadge /> : null}
+            {hasApplicationUpdate ? <ApplicationCardBadge accent="tertiary" /> : null}
             {statusBadge}
           </View>
         )}
         statusFooter={
           compact ? (
             <View style={styles.compactFooter}>
-              {hasApplicationUpdate ? <ApplicationCardBadge /> : null}
+              {hasApplicationUpdate ? <ApplicationCardBadge accent="tertiary" /> : null}
               {statusBadge}
             </View>
           ) : undefined

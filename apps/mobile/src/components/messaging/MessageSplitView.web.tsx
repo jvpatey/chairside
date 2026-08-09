@@ -120,6 +120,11 @@ export function MessageSplitView({
     setContextModalVisible((current) => !current);
   }, [isXWide]);
 
+  const handleContextNavigateAway = useCallback(() => {
+    setContextCollapsed(true);
+    setContextModalVisible(false);
+  }, []);
+
   const handleConversationsChange = useCallback(
     (rows: Conversation[]) => {
       scheduleSplitViewUpdate(() => {
@@ -263,6 +268,7 @@ export function MessageSplitView({
             conversation={selectedConversation}
             role={role}
             onCollapse={() => setContextCollapsed(true)}
+            onNavigateAway={handleContextNavigateAway}
           />
         }
       />
@@ -272,6 +278,7 @@ export function MessageSplitView({
           onClose={() => setContextModalVisible(false)}
           conversation={selectedConversation}
           role={role}
+          onNavigateAway={handleContextNavigateAway}
         />
       ) : null}
     </>
@@ -325,6 +332,11 @@ export function MessageThreadSplitView({
     }
     setContextModalVisible((current) => !current);
   }, [isXWide]);
+
+  const handleContextNavigateAway = useCallback(() => {
+    setContextCollapsed(true);
+    setContextModalVisible(false);
+  }, []);
 
   const handleInboxVisibilityChange = useCallback((state: { isFilteredEmpty: boolean }) => {
     scheduleSplitViewUpdate(() => {
@@ -407,6 +419,7 @@ export function MessageThreadSplitView({
             conversation={selectedConversation}
             role={role}
             onCollapse={() => setContextCollapsed(true)}
+            onNavigateAway={handleContextNavigateAway}
           />
         }
       />
@@ -416,6 +429,7 @@ export function MessageThreadSplitView({
           onClose={() => setContextModalVisible(false)}
           conversation={selectedConversation}
           role={role}
+          onNavigateAway={handleContextNavigateAway}
         />
       ) : null}
     </>

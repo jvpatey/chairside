@@ -76,10 +76,10 @@ export function DetailRow({
       paddingVertical: spacing.sm + 2,
     },
     label: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: '600',
-      color: colors.labelSecondary,
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '500',
+      color: colors.labelTertiary,
     },
     labelInline: {
       flex: 1,

@@ -7,7 +7,6 @@ import {
   listClinicApplications,
   listClinicCalendarEvents,
   listConversationsForClinic,
-  listJobApplicationSummaries,
   listJobPosts,
   listShiftPosts,
   type CalendarEvent,
@@ -16,7 +15,6 @@ import {
   listUpcomingConfirmedFillIns,
   type ConfirmedFillInSummary,
   type Conversation,
-  type JobApplicationSummary,
   type JobPost,
   type ShiftPost,
 } from '@chairside/api';
@@ -63,6 +61,7 @@ import {
   summarizeJobApplicantPreviews,
 } from '@/lib/dashboardAttention';
 import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
+import { sortDashboardApplications } from '@/lib/applicationPipeline';
 import { getFirstName } from '@/lib/greeting';
 import {
   isFillInPostingLimitReached,
@@ -92,7 +91,8 @@ export default function ClinicDashboardScreen() {
   });
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: fillInUpdateCount } = useFillInPending();
-  const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
+  const { pendingCount: applicationUpdateCount, isApplicationHighlighted } =
+    useApplicationTabBadge();
   const { clinicProfile, isProfileComplete, organization } = useClinicProfile();
   const {
     clinicId,
@@ -119,9 +119,6 @@ export default function ClinicDashboardScreen() {
   const [selectedOverview, setSelectedOverview] = useState<OverviewStat>('roles');
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
-  const [jobApplicationSummaries, setJobApplicationSummaries] = useState<JobApplicationSummary[]>(
-    [],
-  );
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [shiftPendingCounts, setShiftPendingCounts] = useState<Record<string, number>>({});
   const [shiftApplicationCounts, setShiftApplicationCounts] = useState<Record<string, number>>({});
@@ -145,7 +142,6 @@ export default function ClinicDashboardScreen() {
         nextCounts,
         jobPosts,
         shiftPosts,
-        summaries,
         counts,
         pendingShiftCounts,
         conversationRows,
@@ -156,7 +152,6 @@ export default function ClinicDashboardScreen() {
         getClinicDashboardCounts(clinicId, { locationIds: scopedLocationIds }),
         listJobPosts(clinicId, { locationIds: scopedLocationIds }),
         listShiftPosts(clinicId, { locationIds: scopedLocationIds }),
-        listJobApplicationSummaries(clinicId, { locationIds: scopedLocationIds }),
         getJobPostApplicationCountsMap(clinicId, { locationIds: scopedLocationIds }),
         getShiftPostPendingApplicationCountsMap(clinicId, {
           locationIds: scopedLocationIds,
@@ -177,7 +172,6 @@ export default function ClinicDashboardScreen() {
       setCounts(nextCounts);
       setJobs(jobPosts);
       setShifts(shiftPosts);
-      setJobApplicationSummaries(summaries);
       setApplicantCounts(counts);
       setShiftPendingCounts(pendingShiftCounts);
       setShiftApplicationCounts(Object.fromEntries(shiftApplicationCountEntries));
@@ -202,7 +196,6 @@ export default function ClinicDashboardScreen() {
         });
         setJobs([]);
         setShifts([]);
-        setJobApplicationSummaries([]);
         setApplicantCounts({});
         setShiftPendingCounts({});
         setShiftApplicationCounts({});
@@ -320,12 +313,18 @@ export default function ClinicDashboardScreen() {
     () =>
       summarizeJobApplicantPreviews(
         applications.map((application) => ({
+          id: application.id,
           job_post_id: application.job_post_id,
           worker_display_name: application.worker_display_name,
           worker_photo_storage_path: application.worker_photo_storage_path,
         })),
       ),
     [applications],
+  );
+
+  const dashboardApplications = useMemo(
+    () => sortDashboardApplications(applications, isApplicationHighlighted),
+    [applications, isApplicationHighlighted],
   );
 
   const attentionItems = useMemo(
@@ -490,7 +489,7 @@ export default function ClinicDashboardScreen() {
                 label: 'Applications',
                 count: counts.totalApplications,
                 badgeCount: applicationUpdateCount || counts.newApplications,
-                accent: 'primary',
+                accent: 'tertiary',
                 icon: 'people-outline',
               },
             ]}>
@@ -501,7 +500,7 @@ export default function ClinicDashboardScreen() {
               jobs={jobs}
               shifts={shifts}
               confirmedFillIns={confirmedFillIns}
-              jobApplicationSummaries={jobApplicationSummaries}
+              applications={dashboardApplications}
               applicantCounts={applicantCounts}
               shiftPendingCounts={shiftPendingCounts}
               shiftApplicationCounts={shiftApplicationCounts}
@@ -515,6 +514,11 @@ export default function ClinicDashboardScreen() {
               onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
               onJobApplicationsPress={(jobId) =>
                 router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
+              }
+              onApplicantPress={(applicationId, jobId) =>
+                router.push(
+                  getClinicApplicationRoute(applicationId, 'dashboard-applications', jobId),
+                )
               }
               onViewAllPress={overviewViewAll}
             />

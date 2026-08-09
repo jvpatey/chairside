@@ -1,4 +1,4 @@
-import type { ConfirmedFillInSummary, JobApplicationSummary, JobPost, ShiftPost } from '@chairside/api';
+import type { ConfirmedFillInSummary, ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
 import { formatJobApplicationSummaryMeta } from '@chairside/config';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
@@ -6,6 +6,7 @@ import { View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
+import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
@@ -36,6 +37,7 @@ import { CLINIC_PROFILE, type FillInReturnTarget } from '@/lib/routing';
 import { formatPostedDateLabel } from '@/lib/dates';
 
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
+import type { JobApplicantPreviewMap } from '@/lib/dashboardAttention';
 import { isMainListJob } from '@/lib/postingFilters';
 import { useThemedStyles } from '@/theme';
 
@@ -157,11 +159,11 @@ const OVERVIEW_SECTION_TITLES: Record<OverviewStat, string> = {
 type DashboardOverviewPanelProps = {
   selected: OverviewStat;
   embedded?: boolean;
-  applicantPreviewByJobId?: Record<string, { names: string[]; photoPaths?: (string | null)[] }>;
+  applicantPreviewByJobId?: JobApplicantPreviewMap;
   jobs: JobPost[];
   shifts: ShiftPost[];
   confirmedFillIns?: ConfirmedFillInSummary[];
-  jobApplicationSummaries: JobApplicationSummary[];
+  applications: ClinicApplication[];
   applicantCounts?: Record<string, number>;
   shiftPendingCounts?: Record<string, number>;
   shiftApplicationCounts?: Record<string, number>;
@@ -174,6 +176,7 @@ type DashboardOverviewPanelProps = {
   onConfirmedFillInsUpdated?: () => void;
   onJobPress?: (jobId: string) => void;
   onJobApplicationsPress?: (jobId: string) => void;
+  onApplicantPress?: (applicationId: string, jobId: string) => void;
   onViewAllPress?: () => void;
 };
 
@@ -195,7 +198,7 @@ function DashboardListCard({
   postedAt?: string | null;
   unseenCount?: number;
   applicantCount?: number;
-  applicantPreview?: { names: string[]; photoPaths?: (string | null)[] };
+  applicantPreview?: JobApplicantPreviewMap[string];
   locationId?: string | null;
   statusBadge?: ReactNode;
   highlighted?: boolean;
@@ -212,10 +215,10 @@ function DashboardListCard({
   const detailLine = [hasApplicants ? countLabel : null, meta].filter(Boolean).join(' · ') || null;
 
   const applicantStack =
-    applicantPreview && applicantPreview.names.length > 0 ? (
+    applicantPreview && applicantPreview.length > 0 ? (
       <ApplicantAvatarStack
-        names={applicantPreview.names}
-        photoPaths={applicantPreview.photoPaths}
+        names={applicantPreview.map((applicant) => applicant.name)}
+        photoPaths={applicantPreview.map((applicant) => applicant.photoPath)}
         size={32}
       />
     ) : null;
@@ -255,7 +258,7 @@ export function DashboardOverviewPanel({
   jobs,
   shifts,
   confirmedFillIns = [],
-  jobApplicationSummaries,
+  applications,
   applicantCounts,
   shiftPendingCounts = {},
   shiftApplicationCounts = {},
@@ -268,6 +271,7 @@ export function DashboardOverviewPanel({
   onConfirmedFillInsUpdated,
   onJobPress,
   onJobApplicationsPress,
+  onApplicantPress,
   onViewAllPress,
 }: DashboardOverviewPanelProps) {
   const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
@@ -321,20 +325,27 @@ export function DashboardOverviewPanel({
                   key={job.id}
                   job={job}
                   embedded={embedded}
-                  applicantPreview={applicantPreviewByJobId?.[job.id]}
+                  applicants={applicantPreviewByJobId?.[job.id]}
                   applicantCount={applicantCounts?.[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                   onApplicantsPress={
                     onJobApplicationsPress ? () => onJobApplicationsPress(job.id) : undefined
                   }
-                  manage={
-                    clinicId && onJobUpdated && onJobDeleted
-                      ? {
-                          clinicId,
-                          onUpdated: onJobUpdated,
-                          onDeleted: () => onJobDeleted(job.id),
-                        }
+                  onApplicantPress={
+                    onApplicantPress
+                      ? (applicationId) => onApplicantPress(applicationId, job.id)
                       : undefined
+                  }
+                  manage={
+                    embedded
+                      ? undefined
+                      : clinicId && onJobUpdated && onJobDeleted
+                        ? {
+                            clinicId,
+                            onUpdated: onJobUpdated,
+                            onDeleted: () => onJobDeleted(job.id),
+                          }
+                        : undefined
                   }
                 />
               ))}
@@ -405,7 +416,7 @@ export function DashboardOverviewPanel({
       ) : null}
 
       {selected === 'applications' ? (
-        jobApplicationSummaries.length === 0 ? (
+        applications.length === 0 ? (
           <DashboardEmptyState
             icon="people-outline"
             title="No applications yet"
@@ -413,30 +424,14 @@ export function DashboardOverviewPanel({
           />
         ) : (
           <View style={styles.list}>
-            {jobApplicationSummaries.map((summary) => {
-              const hasNewApplicants = summary.unseen_count > 0;
-              return (
-                <DashboardListCard
-                  key={summary.job_post_id}
-                  embedded={embedded}
-                  title={summary.post_title}
-                  applicantCount={summary.applicant_count}
-                  unseenCount={summary.unseen_count}
-                  applicantPreview={applicantPreviewByJobId?.[summary.job_post_id]}
-                  locationId={
-                    jobs.find((job) => job.id === summary.job_post_id)?.location_id ?? null
-                  }
-                  postedAt={summary.post_created_at}
-                  meta={formatJobApplicationSummaryMeta(summary)}
-                  highlighted={hasNewApplicants}
-                  onPress={
-                    onJobApplicationsPress
-                      ? () => onJobApplicationsPress(summary.job_post_id)
-                      : undefined
-                  }
-                />
-              );
-            })}
+            {applications.map((application) => (
+              <ClinicApplicationCard
+                key={application.id}
+                application={application}
+                embedded={embedded}
+                returnTo="dashboard-applications"
+              />
+            ))}
           </View>
         )
         ) : null}

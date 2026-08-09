@@ -7,6 +7,7 @@ import { Pressable, Text, View } from 'react-native';
 import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { RoleApplicantPreviewList } from '@/components/clinic/RoleApplicantPreviewList';
 import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
 import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
@@ -22,6 +23,7 @@ import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
 import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import type { JobApplicantPreview } from '@/lib/dashboardAttention';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -35,13 +37,14 @@ export type RolePostingCardManageProps = {
 type RolePostingCardProps = {
   job: JobPost;
   applicantCount?: number;
-  /** Dashboard: show applicant faces instead of clinic logo. */
-  applicantPreview?: { names: string[]; photoPaths?: (string | null)[] };
+  /** Dashboard: applicant rows shown below the role header. */
+  applicants?: JobApplicantPreview[];
   layout?: ListingLayout;
-  /** Dashboard file-tab panel: inner surface + applicant-first identity. */
+  /** Inner surface for dashboard file-tab panels. */
   embedded?: boolean;
   onPress?: () => void;
   onApplicantsPress?: () => void;
+  onApplicantPress?: (applicationId: string) => void;
   manage?: RolePostingCardManageProps;
   /** Hide applicant review pill (detail screens). */
   hideActions?: boolean;
@@ -50,13 +53,14 @@ type RolePostingCardProps = {
 export function RolePostingCard({
   job,
   applicantCount = 0,
-  layout = 'tile',
+  layout = 'list',
   embedded = false,
   onPress,
   onApplicantsPress,
+  onApplicantPress,
   manage,
   hideActions = false,
-  applicantPreview,
+  applicants = [],
 }: RolePostingCardProps) {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
@@ -83,6 +87,10 @@ export function RolePostingCard({
     }) ?? formatPostedDateLabel(job.created_at);
   const roleMeta = formatJobPostRoleMeta(job);
   const hasApplicants = applicantCount > 0;
+  const showApplicantList =
+    !hideActions && applicants.length > 0 && Boolean(onApplicantPress);
+  const showApplicantPill =
+    !showApplicantList && !hideActions && hasApplicants && Boolean(onApplicantsPress);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
@@ -140,8 +148,6 @@ export function RolePostingCard({
   const statusBadge = <JobPostStatusBadge status={job.status} />;
   const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
 
-  const showApplicantPill = !hideActions && hasApplicants && Boolean(onApplicantsPress);
-
   const applicantControl = showApplicantPill ? (
     <ApplicantCountButton
       label={formatApplicantCountLabel(applicantCount)}
@@ -165,21 +171,13 @@ export function RolePostingCard({
   );
 
   const applicantLead =
-    applicantPreview && applicantPreview.names.length > 0 ? (
+    !embedded && applicants.length > 0 ? (
       <ApplicantAvatarStack
-        names={applicantPreview.names}
-        photoPaths={applicantPreview.photoPaths}
+        names={applicants.map((applicant) => applicant.name)}
+        photoPaths={applicants.map((applicant) => applicant.photoPath)}
         size={32}
       />
     ) : null;
-
-  const mobileEmbeddedFooter = (
-    <View style={styles.headerActions}>
-      {applicantLead}
-      {applicantControl}
-      {manageButton}
-    </View>
-  );
 
   const wageLabel = job.wage_range ? (
     <Text style={styles.wage}>{job.wage_range}</Text>
@@ -201,7 +199,7 @@ export function RolePostingCard({
       <SurfaceCard
         variant={surfaceVariant}
         padding="none"
-        onPress={onPress}
+        onPress={showApplicantList ? undefined : onPress}
         style={isFeatured ? featuredTreatment.styles.card : undefined}
         featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
         <BrowseListRow
@@ -222,25 +220,19 @@ export function RolePostingCard({
           detail={mobileEmbedded ? postedLabel || null : undefined}
           postedLabel={mobileEmbedded ? null : postedLabel || null}
           postedLabelPlacement="header"
-          headerDetail={embedded || mobileEmbedded ? null : roleMeta}
+          headerDetail={null}
           headerAccent={mobileEmbedded ? null : job.wage_range || null}
           topTrailing={mobileEmbedded ? statusBadges : headerActions}
-          statusFooter={mobileEmbedded ? mobileEmbeddedFooter : undefined}
-          statusFooterAlign={mobileEmbedded ? 'end' : 'start'}
-          contentAccessory={
-            mobileEmbedded
-              ? undefined
-              : applicantLead || applicantControl
-                ? (
-                    <View style={{ alignItems: 'flex-end', gap: 8 }}>
-                      {applicantLead}
-                      {applicantControl}
-                    </View>
-                  )
-                : undefined
-          }
-          showChevron={!embedded && Boolean(onPress)}
+          onPress={onPress}
+          pressScope={showApplicantList ? 'header' : 'row'}
+          showChevron={Boolean(onPress)}
         />
+        {showApplicantList && onApplicantPress ? (
+          <RoleApplicantPreviewList
+            applicants={applicants}
+            onApplicantPress={onApplicantPress}
+          />
+        ) : null}
       </SurfaceCard>
     );
   }

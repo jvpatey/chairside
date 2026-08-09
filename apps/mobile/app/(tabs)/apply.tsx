@@ -23,10 +23,12 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { SectionPanel, profileSettingsHintStyle } from '@/components/profile/ProfileDetailBlocks';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS, getApplyScreeningRoute } from '@/lib/routing';
+import { getApplyScreeningRoute, WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_BASICS } from '@/lib/routing';
+import { getApplyApplicationKitEditRoute } from '@/hooks/useSetupEditMode';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import {
   buildLiveJobMatchDisplayContext,
@@ -107,6 +109,7 @@ export default function ApplyScreen() {
       color: colors.primary,
     },
     screeningText: typography.subtitle,
+    fieldHint: profileSettingsHintStyle({ typography, colors }),
   }));
 
   const loadPost = useCallback(async () => {
@@ -315,27 +318,36 @@ export default function ApplyScreen() {
               displayName={profile?.display_name}
               photoStoragePath={workerProfile?.photo_storage_path}
               showDefaultNote
+              coverNote={coverMessage}
               title={type === 'shift' ? 'Cover request preview' : 'Application profile preview'}
               hint={
                 type === 'shift'
-                  ? 'This is the profile snapshot and cover note the clinic will receive with your request.'
-                  : 'This is the profile snapshot and cover note the clinic will receive with your application.'
+                  ? 'Your profile snapshot and any message for the clinic below are sent with this request.'
+                  : 'Your profile snapshot and any message for the clinic below are sent with this application.'
               }
               footer={
                 <EditPillButton
                   label="Edit application profile"
-                  onPress={() => router.push(WORKER_SETUP_APPLICATION)}
+                  onPress={() => router.push(getApplyApplicationKitEditRoute(type, id))}
                 />
               }
             />
 
-            <AuthField
-              label="Cover message (optional)"
-              placeholder="Optional message"
-              value={coverMessage}
-              onChangeText={setCoverMessage}
-              multiline
-            />
+            <SectionPanel icon="chatbubble-ellipses-outline" title="Message for clinic">
+              <Text style={styles.fieldHint}>
+                Optional — sent with this application only. Save a reusable default in your
+                application profile.
+              </Text>
+              <AuthField
+                embedded
+                label="Message for clinic"
+                placeholder="Introduce yourself or explain why you're a good fit"
+                value={coverMessage}
+                onChangeText={setCoverMessage}
+                multiline
+                autoCapitalize="sentences"
+              />
+            </SectionPanel>
           </>
         )}
       </View>

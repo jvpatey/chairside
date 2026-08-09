@@ -1,6 +1,6 @@
 import { getErrorMessage, getOrCreateGeneralConversation, getPublicClinicPostings } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -14,6 +14,9 @@ import {
   getWorkerConversationRoute,
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
+  getWorkerClinicProfileBackLabel,
+  navigateAfterWorkerClinicProfile,
+  parseWorkerClinicProfileReturnParams,
   WORKER_PROFILE,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
@@ -21,8 +24,33 @@ import { useThemedStyles } from '@/theme';
 export default function WorkerClinicProfileScreen() {
   const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo, conversationId, jobId, shiftId, applicationId, applicationReturnTo } =
+    useLocalSearchParams<{
+    id?: string;
+    returnTo?: string;
+    conversationId?: string;
+    jobId?: string;
+    shiftId?: string;
+    applicationId?: string;
+    applicationReturnTo?: string;
+  }>();
   const clinicId = typeof id === 'string' ? id : '';
+  const returnContext = useMemo(
+    () =>
+      parseWorkerClinicProfileReturnParams({
+        returnTo,
+        conversationId,
+        jobId,
+        shiftId,
+        applicationId,
+        applicationReturnTo,
+      }),
+    [applicationId, applicationReturnTo, conversationId, jobId, returnTo, shiftId],
+  );
+  const backLabel = getWorkerClinicProfileBackLabel(returnContext);
+  const goBack = useCallback(() => {
+    navigateAfterWorkerClinicProfile(router, returnContext);
+  }, [returnContext]);
   const [postings, setPostings] = useState<Awaited<ReturnType<typeof getPublicClinicPostings>>>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStartingMessage, setIsStartingMessage] = useState(false);
@@ -48,7 +76,7 @@ export default function WorkerClinicProfileScreen() {
       const next = await getPublicClinicPostings(clinicId);
       if (!next) {
         Alert.alert('Clinic not found', 'This clinic profile may no longer be available.');
-        router.back();
+        goBack();
         return;
       }
       setPostings(next);
@@ -57,11 +85,11 @@ export default function WorkerClinicProfileScreen() {
         'Could not load clinic',
         error instanceof Error ? error.message : 'Please try again.',
       );
-      router.back();
+      goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [clinicId]);
+  }, [clinicId, goBack]);
 
   useRefreshOnFocus(load);
 
@@ -102,7 +130,8 @@ export default function WorkerClinicProfileScreen() {
       <FormScreen
         title="Clinic profile"
         subtitle={isLoading ? undefined : 'Clinic not found.'}
-        onBack={() => router.back()}>
+        backLabel={backLabel}
+        onBack={goBack}>
         {isLoading ? <PageLoadingDetail /> : null}
       </FormScreen>
     );
@@ -112,7 +141,8 @@ export default function WorkerClinicProfileScreen() {
     <FormScreen
       title="Clinic profile"
       subtitle={postings.profile.clinic_name}
-      onBack={() => router.back()}
+      backLabel={backLabel}
+      onBack={goBack}
       footer={
         canMessage ? (
           <View style={styles.footer}>

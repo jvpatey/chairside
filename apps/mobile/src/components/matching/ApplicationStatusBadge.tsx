@@ -69,13 +69,13 @@ function useStatusVariantPalette(variant: ApplicationStatusVariant) {
 
   switch (variant) {
     case 'viewed':
-      return { color: colors.secondary, backgroundColor: colors.secondarySubtle };
+      return { color: colors.tertiary, backgroundColor: colors.tertiarySubtle };
     case 'inProgress':
       return { color: colors.info, backgroundColor: `${colors.info}18` };
     case 'interviewOffered':
       return { color: colors.warning, backgroundColor: `${colors.warning}18` };
     case 'interviewScheduled':
-      return { color: colors.secondary, backgroundColor: colors.secondarySubtle };
+      return { color: colors.tertiary, backgroundColor: colors.tertiarySubtle };
     case 'screening':
       return { color: colors.warning, backgroundColor: `${colors.warning}18` };
     case 'rejected':
@@ -87,6 +87,17 @@ function useStatusVariantPalette(variant: ApplicationStatusVariant) {
     default:
       return { color: colors.primary, backgroundColor: colors.primarySubtle };
   }
+}
+
+function useWorkerStatusVariantPalette(variant: ApplicationStatusVariant) {
+  const { colors } = useTheme();
+  const palette = useStatusVariantPalette(variant);
+
+  if (variant === 'applied') {
+    return { color: colors.tertiary, backgroundColor: colors.tertiarySubtle };
+  }
+
+  return palette;
 }
 
 type ApplicationStatusBadgeProps = {
@@ -128,10 +139,15 @@ export function WorkerApplicationStatusBadge({
         })
       : formatApplicationStatus(status, postType);
 
+  const variant = getWorkerApplicationStatusVariant(status, postType);
+  const palette = useWorkerStatusVariantPalette(variant);
+
   return (
-    <ApplicationStatusBadge
+    <PillBadge
       label={label}
-      variant={getWorkerApplicationStatusVariant(status, postType)}
+      color={palette.color}
+      backgroundColor={palette.backgroundColor}
+      showDot
     />
   );
 }
@@ -143,7 +159,7 @@ export function WorkerApplicationStatusLabel({
   statusClosedBy,
 }: WorkerApplicationStatusBadgeProps) {
   const variant = getWorkerApplicationStatusVariant(status, postType);
-  const palette = useStatusVariantPalette(variant);
+  const palette = useWorkerStatusVariantPalette(variant);
   const label =
     postType === 'shift'
       ? formatWorkerShiftApplicationStatus({

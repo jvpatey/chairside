@@ -1,6 +1,7 @@
 import { RefreshControl, type RefreshControlProps } from 'react-native';
 
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { resolveAccentColor } from '@/lib/accentColors';
 import { useTheme, type GradientAccent } from '@/theme';
 
 type ThemedRefreshControlProps = Omit<RefreshControlProps, 'colors' | 'tintColor'> & {
@@ -14,7 +15,7 @@ export function ThemedRefreshControl({
   const { colors } = useTheme();
   const tabAccent = useTabAtmosphereAccent();
   const resolvedAccent = accent ?? tabAccent;
-  const tint = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
+  const tint = resolveAccentColor(colors, resolvedAccent);
 
   return <RefreshControl {...props} tintColor={tint} colors={[tint]} />;
 }

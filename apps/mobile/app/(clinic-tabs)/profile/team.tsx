@@ -569,8 +569,7 @@ export default function ClinicTeamSettingsScreen() {
               <SectionPanel
                 key={member.id}
                 icon="shield-checkmark-outline"
-                stepNumber={index + 1}
-                stepAccent="primary"
+                iconAccent="primary"
                 title={member.display_name || 'Owner'}>
                 <FieldBlock label="Role">
                   <FieldValue value={roleLabel(member.role)} />
@@ -599,8 +598,7 @@ export default function ClinicTeamSettingsScreen() {
               <SectionPanel
                 key={member.id}
                 icon="people-outline"
-                stepNumber={owners.length + index + 1}
-                stepAccent={index % 2 === 0 ? 'secondary' : 'primary'}
+                iconAccent={index % 2 === 0 ? 'secondary' : 'primary'}
                 title={member.display_name || 'Manager'}>
                 <FieldBlock label="Role">
                   <FieldValue value="Manager" />
@@ -652,8 +650,7 @@ export default function ClinicTeamSettingsScreen() {
                 <SectionPanel
                   key={invite.id}
                   icon="mail-outline"
-                  stepNumber={owners.length + managers.length + index + 1}
-                  stepAccent="secondary"
+                  iconAccent="secondary"
                   title={invite.display_name || invite.email}>
                   <Text style={styles.hint}>
                     Manager waiting to accept invitation — they don’t have access yet.

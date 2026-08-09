@@ -8,7 +8,7 @@ import {
 } from '@chairside/api';
 import { getSpecialtyLabel } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
@@ -23,7 +23,7 @@ import { SavePostButton } from '@/components/worker/SavePostButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getApplyRoute, getWorkerClinicProfileRoute } from '@/lib/routing';
+import { getApplyRoute, getWorkerClinicProfileRoute, getWorkerClinicProfileBackLabel, navigateAfterWorkerPostingDetail, parseWorkerPostingReturnParams } from '@/lib/routing';
 import { guardApply } from '@/lib/workerGuard';
 import {
   buildLiveJobMatchDisplayContext,
@@ -34,8 +34,26 @@ import { useThemedStyles } from '@/theme';
 export default function WorkerJobDetailScreen() {
   const { user } = useAuth();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo, applicationId, applicationReturnTo } = useLocalSearchParams<{
+    id?: string;
+    returnTo?: string;
+    applicationId?: string;
+    applicationReturnTo?: string;
+  }>();
   const jobId = typeof id === 'string' ? id : '';
+  const returnContext = useMemo(
+    () =>
+      parseWorkerPostingReturnParams({
+        returnTo,
+        applicationId,
+        applicationReturnTo,
+      }),
+    [applicationId, applicationReturnTo, returnTo],
+  );
+  const backLabel = getWorkerClinicProfileBackLabel(returnContext);
+  const goBack = useCallback(() => {
+    navigateAfterWorkerPostingDetail(router, returnContext);
+  }, [returnContext]);
   const [job, setJob] = useState<LiveJobPost | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -110,7 +128,8 @@ export default function WorkerJobDetailScreen() {
       <FormScreen
         title="Role details"
         subtitle={isLoading ? undefined : 'Role not found.'}
-        onBack={() => router.back()}>
+        backLabel={backLabel}
+        onBack={goBack}>
         {isLoading ? <PageLoadingDetail /> : null}
       </FormScreen>
     );
@@ -126,7 +145,8 @@ export default function WorkerJobDetailScreen() {
     <FormScreen
       title="Role details"
       subtitle={job.clinic.clinic_name}
-      onBack={() => router.back()}
+      backLabel={backLabel}
+      onBack={goBack}
       headerAccessory={
         user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
       }
@@ -140,23 +160,36 @@ export default function WorkerJobDetailScreen() {
         </View>
       }>
       <View style={styles.content}>
-        <JobPostDetailView job={job} part="hero" />
-        <SurfaceCard onPress={() => router.push(getWorkerClinicProfileRoute(job.clinic.clinic_id))}>
+        <JobPostDetailView
+          job={job}
+          part="hero"
+          heroAccessory={
+            jobMatch && matchContext ? (
+              <MatchTierBadge
+                breakdown={jobMatch}
+                context={matchContext}
+                subtitle={job.title}
+                showProfileHint
+              />
+            ) : null
+          }
+        />
+        <SurfaceCard
+          onPress={() =>
+            router.push(
+              getWorkerClinicProfileRoute(
+                job.clinic.clinic_id,
+                returnContext?.returnTo === 'application-detail'
+                  ? returnContext
+                  : { returnTo: 'job-detail', jobId: job.id },
+              ),
+            )
+          }>
           <ClinicPostHeader
             clinicName={job.clinic.clinic_name}
             logoStoragePath={job.clinic.logo_storage_path}
             location={location || null}
             detail={getSpecialtyLabel(job.clinic.specialty)}
-            accessory={
-              jobMatch && matchContext ? (
-                <MatchTierBadge
-                  breakdown={jobMatch}
-                  context={matchContext}
-                  subtitle={job.title}
-                  showProfileHint
-                />
-              ) : null
-            }
           />
           <ClinicProfileLinkFooter />
         </SurfaceCard>

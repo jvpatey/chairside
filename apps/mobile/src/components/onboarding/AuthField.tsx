@@ -44,6 +44,8 @@ type AuthFieldProps = {
   invalid?: boolean;
   enablePasswordVisibilityToggle?: boolean;
   trailingAccessory?: ReactNode;
+  /** Inside ProfileSettingsCard — card header carries the label. */
+  embedded?: boolean;
 };
 
 export function AuthField({
@@ -66,6 +68,7 @@ export function AuthField({
   hint,
   enablePasswordVisibilityToggle = false,
   trailingAccessory,
+  embedded = false,
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -171,11 +174,13 @@ export function AuthField({
 
   return (
     <View ref={wrapRef} style={styles.wrap} collapsable={false}>
-      {icon ? (
-        <FormSectionHeader icon={icon} label={label} required={required} hint={hint} />
-      ) : (
-        <FormFieldLabel label={label} required={required} />
-      )}
+      {!embedded ? (
+        icon ? (
+          <FormSectionHeader icon={icon} label={label} required={required} hint={hint} />
+        ) : (
+          <FormFieldLabel label={label} required={required} />
+        )
+      ) : null}
       <View
         style={[
           styles.inputRow,

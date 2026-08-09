@@ -51,6 +51,7 @@ import {
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
+import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import {
   webHover,
   webListRowHoverStyles,
@@ -603,9 +604,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     if (!focusedRoute) return;
 
     const tabAccent = getTabAccentForName(focusedRoute.name);
-    const accentColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
-    const backgroundColor =
-      tabAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+    const accentColor = resolveAccentColor(colors, tabAccent);
+    const backgroundColor = resolveAccentSubtle(colors, tabAccent);
 
     itemNode.measureLayout(
       navNode,
@@ -755,9 +755,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     const routeIndex = state.routes.findIndex((r) => r.key === route.key);
     const isFocused = isRouteFocused(route.name, routeIndex);
     const tabAccent = getTabAccentForName(route.name);
-    const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
-    const activeBackground =
-      tabAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+    const activeColor = resolveAccentColor(colors, tabAccent);
+    const activeBackground = resolveAccentSubtle(colors, tabAccent);
     const color = isFocused ? activeColor : colors.tabInactive;
     const itemLabel = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
     const titleLabel = options.title ?? route.name;

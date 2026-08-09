@@ -180,6 +180,23 @@ export function filterApplicationsByView(
     .sort(compareApplications);
 }
 
+export function sortDashboardApplications(
+  applications: ClinicApplication[],
+  isHighlighted: (application: ClinicApplication) => boolean,
+): ClinicApplication[] {
+  return [...applications]
+    .filter((application) => application.post_type === 'job')
+    .sort((a, b) => {
+      const aHighlighted = isHighlighted(a);
+      const bHighlighted = isHighlighted(b);
+      if (aHighlighted !== bHighlighted) {
+        return aHighlighted ? -1 : 1;
+      }
+
+      return compareApplications(a, b);
+    });
+}
+
 /** Controls New highlight vs pipeline status badge on clinic applicant surfaces. */
 export function getClinicApplicantBadgeVisibility(
   application: Pick<ClinicApplication, 'status'>,

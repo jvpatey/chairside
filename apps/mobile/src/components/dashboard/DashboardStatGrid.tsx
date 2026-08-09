@@ -17,21 +17,24 @@ import {
   type GradientAccent,
 } from '@/theme';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
+import { resolveAccentColor } from '@/lib/accentColors';
 
 export type DashboardOverviewStat = 'roles' | 'fill-ins' | 'applications';
 
-/** Per-segment accents for the dashboard overview pill (blue → purple → blue). */
+/** Per-segment accents for the dashboard overview pill (blue → purple → mint). */
 export const DASHBOARD_OVERVIEW_SEGMENT_ACCENTS: GradientAccent[] = [
   'primary',
   'secondary',
-  'primary',
+  'tertiary',
 ];
 
-/** Purple accent when the dashboard overview pill is on Fill-ins. */
+/** Flow accent for the selected dashboard overview segment. */
 export function getDashboardOverviewAccent(
   selected: DashboardOverviewStat,
 ): GradientAccent {
-  return selected === 'fill-ins' ? 'secondary' : 'primary';
+  if (selected === 'fill-ins') return 'secondary';
+  if (selected === 'applications') return 'tertiary';
+  return 'primary';
 }
 
 export type DashboardStatItem<T extends string = DashboardOverviewStat> = {
@@ -75,7 +78,7 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
   const selectedIndex = stats.findIndex((stat) => stat.key === selected);
   const resolvedSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
   const selectedAccent = segmentAccents?.[resolvedSelectedIndex] ?? accent;
-  const brandColor = selectedAccent === 'secondary' ? colors.secondary : colors.primary;
+  const brandColor = resolveAccentColor(colors, selectedAccent);
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     grid: {

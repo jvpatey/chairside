@@ -1,6 +1,8 @@
 import {
   getJobPostApplicationCountsMap,
+  listClinicApplications,
   listJobPosts,
+  type ClinicApplication,
   type JobPost,
 } from '@chairside/api';
 import { router } from 'expo-router';
@@ -23,7 +25,8 @@ import {
   isFilledJob,
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
-import { getClinicRoleApplicationsRoute, getJobDetailRoute } from '@/lib/routing';
+import { getClinicRoleApplicationsRoute, getClinicApplicationRoute, getJobDetailRoute } from '@/lib/routing';
+import { summarizeJobApplicantPreviews } from '@/lib/dashboardAttention';
 import { useThemedStyles } from '@/theme';
 
 function HistorySection({
@@ -31,6 +34,7 @@ function HistorySection({
   helper,
   jobs,
   applicantCounts,
+  applicantPreviewByJobId,
   emptyTitle,
   emptyBody,
   clinicId,
@@ -41,6 +45,7 @@ function HistorySection({
   helper?: string;
   jobs: JobPost[];
   applicantCounts: Record<string, number>;
+  applicantPreviewByJobId: ReturnType<typeof summarizeJobApplicantPreviews>;
   emptyTitle: string;
   emptyBody: string;
   clinicId?: string;
@@ -93,9 +98,13 @@ function HistorySection({
                 key={job.id}
                 job={job}
                 applicantCount={applicantCounts[job.id] ?? 0}
+                applicants={applicantPreviewByJobId[job.id]}
                 onPress={() => router.push(getJobDetailRoute(job.id))}
                 onApplicantsPress={() =>
                   router.push(getClinicRoleApplicationsRoute(job.id, 'role-history'))
+                }
+                onApplicantPress={(applicationId) =>
+                  router.push(getClinicApplicationRoute(applicationId, 'role-history', job.id))
                 }
                 manage={
                   clinicId && onJobUpdated && onJobDeleted
@@ -118,6 +127,7 @@ function HistorySection({
 export default function RoleHistoryScreen() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<JobPost[]>([]);
+  const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
@@ -147,25 +157,43 @@ export default function RoleHistoryScreen() {
     loading: typography.subtitle,
   }));
 
+  const applicantPreviewByJobId = useMemo(
+    () =>
+      summarizeJobApplicantPreviews(
+        applications.map((application) => ({
+          id: application.id,
+          job_post_id: application.job_post_id,
+          worker_display_name: application.worker_display_name,
+          worker_photo_storage_path: application.worker_photo_storage_path,
+        })),
+      ),
+    [applications],
+  );
+
   const load = useCallback(async () => {
     if (!user?.id) {
       setJobs([]);
+      setApplications([]);
       setApplicantCounts({});
+      setApplications([]);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      const [jobPosts, counts] = await Promise.all([
+      const [jobPosts, counts, applicationRows] = await Promise.all([
         listJobPosts(user.id),
         getJobPostApplicationCountsMap(user.id),
+        listClinicApplications(user.id, 'active'),
       ]);
       setJobs(jobPosts);
       setApplicantCounts(counts);
+      setApplications(applicationRows);
     } catch (error) {
       setJobs([]);
       setApplicantCounts({});
+      setApplications([]);
       Alert.alert(
         'Could not load role history',
         error instanceof Error ? error.message : 'Please try again.',
@@ -215,6 +243,7 @@ export default function RoleHistoryScreen() {
               helper="Roles you archived. Post again when the same position opens up."
               jobs={archivedJobs}
               applicantCounts={applicantCounts}
+              applicantPreviewByJobId={applicantPreviewByJobId}
               emptyTitle="No archived roles"
               emptyBody="Archived roles appear here when you remove them from your active list."
               clinicId={user?.id}
@@ -227,6 +256,7 @@ export default function RoleHistoryScreen() {
               helper="Roles you marked as filled. Delete when you no longer need the record."
               jobs={filledJobs}
               applicantCounts={applicantCounts}
+              applicantPreviewByJobId={applicantPreviewByJobId}
               emptyTitle="No filled roles"
               emptyBody="When you mark a role as filled, it will appear here for your records."
               clinicId={user?.id}

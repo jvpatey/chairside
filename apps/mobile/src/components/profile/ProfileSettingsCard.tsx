@@ -12,48 +12,11 @@ import { useTheme, useThemedStyles } from '@/theme';
 import { getElevationStyle } from '@/theme/tokens';
 
 export type ProfileSettingsCardVariant = 'default' | 'danger';
-export type ProfileStepAccent = 'primary' | 'secondary';
-
-export function ProfileStepNumber({
-  value,
-  accent = 'primary',
-}: {
-  value: number;
-  accent?: ProfileStepAccent;
-}) {
-  const { colors } = useTheme();
-  const backgroundColor = accent === 'secondary' ? colors.secondary : colors.primary;
-  const textColor = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
-
-  const styles = useThemedStyles(() => ({
-    wrap: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor,
-    },
-    label: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: textColor,
-    },
-  }));
-
-  return (
-    <View style={styles.wrap}>
-      <Text style={styles.label}>{value}</Text>
-    </View>
-  );
-}
 
 export type ProfileSettingsCardProps = {
   title: string;
   icon?: keyof typeof Ionicons.glyphMap;
   iconAccent?: DashboardWidgetAccent;
-  stepNumber?: number;
-  stepAccent?: ProfileStepAccent;
   children: ReactNode;
   variant?: ProfileSettingsCardVariant;
   style?: StyleProp<ViewStyle>;
@@ -65,9 +28,7 @@ export type ProfileSettingsCardProps = {
 export function ProfileSettingsCard({
   title,
   icon,
-  iconAccent,
-  stepNumber,
-  stepAccent = 'primary',
+  iconAccent = 'primary',
   children,
   variant = 'default',
   style,
@@ -136,18 +97,15 @@ export function ProfileSettingsCard({
     setExpanded((current) => !current);
   };
 
-  const headerIcon =
-    stepNumber != null ? (
-      <ProfileStepNumber value={stepNumber} accent={stepAccent} />
-    ) : icon ? (
-      iconAccent ? (
-        <DashboardWidgetIconBadge icon={icon} accent={iconAccent} />
-      ) : (
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={20} color={iconColor} />
-        </View>
-      )
-    ) : null;
+  const headerIcon = icon ? (
+    isDanger ? (
+      <View style={styles.iconWrap}>
+        <Ionicons name={icon} size={20} color={iconColor} />
+      </View>
+    ) : (
+      <DashboardWidgetIconBadge icon={icon} accent={iconAccent} />
+    )
+  ) : null;
 
   const headerTitle = <Text style={styles.title}>{title}</Text>;
 

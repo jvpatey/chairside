@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
 import { colorWithAlpha, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { resolveAccentColor, resolveAccentOnColor } from '@/lib/accentColors';
 
 const SIZES = {
   sm: { wrap: 36, icon: 18 },
@@ -24,9 +25,9 @@ export function DashboardIconBadge({
   onGradient = false,
 }: DashboardIconBadgeProps) {
   const { colors, isDark } = useTheme();
-  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const brandColor = resolveAccentColor(colors, accent);
   const dimensions = SIZES[size];
-  const onAccent = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
+  const onAccent = resolveAccentOnColor(colors, accent);
   const iconColor = onGradient ? onAccent : brandColor;
 
   const styles = useThemedStyles(({ radii }) => ({

@@ -6,6 +6,7 @@ import { Alert, Text, View } from 'react-native';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { EditPillButton } from '@/components/ui/EditPillButton';
+import { SectionPanel, profileSettingsHintStyle } from '@/components/profile/ProfileDetailBlocks';
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -33,7 +34,7 @@ export function WorkerApplicationKitSubmission({
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
-      backgroundColor: colors.secondarySubtle,
+      backgroundColor: colors.tertiarySubtle,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
@@ -45,7 +46,7 @@ export function WorkerApplicationKitSubmission({
       fontWeight: '700',
       letterSpacing: 0.4,
       textTransform: 'uppercase',
-      color: colors.primary,
+      color: colors.tertiary,
     },
     title: {
       ...typography.body,
@@ -63,6 +64,7 @@ export function WorkerApplicationKitSubmission({
       textTransform: 'uppercase',
       color: colors.primary,
     },
+    fieldHint: profileSettingsHintStyle({ typography, colors }),
   }));
 
   const handleSubmit = async () => {
@@ -100,6 +102,7 @@ export function WorkerApplicationKitSubmission({
             displayName={profile?.display_name}
             photoStoragePath={workerProfile.photo_storage_path}
             showDefaultNote
+            coverNote={coverMessage}
             embedded
           />
         ) : null}
@@ -109,13 +112,21 @@ export function WorkerApplicationKitSubmission({
         />
       </View>
 
-      <AuthField
-        label="Cover message (optional)"
-        placeholder="Optional message"
-        value={coverMessage}
-        onChangeText={setCoverMessage}
-        multiline
-      />
+      <SectionPanel icon="chatbubble-ellipses-outline" title="Message for clinic">
+        <Text style={styles.fieldHint}>
+          Optional — included with your full application. Save a reusable default in your
+          application profile.
+        </Text>
+        <AuthField
+          embedded
+          label="Message for clinic"
+          placeholder="Introduce yourself or explain why you're a good fit"
+          value={coverMessage}
+          onChangeText={setCoverMessage}
+          multiline
+          autoCapitalize="sentences"
+        />
+      </SectionPanel>
 
       <OnboardingButton
         label={isSubmitting ? 'Submitting…' : 'Submit full application'}

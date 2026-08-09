@@ -366,6 +366,7 @@ export function WorkerOverviewPanel({
             icon="document-text-outline"
             title="No applications yet"
             message="When you apply to roles, your application status will appear here."
+            accent="tertiary"
           />
         ) : (
           <View style={styles.list}>

@@ -32,7 +32,7 @@ export default function ClinicProfileNotificationsScreen() {
       title="Notifications"
       subtitle={subtitle}
       onBack={() => navigateToClinicProfileHub(router)}>
-      <ProfileSettingsCard title={pushAlertsTitle} icon="notifications-outline">
+      <ProfileSettingsCard title={pushAlertsTitle} icon="notifications-outline" iconAccent="secondary">
         <NotificationCategoryPreferences
           categories={[
             NOTIFICATION_PREFERENCE_CATEGORIES.messages,

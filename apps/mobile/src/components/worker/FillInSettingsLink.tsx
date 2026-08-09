@@ -5,10 +5,11 @@ import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { profileSettingsHintStyle } from '@/components/profile/ProfileDetailBlocks';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { WORKER_FILLIN_AVAILABILITY } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 export function FillInSettingsLink() {
   const { workerProfile } = useWorkerProfile();
+  const { colors } = useTheme();
   const fillInsOn = workerProfile?.short_notice_available ?? false;
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
@@ -25,6 +26,8 @@ export function FillInSettingsLink() {
         icon="calendar-outline"
         title="Fill-in availability"
         subtitle={fillInsOn ? 'Open to fill-in shifts' : 'Not available for fill-ins'}
+        iconColor={colors.secondary}
+        iconBackgroundColor={colors.secondarySubtle}
         onPress={() => router.push(WORKER_FILLIN_AVAILABILITY)}
         embedded
       />

@@ -12,6 +12,7 @@ type ApplicationKitPreviewProps = {
   displayName?: string | null;
   photoStoragePath?: string | null;
   showDefaultNote?: boolean;
+  coverNote?: string | null;
   embedded?: boolean;
   title?: string;
   hint?: string;
@@ -23,6 +24,7 @@ export function ApplicationKitPreview({
   displayName: displayNameProp,
   photoStoragePath,
   showDefaultNote = true,
+  coverNote,
   embedded = false,
   title,
   hint,
@@ -115,6 +117,7 @@ export function ApplicationKitPreview({
         displayName={displayName}
         photoUri={photoUri}
         showDefaultNote={showDefaultNote}
+        coverNote={coverNote}
       />
       {footer ? <View style={styles.footer}>{footer}</View> : null}
     </View>

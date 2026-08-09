@@ -150,8 +150,7 @@ export function SummaryStat({
 
 export function SectionPanel({
   icon,
-  stepNumber,
-  stepAccent,
+  iconAccent,
   title,
   children,
   collapsible = false,
@@ -159,13 +158,7 @@ export function SectionPanel({
   variant = 'default',
 }: Pick<
   ProfileSettingsCardProps,
-  | 'icon'
-  | 'stepNumber'
-  | 'stepAccent'
-  | 'title'
-  | 'collapsible'
-  | 'defaultExpanded'
-  | 'variant'
+  'icon' | 'iconAccent' | 'title' | 'collapsible' | 'defaultExpanded' | 'variant'
 > & {
   children: ReactNode;
 }) {
@@ -177,8 +170,7 @@ export function SectionPanel({
     <ProfileSettingsCard
       title={title}
       icon={icon}
-      stepNumber={stepNumber}
-      stepAccent={stepAccent}
+      iconAccent={iconAccent}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
       variant={variant}>

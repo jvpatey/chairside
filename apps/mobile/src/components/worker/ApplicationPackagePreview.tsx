@@ -26,6 +26,8 @@ type ApplicationPackagePreviewProps = {
   displayName?: string | null;
   photoUri?: string | null;
   showDefaultNote?: boolean;
+  /** When set, preview reflects this application-specific note instead of the saved profile default. */
+  coverNote?: string | null;
 };
 
 export function ApplicationPackagePreview({
@@ -33,6 +35,7 @@ export function ApplicationPackagePreview({
   displayName,
   photoUri,
   showDefaultNote = true,
+  coverNote,
 }: ApplicationPackagePreviewProps) {
   const { colors } = useTheme();
 
@@ -98,7 +101,13 @@ export function ApplicationPackagePreview({
     profile.practice_types.length > 0
       ? profile.practice_types.map(getSpecialtyLabel).join(', ')
       : null;
-  const coverNote = profile.default_cover_message?.trim();
+  const profileCoverNote = profile.default_cover_message?.trim();
+  const applicationCoverNote = coverNote !== undefined ? coverNote.trim() : undefined;
+  const displayedCoverNote = applicationCoverNote ?? profileCoverNote ?? '';
+  const showCoverNoteSection =
+    showDefaultNote &&
+    (coverNote !== undefined ? Boolean(applicationCoverNote) : true);
+  const coverNoteTitle = coverNote !== undefined ? 'Message for clinic' : 'Cover note';
   const resumeName = profile.resume_file_name ?? 'PDF attached';
 
   return (
@@ -142,10 +151,10 @@ export function ApplicationPackagePreview({
         </FieldBlock>
       </ProfileSettingsCard>
 
-      {showDefaultNote ? (
-        <ProfileSettingsCard title="Cover note" icon="chatbubble-ellipses-outline" iconAccent="tertiary">
-          {coverNote ? (
-            <DetailProse text={coverNote} />
+      {showCoverNoteSection ? (
+        <ProfileSettingsCard title={coverNoteTitle} icon="chatbubble-ellipses-outline" iconAccent="tertiary">
+          {displayedCoverNote ? (
+            <DetailProse text={displayedCoverNote} />
           ) : (
             <FieldValue value={null} />
           )}

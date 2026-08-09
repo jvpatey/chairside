@@ -7,13 +7,17 @@ import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
-import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { FormScreen } from '@/components/ui/FormScreen';
+import {
+  ProfileDetailStack,
+  SectionPanel,
+  profileSettingsHintStyle,
+} from '@/components/profile/ProfileDetailBlocks';
 import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { ResumeUpload } from '@/components/worker/ResumeUpload';
 import { WORKER_SETUP_REVIEW } from '@/lib/routing';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { useSetupEditMode, getSetupEditBackLabel } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
@@ -22,24 +26,31 @@ import { useThemedStyles } from '@/theme';
 export default function WorkerApplicationKitScreen() {
   const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
-  const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const { isEditMode, exitHref, returnTo, applyPostType } = useSetupEditMode({ role: 'worker' });
   const setupFormProps = useSetupFormScreenProps('worker');
   const progress = useSetupStepProgress('application-kit', { role: 'worker' });
+  const backLabel = getSetupEditBackLabel(returnTo, applyPostType);
   const [defaultCoverMessage, setDefaultCoverMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    form: { gap: spacing.lg },
-    uploadSection: { gap: spacing.sm },
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    hint: profileSettingsHintStyle({ typography, colors }),
+    previewIntro: { gap: spacing.md },
     footer: { gap: spacing.md, marginTop: spacing.lg },
     badge: {
       alignSelf: 'flex-start',
       borderRadius: 999,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: spacing.xs + 1,
       backgroundColor: colors.fillSubtle,
+      borderWidth: 1,
+      borderColor: colors.separator,
     },
-    badgeText: { fontSize: 12, fontWeight: '600', color: colors.labelSecondary },
+    badgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.labelSecondary,
+    },
   }));
 
   useEffect(() => {
@@ -75,6 +86,7 @@ export default function WorkerApplicationKitScreen() {
       {...setupFormProps}
       title="Application profile · Photo, resume & note"
       subtitle="What clinics receive when you apply. Photo and resume are optional."
+      backLabel={backLabel}
       onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <View style={styles.footer}>
@@ -89,42 +101,49 @@ export default function WorkerApplicationKitScreen() {
       {progress.visible ? (
         <SetupStepProgress step={progress.step} total={progress.total} />
       ) : null}
-      <View style={styles.form}>
+      <ProfileDetailStack>
         {!backgroundComplete ? (
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>Finish your background first</Text>
+            <Text style={styles.badgeText}>Finish your professional background first</Text>
           </View>
         ) : null}
 
-        <View style={styles.uploadSection}>
-          <FormSectionHeader
-            icon="camera-outline"
-            label="Profile photo"
-            hint="Optional — included with role and fill-in applications."
-          />
+        <SectionPanel icon="camera-outline" iconAccent="primary" title="Profile photo">
+          <Text style={styles.hint}>
+            Optional — included with role and fill-in applications.
+          </Text>
           <ProfilePhotoUpload embedded onUpdated={() => void refreshWorkerProfile()} />
-        </View>
-        <View style={styles.uploadSection}>
-          <FormSectionHeader
-            icon="document-text-outline"
-            label="Resume"
-            hint="Optional PDF attached to role applications."
-          />
+        </SectionPanel>
+
+        <SectionPanel icon="document-outline" iconAccent="secondary" title="Resume">
+          <Text style={styles.hint}>Optional PDF attached to role applications.</Text>
           <ResumeUpload embedded onUploaded={() => void refreshWorkerProfile()} />
-        </View>
+        </SectionPanel>
 
-        <AuthField
-          label="Default cover note"
-          placeholder="Optional message"
-          value={defaultCoverMessage}
-          onChangeText={setDefaultCoverMessage}
-          multiline
-          autoCapitalize="sentences"
-          icon="chatbubble-ellipses-outline"
-        />
+        <SectionPanel icon="chatbubble-ellipses-outline" iconAccent="primary" title="Default cover note">
+          <Text style={styles.hint}>
+            A reusable note sent with applications. You can customize it each time you apply.
+          </Text>
+          <AuthField
+            label="Cover note"
+            placeholder="Optional message"
+            value={defaultCoverMessage}
+            onChangeText={setDefaultCoverMessage}
+            multiline
+            autoCapitalize="sentences"
+            icon="chatbubble-ellipses-outline"
+          />
+        </SectionPanel>
 
-        <ApplicationKitPreview profile={workerProfile} />
-      </View>
+        <SectionPanel icon="eye-outline" title="Clinic preview" collapsible defaultExpanded={false}>
+          <View style={styles.previewIntro}>
+            <Text style={styles.hint}>
+              A live preview of the application profile clinics review when you apply.
+            </Text>
+            <ApplicationKitPreview profile={workerProfile} embedded />
+          </View>
+        </SectionPanel>
+      </ProfileDetailStack>
     </FormScreen>
   );
 }

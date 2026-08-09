@@ -8,14 +8,18 @@ import {
 import { router } from 'expo-router';
 import { ONBOARDING_CHANGE_ROLE, WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
-import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { FormScreen } from '@/components/ui/FormScreen';
+import {
+  ProfileDetailStack,
+  SectionPanel,
+  profileSettingsHintStyle,
+} from '@/components/profile/ProfileDetailBlocks';
 import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -61,13 +65,11 @@ export default function WorkerBasicsScreen() {
 
   const validation = validateWorkerBasicsStep({ firstName, lastName, roleTypes });
 
-  const styles = useThemedStyles((theme) => ({
-    form: { gap: theme.spacing.lg },
-    section: { gap: theme.spacing.sm },
-    photoSection: { gap: theme.spacing.sm },
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    hint: profileSettingsHintStyle({ typography, colors }),
     nameRow: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
-      gap: theme.spacing.md,
+      gap: spacing.md,
     },
     nameField: isWide ? { flex: 1, minWidth: 0 } : {},
   }));
@@ -136,55 +138,54 @@ export default function WorkerBasicsScreen() {
       {progress.visible ? (
         <SetupStepProgress step={progress.step} total={progress.total} />
       ) : null}
-      <View style={styles.form}>
-        <View style={styles.photoSection}>
-          <FormSectionHeader
-            icon="camera-outline"
-            label="Profile photo"
-            hint="Optional — shown when you apply to clinics."
-          />
+      <ProfileDetailStack>
+        <SectionPanel icon="camera-outline" iconAccent="primary" title="Profile photo">
+          <Text style={styles.hint}>Optional — shown when you apply to clinics.</Text>
           <ProfilePhotoUpload
             embedded
             displayName={joinDisplayName(firstName, lastName)}
             onUpdated={() => void refreshWorkerProfile()}
           />
-        </View>
-        <View style={styles.nameRow}>
-          <View style={styles.nameField}>
-            <AuthField
-              label="First name"
-              placeholder="First name"
-              value={firstName}
-              onChangeText={setFirstName}
-              autoCapitalize="words"
-              icon="person-outline"
-              required
-              invalid={showValidation && !firstName.trim()}
-            />
+        </SectionPanel>
+
+        <SectionPanel icon="person-outline" iconAccent="secondary" title="Your name">
+          <View style={styles.nameRow}>
+            <View style={styles.nameField}>
+              <AuthField
+                label="First name"
+                placeholder="First name"
+                value={firstName}
+                onChangeText={setFirstName}
+                autoCapitalize="words"
+                icon="person-outline"
+                required
+                invalid={showValidation && !firstName.trim()}
+              />
+            </View>
+            <View style={styles.nameField}>
+              <AuthField
+                label="Last name"
+                placeholder="Last name"
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize="words"
+                icon="person-outline"
+                required
+                invalid={showValidation && !lastName.trim()}
+              />
+            </View>
           </View>
-          <View style={styles.nameField}>
-            <AuthField
-              label="Last name"
-              placeholder="Last name"
-              value={lastName}
-              onChangeText={setLastName}
-              autoCapitalize="words"
-              icon="person-outline"
-              required
-              invalid={showValidation && !lastName.trim()}
-            />
-          </View>
-        </View>
-        <View style={styles.section}>
-          <FormSectionHeader icon="briefcase-outline" label="Roles" required />
+        </SectionPanel>
+
+        <SectionPanel icon="ribbon-outline" iconAccent="primary" title="Roles">
           <ChipSelector
             options={[...ROLE_TYPE_OPTIONS]}
             selected={roleTypes}
             multiple
             onChange={(value) => setRoleTypes(value as RoleType[])}
           />
-        </View>
-      </View>
+        </SectionPanel>
+      </ProfileDetailStack>
     </FormScreen>
   );
 }

@@ -60,10 +60,12 @@ export function FormScreen({
 }: FormScreenProps) {
   const useElevatedCard = elevatedCard && Platform.OS === 'web';
 
+  const widthConstraintStyle = constrainFormWidth ? formContentWidthStyle(formMaxWidth) : undefined;
+
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     body: {
       gap: spacing.lg,
-      ...(constrainFormWidth ? formContentWidthStyle(formMaxWidth) : {}),
+      ...widthConstraintStyle,
     },
     elevatedCard: {
       borderRadius: radii.lg,
@@ -98,10 +100,13 @@ export function FormScreen({
     children
   );
 
+  const constrainedFooter =
+    footer && widthConstraintStyle ? <View style={widthConstraintStyle}>{footer}</View> : footer;
+
   return (
     <OnboardingShell
       header={header}
-      footer={footer}
+      footer={constrainedFooter}
       transparentBackground={transparentBackground}
       atmosphere={atmosphere}
       atmosphereAccent={atmosphereAccent}

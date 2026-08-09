@@ -101,7 +101,7 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
         </Text>
       </ProfileSummaryBanner>
 
-      <SectionPanel stepNumber={1} stepAccent="primary" title="Roles">
+      <SectionPanel icon="ribbon-outline" iconAccent="primary" title="Roles">
         <Text style={styles.hint}>
           The positions you are open to — clinics use this to match you with the right
           opportunities.
@@ -114,7 +114,7 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel stepNumber={2} stepAccent="secondary" title="Experience">
+      <SectionPanel icon="school-outline" iconAccent="secondary" title="Experience">
         <Text style={styles.hint}>
           Your clinical background helps clinics quickly assess whether you are a strong fit.
         </Text>
@@ -133,7 +133,7 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel stepNumber={3} stepAccent="primary" title="Location">
+      <SectionPanel icon="location-outline" iconAccent="primary" title="Location">
         <Text style={styles.hint}>
           Where you are based and how far you are willing to travel for work.
         </Text>
@@ -150,7 +150,7 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel stepNumber={4} stepAccent="secondary" title="Skills & preferences">
+      <SectionPanel icon="options-outline" iconAccent="secondary" title="Skills & preferences">
         <Text style={styles.hint}>
           Software, practice environments, and employment types you prefer.
         </Text>
@@ -176,7 +176,7 @@ export function WorkerProfessionalView({ profile }: WorkerProfessionalViewProps)
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel icon="document-text-outline" title="Bio">
+      <SectionPanel icon="document-text-outline" iconAccent="tertiary" title="Bio">
         <Text style={styles.hint}>
           A short introduction clinics can read when learning more about you.
         </Text>

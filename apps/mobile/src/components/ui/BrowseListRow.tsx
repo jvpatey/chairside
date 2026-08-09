@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { cardShellRadii } from '@/components/ui/cardLayout';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
+import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
+import { radii } from '@/theme/tokens';
 
 export type ListingLayout = 'tile' | 'list';
 
@@ -58,6 +59,8 @@ type BrowseListRowProps = {
   compact?: boolean;
   /** `split` — header above a tinted content band (matches tile cards). */
   layout?: 'stacked' | 'split';
+  /** When `header`, only the header block is pressable with inset hover (for rows with external footers). */
+  pressScope?: 'row' | 'header';
 };
 
 export function BrowseListRow({
@@ -82,6 +85,7 @@ export function BrowseListRow({
   showChevron = true,
   compact = false,
   layout = 'split',
+  pressScope = 'row',
 }: BrowseListRowProps) {
   const { colors } = useTheme();
   const isSplit = layout === 'split';
@@ -94,7 +98,6 @@ export function BrowseListRow({
       postedInContent ||
       textFooter ||
       footer ||
-      statusFooter ||
       trailing ||
       contentAccessory,
     );
@@ -111,11 +114,29 @@ export function BrowseListRow({
     rowPressed: {
       backgroundColor: colors.fillSubtle,
     },
+    headerPressTarget: {
+      borderRadius: radii.sm,
+      paddingVertical: spacing.xs,
+      ...webPointer(),
+      ...webOnlyStyle({
+        transitionProperty: 'background-color, box-shadow',
+        transitionDuration: '140ms',
+      } as const),
+    },
+    headerHovered: {
+      backgroundColor: colors.fillSubtle,
+      ...webOnlyStyle({
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+      } as const),
+    },
+    headerPressed: {
+      backgroundColor: colors.fillSubtle,
+      opacity: 0.92,
+    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.md,
-      ...webPointer(),
     },
     headerBody: {
       flex: 1,
@@ -368,7 +389,6 @@ export function BrowseListRow({
       ) : null}
       {textFooter ? <View style={styles.textFooter}>{textFooter}</View> : null}
       {footer ? <View style={styles.footer}>{footer}</View> : null}
-      {statusFooter ? <View>{statusFooter}</View> : null}
     </>
   );
 
@@ -432,16 +452,38 @@ export function BrowseListRow({
     </View>
   );
 
+  const splitHeaderBlock = (
+    <View style={styles.headerRow}>
+      {avatar}
+      <View style={styles.headerBody}>
+        {splitHeaderPrimary}
+        {splitHeaderFooter}
+      </View>
+      {splitTrailingColumn}
+    </View>
+  );
+
+  const useHeaderPress = pressScope === 'header' && Boolean(onPress) && isSplit;
+
   const splitLayout = (
     <>
-      <View style={styles.headerRow}>
-        {avatar}
-        <View style={styles.headerBody}>
-          {splitHeaderPrimary}
-          {splitHeaderFooter}
-        </View>
-        {splitTrailingColumn}
-      </View>
+      {useHeaderPress ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onPress?.();
+          }}
+          style={({ pressed, hovered }) => [
+            styles.headerPressTarget,
+            webHover(hovered, pressed, styles.headerHovered),
+            pressed && styles.headerPressed,
+          ]}>
+          {splitHeaderBlock}
+        </Pressable>
+      ) : (
+        splitHeaderBlock
+      )}
       {hasContentSection ? <View style={styles.contentBand}>{splitContentSection}</View> : null}
       {action ? <View style={styles.rowAction}>{action}</View> : null}
     </>
@@ -491,7 +533,7 @@ export function BrowseListRow({
 
   const rowBody = content;
 
-  if (!onPress) {
+  if (!onPress || useHeaderPress) {
     return <View style={styles.container}>{rowBody}</View>;
   }
 

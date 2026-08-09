@@ -18,9 +18,9 @@ export function CardDetailSection({
   children,
   divided = false,
 }: CardDetailSectionProps) {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     section: {
-      gap: spacing.sm,
+      gap: spacing.md,
       ...(divided
         ? {
             paddingTop: spacing.md,
@@ -30,15 +30,15 @@ export function CardDetailSection({
         : null),
     },
     title: {
-      ...typography.label,
+      fontSize: 15,
+      lineHeight: 20,
       fontFamily: fontSemibold,
-      fontSize: 13,
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      color: colors.labelSecondary,
+      fontWeight: '600',
+      letterSpacing: -0.2,
+      color: colors.labelPrimary,
     },
     body: {
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
   }));
 

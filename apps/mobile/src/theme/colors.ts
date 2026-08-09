@@ -22,7 +22,7 @@ export type Colors = {
   destructive: string;
   info: string;
   tabInactive: string;
-  /** Mint — live, confirmed, healthy, positive deltas */
+  /** Mint — applications pipeline, live, confirmed, healthy, positive deltas */
   tertiary: string;
   tertiaryPressed: string;
   tertiarySubtle: string;

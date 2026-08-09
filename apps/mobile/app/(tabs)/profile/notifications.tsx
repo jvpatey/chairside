@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
+import { ProfileDetailStack } from '@/components/profile/ProfileDetailBlocks';
 import { NotificationCategoryPreferences } from '@/components/notifications/NotificationCategoryPreferences';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { FillInSettingsLink } from '@/components/worker/FillInSettingsLink';
@@ -21,24 +22,29 @@ export default function WorkerProfileNotificationsScreen() {
           : 'Choose which alerts send push notifications. In-app history stays available.'
       }
       onBack={() => navigateToWorkerProfileHub(router)}>
-      <ProfileSettingsCard title={pushAlertsTitle} icon="notifications-outline">
-        <NotificationCategoryPreferences
-          categories={[
-            NOTIFICATION_PREFERENCE_CATEGORIES.messages,
-            NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
-            NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
-            NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
-          ]}
-        />
-      </ProfileSettingsCard>
+      <ProfileDetailStack>
+        <ProfileSettingsCard
+          title={pushAlertsTitle}
+          icon="notifications-outline"
+          iconAccent="secondary">
+          <NotificationCategoryPreferences
+            categories={[
+              NOTIFICATION_PREFERENCE_CATEGORIES.messages,
+              NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+              NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
+              NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
+            ]}
+          />
+        </ProfileSettingsCard>
 
-      <ProfileSettingsCard title="Permanent roles" icon="briefcase-outline">
-        <WorkerJobNotificationPreferences />
-      </ProfileSettingsCard>
+        <ProfileSettingsCard title="Permanent roles" icon="briefcase-outline" iconAccent="secondary">
+          <WorkerJobNotificationPreferences />
+        </ProfileSettingsCard>
 
-      <ProfileSettingsCard title="Fill-in shifts" icon="calendar-outline">
-        <FillInSettingsLink />
-      </ProfileSettingsCard>
+        <ProfileSettingsCard title="Fill-in shifts" icon="calendar-outline" iconAccent="secondary">
+          <FillInSettingsLink />
+        </ProfileSettingsCard>
+      </ProfileDetailStack>
     </ProfileDetailScreen>
   );
 }

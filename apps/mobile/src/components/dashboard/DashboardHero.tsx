@@ -111,15 +111,8 @@ export function DashboardHero({
       borderColor: colors.separator,
       position: 'relative' as const,
       overflow: 'hidden' as const,
-      ...(overlayActions
-        ? null
-        : {
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.lg,
-            paddingBottom: pulse ? 0 : spacing.lg,
-          }),
     },
-    bandContent: {
+    bandBody: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
       paddingBottom: pulse ? spacing.md : spacing.lg,
@@ -205,7 +198,8 @@ export function DashboardHero({
       alignItems: 'center',
       gap: spacing.sm,
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.sm + 2,
+      paddingVertical: spacing.md,
+      minHeight: 52,
       ...webPointer(),
       ...webOnlyStyle({
         transitionProperty: 'background-color, opacity',
@@ -228,10 +222,11 @@ export function DashboardHero({
     pulseLabel: {
       flex: 1,
       minWidth: 0,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      fontFamily: fontRegular,
-      color: colors.labelSecondary,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelPrimary,
     },
     pulseChevron: {
       flexShrink: 0,
@@ -325,14 +320,12 @@ export function DashboardHero({
           <Text style={styles.pulseLabel} numberOfLines={1}>
             {pulse.label}
           </Text>
-          {isWeb ? (
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={colors.labelTertiary}
-              style={styles.pulseChevron}
-            />
-          ) : null}
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.labelTertiary}
+            style={styles.pulseChevron}
+          />
         </Pressable>
       </View>
     </HeroStaggerBlock>
@@ -353,7 +346,7 @@ export function DashboardHero({
           />
         </View>
       ) : null}
-      <View style={overlayActions ? styles.bandContent : undefined}>
+      <View style={styles.bandBody}>
         <View style={styles.row}>
           {overlayActions ? (
             identity

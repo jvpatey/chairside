@@ -2,6 +2,7 @@ import type { JobPost } from '@chairside/api';
 import { formatJobPostRoleMeta, formatOfferingLabel, getSpecialtyLabel } from '@chairside/config';
 import { isMatchableSoftware } from '@chairside/core';
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import {
@@ -24,9 +25,11 @@ type JobPostDetailViewProps = {
   job: JobPost;
   /** Render only the hero band, only the detail sections, or both (default). */
   part?: JobPostDetailPart;
+  /** Optional badges rendered below the hero row (e.g. match tier). */
+  heroAccessory?: ReactNode;
 };
 
-export function JobPostDetailView({ job, part = 'all' }: JobPostDetailViewProps) {
+export function JobPostDetailView({ job, part = 'all', heroAccessory }: JobPostDetailViewProps) {
   const { colors } = useTheme();
   const metaLine = formatJobPostRoleMeta(job);
   const matchableSoftware = job.software_used.filter(isMatchableSoftware);
@@ -104,9 +107,10 @@ export function JobPostDetailView({ job, part = 'all' }: JobPostDetailViewProps)
               </View>
               <JobPostStatusBadge status={job.status} style={styles.statusBadge} />
             </View>
-            {Boolean(job.screening_enabled) ? (
+            {heroAccessory || Boolean(job.screening_enabled) ? (
               <BadgeRow>
-                <CultureFitScreeningBadge />
+                {heroAccessory}
+                {Boolean(job.screening_enabled) ? <CultureFitScreeningBadge /> : null}
               </BadgeRow>
             ) : null}
           </SurfaceCard>
@@ -116,7 +120,7 @@ export function JobPostDetailView({ job, part = 'all' }: JobPostDetailViewProps)
       {showBody ? (
         <FadeInSection delayMs={showHero ? 80 : 0}>
           <SurfaceCard padding="lg" gap elevationLevel="subtle">
-            <CardDetailSection>
+            <CardDetailSection title="Role">
               <DetailRow label="Compensation" value={job.wage_range} />
               <RowDivider />
               <DetailRow label="Schedule" value={job.schedule} />

@@ -11,17 +11,36 @@ import {
   fontSemibold,
   useTheme,
   useThemedStyles,
+  type Colors,
   type GradientAccent,
 } from '@/theme';
+
+export type FileTabAccent = GradientAccent | 'neutral';
 
 export type FileTabOption<T extends string = string> = {
   value: T;
   label: string;
   count?: number;
   badgeCount?: number;
-  accent?: GradientAccent;
+  accent?: FileTabAccent;
   icon?: keyof typeof Ionicons.glyphMap;
 };
+
+function resolveFileTabAccentColors(colors: Colors, accent: FileTabAccent) {
+  if (accent === 'neutral') {
+    return {
+      accentColor: colors.labelPrimary,
+      accentSubtle: colors.fillSubtle,
+      accentOn: colors.labelPrimary,
+    };
+  }
+
+  return {
+    accentColor: resolveAccentColor(colors, accent),
+    accentSubtle: resolveAccentSubtle(colors, accent),
+    accentOn: resolveAccentOnColor(colors, accent),
+  };
+}
 
 export type FileTabWellVariant = 'dashboard' | 'inline';
 
@@ -244,8 +263,7 @@ export function FileTabWell<T extends string = string>({
         const isSelected = selected === tab.value;
         const isLocked = lockedTab === tab.value;
         const accent = tab.accent ?? 'primary';
-        const accentColor = resolveAccentColor(colors, accent);
-        const accentOn = resolveAccentOnColor(colors, accent);
+        const { accentColor, accentOn } = resolveFileTabAccentColors(colors, accent);
 
         return (
           <Pressable
@@ -299,9 +317,7 @@ export function FileTabWell<T extends string = string>({
         const isFirst = tabIndex === 0;
         const isLast = tabIndex === tabs.length - 1;
         const accent = tab.accent ?? 'primary';
-        const accentColor = resolveAccentColor(colors, accent);
-        const accentSubtle = resolveAccentSubtle(colors, accent);
-        const accentOn = resolveAccentOnColor(colors, accent);
+        const { accentColor, accentSubtle, accentOn } = resolveFileTabAccentColors(colors, accent);
 
         return (
           <Pressable

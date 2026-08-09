@@ -309,7 +309,12 @@ export function MessageThreadHeader({
         router.push(getWorkerApplicationRoute(conversation.application_id, 'messages-tab'));
         return;
       }
-      router.push(getWorkerClinicProfileRoute(conversation.clinic_id));
+      router.push(
+        getWorkerClinicProfileRoute(conversation.clinic_id, {
+          returnTo: 'messages-tab',
+          conversationId: conversation.id,
+        }),
+      );
       return;
     }
 

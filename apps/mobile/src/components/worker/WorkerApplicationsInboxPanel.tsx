@@ -192,14 +192,14 @@ export function WorkerApplicationsInboxPanel({
         value: 'active' as const,
         label: 'Active',
         count: active.length,
-        accent: 'primary' as const,
+        accent: 'tertiary' as const,
         icon: 'document-text-outline' as const,
       },
       {
         value: 'past' as const,
         label: 'Past',
         count: past.length,
-        accent: 'primary' as const,
+        accent: 'tertiary' as const,
         icon: 'time-outline' as const,
       },
     ],
@@ -212,9 +212,10 @@ export function WorkerApplicationsInboxPanel({
   return (
     <>
       <Screen
-        title={compact ? undefined : 'Applications'}
+        title="Applications"
         subtitle={compact ? undefined : 'Track your role applications.'}
-        showHeader={!compact}
+        showHeader
+        headerVariant={compact ? 'tabletSection' : undefined}
         constrainWidth={!compact}
         scroll={!compact}
         fillsContainer={compact}
@@ -222,7 +223,8 @@ export function WorkerApplicationsInboxPanel({
         hideAtmosphere={compact}
         transparentBackground={compact}
         refreshing={refreshing}
-        onRefresh={onRefresh}>
+        onRefresh={onRefresh}
+        refreshAccent="tertiary">
         <FormErrorBanner message={formError} />
         {isLoading ? (
           <PageLoadingList rowCount={3} message="Loading applications…" />

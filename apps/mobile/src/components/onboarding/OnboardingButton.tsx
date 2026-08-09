@@ -16,6 +16,7 @@ import {
   type GradientAccent,
 } from '@/theme';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
+import { resolveAccentColor, resolveAccentOnColor, resolveAccentPressed, resolveAccentSubtle } from '@/lib/accentColors';
 
 const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
 
@@ -48,9 +49,10 @@ export function OnboardingButton({
 }: OnboardingButtonProps) {
   const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
-  const brandBg = accent === 'secondary' ? colors.secondary : colors.primary;
-  const brandPressed = accent === 'secondary' ? colors.secondaryPressed : colors.primaryPressed;
-  const brandOn = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
+  const brandBg = resolveAccentColor(colors, accent);
+  const brandPressed = resolveAccentPressed(colors, accent);
+  const brandOn = resolveAccentOnColor(colors, accent);
+  const brandSubtle = resolveAccentSubtle(colors, accent);
   const primaryGradient =
     accent === 'secondary'
       ? getSecondaryTileGradient(colors, isDark)
@@ -115,7 +117,7 @@ export function OnboardingButton({
       paddingVertical: spacing.sm,
     },
     ghostHovered: {
-      backgroundColor: accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle,
+      backgroundColor: brandSubtle,
     },
     destructive: {
       backgroundColor: colors.surface,
@@ -149,14 +151,14 @@ export function OnboardingButton({
     isPrimary && !disabled
       ? isDark
         ? {
-            shadowColor: accent === 'secondary' ? colors.secondary : colors.primary,
+            shadowColor: brandBg,
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.35,
             shadowRadius: 16,
             elevation: 6,
           }
         : {
-            shadowColor: '#1A6FD4',
+            shadowColor: brandBg,
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.35,
             shadowRadius: 16,

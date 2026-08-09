@@ -27,6 +27,8 @@ type MessageContextPanelProps = {
   conversation: Conversation | null;
   role: 'worker' | 'clinic';
   onCollapse?: () => void;
+  /** Close split-view context UI before routing to a full-screen destination. */
+  onNavigateAway?: () => void;
 };
 
 function ContextAvatar({
@@ -256,6 +258,7 @@ export function MessageContextPanel({
   conversation,
   role,
   onCollapse,
+  onNavigateAway,
 }: MessageContextPanelProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -320,12 +323,19 @@ export function MessageContextPanel({
 
   const handleProfilePress = () => {
     if (role === 'worker') {
-      router.push(getWorkerClinicProfileRoute(conversation.clinic_id));
+      onNavigateAway?.();
+      router.push(
+        getWorkerClinicProfileRoute(conversation.clinic_id, {
+          returnTo: 'messages-tab',
+          conversationId: conversation.id,
+        }),
+      );
     }
   };
 
   const handleApplicationPress = () => {
     if (!conversation.application_id) return;
+    onNavigateAway?.();
     if (role === 'worker') {
       router.push(getWorkerApplicationRoute(conversation.application_id, 'messages-tab'));
       return;

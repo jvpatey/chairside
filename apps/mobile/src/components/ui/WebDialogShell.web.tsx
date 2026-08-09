@@ -73,6 +73,8 @@ export function WebDialogShell({
     },
     body: {
       gap: spacing.md,
+      width: '100%' as const,
+      alignItems: 'stretch' as const,
     },
     closeButton: {
       width: 32,

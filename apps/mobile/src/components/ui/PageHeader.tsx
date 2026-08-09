@@ -5,6 +5,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TABLET_PROFILE_ROW_HEIGHT } from '@/lib/breakpoints';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { fontBold, fontSemibold, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { resolveAccentColor } from '@/lib/accentColors';
 import { webTypography } from '@/theme/web';
 
 export type PageHeaderVariant = 'hub' | 'detail' | 'tabletSection';
@@ -43,7 +44,7 @@ export function PageHeader({
   style,
 }: PageHeaderProps) {
   const { colors } = useTheme();
-  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const brandColor = resolveAccentColor(colors, accent);
   const isWeb = Platform.OS === 'web';
   const isTabletSection = variant === 'tabletSection';
 

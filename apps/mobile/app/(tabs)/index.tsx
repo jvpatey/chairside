@@ -325,7 +325,7 @@ export default function WorkerDashboardScreen() {
         label: 'Applications',
         count: counts.pendingApplications,
         badgeCount: applicationUpdateCount,
-        accent: 'primary' as const,
+        accent: 'tertiary' as const,
         icon: 'document-text-outline' as const,
       },
       {
@@ -342,7 +342,7 @@ export default function WorkerDashboardScreen() {
         value: 'saved' as const,
         label: 'Saved',
         count: savedCount,
-        accent: 'tertiary' as const,
+        accent: 'neutral' as const,
         icon: 'bookmark-outline' as const,
       });
     }

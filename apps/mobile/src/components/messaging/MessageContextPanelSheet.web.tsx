@@ -11,6 +11,7 @@ type MessageContextPanelSheetProps = {
   onClose: () => void;
   conversation: Conversation | null;
   role: 'worker' | 'clinic';
+  onNavigateAway?: () => void;
 };
 
 /** Right-side details sheet for message split view below xwide widths. */
@@ -19,6 +20,7 @@ export function MessageContextPanelSheet({
   onClose,
   conversation,
   role,
+  onNavigateAway,
 }: MessageContextPanelSheetProps) {
   useWebEscapeKey(onClose, visible);
 
@@ -61,6 +63,7 @@ export function MessageContextPanelSheet({
             conversation={conversation}
             role={role}
             onCollapse={onClose}
+            onNavigateAway={onNavigateAway ?? onClose}
           />
         </View>
       </View>

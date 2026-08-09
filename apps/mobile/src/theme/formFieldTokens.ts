@@ -14,7 +14,7 @@ type FormFieldTheme = {
   typography: { body: TextStyle; label: TextStyle };
 };
 
-/** Shared label style — uppercase eyebrow matching CardDetailSection. */
+/** Shared label style — uppercase eyebrow for form field groups. */
 export function formFieldLabelStyle({ colors, typography }: FormFieldTheme): TextStyle {
   return {
     ...typography.label,
