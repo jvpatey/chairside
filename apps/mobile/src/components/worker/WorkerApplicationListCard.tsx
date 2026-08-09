@@ -7,10 +7,15 @@ import { Text, View } from 'react-native';
 
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
+import { WorkerApplicationStatusLabel } from '@/components/matching/ApplicationStatusBadge';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { getWorkerApplicationRoute, type WorkerApplicationReturnTarget } from '@/lib/routing';
+import {
+  formatWorkerApplicationCardLocation,
+  getWorkerApplicationCardDetail,
+  getWorkerApplicationCardStatusLabel,
+} from '@/lib/workerApplicationCardDetail';
 import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -30,17 +35,17 @@ export function WorkerApplicationListCard({
   embedded = false,
 }: WorkerApplicationListCardProps) {
   const { colors } = useTheme();
-  const { isApplicationHighlighted, getApplicationHighlightLabel, markApplicationSeen } =
-    useApplicationTabBadge();
+  const { isApplicationHighlighted, markApplicationSeen } = useApplicationTabBadge();
   const isShift = application.post_type === 'shift';
   const appliedLabel = formatApplicationDate(application.created_at);
 
   const isConfirmedShift = isShift && application.status === 'hired';
   const isCancelledShift =
     isShift && application.status === 'rejected' && Boolean(application.status_closed_by);
-  const shiftDisplay = isShift ? getWorkerShiftApplicationCardDisplay(application) : null;
   const hasApplicationUpdate = isApplicationHighlighted(application);
-  const applicationUpdateLabel = getApplicationHighlightLabel(application);
+  const detailLine = getWorkerApplicationCardDetail(application, {
+    isHighlighted: hasApplicationUpdate,
+  });
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     trailingRow: {
@@ -59,30 +64,19 @@ export function WorkerApplicationListCard({
       alignItems: 'flex-end',
       gap: spacing.xs,
     },
-    compactFooter: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
   }));
 
-  const location = shiftDisplay?.location ?? application.clinic_city;
+  const location = formatWorkerApplicationCardLocation(application);
+  const shiftDisplay = isShift ? getWorkerShiftApplicationCardDisplay(application) : null;
   const appliedOnLabel = isCancelledShift
     ? application.status_closed_by === 'clinic_deleted'
       ? 'Removed by clinic'
       : application.status_closed_by === 'clinic'
         ? 'Cancelled by clinic'
         : 'Cancelled'
-    : appliedLabel
+      : appliedLabel
       ? `${isShift ? 'Requested' : 'Applied'} ${appliedLabel}`
       : null;
-  const detailLine = [
-    shiftDisplay?.shiftSchedule ?? null,
-    isCancelledShift ? application.status_note?.trim() : applicationUpdateLabel,
-  ]
-    .filter(Boolean)
-    .join(' · ') || null;
 
   const openDetail = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -92,12 +86,16 @@ export function WorkerApplicationListCard({
     router.push(getWorkerApplicationRoute(application.id, returnTo));
   };
 
-  const statusBadge = (
-    <WorkerApplicationStatusBadge
+  const statusLabel = (
+    <WorkerApplicationStatusLabel
       status={application.status}
       postType={application.post_type}
       statusNote={application.status_note}
       statusClosedBy={application.status_closed_by}
+      label={getWorkerApplicationCardStatusLabel(application, {
+        isHighlighted: hasApplicationUpdate,
+      })}
+      showStatusPrefix
     />
   );
 
@@ -123,20 +121,14 @@ export function WorkerApplicationListCard({
         logoStoragePath={application.clinic_logo_storage_path}
         title={shiftDisplay?.title ?? application.post_title}
         location={location}
+        statusLabel={statusLabel}
         postedLabel={appliedOnLabel}
         detail={detailLine}
         avatarSize={compact ? 40 : 44}
-        accessory={compact ? undefined : (
-          <View style={styles.accessory}>
-            {hasApplicationUpdate ? <ApplicationCardBadge accent="tertiary" /> : null}
-            {statusBadge}
-          </View>
-        )}
-        statusFooter={
-          compact ? (
-            <View style={styles.compactFooter}>
-              {hasApplicationUpdate ? <ApplicationCardBadge accent="tertiary" /> : null}
-              {statusBadge}
+        accessory={
+          hasApplicationUpdate ? (
+            <View style={styles.accessory}>
+              <ApplicationCardBadge accent="tertiary" />
             </View>
           ) : undefined
         }

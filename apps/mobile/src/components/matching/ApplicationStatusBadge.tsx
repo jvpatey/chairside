@@ -122,6 +122,10 @@ type WorkerApplicationStatusBadgeProps = {
   postType: ApplicationPostType;
   statusNote?: string | null;
   statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
+  /** Override the default short pipeline label (e.g. list-card headline). */
+  label?: string;
+  /** Prefix with "Status: " for list-card clarity. */
+  showStatusPrefix?: boolean;
 };
 
 export function WorkerApplicationStatusBadge({
@@ -157,17 +161,30 @@ export function WorkerApplicationStatusLabel({
   postType,
   statusNote,
   statusClosedBy,
+  label: labelOverride,
+  showStatusPrefix = false,
 }: WorkerApplicationStatusBadgeProps) {
+  const { colors } = useTheme();
   const variant = getWorkerApplicationStatusVariant(status, postType);
   const palette = useWorkerStatusVariantPalette(variant);
   const label =
-    postType === 'shift'
+    labelOverride ??
+    (postType === 'shift'
       ? formatWorkerShiftApplicationStatus({
           status,
           status_note: statusNote,
           status_closed_by: statusClosedBy,
         })
-      : formatApplicationStatus(status, postType);
+      : formatApplicationStatus(status, postType));
+
+  if (showStatusPrefix) {
+    return (
+      <Text style={{ fontSize: 13, lineHeight: 18 }} numberOfLines={2}>
+        <Text style={{ fontWeight: '500', color: colors.labelSecondary }}>Status: </Text>
+        <Text style={{ fontWeight: '600', color: palette.color }}>{label}</Text>
+      </Text>
+    );
+  }
 
   return (
     <Text

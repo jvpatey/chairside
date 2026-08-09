@@ -28,6 +28,8 @@ type ClinicPostHeaderProps = {
   /** Omit on detail screens where the clinic name is the primary heading. */
   title?: string;
   location?: string | null;
+  /** Pipeline status between location and detail (application list cards). */
+  statusLabel?: ReactNode;
   detail?: string | null;
   postedLabel?: string | ReactNode | null;
   /** Split content: first line in tinted band (e.g. status label). */
@@ -63,6 +65,7 @@ export function ClinicPostHeader({
   logoStoragePath,
   title,
   location,
+  statusLabel,
   detail,
   postedLabel,
   contentHeader,
@@ -232,6 +235,7 @@ export function ClinicPostHeader({
                 {location}
               </Text>
             ) : null}
+            {headerOnlySplit && statusLabel ? <View>{statusLabel}</View> : null}
             {!isSplit && detail ? (
               <Text style={styles.meta} numberOfLines={2}>
                 {detail}
@@ -274,6 +278,7 @@ export function ClinicPostHeader({
           ) : null}
         </View>
       ) : null}
+      {!headerOnlySplit && statusLabel ? <View>{statusLabel}</View> : null}
       {!headerOnlySplit && detail ? (
         <Text style={styles.meta} numberOfLines={2}>
           {detail}
@@ -300,6 +305,7 @@ export function ClinicPostHeader({
         contentHeader ||
         location ||
         locationTrailing ||
+        statusLabel ||
         detail ||
         postedLabel ||
         textFooter ||
