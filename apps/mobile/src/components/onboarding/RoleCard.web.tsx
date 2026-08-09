@@ -15,7 +15,7 @@ type RoleCardProps = {
   selected: boolean;
   onPress: () => void;
   variant?: 'list' | 'tile';
-  /** Accepted for parity with the native card; web styling stays neutral. */
+  /** Brand accent — clinics use primary, professionals secondary. */
   accent?: 'primary' | 'secondary';
 };
 
@@ -27,9 +27,13 @@ export function RoleCard({
   selected,
   onPress,
   variant = 'tile',
+  accent = 'primary',
 }: RoleCardProps) {
   const { colors } = useTheme();
   const isTile = variant === 'tile';
+  const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const accentSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const accentOn = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
 
   const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
@@ -48,12 +52,9 @@ export function RoleCard({
       ...webCardLiftBase(),
     },
     cardSelected: {
-      backgroundColor: colors.primarySubtle,
-      borderColor: colors.primary,
+      backgroundColor: accentSubtle,
+      borderColor: accentColor,
       ...webOnlyStyle({
-        backgroundImage: isDark
-          ? 'linear-gradient(135deg, rgba(74, 154, 255, 0.14) 0%, rgba(28, 28, 30, 0.95) 100%)'
-          : 'linear-gradient(135deg, rgba(26, 111, 212, 0.1) 0%, rgba(255, 255, 255, 1) 100%)',
         boxShadow: getWebShadow(isDark, 'subtle'),
       } as ViewStyle),
     },
@@ -62,10 +63,8 @@ export function RoleCard({
       boxShadow: getWebShadow(isDark, 'subtle'),
     } as ViewStyle),
     cardSelectedHovered: webOnlyStyle({
-      borderColor: colors.primary,
-      boxShadow: isDark
-        ? '0 8px 24px rgba(74, 154, 255, 0.2)'
-        : '0 8px 24px rgba(26, 111, 212, 0.16)',
+      borderColor: accentColor,
+      boxShadow: getWebShadow(isDark, 'raised'),
     } as ViewStyle),
     topRow: {
       flexDirection: 'row' as const,
@@ -96,13 +95,26 @@ export function RoleCard({
       fontSize: 15,
       lineHeight: 22,
     },
+    iconBadge: {
+      width: isTile ? 40 : 36,
+      height: isTile ? 40 : 36,
+      borderRadius: isTile ? 12 : 10,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: accentSubtle,
+      flexShrink: 0,
+    },
+    // Selected cards sit on the subtle accent wash, so the badge goes solid to stay legible.
+    iconBadgeSelected: {
+      backgroundColor: accentColor,
+    },
     check: {
       width: 24,
       height: 24,
       borderRadius: 12,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      backgroundColor: colors.primary,
+      backgroundColor: accentColor,
       flexShrink: 0,
     },
     checkPlaceholder: {
@@ -117,11 +129,20 @@ export function RoleCard({
     onPress();
   };
 
-  const iconColor = selected ? colors.primary : colors.labelSecondary;
-  const renderedIcon = iconNode ?? <Ionicons name={icon} size={isTile ? 24 : 22} color={iconColor} />;
+  const renderedIcon = (
+    <View style={[styles.iconBadge, selected && styles.iconBadgeSelected]}>
+      {iconNode ?? (
+        <Ionicons
+          name={icon}
+          size={isTile ? 22 : 20}
+          color={selected ? accentOn : accentColor}
+        />
+      )}
+    </View>
+  );
   const checkNode = selected ? (
     <View style={styles.check}>
-      <Ionicons name="checkmark" size={15} color={colors.primaryOnPrimary} />
+      <Ionicons name="checkmark" size={15} color={accentOn} />
     </View>
   ) : (
     <View style={styles.checkPlaceholder} />

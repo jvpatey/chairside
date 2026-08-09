@@ -8,16 +8,31 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import {
-  getPrimaryTileGradient,
-  getSecondaryTileGradient,
+  getTileGradient,
   radii,
   useTheme,
   useThemedStyles,
   type GradientAccent,
 } from '@/theme';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
+import { resolveAccentColor, resolveAccentOnColor, resolveAccentPressed, resolveAccentSubtle } from '@/lib/accentColors';
 
 const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
+
+const ACCENT_HOVER_SHADOW: Record<GradientAccent, { dark: string; light: string }> = {
+  primary: {
+    dark: '0 6px 16px rgba(74, 154, 255, 0.28)',
+    light: '0 4px 12px rgba(26, 111, 212, 0.28)',
+  },
+  secondary: {
+    dark: '0 6px 16px rgba(88, 86, 214, 0.28)',
+    light: '0 4px 12px rgba(88, 86, 214, 0.28)',
+  },
+  tertiary: {
+    dark: '0 6px 16px rgba(52, 211, 153, 0.28)',
+    light: '0 4px 12px rgba(15, 159, 138, 0.28)',
+  },
+};
 
 type OnboardingButtonProps = {
   label: string;
@@ -48,13 +63,11 @@ export function OnboardingButton({
 }: OnboardingButtonProps) {
   const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
-  const brandBg = accent === 'secondary' ? colors.secondary : colors.primary;
-  const brandPressed = accent === 'secondary' ? colors.secondaryPressed : colors.primaryPressed;
-  const brandOn = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
-  const primaryGradient =
-    accent === 'secondary'
-      ? getSecondaryTileGradient(colors, isDark)
-      : getPrimaryTileGradient(colors, isDark);
+  const brandBg = resolveAccentColor(colors, accent);
+  const brandPressed = resolveAccentPressed(colors, accent);
+  const brandOn = resolveAccentOnColor(colors, accent);
+  const brandSubtle = resolveAccentSubtle(colors, accent);
+  const primaryGradient = getTileGradient(colors, isDark, accent);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -115,7 +128,7 @@ export function OnboardingButton({
       paddingVertical: spacing.sm,
     },
     ghostHovered: {
-      backgroundColor: accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle,
+      backgroundColor: brandSubtle,
     },
     destructive: {
       backgroundColor: colors.surface,
@@ -149,14 +162,14 @@ export function OnboardingButton({
     isPrimary && !disabled
       ? isDark
         ? {
-            shadowColor: accent === 'secondary' ? colors.secondary : colors.primary,
+            shadowColor: brandBg,
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.35,
             shadowRadius: 16,
             elevation: 6,
           }
         : {
-            shadowColor: '#1A6FD4',
+            shadowColor: brandBg,
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.35,
             shadowRadius: 16,
@@ -165,13 +178,7 @@ export function OnboardingButton({
       : null;
   const primaryHoveredStyle = webOnlyStyle({
     transform: [{ translateY: -1 }],
-    boxShadow: isDark
-      ? accent === 'secondary'
-        ? '0 6px 16px rgba(88, 86, 214, 0.28)'
-        : '0 6px 16px rgba(74, 154, 255, 0.28)'
-      : accent === 'secondary'
-        ? '0 4px 12px rgba(88, 86, 214, 0.28)'
-        : '0 4px 12px rgba(26, 111, 212, 0.28)',
+    boxShadow: isDark ? ACCENT_HOVER_SHADOW[accent].dark : ACCENT_HOVER_SHADOW[accent].light,
   } as ViewStyle);
   const labelPrimaryStyle = { color: brandOn };
 

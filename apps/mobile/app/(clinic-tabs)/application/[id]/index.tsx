@@ -3,6 +3,7 @@ import {
   getUnreadConversationMap,
   type ClinicApplication,
 } from '@chairside/api';
+import { formatPostTitleDisplay } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
@@ -10,8 +11,7 @@ import { Alert, Platform, View } from 'react-native';
 import { ClinicApplicationDetailCard } from '@/components/clinic/ClinicApplicationDetailCard';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,15 +46,17 @@ export default function ClinicApplicationDetailScreen() {
   const { user } = useAuth();
   const { clinicProfile } = useClinicProfile();
   const { markApplicationSeen } = useApplicationTabBadge();
-  const { id, returnTo, roleJobId } = useLocalSearchParams<{
+  const { id, returnTo, roleJobId, selectJobId } = useLocalSearchParams<{
     id?: string;
     returnTo?: string;
     roleJobId?: string;
+    selectJobId?: string;
   }>();
   const applicationId = typeof id === 'string' ? id : '';
   const resolvedReturnTo =
     typeof returnTo === 'string' ? (returnTo as ClinicApplicationReturnTarget) : undefined;
   const resolvedRoleJobId = typeof roleJobId === 'string' ? roleJobId : undefined;
+  const resolvedSelectJobId = typeof selectJobId === 'string' ? selectJobId : undefined;
 
   const [application, setApplication] = useState<ClinicApplication | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
@@ -76,8 +78,13 @@ export default function ClinicApplicationDetailScreen() {
   }));
 
   const goBack = useCallback(() => {
-    navigateAfterClinicApplication(router, resolvedReturnTo, resolvedRoleJobId);
-  }, [resolvedReturnTo, resolvedRoleJobId]);
+    navigateAfterClinicApplication(
+      router,
+      resolvedReturnTo,
+      resolvedRoleJobId,
+      resolvedSelectJobId,
+    );
+  }, [resolvedReturnTo, resolvedRoleJobId, resolvedSelectJobId]);
 
   const load = useCallback(async () => {
     if (!user?.id || !applicationId) {
@@ -123,15 +130,17 @@ export default function ClinicApplicationDetailScreen() {
 
   const defaultLocation = formatClinicAddress(clinicProfile);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
+  const reviewAccent =
+    application?.post_type === 'shift' ? ('secondary' as const) : ('tertiary' as const);
 
   return (
     <>
-      <OnboardingShell atmosphere="subtle">
-        <AuthScreenHeader
-          eyebrow="Application review"
-          title={application?.post_title || 'Applicant'}
-          onBack={goBack}
-        />
+      <FormScreen
+        eyebrow="Application review"
+        title={formatPostTitleDisplay(application?.post_title || 'Applicant')}
+        onBack={goBack}
+        accent={reviewAccent}
+        atmosphereAccent={reviewAccent}>
         <View style={styles.content}>
           <FormErrorBanner message={formError} />
           {isLoading ? (
@@ -163,7 +172,7 @@ export default function ClinicApplicationDetailScreen() {
             />
           ) : null}
         </View>
-      </OnboardingShell>
+      </FormScreen>
 
       {scheduleTarget ? (
         <InterviewScheduleSheet

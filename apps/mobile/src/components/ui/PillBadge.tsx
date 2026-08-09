@@ -14,24 +14,24 @@ import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableS
 
 export const PILL_BADGE_MIN_HEIGHT = 26;
 
-export type PillBadgeSize = 'sm' | 'md';
+export type PillBadgeSize = 'xs' | 'sm' | 'md';
 
 export function usePillBadgeStyles(size: PillBadgeSize = 'md') {
   return useThemedStyles(({ spacing }) => ({
     badge: {
       alignSelf: 'flex-start',
       borderRadius: 999,
-      minHeight: size === 'sm' ? 24 : PILL_BADGE_MIN_HEIGHT,
-      paddingHorizontal: size === 'sm' ? spacing.sm : spacing.sm + 2,
-      paddingVertical: size === 'sm' ? 3 : spacing.xs + 1,
+      minHeight: size === 'xs' ? 18 : size === 'sm' ? 24 : PILL_BADGE_MIN_HEIGHT,
+      paddingHorizontal: size === 'xs' ? 6 : size === 'sm' ? spacing.sm : spacing.sm + 2,
+      paddingVertical: size === 'xs' ? 1 : size === 'sm' ? 3 : spacing.xs + 1,
       justifyContent: 'center',
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: 'transparent',
     },
     label: {
-      fontSize: size === 'sm' ? 12 : 13,
+      fontSize: size === 'xs' ? 10 : size === 'sm' ? 12 : 13,
       fontWeight: '600',
-      lineHeight: size === 'sm' ? 16 : 18,
+      lineHeight: size === 'xs' ? 12 : size === 'sm' ? 16 : 18,
     },
     row: {
       flexDirection: 'row',

@@ -1,5 +1,7 @@
 import type { WorkerApplication } from '@chairside/api';
 
+import { formatPostTitleDisplay } from '@chairside/config';
+
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 
 export function getWorkerShiftApplicationCardDisplay(application: WorkerApplication): {
@@ -23,7 +25,7 @@ export function getWorkerShiftApplicationCardDisplay(application: WorkerApplicat
           start_time: application.shift_start_time ?? null,
           end_time: application.shift_end_time ?? null,
         })
-      : application.post_title.replace(/^Fill-in · /, '');
+      : formatPostTitleDisplay(application.post_title).replace(/^Fill-in · /, '') || null;
 
   return { title, location, shiftSchedule };
 }

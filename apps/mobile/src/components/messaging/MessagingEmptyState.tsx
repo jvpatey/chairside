@@ -10,6 +10,7 @@ type MessagingEmptyStateProps = {
   body?: string;
   message?: string;
   compact?: boolean;
+  embedded?: boolean;
   accent?: GradientAccent;
   ctaLabel?: string;
   onCtaPress?: () => void;
@@ -21,12 +22,15 @@ export function MessagingEmptyState({
   title,
   body,
   message,
+  compact,
+  embedded = Boolean(compact),
   accent,
   ctaLabel,
   onCtaPress,
 }: MessagingEmptyStateProps) {
   return (
     <EmptyState
+      embedded={embedded}
       icon={icon}
       title={title}
       message={message ?? body ?? ''}

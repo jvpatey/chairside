@@ -10,6 +10,11 @@ import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { fillInTabIcon } from '@/lib/fillInIcons';
+
+export const unstable_settings = {
+  initialRouteName: 'index',
+};
 
 function WorkerTabNavigator() {
   const { unreadCount } = useMessageUnread();
@@ -19,6 +24,7 @@ function WorkerTabNavigator() {
 
   return (
     <Tabs tabBar={renderWorkerTabBar} screenOptions={screenOptions}>
+      <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
       <Tabs.Screen
         name="browse"
         options={{
@@ -43,14 +49,13 @@ function WorkerTabNavigator() {
           ),
         }}
       />
-      <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
       <Tabs.Screen
         name="fillins"
         options={{
           title: 'Fill-ins',
           tabBarBadge: fillInPendingCount > 0 ? fillInPendingCount : undefined,
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'flash' : 'flash-outline'} size={22} color={color} />
+            <Ionicons name={fillInTabIcon(focused)} size={22} color={color} />
           ),
         }}
       />

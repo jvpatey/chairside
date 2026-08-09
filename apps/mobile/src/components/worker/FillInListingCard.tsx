@@ -18,6 +18,7 @@ type FillInListingCardProps = {
   onToggleSaved?: () => void;
   onPress?: () => void;
   accent?: GradientAccent;
+  embedded?: boolean;
 };
 
 export function FillInListingCard({
@@ -27,6 +28,7 @@ export function FillInListingCard({
   onToggleSaved,
   onPress,
   accent,
+  embedded = false,
 }: FillInListingCardProps) {
   const { colors } = useTheme();
   const tabAccent = useTabAtmosphereAccent();
@@ -71,6 +73,7 @@ export function FillInListingCard({
 
   return (
     <SurfaceCard
+      variant={embedded ? 'inner' : 'default'}
       onPress={onPress}
       padding="none"
       style={isFeatured ? featuredTreatment.styles.card : undefined}

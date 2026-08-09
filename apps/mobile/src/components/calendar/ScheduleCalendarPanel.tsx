@@ -32,13 +32,13 @@ function selectedDayCircleStyle(
     alignItems: 'center',
     justifyContent: 'center',
     ...(Platform.OS === 'web'
-      ? { boxShadow: `0 3px 10px ${isDark ? 'rgba(74, 154, 255, 0.45)' : 'rgba(26, 111, 212, 0.4)'}` }
+      ? { boxShadow: `0 1px 4px ${isDark ? 'rgba(74, 154, 255, 0.18)' : 'rgba(26, 111, 212, 0.15)'}` }
       : {
           shadowColor: colors.primary,
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: isDark ? 0.5 : 0.38,
-          shadowRadius: 8,
-          elevation: 6,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: isDark ? 0.22 : 0.16,
+          shadowRadius: 3,
+          elevation: 2,
         }),
   };
 }
@@ -127,7 +127,7 @@ export function ScheduleCalendarPanel({
     panel: {
       backgroundColor: colors.surface,
       borderRadius: radii.lg,
-      borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       padding: spacing.md,
       gap: spacing.sm,
@@ -245,7 +245,7 @@ export function ScheduleCalendarPanel({
       backgroundColor: colors.primary,
     },
     dotFillIn: {
-      backgroundColor: colors.success,
+      backgroundColor: colors.secondary,
     },
     legendRow: {
       flexDirection: 'row',
@@ -273,7 +273,7 @@ export function ScheduleCalendarPanel({
   const renderDots = (date: Date, selected: boolean) => {
     const dateKey = toISODate(date);
     const dotOnSelected = colors.primaryOnPrimary;
-    const fillInOnSelected = isDark ? '#B8F5C8' : '#E8FCEF';
+    const fillInOnSelected = isDark ? colors.secondaryOnSecondary : colors.secondarySubtle;
 
     if (!eventDateKeys.has(dateKey)) {
       return <View style={styles.dotRow} />;

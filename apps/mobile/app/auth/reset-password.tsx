@@ -8,13 +8,19 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { PasswordRequirements } from '@/components/onboarding/PasswordRequirements';
 import { PageLoadingSpinner } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
+import {
+  evaluatePassword,
+  getPasswordPlaceholder,
+  getPasswordTooShortMessage,
+  passwordsMatch,
+} from '@/lib/passwordPolicy';
 import { useThemedStyles } from '@/theme';
 
-const MIN_PASSWORD_LENGTH = 6;
 const SESSION_HYDRATION_MS = 1500;
 
 export default function ResetPasswordScreen() {
@@ -97,19 +103,22 @@ export default function ResetPasswordScreen() {
     };
   }, [clearPasswordRecoveryPending, sessionChecked, user]);
 
-  const passwordsMatch = password === confirmPassword;
-  const meetsMinLength = password.length >= MIN_PASSWORD_LENGTH;
+  const userEmail = user?.email?.trim() ?? '';
+  const passwordEvaluation = evaluatePassword(password, { email: userEmail });
+  const passwordsDoMatch = passwordsMatch(password, confirmPassword);
   const confirmHasInput = confirmPassword.length > 0;
-  const canSubmit = meetsMinLength && passwordsMatch && confirmHasInput;
+  const canSubmit = passwordEvaluation.isValid && passwordsDoMatch && confirmHasInput;
 
   const handleSubmit = async () => {
     if (isSubmitting || !user) return;
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      Alert.alert(
-        'Password too short',
-        `Use at least ${MIN_PASSWORD_LENGTH} characters for your new password.`,
-      );
+    if (passwordEvaluation.maxLengthError) {
+      Alert.alert('Password too long', passwordEvaluation.maxLengthError);
+      return;
+    }
+
+    if (!passwordEvaluation.isValid) {
+      Alert.alert('Password requirements not met', getPasswordTooShortMessage());
       return;
     }
 
@@ -181,13 +190,18 @@ export default function ResetPasswordScreen() {
       <View style={styles.form}>
         <AuthField
           label="New password"
-          placeholder="At least 6 characters"
+          placeholder={getPasswordPlaceholder()}
           secureTextEntry
           enablePasswordVisibilityToggle
           value={password}
           onChangeText={setPassword}
           editable={!isSubmitting}
-          validated={meetsMinLength}
+          validated={passwordEvaluation.isValid}
+        />
+        <PasswordRequirements
+          password={password}
+          email={userEmail}
+          evaluation={passwordEvaluation}
         />
         <AuthField
           label="Confirm password"
@@ -198,15 +212,15 @@ export default function ResetPasswordScreen() {
           onChangeText={setConfirmPassword}
           editable={!isSubmitting}
           validated={canSubmit}
-          invalid={confirmHasInput && !passwordsMatch}
+          invalid={confirmHasInput && !passwordsDoMatch}
         />
         {confirmHasInput ? (
           <Text
             style={[
               styles.matchHint,
-              passwordsMatch ? styles.matchHintSuccess : styles.matchHintError,
+              passwordsDoMatch ? styles.matchHintSuccess : styles.matchHintError,
             ]}>
-            {passwordsMatch ? 'Passwords match' : 'Passwords do not match'}
+            {passwordsDoMatch ? 'Passwords match' : 'Passwords do not match'}
           </Text>
         ) : (
           <Text style={styles.hint}>Use a password you have not used here before.</Text>

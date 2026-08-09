@@ -1,10 +1,16 @@
 import type { MessageDeliveryStatus } from '@chairside/api';
+import { DELETED_MESSAGE_BODY } from '@chairside/config';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { SearchMatchText } from '@/components/messaging/SearchMatchText';
+import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { copyMessageText } from '@/lib/copyText';
 import { getMessageBubbleRadii } from '@/lib/messageThreadDisplay';
+import { webHover, webIconButtonHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type MessageBubbleProps = {
@@ -20,6 +26,7 @@ type MessageBubbleProps = {
   highlighted?: boolean;
   highlightQuery?: string;
   animateEntry?: boolean;
+  onDelete?: () => Promise<void> | void;
 };
 
 function formatDeliveryLabel(status: MessageDeliveryStatus): string {
@@ -50,8 +57,18 @@ export function MessageBubble({
   highlighted = false,
   highlightQuery,
   animateEntry = true,
+  onDelete,
 }: MessageBubbleProps) {
   const { colors } = useTheme();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [rowHovered, setRowHovered] = useState(false);
+  const isWeb = Platform.OS === 'web';
+  const isRemoved = body === DELETED_MESSAGE_BODY;
+  const canDelete = Boolean(onDelete && isOwn && status === 'sent' && !isRemoved);
+  const canCopy = !isRemoved && body.trim().length > 0;
+  const hasMenuActions = canDelete || canCopy;
+  const showMenuButton = hasMenuActions;
   const bubbleRadii = getMessageBubbleRadii(isOwn, groupedWithPrevious, groupedWithNext);
   const showMeta = showTimestamp || status !== 'sent' || showDeliveryStatus;
 
@@ -87,6 +104,7 @@ export function MessageBubble({
     body: {
       ...typography.body,
       color: isOwn ? colors.primaryOnPrimary : colors.labelPrimary,
+      fontStyle: isRemoved ? 'italic' : 'normal',
     },
     bodyHighlight: {
       fontWeight: '700',
@@ -112,6 +130,30 @@ export function MessageBubble({
       color: deliveryStatus === 'read' ? colors.primary : colors.labelTertiary,
       fontWeight: deliveryStatus === 'read' ? '600' : '500',
     },
+    bubbleWrap: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 4,
+      maxWidth: '100%',
+    },
+    bubbleWrapOwn: {
+      flexDirection: 'row-reverse',
+    },
+    menuButton: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 2,
+      flexShrink: 0,
+      opacity: isWeb ? (rowHovered || menuVisible ? 1 : 0.85) : 0.85,
+      ...webPointer(),
+    },
+    menuButtonHovered: webIconButtonHoverStyles(colors),
+    menuButtonPressed: {
+      opacity: 0.75,
+    },
   }));
 
   const timestamp = formatBubbleTime(createdAt);
@@ -132,11 +174,33 @@ export function MessageBubble({
     .join('. ');
 
   const handleLongPress = () => {
+    if (!hasMenuActions) return;
+    openMenu();
+  };
+
+  const openMenu = () => {
+    if (!hasMenuActions) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMenuVisible(true);
+  };
+
+  const handleCopy = () => {
     void copyMessageText(body).then((copied) => {
       if (copied && Platform.OS !== 'web') {
         Alert.alert('Copied', 'Message copied to clipboard.');
       }
     });
+  };
+
+  const handleDeleteConfirmed = async () => {
+    try {
+      await onDelete?.();
+    } catch (error) {
+      Alert.alert(
+        'Could not delete message',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
   };
 
   const bubbleBody = activeHighlightQuery ? (
@@ -161,23 +225,98 @@ export function MessageBubble({
   );
 
   const content = (
-    <View style={styles.row} accessibilityRole="text" accessibilityLabel={accessibilityLabel}>
-      <View style={styles.column}>
-        {bubble}
-        {showMeta ? (
-          <View style={styles.metaRow}>
-            {status === 'pending' ? (
-              <ActivityIndicator color={colors.primary} size={10} />
+    <>
+      <View
+        style={styles.row}
+        accessibilityRole="text"
+        accessibilityLabel={accessibilityLabel}
+        {...(isWeb
+          ? {
+              onMouseEnter: () => setRowHovered(true),
+              onMouseLeave: () => setRowHovered(false),
+            }
+          : {})}
+      >
+        <View style={styles.column}>
+          <View style={[styles.bubbleWrap, isOwn && styles.bubbleWrapOwn]}>
+            {showMenuButton ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Message options"
+                hitSlop={8}
+                onPress={(event) => {
+                  event.stopPropagation?.();
+                  openMenu();
+                }}
+                style={({ pressed, hovered }) => [
+                  styles.menuButton,
+                  webHover(hovered, pressed, styles.menuButtonHovered),
+                  pressed && styles.menuButtonPressed,
+                ]}
+              >
+                <Ionicons name="ellipsis-horizontal" size={16} color={colors.labelTertiary} />
+              </Pressable>
             ) : null}
-            {showTimestamp && timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
-            {status === 'failed' ? <Text style={styles.statusFailed}>Failed to send</Text> : null}
-            {showDeliveryStatus && isOwn && status === 'sent' ? (
-              <Text style={styles.deliveryStatus}>{formatDeliveryLabel(resolvedDeliveryStatus)}</Text>
-            ) : null}
+            {bubble}
           </View>
-        ) : null}
+          {showMeta ? (
+            <View style={styles.metaRow}>
+              {status === 'pending' ? (
+                <ActivityIndicator color={colors.primary} size={10} />
+              ) : null}
+              {showTimestamp && timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
+              {status === 'failed' ? <Text style={styles.statusFailed}>Failed to send</Text> : null}
+              {showDeliveryStatus && isOwn && status === 'sent' ? (
+                <Text style={styles.deliveryStatus}>{formatDeliveryLabel(resolvedDeliveryStatus)}</Text>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
       </View>
-    </View>
+
+      <ActionMenuSheet
+        visible={menuVisible}
+        title="Message"
+        actions={[
+          ...(canCopy
+            ? [
+                {
+                  label: 'Copy text',
+                  onPress: handleCopy,
+                },
+              ]
+            : []),
+          ...(canDelete
+            ? [
+                {
+                  label: 'Delete message',
+                  destructive: true,
+                  onPress: () => setConfirmVisible(true),
+                },
+              ]
+            : []),
+        ]}
+        onClose={() => setMenuVisible(false)}
+      />
+
+      {canDelete ? (
+        <ActionMenuSheet
+          visible={confirmVisible}
+          title="Delete message?"
+          message="This removes the message for everyone in the thread."
+          actions={[
+            {
+              label: 'Delete',
+              destructive: true,
+              onPress: () => {
+                void handleDeleteConfirmed();
+              },
+            },
+          ]}
+          onClose={() => setConfirmVisible(false)}
+        />
+      ) : null}
+    </>
   );
 
   if (!animateEntry) return content;

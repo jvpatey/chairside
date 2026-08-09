@@ -1,4 +1,5 @@
 import {
+  deleteMessage,
   getConversation,
   getErrorMessage,
   getMessageDeliveryStatus,
@@ -34,12 +35,13 @@ import { TypingIndicator } from '@/components/messaging/TypingIndicator';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useConversationRealtime } from '@/hooks/useConversationRealtime';
 import { useMessageRealtime } from '@/hooks/useMessageRealtime';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
+import { hideConversation } from '@/lib/conversationHide';
 import {
   buildThreadListItems,
   createPendingMessage,
@@ -74,6 +76,10 @@ type MessageThreadProps = {
   highlightQuery?: string;
   onBack?: () => void;
   onConversationChange?: (conversation: Conversation) => void;
+  onRemoveFromInbox?: () => Promise<void> | void;
+  contextPanelAvailable?: boolean;
+  contextPanelCollapsed?: boolean;
+  onToggleContextPanel?: () => void;
 };
 
 function getEmptyStateCopy(
@@ -129,6 +135,10 @@ export function MessageThread({
   highlightQuery,
   onBack,
   onConversationChange,
+  onRemoveFromInbox,
+  contextPanelAvailable,
+  contextPanelCollapsed,
+  onToggleContextPanel,
 }: MessageThreadProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -165,11 +175,13 @@ export function MessageThread({
 
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const shellAtmosphere = useShellAtmosphere();
   const showTabAtmosphere = tabAtmosphere !== 'none';
   const transparentShell = showTabAtmosphere || (embedded && Platform.OS === 'web');
-  const paintOwnAtmosphere = showTabAtmosphere && !(embedded && Platform.OS === 'web');
+  const paintOwnAtmosphere =
+    showTabAtmosphere && !(embedded && Platform.OS === 'web') && !shellAtmosphere;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     container: {
       flex: 1,
       overflow: 'hidden',
@@ -193,7 +205,7 @@ export function MessageThread({
       marginHorizontal: spacing.lg,
       marginBottom: spacing.sm,
       padding: spacing.md,
-      borderRadius: 12,
+      borderRadius: radii.md,
       backgroundColor: colors.backgroundGrouped,
     },
     closedText: typography.subtitle,
@@ -257,7 +269,7 @@ export function MessageThread({
     scrollToLatestBadge: {
       minWidth: 20,
       height: 20,
-      borderRadius: 10,
+      borderRadius: radii.sm,
       paddingHorizontal: 6,
       alignItems: 'center',
       justifyContent: 'center',
@@ -653,6 +665,34 @@ export function MessageThread({
     await sendBody(message.body, message.id);
   };
 
+  const handleRemoveFromInbox = useCallback(async () => {
+    if (onRemoveFromInbox) {
+      await onRemoveFromInbox();
+      return;
+    }
+    if (!conversation) return;
+    await hideConversation(conversation, role, userId);
+    onBack?.();
+  }, [conversation, onBack, onRemoveFromInbox, role, userId]);
+
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      const deleted = await deleteMessage(userId, messageId);
+      replaceMessage(messageId, deleted);
+      setConversation((current) => {
+        if (!current) return current;
+        const isLatest = current.last_message_at === deleted.created_at;
+        if (!isLatest) return current;
+        return {
+          ...current,
+          last_message_preview:
+            deleted.body.length > 120 ? `${deleted.body.slice(0, 120).trim()}…` : deleted.body,
+        };
+      });
+    },
+    [replaceMessage, userId],
+  );
+
   const canSend = Boolean(conversation?.can_send);
   const headerDisplay = conversation ? formatConversationDisplay(conversation, role) : null;
   const headerTitle = headerDisplay?.threadTitle ?? title;
@@ -705,6 +745,11 @@ export function MessageThread({
         animateEntry={
           entryAnimateMessageIds.current.has(message.id) && message.clientStatus !== 'pending'
         }
+        onDelete={
+          isOwn && message.clientStatus !== 'pending' && message.clientStatus !== 'failed'
+            ? () => handleDeleteMessage(message.id)
+            : undefined
+        }
       />
     );
 
@@ -735,6 +780,10 @@ export function MessageThread({
           compact={embedded}
           showContextDetails={showContextDetails}
           onBack={embedded ? undefined : onBack}
+          onRemoveFromInbox={handleRemoveFromInbox}
+          contextPanelAvailable={contextPanelAvailable}
+          contextPanelCollapsed={contextPanelCollapsed}
+          onToggleContextPanel={onToggleContextPanel}
         />
       </View>
 

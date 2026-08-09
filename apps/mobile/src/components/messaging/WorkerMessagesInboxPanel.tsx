@@ -6,7 +6,7 @@ import { View } from 'react-native';
 
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { ConversationInboxList } from '@/components/messaging/ConversationInboxList';
-import { MessagingInboxSkeleton } from '@/components/messaging/MessagingSkeleton';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { WorkerMessageClinicAction } from '@/components/messaging/WorkerMessageClinicAction';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
@@ -160,12 +160,12 @@ export function WorkerMessagesInboxPanel({
     return (
       <Screen
         title="Messages"
-        subtitle={WORKER_MESSAGES_SUBTITLE}
+        subtitle={compact ? undefined : WORKER_MESSAGES_SUBTITLE}
         scroll={scroll ?? !compact}
         fillsContainer={fillsContainer}
-        animateEntry={false}
         hideAtmosphere={compact}
         transparentBackground={compact}
+        animateEntry={!compact}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />
@@ -175,13 +175,13 @@ export function WorkerMessagesInboxPanel({
   return (
     <Screen
       title="Messages"
-      subtitle={WORKER_MESSAGES_SUBTITLE}
+      subtitle={compact ? undefined : WORKER_MESSAGES_SUBTITLE}
       constrainWidth={!compact}
       scroll={scroll ?? !compact}
       fillsContainer={fillsContainer}
-      animateEntry={false}
       hideAtmosphere={compact}
       transparentBackground={compact}
+      animateEntry={!compact}
       refreshing={refreshing}
       onRefresh={onRefresh}
     >
@@ -196,7 +196,7 @@ export function WorkerMessagesInboxPanel({
         ) : null}
 
         {isLoading && conversations.length === 0 ? (
-          <MessagingInboxSkeleton compact={compact} />
+          <PageLoadingList message="Loading messages…" compact={compact} />
         ) : (
           <ConversationInboxList
             conversations={conversations}

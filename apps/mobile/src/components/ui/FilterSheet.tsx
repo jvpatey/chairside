@@ -13,7 +13,7 @@ import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
-import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { getGlassTokens, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 export function FilterSheetSection<T extends string>({
   label,
@@ -28,6 +28,8 @@ export function FilterSheetSection<T extends string>({
   onChange: (value: T) => void;
   accent?: GradientAccent;
 }) {
+  const { isDark } = useTheme();
+  const glass = getGlassTokens(isDark);
   const styles = useThemedStyles(({ spacing, colors }) => ({
     section: {
       gap: spacing.sm,
@@ -47,6 +49,7 @@ export function FilterSheetSection<T extends string>({
         selected={selected}
         onChange={(value) => onChange(value as T)}
         accent={accent}
+        fadeColor={glass.fallbackBackground}
       />
     </View>
   );
@@ -133,7 +136,11 @@ export function FilterSheet({
                     <Text style={styles.reset}>Reset</Text>
                   </Pressable>
                 </View>
-                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                <ScrollView
+                  contentContainerStyle={styles.content}
+                  keyboardShouldPersistTaps="handled"
+                  directionalLockEnabled
+                >
                   {children}
                 </ScrollView>
                 <View style={styles.footer}>

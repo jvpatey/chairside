@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,7 +10,6 @@ import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { navigateToWelcome } from '@/lib/publicRoutes';
 import {
   webHover,
-  webOnlyStyle,
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
@@ -21,12 +20,23 @@ type WebMarketingNavProps = {
   scrollY: Animated.Value;
 };
 
+const NAV_ANCHORS = [
+  { id: 'features', label: 'Features' },
+  { id: 'how-it-works', label: 'How it works' },
+  { id: 'pricing', label: 'Pricing' },
+] as const;
+
+function scrollToSection(sectionId: string) {
+  if (typeof document === 'undefined') return;
+  document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
   const insets = useSafeAreaInsets();
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const { width } = useResponsiveLayout();
-  // Below this width the wordmark + both CTAs no longer fit on one row.
   const isNarrow = width < 480;
+  const showAnchors = width >= 768;
   const [condensed, setCondensed] = useState(false);
 
   useEffect(() => {
@@ -56,11 +66,36 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
       maxWidth: CONTENT_MAX_WIDTH.xwide,
       width: '100%' as const,
       alignSelf: 'center' as const,
+      gap: spacing.md,
+    },
+    leftCluster: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.lg,
+      flex: 1,
+      minWidth: 0,
+    },
+    anchors: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+      flexShrink: 1,
+    },
+    anchor: {
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+      ...webPointer(),
+    },
+    anchorText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.labelSecondary,
     },
     actions: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       gap: spacing.sm,
+      flexShrink: 0,
     },
     signIn: {
       paddingVertical: 14,
@@ -83,7 +118,33 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
   return (
     <View style={styles.outer}>
       <View style={styles.inner}>
-        <ChairsideWordmark variant="small" onPress={navigateToWelcome} />
+        <View style={styles.leftCluster}>
+          <ChairsideWordmark variant="small" onPress={navigateToWelcome} />
+          {showAnchors ? (
+            <View style={styles.anchors}>
+              {NAV_ANCHORS.map((anchor) => (
+                <Pressable
+                  key={anchor.id}
+                  accessibilityRole="link"
+                  onPress={() => scrollToSection(anchor.id)}
+                  style={({ pressed }) => [styles.anchor, pressed && { opacity: 0.75 }]}
+                >
+                  {({ hovered }) => (
+                    <Text
+                      style={
+                        hovered
+                          ? [styles.anchorText, { color: colors.labelPrimary, textDecorationLine: 'underline' }]
+                          : styles.anchorText
+                      }
+                    >
+                      {anchor.label}
+                    </Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
         <View style={styles.actions}>
           {!isNarrow ? (
             <Pressable

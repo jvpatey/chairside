@@ -15,6 +15,11 @@ import {
   useApplicationTabBadge,
 } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { fillInTabIcon } from '@/lib/fillInIcons';
+
+export const unstable_settings = {
+  initialRouteName: 'index',
+};
 
 function ClinicTabNavigator() {
   const { unreadCount } = useMessageUnread();
@@ -26,6 +31,7 @@ function ClinicTabNavigator() {
   return (
     <>
       <Tabs tabBar={renderClinicTabBar} screenOptions={screenOptions}>
+        <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
         <Tabs.Screen
           name="postings"
           options={{
@@ -63,14 +69,13 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
         <Tabs.Screen
           name="fill-ins"
           options={{
             title: 'Fill-ins',
             tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'flash' : 'flash-outline'} size={22} color={color} />
+              <Ionicons name={fillInTabIcon(focused)} size={22} color={color} />
             ),
           }}
         />
@@ -97,7 +102,6 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen name="clinic" options={{ href: null }} />
         <Tabs.Screen name="profile" options={{ href: null }} />
         <Tabs.Screen name="application" options={{ href: null }} />
         <Tabs.Screen name="conversation/[id]" options={{ href: null }} />

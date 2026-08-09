@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   APPLICATION_UPDATE_GRACE_MS,
   hasWorkerApplicationClinicUpdate,
+  isClinicApplicationAwaitingClinicAction,
   isClinicApplicationUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
@@ -118,6 +119,53 @@ describe('isClinicNewApplication', () => {
         clinic_hidden_at: null,
         clinic_attention_at: baseCreatedAt,
         clinic_last_seen_at: null,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('isClinicApplicationAwaitingClinicAction', () => {
+  const baseApplication = {
+    post_type: 'job' as const,
+    clinic_hidden_at: null,
+  };
+
+  it('includes early triage statuses regardless of seen state', () => {
+    for (const status of ['applied', 'screening_submitted', 'reviewed'] as const) {
+      expect(
+        isClinicApplicationAwaitingClinicAction({
+          ...baseApplication,
+          status,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it('excludes hidden applications and later pipeline statuses', () => {
+    expect(
+      isClinicApplicationAwaitingClinicAction({
+        ...baseApplication,
+        status: 'applied',
+        clinic_hidden_at: '2026-01-02T12:00:00.000Z',
+      }),
+    ).toBe(false);
+
+    for (const status of ['in_progress', 'interview_offered', 'rejected'] as const) {
+      expect(
+        isClinicApplicationAwaitingClinicAction({
+          ...baseApplication,
+          status,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  it('excludes fill-in applications', () => {
+    expect(
+      isClinicApplicationAwaitingClinicAction({
+        post_type: 'shift',
+        status: 'applied',
+        clinic_hidden_at: null,
       }),
     ).toBe(false);
   });

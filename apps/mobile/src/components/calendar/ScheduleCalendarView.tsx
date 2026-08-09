@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { ScheduleAgendaList } from '@/components/calendar/ScheduleEventCard';
 import { ScheduleCalendarPanel } from '@/components/calendar/ScheduleCalendarPanel';
-import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { CalendarSkeleton } from '@/components/ui/skeletons/CalendarSkeleton';
 import {
   getDayIndicators,
   getEventsForDate,
@@ -73,7 +73,7 @@ export function ScheduleCalendarView({
   );
 
   if (isLoading) {
-    return <PageLoadingList rowCount={3} message="Loading schedule…" />;
+    return <CalendarSkeleton />;
   }
 
   const calendarPanel = (

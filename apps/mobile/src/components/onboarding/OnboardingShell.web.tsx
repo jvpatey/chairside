@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,9 +7,13 @@ import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { OnboardingWebCenteredLayout } from '@/components/onboarding/OnboardingWebCenteredLayout.web';
 import { PageHeroGlow, type PageHeroGlowVariant } from '@/components/ui/PageHeroGlow';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { webStickyHeaderGlass, webTransition } from '@/theme/web';
+
+const HEADER_SCROLL_THRESHOLD = 8;
+const HEADER_GLASS_RAMP = 56;
 
 type FormScrollContextValue = {
   scrollWrapIntoView: (wrapRef: View | null) => void;
@@ -25,6 +29,7 @@ export function useFormScroll() {
 type OnboardingShellProps = {
   children: ReactNode;
   footer?: ReactNode;
+  header?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   backgroundAccessory?: ReactNode;
   transparentBackground?: boolean;
@@ -32,17 +37,22 @@ type OnboardingShellProps = {
   atmosphere?: PageHeroGlowVariant | 'none';
   atmosphereAccent?: GradientAccent;
   authSplit?: boolean;
-  /** Web-only layout mode. `centeredDecision` for choice screens; `authSplit` for auth forms. */
   webLayout?: 'default' | 'centeredDecision';
   brandHeadline?: string;
   brandSubtitle?: string;
   brandVisual?: 'appPreview' | 'rolePaths';
 };
 
+function headerGlassProgress(scrollY: number) {
+  if (scrollY <= HEADER_SCROLL_THRESHOLD) return 0;
+  return Math.min((scrollY - HEADER_SCROLL_THRESHOLD) / HEADER_GLASS_RAMP, 1);
+}
+
 /** Web onboarding shell — auth split layout or polished scroll form. */
 export function OnboardingShell({
   children,
   footer,
+  header,
   contentStyle,
   backgroundAccessory,
   transparentBackground = false,
@@ -55,25 +65,37 @@ export function OnboardingShell({
   brandVisual,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors, isDark, spacing } = useTheme();
+  const [scrollY, setScrollY] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(() => insets.top + 72);
+  const glassProgress = headerGlassProgress(scrollY);
+
+  const handleScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
+    setScrollY(event.nativeEvent.contentOffset.y);
+  }, []);
+
+  const handleHeaderLayout = useCallback((height: number) => {
+    if (height > 0) setHeaderHeight(height);
+  }, []);
+
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
+  const shellAtmosphere = useShellAtmosphere();
   const showTabAtmosphere = tabAtmosphere !== 'none';
-  const useTabGlow = showTabAtmosphere && atmosphere === 'none';
-  const showGlow = atmosphere !== 'none' || showTabAtmosphere;
-  const containerBackground =
-    transparentBackground || showGlow ? 'transparent' : colors.backgroundGrouped;
+  const useTabGlow = showTabAtmosphere && !shellAtmosphere;
+  const passThroughAtmosphere = transparentBackground || shellAtmosphere || useTabGlow;
+  const containerBackground = passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped;
+  const paintTabWash = useTabGlow;
   const resolvedBackgroundAccessory =
     backgroundAccessory ??
-    (atmosphere !== 'none' ? (
+    (atmosphere !== 'none' && !paintTabWash && !shellAtmosphere && !transparentBackground ? (
       <PageHeroGlow variant={atmosphere} accent={atmosphereAccent} />
     ) : null);
-  const tabAtmosphereLayer =
-    useTabGlow && !transparentBackground ? (
-      <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
-    ) : null;
+  const tabAtmosphereLayer = paintTabWash ? (
+    <AppAtmosphere intensity={tabAtmosphere} accent={tabAtmosphereAccent} />
+  ) : null;
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {
       flex: 1,
       overflow: 'hidden',
@@ -82,13 +104,23 @@ export function OnboardingShell({
       ...StyleSheet.absoluteFillObject,
       pointerEvents: 'none',
     },
+    overlayHeader: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 10,
+      paddingTop: insets.top + spacing.sm,
+      paddingBottom: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      ...webTransition(['background-color', 'border-color', 'backdrop-filter']),
+    },
     scroll: {
       flex: 1,
     },
     content: {
       flexGrow: 1,
       paddingHorizontal: spacing.lg,
-      paddingTop: insets.top + spacing.lg,
       paddingBottom: insets.bottom + spacing.lg,
     },
     body: {
@@ -99,7 +131,10 @@ export function OnboardingShell({
       gap: spacing.md,
       paddingHorizontal: spacing.lg,
       paddingBottom: insets.bottom + spacing.md,
-      backgroundColor: colors.backgroundGrouped,
+    },
+    shellFlex: {
+      flex: 1,
+      minHeight: 0,
     },
   }));
 
@@ -112,6 +147,56 @@ export function OnboardingShell({
   const backgroundLayer = resolvedBackgroundAccessory ? (
     <View style={styles.backgroundLayer}>{resolvedBackgroundAccessory}</View>
   ) : null;
+
+  const overlayHeaderBlock = header ? (
+    <View
+      onLayout={(event) => handleHeaderLayout(event.nativeEvent.layout.height)}
+      style={[
+        styles.overlayHeader,
+        webStickyHeaderGlass(isDark, glassProgress),
+        glassProgress <= 0 && {
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: 'transparent',
+        },
+      ]}
+    >
+      {header}
+    </View>
+  ) : null;
+
+  const scrollContent = (
+    <>
+      <ScrollView
+        style={[styles.scroll, webScrollbarStyles(), { backgroundColor: 'transparent' }]}
+        contentContainerStyle={[
+          styles.content,
+          header
+            ? { paddingTop: headerHeight + spacing.md }
+            : { paddingTop: insets.top + spacing.lg },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {body}
+      </ScrollView>
+      {footer ? (
+        <View
+          style={[
+            styles.footerInner,
+            {
+              backgroundColor: passThroughAtmosphere
+                ? 'transparent'
+                : colors.backgroundGrouped,
+            },
+          ]}
+        >
+          {footer}
+        </View>
+      ) : null}
+    </>
+  );
 
   if (webLayout === 'centeredDecision') {
     return (
@@ -149,15 +234,8 @@ export function OnboardingShell({
       <View style={[styles.container, { backgroundColor: containerBackground }]}>
         {tabAtmosphereLayer}
         {backgroundLayer}
-        <ScrollView
-          style={[styles.scroll, webScrollbarStyles(), { backgroundColor: 'transparent' }]}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {body}
-        </ScrollView>
-        {footer ? <View style={styles.footerInner}>{footer}</View> : null}
+        {overlayHeaderBlock}
+        <View style={styles.shellFlex}>{scrollContent}</View>
       </View>
     </FormScrollContext.Provider>
   );

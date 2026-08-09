@@ -14,11 +14,25 @@ type ProgressRingProps = {
   total: number;
   size?: number;
   strokeWidth?: number;
+  /** Arc and complete-state ring color. Defaults to primary. */
+  color?: string;
+  /** When false, renders the ring without a center fraction label. Defaults to true. */
+  showLabel?: boolean;
+  accessibilityLabel?: string;
 };
 
 /** Circular progress ring with center label — no SVG dependency. */
-export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: ProgressRingProps) {
+export function ProgressRing({
+  completed,
+  total,
+  size = 48,
+  strokeWidth = 4,
+  color: colorProp,
+  showLabel = true,
+  accessibilityLabel,
+}: ProgressRingProps) {
   const { colors } = useTheme();
+  const ringColor = colorProp ?? colors.primary;
   const progress = total > 0 ? Math.max(0, Math.min(1, completed / total)) : 0;
   const isComplete = progress >= 1;
   const angle = useSharedValue(0);
@@ -32,17 +46,19 @@ export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: P
 
   const half = size / 2;
 
+  // Each visible border pair paints a semicircle whose trailing edge sits 135deg
+  // clockwise from 12 o'clock, so sweeping to `angle` means rotating by angle - 135.
   const rightHalfStyle = useAnimatedStyle(() => {
     const clamped = Math.min(angle.value, 180);
     return {
-      transform: [{ rotate: `${clamped - 180}deg` }],
+      transform: [{ rotate: `${clamped - 135}deg` }],
     };
   });
 
   const leftHalfStyle = useAnimatedStyle(() => {
     const clamped = Math.max(angle.value - 180, 0);
     return {
-      transform: [{ rotate: `${clamped - 180}deg` }],
+      transform: [{ rotate: `${clamped - 135}deg` }],
     };
   });
 
@@ -63,7 +79,7 @@ export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: P
       opacity: 0.55,
     },
     trackComplete: {
-      borderColor: colors.primary,
+      borderColor: ringColor,
       opacity: 1,
     },
     clip: {
@@ -79,11 +95,11 @@ export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: P
       height: size,
       borderRadius: size / 2,
       borderWidth: strokeWidth,
-      borderColor: colors.primary,
+      borderColor: ringColor,
     },
     arcRight: {
       left: -half,
-      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
       borderLeftColor: 'transparent',
     },
     arcLeft: {
@@ -102,7 +118,11 @@ export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: P
   }));
 
   return (
-    <View style={styles.container} accessibilityLabel={`${completed} of ${total} steps complete`}>
+    <View
+      style={styles.container}
+      accessibilityLabel={
+        accessibilityLabel ?? `${completed} of ${total} steps complete`
+      }>
       <View style={styles.track} />
       {isComplete ? (
         <View style={[styles.track, styles.trackComplete]} />
@@ -111,14 +131,18 @@ export function ProgressRing({ completed, total, size = 48, strokeWidth = 4 }: P
           <View style={[styles.clip, { left: half, width: half }]}>
             <Animated.View style={[styles.arc, styles.arcRight, rightHalfStyle]} />
           </View>
-          <View style={[styles.clip, { left: 0, width: half }]}>
-            <Animated.View style={[styles.arc, styles.arcLeft, leftHalfStyle]} />
-          </View>
+          {progress > 0.5 ? (
+            <View style={[styles.clip, { left: 0, width: half }]}>
+              <Animated.View style={[styles.arc, styles.arcLeft, leftHalfStyle]} />
+            </View>
+          ) : null}
         </>
       ) : null}
-      <Text style={styles.label}>
-        {completed}/{total}
-      </Text>
+      {showLabel ? (
+        <Text style={styles.label}>
+          {completed}/{total}
+        </Text>
+      ) : null}
     </View>
   );
 }

@@ -1,21 +1,23 @@
 import type { JobPost } from '@chairside/api';
 import { formatJobPostRoleMeta, formatOfferingLabel, getSpecialtyLabel } from '@chairside/config';
 import { isMatchableSoftware } from '@chairside/core';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
+import { Text, View } from 'react-native';
 
 import {
   DetailBulletList,
   DetailProse,
   DetailRow,
-  DetailSection,
-  DetailSectionDivider,
   RowDivider,
 } from '@/components/clinic/DetailCard';
+import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { CultureFitScreeningBadge } from '@/components/clinic/CultureFitScreeningBadge';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
-import { getHeroBandGradient, radii, useTheme, useThemedStyles } from '@/theme';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { BadgeRow } from '@/components/ui/BadgeRow';
+import { fontBold, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type JobPostDetailPart = 'all' | 'hero' | 'body';
 
@@ -23,77 +25,66 @@ type JobPostDetailViewProps = {
   job: JobPost;
   /** Render only the hero band, only the detail sections, or both (default). */
   part?: JobPostDetailPart;
+  /** Optional badges rendered below the hero row (e.g. match tier). */
+  heroAccessory?: ReactNode;
 };
 
-export function JobPostDetailView({ job, part = 'all' }: JobPostDetailViewProps) {
-  const { colors, isDark } = useTheme();
+export function JobPostDetailView({ job, part = 'all', heroAccessory }: JobPostDetailViewProps) {
+  const { colors } = useTheme();
   const metaLine = formatJobPostRoleMeta(job);
   const matchableSoftware = job.software_used.filter(isMatchableSoftware);
   const softwareLabel = matchableSoftware.length > 0 ? matchableSoftware.join(' · ') : null;
   const description = job.description?.trim() || null;
   const offeringLabels = job.offerings.map(formatOfferingLabel);
-  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
       gap: spacing.lg,
     },
-    heroBand: {
-      position: 'relative',
-      borderRadius: radii.lg,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: colors.separator,
-    },
-    heroGradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    hero: {
-      position: 'relative',
-      padding: spacing.lg,
+    heroRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
       gap: spacing.md,
     },
-    heroTop: {
+    iconBadge: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySubtle,
+      flexShrink: 0,
+    },
+    heroText: {
+      flex: 1,
+      minWidth: 0,
       gap: spacing.xs,
-      paddingRight: 72,
     },
     overline: {
-      fontSize: 12,
+      fontSize: 11,
+      lineHeight: 14,
+      fontFamily: fontSemibold,
       fontWeight: '600',
       letterSpacing: 0.6,
       textTransform: 'uppercase',
       color: colors.primary,
     },
     title: {
-      ...typography.title,
-      fontSize: 26,
-      lineHeight: 32,
-      letterSpacing: -0.4,
+      fontSize: 24,
+      lineHeight: 30,
+      fontFamily: fontBold,
+      fontWeight: '700',
+      letterSpacing: -0.35,
+      color: colors.labelPrimary,
     },
     meta: {
-      fontSize: 15,
-      lineHeight: 21,
+      fontSize: 14,
+      lineHeight: 20,
       color: colors.labelSecondary,
     },
-    badgeRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.xs,
-    },
     statusBadge: {
-      position: 'absolute',
-      top: spacing.lg,
-      right: spacing.lg,
-      zIndex: 1,
-    },
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: radii.lg,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      gap: spacing.lg,
+      flexShrink: 0,
+      marginTop: 2,
     },
   }));
 
@@ -104,69 +95,56 @@ export function JobPostDetailView({ job, part = 'all' }: JobPostDetailViewProps)
     <View style={styles.wrap}>
       {showHero ? (
         <FadeInSection delayMs={0}>
-          <View style={styles.heroBand}>
-            <LinearGradient
-              colors={heroGradient}
-              locations={[0, 0.2, 0.45, 0.7, 0.88, 1]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroGradient}
-              pointerEvents="none"
-            />
-            <View style={styles.hero}>
-              <JobPostStatusBadge status={job.status} style={styles.statusBadge} />
-
-              <View style={styles.heroTop}>
+          <SurfaceCard padding="lg" gap elevationLevel="subtle">
+            <View style={styles.heroRow}>
+              <View style={styles.iconBadge}>
+                <Ionicons name="briefcase-outline" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.heroText}>
                 <Text style={styles.overline}>Open role</Text>
                 <Text style={styles.title}>{job.title}</Text>
+                <Text style={styles.meta}>{metaLine}</Text>
               </View>
-
-              <Text style={styles.meta}>{metaLine}</Text>
-
-              {Boolean(job.screening_enabled) ? (
-                <View style={styles.badgeRow}>
-                  <CultureFitScreeningBadge />
-                </View>
-              ) : null}
+              <JobPostStatusBadge status={job.status} style={styles.statusBadge} />
             </View>
-          </View>
+            {heroAccessory || Boolean(job.screening_enabled) ? (
+              <BadgeRow>
+                {heroAccessory}
+                {Boolean(job.screening_enabled) ? <CultureFitScreeningBadge /> : null}
+              </BadgeRow>
+            ) : null}
+          </SurfaceCard>
         </FadeInSection>
       ) : null}
 
       {showBody ? (
         <FadeInSection delayMs={showHero ? 80 : 0}>
-        <View style={styles.card}>
-          <DetailSection>
-            <DetailRow label="Compensation" value={job.wage_range} />
-            <RowDivider />
-            <DetailRow label="Schedule" value={job.schedule} />
-          </DetailSection>
+          <SurfaceCard padding="lg" gap elevationLevel="subtle">
+            <CardDetailSection title="Role">
+              <DetailRow label="Compensation" value={job.wage_range} />
+              <RowDivider />
+              <DetailRow label="Schedule" value={job.schedule} />
+            </CardDetailSection>
 
-          <DetailSectionDivider>
-            <DetailSection title="Practice">
+            <CardDetailSection title="Practice" divided>
               <DetailRow label="Specialty" value={getSpecialtyLabel(job.specialty)} />
               <RowDivider />
               <DetailRow label="Software" value={softwareLabel} />
-            </DetailSection>
-          </DetailSectionDivider>
+            </CardDetailSection>
 
-          {offeringLabels.length > 0 ? (
-            <DetailSectionDivider>
-              <DetailSection title="Perks & offerings">
+            {offeringLabels.length > 0 ? (
+              <CardDetailSection title="Perks & offerings" divided>
                 <DetailBulletList items={offeringLabels} />
-              </DetailSection>
-            </DetailSectionDivider>
-          ) : null}
+              </CardDetailSection>
+            ) : null}
 
-          {description ? (
-            <DetailSectionDivider>
-              <DetailSection title="About">
+            {description ? (
+              <CardDetailSection title="About" divided>
                 <DetailProse text={description} />
-              </DetailSection>
-            </DetailSectionDivider>
-          ) : null}
-        </View>
-      </FadeInSection>
+              </CardDetailSection>
+            ) : null}
+          </SurfaceCard>
+        </FadeInSection>
       ) : null}
     </View>
   );

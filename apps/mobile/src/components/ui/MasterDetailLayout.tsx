@@ -9,10 +9,14 @@ const DEFAULT_MASTER_WIDTH = 340;
 type MasterDetailLayoutProps = {
   master: ReactNode;
   detail?: ReactNode;
-  /** When false on tablet, only the master pane is shown (e.g. no selection yet). */
+  context?: ReactNode;
   showDetail?: boolean;
   masterWidth?: number;
   style?: StyleProp<ViewStyle>;
+  contextCollapsed?: boolean;
+  onContextCollapsedChange?: (collapsed: boolean) => void;
+  /** Web-only card-style panes; ignored on native. */
+  roundedPanes?: boolean;
 };
 
 /**

@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -31,7 +32,7 @@ import {
 } from '@/lib/billingOfferings';
 import { getRecommendedUpgradePlan } from '@/lib/clinicPlanPresentation';
 import { CLINIC_PROFILE_BILLING } from '@/lib/routing';
-import { colorWithAlpha, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 function getBillingCycleLabel(
   billingCycle: BillingCycle,
@@ -49,21 +50,38 @@ function getBillingCycleLabel(
   return null;
 }
 
-function PlanComparisonIntro({ isGroupFamily }: { isGroupFamily: boolean }) {
+function PlanComparisonIntro({
+  isGroupFamily,
+  plain,
+}: {
+  isGroupFamily: boolean;
+  plain?: boolean;
+}) {
   const styles = useThemedStyles(({ colors, spacing, typography, radii, isDark }) => ({
     card: {
-      backgroundColor: colorWithAlpha(colors.fillSubtle, isDark ? 0.65 : 1),
+      backgroundColor: isDark ? colors.surfaceElevated : colors.fillSubtle,
       borderRadius: radii.md,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
       gap: spacing.xs,
     },
+    plain: {
+      alignItems: 'center' as const,
+    },
     title: {
       ...typography.body,
       fontWeight: '700',
       fontSize: 16,
       color: colors.labelPrimary,
+    },
+    plainTitle: {
+      ...typography.label,
+      fontSize: 12,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+      textAlign: 'center' as const,
     },
     body: {
       ...typography.subtitle,
@@ -73,15 +91,23 @@ function PlanComparisonIntro({ isGroupFamily }: { isGroupFamily: boolean }) {
     },
   }));
 
+  if (plain) {
+    return (
+      <View style={styles.plain}>
+        <Text style={styles.plainTitle}>All plans</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.card}>
       <Text style={styles.title}>
-        {isGroupFamily ? 'Choose the plan that fits your group' : 'Choose the plan that fits your clinic'}
+        {isGroupFamily ? 'Choose a group plan' : 'Choose a plan'}
       </Text>
       <Text style={styles.body}>
         {isGroupFamily
-          ? 'Workers stay free. Upgrade for more locations and managers, hiring tools, and org-wide posting limits.'
-          : 'Workers stay free. Upgrade when you need more active postings, direct outreach, SMS alerts, or priority placement.'}
+          ? 'Workers stay free. Upgrade for more locations and managers, hiring tools, and posting limits across your group.'
+          : 'Workers stay free. Upgrade for more postings, outreach, SMS alerts, or priority placement.'}
       </Text>
     </View>
   );
@@ -95,6 +121,8 @@ type ClinicBillingScreenContentProps = {
   scrollContentRef?: RefObject<View | null>;
   scrollFocus?: ClinicBillingScrollFocus;
   onPurchaseSuccess?: (plan: ClinicPlan) => void;
+  /** Web dialog layout — quieter chrome and side-by-side plan cards. */
+  layout?: 'default' | 'webSheet';
 };
 
 function scrollChildIntoScrollContent(
@@ -121,7 +149,10 @@ export function ClinicBillingScreenContent({
   scrollContentRef,
   scrollFocus = 'default',
   onPurchaseSuccess,
+  layout = 'default',
 }: ClinicBillingScreenContentProps = {}) {
+  // Prefer explicit sheet layout; also treat any web billing surface as the quiet layout.
+  const isWebSheet = layout === 'webSheet' || Platform.OS === 'web';
   const {
     billing,
     offerings,
@@ -148,12 +179,13 @@ export function ClinicBillingScreenContent({
   const emphasizeGroupCaps = scrollFocus === 'group';
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    content: { gap: spacing.lg },
+    content: { gap: isWebSheet ? spacing.md : spacing.lg },
     helper: {
       ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
+      fontSize: 13,
+      lineHeight: 18,
       color: colors.labelTertiary,
+      ...(isWebSheet ? { textAlign: 'center' as const } : null),
     },
     notice: {
       ...typography.subtitle,
@@ -174,8 +206,17 @@ export function ClinicBillingScreenContent({
     actionLink: { alignSelf: 'center', paddingVertical: spacing.sm },
     actionLinkText: { ...typography.body, fontWeight: '600', color: colors.primary },
     loadingWrap: { alignItems: 'center', paddingVertical: spacing.xl },
-    planList: { gap: spacing.md },
-    compareSection: { gap: spacing.md },
+    planList: {
+      gap: spacing.md,
+      ...(isWebSheet
+        ? ({
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            alignItems: 'stretch',
+          } as object)
+        : null),
+    },
+    compareSection: { gap: isWebSheet ? spacing.md : spacing.md },
     sectionLabel: {
       ...typography.label,
       fontSize: 12,
@@ -183,6 +224,17 @@ export function ClinicBillingScreenContent({
       textTransform: 'uppercase' as const,
       color: colors.labelTertiary,
       marginTop: spacing.xs,
+      ...(isWebSheet ? ({ gridColumn: '1 / -1' } as object) : null),
+    },
+    cycleWrap: {
+      ...(isWebSheet
+        ? ({
+            width: '100%',
+            alignItems: 'center',
+            marginTop: spacing.xs,
+            marginBottom: spacing.xs,
+          } as object)
+        : null),
     },
   }));
 
@@ -281,13 +333,7 @@ export function ClinicBillingScreenContent({
   };
 
   useEffect(() => {
-    if (
-      !parentScrollRef ||
-      !scrollContentRef ||
-      scrollFocus === 'default' ||
-      !isBillingReady ||
-      isRefreshing
-    ) {
+    if (scrollFocus === 'default' || !isBillingReady || isRefreshing) {
       return;
     }
 
@@ -300,11 +346,27 @@ export function ClinicBillingScreenContent({
     if (!targetRef) return;
 
     const timer = setTimeout(() => {
-      scrollChildIntoScrollContent(parentScrollRef, scrollContentRef, targetRef);
+      if (parentScrollRef && scrollContentRef) {
+        scrollChildIntoScrollContent(parentScrollRef, scrollContentRef, targetRef);
+        return;
+      }
+      const pageScrollRef = profileScroll?.scrollRef;
+      const pageContentRef = profileScroll?.scrollContentRef;
+      if (pageScrollRef && pageContentRef) {
+        scrollChildIntoScrollContent(pageScrollRef, pageContentRef, targetRef);
+      }
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [isBillingReady, isRefreshing, parentScrollRef, scrollContentRef, scrollFocus]);
+  }, [
+    isBillingReady,
+    isRefreshing,
+    parentScrollRef,
+    profileScroll?.scrollContentRef,
+    profileScroll?.scrollRef,
+    scrollContentRef,
+    scrollFocus,
+  ]);
 
   if (!isBillingReady || isRefreshing) {
     return (
@@ -357,13 +419,18 @@ export function ClinicBillingScreenContent({
   };
 
   const scrollToComparePlans = () => {
+    if (parentScrollRef && scrollContentRef) {
+      scrollChildIntoScrollContent(parentScrollRef, scrollContentRef, plansSectionRef);
+      return;
+    }
+
     const scrollRef = profileScroll?.scrollRef.current;
-    const scrollContentRef = profileScroll?.scrollContentRef.current;
+    const profileContentRef = profileScroll?.scrollContentRef.current;
     const plansSection = plansSectionRef.current;
-    if (!scrollRef || !scrollContentRef || !plansSection) return;
+    if (!scrollRef || !profileContentRef || !plansSection) return;
 
     plansSection.measureLayout(
-      scrollContentRef,
+      profileContentRef,
       (_x, y) => {
         profileScroll?.scrollRef.current?.scrollTo({
           y: Math.max(0, y - 24),
@@ -434,12 +501,11 @@ export function ClinicBillingScreenContent({
       ) : null}
 
       <View ref={plansSectionRef} style={styles.compareSection}>
-        <PlanComparisonIntro isGroupFamily={isGroupFamily} />
+        <PlanComparisonIntro isGroupFamily={isGroupFamily} plain={isWebSheet} />
 
-        {isWebBillingAvailable ? (
+        {!isWebSheet && isWebBillingAvailable ? (
           <Text style={styles.helper}>
-            Subscribe securely on the web. Your plan syncs across web and the iOS app on the same
-            clinic account.
+            Subscribe on the web — your plan syncs with the iOS app on this clinic account.
           </Text>
         ) : null}
 
@@ -459,13 +525,15 @@ export function ClinicBillingScreenContent({
         ) : null}
 
         {isPurchaseBillingAvailable && (hasClinicPackages || hasGroupPackages) ? (
-          <BillingCycleToggle
-            value={billingCycle}
-            onChange={setBillingCycle}
-            hasMonthly={hasMonthly}
-            hasYearly={hasYearly}
-            yearlySavingsPercent={maxYearlySavingsPercent}
-          />
+          <View style={styles.cycleWrap}>
+            <BillingCycleToggle
+              value={billingCycle}
+              onChange={setBillingCycle}
+              hasMonthly={hasMonthly}
+              hasYearly={hasYearly}
+              yearlySavingsPercent={maxYearlySavingsPercent}
+            />
+          </View>
         ) : null}
 
         <View style={styles.planList}>

@@ -9,6 +9,8 @@ export function webScrollbarStyles(): ViewStyle {
   return webOnlyStyle({
     scrollbarWidth: 'thin',
     scrollbarColor: 'rgba(120, 120, 128, 0.35) transparent',
+    // Reserve gutter so appearing scrollbars don't shift centered layouts left.
+    scrollbarGutter: 'stable',
   } as ViewStyle);
 }
 

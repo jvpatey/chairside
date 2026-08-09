@@ -18,6 +18,7 @@ describe('getClinicSetupGateDecision', () => {
         isAuthReady: true,
         session: null,
         profile: { id: 'u1', role: 'clinic' } as never,
+        isProfileReady: true,
         isClinicProfileReady: true,
         clinicProfile: clinicProfile as never,
         membership: null,
@@ -28,12 +29,30 @@ describe('getClinicSetupGateDecision', () => {
     ).toEqual({ type: 'redirect', href: '/(onboarding)/welcome' });
   });
 
-  it('redirects to role selection when profile is null', () => {
+  it('stays loading while session exists but auth profile has not settled', () => {
     expect(
       getClinicSetupGateDecision({
         isAuthReady: true,
         session: {},
         profile: null,
+        isProfileReady: false,
+        isClinicProfileReady: false,
+        clinicProfile: null,
+        membership: null,
+        isOwner: true,
+        isClinicGroupsEnabled: false,
+        isClinicSetupComplete: () => false,
+      }),
+    ).toEqual({ type: 'loading' });
+  });
+
+  it('redirects to role selection when profile is confirmed null', () => {
+    expect(
+      getClinicSetupGateDecision({
+        isAuthReady: true,
+        session: {},
+        profile: null,
+        isProfileReady: true,
         isClinicProfileReady: true,
         clinicProfile: null,
         membership: null,
@@ -50,6 +69,7 @@ describe('getClinicSetupGateDecision', () => {
         isAuthReady: true,
         session: {},
         profile: { id: 'u1', role: 'worker' } as never,
+        isProfileReady: true,
         isClinicProfileReady: true,
         clinicProfile: null,
         membership: null,
@@ -62,12 +82,27 @@ describe('getClinicSetupGateDecision', () => {
 });
 
 describe('getWorkerSetupGateDecision', () => {
+  it('stays loading while session exists but auth profile has not settled', () => {
+    expect(
+      getWorkerSetupGateDecision({
+        isAuthReady: true,
+        session: {},
+        profile: null,
+        isProfileReady: false,
+        isWorkerProfileReady: false,
+        workerProfile: null,
+        isWorkerSetupComplete: () => false,
+      }),
+    ).toEqual({ type: 'loading' });
+  });
+
   it('redirects to setup when worker profile is null after ready', () => {
     expect(
       getWorkerSetupGateDecision({
         isAuthReady: true,
         session: {},
         profile: { id: 'u1', role: 'worker' } as never,
+        isProfileReady: true,
         isWorkerProfileReady: true,
         workerProfile: null,
         isWorkerSetupComplete: () => false,
@@ -81,6 +116,7 @@ describe('getWorkerSetupGateDecision', () => {
         isAuthReady: true,
         session: {},
         profile: { id: 'u1', role: 'clinic' } as never,
+        isProfileReady: true,
         isWorkerProfileReady: true,
         workerProfile: null,
         isWorkerSetupComplete: () => false,
@@ -94,6 +130,7 @@ describe('getWorkerSetupGateDecision', () => {
         isAuthReady: true,
         session: {},
         profile: { id: 'u1', role: 'worker' } as never,
+        isProfileReady: true,
         isWorkerProfileReady: true,
         workerProfile: { setup_completed_at: '2026-01-01T00:00:00.000Z' },
         isWorkerSetupComplete: () => true,

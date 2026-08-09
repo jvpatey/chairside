@@ -52,13 +52,24 @@ export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
     asideStack: {
       gap: sectionGap,
     },
+    /** Side-by-side plan usage + insights on wide web aside. */
+    asideMetaRow: {
+      flexDirection: 'row' as const,
+      gap: spacing.sm,
+      alignItems: 'stretch' as const,
+      width: '100%' as const,
+    },
+    asideMetaCell: {
+      flex: 1,
+      minWidth: 0,
+    },
     desktopShell: {
       gap: sectionGap,
-      width: '100%',
+      width: '100%' as const,
       alignSelf: 'stretch' as const,
     },
     desktopSupplementary: {
-      width: '100%',
+      width: '100%' as const,
       alignSelf: 'stretch' as const,
       gap: sectionGap,
     },
@@ -84,7 +95,23 @@ export function getDashboardLayoutStyles({ spacing }: Pick<Theme, 'spacing'>) {
             top: spacing.lg,
             alignSelf: 'flex-start' as const,
           }
-        : null),
+        : {}),
+    },
+    desktopMainFull: {
+      flex: 1,
+      minWidth: 0,
+      gap: sectionGap,
+      width: '100%' as const,
+    },
+    attentionNextUpRow: {
+      flexDirection: 'row' as const,
+      gap: spacing.lg,
+      alignItems: 'flex-start' as const,
+      width: '100%' as const,
+    },
+    attentionNextUpStack: {
+      gap: sectionGap,
+      width: '100%' as const,
     },
   };
 }

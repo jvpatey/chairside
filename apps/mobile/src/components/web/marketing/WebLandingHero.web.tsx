@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel.web';
@@ -12,15 +12,18 @@ import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { useTheme, useThemedStyles } from '@/theme';
 import { webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
+/** Clear sticky marketing nav + breathing room above hero content. */
+const NAV_CLEARANCE = 72;
+
 export function WebLandingHero() {
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const { isWide } = useResponsiveLayout();
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     section: {
-      minHeight: isWide ? 680 : 560,
-      paddingTop: insets.top + 96,
+      justifyContent: 'center' as const,
+      paddingTop: insets.top + NAV_CLEARANCE,
       paddingBottom: spacing.xl * 2,
       paddingHorizontal: spacing.lg,
       position: 'relative' as const,
@@ -35,8 +38,8 @@ export function WebLandingHero() {
       pointerEvents: 'none' as const,
       // @ts-expect-error web gradient
       backgroundImage: isDark
-        ? 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(152, 150, 255, 0.12) 0%, transparent 50%)'
-        : 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(88, 86, 214, 0.08) 0%, transparent 50%)',
+        ? 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(74, 154, 255, 0.1) 0%, transparent 50%)'
+        : 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(26, 111, 212, 0.08) 0%, transparent 50%)',
     },
     inner: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
@@ -78,7 +81,11 @@ export function WebLandingHero() {
   }));
 
   return (
-    <View style={styles.section}>
+    <View
+      style={[
+        styles.section,
+        { minHeight: Math.max(isWide ? 640 : 520, windowHeight) },
+      ]}>
       <View style={styles.atmosphere} />
       <View style={styles.inner}>
         <WebPageEnter style={styles.copy}>

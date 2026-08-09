@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { ThemeColors } from '@/theme/colors';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
-import { webCardLiftBase, webOnlyStyle } from '@/lib/webPressableStyles';
+import { webCardLiftBase, webOnlyStyle, useWebCardLift } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
 const HERO_FEATURE = {
-  icon: 'calendar-outline' as const,
+  icon: FILL_IN_ICON.outline,
   title: 'Fill chairs, same day',
   highlight: 'same day',
   subtitle: 'Built for same-day coverage',
@@ -20,7 +21,7 @@ const HERO_FEATURE = {
 const SATELLITE_FEATURES = [
   {
     id: 'availability',
-    icon: 'flash-outline' as const,
+    icon: FILL_IN_ICON.outline,
     title: "Let clinics know you're free",
     highlight: "you're free",
     body: 'Turn on fill-in mode, get discovered nearby, and get alerts when shifts open.',
@@ -330,6 +331,8 @@ function FeatureAvailabilityPreview() {
 
 function FeatureHeroCard() {
   const { isWide } = useResponsiveLayout();
+  const { isDark } = useTheme();
+  const { liftStyle, hoverHandlers } = useWebCardLift(isDark);
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     card: {
@@ -366,8 +369,8 @@ function FeatureHeroCard() {
   }));
 
   return (
-    <WebPageEnter>
-      <View style={styles.card}>
+    <WebPageEnter trigger="visible">
+      <View style={[styles.card, liftStyle]} {...hoverHandlers}>
         <View style={styles.layout}>
           <View style={styles.copy}>
             <FeatureCardHeader
@@ -396,6 +399,7 @@ function FeatureSatelliteCard({
   enterDelayMs?: number;
 }) {
   const { isDark } = useTheme();
+  const { liftStyle, hoverHandlers } = useWebCardLift(isDark);
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     card: {
@@ -418,8 +422,8 @@ function FeatureSatelliteCard({
   }));
 
   return (
-    <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1 }}>
-      <View style={styles.card}>
+    <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1 }} trigger="visible">
+      <View style={[styles.card, liftStyle]} {...hoverHandlers}>
         <FeatureCardHeader
           icon={feature.icon}
           title={feature.title}
@@ -467,7 +471,7 @@ export function WebLandingFeatures() {
   }));
 
   return (
-    <WebMarketingSection style={styles.bleed}>
+    <WebMarketingSection style={styles.bleed} sectionId="features">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Features</Text>
         <Text style={styles.title}>Built for how dental teams actually work</Text>

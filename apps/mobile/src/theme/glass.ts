@@ -27,11 +27,11 @@ export function getGlassTokens(isDark: boolean): GlassTokens {
   }
 
   return {
-    overlay: 'rgba(255, 255, 255, 0.72)',
+    overlay: 'rgba(255, 255, 255, 0.78)',
     fallbackBackground: '#FFFFFFF2',
-    border: 'rgba(60, 60, 67, 0.18)',
-    shadowLight: '0 10px 32px rgba(0, 0, 0, 0.1)',
-    shadowDark: '0 10px 32px rgba(0, 0, 0, 0.1)',
+    border: 'rgba(60, 72, 92, 0.16)',
+    shadowLight: '0 10px 32px rgba(14, 27, 44, 0.1)',
+    shadowDark: '0 10px 32px rgba(14, 27, 44, 0.1)',
     backdropFilter: 'blur(20px) saturate(180%)',
     blurIntensity: 50,
     blurTint: 'light',

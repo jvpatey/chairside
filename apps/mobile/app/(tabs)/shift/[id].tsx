@@ -9,18 +9,18 @@ import {
   type WorkerApplication,
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
 import {
   CancelledPillBadge,
   RequestedPillBadge,
 } from '@/components/matching/ApplicationStatusBadge';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
@@ -32,7 +32,10 @@ import {
   getApplyRoute,
   getWorkerApplicationRoute,
   getWorkerClinicProfileRoute,
+  getWorkerClinicProfileBackLabel,
   navigateAfterWorkerShift,
+  parseWorkerPostingReturnParams,
+  type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { guardApply } from '@/lib/workerGuard';
@@ -65,13 +68,33 @@ function resolveShiftApplicationView(application: WorkerApplication | null): Shi
 export default function WorkerShiftDetailScreen() {
   const { user } = useAuth();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
-  const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
+  const { id, returnTo, applicationId, applicationReturnTo: postingApplicationReturnTo } =
+    useLocalSearchParams<{
+    id?: string;
+    returnTo?: string;
+    applicationId?: string;
+    applicationReturnTo?: string;
+  }>();
   const shiftId = typeof id === 'string' ? id : '';
+  const returnContext = useMemo(
+    () =>
+      parseWorkerPostingReturnParams({
+        returnTo,
+        applicationId,
+        applicationReturnTo: postingApplicationReturnTo,
+      }),
+    [applicationId, postingApplicationReturnTo, returnTo],
+  );
   const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
+  const backLabel = getWorkerClinicProfileBackLabel(returnContext);
 
   const goBack = useCallback(() => {
+    if (returnContext?.returnTo === 'application-detail') {
+      navigateAfterWorkerShift(router, returnContext.returnTo, returnContext);
+      return;
+    }
     navigateAfterWorkerShift(router, resolvedReturnTo);
-  }, [resolvedReturnTo]);
+  }, [resolvedReturnTo, returnContext]);
   const [shift, setShift] = useState<LiveShiftPost | null>(null);
   const [shiftApplication, setShiftApplication] = useState<WorkerApplication | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -79,16 +102,6 @@ export default function WorkerShiftDetailScreen() {
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     content: { gap: spacing.lg },
-    clinicCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-    },
-    clinicCardPressed: {
-      opacity: 0.92,
-    },
     footer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -161,19 +174,21 @@ export default function WorkerShiftDetailScreen() {
 
   if (isLoading || !shift) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title="Fill-in details"
-          subtitle={isLoading ? undefined : 'Fill-in not found.'}
-          onBack={goBack}
-        />
+      <FormScreen
+        title="Fill-in details"
+        subtitle={isLoading ? undefined : 'Fill-in not found.'}
+        backLabel={backLabel}
+        onBack={goBack}>
         {isLoading ? <PageLoadingDetail /> : null}
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   const applicationView = resolveShiftApplicationView(shiftApplication);
-  const applicationReturnTo = resolvedReturnTo ?? 'fill-ins-tab';
+  const applicationReturnTo: WorkerApplicationReturnTarget =
+    returnContext?.returnTo === 'application-detail'
+      ? (returnContext.applicationReturnTo ?? 'applications-tab')
+      : ((resolvedReturnTo as WorkerApplicationReturnTarget | undefined) ?? 'fill-ins-tab');
 
   const footerAction =
     applicationView.kind === 'none' ? (
@@ -211,21 +226,28 @@ export default function WorkerShiftDetailScreen() {
   const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
 
   return (
-    <OnboardingShell atmosphere="subtle" footer={footerAction}>
-      <AuthScreenHeader
-        title="Fill-in details"
-        subtitle={shift.clinic.clinic_name}
-        onBack={goBack}
-        accessory={
-          user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
-        }
-      />
+    <FormScreen
+      title="Fill-in details"
+      subtitle={shift.clinic.clinic_name}
+      backLabel={backLabel}
+      onBack={goBack}
+      headerAccessory={
+        user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
+      }
+      accent="secondary"
+      footer={footerAction}>
       <View style={styles.content}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`View ${shift.clinic.clinic_name} profile`}
-          onPress={() => router.push(getWorkerClinicProfileRoute(shift.clinic.clinic_id))}
-          style={({ pressed }) => [styles.clinicCard, pressed && styles.clinicCardPressed]}>
+        <SurfaceCard
+          onPress={() =>
+            router.push(
+              getWorkerClinicProfileRoute(
+                shift.clinic.clinic_id,
+                returnContext?.returnTo === 'application-detail'
+                  ? returnContext
+                  : { returnTo: 'shift-detail', shiftId: shift.id },
+              ),
+            )
+          }>
           <ClinicPostHeader
             clinicName={shift.clinic.clinic_name}
             logoStoragePath={shift.clinic.logo_storage_path}
@@ -243,9 +265,9 @@ export default function WorkerShiftDetailScreen() {
             }
           />
           <ClinicProfileLinkFooter />
-        </Pressable>
+        </SurfaceCard>
         <ShiftPostDetailView shift={shift} softwareUsed={shift.clinic.software_used} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

@@ -39,8 +39,6 @@ type ClinicLocationCardProps = {
     | 'latitude'
     | 'longitude'
   >;
-  stepNumber?: number;
-  stepAccent?: 'primary' | 'secondary';
 };
 
 function buildMapsDestination(
@@ -54,11 +52,7 @@ function buildMapsDestination(
   };
 }
 
-export function ClinicLocationCard({
-  profile,
-  stepNumber,
-  stepAccent = 'primary',
-}: ClinicLocationCardProps) {
+export function ClinicLocationCard({ profile }: ClinicLocationCardProps) {
   const { colors, isDark } = useTheme();
   const [directionsSheetVisible, setDirectionsSheetVisible] = useState(false);
   const [calloutVisible, setCalloutVisible] = useState(false);
@@ -146,11 +140,7 @@ export function ClinicLocationCard({
   ];
 
   const panel = (
-    <SectionPanel
-      icon="location-outline"
-      stepNumber={stepNumber}
-      stepAccent={stepAccent}
-      title="Location">
+    <SectionPanel icon="location-outline" iconAccent="secondary" title="Location">
       {formattedAddress ? (
         <FieldBlock label="Address">
           <Text style={styles.address}>{formattedAddress}</Text>

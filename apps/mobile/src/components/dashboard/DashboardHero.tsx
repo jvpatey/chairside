@@ -1,17 +1,15 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { router, useFocusEffect, type Href } from 'expo-router';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { router, type Href } from 'expo-router';
 import { useCallback, type ReactNode } from 'react';
+import {
+  Animated,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
 import {
@@ -19,16 +17,16 @@ import {
   DashboardHeroSubtitle,
 } from '@/components/dashboard/DashboardHeroIdentity';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { getTimeOfDayGreeting } from '@/lib/greeting';
-import { IS_WEB } from '@/lib/webPressableStyles';
+import type { DashboardHeroPulse } from '@/lib/dashboardPulse';
+import { getTimeOfDayGreeting, getTimeOfDayIcon } from '@/lib/greeting';
+import { useEnterAnimation, usePrefersReducedMotion } from '@/lib/motion';
 import {
-  colorWithAlpha,
-  fontRegular,
-  fontSemibold,
-  getHeroBandGradient,
-  useTheme,
-  useThemedStyles,
-} from '@/theme';
+  IS_WEB,
+  webListRowHoverStyles,
+  webOnlyStyle,
+  webPointer,
+} from '@/lib/webPressableStyles';
+import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
   profileHref: Href;
@@ -41,11 +39,15 @@ type DashboardHeroProps = {
   identityLine?: string;
   /** Optional first name for "Good afternoon, Sarah". */
   greetingName?: string | null;
+  /** Live one-line summary; tap opens highest-priority destination. */
+  pulse?: DashboardHeroPulse | null;
   /** Static context chip (e.g. read-only label). Ignored when `contextSlot` is set. */
   contextLine?: string;
   /** Interactive or custom context under the subtitle (e.g. location scope picker). */
   contextSlot?: ReactNode;
   showActions?: boolean;
+  /** Hide avatar in action cluster on web/tablet (sidebar owns identity). */
+  hideProfileOnWebTablet?: boolean;
 };
 
 function formatDashboardDate(date = new Date()) {
@@ -56,7 +58,27 @@ function formatDashboardDate(date = new Date()) {
   });
 }
 
-/** Premium greeting band with animated atmosphere wash. */
+function HeroStaggerBlock({
+  delayMs,
+  reduceMotion,
+  children,
+}: {
+  delayMs: number;
+  reduceMotion: boolean;
+  children: ReactNode;
+}) {
+  const { opacity, translateY } = useEnterAnimation(reduceMotion ? 0 : delayMs);
+
+  if (reduceMotion) {
+    return <View>{children}</View>;
+  }
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>{children}</Animated.View>
+  );
+}
+
+/** Compact dashboard header — flat surface, no gradient wash. */
 export function DashboardHero({
   profileHref,
   avatarKind,
@@ -66,85 +88,34 @@ export function DashboardHero({
   subtitle,
   identityLine,
   greetingName,
+  pulse,
   contextLine,
   contextSlot,
   showActions = true,
+  hideProfileOnWebTablet = false,
 }: DashboardHeroProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
-  const reducedMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
   const overlayActions = !isTablet && showActions;
   const heroOpensProfile = Platform.OS !== 'web';
-  const drift = useSharedValue(0);
+  const hideProfileInActions = hideProfileOnWebTablet && IS_WEB && isTablet;
+  const isWeb = Platform.OS === 'web';
+  const timeIcon = getTimeOfDayIcon();
 
-  const startOrbMotion = useCallback(() => {
-    if (reducedMotion) {
-      drift.value = 0;
-      return;
-    }
-    drift.value = withRepeat(
-      withTiming(1, { duration: 12000, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true,
-    );
-  }, [drift, reducedMotion]);
-
-  useFocusEffect(
-    useCallback(() => {
-      startOrbMotion();
-      return () => {
-        cancelAnimation(drift);
-        drift.value = 0;
-      };
-    }, [drift, startOrbMotion]),
-  );
-
-  const orbStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: -24 + drift.value * 48 },
-      { translateY: -8 + drift.value * 16 },
-      { scale: 1 + drift.value * 0.08 },
-    ],
-    opacity: 0.55 + drift.value * 0.2,
-  }));
-
-  const styles = useThemedStyles(({ colors, spacing, radii, elevation, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     band: {
-      borderRadius: radii.hero,
-      overflow: 'hidden',
-      borderWidth: 0,
-      backgroundColor: 'transparent',
+      borderRadius: radii.lg,
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
       position: 'relative' as const,
-      // Native keeps a soft lift; web shadow draws a hard card silhouette that
-      // fights the gradient’s transparent bottom fade into the page background.
-      ...(Platform.OS === 'web' ? null : elevation('subtle')),
-      ...(overlayActions
-        ? null
-        : {
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.lg + 4,
-          }),
+      overflow: 'hidden' as const,
     },
-    bandContent: {
+    bandBody: {
       paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.lg + 4,
-      paddingTop: spacing.lg + 4,
-    },
-    gradient: {
-      position: 'absolute' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
-    orb: {
-      position: 'absolute',
-      top: -36,
-      right: -12,
-      width: 140,
-      height: 140,
-      borderRadius: 70,
-      backgroundColor: colorWithAlpha(colors.secondary, isDark ? 0.22 : 0.18),
+      paddingTop: spacing.lg,
+      paddingBottom: pulse ? spacing.md : spacing.lg,
     },
     row: {
       position: 'relative' as const,
@@ -161,9 +132,8 @@ export function DashboardHero({
       minWidth: 0,
       gap: spacing.xs + 2,
     },
-    // Shared rhythm for greeting → name → meta (Pressable has no gap of its own).
     identityStack: {
-      gap: spacing.xs + 2,
+      gap: spacing.xs,
     },
     identityPressed: {
       opacity: 0.85,
@@ -174,8 +144,24 @@ export function DashboardHero({
       right: spacing.sm,
       zIndex: 2,
     },
+    greetingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs + 2,
+    },
+    greetingGlyph: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.tertiarySubtle,
+      flexShrink: 0,
+    },
     greeting: {
-      fontSize: IS_WEB && isTablet ? 16 : 15,
+      flex: 1,
+      minWidth: 0,
+      fontSize: IS_WEB && isTablet ? 15 : 14,
       lineHeight: 20,
       fontFamily: fontRegular,
       color: colors.labelSecondary,
@@ -192,25 +178,72 @@ export function DashboardHero({
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 6,
       borderRadius: radii.pill,
-      backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.16 : 0.72),
+      backgroundColor: colors.fillSubtle,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colorWithAlpha(colors.primaryOnPrimary, isDark ? 0.18 : 0.35),
+      borderColor: colors.separator,
     },
     chipLabel: {
       fontSize: 12,
       lineHeight: 16,
       fontFamily: fontSemibold,
       fontWeight: '600',
-      color: isDark ? colors.labelPrimary : colors.labelPrimary,
+      color: colors.labelPrimary,
+    },
+    pulseDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+    },
+    pulseRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      minHeight: 52,
+      ...webPointer(),
+      ...webOnlyStyle({
+        transitionProperty: 'background-color, opacity',
+        transitionDuration: '140ms',
+      } as const),
+    },
+    pulseRowHovered: webListRowHoverStyles(colors),
+    pulseRowPressed: {
+      opacity: 0.88,
+    },
+    pulseIconBadge: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySubtle,
+      flexShrink: 0,
+    },
+    pulseLabel: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 14,
+      lineHeight: 18,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelPrimary,
+    },
+    pulseChevron: {
+      flexShrink: 0,
+      opacity: 0.45,
     },
   }));
 
-  const gradientColors = getHeroBandGradient(colors, isDark);
-
-  const openProfile = () => {
+  const openProfile = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(profileHref);
-  };
+  }, [profileHref]);
+
+  const handlePulsePress = useCallback(() => {
+    if (!pulse) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    pulse.onPress();
+  }, [pulse]);
 
   const hasContext = Boolean(contextSlot) || Boolean(contextLine);
   const trimmedIdentity = identityLine?.trim() || null;
@@ -227,19 +260,29 @@ export function DashboardHero({
 
   const identityCore = (
     <View style={styles.identityStack}>
-      <Text style={styles.greeting} accessibilityRole="text">
-        {getTimeOfDayGreeting(greetingName)}
-      </Text>
-      <DashboardHeroName displayName={displayName} namePlaceholder={namePlaceholder} />
-      <DashboardHeroSubtitle
-        subtitle={subtitle}
-        detail={trimmedIdentity}
-        trailing={hasContext || trimmedIdentity ? undefined : formatDashboardDate()}
-      />
+      <HeroStaggerBlock delayMs={0} reduceMotion={reduceMotion}>
+        <View style={styles.greetingRow}>
+          <View style={styles.greetingGlyph}>
+            <Ionicons name={timeIcon} size={15} color={colors.tertiary} />
+          </View>
+          <Text style={styles.greeting} accessibilityRole="text" numberOfLines={1}>
+            {getTimeOfDayGreeting(greetingName)}
+          </Text>
+        </View>
+      </HeroStaggerBlock>
+      <HeroStaggerBlock delayMs={40} reduceMotion={reduceMotion}>
+        <DashboardHeroName displayName={displayName} namePlaceholder={namePlaceholder} />
+      </HeroStaggerBlock>
+      <HeroStaggerBlock delayMs={80} reduceMotion={reduceMotion}>
+        <DashboardHeroSubtitle
+          subtitle={subtitle}
+          detail={trimmedIdentity}
+          trailing={hasContext || trimmedIdentity || pulse ? undefined : formatDashboardDate()}
+        />
+      </HeroStaggerBlock>
     </View>
   );
 
-  // Keep interactive context outside the profile Pressable so nested buttons work.
   const identity = heroOpensProfile ? (
     <View style={styles.identity}>
       <Pressable
@@ -258,10 +301,38 @@ export function DashboardHero({
     </View>
   );
 
+  const pulseFooter = pulse ? (
+    <HeroStaggerBlock delayMs={120} reduceMotion={reduceMotion}>
+      <View>
+        <View style={styles.pulseDivider} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={pulse.label}
+          onPress={handlePulsePress}
+          style={({ pressed, hovered }) => [
+            styles.pulseRow,
+            isWeb && hovered && !pressed && styles.pulseRowHovered,
+            pressed && styles.pulseRowPressed,
+          ]}>
+          <View style={styles.pulseIconBadge}>
+            <Ionicons name={pulse.icon} size={15} color={colors.primary} />
+          </View>
+          <Text style={styles.pulseLabel} numberOfLines={1}>
+            {pulse.label}
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.labelTertiary}
+            style={styles.pulseChevron}
+          />
+        </Pressable>
+      </View>
+    </HeroStaggerBlock>
+  ) : null;
+
   return (
     <View style={styles.band}>
-      <LinearGradient colors={gradientColors} style={styles.gradient} />
-      <Animated.View style={[styles.orb, orbStyle]} pointerEvents="none" />
       {overlayActions && showActions ? (
         <View style={styles.actionsCorner}>
           <DashboardHeroActions
@@ -270,10 +341,12 @@ export function DashboardHero({
             displayName={displayName}
             photoUri={photoUri}
             compact
+            hideProfile={hideProfileInActions}
+            hideSignOut={hideProfileInActions}
           />
         </View>
       ) : null}
-      <View style={overlayActions ? styles.bandContent : undefined}>
+      <View style={styles.bandBody}>
         <View style={styles.row}>
           {overlayActions ? (
             identity
@@ -286,12 +359,15 @@ export function DashboardHero({
                   avatarKind={avatarKind}
                   displayName={displayName}
                   photoUri={photoUri}
+                  hideProfile={hideProfileInActions}
+                  hideSignOut={hideProfileInActions}
                 />
               ) : null}
             </>
           )}
         </View>
       </View>
+      {pulseFooter}
     </View>
   );
 }

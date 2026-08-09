@@ -3,7 +3,7 @@ import { Animated, Text, View } from 'react-native';
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton';
 import { ListCardSkeleton } from '@/components/ui/skeletons/ListCardSkeleton';
-import { useEnterAnimation, usePulseOpacity } from '@/lib/motion';
+import { usePulseOpacity } from '@/lib/motion';
 import { useThemedStyles } from '@/theme';
 
 type PageLoadingSpinnerProps = {
@@ -55,7 +55,6 @@ function LoadingDots({ pulse }: { pulse: Animated.Value }) {
 /** Full-screen branded loader for route gates and auth transitions. */
 export function PageLoadingSpinner({ message }: PageLoadingSpinnerProps) {
   const pulse = usePulseOpacity();
-  const { opacity, translateY } = useEnterAnimation();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -75,17 +74,19 @@ export function PageLoadingSpinner({ message }: PageLoadingSpinnerProps) {
   }));
 
   return (
-    <Animated.View
-      style={[styles.container, { opacity, transform: [{ translateY }] }]}
+    <View
+      style={styles.container}
       accessibilityRole="progressbar"
       accessibilityLabel={message ?? 'Loading'}
     >
-      <Animated.View style={[styles.wordmarkWrap, { opacity: pulse }]}>
-        <ChairsideWordmark variant="hero" />
-      </Animated.View>
+      <View style={styles.wordmarkWrap}>
+        <Animated.View style={{ opacity: pulse }}>
+          <ChairsideWordmark variant="hero" />
+        </Animated.View>
+      </View>
       <LoadingDots pulse={pulse} />
       {message ? <Text style={styles.message}>{message}</Text> : null}
-    </Animated.View>
+    </View>
   );
 }
 

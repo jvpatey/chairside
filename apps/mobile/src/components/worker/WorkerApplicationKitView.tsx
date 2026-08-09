@@ -99,14 +99,14 @@ export function WorkerApplicationKitView({
         </Text>
       </ProfileSummaryBanner>
 
-      <SectionPanel stepNumber={1} stepAccent="primary" title="Profile photo">
+      <SectionPanel icon="camera-outline" iconAccent="primary" title="Profile photo">
         <Text style={styles.hint}>
           Optional but recommended — helps clinics recognize you on role and fill-in applications.
         </Text>
         <ProfilePhotoUpload embedded onUpdated={() => void refreshWorkerProfile()} />
       </SectionPanel>
 
-      <SectionPanel stepNumber={2} stepAccent="secondary" title="Resume">
+      <SectionPanel icon="document-outline" iconAccent="secondary" title="Resume">
         <Text style={styles.hint}>
           Optional PDF attached to role applications so clinics can review your experience in
           detail.
@@ -114,7 +114,7 @@ export function WorkerApplicationKitView({
         <ResumeUpload embedded onUploaded={() => void refreshWorkerProfile()} />
       </SectionPanel>
 
-      <SectionPanel stepNumber={3} stepAccent="primary" title="Default cover note">
+      <SectionPanel icon="chatbubble-ellipses-outline" iconAccent="primary" title="Default cover note">
         <Text style={styles.hint}>
           A reusable note sent with applications. You can customize it each time you apply.
         </Text>

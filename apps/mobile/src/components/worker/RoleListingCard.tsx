@@ -22,6 +22,7 @@ type RoleListingCardProps = {
   onToggleSaved?: () => void;
   distanceLabel?: string | null;
   onPress?: () => void;
+  embedded?: boolean;
 };
 
 export function RoleListingCard({
@@ -33,6 +34,7 @@ export function RoleListingCard({
   onToggleSaved,
   distanceLabel,
   onPress,
+  embedded = false,
 }: RoleListingCardProps) {
   const { colors } = useTheme();
   const featuredTreatment = useFeaturedListingTreatment();
@@ -99,6 +101,7 @@ export function RoleListingCard({
 
   return (
     <SurfaceCard
+      variant={embedded ? 'inner' : 'default'}
       onPress={onPress}
       padding="none"
       style={[styles.card, isFeatured && featuredTreatment.styles.card]}

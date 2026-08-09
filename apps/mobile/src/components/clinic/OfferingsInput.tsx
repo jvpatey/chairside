@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import {
   webHover,
   webIconButtonHoverStyles,
@@ -176,7 +177,7 @@ export function OfferingsInput({ onChange, initialValue }: OfferingsInputProps) 
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>Perks & offerings (optional)</Text>
+      <FormSectionHeader icon="gift-outline" label="Perks & offerings (optional)" />
 
       <View style={styles.section}>
         <ChipSelector

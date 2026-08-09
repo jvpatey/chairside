@@ -6,9 +6,8 @@ import { Alert, View } from 'react-native';
 
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
 import { JobPostManageMenu } from '@/components/clinic/JobPostManageMenu';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -66,19 +65,21 @@ export default function JobDetailScreen() {
 
   if (isLoading || !job) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title="Role details"
-          subtitle={isLoading ? undefined : 'Role not found.'}
-          onBack={() => router.back()}
-        />
+      <FormScreen
+        title="Role details"
+        subtitle={isLoading ? undefined : 'Role not found.'}
+        onBack={() => router.back()}>
         {isLoading ? <PageLoadingDetail /> : null}
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   return (
-    <OnboardingShell atmosphere="subtle"
+    <FormScreen
+      eyebrow="Role details"
+      title={job.title}
+      subtitle={formatJobPostRoleMeta(job)}
+      onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
           {user?.id ? (
@@ -96,17 +97,10 @@ export default function JobDetailScreen() {
             onPress={() => router.push(getEditJobRoute(job.id))}
           />
         </View>
-      }
-    >
+      }>
       <View style={styles.content}>
-        <AuthScreenHeader
-          eyebrow="Role details"
-          title={job.title}
-          subtitle={formatJobPostRoleMeta(job)}
-          onBack={() => router.back()}
-        />
         <JobPostDetailView job={job} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

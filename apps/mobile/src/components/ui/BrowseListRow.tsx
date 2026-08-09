@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { cardShellRadii } from '@/components/ui/cardLayout';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
+import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
+import { radii } from '@/theme/tokens';
 
 export type ListingLayout = 'tile' | 'list';
 
@@ -41,7 +42,9 @@ type BrowseListRowProps = {
   /** Renders below the text block, aligned with the title column. */
   textFooter?: ReactNode;
   /** Renders on its own line at the bottom of the card content. */
+  /** Renders below the row; use with `statusFooterAlign`. */
   statusFooter?: ReactNode;
+  statusFooterAlign?: 'start' | 'end';
   /** Renders in the top-right of the header row. */
   topTrailing?: ReactNode;
   trailing?: ReactNode;
@@ -52,8 +55,12 @@ type BrowseListRowProps = {
   action?: ReactNode;
   onPress?: () => void;
   showChevron?: boolean;
+  /** Tighter padding and type for phone dashboard rows. */
+  compact?: boolean;
   /** `split` — header above a tinted content band (matches tile cards). */
   layout?: 'stacked' | 'split';
+  /** When `header`, only the header block is pressable with inset hover (for rows with external footers). */
+  pressScope?: 'row' | 'header';
 };
 
 export function BrowseListRow({
@@ -68,6 +75,7 @@ export function BrowseListRow({
   headerAccent,
   textFooter,
   statusFooter,
+  statusFooterAlign = 'start',
   topTrailing,
   trailing,
   contentAccessory,
@@ -75,7 +83,9 @@ export function BrowseListRow({
   action,
   onPress,
   showChevron = true,
+  compact = false,
   layout = 'split',
+  pressScope = 'row',
 }: BrowseListRowProps) {
   const { colors } = useTheme();
   const isSplit = layout === 'split';
@@ -88,15 +98,14 @@ export function BrowseListRow({
       postedInContent ||
       textFooter ||
       footer ||
-      statusFooter ||
       trailing ||
       contentAccessory,
     );
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
+      paddingVertical: compact ? spacing.sm : spacing.md,
+      paddingHorizontal: compact ? spacing.sm : spacing.md,
       gap: spacing.xs,
       position: 'relative',
       overflow: 'hidden',
@@ -105,11 +114,29 @@ export function BrowseListRow({
     rowPressed: {
       backgroundColor: colors.fillSubtle,
     },
+    headerPressTarget: {
+      borderRadius: radii.sm,
+      paddingVertical: spacing.xs,
+      ...webPointer(),
+      ...webOnlyStyle({
+        transitionProperty: 'background-color, box-shadow',
+        transitionDuration: '140ms',
+      } as const),
+    },
+    headerHovered: {
+      backgroundColor: colors.fillSubtle,
+      ...webOnlyStyle({
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+      } as const),
+    },
+    headerPressed: {
+      backgroundColor: colors.fillSubtle,
+      opacity: 0.92,
+    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.md,
-      ...webPointer(),
     },
     headerBody: {
       flex: 1,
@@ -136,8 +163,8 @@ export function BrowseListRow({
     },
     title: {
       ...typography.body,
-      fontSize: isSplit ? 18 : 17,
-      lineHeight: isSplit ? 23 : 22,
+      fontSize: compact ? 16 : isSplit ? 18 : 17,
+      lineHeight: compact ? 21 : isSplit ? 23 : 22,
       fontWeight: '700',
       letterSpacing: -0.3,
       color: colors.labelPrimary,
@@ -228,6 +255,24 @@ export function BrowseListRow({
       justifyContent: 'center',
       gap: spacing.xs,
     },
+    cornerTrailing: {
+      position: 'absolute',
+      top: compact ? spacing.sm : spacing.md,
+      right: compact ? spacing.sm : spacing.md,
+      zIndex: 2,
+      alignItems: 'flex-end',
+    },
+    chevronTrailing: {
+      position: 'absolute',
+      right: compact ? spacing.sm : spacing.md,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      zIndex: 1,
+    },
+    stackedChevronInset: {
+      paddingRight: spacing.lg,
+    },
     trailingBottom: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -235,6 +280,13 @@ export function BrowseListRow({
     },
     statusFooterRow: {
       paddingTop: spacing.xs,
+      alignSelf: 'stretch',
+    },
+    statusFooterEnd: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: spacing.sm,
       alignSelf: 'stretch',
     },
     rowAction: {
@@ -337,7 +389,6 @@ export function BrowseListRow({
       ) : null}
       {textFooter ? <View style={styles.textFooter}>{textFooter}</View> : null}
       {footer ? <View style={styles.footer}>{footer}</View> : null}
-      {statusFooter ? <View>{statusFooter}</View> : null}
     </>
   );
 
@@ -356,8 +407,10 @@ export function BrowseListRow({
     </View>
   ) : null;
 
+  const useStackedCornerLayout = !isSplit && compact && Boolean(topTrailing);
+
   const stackedTrailingColumn =
-    topTrailing || trailing || showChevron ? (
+    useStackedCornerLayout || !(topTrailing || trailing || showChevron) ? null : (
       <View style={styles.trailingCol}>
         {topTrailing ?? null}
         {trailing || showChevron ? (
@@ -369,41 +422,118 @@ export function BrowseListRow({
           </View>
         ) : null}
       </View>
-    ) : null;
+    );
 
-  const splitLayout = (
-    <>
-      <View style={styles.headerRow}>
-        {avatar}
-        <View style={styles.headerBody}>
-          {splitHeaderPrimary}
-          {splitHeaderFooter}
-        </View>
-        {splitTrailingColumn}
-      </View>
-      {hasContentSection ? <View style={styles.contentBand}>{splitContentSection}</View> : null}
-      {action ? <View style={styles.rowAction}>{action}</View> : null}
-    </>
-  );
-
-  const stackedLayout = (
-    <View style={styles.headerRow}>
+  const stackedMainRow = (
+    <View style={[styles.headerRow, useStackedCornerLayout && showChevron && styles.stackedChevronInset]}>
       {avatar}
       <View style={styles.headerBody}>{stackedTextBlock}</View>
       {stackedTrailingColumn}
     </View>
   );
 
+  const stackedLayout = useStackedCornerLayout ? stackedMainRow : (
+    <View style={styles.headerRow}>
+      {avatar}
+      <View style={styles.headerBody}>{stackedTextBlock}</View>
+      {topTrailing || trailing || showChevron ? (
+        <View style={styles.trailingCol}>
+          {topTrailing ?? null}
+          {trailing || showChevron ? (
+            <View style={styles.trailingBottom}>
+              {trailing}
+              {showChevron ? (
+                <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const splitHeaderBlock = (
+    <View style={styles.headerRow}>
+      {avatar}
+      <View style={styles.headerBody}>
+        {splitHeaderPrimary}
+        {splitHeaderFooter}
+      </View>
+      {splitTrailingColumn}
+    </View>
+  );
+
+  const useHeaderPress = pressScope === 'header' && Boolean(onPress) && isSplit;
+
+  const splitLayout = (
+    <>
+      {useHeaderPress ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onPress?.();
+          }}
+          style={({ pressed, hovered }) => [
+            styles.headerPressTarget,
+            webHover(hovered, pressed, styles.headerHovered),
+            pressed && styles.headerPressed,
+          ]}>
+          {splitHeaderBlock}
+        </Pressable>
+      ) : (
+        splitHeaderBlock
+      )}
+      {hasContentSection ? <View style={styles.contentBand}>{splitContentSection}</View> : null}
+      {action ? <View style={styles.rowAction}>{action}</View> : null}
+    </>
+  );
+
+  const stackedStatusFooter =
+    !isSplit && statusFooter ? (
+      <View
+        style={[
+          styles.statusFooterRow,
+          statusFooterAlign === 'end' && styles.statusFooterEnd,
+          useStackedCornerLayout && showChevron && styles.stackedChevronInset,
+        ]}>
+        {statusFooter}
+      </View>
+    ) : null;
+
   const content = (
     <>
-      {isSplit ? splitLayout : stackedLayout}
-      {!isSplit && statusFooter ? <View style={styles.statusFooterRow}>{statusFooter}</View> : null}
+      {isSplit ? (
+        splitLayout
+      ) : (
+        <>
+          {useStackedCornerLayout && topTrailing ? (
+            <View style={styles.cornerTrailing}>{topTrailing}</View>
+          ) : null}
+          {stackedLayout}
+          {stackedStatusFooter}
+          {useStackedCornerLayout && showChevron ? (
+            <View style={styles.chevronTrailing} pointerEvents="none">
+              <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
+            </View>
+          ) : null}
+        </>
+      )}
+      {isSplit && statusFooter ? (
+        <View
+          style={[
+            styles.statusFooterRow,
+            statusFooterAlign === 'end' && styles.statusFooterEnd,
+          ]}>
+          {statusFooter}
+        </View>
+      ) : null}
     </>
   );
 
   const rowBody = content;
 
-  if (!onPress) {
+  if (!onPress || useHeaderPress) {
     return <View style={styles.container}>{rowBody}</View>;
   }
 

@@ -1,14 +1,15 @@
 import type { Conversation, MessageSearchHit } from '@chairside/api';
 import { searchMessagesInConversations } from '@chairside/api';
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
-import { ConversationInboxFilters } from '@/components/messaging/ConversationInboxFilters';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { ConversationInboxGroup } from '@/components/messaging/ConversationInboxGroup';
 import { MessagingEmptyState } from '@/components/messaging/MessagingEmptyState';
 import { ConversationListItem } from '@/components/messaging/ConversationListItem';
+import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { StaggeredList } from '@/components/ui/StaggeredList';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { hideConversation } from '@/lib/conversationHide';
 import {
   buildConversationInboxSections,
@@ -17,11 +18,11 @@ import {
   getConversationInboxEmptyMessage,
   type ConversationInboxFilter,
 } from '@/lib/conversationInbox';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { formatMessageSearchPreview, matchesConversationSearch } from '@/lib/messageThreadDisplay';
-import { webPointer } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import type { MessageThreadFocus } from '@/lib/routing';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 
 const MESSAGE_SEARCH_DEBOUNCE_MS = 300;
 const MESSAGE_SEARCH_MIN_LENGTH = 2;
@@ -47,6 +48,14 @@ function getEmptyStateTitle(filter: ConversationInboxFilter, hasSearch: boolean)
   return 'No matching conversations';
 }
 
+function shouldShowInboxTab(
+  value: ConversationInboxFilter,
+  counts: ReturnType<typeof getConversationFilterCounts>,
+): boolean {
+  if (value === 'all' || value === 'unread') return true;
+  return counts[value] > 0;
+}
+
 export function ConversationInboxList({
   conversations,
   role,
@@ -59,65 +68,33 @@ export function ConversationInboxList({
   onConversationPress,
   onConversationHidden,
 }: ConversationInboxListProps) {
-  const { colors } = useTheme();
   const [filter, setFilter] = useState<ConversationInboxFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [messageSearchHits, setMessageSearchHits] = useState<Record<string, MessageSearchHit>>({});
   const [isSearchingMessages, setIsSearchingMessages] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, colors, typography, isDark }) => ({
+  const styles = useThemedStyles(({ spacing, colors }) => ({
     content: {
       flex: compact ? 1 : undefined,
       minHeight: compact ? 0 : undefined,
     },
     scrollContent: {
       gap: spacing.md,
+      paddingTop: compact ? spacing.md : 0,
       paddingBottom: spacing.md,
-    },
-    scroll: {
-      flex: 1,
     },
     headerBlock: {
       gap: spacing.md,
-      paddingBottom: spacing.md,
-    },
-    searchSection: {
-      gap: spacing.xs,
-    },
-    searchWrap: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      backgroundColor: colors.fillSubtle,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: 'transparent',
-      paddingHorizontal: spacing.md,
-      paddingVertical: 10,
-      minHeight: 42,
-    },
-    searchWrapFocused: {
-      backgroundColor: colors.surface,
-      borderColor: colors.primary,
-    },
-    searchIcon: {
       flexShrink: 0,
     },
-    searchInput: {
-      ...typography.body,
-      flex: 1,
-      color: colors.labelPrimary,
-      padding: 0,
+    chrome: {
+      flexShrink: 0,
+      gap: spacing.md,
     },
-    clearButton: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      ...webPointer(),
+    searchBlock: {
+      gap: spacing.xs,
+      flexShrink: 0,
     },
     searchMeta: {
       fontSize: 12,
@@ -127,18 +104,14 @@ export function ConversationInboxList({
     listSections: {
       gap: spacing.md,
     },
-    standaloneCard: {
-      backgroundColor: colors.surface,
-      borderRadius: compact ? 14 : 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      overflow: 'hidden',
-      ...(isDark
-        ? {}
-        : ({
-            // @ts-expect-error — boxShadow is web-only
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-          } as const)),
+    inboxStack: {
+      flex: compact ? 1 : undefined,
+      minHeight: compact ? 0 : undefined,
+      gap: spacing.md,
+    },
+    listScroll: {
+      flex: 1,
+      minHeight: 0,
     },
   }));
 
@@ -185,6 +158,50 @@ export function ConversationInboxList({
   }, [debouncedQuery]);
 
   const filterCounts = useMemo(() => getConversationFilterCounts(conversations), [conversations]);
+  const inboxTabs = useMemo(
+    () =>
+      (
+        [
+          {
+            value: 'all' as const,
+            label: 'All',
+            count: filterCounts.all,
+            icon: 'chatbubbles-outline' as const,
+            accent: 'primary' as const,
+          },
+          {
+            value: 'unread' as const,
+            label: 'Unread',
+            count: filterCounts.unread,
+            badgeCount: filterCounts.unread,
+            icon: 'mail-unread-outline' as const,
+            accent: 'primary' as const,
+          },
+          {
+            value: 'roles' as const,
+            label: 'Roles',
+            count: filterCounts.roles,
+            icon: 'briefcase-outline' as const,
+            accent: 'primary' as const,
+          },
+          {
+            value: 'fill_ins' as const,
+            label: 'Fill-ins',
+            count: filterCounts.fill_ins,
+            icon: FILL_IN_ICON.outline,
+            accent: 'secondary' as const,
+          },
+          {
+            value: 'general' as const,
+            label: 'General',
+            count: filterCounts.general,
+            icon: 'chatbubble-outline' as const,
+            accent: 'primary' as const,
+          },
+        ] as const
+      ).filter((tab) => shouldShowInboxTab(tab.value, filterCounts)),
+    [filterCounts],
+  );
   const filteredConversations = useMemo(() => {
     const byFilter = filterConversations(conversations, filter);
     const trimmed = searchQuery.trim();
@@ -283,7 +300,7 @@ export function ConversationInboxList({
               : null;
 
             return (
-              <View key={conversation.id} style={styles.standaloneCard}>
+              <SurfaceCard key={conversation.id} padding="none">
                 <ConversationListItem
                   conversation={conversation}
                   avatarKind={avatarKind}
@@ -301,7 +318,7 @@ export function ConversationInboxList({
                     onConversationHidden();
                   }}
                 />
-              </View>
+              </SurfaceCard>
             );
           })}
         </StaggeredList>
@@ -311,80 +328,85 @@ export function ConversationInboxList({
   const headerContent = (
     <View style={styles.headerBlock}>
       {header ?? null}
-
-      {conversations.length > 0 ? (
-        <>
-          <View style={styles.searchSection}>
-            <View style={[styles.searchWrap, searchFocused && styles.searchWrapFocused]}>
-              <Ionicons
-                name="search"
-                size={17}
-                color={searchFocused ? colors.primary : colors.labelTertiary}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                accessibilityLabel="Search conversations and messages"
-                placeholder="Search name or messages"
-                placeholderTextColor={colors.labelTertiary}
-                style={styles.searchInput}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {searchQuery.length > 0 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Clear search"
-                  onPress={() => setSearchQuery('')}
-                  style={styles.clearButton}
-                >
-                  <Ionicons name="close-circle" size={18} color={colors.labelTertiary} />
-                </Pressable>
-              ) : null}
-            </View>
-            {hasSearch && debouncedQuery.length >= MESSAGE_SEARCH_MIN_LENGTH ? (
-              <Text style={styles.searchMeta}>
-                {isSearchingMessages
-                  ? 'Searching messages…'
-                  : messageMatchCount > 0
-                    ? `${messageMatchCount} conversation${messageMatchCount === 1 ? '' : 's'} with matching messages`
-                    : 'No message body matches yet'}
-              </Text>
-            ) : null}
-          </View>
-          <ConversationInboxFilters
-            selected={filter}
-            counts={filterCounts}
-            onChange={setFilter}
-          />
-        </>
-      ) : null}
     </View>
   );
+
+  const searchMeta =
+    hasSearch && debouncedQuery.length >= MESSAGE_SEARCH_MIN_LENGTH ? (
+      <Text style={styles.searchMeta}>
+        {isSearchingMessages
+          ? 'Searching messages…'
+          : messageMatchCount > 0
+            ? `${messageMatchCount} conversation${messageMatchCount === 1 ? '' : 's'} with matching messages`
+            : 'No message body matches yet'}
+      </Text>
+    ) : null;
+
+  const searchRow =
+    conversations.length > 0 ? (
+      <View style={styles.searchBlock}>
+        <ListSearchFilterRow
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search name or messages"
+          accessibilityLabel="Search conversations and messages"
+        />
+        {searchMeta}
+      </View>
+    ) : null;
+
+  const filterTabs =
+    conversations.length > 0 ? (
+      <FileTabWell
+        variant="inline"
+        tabsOnly={compact}
+        fillHeight={compact ? false : undefined}
+        tabs={inboxTabs}
+        selected={filter}
+        onSelect={setFilter}
+      />
+    ) : null;
 
   if (compact) {
     return (
       <View style={styles.content}>
-        {headerContent}
-        <ScrollView
-          style={[styles.scroll, webScrollbarStyles()]}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator
-        >
-          {listBody}
-        </ScrollView>
+        <View style={styles.chrome}>
+          {headerContent}
+          {searchRow}
+          {filterTabs}
+        </View>
+        {conversations.length > 0 ? (
+          <ScrollView
+            style={[styles.listScroll, webScrollbarStyles()]}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator
+          >
+            {listBody}
+          </ScrollView>
+        ) : (
+          listBody
+        )}
       </View>
     );
   }
 
+  const inboxWell =
+    conversations.length > 0 ? (
+      <>
+        {searchRow}
+        <FileTabWell variant="inline" tabs={inboxTabs} selected={filter} onSelect={setFilter}>
+          {listBody}
+        </FileTabWell>
+      </>
+    ) : (
+      listBody
+    );
+
   return (
     <View style={styles.content}>
       {headerContent}
-      {listBody}
+      <View style={styles.inboxStack}>{inboxWell}</View>
     </View>
   );
 }

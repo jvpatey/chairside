@@ -10,9 +10,8 @@ import {
   dayAvailabilityToBlocks,
   type DayAvailability,
 } from '@/components/worker/AvailabilityScheduleInput';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerAvailabilitySave } from '@/hooks/useWorkerAvailabilitySave';
 import { useThemedStyles } from '@/theme';
@@ -54,9 +53,13 @@ export default function WorkerAvailabilityScheduleScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
       atmosphereAccent="secondary"
+      transparentBackground={false}
+      title="Available days"
+      subtitle="Choose the days you can cover fill-in shifts, and set hours or mark days as all day."
+      accent="secondary"
+      onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
           <OnboardingButton
@@ -67,12 +70,6 @@ export default function WorkerAvailabilityScheduleScreen() {
           />
         </View>
       }>
-      <AuthScreenHeader
-        title="Available days"
-        subtitle="Choose the days of the week and hours you can cover fill-in shifts."
-        accent="secondary"
-        onBack={() => router.back()}
-      />
       <View style={styles.form}>
         <View style={styles.section}>
           <Text style={styles.hint}>
@@ -81,6 +78,6 @@ export default function WorkerAvailabilityScheduleScreen() {
           <AvailabilityScheduleInput days={days} onChange={setDays} />
         </View>
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

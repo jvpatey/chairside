@@ -26,6 +26,9 @@ import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 type MessageContextPanelProps = {
   conversation: Conversation | null;
   role: 'worker' | 'clinic';
+  onCollapse?: () => void;
+  /** Close split-view context UI before routing to a full-screen destination. */
+  onNavigateAway?: () => void;
 };
 
 function ContextAvatar({
@@ -73,14 +76,14 @@ function ContextActionRow({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     row: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
       paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.md,
-      borderRadius: 12,
+      borderRadius: radii.md,
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
@@ -92,7 +95,7 @@ function ContextActionRow({
     iconWrap: {
       width: 32,
       height: 32,
-      borderRadius: 8,
+      borderRadius: radii.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primarySubtle,
@@ -125,7 +128,65 @@ function ContextActionRow({
   );
 }
 
-function EmptyContextPanel() {
+function PanelEyebrow({
+  label,
+  onCollapse,
+}: {
+  label: string;
+  onCollapse?: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ spacing }) => ({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    eyebrow: {
+      flex: 1,
+      fontSize: 11,
+      fontWeight: '600',
+      fontFamily: fontSemibold,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+    },
+    collapseButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.fillSubtle,
+      ...webPointer(),
+    },
+    collapseButtonPressed: {
+      opacity: 0.8,
+    },
+  }));
+
+  return (
+    <View style={styles.row}>
+      <Text style={styles.eyebrow}>{label}</Text>
+      {onCollapse ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Hide details panel"
+          onPress={onCollapse}
+          style={({ pressed }) => [
+            styles.collapseButton,
+            pressed && styles.collapseButtonPressed,
+          ]}
+        >
+          <Ionicons name="chevron-forward" size={18} color={colors.labelSecondary} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function EmptyContextPanel({ onCollapse }: { onCollapse?: () => void }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing }) => ({
     panel: {
@@ -135,14 +196,6 @@ function EmptyContextPanel() {
     scrollContent: {
       flexGrow: 1,
       gap: spacing.lg,
-    },
-    eyebrow: {
-      fontSize: 11,
-      fontWeight: '600',
-      fontFamily: fontSemibold,
-      letterSpacing: 0.6,
-      textTransform: 'uppercase' as const,
-      color: colors.labelTertiary,
     },
     emptyCard: {
       alignItems: 'center',
@@ -177,8 +230,9 @@ function EmptyContextPanel() {
       <ScrollView
         style={[{ flex: 1, backgroundColor: 'transparent' }, webScrollbarStyles()]}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>Thread details</Text>
+        showsVerticalScrollIndicator={false}
+      >
+        <PanelEyebrow label="Thread details" onCollapse={onCollapse} />
         <SurfaceCard padding="lg" gap>
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
@@ -200,7 +254,12 @@ function EmptyContextPanel() {
   );
 }
 
-export function MessageContextPanel({ conversation, role }: MessageContextPanelProps) {
+export function MessageContextPanel({
+  conversation,
+  role,
+  onCollapse,
+  onNavigateAway,
+}: MessageContextPanelProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     panel: {
@@ -210,14 +269,6 @@ export function MessageContextPanel({ conversation, role }: MessageContextPanelP
     scrollContent: {
       gap: spacing.lg,
       paddingBottom: spacing.md,
-    },
-    eyebrow: {
-      fontSize: 11,
-      fontWeight: '600',
-      fontFamily: fontSemibold,
-      letterSpacing: 0.6,
-      textTransform: 'uppercase' as const,
-      color: colors.labelTertiary,
     },
     heroInner: {
       alignItems: 'center',
@@ -261,7 +312,7 @@ export function MessageContextPanel({ conversation, role }: MessageContextPanelP
   }));
 
   if (!conversation) {
-    return <EmptyContextPanel />;
+    return <EmptyContextPanel onCollapse={onCollapse} />;
   }
 
   const display = formatConversationDisplay(conversation, role);
@@ -272,12 +323,19 @@ export function MessageContextPanel({ conversation, role }: MessageContextPanelP
 
   const handleProfilePress = () => {
     if (role === 'worker') {
-      router.push(getWorkerClinicProfileRoute(conversation.clinic_id));
+      onNavigateAway?.();
+      router.push(
+        getWorkerClinicProfileRoute(conversation.clinic_id, {
+          returnTo: 'messages-tab',
+          conversationId: conversation.id,
+        }),
+      );
     }
   };
 
   const handleApplicationPress = () => {
     if (!conversation.application_id) return;
+    onNavigateAway?.();
     if (role === 'worker') {
       router.push(getWorkerApplicationRoute(conversation.application_id, 'messages-tab'));
       return;
@@ -314,7 +372,7 @@ export function MessageContextPanel({ conversation, role }: MessageContextPanelP
         style={[{ flex: 1, backgroundColor: 'transparent' }, webScrollbarStyles()]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>{eyebrowLabel}</Text>
+        <PanelEyebrow label={eyebrowLabel} onCollapse={onCollapse} />
 
         <SurfaceCard padding="lg" gap>
           <View style={styles.heroInner}>

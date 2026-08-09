@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { Text, StyleSheet, View } from 'react-native';
 
 import {
   ProfileSettingsCard,
@@ -59,7 +59,7 @@ export function ProfileEmptyState({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       padding: spacing.xl,
       alignItems: 'center',
@@ -113,7 +113,7 @@ export function SummaryStat({
       padding: spacing.sm + 2,
       borderRadius: 12,
       backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
     },
     statHeader: {
@@ -150,8 +150,7 @@ export function SummaryStat({
 
 export function SectionPanel({
   icon,
-  stepNumber,
-  stepAccent,
+  iconAccent,
   title,
   children,
   collapsible = false,
@@ -159,13 +158,7 @@ export function SectionPanel({
   variant = 'default',
 }: Pick<
   ProfileSettingsCardProps,
-  | 'icon'
-  | 'stepNumber'
-  | 'stepAccent'
-  | 'title'
-  | 'collapsible'
-  | 'defaultExpanded'
-  | 'variant'
+  'icon' | 'iconAccent' | 'title' | 'collapsible' | 'defaultExpanded' | 'variant'
 > & {
   children: ReactNode;
 }) {
@@ -177,8 +170,7 @@ export function SectionPanel({
     <ProfileSettingsCard
       title={title}
       icon={icon}
-      stepNumber={stepNumber}
-      stepAccent={stepAccent}
+      iconAccent={iconAccent}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
       variant={variant}>
@@ -239,7 +231,7 @@ export function FieldValue({ value }: { value: string | null | undefined }) {
 export function FieldDivider() {
   const styles = useThemedStyles(({ colors }) => ({
     divider: {
-      height: 1,
+      height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
       opacity: 0.55,
     },
@@ -285,7 +277,7 @@ export function ProfileTagRow({
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 4,
       backgroundColor: colors.fillSubtle,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
     },
     tagText: {

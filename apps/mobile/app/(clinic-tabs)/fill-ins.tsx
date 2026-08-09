@@ -13,8 +13,17 @@ import {
 import type { Href } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
+import {
+  Alert,
+  LayoutAnimation,
+  Platform,
+  StyleSheet,
+  UIManager,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
@@ -23,12 +32,15 @@ import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { ShiftPostingFilters } from '@/components/clinic/PostingFilters';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
+import { AnimateHeight } from '@/components/ui/AnimateHeight';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
-import { PageTabBar } from '@/components/ui/PageTabBar';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
+import { ResponsiveColumns } from '@/components/ui/ResponsiveLayout';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,11 +53,11 @@ import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  FILL_INS_LIST_MODE_OPTIONS,
   countActiveFillIns,
   filterShiftPostsForFillInsListMode,
   type FillInsListMode,
 } from '@/lib/fillInFilters';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import {
   HISTORY_SHIFT_STATUS_FILTER_OPTIONS,
@@ -69,15 +81,38 @@ import {
   getClinicPostingLimitTitle,
   isFillInPostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useThemedStyles, useTheme } from '@/theme';
 
 function sectionTitleWithCount(title: string, count: number) {
   return count > 0 ? `${title} (${count})` : title;
 }
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+function animateFillInsColumnLayout() {
+  LayoutAnimation.configureNext({
+    duration: 300,
+    create: {
+      type: LayoutAnimation.Types.easeInEaseOut,
+      property: LayoutAnimation.Properties.opacity,
+    },
+    update: { type: LayoutAnimation.Types.easeInEaseOut },
+    delete: {
+      type: LayoutAnimation.Types.easeInEaseOut,
+      property: LayoutAnimation.Properties.opacity,
+    },
+  });
+}
+
+const LIST_BODY_ENTER = FadeIn.duration(220);
+const LIST_BODY_EXIT = FadeOut.duration(140);
+
 export default function ClinicFillInsScreen() {
   const { colors } = useTheme();
-  const { isTablet } = useResponsiveLayout();
+  const { isTablet, isWide } = useResponsiveLayout();
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
@@ -100,15 +135,72 @@ export default function ClinicFillInsScreen() {
   const [shiftSearchQuery, setShiftSearchQuery] = useState('');
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii, elevation }) => ({
     wrap: { gap: spacing.xl },
     list: { gap: spacing.md },
     section: { gap: spacing.sm },
     sectionBody: { gap: spacing.lg },
+    desktopFillInsColumn: {
+      gap: spacing.sm,
+      flex: 1,
+      minWidth: 0,
+    },
+    desktopFillInsColumnWide: {
+      alignSelf: 'stretch' as const,
+      flex: 1,
+      ...webOnlyStyle({
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+      } as ViewStyle),
+    },
+    columnPanel: {
+      backgroundColor: colors.surface,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      padding: spacing.lg,
+      gap: spacing.md,
+      ...elevation('subtle'),
+    },
+    columnPanelWide: {
+      flex: 1,
+      minHeight: 360,
+      ...webOnlyStyle({
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+      } as ViewStyle),
+    },
+    sectionWide: {
+      flex: 1,
+      ...webOnlyStyle({
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
+      } as ViewStyle),
+    },
+    columnPanelBody: {
+      gap: spacing.md,
+    },
+    columnPanelBodyWide: {
+      flex: 1,
+      minHeight: 200,
+      justifyContent: 'center' as const,
+      ...webOnlyStyle({
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+      } as ViewStyle),
+    },
+    stackOrderNeeds: webOnlyStyle({ order: 1 } as ViewStyle),
+    stackOrderFillIns: webOnlyStyle({ order: 2 } as ViewStyle),
     filterToolbar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -146,6 +238,33 @@ export default function ClinicFillInsScreen() {
 
   const hasShiftSearch = hasActiveListSearch(shiftSearchQuery);
   const activeFillInCount = useMemo(() => countActiveFillIns(shifts), [shifts]);
+  const historyFillInCount = useMemo(
+    () => filterShiftPostsForFillInsListMode(shifts, 'history', 'all', 'all', 'past').length,
+    [shifts],
+  );
+  const fillInsListTabs = useMemo(
+    () => [
+      {
+        value: 'active' as const,
+        label: 'Active',
+        count: activeFillInCount,
+        accent: 'secondary' as const,
+        icon: FILL_IN_ICON.outline,
+      },
+      {
+        value: 'history' as const,
+        label: 'History',
+        count: historyFillInCount,
+        accent: 'secondary' as const,
+        icon: 'time-outline' as const,
+      },
+    ],
+    [activeFillInCount, historyFillInCount],
+  );
+  // Equal-height panes when both lists show empty states (incl. filtered-empty);
+  // once either side has list cards, each column sizes to its own content.
+  const equalEmptyColumns =
+    isWide && filteredShifts.length === 0 && filteredCoverRequests.length === 0;
   const hasShiftFilters =
     (fillInsListMode === 'history' &&
       (shiftStatusFilter !== 'all' ||
@@ -155,6 +274,8 @@ export default function ClinicFillInsScreen() {
       (shiftStatusFilter !== 'open' || shiftRoleTypeFilter !== 'all' || shiftDateFilter !== 'all'));
 
   const handleFillInsListModeChange = (value: FillInsListMode) => {
+    if (value === fillInsListMode) return;
+    animateFillInsColumnLayout();
     setFillInsListMode(value);
     setExpandedShiftId(null);
     if (value === 'active') {
@@ -170,6 +291,7 @@ export default function ClinicFillInsScreen() {
     if (!clinicId) {
       setCoverRequests([]);
       setShifts([]);
+      setLoadError(false);
       setIsLoading(false);
       return;
     }
@@ -177,6 +299,7 @@ export default function ClinicFillInsScreen() {
     if (!hasLoadedOnce.current) {
       setIsLoading(true);
     }
+    setLoadError(false);
 
     try {
       const locationOpts = { locationIds: scopedLocationIds } as const;
@@ -204,11 +327,8 @@ export default function ClinicFillInsScreen() {
       await refreshPending();
       await refreshBilling();
       hasLoadedOnce.current = true;
-    } catch (error) {
-      Alert.alert(
-        'Could not load fill-ins',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+    } catch {
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -280,12 +400,18 @@ export default function ClinicFillInsScreen() {
         onRefresh={onRefresh}
         refreshAccent="secondary">
         <View style={styles.wrap}>
+          {loadError ? (
+            <DashboardErrorBanner
+              message="Could not load fill-ins."
+              onRetry={() => void load()}
+            />
+          ) : null}
           <DashboardQuickActionsRow
             actions={[
               {
                 label: 'Post fill-in',
                 description: 'Temp or urgent shift',
-                icon: 'calendar-outline',
+                icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 dimmed: fillInLimitReached,
                 onPress: handlePostFillInPress,
@@ -322,49 +448,13 @@ export default function ClinicFillInsScreen() {
             />
           ) : null}
 
-          <View style={styles.section}>
-            <DashboardSectionHeader
-              title={sectionTitleWithCount('Needs response', coverRequests.length)}
-            />
-            {coverRequests.length === 0 ? (
-              <EmptyState
-                icon="checkmark-circle-outline"
-                title="No pending cover requests"
-                message="New requests from workers will appear here when they apply to cover a fill-in."
-              />
-            ) : (
-              <View style={styles.list}>
-                <ListSearchFilterRow
-                  value={coverSearchQuery}
-                  onChange={setCoverSearchQuery}
-                  placeholder="Search applicant name"
-                  accessibilityLabel="Search cover requests"
-                />
-                {filteredCoverRequests.length === 0 ? (
-                  <EmptyState
-                    icon="search-outline"
-                    title="No matching cover requests"
-                    message="Try a different search term."
-                  />
-                ) : (
-                  <StaggeredList>
-                    {filteredCoverRequests.map((request) => (
-                      <FillInApplicantCard
-                        key={request.id}
-                        application={request}
-                        clinicId={user?.id ?? ''}
-                        returnTo="fill-ins-tab"
-                        hasUnreadMessages={Boolean(unreadMap[request.id])}
-                        onUpdated={() => void load()}
-                        onConfirmed={(payload) => showCelebration(payload)}
-                      />
-                    ))}
-                  </StaggeredList>
-                )}
-              </View>
-            )}
-          </View>
-
+          <ResponsiveColumns breakpoint="wide" stretch={equalEmptyColumns}>
+          <View
+            style={[
+              styles.desktopFillInsColumn,
+              equalEmptyColumns ? styles.desktopFillInsColumnWide : null,
+              !isWide ? styles.stackOrderFillIns : null,
+            ]}>
           {confirmedRows.length > 0 ? (
             <View style={styles.section}>
               <DashboardSectionHeader
@@ -396,123 +486,215 @@ export default function ClinicFillInsScreen() {
             </View>
           ) : null}
 
-          <View style={styles.section}>
+          <View style={[styles.section, equalEmptyColumns ? styles.sectionWide : null]}>
             <DashboardSectionHeader
               title={sectionTitleWithCount('Your fill-ins', activeFillInCount)}
             />
-            {shifts.length === 0 ? (
-              <EmptyState
-                icon="calendar-outline"
-                title="No fill-ins yet"
-                message="Post a fill-in shift when you need temporary or urgent coverage."
-                ctaLabel={
-                  isProfileComplete && !fillInLimitReached ? 'Post fill-in' : undefined
-                }
-                onCtaPress={
-                  isProfileComplete && !fillInLimitReached ? handlePostFillInPress : undefined
-                }
-                ctaAccent="secondary"
-              />
-            ) : (
-              <View style={styles.sectionBody}>
-                <ListSearchFilterRow
-                  value={shiftSearchQuery}
-                  onChange={setShiftSearchQuery}
-                  placeholder="Search date or role type"
-                  accessibilityLabel="Search fill-ins"
-                  filter={
-                    <ShiftPostingFilters
-                      statusOptions={
-                        fillInsListMode === 'history'
-                          ? HISTORY_SHIFT_STATUS_FILTER_OPTIONS
-                          : undefined
-                      }
-                      includeStatusInSheet={fillInsListMode === 'history'}
-                      includeDateInSheet={fillInsListMode === 'history'}
-                      defaults={
-                        fillInsListMode === 'history'
-                          ? {
-                              statusFilter: 'all',
-                              roleTypeFilter: 'all',
-                              shiftDateFilter: 'past',
-                            }
-                          : {
-                              statusFilter: 'open',
-                              roleTypeFilter: 'all',
-                              shiftDateFilter: 'all',
-                            }
-                      }
-                      statusFilter={shiftStatusFilter}
-                      roleTypeFilter={shiftRoleTypeFilter}
-                      shiftDateFilter={shiftDateFilter}
-                      onStatusChange={setShiftStatusFilter}
-                      onRoleTypeChange={setShiftRoleTypeFilter}
-                      onShiftDateChange={setShiftDateFilter}
-                    />
-                  }
-                />
-                <View style={styles.filterToolbar}>
-                  <View style={styles.modeSwitch}>
-                    <PageTabBar
-                      options={FILL_INS_LIST_MODE_OPTIONS}
-                      selected={fillInsListMode}
-                      onChange={handleFillInsListModeChange}
-                      accent="secondary"
-                    />
-                  </View>
-                </View>
-                {filteredShifts.length === 0 ? (
+            <AnimateHeight
+              enabled={isWide && !equalEmptyColumns}
+              style={[styles.columnPanel, equalEmptyColumns ? styles.columnPanelWide : null]}>
+              {shifts.length === 0 ? (
+                <View
+                  style={[
+                    styles.columnPanelBody,
+                    equalEmptyColumns ? styles.columnPanelBodyWide : null,
+                  ]}>
                   <EmptyState
-                    icon="filter-outline"
-                    title={
-                      hasShiftSearch || hasShiftFilters
-                        ? 'No fill-ins match your search'
-                        : fillInsListMode === 'history'
-                          ? 'No past fill-ins'
-                          : 'No active fill-ins'
+                    embedded
+                    fill={equalEmptyColumns}
+                    icon={FILL_IN_ICON.outline}
+                    title="No fill-ins yet"
+                    message="Post a fill-in shift when you need temporary or urgent coverage."
+                    ctaLabel={
+                      isProfileComplete && !fillInLimitReached ? 'Post fill-in' : undefined
                     }
-                    message={
-                      hasShiftSearch || hasShiftFilters
-                        ? 'Try a different search or filter, or post a new fill-in shift.'
-                        : fillInsListMode === 'history'
-                          ? 'Past, filled, and closed fill-ins will appear here.'
-                          : 'Try a different filter or post a new fill-in shift.'
+                    onCtaPress={
+                      isProfileComplete && !fillInLimitReached ? handlePostFillInPress : undefined
+                    }
+                    ctaAccent="secondary"
+                  />
+                </View>
+              ) : (
+                <>
+                  <ListSearchFilterRow
+                    value={shiftSearchQuery}
+                    onChange={setShiftSearchQuery}
+                    placeholder="Search date or role type"
+                    accessibilityLabel="Search fill-ins"
+                    filter={
+                      <ShiftPostingFilters
+                        statusOptions={
+                          fillInsListMode === 'history'
+                            ? HISTORY_SHIFT_STATUS_FILTER_OPTIONS
+                            : undefined
+                        }
+                        includeStatusInSheet={fillInsListMode === 'history'}
+                        includeDateInSheet={fillInsListMode === 'history'}
+                        defaults={
+                          fillInsListMode === 'history'
+                            ? {
+                                statusFilter: 'all',
+                                roleTypeFilter: 'all',
+                                shiftDateFilter: 'past',
+                              }
+                            : {
+                                statusFilter: 'open',
+                                roleTypeFilter: 'all',
+                                shiftDateFilter: 'all',
+                              }
+                        }
+                        statusFilter={shiftStatusFilter}
+                        roleTypeFilter={shiftRoleTypeFilter}
+                        shiftDateFilter={shiftDateFilter}
+                        onStatusChange={setShiftStatusFilter}
+                        onRoleTypeChange={setShiftRoleTypeFilter}
+                        onShiftDateChange={setShiftDateFilter}
+                      />
                     }
                   />
-                ) : (
-                  <View style={styles.list}>
+                  <FileTabWell
+                    tabs={fillInsListTabs}
+                    selected={fillInsListMode}
+                    onSelect={handleFillInsListModeChange}>
+                    <Animated.View
+                      key={fillInsListMode}
+                      entering={LIST_BODY_ENTER}
+                      exiting={LIST_BODY_EXIT}>
+                      {filteredShifts.length === 0 ? (
+                        <View
+                          style={[
+                            styles.columnPanelBody,
+                            equalEmptyColumns ? styles.columnPanelBodyWide : null,
+                          ]}>
+                          <EmptyState
+                            embedded
+                            fill={equalEmptyColumns}
+                            icon="filter-outline"
+                            title={
+                              hasShiftSearch || hasShiftFilters
+                                ? 'No fill-ins match your search'
+                                : fillInsListMode === 'history'
+                                  ? 'No past fill-ins'
+                                  : 'No active fill-ins'
+                            }
+                            message={
+                              hasShiftSearch || hasShiftFilters
+                                ? 'Try a different search or filter, or post a new fill-in shift.'
+                                : fillInsListMode === 'history'
+                                  ? 'Past, filled, and closed fill-ins will appear here.'
+                                  : 'Try a different filter or post a new fill-in shift.'
+                            }
+                          />
+                        </View>
+                      ) : (
+                        <View style={styles.list}>
+                          <StaggeredList>
+                            {filteredShifts.map((shift) => (
+                              <FillInPostingCard
+                                key={shift.id}
+                                shift={shift}
+                                pendingRequestCount={pendingCounts[shift.id] ?? 0}
+                                applicationCount={applicationCounts[shift.id] ?? 0}
+                                clinicId={user?.id}
+                                returnTo="fill-ins-tab"
+                                expanded={expandedShiftId === shift.id}
+                                onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
+                                onShiftUpdated={(updated) => {
+                                  setShifts((current) =>
+                                    current.map((row) => (row.id === updated.id ? updated : row)),
+                                  );
+                                  void refreshBilling();
+                                }}
+                                onShiftDeleted={() => {
+                                  setShifts((current) =>
+                                    current.filter((row) => row.id !== shift.id),
+                                  );
+                                  setExpandedShiftId((current) =>
+                                    current === shift.id ? null : current,
+                                  );
+                                  void refreshBilling();
+                                }}
+                              />
+                            ))}
+                          </StaggeredList>
+                        </View>
+                      )}
+                    </Animated.View>
+                  </FileTabWell>
+                </>
+              )}
+            </AnimateHeight>
+          </View>
+          </View>
+
+          <View
+            style={[
+              styles.section,
+              equalEmptyColumns ? styles.sectionWide : null,
+              !isWide ? styles.stackOrderNeeds : null,
+            ]}>
+            <DashboardSectionHeader
+              title={sectionTitleWithCount('Cover requests', coverRequests.length)}
+            />
+            <AnimateHeight
+              enabled={isWide && !equalEmptyColumns}
+              style={[styles.columnPanel, equalEmptyColumns ? styles.columnPanelWide : null]}>
+              {coverRequests.length === 0 ? (
+                <View
+                  style={[
+                    styles.columnPanelBody,
+                    equalEmptyColumns ? styles.columnPanelBodyWide : null,
+                  ]}>
+                  <EmptyState
+                    embedded
+                    fill={equalEmptyColumns}
+                    icon="checkmark-circle-outline"
+                    title="No pending cover requests"
+                    message="New requests from workers will appear here when they apply to cover a fill-in."
+                  />
+                </View>
+              ) : (
+                <View style={styles.list}>
+                  <ListSearchFilterRow
+                    value={coverSearchQuery}
+                    onChange={setCoverSearchQuery}
+                    placeholder="Search applicant name"
+                    accessibilityLabel="Search cover requests"
+                  />
+                  {filteredCoverRequests.length === 0 ? (
+                    <View
+                      style={[
+                        styles.columnPanelBody,
+                        equalEmptyColumns ? styles.columnPanelBodyWide : null,
+                      ]}>
+                      <EmptyState
+                        embedded
+                        fill={equalEmptyColumns}
+                        icon="search-outline"
+                        title="No matching cover requests"
+                        message="Try a different search term."
+                      />
+                    </View>
+                  ) : (
                     <StaggeredList>
-                      {filteredShifts.map((shift) => (
-                        <FillInPostingCard
-                          key={shift.id}
-                          shift={shift}
-                          pendingRequestCount={pendingCounts[shift.id] ?? 0}
-                          applicationCount={applicationCounts[shift.id] ?? 0}
-                          clinicId={user?.id}
+                      {filteredCoverRequests.map((request) => (
+                        <FillInApplicantCard
+                          key={request.id}
+                          application={request}
+                          clinicId={user?.id ?? ''}
                           returnTo="fill-ins-tab"
-                          expanded={expandedShiftId === shift.id}
-                          onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
-                          onShiftUpdated={(updated) => {
-                            setShifts((current) =>
-                              current.map((row) => (row.id === updated.id ? updated : row)),
-                            );
-                            void refreshBilling();
-                          }}
-                          onShiftDeleted={() => {
-                            setShifts((current) => current.filter((row) => row.id !== shift.id));
-                            setExpandedShiftId((current) =>
-                              current === shift.id ? null : current,
-                            );
-                            void refreshBilling();
-                          }}
+                          hasUnreadMessages={Boolean(unreadMap[request.id])}
+                          onUpdated={() => void load()}
+                          onConfirmed={(payload) => showCelebration(payload)}
                         />
                       ))}
                     </StaggeredList>
-                  </View>
-                )}
-              </View>
-            )}
+                  )}
+                </View>
+              )}
+            </AnimateHeight>
           </View>
+          </ResponsiveColumns>
         </View>
       </Screen>
       <HiringCelebrationModal

@@ -1,9 +1,11 @@
 import { getWorkerRoleTypes } from '@chairside/api';
 import { formatRoleTypesLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { router, usePathname } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -16,9 +18,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { getSidebarNavIconColor } from '@/components/navigation/sidebarNavIcons';
+import { AccountMenuSheetHeader } from '@/components/navigation/AccountMenuSheetHeader';
+import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
+import { ClinicPlanBadge } from '@/components/clinic/ClinicPlanBadge';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
-import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
@@ -28,23 +34,34 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { getClinicMembershipRoleLabel } from '@/hooks/useClinicActingContext';
+import { useSignOut } from '@/hooks/useSignOut';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import {
-  CLINIC_PLAN_ICONS,
-  getClinicPlanTierLabel,
+  getClinicPlanBrandAccentColor,
+  getRecommendedUpgradePlan,
 } from '@/lib/clinicPlanPresentation';
-import { CLINIC_PROFILE, CLINIC_PROFILE_BILLING, WORKER_PROFILE } from '@/lib/routing';
+import {
+  CLINIC_PROFILE,
+  CLINIC_PROFILE_ACCOUNT,
+  CLINIC_PROFILE_BILLING,
+  CLINIC_PROFILE_NOTIFICATIONS,
+  WORKER_PROFILE,
+  WORKER_PROFILE_ACCOUNT,
+  WORKER_PROFILE_NOTIFICATIONS,
+} from '@/lib/routing';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
-import { TABLET_PROFILE_ROW_HEIGHT, TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
+import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
+import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import {
   webHover,
   webListRowHoverStyles,
   webOnlyStyle,
   webPointer,
-  webTextLinkHoverStyles,
+  webTileHoverStyles,
 } from '@/lib/webPressableStyles';
-import { fontSemibold, useTheme, useThemedStyles, colorWithAlpha } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { webMotion } from '@/theme/web';
 
 export {
   TABLET_SIDEBAR_COLLAPSED_WIDTH,
@@ -120,12 +137,22 @@ function labelRevealStyle(collapsed: boolean): TextStyle {
   } as TextStyle;
 }
 
+type SidebarActiveIndicator = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  backgroundColor: string;
+  accentColor: string;
+  borderRadius: number;
+};
+
 export function TabletSidebar({ state, descriptors, navigation, role }: TabletSidebarProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { colors, spacing, isDark } = useTheme();
   const { isCollapsed, toggleCollapsed } = useSidebarCollapse();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { photoUri } = useProfilePhoto();
   const { logoUri } = useClinicLogo();
   const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
@@ -144,13 +171,56 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const individualPlan = billing?.plan ?? 'free';
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
+  const shellRef = useRef<View>(null);
+  const navRef = useRef<View>(null);
+  const navItemRefs = useRef<Map<string, View>>(new Map());
+  const [activeIndicator, setActiveIndicator] = useState<SidebarActiveIndicator | null>(null);
+  const [edgeHovered, setEdgeHovered] = useState(false);
+  const [accountMenuVisible, setAccountMenuVisible] = useState(false);
+  const { signOut } = useSignOut();
+  const showEdgeCollapse = !isWeb || edgeHovered;
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const syncEdgeHover = useCallback(
+    (clientX: number | undefined, clientY: number | undefined) => {
+      if (!isWeb || clientX == null || clientY == null) return;
+      const node = shellRef.current as unknown as HTMLElement | null;
+      const rect = node?.getBoundingClientRect?.();
+      if (!rect) return;
+      const nearRightEdge =
+        clientX >= rect.right - 20 &&
+        clientX <= rect.right + 20 &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom;
+      setEdgeHovered(nearRightEdge);
+    },
+    [isWeb],
+  );
+
+  useEffect(() => {
+    if (!isWeb || typeof document === 'undefined') return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      syncEdgeHover(event.clientX, event.clientY);
+    };
+
+    const handleMouseLeave = () => {
+      setEdgeHovered(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [isWeb, syncEdgeHover]);
+
+  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
     outerWeb: {
       flex: 1,
       width: '100%',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: isWeb ? spacing.xs : spacing.sm,
+      paddingVertical: isWeb ? spacing.xs : spacing.sm,
       backgroundColor: 'transparent',
       minHeight: 0,
       position: 'relative',
@@ -173,24 +243,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     profileRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
-    },
-    profileRowCollapsed: {
-      flexDirection: 'column',
-      alignItems: 'center',
-      width: '100%',
+      gap: spacing.sm,
     },
     profileRowExpanded: {
-      minHeight: TABLET_PROFILE_ROW_HEIGHT,
+      minHeight: 56,
     },
     profileHeaderWrap: {
       flex: 1,
       minWidth: 0,
-    },
-    profileHeaderWrapCollapsed: {
-      flex: 0,
-      width: '100%',
-      alignItems: 'center',
     },
     toggleButton: {
       width: 36,
@@ -209,14 +269,96 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     profileSection: {
       flexShrink: 0,
       justifyContent: 'center',
-      paddingBottom: spacing.sm,
+      paddingBottom: spacing.md,
       marginBottom: spacing.sm,
-      borderBottomWidth: 0.5,
-      borderBottomColor: colorWithAlpha(colors.separator, 0.55),
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.separator,
     },
     profileSectionCollapsed: {
       alignItems: 'center',
-      paddingBottom: spacing.sm,
+      width: '100%',
+      overflow: 'hidden',
+    },
+    sidebarEdgeZone: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      right: -14,
+      width: 28,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 100,
+      overflow: 'visible',
+      pointerEvents: 'box-none',
+    },
+    sidebarEdgeCollapseButton: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      ...webPointer(),
+      ...(isWeb
+        ? webOnlyStyle({
+            transitionProperty: 'opacity, transform',
+            transitionDuration: '160ms',
+            transitionTimingFunction: 'ease-out',
+            boxShadow: isDark
+              ? '0 2px 10px rgba(0, 0, 0, 0.35)'
+              : '0 2px 10px rgba(15, 23, 42, 0.12)',
+          } as ViewStyle)
+        : {}),
+    },
+    sidebarEdgeCollapseButtonVisible: {
+      opacity: 1,
+      transform: [{ translateX: 0 }],
+    },
+    sidebarEdgeCollapseButtonHidden: isWeb
+      ? webOnlyStyle({
+          opacity: 0,
+          pointerEvents: 'none',
+          transform: [{ translateX: 4 }],
+        } as ViewStyle)
+      : {},
+    sidebarEdgeCollapseButtonNative: {
+      opacity: 0.88,
+    },
+    profileHeaderCard: {
+      backgroundColor: colors.surface,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md + 2,
+      ...webPointer(),
+      ...webOnlyStyle({
+        transitionProperty: 'background-color, border-color, box-shadow, transform',
+        transitionDuration: '140ms',
+      } as ViewStyle),
+      ...(isWeb
+        ? webOnlyStyle({
+            boxShadow: isDark
+              ? '0 8px 24px rgba(0, 0, 0, 0.28)'
+              : '0 8px 24px rgba(15, 23, 42, 0.08)',
+          } as ViewStyle)
+        : {}),
+    },
+    profileHeaderCardPressed: {
+      opacity: 0.92,
+    },
+    profileCollapsedPressable: {
+      borderRadius: radii.lg,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.xs,
+      ...webPointer(),
+    },
+    profileCollapsedShell: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
     },
     profileToggleAlone: {
       alignItems: 'flex-end',
@@ -236,7 +378,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       fontSize: 11,
       lineHeight: 14,
       fontWeight: '600',
-      color: colors.labelTertiary,
+      color: colors.labelSecondary,
       textTransform: 'uppercase',
       letterSpacing: 0.4,
     },
@@ -276,6 +418,28 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       flex: 1,
       gap: 0,
       paddingTop: spacing.xs,
+      ...(isWeb ? { position: 'relative' as const } : null),
+    },
+    slidingIndicator: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      zIndex: 0,
+      overflow: 'hidden',
+      ...webOnlyStyle({
+        transitionProperty: 'transform, width, height, opacity, background-color, border-radius',
+        transitionDuration: webMotion.normal,
+        transitionTimingFunction: webMotion.easingOut,
+        willChange: 'transform, width, height',
+      } as ViewStyle),
+    },
+    slidingIndicatorAccent: {
+      position: 'absolute',
+      left: 0,
+      top: 8,
+      bottom: 8,
+      width: 3,
+      borderRadius: 2,
     },
     navCollapsed: {
       alignItems: 'center',
@@ -288,7 +452,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       height: 0.5,
       marginVertical: spacing.sm,
       marginHorizontal: spacing.sm,
-      backgroundColor: colorWithAlpha(colors.separator, 0.45),
+      backgroundColor: colors.separator,
     },
     sectionLabel: {
       fontSize: 11,
@@ -303,7 +467,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     footer: {
       flexShrink: 0,
       borderTopWidth: 0.5,
-      borderTopColor: colorWithAlpha(colors.separator, 0.55),
+      borderTopColor: colors.separator,
       paddingTop: spacing.sm,
       paddingBottom: spacing.sm,
       marginTop: spacing.sm,
@@ -321,6 +485,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       borderRadius: isWeb ? 12 : 10,
       position: 'relative',
       overflow: 'hidden',
+      zIndex: 1,
       ...webPointer(),
       ...(isWeb
         ? webOnlyStyle({
@@ -356,7 +521,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       backgroundColor: colors.primarySubtle,
     },
     itemActiveHovered: webOnlyStyle({
-      backgroundColor: colors.primarySubtle,
       boxShadow: isDark
         ? '0 4px 12px rgba(74, 154, 255, 0.12)'
         : '0 4px 12px rgba(26, 111, 212, 0.1)',
@@ -368,6 +532,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       position: 'relative',
       alignItems: 'center',
       justifyContent: 'center',
+      flexShrink: 0,
     },
     label: {
       flex: 1,
@@ -376,7 +541,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       color: colors.labelPrimary,
     },
     labelActive: {
-      fontSize: 15,
       fontWeight: '600',
     },
     badge: {
@@ -402,6 +566,17 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       fontWeight: '700',
       color: colors.primaryOnPrimary,
     },
+    sidebarFlat: {
+      flex: 1,
+      minHeight: 0,
+      borderRightWidth: StyleSheet.hairlineWidth,
+      borderRightColor: colors.separator,
+      backgroundColor: colors.backgroundGrouped,
+      overflow: 'visible',
+    },
+    upgradeRow: {
+      marginBottom: spacing.xs,
+    },
     badgeTextCollapsed: {
       fontSize: 9,
     },
@@ -409,6 +584,65 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const visibleRoutes = getSidebarRoutes(state, descriptors, role);
   const { isRouteFocused } = useResolvedTabBarFocus(state, visibleRoutes, role);
+  const focusedNavRouteKey = useMemo(() => {
+    const focusedRoute = visibleRoutes.find((route) => {
+      const routeIndex = state.routes.findIndex((entry) => entry.key === route.key);
+      return isRouteFocused(route.name, routeIndex);
+    });
+    return focusedRoute?.key ?? null;
+  }, [isRouteFocused, state.routes, visibleRoutes]);
+
+  const syncActiveIndicator = useCallback(() => {
+    if (!isWeb || !focusedNavRouteKey) {
+      setActiveIndicator(null);
+      return;
+    }
+
+    const itemNode = navItemRefs.current.get(focusedNavRouteKey);
+    const navNode = navRef.current;
+    if (!itemNode || !navNode) return;
+
+    const focusedRoute = visibleRoutes.find((route) => route.key === focusedNavRouteKey);
+    if (!focusedRoute) return;
+
+    const tabAccent = getTabAccentForName(focusedRoute.name);
+    const accentColor = resolveAccentColor(colors, tabAccent);
+    const backgroundColor = resolveAccentSubtle(colors, tabAccent);
+
+    itemNode.measureLayout(
+      navNode,
+      (x, y, width, height) => {
+        setActiveIndicator({
+          x,
+          y,
+          width,
+          height,
+          backgroundColor,
+          accentColor,
+          borderRadius: isCollapsed ? width / 2 : 12,
+        });
+      },
+      () => {},
+    );
+  }, [colors, focusedNavRouteKey, isCollapsed, isWeb, visibleRoutes]);
+
+  useLayoutEffect(() => {
+    if (!isWeb) return;
+    const frame = requestAnimationFrame(() => {
+      syncActiveIndicator();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusedNavRouteKey, isCollapsed, isWeb, pathname, visibleRoutes.length, syncActiveIndicator]);
+
+  useEffect(() => {
+    if (!isWeb || typeof window === 'undefined') return;
+    const handleResize = () => {
+      syncActiveIndicator();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isWeb, syncActiveIndicator]);
+
   const profileHref = role === 'worker' ? WORKER_PROFILE : CLINIC_PROFILE;
   const isProfileActive = pathname.includes('/profile');
 
@@ -432,7 +666,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         'Dental professional'
       : isGroup
         ? clinicGroupName || 'Dental group'
-        : 'Dental Clinic';
+        : [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ') ||
+          'Dental practice';
   const profileMeta =
     role === 'clinic' && isGroup ? clinicRoleLabel : null;
 
@@ -441,24 +676,66 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     toggleCollapsed();
   };
 
-  const collapseToggle = (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      onPress={handleToggleCollapse}
-      style={({ pressed, hovered }) => [
-        styles.toggleButton,
-        webHover(hovered, pressed, styles.toggleHovered),
-        pressed && styles.togglePressed,
-      ]}
-    >
-      <Ionicons
-        name={isCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'}
-        size={16}
-        color={colors.labelSecondary}
-      />
-    </Pressable>
+  const openAccountMenu = () => {
+    setAccountMenuVisible(true);
+  };
+
+  const accountMenuHeader = (
+    <AccountMenuSheetHeader
+      role={role}
+      displayName={profileName ?? 'Account'}
+      subtitle={profileSubtitle}
+      meta={profileMeta}
+      email={user?.email}
+      avatarKind={role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic'}
+      photoUri={role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri}
+      isGroup={role === 'clinic' && isGroup}
+      billing={role === 'clinic' ? billing : null}
+      locationCount={
+        role === 'clinic' && isGroup
+          ? (billing?.locationCount ?? accessibleLocations.length)
+          : undefined
+      }
+    />
   );
+
+  const accountMenuActions = [
+    {
+      label: 'Account',
+      icon: <Ionicons name="person-outline" size={20} color={colors.labelSecondary} />,
+      onPress: () => {
+        router.push(role === 'worker' ? WORKER_PROFILE_ACCOUNT : CLINIC_PROFILE_ACCOUNT);
+      },
+    },
+    {
+      label: 'Notifications',
+      icon: <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />,
+      onPress: () => {
+        router.push(
+          role === 'worker' ? WORKER_PROFILE_NOTIFICATIONS : CLINIC_PROFILE_NOTIFICATIONS,
+        );
+      },
+    },
+    ...(role === 'clinic'
+      ? [
+          {
+            label: 'Billing',
+            icon: <Ionicons name="card-outline" size={20} color={colors.labelSecondary} />,
+            onPress: () => {
+              router.push(CLINIC_PROFILE_BILLING);
+            },
+          },
+        ]
+      : []),
+    {
+      label: 'Sign out',
+      destructive: true,
+      icon: <Ionicons name="log-out-outline" size={20} color={colors.destructive} />,
+      onPress: () => {
+        signOut();
+      },
+    },
+  ];
 
   const panelPadding = {
     paddingHorizontal: isCollapsed ? spacing.xs : spacing.md,
@@ -480,10 +757,10 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     const routeIndex = state.routes.findIndex((r) => r.key === route.key);
     const isFocused = isRouteFocused(route.name, routeIndex);
     const tabAccent = getTabAccentForName(route.name);
-    const activeColor = tabAccent === 'secondary' ? colors.secondary : colors.primary;
-    const activeBackground =
-      tabAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
-    const color = isFocused ? activeColor : colors.tabInactive;
+    const activeColor = resolveAccentColor(colors, tabAccent);
+    const activeBackground = resolveAccentSubtle(colors, tabAccent);
+    const iconColor = getSidebarNavIconColor(colors, tabAccent, isFocused);
+    const iconSize = 20;
     const itemLabel = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
     const titleLabel = options.title ?? route.name;
 
@@ -507,11 +784,18 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     };
 
     const badge = options.tabBarBadge;
-    const hasBadge = badge != null && badge !== 0;
+    const hasBadge = badge != null && badge !== 0 && !isFocused;
 
     return (
       <Pressable
         key={route.key}
+        ref={(node) => {
+          if (node) {
+            navItemRefs.current.set(route.key, node);
+          } else {
+            navItemRefs.current.delete(route.key);
+          }
+        }}
         accessibilityRole="button"
         accessibilityState={isFocused ? { selected: true } : {}}
         accessibilityLabel={itemLabel}
@@ -520,10 +804,15 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           : {})}
         onPress={onPress}
         onLongPress={onLongPress}
+        onLayout={() => {
+          if (isWeb && isFocused) {
+            syncActiveIndicator();
+          }
+        }}
         style={({ pressed, hovered }) => [
           styles.item,
           isCollapsed && styles.itemCollapsed,
-          !isCollapsed && isFocused && { backgroundColor: activeBackground },
+          !isWeb && !isCollapsed && isFocused && { backgroundColor: activeBackground },
           isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
           isWeb &&
             hovered &&
@@ -532,7 +821,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             !isCollapsed &&
             (tabAccent === 'secondary'
               ? webOnlyStyle({
-                  backgroundColor: colors.secondarySubtle,
                   boxShadow: isDark
                     ? '0 4px 12px rgba(139, 92, 246, 0.12)'
                     : '0 4px 12px rgba(88, 86, 214, 0.1)',
@@ -541,11 +829,11 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           pressed && styles.itemPressed,
         ]}
       >
-        {isFocused ? (
+        {!isWeb && isFocused ? (
           <View style={[styles.accentBar, { backgroundColor: activeColor }]} />
         ) : null}
         <View style={styles.iconWrap}>
-          {options.tabBarIcon?.({ focused: isFocused, color, size: 20 })}
+          {options.tabBarIcon?.({ focused: isFocused, color: iconColor, size: iconSize })}
           {hasBadge && isCollapsed ? (
             <View style={[styles.badge, styles.badgeCollapsed]}>
               <Text style={[styles.badgeText, styles.badgeTextCollapsed]}>{badge}</Text>
@@ -575,21 +863,48 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     );
   };
 
+  const recommendedUpgrade =
+    role === 'clinic' && billing ? getRecommendedUpgradePlan(billing.plan, billing.planFamily) : null;
+
+  const clinicPlanAccent =
+    role === 'clinic' && showIndividualPlanBadge
+      ? getClinicPlanBrandAccentColor(individualPlan, colors)
+      : undefined;
+
+  const planBadgeNode =
+    showIndividualPlanBadge && !isCollapsed ? (
+      <ClinicPlanBadge
+        plan={individualPlan}
+        compact
+        onPress={() => router.push(CLINIC_PROFILE_BILLING)}
+      />
+    ) : null;
+
+  const accountMenuAccessibilityLabel = profileMeta
+    ? `Account menu, ${profileName ?? 'Account'}, ${profileMeta}`
+    : `Account menu, ${profileName ?? 'Account'}`;
+
+  const handleAccountMenuPress = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    openAccountMenu();
+  };
+
   const sidebarContent = (
     <>
       <View style={[styles.profileSection, isCollapsed && styles.profileSectionCollapsed]}>
-        <View
-          style={[
-            styles.profileRow,
-            isCollapsed && styles.profileRowCollapsed,
-            !isCollapsed && styles.profileRowExpanded,
-          ]}
-        >
-          <View
-            style={[styles.profileHeaderWrap, isCollapsed && styles.profileHeaderWrapCollapsed]}
-          >
+        {isCollapsed ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={accountMenuAccessibilityLabel}
+            onPress={handleAccountMenuPress}
+            style={({ pressed, hovered }) => [
+              styles.profileCollapsedShell,
+              styles.profileCollapsedPressable,
+              webHover(hovered, pressed, webListRowHoverStyles(colors)),
+              pressed && styles.profileHeaderCardPressed,
+            ]}>
             <SidebarProfileHeader
-              href={profileHref}
+              interactive={false}
               avatarKind={
                 role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic'
               }
@@ -599,60 +914,83 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
               }
               subtitle={profileSubtitle}
               meta={profileMeta}
-              collapsed={isCollapsed}
-              avatarSize={isCollapsed ? COLLAPSED_AVATAR_SIZE : undefined}
+              collapsed
+              avatarSize={COLLAPSED_AVATAR_SIZE}
+              avatarRingColor={clinicPlanAccent}
             />
-          </View>
-        </View>
-        {showGroupLocationScope ? (
-          <View style={{ marginTop: isCollapsed ? 4 : 8 }}>
-            <ClinicLocationScopeSwitcher
-              variant="sidebar"
-              collapsed={isCollapsed}
-              startAccessory={collapseToggle}
-            />
-          </View>
-        ) : showIndividualPlanBadge && !isCollapsed ? (
-          <View style={styles.planScopeWrap}>
-            <Text style={styles.planScopeEyebrow}>Plan</Text>
-            <View style={styles.planScopeTriggerRow}>
-              {collapseToggle}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${getClinicPlanTierLabel(individualPlan)}. Open plans and billing.`}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push(CLINIC_PROFILE_BILLING);
-                }}
-                style={({ pressed, hovered }) => [
-                  styles.planScopeTrigger,
-                  webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
-                  pressed && styles.planScopeTriggerPressed,
-                ]}
-              >
-                <Ionicons
-                  name={CLINIC_PLAN_ICONS[individualPlan]}
-                  size={16}
-                  color={colors.labelPrimary}
-                />
-                <Text style={styles.planScopeLabel} numberOfLines={1}>
-                  {getClinicPlanTierLabel(individualPlan)}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.labelSecondary} />
-              </Pressable>
-            </View>
-          </View>
+          </Pressable>
         ) : (
-          <View
-            style={
-              isCollapsed ? styles.profileToggleAloneCollapsed : styles.profileToggleAlone
-            }>
-            {collapseToggle}
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={accountMenuAccessibilityLabel}
+            onPress={handleAccountMenuPress}
+            style={({ pressed, hovered }) => [
+              styles.profileHeaderCard,
+              webHover(hovered, pressed, webTileHoverStyles(colors, isDark)),
+              pressed && styles.profileHeaderCardPressed,
+            ]}>
+            <View style={[styles.profileRow, styles.profileRowExpanded]}>
+              <View style={styles.profileHeaderWrap}>
+                <SidebarProfileHeader
+                  interactive={false}
+                  embeddedInCard
+                  avatarKind={
+                    role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic'
+                  }
+                  displayName={profileName}
+                  photoUri={
+                    role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri
+                  }
+                  subtitle={profileSubtitle}
+                  meta={profileMeta}
+                  planBadge={planBadgeNode}
+                  avatarSize={44}
+                  avatarRingColor={clinicPlanAccent}
+                />
+              </View>
+            </View>
+          </Pressable>
         )}
+        {showGroupLocationScope ? (
+          <View style={{ marginTop: isCollapsed ? spacing.xs : spacing.sm }}>
+            <ClinicLocationScopeSwitcher variant="sidebar" collapsed={isCollapsed} />
+          </View>
+        ) : null}
       </View>
 
-      <View style={[styles.nav, isCollapsed && styles.navCollapsed]}>
+      <View
+        ref={navRef}
+        style={[styles.nav, isCollapsed && styles.navCollapsed]}
+        onLayout={() => {
+          if (isWeb) {
+            syncActiveIndicator();
+          }
+        }}
+      >
+        {isWeb && activeIndicator ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.slidingIndicator,
+              {
+                width: activeIndicator.width,
+                height: activeIndicator.height,
+                backgroundColor: activeIndicator.backgroundColor,
+                borderRadius: activeIndicator.borderRadius,
+                transform: [
+                  { translateX: activeIndicator.x },
+                  { translateY: activeIndicator.y },
+                ],
+              },
+            ]}
+          >
+            {!isCollapsed ? (
+              <View
+                style={[styles.slidingIndicatorAccent, { backgroundColor: activeIndicator.accentColor }]}
+              />
+            ) : null}
+          </View>
+        ) : null}
         {sidebarSections.map((section, sectionIndex) => (
           <View
             key={section.routes[0]?.name ?? `section-${sectionIndex}`}
@@ -668,6 +1006,34 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       </View>
 
       <View style={[styles.footer, isCollapsed && styles.footerCollapsed]}>
+        {recommendedUpgrade ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Upgrade plan"
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              openClinicBillingModal({
+                focus: billing?.planFamily === 'group' || isGroup ? 'group' : 'clinic',
+              });
+            }}
+            style={({ pressed, hovered }) => [
+              styles.item,
+              styles.upgradeRow,
+              isCollapsed && styles.itemCollapsed,
+              webHover(hovered, pressed, styles.itemHovered),
+              pressed && styles.itemPressed,
+            ]}
+            {...(isCollapsed && isWeb ? webOnlyStyle({ title: 'Upgrade' } as ViewStyle) : {})}>
+            <View style={styles.iconWrap}>
+              <Ionicons name="sparkles-outline" size={20} color={colors.primary} />
+            </View>
+            {!isCollapsed ? (
+              <Text style={[styles.label, { color: colors.primary }]} numberOfLines={1}>
+                Upgrade
+              </Text>
+            ) : null}
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityState={isProfileActive ? { selected: true } : {}}
@@ -696,7 +1062,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             <Ionicons
               name={isProfileActive ? 'settings' : 'settings-outline'}
               size={20}
-              color={isProfileActive ? colors.primary : colors.tabInactive}
+              color={getSidebarNavIconColor(colors, 'primary', isProfileActive)}
             />
           </View>
           {!isCollapsed ? (
@@ -717,24 +1083,70 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     </>
   );
 
+  const renderEdgeCollapseControl = () => (
+    <View style={styles.sidebarEdgeZone} pointerEvents="box-none">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        onPress={handleToggleCollapse}
+        style={({ pressed, hovered }) => [
+          styles.sidebarEdgeCollapseButton,
+          showEdgeCollapse
+            ? styles.sidebarEdgeCollapseButtonVisible
+            : styles.sidebarEdgeCollapseButtonHidden,
+          !isWeb && styles.sidebarEdgeCollapseButtonNative,
+          webHover(hovered, pressed, styles.toggleHovered),
+          pressed && styles.togglePressed,
+        ]}>
+        <Feather
+          name={isCollapsed ? 'chevrons-right' : 'chevrons-left'}
+          size={16}
+          color={colors.labelSecondary}
+        />
+      </Pressable>
+    </View>
+  );
+
+  const renderSidebarShell = (padding: ViewStyle) => (
+    <View
+      ref={shellRef}
+      style={[
+        styles.sidebarFlat,
+        padding,
+        { position: 'relative', flex: 1, alignSelf: 'stretch' as const },
+      ]}>
+      {sidebarContent}
+      {renderEdgeCollapseControl()}
+    </View>
+  );
+
   if (isWeb) {
     return (
-      <View style={[styles.outerWeb, isCollapsed && { paddingHorizontal: spacing.xs }]}>
-        <LiquidGlassSurface
-          borderRadius={28}
-          style={styles.glassPanel}
-          overlayColor={colorWithAlpha(colors.surfaceElevated, isDark ? 0.72 : 0.78)}
-          backdropBlur
-        >
-          <View style={[styles.sidebarWebInner, panelPadding]}>{sidebarContent}</View>
-        </LiquidGlassSurface>
-      </View>
+      <>
+        <View style={[styles.outerWeb, isCollapsed && { paddingHorizontal: spacing.xs }]}>
+          {renderSidebarShell(panelPadding)}
+        </View>
+        <ActionMenuSheet
+          visible={accountMenuVisible}
+          headerContent={accountMenuHeader}
+          actions={accountMenuActions}
+          onClose={() => setAccountMenuVisible(false)}
+        />
+      </>
     );
   }
 
   return (
-    <View style={[panelPadding, styles.sidebarShell, { backgroundColor: 'transparent' }]}>
-      {sidebarContent}
-    </View>
+    <>
+      <View style={[styles.sidebarShell, { backgroundColor: 'transparent' }]}>
+        {renderSidebarShell(panelPadding)}
+      </View>
+      <ActionMenuSheet
+        visible={accountMenuVisible}
+        headerContent={accountMenuHeader}
+        actions={accountMenuActions}
+        onClose={() => setAccountMenuVisible(false)}
+      />
+    </>
   );
 }

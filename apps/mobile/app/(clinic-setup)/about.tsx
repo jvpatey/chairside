@@ -8,22 +8,23 @@ import { View } from 'react-native';
 import { ClinicLogoSetupField } from '@/components/clinic/ClinicLogoSetupField';
 import { PracticeDoctorsInput } from '@/components/clinic/PracticeDoctorsInput';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicAboutScreen() {
   const { clinicProfile, isClinicProfileReady, isGroup, locations } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
-  const progress = getClinicSetupStepNumber('about', isGroup);
+  const setupFormProps = useSetupFormScreenProps('clinic');
+  const progress = useSetupStepProgress('about', { role: 'clinic' });
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
   const [practiceDoctors, setPracticeDoctors] = useState<PracticeDoctor[]>([]);
@@ -74,8 +75,15 @@ export default function ClinicAboutScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title={isGroup ? 'About your group' : 'About your clinic'}
+      subtitle={
+        isGroup
+          ? 'Optional group story, plus doctors assigned to the locations where they work.'
+          : 'Optional logo and details that help candidates learn more.'
+      }
+      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
           canContinue
@@ -86,16 +94,9 @@ export default function ClinicAboutScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title={isGroup ? 'About your group' : 'About your clinic'}
-        subtitle={
-          isGroup
-            ? 'Optional group story, plus doctors assigned to the locations where they work.'
-            : 'Optional logo and details that help candidates learn more.'
-        }
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
-      />
-      {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         {!isGroup ? <ClinicLogoSetupField /> : null}
         {isGroup ? (
@@ -115,16 +116,18 @@ export default function ClinicAboutScreen() {
           onChangeText={setDescription}
           autoCapitalize="sentences"
           multiline
+          icon="text-outline"
         />
         <AuthField
-          label="Website (optional)"
+          label="Website"
           placeholder="https://yourclinic.ca"
           value={website}
           onChangeText={setWebsite}
           keyboardType="url"
           autoCapitalize="none"
+          icon="globe-outline"
         />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

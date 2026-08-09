@@ -9,9 +9,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { RatingQuestionCard } from '@/components/worker/screening/RatingQuestionCard';
 import { NumberQuestionCard } from '@/components/worker/screening/NumberQuestionCard';
@@ -46,11 +45,11 @@ export default function ApplyScreeningScreen() {
   const pages = useMemo(() => buildScreeningWizardPages(questions), [questions]);
   const currentPage = pages[pageIndex];
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     content: { gap: spacing.lg },
     reviewCard: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.lg,
@@ -147,14 +146,13 @@ export default function ApplyScreeningScreen() {
 
   if (isLoading || !currentPage) {
     return (
-      <OnboardingShell atmosphere="form">
-        <AuthScreenHeader
-          title="Screening questions"
-          subtitle={isLoading ? undefined : 'Unavailable'}
-          onBack={() => router.back()}
-        />
+      <FormScreen
+        title="Screening questions"
+        subtitle={isLoading ? undefined : 'Unavailable'}
+        onBack={() => router.back()}
+      >
         {isLoading ? <PageLoadingDetail /> : null}
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
@@ -167,7 +165,10 @@ export default function ApplyScreeningScreen() {
       : 'Continue';
 
   return (
-    <OnboardingShell atmosphere="form"
+    <FormScreen
+      title="Screening questions"
+      subtitle="Required before your screening submission is sent"
+      onBack={handleBack}
       footer={
         <View style={styles.footer}>
           <OnboardingButton
@@ -176,13 +177,8 @@ export default function ApplyScreeningScreen() {
             onPress={handleContinue}
           />
         </View>
-      }>
-      <AuthScreenHeader
-        title="Screening questions"
-        subtitle="Required before your screening submission is sent"
-        onBack={handleBack}
-      />
-
+      }
+    >
       <View style={styles.content}>
         <ScreeningWizardShell
           stepIndex={pageIndex}
@@ -273,6 +269,6 @@ export default function ApplyScreeningScreen() {
           ) : null}
         </ScreeningWizardShell>
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

@@ -1,22 +1,27 @@
 import type { Conversation } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
   formatConversationDisplay,
   getConversationTypeChip,
 } from '@/lib/conversationDisplay';
+import { getHideConversationMessage } from '@/lib/conversationHide';
 import {
   getClinicApplicationRoute,
   getWorkerApplicationRoute,
   getWorkerClinicProfileRoute,
 } from '@/lib/routing';
-import { webHover, webPointer } from '@/lib/webPressableStyles';
+import { webHover, webIconButtonHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type MessageThreadHeaderProps = {
@@ -28,6 +33,11 @@ type MessageThreadHeaderProps = {
   /** When false, only the counterpart name is shown (context panel carries the rest). */
   showContextDetails?: boolean;
   onBack?: () => void;
+  onRemoveFromInbox?: () => Promise<void> | void;
+  /** Wide web split view includes a collapsible context panel. */
+  contextPanelAvailable?: boolean;
+  contextPanelCollapsed?: boolean;
+  onToggleContextPanel?: () => void;
 };
 
 function HeaderAvatar({
@@ -65,6 +75,166 @@ function HeaderAvatar({
   );
 }
 
+function ThreadHeaderActions({
+  conversation,
+  role,
+  onRemoveFromInbox,
+  contextPanelAvailable,
+  contextPanelCollapsed,
+  onToggleContextPanel,
+}: {
+  conversation: Conversation | null;
+  role: 'worker' | 'clinic';
+  onRemoveFromInbox?: () => Promise<void> | void;
+  contextPanelAvailable?: boolean;
+  contextPanelCollapsed?: boolean;
+  onToggleContextPanel?: () => void;
+}) {
+  const { colors } = useTheme();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+
+  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      flexShrink: 0,
+    },
+    iconButton: {
+      width: 36,
+      height: 36,
+      borderRadius: radii.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...webPointer(),
+    },
+    iconButtonHovered: webIconButtonHoverStyles(colors),
+    iconButtonPressed: {
+      opacity: 0.8,
+    },
+    detailsButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: spacing.sm,
+      height: 36,
+      borderRadius: radii.sm,
+      backgroundColor: colors.fillSubtle,
+      ...webPointer(),
+    },
+    detailsButtonHovered: {
+      backgroundColor: colors.primarySubtle,
+    },
+    detailsButtonActive: {
+      backgroundColor: colors.primarySubtle,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
+    detailsLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.labelSecondary,
+    },
+  }));
+
+  const handleRemoveConfirmed = async () => {
+    try {
+      await onRemoveFromInbox?.();
+    } catch (error) {
+      Alert.alert(
+        'Could not remove',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  };
+
+  const showDetailsToggle = Boolean(contextPanelAvailable && onToggleContextPanel);
+  const showRemoveMenu = Boolean(onRemoveFromInbox && conversation);
+
+  if (!showDetailsToggle && !showRemoveMenu) return null;
+
+  return (
+    <>
+      <View style={styles.row}>
+        {showDetailsToggle ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={contextPanelCollapsed ? 'Show details panel' : 'Hide details panel'}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onToggleContextPanel?.();
+            }}
+            style={({ pressed, hovered }) => [
+              styles.detailsButton,
+              !contextPanelCollapsed && styles.detailsButtonActive,
+              webHover(hovered, pressed, styles.detailsButtonHovered),
+              pressed && styles.iconButtonPressed,
+            ]}
+          >
+            <Ionicons name="information-circle-outline" size={18} color={colors.labelSecondary} />
+            <Text style={styles.detailsLabel}>Details</Text>
+          </Pressable>
+        ) : null}
+        {showRemoveMenu ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Conversation options"
+            hitSlop={8}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setMenuVisible(true);
+            }}
+            style={({ pressed, hovered }) => [
+              styles.iconButton,
+              webHover(hovered, pressed, styles.iconButtonHovered),
+              pressed && styles.iconButtonPressed,
+            ]}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.labelSecondary} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      <ActionMenuSheet
+        visible={menuVisible}
+        title={
+          conversation ? formatConversationDisplay(conversation, role).cardName : 'Conversation'
+        }
+        actions={[
+          {
+            label: 'Remove from inbox',
+            destructive: true,
+            onPress: () => {
+              setMenuVisible(false);
+              setConfirmVisible(true);
+            },
+          },
+        ]}
+        onClose={() => setMenuVisible(false)}
+      />
+
+      {conversation && onRemoveFromInbox ? (
+        <ActionMenuSheet
+          visible={confirmVisible}
+          title="Remove conversation?"
+          message={getHideConversationMessage(conversation)}
+          actions={[
+            {
+              label: 'Remove',
+              destructive: true,
+              onPress: () => {
+                void handleRemoveConfirmed();
+              },
+            },
+          ]}
+          onClose={() => setConfirmVisible(false)}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export function MessageThreadHeader({
   conversation,
   role,
@@ -73,36 +243,21 @@ export function MessageThreadHeader({
   compact = false,
   showContextDetails = true,
   onBack,
+  onRemoveFromInbox,
+  contextPanelAvailable,
+  contextPanelCollapsed,
+  onToggleContextPanel,
 }: MessageThreadHeaderProps) {
-  const { colors } = useTheme();
   const display = conversation ? formatConversationDisplay(conversation, role) : null;
   const typeChip = conversation ? getConversationTypeChip(conversation) : null;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    container: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      minWidth: 0,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-      ...webPointer(),
-    },
-    backButtonPressed: {
-      opacity: 0.75,
-    },
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     identityPressable: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
       minWidth: 0,
-      borderRadius: 12,
+      borderRadius: radii.md,
       paddingVertical: spacing.xs,
       ...webPointer(),
     },
@@ -119,14 +274,6 @@ export function MessageThreadHeader({
       fontSize: compact ? 16 : 17,
       fontWeight: '700',
       color: colors.labelPrimary,
-    },
-    titleMinimal: {
-      ...typography.body,
-      fontSize: compact ? 16 : 17,
-      fontWeight: '700',
-      color: colors.labelPrimary,
-      flex: 1,
-      minWidth: 0,
     },
     chipRow: {
       flexDirection: 'row',
@@ -162,7 +309,12 @@ export function MessageThreadHeader({
         router.push(getWorkerApplicationRoute(conversation.application_id, 'messages-tab'));
         return;
       }
-      router.push(getWorkerClinicProfileRoute(conversation.clinic_id));
+      router.push(
+        getWorkerClinicProfileRoute(conversation.clinic_id, {
+          returnTo: 'messages-tab',
+          conversationId: conversation.id,
+        }),
+      );
       return;
     }
 
@@ -174,78 +326,98 @@ export function MessageThreadHeader({
   const headerTitle = display?.threadTitle ?? title;
   const headerSubtitle = display?.threadSubtitle ?? subtitle;
 
-  if (!showContextDetails) {
-    return (
-      <View style={styles.container}>
-        {onBack ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            onPress={onBack}
-            hitSlop={8}
-            style={({ pressed, hovered }) => [
-              styles.backButton,
-              webHover(hovered, pressed, { backgroundColor: colors.fillSubtle }),
-              pressed && styles.backButtonPressed,
-            ]}>
-            <Ionicons
-              name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
-              size={22}
-              color={colors.primary}
-            />
-          </Pressable>
-        ) : null}
-        <Text style={styles.titleMinimal} numberOfLines={1}>
+  const trailing = (
+    <ThreadHeaderActions
+      conversation={conversation}
+      role={role}
+      onRemoveFromInbox={onRemoveFromInbox}
+      contextPanelAvailable={contextPanelAvailable}
+      contextPanelCollapsed={contextPanelCollapsed}
+      onToggleContextPanel={onToggleContextPanel}
+    />
+  );
+
+  const compactTitle = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${headerTitle}. ${headerSubtitle}`}
+      disabled={!conversation}
+      onPress={handleIdentityPress}
+      style={({ pressed }) => [styles.identityPressable, pressed && styles.identityPressed]}
+    >
+      {conversation ? (
+        <HeaderAvatar conversation={conversation} role={role} size={compact ? 36 : 40} />
+      ) : null}
+      <View style={styles.textWrap}>
+        <Text style={styles.title} numberOfLines={1}>
           {headerTitle}
         </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      {onBack ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={onBack}
-          hitSlop={8}
-          style={({ pressed, hovered }) => [
-            styles.backButton,
-            webHover(hovered, pressed, { backgroundColor: colors.fillSubtle }),
-            pressed && styles.backButtonPressed,
-          ]}>
-          <Ionicons
-            name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
-            size={22}
-            color={colors.primary}
-          />
-        </Pressable>
-      ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${headerTitle}. ${headerSubtitle}`}
-        disabled={!conversation}
-        onPress={handleIdentityPress}
-        style={({ pressed }) => [styles.identityPressable, pressed && styles.identityPressed]}>
-        {conversation ? <HeaderAvatar conversation={conversation} role={role} size={compact ? 36 : 40} /> : null}
-        <View style={styles.textWrap}>
-          <Text style={styles.title} numberOfLines={1}>
-            {headerTitle}
-          </Text>
-          <View style={styles.chipRow}>
-            {typeChip ? (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>{typeChip.label}</Text>
-              </View>
-            ) : null}
+        <View style={styles.chipRow}>
+          {typeChip ? (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>{typeChip.label}</Text>
+            </View>
+          ) : null}
+          {headerSubtitle ? (
             <Text style={styles.subtitle} numberOfLines={compact ? 1 : 2}>
               {headerSubtitle}
             </Text>
-          </View>
+          ) : null}
         </View>
-      </Pressable>
-    </View>
+      </View>
+    </Pressable>
+  );
+
+  if (!showContextDetails) {
+    return (
+      <PageHeader
+        variant="detail"
+        title={compactTitle}
+        onBack={onBack}
+        compact={compact}
+        showNotifications={false}
+        trailing={trailing}
+      />
+    );
+  }
+
+  const identityTitle = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${headerTitle}. ${headerSubtitle}`}
+      disabled={!conversation}
+      onPress={handleIdentityPress}
+      style={({ pressed }) => [styles.identityPressable, pressed && styles.identityPressed]}
+    >
+      {conversation ? (
+        <HeaderAvatar conversation={conversation} role={role} size={compact ? 36 : 40} />
+      ) : null}
+      <View style={styles.textWrap}>
+        <Text style={styles.title} numberOfLines={1}>
+          {headerTitle}
+        </Text>
+        <View style={styles.chipRow}>
+          {typeChip ? (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>{typeChip.label}</Text>
+            </View>
+          ) : null}
+          <Text style={styles.subtitle} numberOfLines={compact ? 1 : 2}>
+            {headerSubtitle}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+
+  return (
+    <PageHeader
+      variant="detail"
+      title={identityTitle}
+      onBack={onBack}
+      compact={compact}
+      showNotifications={false}
+      trailing={trailing}
+    />
   );
 }

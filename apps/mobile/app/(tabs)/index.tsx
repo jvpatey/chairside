@@ -5,12 +5,14 @@ import {
   listLiveJobPosts,
   listLiveShiftPosts,
   listWorkerAppliedJobPostIds,
+  listWorkerCalendarEvents,
   listWorkerJobApplications,
   listWorkerShiftApplications,
   saveJobPost,
   saveShiftPost,
   unsaveJobPost,
   unsaveShiftPost,
+  type CalendarEvent,
   type Conversation,
   type LiveJobPost,
   type LiveShiftPost,
@@ -19,34 +21,42 @@ import {
 } from '@chairside/api';
 import { getWorkerRoleTypes } from '@chairside/api';
 import { formatRoleTypesLabel } from '@chairside/config';
+import type { Href } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
+import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
-import { DashboardSpotlightCard } from '@/components/dashboard/DashboardSpotlightCard';
-import { DashboardStatCards } from '@/components/dashboard/DashboardStatCards';
+import { DashboardNeedsAttention } from '@/components/dashboard/DashboardNeedsAttention';
+import { DashboardCalendarWidget } from '@/components/dashboard/DashboardCalendarWidget';
+import { FileTabWell, type FileTabOption } from '@/components/dashboard/FileTabWell';
+import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { buildWorkerAttentionItems } from '@/lib/dashboardAttention';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
+import { buildWorkerHeroPulse } from '@/lib/dashboardPulse';
+import { getFirstName } from '@/lib/greeting';
+import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import {
   WorkerOverviewPanel,
   type WorkerOverviewStat,
 } from '@/components/worker/WorkerCards';
-import { DashboardUnreadMessagesCard } from '@/components/messaging/DashboardUnreadMessagesCard';
+import { DashboardMessagesWidget } from '@/components/messaging/DashboardMessagesWidget';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { useDismissedDashboardSpotlights } from '@/hooks/useDismissedDashboardSpotlights';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useDashboardWelcomeCelebration } from '@/hooks/useDashboardWelcomeCelebration';
 import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
-import { pickWorkerSpotlight } from '@/lib/dashboardSpotlight';
-import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   WORKER_APPLICATIONS,
   WORKER_BROWSE,
@@ -61,11 +71,16 @@ import {
 
 export default function WorkerDashboardScreen() {
   const { user, profile } = useAuth();
+  const { visible: welcomeVisible, dismiss: dismissWelcome } = useDashboardWelcomeCelebration({
+    role: 'worker',
+    userId: user?.id,
+  });
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: applicationUpdateCount, fillInPendingCount } = useApplicationTabBadge();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { photoUri } = useProfilePhoto();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
+  const { isTablet } = useResponsiveLayout();
   const province = workerProfile?.province ?? 'NS';
   const [counts, setCounts] = useState<WorkerDashboardCounts>({
     openRolesInProvince: 0,
@@ -81,16 +96,11 @@ export default function WorkerDashboardScreen() {
   const [jobApplications, setJobApplications] = useState<WorkerApplication[]>([]);
   const [shiftApplications, setShiftApplications] = useState<WorkerApplication[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
   const { markVisited: markGetStartedBrowseVisited } = useGetStartedBrowseProgress();
-  const {
-    isHydrated: isSpotlightDismissHydrated,
-    dismissedIds: dismissedSpotlightIds,
-    dismiss: dismissSpotlight,
-  } = useDismissedDashboardSpotlights('worker');
-
   const loadDashboard = useCallback(async () => {
     if (!user?.id) return;
 
@@ -109,6 +119,7 @@ export default function WorkerDashboardScreen() {
         shiftApplicationRows,
         conversationRows,
         savedPostIds,
+        calendarRows,
       ] = await Promise.all([
         getWorkerDashboardCounts(user.id, province),
         listLiveJobPosts(province),
@@ -118,6 +129,7 @@ export default function WorkerDashboardScreen() {
         listWorkerShiftApplications(user.id),
         listConversationsForWorker(user.id),
         getWorkerSavedPostIds(user.id),
+        listWorkerCalendarEvents(user.id),
       ]);
 
       setCounts(nextCounts);
@@ -129,6 +141,7 @@ export default function WorkerDashboardScreen() {
       setJobApplications(jobApplicationRows);
       setShiftApplications(shiftApplicationRows);
       setConversations(conversationRows);
+      setCalendarEvents(calendarRows);
       await refreshUnread();
       hasLoadedOnce.current = true;
     } catch {
@@ -152,7 +165,12 @@ export default function WorkerDashboardScreen() {
   useRefreshOnFocus(loadDashboard);
 
   useEffect(() => {
-    if (overview === 'roles' || overview === 'fill-ins' || overview === 'applications') {
+    if (
+      overview === 'roles' ||
+      overview === 'fill-ins' ||
+      overview === 'applications' ||
+      overview === 'saved'
+    ) {
       setSelectedOverview(overview);
     }
   }, [overview]);
@@ -241,40 +259,37 @@ export default function WorkerDashboardScreen() {
     );
   }, []);
 
-  const spotlight = useMemo(
+  const savedCount = savedJobIds.size + savedShiftIds.size;
+
+  const attentionItems = useMemo(
     () =>
-      isSpotlightDismissHydrated
-        ? pickWorkerSpotlight({
-            conversations,
-            jobApplications,
-            shiftApplications,
-            openJobs,
-            unreadMap,
-            dismissedIds: dismissedSpotlightIds,
-            onOpenConversation: openConversation,
-            onOpenApplication: (application) => {
-              router.push(
-                getWorkerApplicationRoute(
-                  application.id,
-                  application.post_type === 'shift' ? 'dashboard-fill-ins' : 'dashboard-applications',
-                ),
-              );
-            },
-            onOpenJob: (jobId) => router.push(getWorkerJobDetailRoute(jobId)),
-            onOpenApplicationsTab: () => router.push(WORKER_APPLICATIONS),
-            onOpenMessages: () => router.push(getWorkerMessagesRoute()),
+      buildWorkerAttentionItems({
+        applicationUpdateCount,
+        fillInPendingCount,
+        onOpenApplications: () => router.push(WORKER_APPLICATIONS),
+        onOpenFillIns: () => router.push(WORKER_FILLINS),
+      }),
+    [applicationUpdateCount, fillInPendingCount],
+  );
+
+  const upcomingCalendarEvents = useMemo(() => {
+    const now = Date.now();
+    return calendarEvents.filter((event) => new Date(event.startsAt).getTime() >= now);
+  }, [calendarEvents]);
+
+  const handleCalendarEventPress = useCallback((event: CalendarEvent) => {
+    router.push(getWorkerApplicationRoute(event.applicationId, 'dashboard-applications'));
+  }, []);
+
+  const heroPulse = useMemo(
+    () =>
+      isProfileComplete
+        ? buildWorkerHeroPulse({
+            applicationUpdateCount,
+            onOpenApplications: () => router.push(WORKER_APPLICATIONS),
           })
         : null,
-    [
-      conversations,
-      dismissedSpotlightIds,
-      isSpotlightDismissHydrated,
-      jobApplications,
-      openConversation,
-      openJobs,
-      shiftApplications,
-      unreadMap,
-    ],
+    [applicationUpdateCount, isProfileComplete],
   );
 
   const workerSubtitle =
@@ -290,8 +305,57 @@ export default function WorkerDashboardScreen() {
       router.push(WORKER_FILLINS);
       return;
     }
+    if (selectedOverview === 'saved') {
+      router.push(WORKER_BROWSE);
+      return;
+    }
     router.push(WORKER_APPLICATIONS);
   }, [selectedOverview]);
+
+  const workerTabs = useMemo((): FileTabOption<WorkerOverviewStat>[] => {
+    const tabs: FileTabOption<WorkerOverviewStat>[] = [
+      {
+        value: 'roles' as const,
+        label: 'Opportunities',
+        count: openJobs.length,
+        accent: 'primary' as const,
+        icon: 'briefcase-outline' as const,
+      },
+      {
+        value: 'applications' as const,
+        label: 'Applications',
+        count: counts.pendingApplications,
+        badgeCount: applicationUpdateCount,
+        accent: 'tertiary' as const,
+        icon: 'document-text-outline' as const,
+      },
+      {
+        value: 'fill-ins' as const,
+        label: 'Fill-ins',
+        count: counts.openFillInsInProvince,
+        badgeCount: fillInPendingCount,
+        accent: 'secondary' as const,
+        icon: FILL_IN_ICON.outline,
+      },
+    ];
+    if (savedCount > 0) {
+      tabs.push({
+        value: 'saved' as const,
+        label: 'Saved',
+        count: savedCount,
+        accent: 'neutral' as const,
+        icon: 'bookmark-outline' as const,
+      });
+    }
+    return tabs;
+  }, [
+    applicationUpdateCount,
+    counts.openFillInsInProvince,
+    counts.pendingApplications,
+    fillInPendingCount,
+    openJobs.length,
+    savedCount,
+  ]);
 
   const dashboardBody = (
     <DashboardBodyLayout
@@ -304,6 +368,9 @@ export default function WorkerDashboardScreen() {
             photoUri={isProfileComplete ? photoUri : null}
             namePlaceholder={isProfileComplete ? 'Your profile' : 'Welcome to Chairside'}
             subtitle={isProfileComplete ? workerSubtitle : 'Finish your profile setup'}
+            greetingName={isProfileComplete ? getFirstName(profile?.display_name) : null}
+            pulse={heroPulse}
+            hideProfileOnWebTablet
           />
         </FadeInSection>
       }
@@ -314,48 +381,18 @@ export default function WorkerDashboardScreen() {
           </FadeInSection>
         ) : null
       }
-      spotlight={
-        spotlight ? (
-          <FadeInSection delayMs={60}>
-            <DashboardSpotlightCard
-              item={spotlight}
-              onDismiss={() => void dismissSpotlight(spotlight.id)}
-            />
-          </FadeInSection>
-        ) : null
-      }
-      statCards={
-        <FadeInSection delayMs={100}>
-          <DashboardStatCards
-            selected={selectedOverview}
-            onSelect={setSelectedOverview}
-            stats={[
-              {
-                key: 'roles',
-                label: 'Open roles',
-                value: openJobs.length,
-                accent: 'primary',
-              },
-              {
-                key: 'fill-ins',
-                label: 'Fill-ins',
-                value: counts.openFillInsInProvince,
-                badgeCount: fillInPendingCount,
-                accent: 'secondary',
-              },
-              {
-                key: 'applications',
-                label: 'Applications',
-                value: counts.pendingApplications,
-                badgeCount: applicationUpdateCount,
-                accent: 'primary',
-              },
-            ]}
+      needsAttention={<DashboardNeedsAttention items={attentionItems} />}
+      calendar={
+        <FadeInSection delayMs={60}>
+          <DashboardCalendarWidget
+            events={upcomingCalendarEvents}
+            onEventPress={handleCalendarEventPress}
+            onViewAllPress={() => router.push('/(tabs)/calendar' as Href)}
           />
         </FadeInSection>
       }
       quickActions={
-        <FadeInSection delayMs={140}>
+        <FadeInSection delayMs={100}>
           <DashboardQuickActionsRow
             actions={[
               {
@@ -368,7 +405,7 @@ export default function WorkerDashboardScreen() {
               {
                 label: 'Find fill-ins',
                 description: 'Browse temp shifts nearby',
-                icon: 'calendar-outline',
+                icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 onPress: () => router.push(WORKER_FILLINS),
               },
@@ -376,48 +413,70 @@ export default function WorkerDashboardScreen() {
           />
         </FadeInSection>
       }
-      overview={
-        <FadeInSection delayMs={180}>
-          <WorkerOverviewPanel
+      workspace={
+        <FadeInSection delayMs={120}>
+          <FileTabWell
+            variant="dashboard"
             selected={selectedOverview}
-            jobs={openJobs}
-            shifts={shifts}
-            jobApplications={jobApplications}
-            shiftApplications={shiftApplications}
-            savedJobIds={savedJobIds}
-            savedShiftIds={savedShiftIds}
-            unreadMap={unreadMap}
-            onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
-            onShiftPress={(shiftId) =>
-              router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
-            }
-            onToggleSavedJob={(jobId, nextSaved) => void handleToggleSavedJob(jobId, nextSaved)}
-            onToggleSavedShift={(shiftId, nextSaved) =>
-              void handleToggleSavedShift(shiftId, nextSaved)
-            }
-            onApplicationUpdated={() => void loadDashboard()}
-            onViewAllPress={overviewViewAll}
-          />
+            onSelect={setSelectedOverview}
+            tabs={workerTabs}>
+            <WorkerOverviewPanel
+              embedded
+              selected={selectedOverview}
+              jobs={openJobs}
+              shifts={shifts}
+              jobApplications={jobApplications}
+              shiftApplications={shiftApplications}
+              savedJobIds={savedJobIds}
+              savedShiftIds={savedShiftIds}
+              unreadMap={unreadMap}
+              onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
+              onShiftPress={(shiftId) =>
+                router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
+              }
+              onToggleSavedJob={(jobId, nextSaved) => void handleToggleSavedJob(jobId, nextSaved)}
+              onToggleSavedShift={(shiftId, nextSaved) =>
+                void handleToggleSavedShift(shiftId, nextSaved)
+              }
+              onApplicationUpdated={() => void loadDashboard()}
+              onViewAllPress={overviewViewAll}
+            />
+          </FileTabWell>
         </FadeInSection>
       }
-      messages={
-        conversations.some((conversation) => conversation.unread) ? (
+      checklist={
+        !isProfileComplete || jobApplications.length === 0 ? (
           <FadeInSection delayMs={160}>
-            <DashboardUnreadMessagesCard
-              conversations={conversations}
-              avatarKind="clinic"
-              role="worker"
-              onConversationPress={openConversation}
-              onViewAllPress={() => router.push(getWorkerMessagesRoute())}
+            <WorkerReadinessChecklist
+              workerProfile={workerProfile}
+              jobApplicationCount={jobApplications.length}
+              shiftApplicationCount={shiftApplications.length}
+              savedShiftCount={savedShiftIds.size}
             />
           </FadeInSection>
         ) : null
+      }
+      messages={
+        <FadeInSection delayMs={180}>
+          <DashboardMessagesWidget
+            conversations={conversations}
+            avatarKind="clinic"
+            role="worker"
+            onConversationPress={openConversation}
+            onViewAllPress={() => router.push(getWorkerMessagesRoute())}
+          />
+        </FadeInSection>
       }
     />
   );
 
   return (
     <DashboardScreen>
+      <DashboardWelcomeCelebration
+        visible={welcomeVisible}
+        role="worker"
+        onDismiss={() => void dismissWelcome()}
+      />
       {isLoading && !hasLoadedOnce.current ? <DashboardLoadingShell /> : dashboardBody}
     </DashboardScreen>
   );

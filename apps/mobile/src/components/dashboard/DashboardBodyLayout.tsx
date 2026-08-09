@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { DashboardAsideCompactProvider } from '@/components/dashboard/DashboardAsideCompactContext';
 import { getDashboardLayoutStyles } from '@/components/dashboard/dashboardLayout';
-import { DashboardSectionDivider } from '@/components/dashboard/DashboardSectionDivider';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { IS_WEB } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
@@ -10,78 +10,117 @@ import { useThemedStyles } from '@/theme';
 type DashboardBodyLayoutProps = {
   hero?: ReactNode;
   error?: ReactNode;
-  spotlight?: ReactNode;
-  statCards: ReactNode;
+  needsAttention?: ReactNode;
+  calendar?: ReactNode;
+  quickActions?: ReactNode;
+  workspace: ReactNode;
   insights?: ReactNode;
-  quickActions: ReactNode;
-  overview: ReactNode;
   checklist?: ReactNode;
   messages?: ReactNode;
   alerts?: ReactNode;
+  planUsage?: ReactNode;
 };
 
 function hasRenderableContent(node: ReactNode) {
   return node != null && node !== false;
 }
 
+function renderAsideMetaSection({
+  planUsage,
+  insights,
+  styles,
+  paired,
+}: {
+  planUsage?: ReactNode;
+  insights?: ReactNode;
+  styles: ReturnType<typeof getDashboardLayoutStyles>;
+  paired: boolean;
+}) {
+  const hasPlan = hasRenderableContent(planUsage);
+  const hasInsights = hasRenderableContent(insights);
+  if (!hasPlan && !hasInsights) return null;
+
+  if (paired && hasPlan && hasInsights) {
+    return (
+      <DashboardAsideCompactProvider compact>
+        <View style={styles.asideMetaRow}>
+          <View style={styles.asideMetaCell}>{planUsage}</View>
+          <View style={styles.asideMetaCell}>{insights}</View>
+        </View>
+      </DashboardAsideCompactProvider>
+    );
+  }
+
+  return (
+    <>
+      {planUsage}
+      {insights}
+    </>
+  );
+}
+
 /** Shared dashboard section ordering for phone, tablet, and wide web layouts. */
 export function DashboardBodyLayout({
   hero,
   error,
-  spotlight,
-  statCards,
-  insights,
+  needsAttention,
+  calendar,
   quickActions,
-  overview,
+  workspace,
+  insights,
   checklist,
   messages,
   alerts,
+  planUsage,
 }: DashboardBodyLayoutProps) {
   const { isWide } = useResponsiveLayout();
   const useDesktopGrid = IS_WEB && isWide;
   const styles = useThemedStyles((theme) => getDashboardLayoutStyles(theme));
 
+  const asideMeta = renderAsideMetaSection({
+    planUsage,
+    insights,
+    styles,
+    paired: useDesktopGrid,
+  });
+
   const asideColumn = (
     <View style={styles.asideStack}>
       {messages}
+      {calendar}
+      {asideMeta}
       {checklist}
       {alerts}
     </View>
   );
 
   const hasAside =
+    hasRenderableContent(planUsage) ||
+    hasRenderableContent(insights) ||
+    hasRenderableContent(calendar) ||
     hasRenderableContent(messages) ||
     hasRenderableContent(checklist) ||
     hasRenderableContent(alerts);
 
-  const statsBlock = (
-    <>
-      <DashboardSectionDivider />
-      {error}
-      {spotlight}
-      {statCards}
-      {insights}
-    </>
-  );
-
-  const phoneColumn = (
-    <>
-      {statsBlock}
-      {overview}
-      {checklist}
-      {messages}
-      {alerts}
-    </>
-  );
+  const attentionRow = hasRenderableContent(needsAttention) ? (
+    <View style={useDesktopGrid ? styles.attentionNextUpRow : styles.attentionNextUpStack}>
+      {needsAttention}
+    </View>
+  ) : null;
 
   if (useDesktopGrid) {
     return (
       <View style={styles.desktopShell}>
         {hero}
         {quickActions}
-        {statsBlock}
-        {overview}
-        {hasAside ? <View style={styles.desktopSupplementary}>{asideColumn}</View> : null}
+        {error}
+        {attentionRow}
+        <View style={hasAside ? styles.desktopGrid : undefined}>
+          <View style={hasAside ? styles.desktopMain : styles.desktopMainFull}>
+            {workspace}
+          </View>
+          {hasAside ? <View style={styles.desktopAside}>{asideColumn}</View> : null}
+        </View>
       </View>
     );
   }
@@ -90,7 +129,15 @@ export function DashboardBodyLayout({
     <View style={styles.content}>
       {hero}
       {quickActions}
-      {phoneColumn}
+      {error}
+      {attentionRow}
+      {calendar}
+      {workspace}
+      {messages}
+      {planUsage}
+      {insights}
+      {checklist}
+      {alerts}
     </View>
   );
 }

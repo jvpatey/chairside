@@ -1,6 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
 import {
-  Platform,
   Pressable,
   Text,
   TextInput,
@@ -11,18 +10,28 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { useFormScroll } from '@/components/onboarding/OnboardingShell';
+import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import {
   webHover,
   webIconButtonHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import {
+  formFieldInputRowFocusedStyle,
+  formFieldInputRowStyle,
+  formFieldInputStyle,
+} from '@/theme/formFieldTokens';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type AuthFieldProps = {
   label: string;
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
+  required?: boolean;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  hint?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoComplete?: 'email' | 'password' | 'username' | 'current-password' | 'new-password' | 'off';
@@ -35,6 +44,9 @@ type AuthFieldProps = {
   invalid?: boolean;
   enablePasswordVisibilityToggle?: boolean;
   trailingAccessory?: ReactNode;
+  /** Inside ProfileSettingsCard — card header carries the label. */
+  embedded?: boolean;
+  accent?: GradientAccent;
 };
 
 export function AuthField({
@@ -52,81 +64,43 @@ export function AuthField({
   onBlur,
   validated = false,
   invalid = false,
+  required = false,
+  icon,
+  hint,
   enablePasswordVisibilityToggle = false,
   trailingAccessory,
+  embedded = false,
+  accent = 'primary',
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const wrapRef = useRef<View>(null);
   const { scrollWrapIntoView } = useFormScroll();
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles((theme) => ({
     wrap: {
-      gap: spacing.xs,
+      gap: theme.spacing.xs,
     },
-    label: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
-    inputRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      borderRadius: 12,
-      minHeight: multiline ? 120 : 50,
-      ...(Platform.OS === 'web' ? { overflow: 'hidden' as const } : {}),
-    },
+    inputRow: formFieldInputRowStyle(theme, { multiline }),
     inputRowValidated: {
-      borderColor: colors.success,
+      borderColor: theme.colors.success,
     },
     inputRowInvalid: {
-      borderColor: colors.destructive,
+      borderColor: theme.colors.destructive,
     },
-    inputRowFocused: {
-      borderColor: colors.primary,
-      borderWidth: 1.5,
-      ...(Platform.OS === 'web'
-        ? ({
-            // @ts-expect-error — boxShadow is web-only
-            boxShadow: `0 0 0 3px ${colors.primarySubtle}`,
-          } as const)
-        : {}),
-    },
-    input: {
-      flex: 1,
-      fontSize: typography.body.fontSize,
-      fontWeight: '400',
-      paddingHorizontal: spacing.md,
-      paddingVertical: Platform.OS === 'ios' ? 14 : 10,
-      color: colors.labelPrimary,
-      minHeight: multiline ? 120 : 50,
-      ...(Platform.OS === 'web'
-        ? {
-            backgroundColor: 'transparent',
-            outlineStyle: 'none' as const,
-            borderWidth: 0,
-          }
-        : {}),
-      ...(multiline
-        ? { textAlignVertical: 'top' as const, paddingTop: Platform.OS === 'ios' ? 14 : 12 }
-        : Platform.OS === 'android'
-          ? { textAlignVertical: 'center' as const }
-          : {}),
-    },
+    inputRowFocused: formFieldInputRowFocusedStyle(theme, accent),
+    input: formFieldInputStyle(theme, { multiline, editable }),
     inputDisabled: {
-      color: colors.labelTertiary,
+      color: theme.colors.labelTertiary,
     },
     inputRowDisabled: {
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: theme.colors.fillSubtle,
     },
     accessory: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
-      paddingRight: spacing.md,
+      gap: theme.spacing.sm,
+      paddingRight: theme.spacing.md,
     },
     visibilityButton: {
       minWidth: 44,
@@ -136,7 +110,7 @@ export function AuthField({
       borderRadius: 8,
       ...webPointer(),
     },
-    visibilityButtonHovered: webIconButtonHoverStyles(colors),
+    visibilityButtonHovered: webIconButtonHoverStyles(theme.colors),
   }));
 
   const isSecure = Boolean(secureTextEntry) && !passwordVisible;
@@ -202,7 +176,19 @@ export function AuthField({
 
   return (
     <View ref={wrapRef} style={styles.wrap} collapsable={false}>
-      <Text style={styles.label}>{label}</Text>
+      {!embedded ? (
+        icon ? (
+          <FormSectionHeader
+            icon={icon}
+            label={label}
+            required={required}
+            hint={hint}
+            accent={accent === 'secondary' ? 'secondary' : accent === 'primary' ? 'primary' : 'tertiary'}
+          />
+        ) : (
+          <FormFieldLabel label={label} required={required} />
+        )
+      ) : null}
       <View
         style={[
           styles.inputRow,

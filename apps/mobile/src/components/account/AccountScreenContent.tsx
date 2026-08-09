@@ -68,7 +68,7 @@ export function AccountScreenContent({
         icon={isClinic ? 'business-outline' : 'person-circle-outline'}
       />
 
-      <SectionPanel stepNumber={1} stepAccent="primary" title="Profile">
+      <SectionPanel icon="person-outline" iconAccent="primary" title="Profile">
         <AccountDisplayNameField
           userId={user.id}
           savedFirstName={firstName}
@@ -79,14 +79,14 @@ export function AccountScreenContent({
       </SectionPanel>
 
       {showPasswordSection ? (
-        <SectionPanel stepNumber={2} stepAccent="secondary" title="Security">
+        <SectionPanel icon="lock-closed-outline" iconAccent="secondary" title="Security">
           <AccountChangePasswordSection user={user} showSectionLabel={false} />
         </SectionPanel>
       ) : null}
 
       <SectionPanel
-        stepNumber={showPasswordSection ? 3 : 2}
-        stepAccent="primary"
+        icon="shield-outline"
+        iconAccent="primary"
         title="Privacy & data"
         collapsible
         defaultExpanded={false}>
@@ -96,10 +96,7 @@ export function AccountScreenContent({
         <AccountDataPrivacyNotice />
       </SectionPanel>
 
-      <SectionPanel
-        stepNumber={showPasswordSection ? 4 : 3}
-        stepAccent="secondary"
-        title="Legal & support">
+      <SectionPanel icon="help-circle-outline" iconAccent="secondary" title="Legal & support">
         <Text style={styles.hint}>
           Review policies and reach out if you need help with your account.
         </Text>

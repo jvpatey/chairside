@@ -17,6 +17,7 @@ import { PracticeDoctorEditSheet } from '@/components/clinic/PracticeDoctorEditS
 import { PracticeDoctorFormFields } from '@/components/clinic/PracticeDoctorFormFields';
 import { PracticeDoctorAvatar } from '@/components/clinic/PracticeDoctorAvatar';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePracticeDoctorPhotoUri } from '@/hooks/usePracticeDoctorPhotoUri';
 import { pickDoctorPhotoFromLibrary } from '@/lib/pickDoctorPhotoFromLibrary';
@@ -186,11 +187,6 @@ export function PracticeDoctorsInput({
     header: {
       gap: spacing.xs,
     },
-    label: {
-      ...typography.body,
-      fontWeight: '600',
-    },
-    hint: typography.subtitle,
     count: {
       ...typography.subtitle,
       fontSize: 13,
@@ -316,12 +312,15 @@ export function PracticeDoctorsInput({
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
-        <Text style={styles.label}>Doctors at your practice (optional)</Text>
-        <Text style={styles.hint}>
-          {requireLocationAssignment
-            ? 'Add doctors and assign the locations where they work. Shared doctors can select more than one.'
-            : 'Help candidates see who they would be working with. Add as many doctors as you like.'}
-        </Text>
+        <FormSectionHeader
+          icon="medical-outline"
+          label="Doctors at your practice"
+          hint={
+            requireLocationAssignment
+              ? 'Add doctors and assign the locations where they work. Shared doctors can select more than one.'
+              : 'Help candidates see who they would be working with. Add as many doctors as you like.'
+          }
+        />
       </View>
 
       <View style={styles.composer}>

@@ -21,6 +21,7 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicLocationCard } from '@/components/worker/ClinicLocationCard';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -246,11 +247,6 @@ export function WorkerPublicClinicProfileView({
   const hasNoPostings = jobs.length === 0 && shifts.length === 0;
   const showGeneralMessageHint = acceptsGeneralMessages && hasNoPostings;
 
-  let sectionStep = 1;
-  const aboutStep = hasAbout ? sectionStep++ : null;
-  const locationStep = sectionStep++;
-  const practiceStep = hasPracticeDetails ? sectionStep++ : null;
-
   const styles = useThemedStyles(({ spacing }) => ({
     sectionBlock: {
       gap: spacing.sm,
@@ -282,8 +278,7 @@ export function WorkerPublicClinicProfileView({
       {hasAbout ? (
         <SectionPanel
           icon="document-text-outline"
-          stepNumber={aboutStep!}
-          stepAccent="secondary"
+          iconAccent="secondary"
           title="About">
           {description ? (
             <>
@@ -307,17 +302,12 @@ export function WorkerPublicClinicProfileView({
         </SectionPanel>
       ) : null}
 
-      <ClinicLocationCard
-        profile={profile}
-        stepNumber={locationStep}
-        stepAccent="secondary"
-      />
+      <ClinicLocationCard profile={profile} />
 
       {hasPracticeDetails ? (
         <SectionPanel
           icon="medkit-outline"
-          stepNumber={practiceStep!}
-          stepAccent="primary"
+          iconAccent="primary"
           title="Practice">
           <FieldBlock label="Specialty">
             <FieldValue value={specialtyLabel} />
@@ -382,7 +372,7 @@ export function WorkerPublicClinicProfileView({
           ))
         ) : (
           <ProfileEmptyState
-            icon="calendar-outline"
+            icon={FILL_IN_ICON.outline}
             title="No open fill-ins right now"
             description={
               acceptsGeneralMessages

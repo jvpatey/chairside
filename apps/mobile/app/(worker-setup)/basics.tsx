@@ -1,6 +1,7 @@
 import { ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
 import {
   getWorkerRoleTypes,
+  joinDisplayName,
   resolveAuthNameParts,
   updateProfileName,
 } from '@chairside/api';
@@ -11,12 +12,20 @@ import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
+import {
+  ProfileDetailStack,
+  SectionPanel,
+  profileSettingsHintStyle,
+} from '@/components/profile/ProfileDetailBlocks';
+import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -25,9 +34,12 @@ import { useThemedStyles } from '@/theme';
 
 export default function WorkerBasicsScreen() {
   const { user, profile, refreshProfile } = useAuth();
-  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+  const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
+  const progress = useSetupStepProgress('basics', { role: 'worker' });
+  const { isWide } = useResponsiveLayout();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
@@ -53,11 +65,13 @@ export default function WorkerBasicsScreen() {
 
   const validation = validateWorkerBasicsStep({ firstName, lastName, roleTypes });
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    form: { gap: spacing.lg },
-    section: { gap: spacing.sm },
-    nameRow: { gap: spacing.md },
-    label: { ...typography.body, fontWeight: '600' },
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    hint: profileSettingsHintStyle({ typography, colors }),
+    nameRow: {
+      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      gap: spacing.md,
+    },
+    nameField: isWide ? { flex: 1, minWidth: 0 } : {},
   }));
 
   useEffect(() => {
@@ -102,8 +116,14 @@ export default function WorkerBasicsScreen() {
   if (!isWorkerProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Professional background · Basics"
+      subtitle="Add a photo, your name, and the roles you are qualified for."
+      backLabel={isEditMode ? undefined : 'Back'}
+      onBack={() =>
+        isEditMode ? router.replace(exitHref) : router.replace(ONBOARDING_CHANGE_ROLE)
+      }
       footer={
         <SetupStepFooter
           canContinue={validation.ok}
@@ -115,44 +135,57 @@ export default function WorkerBasicsScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title="Professional background · Basics"
-        subtitle="Tell clinics who you are and which roles you are qualified for."
-        backLabel={isEditMode ? undefined : 'Back'}
-        onBack={() =>
-          isEditMode ? router.replace(exitHref) : router.replace(ONBOARDING_CHANGE_ROLE)
-        }
-      />
-      {!isEditMode ? <SetupStepProgress step={1} total={5} /> : null}
-      <View style={styles.form}>
-        <View style={styles.nameRow}>
-          <AuthField
-            label="First name"
-            placeholder="First name"
-            value={firstName}
-            onChangeText={setFirstName}
-            autoCapitalize="words"
-            invalid={showValidation && !firstName.trim()}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
+      <ProfileDetailStack>
+        <SectionPanel icon="camera-outline" iconAccent="primary" title="Profile photo">
+          <Text style={styles.hint}>Optional — shown when you apply to clinics.</Text>
+          <ProfilePhotoUpload
+            embedded
+            displayName={joinDisplayName(firstName, lastName)}
+            onUpdated={() => void refreshWorkerProfile()}
           />
-          <AuthField
-            label="Last name"
-            placeholder="Last name"
-            value={lastName}
-            onChangeText={setLastName}
-            autoCapitalize="words"
-            invalid={showValidation && !lastName.trim()}
-          />
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Roles</Text>
+        </SectionPanel>
+
+        <SectionPanel icon="person-outline" iconAccent="secondary" title="Your name">
+          <View style={styles.nameRow}>
+            <View style={styles.nameField}>
+              <AuthField
+                label="First name"
+                placeholder="First name"
+                value={firstName}
+                onChangeText={setFirstName}
+                autoCapitalize="words"
+                icon="person-outline"
+                required
+                invalid={showValidation && !firstName.trim()}
+              />
+            </View>
+            <View style={styles.nameField}>
+              <AuthField
+                label="Last name"
+                placeholder="Last name"
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize="words"
+                icon="person-outline"
+                required
+                invalid={showValidation && !lastName.trim()}
+              />
+            </View>
+          </View>
+        </SectionPanel>
+
+        <SectionPanel icon="ribbon-outline" iconAccent="primary" title="Roles">
           <ChipSelector
             options={[...ROLE_TYPE_OPTIONS]}
             selected={roleTypes}
             multiple
             onChange={(value) => setRoleTypes(value as RoleType[])}
           />
-        </View>
-      </View>
-    </OnboardingShell>
+        </SectionPanel>
+      </ProfileDetailStack>
+    </FormScreen>
   );
 }

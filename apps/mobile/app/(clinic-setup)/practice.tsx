@@ -1,9 +1,7 @@
 import {
   SPECIALTY_OPTIONS,
-  SOFTWARE_OPTIONS,
   TEAM_SIZE_RANGE_OPTIONS,
   normalizePracticeDoctors,
-  resolveSoftwareSelection,
   type ClinicSpecialty,
   type PracticeDoctor,
   type TeamSizeRange,
@@ -11,20 +9,22 @@ import {
 import { router } from 'expo-router';
 import { CLINIC_SETUP_ABOUT } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { SoftwareUsedSelector } from '@/components/clinic/SoftwareUsedSelector';
 import { PracticeDoctorsInput } from '@/components/clinic/PracticeDoctorsInput';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
-import { getClinicSetupStepNumber } from '@/lib/clinicSetupSteps';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { validateClinicPracticeStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
@@ -32,7 +32,8 @@ export default function ClinicPracticeScreen() {
   const { clinicProfile, isClinicProfileReady, isGroup } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
-  const progress = getClinicSetupStepNumber('practice', isGroup);
+  const setupFormProps = useSetupFormScreenProps('clinic');
+  const progress = useSetupStepProgress('practice', { role: 'clinic' });
   const [specialty, setSpecialty] = useState<ClinicSpecialty>('general');
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
   const [operatories, setOperatories] = useState('');
@@ -46,14 +47,9 @@ export default function ClinicPracticeScreen() {
 
   const validation = validateClinicPracticeStep(softwareUsed);
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.lg },
     section: { gap: spacing.sm },
-    label: {
-      ...typography.body,
-      fontWeight: '600',
-    },
-    hint: typography.subtitle,
   }));
 
   useEffect(() => {
@@ -96,8 +92,11 @@ export default function ClinicPracticeScreen() {
   if (!isClinicProfileReady) return null;
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Practice details"
+      subtitle="Help candidates understand your clinic."
+      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
           canContinue={validation.ok}
@@ -109,16 +108,16 @@ export default function ClinicPracticeScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title="Practice details"
-        subtitle="Help candidates understand your clinic."
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
-      />
-      {!isEditMode ? <SetupStepProgress step={progress.step} total={progress.total} /> : null}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         <View style={styles.section}>
-          <Text style={styles.label}>Specialty</Text>
-          <Text style={styles.hint}>Defaults to General dentistry if unchanged.</Text>
+          <FormSectionHeader
+            icon="medkit-outline"
+            label="Specialty"
+            hint="Defaults to General dentistry if unchanged."
+          />
           <ChipSelector
             options={SPECIALTY_OPTIONS}
             selected={specialty}
@@ -126,33 +125,29 @@ export default function ClinicPracticeScreen() {
           />
         </View>
         <AuthField
-          label="Operatories (optional)"
+          label="Operatories"
           placeholder="4"
           value={operatories}
           onChangeText={setOperatories}
           keyboardType="number-pad"
+          icon="grid-outline"
         />
         <View style={styles.section}>
-          <Text style={styles.label}>Team size (optional)</Text>
+          <FormSectionHeader icon="people-outline" label="Team size" />
           <ChipSelector
             options={TEAM_SIZE_RANGE_OPTIONS}
             selected={teamSizeRange}
             onChange={(value) => setTeamSizeRange(value as TeamSizeRange)}
           />
         </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Software used</Text>
-          <ChipSelector
-            options={SOFTWARE_OPTIONS.map((item) => ({ value: item, label: item }))}
-            selected={softwareUsed}
-            multiple
-            onChange={(value) =>
-              setSoftwareUsed(resolveSoftwareSelection(softwareUsed, value as string[]))
-            }
-          />
-        </View>
+        <SoftwareUsedSelector
+          value={softwareUsed}
+          onChange={setSoftwareUsed}
+          required
+          showValidation={showValidation}
+        />
         <PracticeDoctorsInput value={practiceDoctors} onChange={setPracticeDoctors} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

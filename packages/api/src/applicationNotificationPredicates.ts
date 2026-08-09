@@ -19,6 +19,12 @@ export const FILL_IN_PENDING_STATUSES: ApplicationNotificationStatus[] = [
   'interview_scheduled',
 ];
 
+export const CLINIC_AWAITING_ACTION_STATUSES: ApplicationNotificationStatus[] = [
+  'applied',
+  'screening_submitted',
+  'reviewed',
+];
+
 type WorkerAttentionApplication = {
   created_at: string;
   worker_hidden_at: string | null;
@@ -66,6 +72,16 @@ export function isClinicNewApplication(application: ClinicAttentionApplication):
     !application.clinic_hidden_at &&
     (application.status === 'applied' || application.status === 'screening_submitted') &&
     isClinicApplicationUnseen(application)
+  );
+}
+
+export function isClinicApplicationAwaitingClinicAction(
+  application: Pick<ClinicAttentionApplication, 'post_type' | 'status' | 'clinic_hidden_at'>,
+): boolean {
+  return (
+    application.post_type === 'job' &&
+    !application.clinic_hidden_at &&
+    CLINIC_AWAITING_ACTION_STATUSES.includes(application.status as ApplicationNotificationStatus)
   );
 }
 

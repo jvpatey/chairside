@@ -35,6 +35,7 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
   const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
   const [isWorkerProfileReady, setIsWorkerProfileReady] = useState(false);
   const requestRef = useRef(0);
+  const settledUserIdRef = useRef<string | null>(null);
 
   const refreshWorkerProfile = useCallback(async () => {
     const userId = user?.id;
@@ -79,11 +80,13 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
     async function load() {
       if (!isAuthReady) {
         setIsWorkerProfileReady(false);
+        settledUserIdRef.current = null;
         return;
       }
 
       if (!user?.id) {
         requestRef.current += 1;
+        settledUserIdRef.current = null;
         setWorkerProfile(null);
         setAvailabilityBlocks([]);
         setIsWorkerProfileReady(true);
@@ -93,6 +96,7 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
       if (profile === null) {
         // Auth settled with no profile row — treat as ready so gates can redirect.
         requestRef.current += 1;
+        settledUserIdRef.current = null;
         setWorkerProfile(null);
         setAvailabilityBlocks([]);
         setIsWorkerProfileReady(true);
@@ -101,6 +105,7 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
 
       if (profile.role !== 'worker') {
         requestRef.current += 1;
+        settledUserIdRef.current = null;
         setWorkerProfile(null);
         setAvailabilityBlocks([]);
         setIsWorkerProfileReady(true);
@@ -108,7 +113,10 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
       }
 
       const requestId = ++requestRef.current;
-      setIsWorkerProfileReady(false);
+      const isSoftRefresh = settledUserIdRef.current === user.id;
+      if (!isSoftRefresh) {
+        setIsWorkerProfileReady(false);
+      }
 
       try {
         const [nextProfile, blocks] = await Promise.all([
@@ -124,7 +132,10 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
           setAvailabilityBlocks([]);
         }
       } finally {
-        if (!cancelled) setIsWorkerProfileReady(true);
+        if (!cancelled && requestId === requestRef.current) {
+          settledUserIdRef.current = user.id;
+          setIsWorkerProfileReady(true);
+        }
       }
     }
 

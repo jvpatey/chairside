@@ -7,7 +7,7 @@ import { View } from 'react-native';
 import { ClinicMessagingPreferences } from '@/components/clinic/ClinicMessagingPreferences';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { ConversationInboxList } from '@/components/messaging/ConversationInboxList';
-import { MessagingInboxSkeleton } from '@/components/messaging/MessagingSkeleton';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
@@ -163,12 +163,12 @@ export function ClinicMessagesInboxPanel({
     return (
       <Screen
         title="Messages"
-        subtitle={CLINIC_MESSAGES_SUBTITLE}
+        subtitle={compact ? undefined : CLINIC_MESSAGES_SUBTITLE}
         scroll={scroll ?? !compact}
         fillsContainer={fillsContainer}
-        animateEntry={false}
         hideAtmosphere={compact}
         transparentBackground={compact}
+        animateEntry={!compact}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />
@@ -178,13 +178,13 @@ export function ClinicMessagesInboxPanel({
   return (
     <Screen
       title="Messages"
-      subtitle={CLINIC_MESSAGES_SUBTITLE}
+      subtitle={compact ? undefined : CLINIC_MESSAGES_SUBTITLE}
       constrainWidth={!compact}
       scroll={scroll ?? !compact}
       fillsContainer={fillsContainer}
-      animateEntry={false}
       hideAtmosphere={compact}
       transparentBackground={compact}
+      animateEntry={!compact}
       refreshing={refreshing}
       onRefresh={onRefresh}
     >
@@ -199,7 +199,7 @@ export function ClinicMessagesInboxPanel({
         ) : null}
 
         {isLoading && conversations.length === 0 ? (
-          <MessagingInboxSkeleton compact={compact} />
+          <PageLoadingList message="Loading messages…" compact={compact} />
         ) : (
           <ConversationInboxList
             conversations={conversations}

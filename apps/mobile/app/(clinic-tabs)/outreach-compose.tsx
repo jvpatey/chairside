@@ -14,11 +14,10 @@ import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { ShiftDateInput } from '@/components/clinic/ShiftDateInput';
 import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { getClinicSmsUpgradeMessage } from '@/components/billing/ClinicUpgradePrompt';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,7 +100,6 @@ export default function OutreachComposeScreen() {
   );
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
-    form: { gap: spacing.lg },
     summary: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -255,14 +253,13 @@ export default function OutreachComposeScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell>
-      <View style={styles.form}>
-        <AuthScreenHeader
-          title={composeTitle}
-          subtitle={composeSubtitle}
-          onBack={() => router.back()}
-        />
-
+      <FormScreen
+        title={composeTitle}
+        subtitle={composeSubtitle}
+        onBack={() => router.back()}
+        accent="secondary"
+        constrainFormWidth
+      >
         <View style={styles.summary}>
           <Text style={styles.summaryTitle}>
             {isBulk ? 'Bulk fill-in outreach' : 'Fill-in outreach'}
@@ -356,8 +353,7 @@ export default function OutreachComposeScreen() {
           disabled={isSubmitting}
           onPress={() => void handleSubmit()}
         />
-      </View>
-    </OnboardingShell>
+      </FormScreen>
     </>
   );
 }

@@ -22,16 +22,18 @@ import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrati
 import { WorkerFillInBrowseFilters } from '@/components/clinic/PostingFilters';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { FillInAvailabilitySummaryCard } from '@/components/worker/FillInAvailabilitySummaryCard';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
 import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
 import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
-import { PageTabBar } from '@/components/ui/PageTabBar';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
@@ -43,12 +45,13 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import {
-  FILL_INS_TAB_MODE_OPTIONS,
   partitionWorkerShiftApplications,
   type FillInsTabMode,
 } from '@/lib/fillInFilters';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import type { WorkerBrowseViewMode } from '@/lib/postingFilters';
 import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
@@ -63,6 +66,7 @@ import {
   toWorkerMapItemsFromShifts,
 } from '@/lib/workerMapItems';
 import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
+import { IS_WEB } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 export default function FillInsScreen() {
@@ -97,10 +101,12 @@ export default function FillInsScreen() {
   const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [controlsHeight, setControlsHeight] = useState(132);
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const tabDockInset = useMobileTabDockInset();
+  const { isWide } = useResponsiveLayout();
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
   const { checkApplications } = useWorkerHiringCelebration(showCelebration);
@@ -108,6 +114,7 @@ export default function FillInsScreen() {
 
   const load = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(false);
     try {
       const [shiftRows, applicationRows, savedIds] = await Promise.all([
         listLiveShiftPosts(province),
@@ -129,7 +136,7 @@ export default function FillInsScreen() {
       setShifts([]);
       setApplications([]);
       setSavedShiftIds(new Set());
-      Alert.alert('Could not load fill-ins', 'Please try again.');
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -249,12 +256,32 @@ export default function FillInsScreen() {
     workerProfile?.latitude != null && workerProfile?.longitude != null
       ? { latitude: workerProfile.latitude, longitude: workerProfile.longitude }
       : null;
-  const useMapLayout = selectedMode === 'open' && viewMode === 'map';
+  const canUseMap = selectedMode === 'open';
+  const useMapLayout = canUseMap && viewMode === 'map';
   const showOpenMap = useMapLayout && !isLoading && filteredShifts.length > 0;
+  const useWebSplitMap =
+    IS_WEB && isWide && useMapLayout && !isLoading && filteredShifts.length > 0;
+
+  useEffect(() => {
+    if (!canUseMap && viewMode === 'map') {
+      setViewMode('list');
+    }
+  }, [canUseMap, viewMode]);
 
   const mapPanelHeight = useMemo(
     () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
     [controlsHeight, insets.top, tabDockInset, windowHeight],
+  );
+
+  const mapElement = (
+    <WorkerBrowseMap
+      groups={mapGroups}
+      workerCoords={workerCoords}
+      province={province}
+      unmappableCount={unmappableShiftCount}
+      workerHasCoordinates={workerCoords != null}
+      onSelectItem={(item) => router.push(getWorkerShiftDetailRoute(item.id, 'fill-ins-tab'))}
+    />
   );
 
   const handleControlsLayout = (event: LayoutChangeEvent) => {
@@ -293,6 +320,65 @@ export default function FillInsScreen() {
     applicationGroup: { gap: spacing.sm },
   }));
 
+  const fillInTabs = useMemo(
+    () => [
+      {
+        value: 'open' as const,
+        label: 'Open',
+        count: filteredShifts.length,
+        accent: 'secondary' as const,
+        icon: FILL_IN_ICON.outline,
+      },
+      {
+        value: 'confirmed' as const,
+        label: 'Confirmed',
+        count: activeFillInCount,
+        accent: 'secondary' as const,
+        icon: 'checkmark-circle-outline' as const,
+      },
+      {
+        value: 'history' as const,
+        label: 'History',
+        count: historyFillInCount,
+        accent: 'secondary' as const,
+        icon: 'time-outline' as const,
+      },
+    ],
+    [activeFillInCount, filteredShifts.length, historyFillInCount],
+  );
+
+  const openListContent = isLoading ? (
+    <PageLoadingList rowCount={4} />
+  ) : filteredShifts.length === 0 ? (
+    <DashboardEmptyState
+      embedded
+      icon={FILL_IN_ICON.outline}
+      title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'}
+      message={
+        hasActiveFillInFilters
+          ? 'Try a different search term or adjust your filters.'
+          : 'New temp shifts in your province will appear here.'
+      }
+    />
+  ) : (
+    <View style={styles.cardList}>
+      <StaggeredList>
+        {filteredShifts.map((shift) => (
+          <FillInListingCard
+            key={shift.id}
+            shift={shift}
+            distanceLabel={shift.distanceLabel}
+            isSaved={savedShiftIds.has(shift.id)}
+            onToggleSaved={() =>
+              void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+            }
+            onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
+          />
+        ))}
+      </StaggeredList>
+    </View>
+  );
+
   return (
     <>
       <Screen
@@ -305,17 +391,15 @@ export default function FillInsScreen() {
         refreshAccent="secondary"
       >
         <View style={styles.content}>
+          {loadError ? (
+            <DashboardErrorBanner
+              message="Could not load fill-ins."
+              onRetry={() => void load()}
+            />
+          ) : null}
           <FillInAvailabilitySummaryCard />
-          <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
-            <View style={styles.controlRow}>
-              <PageTabBar
-                options={FILL_INS_TAB_MODE_OPTIONS}
-                selected={selectedMode}
-                onChange={setSelectedMode}
-                density="compact"
-              />
-            </View>
-            {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
+          {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
+            <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
               <View style={styles.browseControlsRow}>
                 <View style={styles.searchField}>
                   <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
@@ -338,74 +422,29 @@ export default function FillInsScreen() {
                   onSavedOnlyFilterChange={setSavedOnlyFilter}
                 />
               </View>
-            ) : null}
-          </View>
-
-          {selectedMode === 'open' ? (
-            <WorkerBrowseViewTransition
-              mode={showOpenMap ? 'map' : 'list'}
-              style={showOpenMap ? [styles.mapPanel, { height: mapPanelHeight }] : undefined}
-            >
-              {showOpenMap ? (
-                <WorkerBrowseMap
-                  groups={mapGroups}
-                  workerCoords={workerCoords}
-                  province={province}
-                  unmappableCount={unmappableShiftCount}
-                  workerHasCoordinates={workerCoords != null}
-                  onSelectItem={(item) =>
-                    router.push(getWorkerShiftDetailRoute(item.id, 'fill-ins-tab'))
-                  }
-                />
-              ) : (
-                <View style={styles.panel}>
-                  {isLoading ? (
-                    <PageLoadingList rowCount={4} />
-                  ) : filteredShifts.length === 0 ? (
-                    <DashboardEmptyState
-                      icon="calendar-outline"
-                      title={
-                        hasActiveFillInFilters
-                          ? 'No fill-ins match your search'
-                          : 'No open fill-ins'
-                      }
-                      message={
-                        hasActiveFillInFilters
-                          ? 'Try a different search term or adjust your filters.'
-                          : 'New temp shifts in your province will appear here.'
-                      }
-                    />
-                  ) : (
-                    <View style={styles.cardList}>
-                      <StaggeredList>
-                        {filteredShifts.map((shift) => (
-                          <FillInListingCard
-                            key={shift.id}
-                            shift={shift}
-                            distanceLabel={shift.distanceLabel}
-                            isSaved={savedShiftIds.has(shift.id)}
-                            onToggleSaved={() =>
-                              void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
-                            }
-                            onPress={() =>
-                              router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))
-                            }
-                          />
-                        ))}
-                      </StaggeredList>
-                    </View>
-                  )}
-                </View>
-              )}
-            </WorkerBrowseViewTransition>
+            </View>
           ) : null}
 
-          {selectedMode === 'confirmed' ? (
-            <View style={styles.panel}>
-              {isLoading ? (
+          <FileTabWell tabs={fillInTabs} selected={selectedMode} onSelect={setSelectedMode}>
+            {selectedMode === 'open' ? (
+              useWebSplitMap ? (
+                <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
+              ) : (
+                <WorkerBrowseViewTransition
+                  mode={showOpenMap ? 'map' : 'list'}
+                  style={showOpenMap ? [styles.mapPanel, { height: mapPanelHeight }] : undefined}
+                >
+                  {showOpenMap ? mapElement : openListContent}
+                </WorkerBrowseViewTransition>
+              )
+            ) : null}
+
+            {selectedMode === 'confirmed' ? (
+              isLoading ? (
                 <PageLoadingList rowCount={3} />
               ) : activeFillInCount === 0 ? (
                 <DashboardEmptyState
+                  embedded
                   icon="document-text-outline"
                   title="No fill-in shifts yet"
                   message="Request to cover an open shift and track confirmed and in-progress fill-ins here."
@@ -441,16 +480,15 @@ export default function FillInsScreen() {
                     </View>
                   ) : null}
                 </>
-              )}
-            </View>
-          ) : null}
+              )
+            ) : null}
 
-          {selectedMode === 'history' ? (
-            <View style={styles.panel}>
-              {isLoading ? (
+            {selectedMode === 'history' ? (
+              isLoading ? (
                 <PageLoadingList rowCount={3} />
               ) : historyFillInCount === 0 ? (
                 <DashboardEmptyState
+                  embedded
                   icon="time-outline"
                   title="No fill-in history yet"
                   message="Declined requests, cancelled shifts, and past fill-ins will appear here."
@@ -514,9 +552,9 @@ export default function FillInsScreen() {
                     </View>
                   ) : null}
                 </>
-              )}
-            </View>
-          ) : null}
+              )
+            ) : null}
+          </FileTabWell>
         </View>
       </Screen>
       <HiringCelebrationModal

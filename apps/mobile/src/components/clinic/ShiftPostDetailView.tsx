@@ -6,10 +6,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   DetailProse,
   DetailRow,
-  DetailSection,
-  DetailSectionDivider,
   RowDivider,
 } from '@/components/clinic/DetailCard';
+import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { ShiftPostStatusBadge } from '@/components/clinic/ShiftPostStatusBadge';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { formatShiftPostDateLabel, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
@@ -105,7 +104,7 @@ export function ShiftPostDetailView({
 
   const detailSection = (
     <View style={variant === 'embedded' ? undefined : styles.card}>
-      <DetailSection title={variant === 'embedded' ? 'Details' : 'Shift details'}>
+      <CardDetailSection title={variant === 'embedded' ? 'Details' : 'Shift details'}>
         <DetailRow label="Date" value={dateLabel} />
         <RowDivider />
         <DetailRow label="Hours" value={hoursLabel} />
@@ -117,14 +116,12 @@ export function ShiftPostDetailView({
             <DetailRow label="Software" value={softwareLabel} />
           </>
         ) : null}
-      </DetailSection>
+      </CardDetailSection>
 
       {description && variant === 'full' ? (
-        <DetailSectionDivider>
-          <DetailSection title="Notes">
-            <DetailProse text={description} />
-          </DetailSection>
-        </DetailSectionDivider>
+        <CardDetailSection title="Notes" divided>
+          <DetailProse text={description} />
+        </CardDetailSection>
       ) : null}
     </View>
   );
@@ -135,9 +132,9 @@ export function ShiftPostDetailView({
         <FadeInSection delayMs={0}>{detailSection}</FadeInSection>
         {description ? (
           <FadeInSection delayMs={80}>
-            <DetailSection title="Notes">
+            <CardDetailSection title="Notes">
               <DetailProse text={description} />
-            </DetailSection>
+            </CardDetailSection>
           </FadeInSection>
         ) : null}
       </View>

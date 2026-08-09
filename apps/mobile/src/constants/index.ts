@@ -10,10 +10,6 @@ export {
 /** Set when the App Store listing is live, e.g. https://apps.apple.com/app/id… */
 export const APP_STORE_URL: string | null = null;
 
-export const APP_STORE_COMING_SOON_LABEL = 'Never miss a fill-in again';
-export const APP_STORE_COMING_SOON_HINT =
-  'Push alerts when clinics post shifts or professionals go available — iOS app coming soon.';
-
 export const ONBOARDING_SUBTITLE =
   'Permanent roles and same-day fill-ins — one platform for clinics and professionals.';
 

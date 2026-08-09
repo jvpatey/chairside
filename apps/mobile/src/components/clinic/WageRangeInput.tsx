@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
+import { isInvalidWageRange } from '@/lib/scheduleString';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type RolePayType = 'hourly' | 'commission';
@@ -72,9 +74,16 @@ const PAY_TYPE_OPTIONS = [
 type WageRangeInputProps = {
   onChange: (wageRange: string) => void;
   initialValue?: string;
+  onValidationChange?: (valid: boolean) => void;
+  embedded?: boolean;
 };
 
-export function WageRangeInput({ onChange, initialValue }: WageRangeInputProps) {
+export function WageRangeInput({
+  onChange,
+  initialValue,
+  onValidationChange,
+  embedded = false,
+}: WageRangeInputProps) {
   const { colors } = useTheme();
   const parsedInitial = parseWageRange(initialValue ?? '');
   const [payType, setPayType] = useState<RolePayType>(parsedInitial.payType);
@@ -82,8 +91,7 @@ export function WageRangeInput({ onChange, initialValue }: WageRangeInputProps) 
   const [max, setMax] = useState(parsedInitial.max);
 
   const preview = formatWageRange(min, max, payType);
-  const isInvalid =
-    payType === 'hourly' && Boolean(min && max && Number(min) > Number(max));
+  const isInvalid = isInvalidWageRange(min, max, payType);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -167,12 +175,16 @@ export function WageRangeInput({ onChange, initialValue }: WageRangeInputProps) 
   };
 
   useEffect(() => {
+    onValidationChange?.(!isInvalid);
+  }, [isInvalid, onValidationChange]);
+
+  useEffect(() => {
     onChange(isInvalid ? '' : preview);
   }, [preview, isInvalid, onChange]);
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>Compensation (optional)</Text>
+      {!embedded ? <FormFieldLabel label="Compensation (optional)" /> : null}
 
       <ChipSelector
         options={PAY_TYPE_OPTIONS}

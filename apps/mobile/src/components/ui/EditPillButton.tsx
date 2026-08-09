@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -25,8 +26,8 @@ export function EditPillButton({
   const { colors } = useTheme();
   const tabAccent = useTabAtmosphereAccent();
   const resolvedAccent = accent ?? tabAccent;
-  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
-  const brandSubtle = resolvedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const brandColor = resolveAccentColor(colors, resolvedAccent);
+  const brandSubtle = resolveAccentSubtle(colors, resolvedAccent);
   const styles = useThemedStyles(({ colors, spacing }) => ({
     button: {
       flexDirection: 'row',

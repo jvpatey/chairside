@@ -1,24 +1,30 @@
-import { completeWorkerSetup, getMissingWorkerProfileFields, getWorkerRoleTypes } from '@chairside/api';
+import { completeWorkerSetup, getMissingWorkerProfileFields, getWorkerRoleTypes, joinDisplayName } from '@chairside/api';
 import {
   formatWorkerEducation,
-  getProvinceLabel,
   formatRoleTypesLabel,
+  getEmploymentTypeLabel,
+  getProvinceLabel,
+  getSpecialtyLabel,
   getTravelRadiusRangeLabel,
 } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
-import { WORKER_HOME } from '@/lib/routing';
+import { WORKER_HOME_WELCOME } from '@/lib/routing';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormScreen } from '@/components/ui/FormScreen';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -49,6 +55,8 @@ export default function WorkerReviewScreen() {
   const { user, profile } = useAuth();
   const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
+  const progress = useSetupStepProgress('review', { role: 'worker' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -62,16 +70,23 @@ export default function WorkerReviewScreen() {
   );
 
   const missingFields = getMissingWorkerProfileFields(workerProfile);
+  const photoUri = useWorkerPhotoUri(workerProfile?.photo_storage_path);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-    },
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     footer: { gap: spacing.md, marginTop: spacing.lg },
+    profileHeader: {
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingBottom: spacing.md,
+      marginBottom: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.separator,
+    },
+    profileName: {
+      ...typography.title,
+      fontSize: 20,
+      textAlign: 'center',
+    },
   }));
 
   if (isEditMode) {
@@ -95,7 +110,7 @@ export default function WorkerReviewScreen() {
     try {
       await completeWorkerSetup(user.id);
       await refreshWorkerProfile();
-      router.replace(WORKER_HOME);
+      router.replace(WORKER_HOME_WELCOME);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : 'Could not finish setup. Please try again.',
@@ -107,13 +122,36 @@ export default function WorkerReviewScreen() {
 
   if (!isWorkerProfileReady) return null;
 
-  const cityLine = [workerProfile?.city, getProvinceLabel(workerProfile?.province ?? 'NS')]
+  const displayName = joinDisplayName(profile?.first_name, profile?.last_name);
+  const address = [
+    workerProfile?.address_line1,
+    workerProfile?.address_line2,
+    workerProfile?.city,
+    workerProfile?.province ? getProvinceLabel(workerProfile.province) : null,
+    workerProfile?.postal_code,
+  ]
     .filter(Boolean)
     .join(', ');
+  const softwareLabel =
+    workerProfile?.software_used && workerProfile.software_used.length > 0
+      ? workerProfile.software_used.join(', ')
+      : '';
+  const practiceTypesLabel =
+    workerProfile?.practice_types && workerProfile.practice_types.length > 0
+      ? workerProfile.practice_types.map(getSpecialtyLabel).join(', ')
+      : '';
+  const employmentLabel =
+    workerProfile?.preferred_employment_types &&
+    workerProfile.preferred_employment_types.length > 0
+      ? workerProfile.preferred_employment_types.map(getEmploymentTypeLabel).join(', ')
+      : '';
 
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Review profile"
+      subtitle="Confirm your professional background before browsing roles."
+      onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
           {submitError || missingFields.length > 0 ? (
@@ -131,13 +169,14 @@ export default function WorkerReviewScreen() {
           />
         </View>
       }>
-      <AuthScreenHeader
-        title="Review profile"
-        subtitle="Confirm your professional background before browsing roles."
-        onBack={() => router.back()}
-      />
-      <SetupStepProgress step={5} total={5} />
-      <View style={styles.card}>
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
+      <SurfaceCard padding="lg">
+        <View style={styles.profileHeader}>
+          <WorkerProfileAvatar displayName={displayName} photoUri={photoUri} size={80} />
+          <Text style={styles.profileName}>{displayName}</Text>
+        </View>
         <ReviewRow
           label="Roles"
           value={formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))}
@@ -154,12 +193,16 @@ export default function WorkerReviewScreen() {
           label="Education"
           value={workerProfile ? formatWorkerEducation(workerProfile) : ''}
         />
-        <ReviewRow label="Location" value={cityLine} />
+        <ReviewRow label="Software" value={softwareLabel} />
+        <ReviewRow label="Practice types" value={practiceTypesLabel} />
+        <ReviewRow label="Preferred employment" value={employmentLabel} />
+        <ReviewRow label="Address" value={address} />
         <ReviewRow
           label="Travel distance"
           value={getTravelRadiusRangeLabel(workerProfile?.travel_radius_range)}
         />
-      </View>
-    </OnboardingShell>
+        <ReviewRow label="Bio" value={workerProfile?.bio ?? ''} />
+      </SurfaceCard>
+    </FormScreen>
   );
 }

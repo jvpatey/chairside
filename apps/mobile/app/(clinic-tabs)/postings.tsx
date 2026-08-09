@@ -1,7 +1,9 @@
 import {
   getMissingClinicProfileFields,
+  listClinicApplications,
   listJobPosts,
   getJobPostApplicationCountsMap,
+  type ClinicApplication,
   type JobPost,
 } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,23 +15,26 @@ import {
   CLINIC_SETUP_BASICS,
   getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
+  getClinicApplicationRoute,
   getJobDetailRoute,
   getRoleHistoryRoute,
 } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 
-import { RolePostingFilters } from '@/components/clinic/PostingFilters';
+import { RoleTypeFilters } from '@/components/clinic/PostingFilters';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardQuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
+import { ResponsiveGrid } from '@/components/ui/ResponsiveLayout';
 import { Screen } from '@/components/ui/Screen';
-import { StaggeredList } from '@/components/ui/StaggeredList';
 import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
@@ -47,6 +52,7 @@ import {
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
 import { hasActiveListSearch, matchesJobPostSearch } from '@/lib/clinicListSearch';
+import { summarizeJobApplicantPreviews } from '@/lib/dashboardAttention';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
@@ -64,11 +70,13 @@ export default function ClinicPostingsScreen() {
     useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
+  const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
-  const [jobStatusFilter, setJobStatusFilter] = useState<JobStatusFilter>('all');
+  const [jobStatusFilter, setJobStatusFilter] = useState<Extract<JobStatusFilter, 'live' | 'paused'>>('live');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (tab === 'fill-ins') {
@@ -86,11 +94,57 @@ export default function ClinicPostingsScreen() {
     [jobs, jobStatusFilter, jobRoleTypeFilter, searchQuery],
   );
 
+  const applicantPreviewByJobId = useMemo(
+    () =>
+      summarizeJobApplicantPreviews(
+        applications.map((application) => ({
+          id: application.id,
+          job_post_id: application.job_post_id,
+          worker_display_name: application.worker_display_name,
+          worker_photo_storage_path: application.worker_photo_storage_path,
+        })),
+      ),
+    [applications],
+  );
+
   const hasSearch = hasActiveListSearch(searchQuery);
-  const hasActiveFilters = jobStatusFilter !== 'all' || jobRoleTypeFilter !== 'all';
+  const hasActiveFilters = jobRoleTypeFilter !== 'all';
 
   const historyCounts = useMemo(() => countHistoryJobs(jobs), [jobs]);
   const hasRoleHistory = historyCounts.archived > 0 || historyCounts.filled > 0;
+  const liveRoleCount = useMemo(
+    () => mainListJobs.filter((job) => job.status === 'live').length,
+    [mainListJobs],
+  );
+  const pausedRoleCount = useMemo(
+    () => mainListJobs.filter((job) => job.status === 'paused').length,
+    [mainListJobs],
+  );
+  const roleStatusTabs = useMemo(
+    () => [
+      {
+        value: 'live' as const,
+        label: 'Live',
+        count: liveRoleCount,
+        accent: 'primary' as const,
+        icon: 'radio-button-on-outline' as const,
+      },
+      {
+        value: 'paused' as const,
+        label: 'Paused',
+        count: pausedRoleCount,
+        accent: 'primary' as const,
+        icon: 'pause-circle-outline' as const,
+      },
+    ],
+    [liveRoleCount, pausedRoleCount],
+  );
+
+  useEffect(() => {
+    if (liveRoleCount === 0 && pausedRoleCount > 0 && jobStatusFilter === 'live') {
+      setJobStatusFilter('paused');
+    }
+  }, [jobStatusFilter, liveRoleCount, pausedRoleCount]);
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: {
@@ -133,26 +187,29 @@ export default function ClinicPostingsScreen() {
   const load = useCallback(async () => {
     if (!clinicId) {
       setJobs([]);
+      setApplications([]);
+      setLoadError(false);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
+    setLoadError(false);
     try {
-      const [jobPosts, counts] = await Promise.all([
+      const [jobPosts, counts, applicationRows] = await Promise.all([
         listJobPosts(clinicId, { locationIds: scopedLocationIds }),
         getJobPostApplicationCountsMap(clinicId),
+        listClinicApplications(clinicId, 'active', { locationIds: scopedLocationIds }),
       ]);
       setJobs(jobPosts);
       setApplicantCounts(counts);
+      setApplications(applicationRows);
       await refreshBilling();
-    } catch (error) {
+    } catch {
       setJobs([]);
       setApplicantCounts({});
-      Alert.alert(
-        'Could not load roles',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      setApplications([]);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -224,6 +281,13 @@ export default function ClinicPostingsScreen() {
             />
           ) : null}
 
+          {loadError ? (
+            <DashboardErrorBanner
+              message="Could not load roles."
+              onRetry={() => void load()}
+            />
+          ) : null}
+
         {showRoleControls ? (
           <ListSearchFilterRow
             value={searchQuery}
@@ -231,11 +295,11 @@ export default function ClinicPostingsScreen() {
             placeholder="Search role title or type"
             accessibilityLabel="Search roles"
             filter={
-              <RolePostingFilters
-                statusFilter={jobStatusFilter}
+              <RoleTypeFilters
                 roleTypeFilter={jobRoleTypeFilter}
-                onStatusChange={setJobStatusFilter}
                 onRoleTypeChange={setJobRoleTypeFilter}
+                accessibilityLabel="Filter roles"
+                sheetTitle="Filter roles"
               />
             }
           />
@@ -243,7 +307,7 @@ export default function ClinicPostingsScreen() {
 
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
-        ) : (
+        ) : loadError ? null : (
           <>
             {jobs.length === 0 ? (
               <EmptyState
@@ -257,45 +321,63 @@ export default function ClinicPostingsScreen() {
                 title="No active roles"
                 message="Paused and live roles appear here. View role history for archived and filled roles."
               />
-            ) : filteredJobs.length === 0 ? (
-              <EmptyState
-                icon="filter-outline"
-                title={
-                  hasSearch || hasActiveFilters
-                    ? 'No roles match your search'
-                    : 'No roles in this filter'
-                }
-                message={
-                  hasSearch || hasActiveFilters
-                    ? 'Try a different search or filter, or publish a new role.'
-                    : 'Try a different filter or publish a new role.'
-                }
-              />
             ) : (
-              <View style={styles.cardList}>
-                <StaggeredList>
-                  {filteredJobs.map((job) => (
-                    <RolePostingCard
-                      key={job.id}
-                      job={job}
-                      applicantCount={applicantCounts[job.id] ?? 0}
-                      onPress={() => router.push(getJobDetailRoute(job.id))}
-                      onApplicantsPress={() =>
-                        router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
-                      }
-                      manage={
-                        user?.id
-                          ? {
-                              clinicId: clinicId ?? user.id,
-                              onUpdated: handleJobUpdated,
-                              onDeleted: () => handleJobDeleted(job.id),
-                            }
-                          : undefined
-                      }
-                    />
-                  ))}
-                </StaggeredList>
-              </View>
+              <FileTabWell
+                tabs={roleStatusTabs}
+                selected={jobStatusFilter}
+                onSelect={setJobStatusFilter}>
+                {filteredJobs.length === 0 ? (
+                  <EmptyState
+                    embedded
+                    icon="filter-outline"
+                    title={
+                      hasSearch || hasActiveFilters
+                        ? 'No roles match your search'
+                        : jobStatusFilter === 'live'
+                          ? 'No live roles'
+                          : 'No paused roles'
+                    }
+                    message={
+                      hasSearch || hasActiveFilters
+                        ? 'Try a different search or filter, or publish a new role.'
+                        : jobStatusFilter === 'live'
+                          ? 'Publish a new role or check the Paused tab.'
+                          : 'Paused roles will appear here when you pause a live posting.'
+                    }
+                  />
+                ) : (
+                  <View style={styles.cardList}>
+                    <ResponsiveGrid>
+                      {filteredJobs.map((job) => (
+                        <RolePostingCard
+                          key={job.id}
+                          job={job}
+                          applicantCount={applicantCounts[job.id] ?? 0}
+                          applicants={applicantPreviewByJobId[job.id]}
+                          onPress={() => router.push(getJobDetailRoute(job.id))}
+                          onApplicantsPress={() =>
+                            router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
+                          }
+                          onApplicantPress={(applicationId) =>
+                            router.push(
+                              getClinicApplicationRoute(applicationId, 'postings-tab', job.id),
+                            )
+                          }
+                          manage={
+                            user?.id
+                              ? {
+                                  clinicId: clinicId ?? user.id,
+                                  onUpdated: handleJobUpdated,
+                                  onDeleted: () => handleJobDeleted(job.id),
+                                }
+                              : undefined
+                          }
+                        />
+                      ))}
+                    </ResponsiveGrid>
+                  </View>
+                )}
+              </FileTabWell>
             )}
 
             {hasRoleHistory ? (

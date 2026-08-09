@@ -1,5 +1,24 @@
-import { useEffect, useRef } from 'react';
-import { Animated } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated } from 'react-native';
+
+/** Tracks the OS reduce-motion setting. */
+export function usePrefersReducedMotion() {
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (!cancelled) setReduceMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, []);
+
+  return reduceMotion;
+}
 
 /** Cross-platform pulse for skeleton placeholders. */
 export function usePulseOpacity() {

@@ -9,6 +9,7 @@ import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationS
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { WorkerClinicDetailView } from '@/components/worker/WorkerClinicDetailView';
+import { useToast } from '@/contexts/ToastContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   getWorkerApplicationMessagesRoute,
@@ -32,6 +33,7 @@ export function WorkerConfirmedFillInDetail({
   hasUnreadMessages = false,
   onCancelled,
 }: WorkerConfirmedFillInDetailProps) {
+  const { showToast } = useToast();
   const [isCancelling, setIsCancelling] = useState(false);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -75,9 +77,8 @@ export function WorkerConfirmedFillInDetail({
         try {
           await cancelConfirmedFillIn(application.id);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Shift cancelled', 'Your confirmed fill-in has been cancelled.', [
-            { text: 'OK', onPress: () => onCancelled?.() },
-          ]);
+          onCancelled?.();
+          showToast('Your confirmed fill-in has been cancelled.', 'success');
         } catch (error) {
           Alert.alert(
             'Could not cancel shift',

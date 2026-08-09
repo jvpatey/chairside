@@ -1,15 +1,15 @@
 import {
   SPECIALTY_OPTIONS,
-  SOFTWARE_OPTIONS,
   TEAM_SIZE_RANGE_OPTIONS,
-  resolveSoftwareSelection,
   type ClinicSpecialty,
   type TeamSizeRange,
 } from '@chairside/config';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { SoftwareUsedSelector } from '@/components/clinic/SoftwareUsedSelector';
 import { AuthField } from '@/components/onboarding/AuthField';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { useThemedStyles } from '@/theme';
 
@@ -33,34 +33,35 @@ type ClinicLocationFormFieldsProps = {
   values: ClinicLocationPracticeFields;
   onChange: (next: ClinicLocationPracticeFields) => void;
   showValidation?: boolean;
+  softwareRequired?: boolean;
 };
 
 export function ClinicLocationFormFields({
   values,
   onChange,
   showValidation = false,
+  softwareRequired = false,
 }: ClinicLocationFormFieldsProps) {
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     section: { gap: spacing.sm },
-    label: {
-      ...typography.body,
-      fontWeight: '600' as const,
-    },
-    hint: typography.subtitle,
   }));
 
   return (
     <View style={styles.section}>
       <AuthField
-        label="Phone (optional)"
+        label="Phone"
         placeholder={PHONE_NUMBER_PLACEHOLDER}
         value={values.phone}
         onChangeText={(text) => onChange({ ...values, phone: formatPhoneNumber(text) })}
         keyboardType="phone-pad"
+        icon="call-outline"
       />
       <View style={styles.section}>
-        <Text style={styles.label}>Specialty</Text>
-        <Text style={styles.hint}>Defaults to General dentistry if unchanged.</Text>
+        <FormSectionHeader
+          icon="medkit-outline"
+          label="Specialty"
+          hint="Defaults to General dentistry if unchanged."
+        />
         <ChipSelector
           options={SPECIALTY_OPTIONS}
           selected={values.specialty}
@@ -68,14 +69,15 @@ export function ClinicLocationFormFields({
         />
       </View>
       <AuthField
-        label="Operatories (optional)"
+        label="Operatories"
         placeholder="4"
         value={values.operatories}
         onChangeText={(text) => onChange({ ...values, operatories: text })}
         keyboardType="number-pad"
+        icon="grid-outline"
       />
       <View style={styles.section}>
-        <Text style={styles.label}>Team size (optional)</Text>
+        <FormSectionHeader icon="people-outline" label="Team size" />
         <ChipSelector
           options={TEAM_SIZE_RANGE_OPTIONS}
           selected={values.teamSizeRange}
@@ -84,23 +86,12 @@ export function ClinicLocationFormFields({
           }
         />
       </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Software used</Text>
-        <ChipSelector
-          options={SOFTWARE_OPTIONS.map((item) => ({ value: item, label: item }))}
-          selected={values.softwareUsed}
-          multiple
-          onChange={(value) =>
-            onChange({
-              ...values,
-              softwareUsed: resolveSoftwareSelection(values.softwareUsed, value as string[]),
-            })
-          }
-        />
-        {showValidation && values.softwareUsed.length === 0 ? (
-          <Text style={styles.hint}>Select at least one software system.</Text>
-        ) : null}
-      </View>
+      <SoftwareUsedSelector
+        value={values.softwareUsed}
+        onChange={(softwareUsed) => onChange({ ...values, softwareUsed })}
+        required={softwareRequired}
+        showValidation={showValidation}
+      />
     </View>
   );
 }

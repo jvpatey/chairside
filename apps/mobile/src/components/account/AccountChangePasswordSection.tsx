@@ -5,12 +5,17 @@ import { Alert, Platform, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { PasswordRequirements } from '@/components/onboarding/PasswordRequirements';
 import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { userHasEmailPasswordLogin } from '@/lib/authProviders';
 import { PASSWORD_RESET_SENT_MESSAGE } from '@/lib/passwordResetCopy';
+import {
+  evaluatePassword,
+  getPasswordPlaceholder,
+  getPasswordTooShortMessage,
+  passwordsMatch,
+} from '@/lib/passwordPolicy';
 import { useThemedStyles } from '@/theme';
-
-const MIN_PASSWORD_LENGTH = 6;
 
 type AccountChangePasswordSectionProps = {
   user: User;
@@ -64,19 +69,20 @@ export function AccountChangePasswordSection({
   }
 
   const email = user.email?.trim() ?? '';
-  const passwordsMatch = newPassword === confirmPassword;
-  const meetsMinLength = newPassword.length >= MIN_PASSWORD_LENGTH;
+  const passwordEvaluation = evaluatePassword(newPassword, { email });
+  const passwordsDoMatch = passwordsMatch(newPassword, confirmPassword);
   const confirmHasInput = confirmPassword.length > 0;
   const showMatchHint = confirmHasInput;
-  const passwordsValid = meetsMinLength && passwordsMatch && confirmHasInput;
-  const canSubmit = passwordsValid;
+  const canSubmit = passwordEvaluation.isValid && passwordsDoMatch && confirmHasInput;
 
   const handleUpdatePassword = async () => {
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      Alert.alert(
-        'Password too short',
-        `Use at least ${MIN_PASSWORD_LENGTH} characters for your new password.`,
-      );
+    if (passwordEvaluation.maxLengthError) {
+      Alert.alert('Password too long', passwordEvaluation.maxLengthError);
+      return;
+    }
+
+    if (!passwordEvaluation.isValid) {
+      Alert.alert('Password requirements not met', getPasswordTooShortMessage());
       return;
     }
 
@@ -129,13 +135,18 @@ export function AccountChangePasswordSection({
       {showSectionLabel ? <Text style={styles.label}>Password</Text> : null}
       <AuthField
         label="New password"
-        placeholder="At least 6 characters"
+        placeholder={getPasswordPlaceholder()}
         value={newPassword}
         onChangeText={setNewPassword}
         secureTextEntry
         enablePasswordVisibilityToggle
-        validated={meetsMinLength}
+        validated={passwordEvaluation.isValid}
         editable={!busy}
+      />
+      <PasswordRequirements
+        password={newPassword}
+        email={email}
+        evaluation={passwordEvaluation}
       />
       <AuthField
         label="Confirm new password"
@@ -144,17 +155,17 @@ export function AccountChangePasswordSection({
         onChangeText={setConfirmPassword}
         secureTextEntry
         enablePasswordVisibilityToggle
-        validated={passwordsValid}
-        invalid={confirmHasInput && !passwordsMatch}
+        validated={canSubmit}
+        invalid={confirmHasInput && !passwordsDoMatch}
         editable={!busy}
       />
       {showMatchHint ? (
         <Text
           style={[
             styles.matchHint,
-            passwordsMatch ? styles.matchHintSuccess : styles.matchHintError,
+            passwordsDoMatch ? styles.matchHintSuccess : styles.matchHintError,
           ]}>
-          {passwordsMatch ? 'Passwords match' : 'Passwords do not match'}
+          {passwordsDoMatch ? 'Passwords match' : 'Passwords do not match'}
         </Text>
       ) : null}
       <OnboardingButton

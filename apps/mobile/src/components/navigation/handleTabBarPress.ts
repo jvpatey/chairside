@@ -35,19 +35,19 @@ export function handleTabBarPress({
 
   const tabRootHref = getTabRootHref(route.name, role);
 
-  if (tabRootHref) {
-    const shouldResetToRoot = !isFocused || !isTabRootPath(pathname, route.name, role);
-    if (shouldResetToRoot) {
+  // Re-tap focused tab: pop nested stack back to that tab's root.
+  if (isFocused) {
+    if (tabRootHref && !isTabRootPath(pathname, route.name, role)) {
       router.replace(tabRootHref);
-      return;
     }
     return;
   }
 
-  if (!isFocused) {
-    navigation.dispatch({
-      ...CommonActions.navigate(route.name),
-      target: state.key,
-    });
-  }
+  // Switching tabs: use navigate so sibling tab state stays mounted.
+  // router.replace here remounts the navigator destination and can snap to the
+  // first declared tab (Roles) after a web remount.
+  navigation.dispatch({
+    ...CommonActions.navigate(route.name),
+    target: state.key,
+  });
 }

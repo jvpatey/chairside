@@ -2,7 +2,7 @@ export type TabAtmosphereRole = 'worker' | 'clinic';
 
 export type TabAtmosphereIntensity = 'none' | 'subtle' | 'prominent';
 
-export type TabAtmosphereAccent = 'primary' | 'secondary';
+export type TabAtmosphereAccent = 'primary' | 'secondary' | 'tertiary';
 
 const WORKER_MAIN_TABS = new Set(['browse', 'applications', 'calendar', 'fillins', 'messages']);
 const CLINIC_MAIN_TABS = new Set(['postings', 'discover', 'applications', 'calendar', 'fill-ins', 'messages']);
@@ -29,7 +29,6 @@ const CLINIC_STACK_FRAGMENTS = [
   '/shift-applicants/',
   '/role-history',
   '/discover/',
-  '/clinic',
 ] as const;
 
 function normalizePath(pathname: string): string {
@@ -267,30 +266,32 @@ export function getTabAtmosphereIntensityFromPathname(
   const relative = stripTabGroupPrefix(normalized, role);
 
   if (isStackDetailPath(normalized, role)) {
-    return isAtmosphereStackPath(relative) ? 'subtle' : 'none';
+    return 'none';
   }
 
   if (isHomePath(relative)) {
-    return 'prominent';
+    return 'none';
   }
 
   if (isProfilePath(relative)) {
-    return 'subtle';
+    return 'none';
   }
 
   if (isFillInOutreachPath(relative)) {
-    return 'subtle';
+    return 'none';
   }
 
   if (getMainTabFromRelativePath(relative, role)) {
-    return 'subtle';
+    return 'none';
   }
 
   return 'none';
 }
 
 export function getTabAccentForName(tabName: string): TabAtmosphereAccent {
-  return tabName === 'fillins' || tabName === 'fill-ins' ? 'secondary' : 'primary';
+  if (tabName === 'fillins' || tabName === 'fill-ins') return 'secondary';
+  if (tabName === 'applications') return 'tertiary';
+  return 'primary';
 }
 
 export function getTabAtmosphereAccentFromPathname(

@@ -22,6 +22,9 @@ type ApplyAuthSessionInput = {
  * refreshProfile bumps the profile request id while onAuthStateChange is
  * still awaiting getSession. Skipping setSession left AuthContext.session
  * null after a successful sign-in (SetupGate infinite splash).
+ *
+ * Resolves false when a newer apply superseded this one, so the caller can
+ * leave "auth ready" to whichever apply actually settled the session.
  */
 export async function applyAuthSessionFromStorage({
   getSession,
@@ -31,19 +34,20 @@ export async function applyAuthSessionFromStorage({
   setSession,
   setUser,
   clearProfile,
-}: ApplyAuthSessionInput): Promise<void> {
+}: ApplyAuthSessionInput): Promise<boolean> {
   const { session, error } = await getSession();
   if (error) throw error;
-  if (isCancelled()) return;
+  if (isCancelled()) return false;
 
   setSession(session);
   setUser(session?.user ?? null);
 
   if (!session?.user) {
     clearProfile();
-    return;
+    return true;
   }
 
   const requestId = nextProfileRequestId();
   await loadProfile(session.user.id, requestId);
+  return true;
 }

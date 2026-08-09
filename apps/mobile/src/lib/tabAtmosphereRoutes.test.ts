@@ -77,8 +77,10 @@ describe('isTabRootPath', () => {
 });
 
 describe('getTabAccentForName', () => {
-  it('uses primary accent for calendar and secondary for fill-ins', () => {
+  it('maps workflow tabs to their lane accents', () => {
     expect(getTabAccentForName('calendar')).toBe('primary');
+    expect(getTabAccentForName('browse')).toBe('primary');
+    expect(getTabAccentForName('applications')).toBe('tertiary');
     expect(getTabAccentForName('fillins')).toBe('secondary');
     expect(getTabAccentForName('fill-ins')).toBe('secondary');
   });

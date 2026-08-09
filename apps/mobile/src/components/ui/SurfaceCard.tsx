@@ -13,6 +13,7 @@ import {
   webHover,
   webPointer,
   webTileHoverStyles,
+  webCardLiftBase,
 } from '@/lib/webPressableStyles';
 import {
   getSurfaceGradient,
@@ -25,7 +26,7 @@ import {
 
 import { cardMinHeights, type CardPaddingTier } from './cardLayout';
 
-export type SurfaceCardVariant = 'default' | 'success';
+export type SurfaceCardVariant = 'default' | 'success' | 'inner';
 
 type SurfaceCardProps = {
   children: ReactNode;
@@ -38,20 +39,24 @@ type SurfaceCardProps = {
   style?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
   featuredOverlay?: FeaturedListingGradient | null;
+  /** Left accent rail color (semantic category). */
+  accentRailColor?: string;
 };
 
 function SurfaceCardContent({
   children,
   gap,
   contentStyle,
-  styles,
+  contentLayerStyle,
+  contentGapStyle,
 }: {
   children: ReactNode;
   gap: boolean;
   contentStyle?: StyleProp<ViewStyle>;
-  styles: ReturnType<typeof useThemedStyles<{ content: ViewStyle }>>;
+  contentLayerStyle: StyleProp<ViewStyle>;
+  contentGapStyle: StyleProp<ViewStyle>;
 }) {
-  return <View style={[styles.contentLayer, gap && styles.content, contentStyle]}>{children}</View>;
+  return <View style={[contentLayerStyle, gap && contentGapStyle, contentStyle]}>{children}</View>;
 }
 
 export function SurfaceCard({
@@ -65,30 +70,37 @@ export function SurfaceCard({
   style,
   contentStyle,
   featuredOverlay,
+  accentRailColor,
 }: SurfaceCardProps) {
   const { colors, isDark } = useTheme();
   const surfaceGradient = getSurfaceGradient(colors, isDark);
-  const showGradient = isDark && variant === 'default' && !featuredOverlay;
+  const isInner = variant === 'inner';
+  const showGradient = isDark && variant === 'default' && !featuredOverlay && !isInner;
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     card: {
       borderRadius: radii.lg,
       overflow: 'hidden',
-      borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
+      borderWidth: isInner ? 0 : StyleSheet.hairlineWidth,
       borderColor:
         variant === 'success'
           ? `${colors.success}40`
-          : isDark
-            ? colors.separator
-            : 'transparent',
+          : colors.separator,
       ...(padding === 'none' ? null : { padding: padding === 'lg' ? spacing.lg : spacing.md }),
       ...(gap ? { gap: spacing.sm } : null),
       ...(minHeight != null ? { minHeight } : null),
-      ...(elevationLevel !== 'none' ? elevation(elevationLevel) : null),
+      ...(isInner ? null : elevationLevel !== 'none' ? elevation(elevationLevel) : null),
       ...webPointer(onPress ? 'pointer' : 'default'),
+      ...(onPress ? webCardLiftBase() : null),
+      position: 'relative' as const,
     },
     cardDefault: {
-      backgroundColor: variant === 'success' ? `${colors.success}10` : colors.surface,
+      backgroundColor:
+        variant === 'success'
+          ? `${colors.success}10`
+          : isInner
+            ? colors.surface
+            : colors.surface,
     },
     gradient: {
       ...StyleSheet.absoluteFillObject,
@@ -105,6 +117,14 @@ export function SurfaceCard({
     content: {
       gap: spacing.sm,
     },
+    accentRail: {
+      position: 'absolute',
+      left: 0,
+      top: spacing.sm,
+      bottom: spacing.sm,
+      width: 3,
+      borderRadius: 2,
+    },
   }));
 
   const cardStyle = [styles.card, styles.cardDefault, style];
@@ -116,15 +136,23 @@ export function SurfaceCard({
       ) : null}
       {featuredOverlay ? (
         <LinearGradient
-          colors={featuredOverlay.colors}
-          locations={[...featuredOverlay.locations]}
+          colors={featuredOverlay.colors as [string, string, ...string[]]}
+          locations={featuredOverlay.locations as [number, number, ...number[]]}
           start={featuredOverlay.start}
           end={featuredOverlay.end}
           style={styles.gradient}
           pointerEvents="none"
         />
       ) : null}
-      <SurfaceCardContent gap={gap} contentStyle={contentStyle} styles={styles}>
+      {accentRailColor ? (
+        <View style={[styles.accentRail, { backgroundColor: accentRailColor }]} pointerEvents="none" />
+      ) : null}
+      <SurfaceCardContent
+        gap={gap}
+        contentStyle={contentStyle}
+        contentLayerStyle={styles.contentLayer}
+        contentGapStyle={styles.content}
+      >
         {children}
       </SurfaceCardContent>
     </>

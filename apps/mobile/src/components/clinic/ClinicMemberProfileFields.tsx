@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -20,6 +21,7 @@ type ClinicMemberProfileFieldsProps = {
   onRemovePhoto?: () => void;
   showValidation?: boolean;
   nameInvalid?: boolean;
+  displayNameRequired?: boolean;
   /** Compact mode for embedding in setup without photo remove confirm UI extras. */
   showPhotoSection?: boolean;
 };
@@ -41,6 +43,7 @@ export function ClinicMemberProfileFields({
   onRemovePhoto,
   showValidation = false,
   nameInvalid = false,
+  displayNameRequired = false,
   showPhotoSection = true,
 }: ClinicMemberProfileFieldsProps) {
   const { colors } = useTheme();
@@ -53,14 +56,13 @@ export function ClinicMemberProfileFields({
     },
     action: { ...typography.body, color: colors.primary, fontWeight: '600' as const },
     secondary: { ...typography.body, color: colors.labelSecondary },
-    hint: typography.subtitle,
   }));
 
   return (
     <>
       {showPhotoSection && onPickPhoto ? (
         <View style={styles.photoSection}>
-          <Text style={styles.hint}>Profile photo (optional)</Text>
+          <FormSectionHeader icon="camera-outline" label="Profile photo" />
           <Pressable
             onPress={onPickPhoto}
             disabled={isUploadingPhoto}
@@ -93,6 +95,8 @@ export function ClinicMemberProfileFields({
         value={displayName}
         onChangeText={onDisplayNameChange}
         autoCapitalize="words"
+        icon="person-outline"
+        required={displayNameRequired}
         invalid={showValidation && nameInvalid}
       />
       <AuthField
@@ -101,14 +105,16 @@ export function ClinicMemberProfileFields({
         value={title}
         onChangeText={onTitleChange}
         autoCapitalize="words"
+        icon="ribbon-outline"
       />
       <AuthField
-        label="Bio (optional)"
+        label="Bio"
         placeholder="A short note about your role on the team"
         value={bio}
         onChangeText={onBioChange}
         multiline
         autoCapitalize="sentences"
+        icon="document-text-outline"
       />
     </>
   );

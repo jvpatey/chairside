@@ -1,7 +1,6 @@
 import { Children, ReactNode } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { RowDivider } from '@/components/clinic/DetailCard';
 import { useThemedStyles } from '@/theme';
 import { getElevationStyle } from '@/theme/tokens';
 
@@ -10,14 +9,15 @@ type ProfileSettingsGroupProps = {
 };
 
 export function ProfileSettingsGroup({ children }: ProfileSettingsGroupProps) {
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
+      gap: spacing.xs,
       ...getElevationStyle({ isDark, level: 'subtle' }),
     },
   }));
@@ -27,10 +27,7 @@ export function ProfileSettingsGroup({ children }: ProfileSettingsGroupProps) {
   return (
     <View style={styles.card}>
       {items.map((child, index) => (
-        <View key={index}>
-          {child}
-          {index < items.length - 1 ? <RowDivider /> : null}
-        </View>
+        <View key={index}>{child}</View>
       ))}
     </View>
   );

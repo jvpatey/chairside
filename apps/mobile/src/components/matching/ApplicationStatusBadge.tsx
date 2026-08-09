@@ -69,13 +69,13 @@ function useStatusVariantPalette(variant: ApplicationStatusVariant) {
 
   switch (variant) {
     case 'viewed':
-      return { color: colors.secondary, backgroundColor: colors.secondarySubtle };
+      return { color: colors.tertiary, backgroundColor: colors.tertiarySubtle };
     case 'inProgress':
       return { color: colors.info, backgroundColor: `${colors.info}18` };
     case 'interviewOffered':
       return { color: colors.warning, backgroundColor: `${colors.warning}18` };
     case 'interviewScheduled':
-      return { color: colors.secondary, backgroundColor: colors.secondarySubtle };
+      return { color: colors.tertiary, backgroundColor: colors.tertiarySubtle };
     case 'screening':
       return { color: colors.warning, backgroundColor: `${colors.warning}18` };
     case 'rejected':
@@ -87,6 +87,17 @@ function useStatusVariantPalette(variant: ApplicationStatusVariant) {
     default:
       return { color: colors.primary, backgroundColor: colors.primarySubtle };
   }
+}
+
+function useWorkerStatusVariantPalette(variant: ApplicationStatusVariant) {
+  const { colors } = useTheme();
+  const palette = useStatusVariantPalette(variant);
+
+  if (variant === 'applied') {
+    return { color: colors.tertiary, backgroundColor: colors.tertiarySubtle };
+  }
+
+  return palette;
 }
 
 type ApplicationStatusBadgeProps = {
@@ -111,6 +122,10 @@ type WorkerApplicationStatusBadgeProps = {
   postType: ApplicationPostType;
   statusNote?: string | null;
   statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
+  /** Override the default short pipeline label (e.g. list-card headline). */
+  label?: string;
+  /** Prefix with "Status: " for list-card clarity. */
+  showStatusPrefix?: boolean;
 };
 
 export function WorkerApplicationStatusBadge({
@@ -128,10 +143,15 @@ export function WorkerApplicationStatusBadge({
         })
       : formatApplicationStatus(status, postType);
 
+  const variant = getWorkerApplicationStatusVariant(status, postType);
+  const palette = useWorkerStatusVariantPalette(variant);
+
   return (
-    <ApplicationStatusBadge
+    <PillBadge
       label={label}
-      variant={getWorkerApplicationStatusVariant(status, postType)}
+      color={palette.color}
+      backgroundColor={palette.backgroundColor}
+      showDot
     />
   );
 }
@@ -141,17 +161,30 @@ export function WorkerApplicationStatusLabel({
   postType,
   statusNote,
   statusClosedBy,
+  label: labelOverride,
+  showStatusPrefix = false,
 }: WorkerApplicationStatusBadgeProps) {
+  const { colors } = useTheme();
   const variant = getWorkerApplicationStatusVariant(status, postType);
-  const palette = useStatusVariantPalette(variant);
+  const palette = useWorkerStatusVariantPalette(variant);
   const label =
-    postType === 'shift'
+    labelOverride ??
+    (postType === 'shift'
       ? formatWorkerShiftApplicationStatus({
           status,
           status_note: statusNote,
           status_closed_by: statusClosedBy,
         })
-      : formatApplicationStatus(status, postType);
+      : formatApplicationStatus(status, postType));
+
+  if (showStatusPrefix) {
+    return (
+      <Text style={{ fontSize: 13, lineHeight: 18 }} numberOfLines={2}>
+        <Text style={{ fontWeight: '500', color: colors.labelSecondary }}>Status: </Text>
+        <Text style={{ fontWeight: '600', color: palette.color }}>{label}</Text>
+      </Text>
+    );
+  }
 
   return (
     <Text
@@ -183,6 +216,7 @@ export function ClinicApplicationStatusBadge({
   applicationKitSubmittedAt,
   statusClosedBy,
 }: ClinicApplicationStatusBadgeProps) {
+  const { colors } = useTheme();
   const label =
     status === 'screening_submitted'
       ? formatClinicScreeningStatus({
@@ -198,10 +232,19 @@ export function ClinicApplicationStatusBadge({
           })
         : formatClinicApplicationStatus(status, postType);
 
+  const variant = getClinicApplicationStatusVariant(status, postType);
+  const palette = useStatusVariantPalette(variant);
+  const resolvedPalette =
+    variant === 'applied'
+      ? { color: colors.tertiary, backgroundColor: colors.tertiarySubtle }
+      : palette;
+
   return (
-    <ApplicationStatusBadge
+    <PillBadge
       label={label}
-      variant={getClinicApplicationStatusVariant(status, postType)}
+      color={resolvedPalette.color}
+      backgroundColor={resolvedPalette.backgroundColor}
+      showDot
     />
   );
 }

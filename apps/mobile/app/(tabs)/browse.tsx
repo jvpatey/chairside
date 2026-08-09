@@ -13,12 +13,13 @@ import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewTogg
 import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { Screen } from '@/components/ui/Screen';
-import { PageTabBar } from '@/components/ui/PageTabBar';
+import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { WorkerClinicsDirectoryIconButton } from '@/components/worker/WorkerClinicsDirectoryEntryCard';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,7 +29,7 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { IS_WEB } from '@/lib/webPressableStyles';
-import { ROLES_BROWSE_MODE_OPTIONS, type RolesBrowseMode, type WorkerBrowseViewMode } from '@/lib/postingFilters';
+import { type RolesBrowseMode, type WorkerBrowseViewMode } from '@/lib/postingFilters';
 import {
   DEFAULT_WORKER_ROLE_BROWSE_FILTERS,
   filterAndSortLiveJobs,
@@ -99,6 +100,7 @@ export default function BrowseScreen() {
   );
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [controlsHeight, setControlsHeight] = useState(132);
   const { height: windowHeight } = useWindowDimensions();
   const { isWide } = useResponsiveLayout();
@@ -107,6 +109,7 @@ export default function BrowseScreen() {
 
   const load = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(false);
     try {
       const [jobRows, appliedIds, savedIds] = await Promise.all([
         listLiveJobPosts(province),
@@ -120,6 +123,7 @@ export default function BrowseScreen() {
       setJobs([]);
       setAppliedJobIds(new Set());
       setSavedJobIds(new Set());
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -292,16 +296,35 @@ export default function BrowseScreen() {
 
   const showBrowseControls = !isLoading && jobs.length > 0;
 
+  const browseTabs = useMemo(
+    () => [
+      {
+        value: 'open' as const,
+        label: 'Open',
+        count: openJobs.length,
+        accent: 'primary' as const,
+        icon: 'briefcase-outline' as const,
+      },
+      {
+        value: 'applied' as const,
+        label: 'Applied',
+        count: appliedJobs.length,
+        accent: 'primary' as const,
+        icon: 'checkmark-circle-outline' as const,
+      },
+      {
+        value: 'saved' as const,
+        label: 'Saved',
+        count: savedJobs.length,
+        accent: 'primary' as const,
+        icon: 'bookmark-outline' as const,
+      },
+    ],
+    [appliedJobs.length, openJobs.length, savedJobs.length],
+  );
+
   const browseControls = showBrowseControls ? (
     <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
-      <View style={styles.controlRow}>
-        <PageTabBar
-          options={ROLES_BROWSE_MODE_OPTIONS}
-          selected={selectedMode}
-          onChange={setSelectedMode}
-          density="compact"
-        />
-      </View>
       <View style={styles.searchRow}>
         <View style={styles.searchField}>
           <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
@@ -360,6 +383,7 @@ export default function BrowseScreen() {
   const listContent =
     filteredJobs.length === 0 ? (
       <EmptyState
+        embedded
         icon="filter-outline"
         title="No roles match your search"
         message={
@@ -370,6 +394,7 @@ export default function BrowseScreen() {
       />
     ) : tabJobs.length === 0 ? (
       <DashboardEmptyState
+        embedded
         icon={emptyTabState.icon}
         title={emptyTabState.title}
         message={emptyTabState.message}
@@ -396,9 +421,15 @@ export default function BrowseScreen() {
       onRefresh={onRefresh}
     >
       <View style={styles.wrap}>
+        {loadError ? (
+          <DashboardErrorBanner
+            message="Could not load roles."
+            onRetry={() => void load()}
+          />
+        ) : null}
         {isLoading ? (
           <PageLoadingList message="Loading roles…" />
-        ) : jobs.length === 0 ? (
+        ) : loadError ? null : jobs.length === 0 ? (
           <EmptyState
             icon="briefcase-outline"
             title="No open roles"
@@ -407,18 +438,20 @@ export default function BrowseScreen() {
         ) : (
           <View style={styles.panel}>
             {browseControls}
-            {useWebSplitMap ? (
-              <WorkerBrowseWebLayout showMap list={listContent} map={mapElement} />
-            ) : (
-              <WorkerBrowseViewTransition
-                mode={hasMapResults ? 'map' : 'list'}
-                style={
-                  hasMapResults ? [styles.mapPanel, { height: mapPanelHeight }] : undefined
-                }
-              >
-                {hasMapResults ? mapElement : listContent}
-              </WorkerBrowseViewTransition>
-            )}
+            <FileTabWell tabs={browseTabs} selected={selectedMode} onSelect={setSelectedMode}>
+              {useWebSplitMap ? (
+                <WorkerBrowseWebLayout showMap list={listContent} map={mapElement} />
+              ) : (
+                <WorkerBrowseViewTransition
+                  mode={hasMapResults ? 'map' : 'list'}
+                  style={
+                    hasMapResults ? [styles.mapPanel, { height: mapPanelHeight }] : undefined
+                  }
+                >
+                  {hasMapResults ? mapElement : listContent}
+                </WorkerBrowseViewTransition>
+              )}
+            </FileTabWell>
           </View>
         )}
       </View>

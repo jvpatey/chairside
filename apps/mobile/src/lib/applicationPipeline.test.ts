@@ -6,6 +6,7 @@ import {
   getApplicantFilterCounts,
   getClinicApplicantBadgeVisibility,
   hasApplicantFollowUpScheduled,
+  sortDashboardApplications,
 } from './applicationPipeline';
 
 function makeApplication(
@@ -18,7 +19,7 @@ function makeApplication(
     job_post_id: overrides.job_post_id ?? 'job-1',
     shift_post_id: overrides.shift_post_id ?? null,
     match_score: null,
-    match_tier: null,
+    match_tier: overrides.match_tier ?? null,
     match_breakdown: null,
     cover_message: null,
     worker_display_name: 'Candidate',
@@ -56,8 +57,8 @@ function makeApplication(
     worker_hidden_at: null,
     created_at: overrides.created_at ?? '2026-01-01T12:00:00.000Z',
     updated_at: '2026-01-01T12:00:00.000Z',
-    post_title: 'Hygienist',
-    post_type: 'job',
+    post_title: overrides.post_title ?? 'Hygienist',
+    post_type: overrides.post_type ?? 'job',
     post_role_type: 'hygienist',
     worker_account_deleted: false,
     screening: null,
@@ -170,6 +171,59 @@ describe('filterApplicationsByView follow_up', () => {
     expect(getApplicantFilterCounts(applications).follow_up).toBe(1);
     expect(hasApplicantFollowUpScheduled(blank)).toBe(false);
     expect(hasApplicantFollowUpScheduled(invalid)).toBe(false);
+  });
+});
+
+describe('sortDashboardApplications', () => {
+  it('prioritizes highlighted applications, then match tier and recency', () => {
+    const highlighted = makeApplication({
+      id: 'highlighted',
+      status: 'applied',
+      match_tier: 'none',
+      created_at: '2026-01-01T12:00:00.000Z',
+    });
+    const strongMatch = makeApplication({
+      id: 'strong',
+      status: 'applied',
+      match_tier: 'strong',
+      created_at: '2026-01-03T12:00:00.000Z',
+    });
+    const recent = makeApplication({
+      id: 'recent',
+      status: 'applied',
+      match_tier: 'none',
+      created_at: '2026-01-05T12:00:00.000Z',
+    });
+
+    const sorted = sortDashboardApplications(
+      [recent, strongMatch, highlighted],
+      (application) => application.id === 'highlighted',
+    );
+
+    expect(sorted.map((application) => application.id)).toEqual([
+      'highlighted',
+      'strong',
+      'recent',
+    ]);
+  });
+
+  it('excludes fill-in applications so the dashboard list matches role application counts', () => {
+    const jobApplication = makeApplication({ id: 'job', status: 'applied' });
+    const fillInApplication = makeApplication({
+      id: 'fill-in',
+      status: 'hired',
+      post_type: 'shift',
+      shift_post_id: 'shift-1',
+      job_post_id: null,
+      post_title: 'Fill-in - Jun 28, 2026',
+    });
+
+    const sorted = sortDashboardApplications(
+      [fillInApplication, jobApplication],
+      () => false,
+    );
+
+    expect(sorted.map((application) => application.id)).toEqual(['job']);
   });
 });
 

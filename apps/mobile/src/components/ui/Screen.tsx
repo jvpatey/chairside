@@ -1,7 +1,5 @@
-import { ReactNode } from 'react';
+import { ReactNode, type RefObject } from 'react';
 import {
-  Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -19,18 +17,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { PageHeader, PageHeaderCompactBar, type PageHeaderVariant } from '@/components/ui/PageHeader';
 import { AppText } from '@/components/ui/AppText';
 import { ThemedRefreshControl } from '@/components/ui/ThemedRefreshControl';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
-import { fontSemibold, colorWithAlpha, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
-type ScreenProps = {
+export type ScreenProps = {
+  eyebrow?: string;
   title?: string;
   subtitle?: string;
   children?: ReactNode;
@@ -38,31 +36,39 @@ type ScreenProps = {
   showNotifications?: boolean;
   onBack?: () => void;
   backLabel?: string;
-  /** Renders in the top header row, left of the notification bell. */
   headerAccessory?: ReactNode;
-  /** When true (default), constrain and center content on tablet widths. */
+  headerVariant?: PageHeaderVariant;
   constrainWidth?: boolean;
-  /** When false, use a flex container instead of ScrollView (split-view panes). */
   scroll?: boolean;
-  /** Disable scrolling while keeping the ScrollView layout shell. */
   scrollEnabled?: boolean;
-  /** Fills available height; use with scroll={false} in master/detail panes. */
   fillsContainer?: boolean;
-  /** When false, skip the web fade-in animation (split-view / tab surfaces). */
   animateEntry?: boolean;
-  /** When true, the screen background is transparent (for layered dashboard atmosphere). */
   transparentBackground?: boolean;
-  /** When true, skip the tab atmosphere layer (e.g. master/detail panes paint their own). */
   hideAtmosphere?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
   refreshing?: boolean;
   onRefresh?: () => void;
   refreshAccent?: GradientAccent;
-  /** Collapse the large title into a compact bar while scrolling. */
   collapseHeader?: boolean;
+  scrollRef?: RefObject<ScrollView | null>;
+  scrollContentRef?: RefObject<View | null>;
 };
 
+function resolveHeaderVariant(
+  explicit: PageHeaderVariant | undefined,
+  isTablet: boolean,
+  onBack: (() => void) | undefined,
+  showHeader: boolean,
+): PageHeaderVariant {
+  if (explicit) return explicit;
+  if (!showHeader) return 'hub';
+  if (onBack) return 'detail';
+  if (isTablet) return 'tabletSection';
+  return 'hub';
+}
+
 export function Screen({
+  eyebrow,
   title,
   subtitle,
   children,
@@ -71,6 +77,7 @@ export function Screen({
   onBack,
   backLabel = 'Back',
   headerAccessory,
+  headerVariant,
   constrainWidth = true,
   scroll = true,
   scrollEnabled = true,
@@ -83,10 +90,15 @@ export function Screen({
   onRefresh,
   refreshAccent,
   collapseHeader = true,
+  scrollRef,
+  scrollContentRef,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
-  const collapseLargeTitle = collapseHeader && showHeader && Boolean(title);
+  const { contentMaxWidth, isTablet } = useResponsiveLayout();
+  const variant = resolveHeaderVariant(headerVariant, isTablet, onBack, showHeader);
+  const collapseLargeTitle =
+    collapseHeader && showHeader && Boolean(title) && variant === 'hub';
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -110,7 +122,6 @@ export function Screen({
       ? interpolate(scrollY.value, [56, 112], [0, 1], Extrapolation.CLAMP)
       : 0,
   }));
-  const { contentMaxWidth, isTablet } = useResponsiveLayout();
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
@@ -120,11 +131,11 @@ export function Screen({
   ) : null;
   const containerBackground =
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
-  const showTopBar = showHeader || showNotifications || Boolean(headerAccessory);
+  const showTopBar = showHeader || showNotifications || Boolean(headerAccessory) || Boolean(onBack);
   const topPadding =
     isTablet && !showHeader ? insets.top + TABLET_TOP_INSET_EXTRA : insets.top + 16;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     container: {
       flex: 1,
       overflow: 'hidden',
@@ -149,23 +160,8 @@ export function Screen({
       flexDirection: fillsContainer ? ('column' as const) : undefined,
     },
     header: {
-      gap: spacing.sm,
       marginBottom: spacing.lg,
       ...(fillsContainer ? { flexShrink: 0 } : {}),
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-    },
-    headerText: { flex: 1, minWidth: 0, gap: spacing.sm },
-    titleFlex: { flex: 1, minWidth: 0 },
-    headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      flexShrink: 0,
     },
     headerHidden: {
       marginBottom: 0,
@@ -173,27 +169,8 @@ export function Screen({
     headerCompact: {
       marginBottom: spacing.sm,
     },
-    title: typography.title,
-    subtitle: {
-      ...typography.subtitle,
-      width: '100%',
-    },
-    back: {
-      alignSelf: 'flex-start',
-      paddingVertical: spacing.xs,
-      minHeight: 44,
-      justifyContent: 'center',
-      paddingHorizontal: spacing.xs,
-      marginLeft: -spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    backHovered: webTextLinkHoverStyles(colors),
-    backText: {
-      fontSize: 16,
-      fontWeight: '600',
-      fontFamily: fontSemibold,
-      color: colors.primary,
+    tabletSubtitle: {
+      marginBottom: spacing.md,
     },
     compactHeader: {
       position: 'absolute' as const,
@@ -212,14 +189,6 @@ export function Screen({
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.separator,
     },
-    compactTitle: {
-      flex: 1,
-      fontSize: 17,
-      lineHeight: 22,
-      fontFamily: fontSemibold,
-      fontWeight: '600',
-      color: colors.labelPrimary,
-    },
   }));
 
   const paddingStyle = {
@@ -227,48 +196,25 @@ export function Screen({
     paddingBottom: spacing.lg + tabDockInset,
   };
 
-  const headerInner = (
-    <>
-      {onBack ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={backLabel}
-          onPress={onBack}
-          style={({ pressed, hovered }) => [
-            styles.back,
-            webHover(hovered, pressed, styles.backHovered),
-            pressed && { opacity: 0.75 },
-          ]}
-        >
-          <AppText style={styles.backText}>{backLabel}</AppText>
-        </Pressable>
-      ) : null}
-      {showTopBar ? (
-        <>
-          <View style={styles.headerRow}>
-            {showHeader && title ? (
-              <AppText variant="title" style={[styles.title, styles.titleFlex]}>
-                {title}
-              </AppText>
-            ) : (
-              <View style={styles.headerText} />
-            )}
-            {headerAccessory || showNotifications ? (
-              <View style={styles.headerActions}>
-                {headerAccessory}
-                {showNotifications ? <NotificationBell /> : null}
-              </View>
-            ) : null}
-          </View>
-          {showHeader && subtitle ? (
-            <AppText variant="subtitle" style={styles.subtitle}>
-              {subtitle}
-            </AppText>
-          ) : null}
-        </>
-      ) : null}
-    </>
-  );
+  const pageHeader = showTopBar ? (
+    <PageHeader
+      eyebrow={eyebrow}
+      title={showHeader ? title : undefined}
+      subtitle={variant === 'tabletSection' ? undefined : showHeader ? subtitle : undefined}
+      onBack={onBack}
+      backLabel={backLabel}
+      trailing={headerAccessory}
+      showNotifications={showNotifications}
+      variant={variant}
+    />
+  ) : null;
+
+  const tabletSubtitleBlock =
+    variant === 'tabletSection' && showHeader && subtitle ? (
+      <AppText variant="subtitle" style={styles.tabletSubtitle}>
+        {subtitle}
+      </AppText>
+    ) : null;
 
   const headerBaseStyle = [
     styles.header,
@@ -277,18 +223,19 @@ export function Screen({
   ];
 
   const headerBlock = collapseLargeTitle ? (
-    <Animated.View style={[...headerBaseStyle, largeTitleStyle]}>{headerInner}</Animated.View>
+    <Animated.View style={[...headerBaseStyle, largeTitleStyle]}>{pageHeader}</Animated.View>
   ) : (
-    <View style={headerBaseStyle}>{headerInner}</View>
+    <View style={headerBaseStyle}>{pageHeader}</View>
   );
 
   const compactHeader =
-    collapseHeader && showHeader && title ? (
+    collapseLargeTitle && typeof title === 'string' ? (
       <Animated.View style={[styles.compactHeader, compactHeaderStyle]} pointerEvents="none">
-        <AppText style={styles.compactTitle} numberOfLines={1}>
-          {title}
-        </AppText>
-        {showNotifications ? <NotificationBell /> : null}
+        <PageHeaderCompactBar
+          title={title}
+          showNotifications={showNotifications}
+          trailing={headerAccessory}
+        />
       </Animated.View>
     ) : null;
 
@@ -315,7 +262,9 @@ export function Screen({
             ]}
           >
             {headerBlock}
-            <View style={styles.body}>{children}</View>
+            <View ref={scrollContentRef} style={styles.body}>
+              {children}
+            </View>
           </View>
         </WebPageEnter>
       </View>
@@ -339,7 +288,8 @@ export function Screen({
     children: (
       <WebPageEnter animate={animateEntry}>
         {headerBlock}
-        {children}
+        {tabletSubtitleBlock}
+        <View ref={scrollContentRef}>{children}</View>
       </WebPageEnter>
     ),
   };
@@ -350,12 +300,13 @@ export function Screen({
       {compactHeader}
       {collapseLargeTitle ? (
         <Animated.ScrollView
+          ref={scrollRef as RefObject<Animated.ScrollView>}
           {...scrollViewProps}
           onScroll={onScroll}
           scrollEventThrottle={16}
         />
       ) : (
-        <ScrollView {...scrollViewProps} />
+        <ScrollView ref={scrollRef} {...scrollViewProps} />
       )}
     </View>
   );

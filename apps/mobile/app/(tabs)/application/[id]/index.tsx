@@ -4,8 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
@@ -21,9 +20,11 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import { toCelebrationCandidate } from '@/lib/hiringCelebrationCandidates';
 import {
+  getWorkerApplicationPostingReturnOptions,
   getWorkerJobDetailRoute,
   getWorkerShiftDetailRoute,
   navigateAfterWorkerApplication,
+  type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
@@ -40,7 +41,8 @@ export default function WorkerApplicationDetailScreen() {
   const { isTablet } = useResponsiveLayout();
   const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: string }>();
   const applicationId = typeof id === 'string' ? id : '';
-  const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
+  const resolvedReturnTo =
+    typeof returnTo === 'string' ? (returnTo as WorkerApplicationReturnTarget) : undefined;
   const [application, setApplication] = useState<WorkerApplication | null>(null);
   const [confirmedShift, setConfirmedShift] = useState<WorkerAppliedShiftPost | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
@@ -64,8 +66,11 @@ export default function WorkerApplicationDetailScreen() {
   }, [resolvedReturnTo]);
 
   const handleApplicationRemoved = useCallback(async () => {
-    await refreshPending();
+    setApplication(null);
+    setConfirmedShift(null);
+    setFormError(null);
     goBack();
+    await refreshPending();
   }, [goBack, refreshPending]);
 
   const load = useCallback(async () => {
@@ -120,12 +125,16 @@ export default function WorkerApplicationDetailScreen() {
 
   const handleViewPosting = () => {
     if (!application) return;
+    const postingReturnOptions = getWorkerApplicationPostingReturnOptions(
+      application.id,
+      resolvedReturnTo ?? 'applications-tab',
+    );
     if (application.post_type === 'job' && application.job_post_id) {
-      router.push(getWorkerJobDetailRoute(application.job_post_id));
+      router.push(getWorkerJobDetailRoute(application.job_post_id, postingReturnOptions));
       return;
     }
     if (application.post_type === 'shift' && application.shift_post_id) {
-      router.push(getWorkerShiftDetailRoute(application.shift_post_id));
+      router.push(getWorkerShiftDetailRoute(application.shift_post_id, postingReturnOptions));
     }
   };
 
@@ -138,12 +147,13 @@ export default function WorkerApplicationDetailScreen() {
     : undefined;
 
   const detail = (
-    <OnboardingShell transparentBackground={Platform.OS === 'web' && isTablet}>
-      <AuthScreenHeader
-        title={headerTitle}
-        subtitle={headerSubtitle}
-        onBack={Platform.OS === 'web' && isTablet ? undefined : goBack}
-      />
+    <FormScreen
+      title={headerTitle}
+      subtitle={headerSubtitle}
+      accent="tertiary"
+      onBack={goBack}
+      backLabel={isTablet ? 'Close' : undefined}
+      transparentBackground={Platform.OS === 'web' && isTablet}>
       <View style={styles.content}>
         <FormErrorBanner message={formError} />
         {isLoading ? (
@@ -168,7 +178,7 @@ export default function WorkerApplicationDetailScreen() {
           />
         ) : null}
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 
   if (isTablet) {

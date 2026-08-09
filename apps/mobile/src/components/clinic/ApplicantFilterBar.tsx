@@ -61,6 +61,7 @@ export function ApplicantFilterBar({
         selected={selected}
         onSelect={handleChange}
         density="compact"
+        accent="tertiary"
         accessibilityRole="tab"
       />
     );
@@ -107,8 +108,8 @@ function ApplicantFilterBarScroll({
       ...webPointer(),
     },
     chipActive: {
-      backgroundColor: isDark ? `${colors.primary}28` : colors.primarySubtle,
-      borderColor: isDark ? `${colors.primary}77` : `${colors.primary}55`,
+      backgroundColor: isDark ? `${colors.tertiary}28` : colors.tertiarySubtle,
+      borderColor: isDark ? `${colors.tertiary}77` : `${colors.tertiary}55`,
     },
     chipHovered: {
       backgroundColor: colors.surfaceElevated,
@@ -126,7 +127,7 @@ function ApplicantFilterBarScroll({
       letterSpacing: -0.5,
     },
     valueActive: {
-      color: colors.primary,
+      color: colors.tertiary,
     },
     label: {
       fontSize: 12,
@@ -137,7 +138,7 @@ function ApplicantFilterBarScroll({
       textAlign: 'center',
     },
     labelActive: {
-      color: colors.primary,
+      color: colors.tertiary,
     },
   }));
 

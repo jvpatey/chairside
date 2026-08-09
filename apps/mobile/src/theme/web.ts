@@ -1,4 +1,4 @@
-import { Platform, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import type { Colors } from './colors';
 import { fontBold, fontRegular, fontSemibold } from './fonts';
@@ -125,6 +125,32 @@ export function webGlassSurface(colors: Colors, isDark: boolean): ViewStyle {
   } as ViewStyle);
 }
 
+/** Lighter frosted wash for in-app sticky headers — content shows through while scrolling. */
+export function webStickyHeaderGlass(isDark: boolean, progress = 1): ViewStyle {
+  const clamped = Math.min(Math.max(progress, 0), 1);
+  if (clamped <= 0) {
+    return {
+      backgroundColor: 'transparent',
+      borderBottomColor: 'transparent',
+    };
+  }
+
+  const bgAlpha = isDark ? 0.1 + clamped * 0.32 : 0.08 + clamped * 0.36;
+  const blurPx = 6 + clamped * 14;
+
+  return webOnlyStyle({
+    backgroundColor: isDark
+      ? `rgba(11, 13, 18, ${bgAlpha})`
+      : `rgba(244, 246, 251, ${bgAlpha})`,
+    backdropFilter: `blur(${blurPx}px) saturate(${110 + clamped * 50}%)`,
+    WebkitBackdropFilter: `blur(${blurPx}px) saturate(${110 + clamped * 50}%)`,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: isDark
+      ? `rgba(255, 255, 255, ${clamped * 0.1})`
+      : `rgba(0, 0, 0, ${clamped * 0.07})`,
+  } as ViewStyle);
+}
+
 export function webPageTitleStyle(colors: Colors): TextStyle {
   return {
     ...webTypography.headline,
@@ -146,4 +172,13 @@ export function useWebTypographySafe(): typeof webTypography | null {
 
 export function isWebPlatform(): boolean {
   return Platform.OS === 'web';
+}
+
+/** Subtle dual radial wash shared by auth, role, and setup onboarding surfaces. */
+export function webOnboardingAtmosphereStyle(isDark: boolean): ViewStyle {
+  return webOnlyStyle({
+    backgroundImage: isDark
+      ? 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(74, 154, 255, 0.1) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(152, 150, 255, 0.08) 0%, transparent 50%)'
+      : 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(26, 111, 212, 0.08) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(88, 86, 214, 0.06) 0%, transparent 50%)',
+  } as ViewStyle);
 }

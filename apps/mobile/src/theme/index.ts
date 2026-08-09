@@ -11,11 +11,14 @@ export { fontBold, fontExtraBold, fontRegular, fontSemibold, fontWordmark } from
 export { radii, getElevationStyle, type ElevationLevel } from './tokens';
 export {
   colorWithAlpha,
+  resolveColorAlpha,
   getAtmosphereGradient,
   getDashboardSectionDividerGradient,
   getHeroBandGradient,
   getPrimaryTileGradient,
   getSecondaryTileGradient,
+  getTertiaryTileGradient,
+  getTileGradient,
   getSpotlightGradient,
   getStatCardIdleGradient,
   getStatCardSelectedGradient,

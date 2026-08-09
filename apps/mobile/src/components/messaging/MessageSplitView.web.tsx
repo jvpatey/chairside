@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 
 import { ClinicMessagesInboxPanel } from '@/components/messaging/ClinicMessagesInboxPanel';
 import { MessageContextPanel } from '@/components/messaging/MessageContextPanel.web';
+import { MessageContextPanelSheet } from '@/components/messaging/MessageContextPanelSheet.web';
 import { MessageThread } from '@/components/messaging/MessageThread';
 import { MessageThreadPlaceholder } from '@/components/messaging/MessageThreadPlaceholder';
 import {
@@ -12,6 +13,8 @@ import {
 } from '@/components/messaging/WorkerMessagesMasterPane';
 import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { hideConversation } from '@/lib/conversationHide';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import type { MessageThreadFocus } from '@/lib/routing';
 import { scheduleSplitViewUpdate } from '@/lib/scheduleSplitViewUpdate';
@@ -32,6 +35,10 @@ function renderDetailPane({
   preview,
   threadFocus,
   onConversationChange,
+  onRemoveFromInbox,
+  contextPanelAvailable,
+  contextPanelCollapsed,
+  onToggleContextPanel,
 }: {
   role: 'worker' | 'clinic';
   userId: string | undefined;
@@ -40,6 +47,10 @@ function renderDetailPane({
   preview: ReturnType<typeof getMessageThreadPreview> | null;
   threadFocus?: MessageThreadFocus | null;
   onConversationChange?: (conversation: Conversation) => void;
+  onRemoveFromInbox?: () => Promise<void> | void;
+  contextPanelAvailable?: boolean;
+  contextPanelCollapsed?: boolean;
+  onToggleContextPanel?: () => void;
 }) {
   if (!userId || inboxFilteredEmpty) {
     return <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} embedded />;
@@ -61,6 +72,10 @@ function renderDetailPane({
       scrollToMessageId={threadFocus?.scrollToMessageId}
       highlightQuery={threadFocus?.highlightQuery}
       onConversationChange={onConversationChange}
+      onRemoveFromInbox={onRemoveFromInbox}
+      contextPanelAvailable={contextPanelAvailable}
+      contextPanelCollapsed={contextPanelCollapsed}
+      onToggleContextPanel={onToggleContextPanel}
     />
   );
 }
@@ -71,16 +86,44 @@ export function MessageSplitView({
   masterView = 'inbox',
 }: MessageSplitViewProps) {
   const { user } = useAuth();
+  const { isXWide } = useResponsiveLayout();
   const [selectedId, setSelectedId] = useState<string | null>(initialConversationId ?? null);
   const [threadFocus, setThreadFocus] = useState<MessageThreadFocus | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
+  const [contextCollapsed, setContextCollapsed] = useState(false);
+  const [contextModalVisible, setContextModalVisible] = useState(false);
 
   useEffect(() => {
     if (initialConversationId) {
       setSelectedId(initialConversationId);
     }
   }, [initialConversationId]);
+
+  useEffect(() => {
+    if (isXWide && contextModalVisible) {
+      setContextModalVisible(false);
+    }
+  }, [contextModalVisible, isXWide]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setContextModalVisible(false);
+    }
+  }, [selectedId]);
+
+  const handleToggleContextPanel = useCallback(() => {
+    if (isXWide) {
+      setContextCollapsed((current) => !current);
+      return;
+    }
+    setContextModalVisible((current) => !current);
+  }, [isXWide]);
+
+  const handleContextNavigateAway = useCallback(() => {
+    setContextCollapsed(true);
+    setContextModalVisible(false);
+  }, []);
 
   const handleConversationsChange = useCallback(
     (rows: Conversation[]) => {
@@ -118,6 +161,14 @@ export function MessageSplitView({
   const preview = selectedConversation
     ? getMessageThreadPreview(selectedConversation, role)
     : null;
+
+  const handleRemoveFromInbox = useCallback(async () => {
+    if (!selectedConversation || !user?.id) return;
+    await hideConversation(selectedConversation, role, user.id);
+    setSelectedId(null);
+    setThreadFocus(null);
+    setConversations((current) => current.filter((row) => row.id !== selectedConversation.id));
+  }, [role, selectedConversation, user?.id]);
 
   const handleConversationSelect = useCallback(
     (conversationId: string, focus?: MessageThreadFocus) => {
@@ -182,31 +233,55 @@ export function MessageSplitView({
   );
 
   return (
-    <MasterDetailLayout
-      masterWidth={MASTER_WIDTH}
-      showDetail
-      master={
-        role === 'worker' ? (
-          <WorkerMessagesMasterPane
-            masterView={masterView}
-            inboxProps={inboxProps}
-            onConversationStarted={setSelectedId}
+    <>
+      <MasterDetailLayout
+        masterWidth={MASTER_WIDTH}
+        showDetail
+        contextCollapsed={contextCollapsed}
+        onContextCollapsedChange={setContextCollapsed}
+        master={
+          role === 'worker' ? (
+            <WorkerMessagesMasterPane
+              masterView={masterView}
+              inboxProps={inboxProps}
+              onConversationStarted={setSelectedId}
+            />
+          ) : (
+            <ClinicMessagesInboxPanel {...inboxProps} />
+          )
+        }
+        detail={renderDetailPane({
+          role,
+          userId: user?.id,
+          selectedId,
+          inboxFilteredEmpty: masterView === 'inbox' && inboxFilteredEmpty,
+          preview,
+          threadFocus,
+          onConversationChange: handleConversationChange,
+          onRemoveFromInbox: handleRemoveFromInbox,
+          contextPanelAvailable: Boolean(selectedId),
+          contextPanelCollapsed: isXWide ? contextCollapsed : !contextModalVisible,
+          onToggleContextPanel: selectedId ? handleToggleContextPanel : undefined,
+        })}
+        context={
+          <MessageContextPanel
+            conversation={selectedConversation}
+            role={role}
+            onCollapse={() => setContextCollapsed(true)}
+            onNavigateAway={handleContextNavigateAway}
           />
-        ) : (
-          <ClinicMessagesInboxPanel {...inboxProps} />
-        )
-      }
-      detail={renderDetailPane({
-        role,
-        userId: user?.id,
-        selectedId,
-        inboxFilteredEmpty: masterView === 'inbox' && inboxFilteredEmpty,
-        preview,
-        threadFocus,
-        onConversationChange: handleConversationChange,
-      })}
-      context={<MessageContextPanel conversation={selectedConversation} role={role} />}
-    />
+        }
+      />
+      {!isXWide ? (
+        <MessageContextPanelSheet
+          visible={contextModalVisible}
+          onClose={() => setContextModalVisible(false)}
+          conversation={selectedConversation}
+          role={role}
+          onNavigateAway={handleContextNavigateAway}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -226,6 +301,7 @@ export function MessageThreadSplitView({
   highlightQuery?: string;
 }) {
   const { user } = useAuth();
+  const { isXWide } = useResponsiveLayout();
   const [selectedId, setSelectedId] = useState(conversationId);
   const [threadFocus, setThreadFocus] = useState<MessageThreadFocus | null>(
     scrollToMessageId || highlightQuery
@@ -233,7 +309,34 @@ export function MessageThreadSplitView({
       : null,
   );
   const [inboxFilteredEmpty, setInboxFilteredEmpty] = useState(false);
+  const [contextCollapsed, setContextCollapsed] = useState(false);
+  const [contextModalVisible, setContextModalVisible] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+
+  useEffect(() => {
+    if (isXWide && contextModalVisible) {
+      setContextModalVisible(false);
+    }
+  }, [contextModalVisible, isXWide]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setContextModalVisible(false);
+    }
+  }, [selectedId]);
+
+  const handleToggleContextPanel = useCallback(() => {
+    if (isXWide) {
+      setContextCollapsed((current) => !current);
+      return;
+    }
+    setContextModalVisible((current) => !current);
+  }, [isXWide]);
+
+  const handleContextNavigateAway = useCallback(() => {
+    setContextCollapsed(true);
+    setContextModalVisible(false);
+  }, []);
 
   const handleInboxVisibilityChange = useCallback((state: { isFilteredEmpty: boolean }) => {
     scheduleSplitViewUpdate(() => {
@@ -260,6 +363,17 @@ export function MessageThreadSplitView({
 
   const selectedConversation = conversations.find((row) => row.id === selectedId) ?? null;
 
+  const handleRemoveFromInbox = useCallback(async () => {
+    if (!selectedConversation || !user?.id) return;
+    await hideConversation(selectedConversation, role, user.id);
+    setThreadFocus(null);
+    setConversations((current) => {
+      const next = current.filter((row) => row.id !== selectedConversation.id);
+      setSelectedId(next[0]?.id ?? null);
+      return next;
+    });
+  }, [role, selectedConversation, user?.id]);
+
   const detail =
     !user?.id || inboxFilteredEmpty ? (
       <MessageThreadPlaceholder role={role} filteredEmpty={inboxFilteredEmpty} embedded />
@@ -274,26 +388,50 @@ export function MessageThreadSplitView({
         subtitle={subtitle}
         scrollToMessageId={threadFocus?.scrollToMessageId}
         highlightQuery={threadFocus?.highlightQuery}
+        onRemoveFromInbox={handleRemoveFromInbox}
+        contextPanelAvailable={Boolean(selectedId)}
+        contextPanelCollapsed={isXWide ? contextCollapsed : !contextModalVisible}
+        onToggleContextPanel={selectedId ? handleToggleContextPanel : undefined}
       />
     );
 
   return (
-    <MasterDetailLayout
-      masterWidth={MASTER_WIDTH}
-      showDetail
-      master={
-        role === 'worker' ? (
-          <WorkerMessagesMasterPane
-            masterView="inbox"
-            inboxProps={inboxProps}
-            onConversationStarted={setSelectedId}
+    <>
+      <MasterDetailLayout
+        masterWidth={MASTER_WIDTH}
+        showDetail
+        contextCollapsed={contextCollapsed}
+        onContextCollapsedChange={setContextCollapsed}
+        master={
+          role === 'worker' ? (
+            <WorkerMessagesMasterPane
+              masterView="inbox"
+              inboxProps={inboxProps}
+              onConversationStarted={setSelectedId}
+            />
+          ) : (
+            <ClinicMessagesInboxPanel {...inboxProps} />
+          )
+        }
+        detail={detail}
+        context={
+          <MessageContextPanel
+            conversation={selectedConversation}
+            role={role}
+            onCollapse={() => setContextCollapsed(true)}
+            onNavigateAway={handleContextNavigateAway}
           />
-        ) : (
-          <ClinicMessagesInboxPanel {...inboxProps} />
-        )
-      }
-      detail={detail}
-      context={<MessageContextPanel conversation={selectedConversation} role={role} />}
-    />
+        }
+      />
+      {!isXWide ? (
+        <MessageContextPanelSheet
+          visible={contextModalVisible}
+          onClose={() => setContextModalVisible(false)}
+          conversation={selectedConversation}
+          role={role}
+          onNavigateAway={handleContextNavigateAway}
+        />
+      ) : null}
+    </>
   );
 }

@@ -56,20 +56,32 @@ export function WebDialogShell({
       zIndex: 1,
     },
     panel: {
-      padding: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
       gap: spacing.md,
-      position: 'relative' as const,
+    },
+    panelWithClose: {
+      paddingTop: spacing.sm,
+      gap: spacing.xs,
+    },
+    topChrome: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      height: 32,
+    },
+    body: {
+      gap: spacing.md,
+      width: '100%' as const,
+      alignItems: 'stretch' as const,
     },
     closeButton: {
-      position: 'absolute' as const,
-      top: spacing.md,
-      right: spacing.md,
       width: 32,
       height: 32,
       borderRadius: radii.pill,
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 2,
       ...webPointer(),
     },
     closeButtonHovered: webIconButtonHoverStyles(colors),
@@ -97,22 +109,24 @@ export function WebDialogShell({
           ]}
         >
           <LiquidGlassSurface borderRadius={radii.xxl} style={style}>
-            <View style={styles.panel}>
+            <View style={[styles.panel, showCloseButton && styles.panelWithClose]}>
               {showCloseButton ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                  onPress={onClose}
-                  style={({ pressed, hovered }) => [
-                    styles.closeButton,
-                    webHover(hovered, pressed, styles.closeButtonHovered),
-                    pressed && styles.closeButtonPressed,
-                  ]}
-                >
-                  <Ionicons name="close" size={18} color={colors.labelSecondary} />
-                </Pressable>
+                <View style={styles.topChrome}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
+                    onPress={onClose}
+                    style={({ pressed, hovered }) => [
+                      styles.closeButton,
+                      webHover(hovered, pressed, styles.closeButtonHovered),
+                      pressed && styles.closeButtonPressed,
+                    ]}
+                  >
+                    <Ionicons name="close" size={18} color={colors.labelSecondary} />
+                  </Pressable>
+                </View>
               ) : null}
-              {children}
+              <View style={styles.body}>{children}</View>
             </View>
           </LiquidGlassSurface>
         </Animated.View>

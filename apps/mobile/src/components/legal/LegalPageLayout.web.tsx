@@ -8,6 +8,7 @@ import { legalSectionAnchor } from '@/components/legal/legalSectionAnchor';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
 import { WebMarketingNav } from '@/components/web/marketing/WebMarketingNav.web';
+import { WebPublicHeroAtmosphere } from '@/components/web/marketing/WebPublicHeroAtmosphere.web';
 import type { LegalPageContent } from '@/content/legal/types';
 import { LEGAL_LAST_UPDATED, PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -144,18 +145,6 @@ export function LegalPageLayout({
       paddingBottom: spacing.lg,
       paddingHorizontal: spacing.lg,
     },
-    atmosphere: {
-      position: 'absolute' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      pointerEvents: 'none' as const,
-      // @ts-expect-error web gradient
-      backgroundImage: isDark
-        ? 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(152, 150, 255, 0.12) 0%, transparent 50%)'
-        : 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(88, 86, 214, 0.08) 0%, transparent 50%)',
-    },
     heroInner: {
       maxWidth: CONTENT_MAX_WIDTH.xwide,
       width: '100%' as const,
@@ -263,7 +252,7 @@ export function LegalPageLayout({
         })}
       >
         <View style={styles.hero}>
-          <View style={styles.atmosphere} />
+          <WebPublicHeroAtmosphere />
           <WebPageEnter style={styles.heroInner}>
             <Text style={styles.eyebrow}>Legal</Text>
             <Text style={styles.title}>{content.title}</Text>

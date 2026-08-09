@@ -20,6 +20,7 @@ import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
 import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
 import { formatPostedDateLabel } from '@/lib/dates';
 import {
@@ -48,6 +49,7 @@ type FillInPostingCardProps = {
   onShiftUpdated?: (shift: ShiftPost) => void;
   onShiftDeleted?: () => void;
   accent?: GradientAccent;
+  embedded?: boolean;
 };
 
 export function FillInPostingCard({
@@ -61,12 +63,14 @@ export function FillInPostingCard({
   onShiftUpdated,
   onShiftDeleted,
   accent = 'secondary',
+  embedded = false,
 }: FillInPostingCardProps) {
   const { colors } = useTheme();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment(accent);
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const { clinicProfile, locations } = useClinicProfile();
+  const logoStoragePath = useResolvedClinicLogoPath(shift.location_id);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const locationRecord = locations.find((item) => item.id === shift.location_id);
   const location = [
@@ -125,7 +129,7 @@ export function FillInPostingCard({
     <ClinicPostHeader
       layout="split"
       clinicName={clinicName}
-      logoStoragePath={clinicProfile?.logo_storage_path}
+      logoStoragePath={logoStoragePath}
       title={formatShiftPostRoleTitle(shift.role_type)}
       location={location || null}
       detail={formatShiftPostMeta(shift)}
@@ -159,6 +163,7 @@ export function FillInPostingCard({
       header={header}
       expanded={expanded}
       onToggleExpand={toggleExpanded}
+      variant={embedded ? 'inner' : 'default'}
       accent={accent}
       style={isFeatured ? featuredTreatment.styles.card : undefined}
       featuredGradient={isFeatured ? featuredTreatment.gradient : null}>

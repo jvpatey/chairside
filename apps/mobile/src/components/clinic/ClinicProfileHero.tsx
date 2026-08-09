@@ -2,7 +2,6 @@ import type { ClinicProfile } from '@chairside/api';
 import type { ClinicPlan } from '@chairside/config';
 import { getProvinceLabel, SPECIALTY_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
@@ -12,7 +11,7 @@ import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
-import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
+import { fontBold, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 export type ClinicIdentityHeroCardProps = {
   clinicName: string;
@@ -54,8 +53,7 @@ export function ClinicIdentityHeroCard({
   plan,
   emptyMetaFallback,
 }: ClinicIdentityHeroCardProps) {
-  const { colors, isDark } = useTheme();
-  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
+  const { colors } = useTheme();
   const trimmedIdentity = identityLine?.trim() || null;
 
   const metaLine =
@@ -63,26 +61,23 @@ export function ClinicIdentityHeroCard({
       ? `${specialtyLabel} · ${locationLabel}`
       : specialtyLabel ?? locationLabel ?? emptyMetaFallback ?? null;
 
-  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
-    card: {
-      borderRadius: radii.hero,
-      overflow: 'hidden',
-      borderWidth: isDark ? 1 : 0,
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
+    band: {
+      borderRadius: radii.lg,
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      position: 'relative',
-      ...elevation('subtle'),
-    },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    content: {
+      overflow: 'hidden' as const,
       padding: spacing.lg,
-      alignItems: 'center',
-      gap: spacing.sm,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.md,
     },
     avatarWrap: {
-      marginBottom: spacing.xs,
       position: 'relative' as const,
+      flexShrink: 0,
     },
     editBadge: {
       position: 'absolute' as const,
@@ -97,41 +92,46 @@ export function ClinicIdentityHeroCard({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
+    identity: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.xs,
+    },
     name: {
-      ...typography.title,
-      fontSize: 24,
-      lineHeight: 30,
-      textAlign: 'center',
+      fontSize: 26,
+      lineHeight: 32,
+      fontFamily: fontBold,
+      fontWeight: '700',
+      letterSpacing: -0.4,
+      color: colors.labelPrimary,
     },
     nameIdentity: {
-      fontFamily: typography.subtitle.fontFamily,
+      fontFamily: fontSemibold,
       fontSize: 16,
-      lineHeight: 30,
-      fontWeight: '400',
+      lineHeight: 32,
+      fontWeight: '600',
       color: colors.labelSecondary,
     },
     email: {
-      ...typography.subtitle,
+      ...typography.body,
       fontSize: 14,
-      textAlign: 'center',
+      lineHeight: 20,
+      color: colors.labelSecondary,
     },
     identityLine: {
-      ...typography.subtitle,
-      fontSize: 15,
+      ...typography.body,
+      fontSize: 14,
       lineHeight: 20,
       fontWeight: '500',
-      textAlign: 'center',
       color: colors.labelSecondary,
     },
     meta: {
-      ...typography.subtitle,
+      ...typography.body,
       fontSize: 14,
       lineHeight: 20,
-      textAlign: 'center',
-      marginTop: spacing.xs,
+      color: colors.labelSecondary,
     },
     badgeRow: {
-      justifyContent: 'center',
       marginTop: spacing.xs,
     },
   }));
@@ -141,29 +141,21 @@ export function ClinicIdentityHeroCard({
       <WorkerProfileAvatar
         displayName={personName || clinicName}
         photoUri={logoUri}
-        size={72}
+        size={64}
         isLoading={isUploading}
       />
     ) : (
       <ClinicLogoAvatar
         clinicName={clinicName}
         logoUri={logoUri}
-        size={72}
+        size={64}
         isLoading={isUploading}
       />
     );
 
   return (
-    <View style={styles.card}>
-      <LinearGradient
-        colors={heroGradient}
-        locations={[0, 0.35, 0.65, 0.85, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
-      <View style={styles.content}>
+    <View style={styles.band}>
+      <View style={styles.row}>
         <View style={styles.avatarWrap}>
           {editable ? (
             <Pressable
@@ -183,29 +175,31 @@ export function ClinicIdentityHeroCard({
             avatar
           )}
         </View>
-        <Text style={styles.name} numberOfLines={2}>
-          {clinicName}
-          {identityInline && trimmedIdentity ? (
-            <Text style={styles.nameIdentity}>{` · ${trimmedIdentity}`}</Text>
-          ) : null}
-        </Text>
-        {!identityInline && trimmedIdentity ? (
-          <Text style={styles.identityLine} numberOfLines={1}>
-            {trimmedIdentity}
+        <View style={styles.identity}>
+          <Text style={styles.name} numberOfLines={2}>
+            {clinicName}
+            {identityInline && trimmedIdentity ? (
+              <Text style={styles.nameIdentity}>{` · ${trimmedIdentity}`}</Text>
+            ) : null}
           </Text>
-        ) : null}
-        {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
-        {metaLine ? <Text style={styles.meta}>{metaLine}</Text> : null}
-        {showAccountBadge || plan ? (
-          <View style={styles.badgeRow}>
-            <BadgeRow>
-              {showAccountBadge ? (
-                <AccountTypeBadge label={getAccountTypeLabel('clinic')} inRow />
-              ) : null}
-              {plan ? <PlanTierBadge plan={plan} size="sm" /> : null}
-            </BadgeRow>
-          </View>
-        ) : null}
+          {!identityInline && trimmedIdentity ? (
+            <Text style={styles.identityLine} numberOfLines={2}>
+              {trimmedIdentity}
+            </Text>
+          ) : null}
+          {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
+          {metaLine ? <Text style={styles.meta}>{metaLine}</Text> : null}
+          {showAccountBadge || plan ? (
+            <View style={styles.badgeRow}>
+              <BadgeRow>
+                {showAccountBadge ? (
+                  <AccountTypeBadge label={getAccountTypeLabel('clinic')} inRow />
+                ) : null}
+                {plan ? <PlanTierBadge plan={plan} size="sm" /> : null}
+              </BadgeRow>
+            </View>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -257,7 +251,6 @@ export function ClinicProfileHero({
         .join(', ');
 
   const usePersonAvatar = Boolean(onAvatarPress) || Boolean(memberPhotoUri);
-  // In person mode without a member photo, show initials — not the org logo.
   const avatarUri = memberPhotoUri ?? (usePersonAvatar ? null : logoUri);
   const handleAvatarPress = onAvatarPress ?? (() => void pickLogo());
 

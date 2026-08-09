@@ -136,9 +136,25 @@ export function getClinicPostingLimitReachedMessage(
 
 export function getClinicPlanBrandAccentColor(
   plan: ClinicPlan,
-  colors: { primary: string; secondary: string },
+  colors: { primary: string; secondary: string; success: string; tertiary?: string },
 ): string {
-  return plan === 'pro' || plan === 'group_pro' ? colors.secondary : colors.primary;
+  if (plan === 'pro' || plan === 'group_pro') return colors.secondary;
+  if (plan === 'free') return colors.tertiary ?? colors.success;
+  return colors.primary;
+}
+
+export function getClinicPlanSubtleBackground(
+  plan: ClinicPlan,
+  colors: {
+    primarySubtle: string;
+    secondarySubtle: string;
+    tertiarySubtle: string;
+    fillSubtle: string;
+  },
+): string {
+  if (plan === 'pro' || plan === 'group_pro') return colors.secondarySubtle;
+  if (plan === 'starter' || plan === 'group_starter') return colors.primarySubtle;
+  return colors.tertiarySubtle;
 }
 
 export function getClinicPlanFeatureAccentColor(

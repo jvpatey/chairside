@@ -36,7 +36,96 @@ export type PostingsTabParam = 'roles' | 'fill-ins';
 export type DashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
 export type WorkerBrowseTabParam = 'roles' | 'fill-ins';
 export type WorkerDashboardOverviewParam = 'roles' | 'fill-ins' | 'applications';
-export type ApplyPostType = 'job' | 'shift';
+export type WorkerClinicProfileReturnTarget =
+  | 'messages-tab'
+  | 'job-detail'
+  | 'shift-detail'
+  | 'application-detail';
+
+export type WorkerClinicProfileRouteOptions = {
+  returnTo?: WorkerClinicProfileReturnTarget;
+  conversationId?: string;
+  jobId?: string;
+  shiftId?: string;
+  applicationId?: string;
+  applicationReturnTo?: WorkerApplicationReturnTarget;
+};
+
+function buildPostingReturnParams(options?: WorkerClinicProfileRouteOptions) {
+  if (!options?.returnTo) return {};
+  return {
+    returnTo: options.returnTo,
+    ...(options.conversationId ? { conversationId: options.conversationId } : {}),
+    ...(options.jobId ? { jobId: options.jobId } : {}),
+    ...(options.shiftId ? { shiftId: options.shiftId } : {}),
+    ...(options.applicationId ? { applicationId: options.applicationId } : {}),
+    ...(options.applicationReturnTo ? { applicationReturnTo: options.applicationReturnTo } : {}),
+  };
+}
+
+export function getWorkerApplicationPostingReturnOptions(
+  applicationId: string,
+  applicationReturnTo: WorkerApplicationReturnTarget = 'applications-tab',
+): WorkerClinicProfileRouteOptions {
+  return {
+    returnTo: 'application-detail',
+    applicationId,
+    applicationReturnTo,
+  };
+}
+
+export function getWorkerClinicProfileBackLabel(
+  options?: WorkerClinicProfileRouteOptions,
+): string | undefined {
+  switch (options?.returnTo) {
+    case 'messages-tab':
+      return 'Back to message';
+    case 'job-detail':
+      return 'Back to role';
+    case 'shift-detail':
+      return 'Back to fill-in';
+    case 'application-detail':
+      return 'Back to application';
+    default:
+      return undefined;
+  }
+}
+
+export function parseWorkerClinicProfileReturnParams(params: {
+  returnTo?: string;
+  conversationId?: string;
+  jobId?: string;
+  shiftId?: string;
+  applicationId?: string;
+  applicationReturnTo?: string;
+}): WorkerClinicProfileRouteOptions | undefined {
+  if (params.returnTo === 'messages-tab') {
+    return {
+      returnTo: 'messages-tab',
+      conversationId:
+        typeof params.conversationId === 'string' ? params.conversationId : undefined,
+    };
+  }
+  if (params.returnTo === 'job-detail' && typeof params.jobId === 'string') {
+    return { returnTo: 'job-detail', jobId: params.jobId };
+  }
+  if (params.returnTo === 'shift-detail' && typeof params.shiftId === 'string') {
+    return { returnTo: 'shift-detail', shiftId: params.shiftId };
+  }
+  if (params.returnTo === 'application-detail' && typeof params.applicationId === 'string') {
+    return {
+      returnTo: 'application-detail',
+      applicationId: params.applicationId,
+      applicationReturnTo:
+        typeof params.applicationReturnTo === 'string'
+          ? (params.applicationReturnTo as WorkerApplicationReturnTarget)
+          : undefined,
+    };
+  }
+  return undefined;
+}
+
+export const parseWorkerPostingReturnParams = parseWorkerClinicProfileReturnParams;
 
 export type MessageThreadPreview = {
   conversationId: string;
@@ -50,6 +139,8 @@ export type MessageThreadFocus = Pick<MessageThreadPreview, 'scrollToMessageId' 
 
 export const CLINIC_HOME: Href = '/(clinic-tabs)' as Href;
 export const WORKER_HOME: Href = '/(tabs)' as Href;
+export const CLINIC_HOME_WELCOME: Href = '/(clinic-tabs)?welcome=1' as Href;
+export const WORKER_HOME_WELCOME: Href = '/(tabs)?welcome=1' as Href;
 /** Post-auth role picker when correcting worker vs clinic during incomplete setup. */
 export const ONBOARDING_CHANGE_ROLE: Href = '/(onboarding)/role?fromAuth=1&changeRole=1' as Href;
 export const CLINIC_SETUP_ACCOUNT_TYPE: Href = '/(clinic-setup)/account-type' as Href;
@@ -77,7 +168,6 @@ export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
 export const CLINIC_DISCOVER: Href = '/(clinic-tabs)/discover' as Href;
 export const CLINIC_FIND_AVAILABLE_WORKERS: Href = '/(clinic-tabs)/find-available-workers' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
-export const CLINIC_CLINIC: Href = '/(clinic-tabs)/clinic' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const CLINIC_PROFILE_PRACTICE: Href = '/(clinic-tabs)/profile/practice' as Href;
 export const CLINIC_PROFILE_ABOUT: Href = '/(clinic-tabs)/profile/about' as Href;
@@ -305,13 +395,67 @@ export function getRoleHistoryRoute(): Href {
   return '/(clinic-tabs)/role-history' as Href;
 }
 
-export function getWorkerJobDetailRoute(jobId: string): Href {
-  return { pathname: '/(tabs)/job/[id]', params: { id: jobId } } as unknown as Href;
+export function getWorkerJobDetailRoute(
+  jobId: string,
+  options?: WorkerClinicProfileRouteOptions,
+): Href {
+  return {
+    pathname: '/(tabs)/job/[id]',
+    params: { id: jobId, ...buildPostingReturnParams(options) },
+  } as unknown as Href;
 }
 
-export function getWorkerClinicProfileRoute(clinicId: string): Href {
-  return { pathname: '/(tabs)/clinic/[id]', params: { id: clinicId } } as unknown as Href;
+export function getWorkerClinicProfileRoute(
+  clinicId: string,
+  options?: WorkerClinicProfileRouteOptions,
+): Href {
+  return {
+    pathname: '/(tabs)/clinic/[id]',
+    params: { id: clinicId, ...buildPostingReturnParams(options) },
+  } as unknown as Href;
 }
+
+export function navigateAfterWorkerPostingDetail(
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
+  options?: WorkerClinicProfileRouteOptions,
+) {
+  if (options?.returnTo === 'messages-tab') {
+    if (options.conversationId) {
+      router.replace(getWorkerMessagesRoute(options.conversationId));
+      return;
+    }
+    if (router.canGoBack?.()) {
+      router.back();
+      return;
+    }
+    router.replace(getWorkerMessagesRoute());
+    return;
+  }
+  if (options?.returnTo === 'application-detail' && options.applicationId) {
+    router.replace(
+      getWorkerApplicationRoute(
+        options.applicationId,
+        options.applicationReturnTo ?? 'applications-tab',
+      ),
+    );
+    return;
+  }
+  if (options?.returnTo === 'job-detail' && options.jobId) {
+    router.replace(getWorkerJobDetailRoute(options.jobId));
+    return;
+  }
+  if (options?.returnTo === 'shift-detail' && options.shiftId) {
+    router.replace(getWorkerShiftDetailRoute(options.shiftId));
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(WORKER_BROWSE);
+}
+
+export const navigateAfterWorkerClinicProfile = navigateAfterWorkerPostingDetail;
 
 export function getEditJobRoute(jobId: string): Href {
   return { pathname: '/(clinic-tabs)/post-job', params: { id: jobId } } as Href;
@@ -327,26 +471,45 @@ export function getShiftDetailRoute(
   } as Href;
 }
 
+export type WorkerShiftDetailReturnParam =
+  | WorkerShiftReturnTarget
+  | WorkerClinicProfileRouteOptions;
+
 export function getWorkerShiftDetailRoute(
   shiftId: string,
-  returnTo?: WorkerShiftReturnTarget,
+  returnTo?: WorkerShiftDetailReturnParam,
 ): Href {
+  if (typeof returnTo === 'object' && returnTo.returnTo === 'application-detail') {
+    return {
+      pathname: '/(tabs)/shift/[id]',
+      params: { id: shiftId, ...buildPostingReturnParams(returnTo) },
+    } as unknown as Href;
+  }
+
   return {
     pathname: '/(tabs)/shift/[id]',
-    params: returnTo ? { id: shiftId, returnTo } : { id: shiftId },
+    params:
+      typeof returnTo === 'string'
+        ? { id: shiftId, returnTo }
+        : { id: shiftId },
   } as unknown as Href;
 }
 
 export function navigateAfterWorkerShift(
   router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
   returnTo?: string,
+  postingReturn?: WorkerClinicProfileRouteOptions,
 ) {
+  if (returnTo === 'application-detail' && postingReturn?.applicationId) {
+    navigateAfterWorkerPostingDetail(router, postingReturn);
+    return;
+  }
   if (returnTo === 'fill-ins-tab') {
     router.replace(WORKER_FILLINS);
     return;
   }
   if (returnTo === 'open-fill-ins') {
-    router.replace(WORKER_OPEN_FILLINS);
+    router.replace(WORKER_FILLINS);
     return;
   }
   if (returnTo === 'dashboard-fill-ins') {
@@ -440,6 +603,7 @@ export function getClinicApplicationRoute(
   applicationId: string,
   returnTo?: ClinicApplicationReturnTarget,
   roleJobId?: string,
+  selectJobId?: string,
 ): Href {
   return {
     pathname: '/(clinic-tabs)/application/[id]',
@@ -447,7 +611,17 @@ export function getClinicApplicationRoute(
       id: applicationId,
       returnTo: returnTo ?? '',
       ...(roleJobId ? { roleJobId } : {}),
+      ...(selectJobId ? { selectJobId } : {}),
     },
+  } as unknown as Href;
+}
+
+/** Applications hub; optional jobId re-selects that role in split view. */
+export function getClinicApplicationsRoute(jobId?: string): Href {
+  if (!jobId) return CLINIC_APPLICATIONS;
+  return {
+    pathname: '/(clinic-tabs)/applications',
+    params: { jobId },
   } as unknown as Href;
 }
 
@@ -455,15 +629,18 @@ export function navigateAfterClinicApplication(
   router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
   returnTo?: string,
   roleJobId?: string,
+  selectJobId?: string,
 ) {
-  if (roleJobId) {
-    router.replace(
-      getClinicRoleApplicationsRoute(roleJobId, normalizeApplicantReturnTarget(returnTo)),
-    );
-    return;
-  }
-  if (router.canGoBack?.()) {
-    router.back();
+  // Prefer explicit destinations. Tab navigators (especially on web) often make
+  // router.back() skip Applications and land on the dashboard.
+  if (returnTo === 'applications-tab') {
+    if (roleJobId) {
+      router.replace(
+        getClinicRoleApplicationsRoute(roleJobId, normalizeApplicantReturnTarget(returnTo)),
+      );
+      return;
+    }
+    router.replace(getClinicApplicationsRoute(selectJobId));
     return;
   }
   if (returnTo === 'dashboard-applications') {
@@ -494,7 +671,17 @@ export function navigateAfterClinicApplication(
     router.replace(getClinicCalendarSidebarRoute());
     return;
   }
-  router.replace(CLINIC_APPLICATIONS);
+  if (roleJobId) {
+    router.replace(
+      getClinicRoleApplicationsRoute(roleJobId, normalizeApplicantReturnTarget(returnTo)),
+    );
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(getClinicApplicationsRoute(selectJobId));
 }
 
 export function getWorkerMessagesRoute(conversationId?: string): Href {
@@ -777,7 +964,6 @@ const NOTIFICATION_TAB_ROOT_ROUTES = new Set([
   '/(clinic-tabs)/applications',
   '/(clinic-tabs)/calendar',
   '/(clinic-tabs)/messages',
-  '/(clinic-tabs)/clinic',
   '/(clinic-tabs)/profile',
 ]);
 

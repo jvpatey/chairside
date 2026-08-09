@@ -1,20 +1,23 @@
 import {
   EDUCATION_DEGREE_TYPE_OPTIONS,
   type EducationDegreeType,
+  isNoPostSecondaryEducation,
 } from '@chairside/config';
 import { router } from 'expo-router';
 import { WORKER_SETUP_SKILLS } from '@/lib/routing';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
+import { FormScreen } from '@/components/ui/FormScreen';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
+import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
@@ -27,6 +30,8 @@ export default function WorkerExperienceScreen() {
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
+  const setupFormProps = useSetupFormScreenProps('worker');
+  const progress = useSetupStepProgress('experience', { role: 'worker' });
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [graduationYear, setGraduationYear] = useState('');
   const [degreeType, setDegreeType] = useState<EducationDegreeType | null>(null);
@@ -44,12 +49,10 @@ export default function WorkerExperienceScreen() {
     isEditMode,
   );
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.lg },
     section: { gap: spacing.sm },
-    label: { ...typography.body, fontWeight: '600' },
-    hint: typography.subtitle,
-    educationBlock: { gap: spacing.md },
+    educationDetails: { gap: spacing.md },
   }));
 
   useEffect(() => {
@@ -78,6 +81,7 @@ export default function WorkerExperienceScreen() {
       return;
     }
     if (
+      !isNoPostSecondaryEducation(degreeType) &&
       gradYear != null &&
       (!Number.isFinite(gradYear) || gradYear < 1950 || gradYear > CURRENT_YEAR + 1)
     ) {
@@ -88,12 +92,13 @@ export default function WorkerExperienceScreen() {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
+      const noPostSecondary = isNoPostSecondaryEducation(degreeType);
       await save({
         years_of_experience: years,
-        education_graduation_year: gradYear,
+        education_graduation_year: noPostSecondary ? null : gradYear,
         education_degree_type: degreeType,
-        education_field: fieldOfStudy.trim() || null,
-        education_institution: institution.trim() || null,
+        education_field: noPostSecondary ? null : fieldOfStudy.trim() || null,
+        education_institution: noPostSecondary ? null : institution.trim() || null,
         education: null,
       });
       if (isEditMode) {
@@ -110,9 +115,23 @@ export default function WorkerExperienceScreen() {
 
   if (!isWorkerProfileReady) return null;
 
+  const showEducationDetails = !isNoPostSecondaryEducation(degreeType);
+
+  const handleDegreeTypeChange = (value: EducationDegreeType) => {
+    setDegreeType(value);
+    if (isNoPostSecondaryEducation(value)) {
+      setGraduationYear('');
+      setFieldOfStudy('');
+      setInstitution('');
+    }
+  };
+
   return (
-    <OnboardingShell
-      atmosphere="form"
+    <FormScreen
+      {...setupFormProps}
+      title="Professional background · Experience & education"
+      subtitle="Clinics will receive this with every application."
+      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
           canContinue
@@ -123,57 +142,56 @@ export default function WorkerExperienceScreen() {
           onContinue={handleContinue}
         />
       }>
-      <AuthScreenHeader
-        title="Professional background · Experience & education"
-        subtitle="Clinics will receive this with every application."
-        onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
-      />
-      {!isEditMode ? <SetupStepProgress step={2} total={5} /> : null}
+      {progress.visible ? (
+        <SetupStepProgress step={progress.step} total={progress.total} />
+      ) : null}
       <View style={styles.form}>
         <AuthField
-          label="Years of experience (optional)"
+          label="Years of experience"
           placeholder="Years"
           value={yearsOfExperience}
           onChangeText={setYearsOfExperience}
           keyboardType="number-pad"
+          icon="stats-chart-outline"
         />
 
         <View style={styles.section}>
-          <Text style={styles.label}>Education (optional)</Text>
-          <Text style={styles.hint}>Your highest relevant credential, if applicable.</Text>
-          <View style={styles.educationBlock}>
-            <AuthField
-              label="Graduation year"
-              placeholder="Year"
-              value={graduationYear}
-              onChangeText={setGraduationYear}
-              keyboardType="number-pad"
-            />
-            <View style={styles.section}>
-              <Text style={styles.label}>Degree or credential</Text>
-              <ChipSelector
-                options={[...EDUCATION_DEGREE_TYPE_OPTIONS]}
-                selected={degreeType}
-                onChange={(value) => setDegreeType(value as EducationDegreeType)}
+          <FormSectionHeader icon="school-outline" label="Education" />
+          <ChipSelector
+            options={[...EDUCATION_DEGREE_TYPE_OPTIONS]}
+            selected={degreeType}
+            onChange={(value) => handleDegreeTypeChange(value as EducationDegreeType)}
+          />
+          {showEducationDetails ? (
+            <View style={styles.educationDetails}>
+              <AuthField
+                label="Graduation year"
+                placeholder="Year"
+                value={graduationYear}
+                onChangeText={setGraduationYear}
+                keyboardType="number-pad"
+                icon="calendar-outline"
+              />
+              <AuthField
+                label="Field of study"
+                placeholder="Field of study"
+                value={fieldOfStudy}
+                onChangeText={setFieldOfStudy}
+                autoCapitalize="words"
+                icon="book-outline"
+              />
+              <AuthField
+                label="University or college"
+                placeholder="Institution name"
+                value={institution}
+                onChangeText={setInstitution}
+                autoCapitalize="words"
+                icon="school-outline"
               />
             </View>
-            <AuthField
-              label="Field of study"
-              placeholder="Field of study"
-              value={fieldOfStudy}
-              onChangeText={setFieldOfStudy}
-              autoCapitalize="words"
-            />
-            <AuthField
-              label="University or college"
-              placeholder="Institution name"
-              value={institution}
-              onChangeText={setInstitution}
-              autoCapitalize="words"
-            />
-          </View>
+          ) : null}
         </View>
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

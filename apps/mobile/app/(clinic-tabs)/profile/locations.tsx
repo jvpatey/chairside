@@ -422,8 +422,7 @@ export default function ClinicLocationsSettingsScreen() {
               <SectionPanel
                 key={location.id}
                 icon="business-outline"
-                stepNumber={index + 1}
-                stepAccent={index % 2 === 0 ? 'primary' : 'secondary'}
+                iconAccent={index % 2 === 0 ? 'primary' : 'secondary'}
                 title={location.name}>
                 <FieldBlock label="Address">
                   <FieldValue value={formatLocationAddress(location) || null} />

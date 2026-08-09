@@ -1,8 +1,9 @@
 import { Animated, Text, View } from 'react-native';
 
+import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton';
 import { ListCardSkeleton } from '@/components/ui/skeletons/ListCardSkeleton';
-import { useFadeIn, usePulseOpacity, useSpin } from '@/lib/webMotion.web';
+import { usePulseOpacity } from '@/lib/webMotion.web';
 import { useThemedStyles } from '@/theme';
 
 type PageLoadingSpinnerProps = {
@@ -51,27 +52,20 @@ function LoadingDots({ pulse }: { pulse: Animated.Value }) {
   );
 }
 
-/** Full-screen centered spinner for route gates and auth transitions. */
+/** Full-screen branded loader for route gates and auth transitions. */
 export function PageLoadingSpinner({ message }: PageLoadingSpinnerProps) {
   const pulse = usePulseOpacity();
-  const spin = useSpin();
-  const { opacity, translateY } = useFadeIn();
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.background,
-      gap: spacing.md,
+      backgroundColor: colors.backgroundGrouped,
+      gap: spacing.lg,
     },
-    ring: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      borderWidth: 3,
-      borderColor: colors.primarySubtle,
-      borderTopColor: colors.primary,
+    wordmarkWrap: {
+      alignItems: 'center',
     },
     message: {
       ...typography.subtitle,
@@ -80,15 +74,19 @@ export function PageLoadingSpinner({ message }: PageLoadingSpinnerProps) {
   }));
 
   return (
-    <Animated.View
-      style={[styles.container, { opacity, transform: [{ translateY }] }]}
+    <View
+      style={styles.container}
       accessibilityRole="progressbar"
       accessibilityLabel={message ?? 'Loading'}
     >
-      <Animated.View style={[styles.ring, { opacity: pulse, transform: [{ rotate: spin }] }]} />
+      <View style={styles.wordmarkWrap}>
+        <Animated.View style={{ opacity: pulse }}>
+          <ChairsideWordmark variant="hero" />
+        </Animated.View>
+      </View>
       <LoadingDots pulse={pulse} />
       {message ? <Text style={styles.message}>{message}</Text> : null}
-    </Animated.View>
+    </View>
   );
 }
 

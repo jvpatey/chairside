@@ -15,19 +15,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationKitPreview } from '@/components/worker/ApplicationKitPreview';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { SectionPanel, profileSettingsHintStyle } from '@/components/profile/ProfileDetailBlocks';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_APPLICATION, WORKER_SETUP_BASICS, getApplyScreeningRoute } from '@/lib/routing';
+import { getApplyScreeningRoute, WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_BASICS } from '@/lib/routing';
+import { getApplyApplicationKitEditRoute } from '@/hooks/useSetupEditMode';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import {
   buildLiveJobMatchDisplayContext,
@@ -53,11 +54,11 @@ export default function ApplyScreen() {
   const [isReRequest, setIsReRequest] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     content: { gap: spacing.lg },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
@@ -70,7 +71,7 @@ export default function ApplyScreen() {
     compensation: {
       fontSize: 15,
       fontWeight: '600',
-      color: colors.primary,
+      color: colors.secondary,
     },
     footer: {
       flexDirection: 'row',
@@ -83,7 +84,7 @@ export default function ApplyScreen() {
       alignItems: 'flex-start',
       gap: spacing.md,
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: radii.md,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.md,
@@ -91,7 +92,7 @@ export default function ApplyScreen() {
     screeningIconWrap: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: radii.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primarySubtle,
@@ -108,6 +109,7 @@ export default function ApplyScreen() {
       color: colors.primary,
     },
     screeningText: typography.subtitle,
+    fieldHint: profileSettingsHintStyle({ typography, colors }),
   }));
 
   const loadPost = useCallback(async () => {
@@ -206,18 +208,26 @@ export default function ApplyScreen() {
 
   if (isLoading) {
     return (
-      <OnboardingShell atmosphere="form">
-        <AuthScreenHeader
-          title={type === 'shift' ? 'Request to cover' : 'Apply'}
-          onBack={() => router.back()}
-        />
+      <FormScreen
+        title={type === 'shift' ? 'Request to cover' : 'Apply'}
+        onBack={() => router.back()}
+      >
         <PageLoadingDetail />
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   return (
-    <OnboardingShell atmosphere="form"
+    <FormScreen
+      title={type === 'job' ? 'Apply for role' : isReRequest ? 'Request to cover again' : 'Request to cover'}
+      subtitle={
+        type === 'shift'
+          ? 'Review the profile snapshot and cover note the clinic will receive.'
+          : screeningEnabled
+            ? undefined
+            : 'Review the profile snapshot and cover note the clinic will receive.'
+      }
+      onBack={() => router.back()}
       footer={
         <OnboardingButton
           label={
@@ -234,18 +244,8 @@ export default function ApplyScreen() {
           disabled={isSubmitting}
           onPress={handleContinue}
         />
-      }>
-      <AuthScreenHeader
-        title={type === 'job' ? 'Apply for role' : isReRequest ? 'Request to cover again' : 'Request to cover'}
-        subtitle={
-          type === 'shift'
-            ? 'Review the profile snapshot and cover note the clinic will receive.'
-            : screeningEnabled
-              ? undefined
-              : 'Review the profile snapshot and cover note the clinic will receive.'
-        }
-        onBack={() => router.back()}
-      />
+      }
+    >
       <View style={styles.content}>
         <FormErrorBanner message={formError} />
         {type === 'job' && job ? (
@@ -318,30 +318,39 @@ export default function ApplyScreen() {
               displayName={profile?.display_name}
               photoStoragePath={workerProfile?.photo_storage_path}
               showDefaultNote
+              coverNote={coverMessage}
               title={type === 'shift' ? 'Cover request preview' : 'Application profile preview'}
               hint={
                 type === 'shift'
-                  ? 'This is the profile snapshot and cover note the clinic will receive with your request.'
-                  : 'This is the profile snapshot and cover note the clinic will receive with your application.'
+                  ? 'Your profile snapshot and any message for the clinic below are sent with this request.'
+                  : 'Your profile snapshot and any message for the clinic below are sent with this application.'
               }
               footer={
                 <EditPillButton
                   label="Edit application profile"
-                  onPress={() => router.push(WORKER_SETUP_APPLICATION)}
+                  onPress={() => router.push(getApplyApplicationKitEditRoute(type, id))}
                 />
               }
             />
 
-            <AuthField
-              label="Cover message (optional)"
-              placeholder="Optional message"
-              value={coverMessage}
-              onChangeText={setCoverMessage}
-              multiline
-            />
+            <SectionPanel icon="chatbubble-ellipses-outline" title="Message for clinic">
+              <Text style={styles.fieldHint}>
+                Optional — sent with this application only. Save a reusable default in your
+                application profile.
+              </Text>
+              <AuthField
+                embedded
+                label="Message for clinic"
+                placeholder="Introduce yourself or explain why you're a good fit"
+                value={coverMessage}
+                onChangeText={setCoverMessage}
+                multiline
+                autoCapitalize="sentences"
+              />
+            </SectionPanel>
           </>
         )}
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

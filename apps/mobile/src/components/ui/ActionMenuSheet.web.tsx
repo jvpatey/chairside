@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WebDialogShell } from '@/components/ui/WebDialogShell.web';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
@@ -10,7 +11,7 @@ import {
   webPointer,
 } from '@/lib/webPressableStyles';
 import { radii } from '@/theme/tokens';
-import { useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
 
 import {
@@ -22,6 +23,7 @@ function ActionMenuDialog({
   visible,
   title,
   message,
+  headerContent,
   actions,
   onClose,
 }: ActionMenuSheetProps) {
@@ -29,11 +31,11 @@ function ActionMenuDialog({
   const isConfirmDialog = Boolean(title && actions.length === 1);
   const confirmAction = actions[0];
   const isDestructiveConfirm = Boolean(confirmAction?.destructive);
+  const hasRichHeader = Boolean(headerContent);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     header: {
       gap: spacing.sm,
-      paddingRight: spacing.xl,
     },
     iconWrap: {
       width: 44,
@@ -60,6 +62,24 @@ function ActionMenuDialog({
       gap: spacing.xs,
       width: '100%' as const,
     },
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: spacing.sm + 4,
+      paddingHorizontal: spacing.md,
+      minHeight: 44,
+      width: '100%' as const,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.separator,
+      ...webPointer(),
+    },
+    actionRowLast: {
+      borderBottomWidth: 0,
+    },
+    actionCard: {
+      overflow: 'hidden',
+    },
     action: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -84,19 +104,28 @@ function ActionMenuDialog({
     },
     confirmActions: {
       flexDirection: 'row',
+      alignItems: 'stretch',
       gap: spacing.sm,
       marginTop: spacing.xs,
       width: '100%' as const,
     },
-    confirmButtonWrap: {
-      flex: 1,
-      minWidth: 0,
-    },
-    menuHeader: {
+    menuHeaderRich: {
       gap: spacing.xs,
-      paddingBottom: spacing.sm,
+    },
+    menuHeaderWithTitle: {
       borderBottomWidth: 1,
       borderBottomColor: colors.separator,
+      paddingBottom: spacing.sm,
+    },
+    sectionEyebrow: {
+      fontSize: 11,
+      lineHeight: 14,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+      paddingHorizontal: spacing.xs,
       marginBottom: spacing.xs,
     },
     menuTitle: {
@@ -115,7 +144,7 @@ function ActionMenuDialog({
     <WebDialogShell
       visible={visible}
       onClose={onClose}
-      maxWidth={isConfirmDialog ? 480 : 400}
+      maxWidth={isConfirmDialog ? 480 : hasRichHeader ? 440 : 400}
       showCloseButton={!isConfirmDialog}
       backdropLabel="Close menu"
     >
@@ -133,59 +162,63 @@ function ActionMenuDialog({
             {message ? <Text style={styles.message}>{message}</Text> : null}
           </View>
           <View style={styles.confirmActions}>
-            <View style={styles.confirmButtonWrap}>
-              <OnboardingButton
-                label="Cancel"
-                variant="secondary"
-                onPress={onClose}
-              />
-            </View>
-            <View style={styles.confirmButtonWrap}>
-              <OnboardingButton
-                label={confirmAction.label}
-                variant={confirmAction.destructive ? 'destructive' : 'primary'}
-                onPress={() => {
-                  onClose();
-                  confirmAction.onPress();
-                }}
-              />
-            </View>
+            <OnboardingButton
+              label="Cancel"
+              variant="secondary"
+              split
+              onPress={onClose}
+            />
+            <OnboardingButton
+              label={confirmAction.label}
+              variant={confirmAction.destructive ? 'destructive' : 'primary'}
+              split
+              onPress={() => {
+                onClose();
+                confirmAction.onPress();
+              }}
+            />
           </View>
         </>
       ) : (
         <>
-          {title || message ? (
-            <View style={styles.menuHeader}>
+          {headerContent ? (
+            <View style={styles.menuHeaderRich}>{headerContent}</View>
+          ) : title || message ? (
+            <View style={[styles.menuHeaderRich, styles.menuHeaderWithTitle]}>
               {title ? <Text style={styles.menuTitle}>{title}</Text> : null}
               {message ? <Text style={styles.menuMessage}>{message}</Text> : null}
             </View>
           ) : null}
-          <View style={styles.actionList}>
-            {actions.map((action) => (
-              <Pressable
-                key={action.label}
-                accessibilityRole="button"
-                onPress={() => {
-                  onClose();
-                  action.onPress();
-                }}
-                style={({ pressed, hovered }) => [
-                  styles.action,
-                  webHover(hovered, pressed, styles.actionHovered),
-                  pressed && styles.actionPressed,
-                ]}
-              >
-                {action.icon ?? null}
-                <Text
-                  style={[
-                    styles.actionLabel,
-                    action.destructive && styles.actionDestructive,
+          <View>
+            {hasRichHeader ? <Text style={styles.sectionEyebrow}>Menu</Text> : null}
+            <SurfaceCard padding="none" style={styles.actionCard} elevationLevel="subtle">
+              {actions.map((action, index) => (
+                <Pressable
+                  key={action.label}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    onClose();
+                    action.onPress();
+                  }}
+                  style={({ pressed, hovered }) => [
+                    styles.actionRow,
+                    index === actions.length - 1 && styles.actionRowLast,
+                    webHover(hovered, pressed, styles.actionHovered),
+                    pressed && styles.actionPressed,
                   ]}
                 >
-                  {action.label}
-                </Text>
-              </Pressable>
-            ))}
+                  {action.icon ?? null}
+                  <Text
+                    style={[
+                      styles.actionLabel,
+                      action.destructive && styles.actionDestructive,
+                    ]}
+                  >
+                    {action.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </SurfaceCard>
           </View>
         </>
       )}

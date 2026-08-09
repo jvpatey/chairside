@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AuroraOrbs } from '@/components/onboarding/AuroraOrbs';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
 import {
   FILL_IN_HERO_GRADIENT_LOCATIONS,
   getAtmosphereGradient,
@@ -19,6 +20,8 @@ type PageHeroGlowProps = {
   accent?: GradientAccent;
   /** Drifting orbs — use sparingly on auth/welcome only; most pages should stay static. */
   motion?: boolean;
+  /** Web tablet shell — pin gradient to the viewport so sidebar + content share one wash. */
+  viewportFixed?: boolean;
 };
 
 const VARIANT_CONFIG = {
@@ -44,6 +47,7 @@ export function PageHeroGlow({
   variant = 'form',
   accent = 'primary',
   motion = false,
+  viewportFixed = false,
 }: PageHeroGlowProps) {
   const { colors, isDark } = useTheme();
   const { height } = useWindowDimensions();
@@ -66,9 +70,24 @@ export function PageHeroGlow({
   const gradientStart = { x: 0.5, y: 0 };
   const gradientEnd = { x: 0.5, y: 1 };
 
+  const useFixedViewport = viewportFixed && Platform.OS === 'web';
+
   return (
     <View
-      style={[styles.root, { height: glowHeight }]}
+      style={[
+        styles.root,
+        { height: glowHeight },
+        useFixedViewport &&
+          webOnlyStyle({
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            width: '100vw',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }),
+      ]}
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants">

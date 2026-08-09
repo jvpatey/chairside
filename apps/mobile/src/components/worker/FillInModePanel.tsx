@@ -3,7 +3,6 @@ import {
   normalizePhoneForStorage,
   type FillInNotificationMode,
 } from '@chairside/config';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
@@ -14,7 +13,7 @@ import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
-import { FILL_IN_HERO_GRADIENT_LOCATIONS, getFillInHeroGradient, radii, spacing, useTheme, useThemedStyles } from '@/theme';
+import { radii, spacing, useTheme, useThemedStyles } from '@/theme';
 
 type FillInModePanelProps = {
   showNotificationOptions?: boolean;
@@ -30,23 +29,28 @@ function SettingsSection({
   title,
   children,
   nested = false,
+  embedded = false,
 }: {
   title?: string;
   children: ReactNode;
   nested?: boolean;
+  embedded?: boolean;
 }) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    wrap: nested
+    wrap: embedded
       ? {
-          marginHorizontal: spacing.md,
-          marginBottom: spacing.md,
-        }
-      : {
-          paddingHorizontal: spacing.md,
-          paddingTop: spacing.sm,
-          paddingBottom: spacing.md,
           gap: spacing.xs,
-        },
+        }
+      : nested
+        ? {
+            marginBottom: spacing.sm,
+          }
+        : {
+            paddingHorizontal: spacing.md,
+            paddingTop: spacing.sm,
+            paddingBottom: spacing.md,
+            gap: spacing.xs,
+          },
     panel: nested
       ? {
           backgroundColor: colors.fillSubtle,
@@ -94,7 +98,7 @@ export function FillInModePanel({
   hidePrimaryToggle = false,
   variant = 'card',
 }: FillInModePanelProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const [shortNoticeAvailable, setShortNoticeAvailable] = useState(false);
@@ -115,20 +119,11 @@ export function FillInModePanel({
       overflow: 'hidden',
     },
     grouped: {
-      overflow: 'hidden',
+      gap: spacing.xs,
     },
-    primaryHero: {
-      position: 'relative',
-      overflow: 'hidden',
-      borderTopLeftRadius: radii.lg,
-      borderTopRightRadius: radii.lg,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md,
-    },
-    primaryGradient: {
-      ...StyleSheet.absoluteFillObject,
-      borderTopLeftRadius: radii.lg,
-      borderTopRightRadius: radii.lg,
+    primarySection: {
+      paddingHorizontal: isGrouped ? 0 : spacing.md,
+      paddingVertical: isGrouped ? 0 : spacing.md,
     },
     phoneBlock: { gap: spacing.sm, paddingTop: spacing.sm, paddingBottom: spacing.xs },
     phoneHelper: {
@@ -174,7 +169,6 @@ export function FillInModePanel({
   const phoneNeedsSave = Boolean(phone.trim()) && pendingPhone !== savedPhone;
   const phoneIsSaved = Boolean(savedPhone) && pendingPhone === savedPhone;
   const phoneSaveLabel = hasPhone ? 'Update number' : 'Save number';
-  const fillInHeroGradient = getFillInHeroGradient(colors, isDark);
 
   const persist = async (
     available: boolean,
@@ -321,7 +315,7 @@ export function FillInModePanel({
   const clinicOutreachSection = showExpandedSettings ? (
     <>
       <View style={styles.sectionDivider} />
-      <SettingsSection nested={useNestedSections}>
+      <SettingsSection nested={useNestedSections} embedded={isGrouped}>
         <SettingsToggleRow
           title="Let clinics reach out"
           hint="Clinics in your province can find you and message you about fill-ins."
@@ -353,7 +347,7 @@ export function FillInModePanel({
   const postedFillInAlertsSection = showExpandedSettings ? (
     <>
       <View style={styles.sectionDivider} />
-      <SettingsSection title="Posted fill-in alerts" nested={useNestedSections}>
+      <SettingsSection title="Posted fill-in alerts" nested={useNestedSections} embedded={isGrouped}>
         {NOTIFICATION_MODE_OPTIONS.map((option, index) => {
           const selected = notificationMode === option.value;
           return (
@@ -384,15 +378,7 @@ export function FillInModePanel({
   return (
     <View style={isGrouped ? styles.grouped : styles.card}>
       {hidePrimaryToggle ? null : (
-        <View style={styles.primaryHero}>
-          <LinearGradient
-            colors={fillInHeroGradient}
-            locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.primaryGradient}
-            pointerEvents="none"
-          />
+        <View style={styles.primarySection}>
           <SettingsToggleRow
             prominence="primary"
             title="Available for fill-ins"
@@ -404,6 +390,7 @@ export function FillInModePanel({
             value={shortNoticeAvailable}
             disabled={isSaving}
             accentColor={colors.secondary}
+            bleedPadding={isGrouped ? undefined : spacing.md}
             onValueChange={handleToggle}
           />
         </View>

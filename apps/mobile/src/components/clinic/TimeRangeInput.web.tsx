@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { WebTimeField } from '@/components/clinic/WebDateTimeField.web';
-import { formatTimeRangePreview } from '@/lib/time';
-import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { formatTimeRangePreview, isValidTimeRange } from '@/lib/time';
+import { useThemedStyles, type GradientAccent } from '@/theme';
 
 export type TimeRange = {
   startTime: string;
@@ -16,6 +18,10 @@ type TimeRangeInputProps = {
   schedule: TimeRange;
   onChange: (schedule: TimeRange) => void;
   showPreview?: boolean;
+  required?: boolean;
+  invalid?: boolean;
+  errorMessage?: string;
+  embedded?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
   accent?: GradientAccent;
 };
@@ -26,39 +32,54 @@ export function TimeRangeInput({
   schedule,
   onChange,
   showPreview = false,
+  required = false,
+  invalid = false,
+  errorMessage,
+  embedded = false,
   onPickerOpenChange,
   accent = 'primary',
 }: TimeRangeInputProps) {
+  const { isCompact } = useResponsiveLayout();
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
 
   useEffect(() => {
     onPickerOpenChange?.(startOpen || endOpen);
   }, [startOpen, endOpen, onPickerOpenChange]);
+
+  const rangeInvalid =
+    invalid ||
+    Boolean(
+      schedule.startTime &&
+        schedule.endTime &&
+        !isValidTimeRange(schedule.startTime, schedule.endTime),
+    );
+  const resolvedError =
+    errorMessage ??
+    (rangeInvalid && schedule.startTime && schedule.endTime
+      ? 'End time must be after start time.'
+      : undefined);
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: { gap: spacing.sm },
-    sectionLabel: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
     row: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
+      flexDirection: isCompact ? ('column' as const) : ('row' as const),
+      alignItems: isCompact ? ('stretch' as const) : ('flex-start' as const),
       gap: spacing.sm,
     },
     rowLabel: {
-      width: 36,
+      width: isCompact ? undefined : 36,
       fontSize: 14,
       fontWeight: '600',
       color: colors.labelPrimary,
-      marginTop: 28,
+      marginTop: isCompact ? 0 : 28,
     },
     field: { flex: 1 },
     dash: {
       fontSize: 14,
       color: colors.labelSecondary,
-      marginTop: 28,
+      alignSelf: 'center',
+      marginTop: isCompact ? 0 : 28,
     },
     preview: {
       backgroundColor: colors.fillSubtle,
@@ -72,13 +93,20 @@ export function TimeRangeInput({
       color: colors.labelSecondary,
     },
     previewText: typography.body,
+    error: {
+      ...typography.subtitle,
+      color: colors.destructive,
+      fontSize: 13,
+    },
   }));
 
   const preview = formatTimeRangePreview(schedule.startTime, schedule.endTime);
 
   return (
     <View style={styles.wrap}>
-      {sectionLabel ? <Text style={styles.sectionLabel}>{sectionLabel}</Text> : null}
+      {!embedded && sectionLabel ? (
+        <FormFieldLabel label={sectionLabel} required={required} />
+      ) : null}
       <View style={styles.row}>
         {rowLabel ? <Text style={styles.rowLabel}>{rowLabel}</Text> : null}
         <View style={styles.field}>
@@ -89,9 +117,10 @@ export function TimeRangeInput({
             hint="Tap to select start time"
             onOpenChange={setStartOpen}
             accent={accent}
+            invalid={rangeInvalid}
           />
         </View>
-        <Text style={styles.dash}>–</Text>
+        {!isCompact ? <Text style={styles.dash}>–</Text> : null}
         <View style={styles.field}>
           <WebTimeField
             label="End"
@@ -100,9 +129,11 @@ export function TimeRangeInput({
             hint="Tap to select end time"
             onOpenChange={setEndOpen}
             accent={accent}
+            invalid={rangeInvalid}
           />
         </View>
       </View>
+      {resolvedError ? <Text style={styles.error}>{resolvedError}</Text> : null}
       {showPreview && preview ? (
         <View style={styles.preview}>
           <Text style={styles.previewLabel}>Hours preview</Text>

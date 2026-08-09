@@ -149,17 +149,20 @@ function formatShiftTimeRange(startTime: string, endTime: string): string | null
   return `${start}–${end}`;
 }
 
-function formatShiftDateLabel(isoDate: string): string {
+function formatISODateLabel(isoDate: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim());
   if (!match) return isoDate;
 
   const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return date.toLocaleDateString('en-CA', {
-    weekday: 'short',
+  return date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+function formatShiftDateLabel(isoDate: string): string {
+  return formatISODateLabel(isoDate);
 }
 
 function formatClinicLocation(clinic: { city?: string | null; province?: string | null }): string {
@@ -950,7 +953,7 @@ async function handleApplicationInsert(
       .maybeSingle();
     if (shift) {
       clinicId = shift.clinic_id;
-      postTitle = `Fill-in · ${shift.shift_date}`;
+      postTitle = `Fill-in · ${formatISODateLabel(shift.shift_date as string)}`;
       postType = 'fill-in';
       locationId = (shift.location_id as string | null | undefined) ?? null;
     }

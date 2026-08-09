@@ -29,6 +29,8 @@ type AuthContextValue = {
   user: User | null;
   profile: Profile | null;
   isAuthReady: boolean;
+  /** False while a session exists but profile fetch has not settled yet. */
+  isProfileReady: boolean;
   isPasswordRecoveryPending: boolean;
   refreshProfile: () => Promise<Profile | null>;
   markPasswordRecoveryPending: () => void;
@@ -43,9 +45,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isProfileReady, setIsProfileReady] = useState(false);
   const [isPasswordRecoveryPendingState, setIsPasswordRecoveryPendingState] = useState(false);
   const profileRequestRef = useRef(0);
   const signingOutRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
+  const isProfileReadyRef = useRef(false);
+  const applyGenerationRef = useRef(0);
+
+  useEffect(() => {
+    userIdRef.current = user?.id ?? null;
+  }, [user?.id]);
+
+  useEffect(() => {
+    isProfileReadyRef.current = isProfileReady;
+  }, [isProfileReady]);
 
   const markRecoveryPending = useCallback(() => {
     setIsPasswordRecoveryPendingState(true);
@@ -64,18 +78,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userId = user?.id ?? activeSession?.user?.id;
     if (!userId) {
       setProfile(null);
+      setIsProfileReady(true);
       return null;
     }
 
     const requestId = ++profileRequestRef.current;
+    setIsProfileReady(false);
 
     try {
       const nextProfile = await resolveAuthProfile(userId);
       if (requestId !== profileRequestRef.current) return null;
       setProfile(nextProfile);
+      setIsProfileReady(true);
       return nextProfile;
     } catch {
-      if (requestId === profileRequestRef.current) setProfile(null);
+      if (requestId === profileRequestRef.current) {
+        setProfile(null);
+        setIsProfileReady(true);
+      }
       return null;
     }
   }, [user]);
@@ -84,19 +104,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function loadProfile(userId: string, requestId: number) {
+      setIsProfileReady(false);
       try {
         const nextProfile = await resolveAuthProfile(userId);
         if (cancelled || requestId !== profileRequestRef.current) return;
         setProfile(nextProfile);
+        setIsProfileReady(true);
       } catch {
         if (!cancelled && requestId === profileRequestRef.current) {
           setProfile(null);
+          setIsProfileReady(true);
         }
       }
     }
 
     async function applySessionFromStorage() {
-      await applyAuthSessionFromStorage({
+      const generation = ++applyGenerationRef.current;
+      return applyAuthSessionFromStorage({
         getSession: async () => {
           const supabase = getSupabaseClient();
           const {
@@ -105,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } = await supabase.auth.getSession();
           return { session: currentSession, error: error ? new Error(error.message) : null };
         },
-        isCancelled: () => cancelled,
+        isCancelled: () => cancelled || generation !== applyGenerationRef.current,
         nextProfileRequestId: () => ++profileRequestRef.current,
         loadProfile,
         setSession,
@@ -113,8 +137,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearProfile: () => {
           profileRequestRef.current += 1;
           setProfile(null);
+          setIsProfileReady(true);
         },
       });
+    }
+
+    /**
+     * Auth is only "ready" once the winning apply has settled the session.
+     * On web, auth-js emits SIGNED_IN while cold start is still awaiting
+     * getSession; marking ready after the superseded apply left session null
+     * for a frame, which bounced the setup gates out to onboarding.
+     */
+    async function syncSession() {
+      try {
+        const applied = await applySessionFromStorage();
+        if (!applied) return;
+      } catch {
+        if (cancelled) return;
+        profileRequestRef.current += 1;
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setIsProfileReady(true);
+      }
+
+      if (!cancelled) setIsAuthReady(true);
     }
 
     async function bootstrapAuth() {
@@ -123,18 +170,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) {
           setIsPasswordRecoveryPendingState(recoveryPending);
         }
-
-        await applySessionFromStorage();
       } catch {
-        if (!cancelled) {
-          profileRequestRef.current += 1;
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-        }
-      } finally {
-        if (!cancelled) setIsAuthReady(true);
+        // Recovery flag is best-effort — a storage failure must not block auth.
       }
+
+      await syncSession();
     }
 
     bootstrapAuth();
@@ -143,16 +183,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const supabase = getSupabaseClient();
-      const result = supabase.auth.onAuthStateChange((event) => {
+      const result = supabase.auth.onAuthStateChange((event, nextSession) => {
         if (signingOutRef.current && event !== 'SIGNED_OUT') {
           return;
         }
 
         if (event === 'SIGNED_OUT') {
           profileRequestRef.current += 1;
+          applyGenerationRef.current += 1;
           setSession(null);
           setUser(null);
           setProfile(null);
+          setIsProfileReady(true);
           void clearPasswordRecoveryPending();
           setIsPasswordRecoveryPendingState(false);
           return;
@@ -163,16 +205,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsPasswordRecoveryPendingState(true);
         }
 
-        void applySessionFromStorage();
+        // Cold start is handled by bootstrapAuth — a parallel INITIAL_SESSION
+        // invalidates the in-flight profile fetch and leaves profile null.
+        if (event === 'INITIAL_SESSION') {
+          return;
+        }
+
+        // Browser tab focus often refreshes the JWT. Updating session tokens is enough —
+        // a full profile reload unmounts SetupGate children and resets tabs to Roles.
+        if (event === 'TOKEN_REFRESHED') {
+          if (nextSession) {
+            setSession(nextSession);
+            setUser(nextSession.user);
+          }
+          return;
+        }
+
+        // Same-user SIGNED_IN can fire when the tab regains focus / recovers storage.
+        // Avoid a full profile cascade if we already have this user loaded.
+        if (
+          event === 'SIGNED_IN' &&
+          nextSession?.user?.id &&
+          nextSession.user.id === userIdRef.current &&
+          isProfileReadyRef.current
+        ) {
+          setSession(nextSession);
+          setUser(nextSession.user);
+          return;
+        }
+
+        void syncSession();
       });
       subscription = result.data.subscription;
     } catch {
-      if (!cancelled) setIsAuthReady(true);
+      if (!cancelled) {
+        setIsAuthReady(true);
+        setIsProfileReady(true);
+      }
     }
 
     return () => {
       cancelled = true;
       profileRequestRef.current += 1;
+      applyGenerationRef.current += 1;
       subscription?.unsubscribe();
     };
   }, []);
@@ -188,10 +263,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       await clearRecoveryPending();
       await apiSignOut();
+    } finally {
+      // Clear local state even when a teardown step fails — after an account
+      // deletion the token can no longer be revoked, and keeping the session
+      // here would leave the app rendering a signed-in shell for a dead user.
+      applyGenerationRef.current += 1;
       setSession(null);
       setUser(null);
       setProfile(null);
-    } finally {
+      setIsProfileReady(true);
       signingOutRef.current = false;
     }
   }, [clearRecoveryPending, user?.id]);
@@ -202,6 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       profile,
       isAuthReady,
+      isProfileReady,
       isPasswordRecoveryPending: isPasswordRecoveryPendingState,
       refreshProfile,
       markPasswordRecoveryPending: markRecoveryPending,
@@ -213,6 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       profile,
       isAuthReady,
+      isProfileReady,
       isPasswordRecoveryPendingState,
       refreshProfile,
       markRecoveryPending,

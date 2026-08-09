@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Text, View } from 'react-native';
+import { Text, Animated, View } from 'react-native';
 
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
+import { useConnectorDrawAnimation } from '@/lib/webMotion.web';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
@@ -39,28 +40,79 @@ function connectorGradient(isDark: boolean, direction: '90deg' | '180deg') {
 }
 
 function StepConnector({ horizontal }: { horizontal: boolean }) {
+  const { scaleX, ref } = useConnectorDrawAnimation(120);
+
   const styles = useThemedStyles(({ isDark }) => ({
     horizontal: {
       flex: 1,
       height: CONNECTOR_THICKNESS,
       minWidth: 32,
       alignSelf: 'center' as const,
-      // @ts-expect-error web gradient
+      overflow: 'hidden' as const,
+    },
+    horizontalFill: {
+      width: '100%' as const,
+      height: CONNECTOR_THICKNESS,
       backgroundImage: connectorGradient(isDark, '90deg'),
       borderRadius: CONNECTOR_THICKNESS / 2,
+      ...webOnlyStyle({ transformOrigin: 'left center' } as object),
     },
     vertical: {
       width: CONNECTOR_THICKNESS,
       flex: 1,
       minHeight: 36,
       alignSelf: 'center' as const,
-      // @ts-expect-error web gradient
+      overflow: 'hidden' as const,
+    },
+    verticalFill: {
+      width: CONNECTOR_THICKNESS,
+      height: '100%' as const,
       backgroundImage: connectorGradient(isDark, '180deg'),
       borderRadius: CONNECTOR_THICKNESS / 2,
+      ...webOnlyStyle({ transformOrigin: 'top center' } as object),
     },
   }));
 
-  return <View style={horizontal ? styles.horizontal : styles.vertical} />;
+  if (horizontal) {
+    return (
+      <View style={styles.horizontal}>
+        <Animated.View
+          ref={ref}
+          style={[styles.horizontalFill, { transform: [{ scaleX }] }]}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.vertical}>
+      <Animated.View
+        ref={ref}
+        style={[styles.verticalFill, { transform: [{ scaleY: scaleX }] }]}
+      />
+    </View>
+  );
+}
+
+function AnimatedDesktopConnector({
+  style,
+  delayMs,
+}: {
+  style: object;
+  delayMs: number;
+}) {
+  const { scaleX, ref } = useConnectorDrawAnimation(delayMs);
+
+  return (
+    <Animated.View
+      ref={ref}
+      style={[
+        style,
+        webOnlyStyle({ transformOrigin: 'left center' } as object),
+        { transform: [{ scaleX }] },
+      ]}
+    />
+  );
 }
 
 function StepNode({ number, icon }: { number: string; icon: keyof typeof Ionicons.glyphMap }) {
@@ -135,7 +187,7 @@ function StepContentCard({
   }));
 
   return (
-    <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1, minWidth: 0 }}>
+    <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1, minWidth: 0 }} trigger="visible">
       <View style={styles.card}>
         <Text style={styles.title}>{step.title}</Text>
         <Text style={styles.body}>{step.body}</Text>
@@ -155,8 +207,10 @@ function DesktopTimeline() {
       height: CONNECTOR_THICKNESS,
       borderRadius: CONNECTOR_THICKNESS / 2,
       zIndex: 0,
+      overflow: 'hidden' as const,
       ...webOnlyStyle({
         backgroundImage: connectorGradient(isDark, '90deg'),
+        transformOrigin: 'left center',
       } as object),
     };
 
@@ -202,11 +256,11 @@ function DesktopTimeline() {
   return (
     <>
       <View style={styles.nodeTrack}>
-        <View style={styles.connectorFirst} />
-        <View style={styles.connectorSecond} />
+        <AnimatedDesktopConnector style={styles.connectorFirst} delayMs={80} />
+        <AnimatedDesktopConnector style={styles.connectorSecond} delayMs={180} />
         {STEPS.map((step, index) => (
           <View key={step.number} style={styles.nodeSlot}>
-            <WebPageEnter delayMs={index * 80}>
+            <WebPageEnter delayMs={index * 80} trigger="visible">
               <StepNode number={step.number} icon={step.icon} />
             </WebPageEnter>
           </View>
@@ -246,7 +300,7 @@ function MobileTimeline() {
       {STEPS.map((step, index) => (
         <View key={step.number} style={styles.step}>
           <View style={styles.rail}>
-            <WebPageEnter delayMs={index * 80}>
+            <WebPageEnter delayMs={index * 80} trigger="visible">
               <StepNode number={step.number} icon={step.icon} />
             </WebPageEnter>
             {index < STEPS.length - 1 ? <StepConnector horizontal={false} /> : null}
@@ -277,17 +331,10 @@ export function WebLandingHowItWorks() {
       ...webTypography.headline,
       color: colors.labelPrimary,
     },
-    subtitle: {
-      ...webTypography.subtitle,
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.labelSecondary,
-      marginTop: spacing.xs,
-    },
   }));
 
   return (
-    <WebMarketingSection style={styles.bleed}>
+    <WebMarketingSection style={styles.bleed} sectionId="how-it-works">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>How it works</Text>
         <Text style={styles.title}>Three steps to get started</Text>

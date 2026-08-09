@@ -1,6 +1,8 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View, Platform } from 'react-native';
 
+import { ChipScrollTrack } from '@/components/clinic/ChipScrollTrack';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -12,6 +14,8 @@ type ChipSelectorProps<T extends string> = {
   compact?: boolean;
   accent?: GradientAccent;
   disabled?: boolean;
+  /** Background color for edge fade gradients (defaults to colors.surface). */
+  fadeColor?: string;
   onChange: (value: T | T[]) => void;
 };
 
@@ -23,11 +27,14 @@ export function ChipSelector<T extends string>({
   compact = false,
   accent,
   disabled = false,
+  fadeColor,
   onChange,
 }: ChipSelectorProps<T>) {
   const { colors } = useTheme();
+  const { isWide } = useResponsiveLayout();
   const tabAccent = useTabAtmosphereAccent();
   const resolvedAccent = accent ?? tabAccent;
+  const useWrapLayout = !horizontal || (Platform.OS === 'web' && isWide);
   const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
   const brandSubtle = resolvedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -116,17 +123,17 @@ export function ChipSelector<T extends string>({
     );
   });
 
-  return horizontal ? (
-    <ScrollView
-      horizontal
-      nestedScrollEnabled
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[styles.horizontalContent, disabled && styles.disabled]}
-      scrollEnabled={!disabled}
+  const resolvedFadeColor = fadeColor ?? colors.surface;
+
+  return useWrapLayout ? (
+    <View style={[styles.wrap, disabled && styles.disabled]}>{chips}</View>
+  ) : (
+    <ChipScrollTrack
+      disabled={disabled}
+      fadeColor={resolvedFadeColor}
+      contentContainerStyle={styles.horizontalContent}
     >
       {chips}
-    </ScrollView>
-  ) : (
-    <View style={[styles.wrap, disabled && styles.disabled]}>{chips}</View>
+    </ChipScrollTrack>
   );
 }

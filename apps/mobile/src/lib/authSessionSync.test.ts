@@ -49,12 +49,29 @@ describe('applyAuthSessionFromStorage', () => {
     expect(clearProfile).not.toHaveBeenCalled();
   });
 
+  it('reports applied so the caller can mark auth ready', async () => {
+    const applied = await applyAuthSessionFromStorage({
+      getSession: async () => ({
+        session: { user: { id: 'user-1' } } as never,
+        error: null,
+      }),
+      isCancelled: () => false,
+      nextProfileRequestId: () => 1,
+      loadProfile: vi.fn(async () => undefined),
+      setSession: vi.fn(),
+      setUser: vi.fn(),
+      clearProfile: vi.fn(),
+    });
+
+    expect(applied).toBe(true);
+  });
+
   it('skips applying session when the provider has unmounted', async () => {
     const setSession = vi.fn();
     const setUser = vi.fn();
     const loadProfile = vi.fn(async () => undefined);
 
-    await applyAuthSessionFromStorage({
+    const applied = await applyAuthSessionFromStorage({
       getSession: async () => ({
         session: { user: { id: 'user-1' } } as never,
         error: null,
@@ -67,6 +84,8 @@ describe('applyAuthSessionFromStorage', () => {
       clearProfile: vi.fn(),
     });
 
+    // Superseded applies must not claim readiness — the winning apply owns it.
+    expect(applied).toBe(false);
     expect(setSession).not.toHaveBeenCalled();
     expect(loadProfile).not.toHaveBeenCalled();
   });

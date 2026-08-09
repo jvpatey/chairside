@@ -70,9 +70,9 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
     fallbackPriceLabel: 'Billed monthly or annually',
     features: [
       'Up to 5 locations and 3 managers',
-      'Up to 5 active roles and 5 fill-ins org-wide',
+      'Up to 5 active roles and 5 fill-ins across your group',
       'Screening, CRM, outreach, SMS, and Discover',
-      'Location-scoped dashboard and org messaging',
+      'Location-scoped dashboard and group messaging',
     ],
   },
   group_pro: {
@@ -81,7 +81,7 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
     features: [
       'Unlimited locations, managers, and postings',
       'Priority placement and Pro badge per location',
-      'Org-wide hiring insights with per-location breakdown',
+      'Hiring insights across your group with per-location breakdown',
       'Bulk fill-in outreach and unlimited screening',
     ],
   },

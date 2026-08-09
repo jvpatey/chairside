@@ -2,7 +2,6 @@ import type { WorkerProfile } from '@chairside/api';
 import { getProvinceLabel, formatRoleTypesLabel } from '@chairside/config';
 import { getWorkerRoleTypes } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
@@ -11,7 +10,7 @@ import { BadgeRow } from '@/components/ui/BadgeRow';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
-import { getHeroBandGradient, useTheme, useThemedStyles } from '@/theme';
+import { fontBold, useTheme, useThemedStyles } from '@/theme';
 
 type WorkerProfileHeroProps = {
   displayName?: string | null;
@@ -24,7 +23,7 @@ export function WorkerProfileHero({
   profile,
   editable = false,
 }: WorkerProfileHeroProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { photoUri, isUploading, pickPhoto } = useProfilePhoto();
   const name = displayName?.trim() || 'Your profile';
   const roleLabel = profile
@@ -39,24 +38,19 @@ export function WorkerProfileHero({
       ? `${roleLabel} · ${location}`
       : roleLabel ?? location ?? 'Add your background to get started';
 
-  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
-
-  const styles = useThemedStyles(({ colors, spacing, typography, radii, elevation, isDark }) => ({
-    card: {
-      borderRadius: radii.hero,
-      overflow: 'hidden',
-      borderWidth: isDark ? 1 : 0,
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
+    band: {
+      borderRadius: radii.lg,
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      position: 'relative',
-      ...elevation('subtle'),
-    },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    content: {
+      overflow: 'hidden' as const,
       padding: spacing.lg,
-      alignItems: 'center',
-      gap: spacing.sm,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.md,
     },
     avatarPressable: {
       borderRadius: 999,
@@ -66,8 +60,8 @@ export function WorkerProfileHero({
       opacity: 0.92,
     },
     avatarWrap: {
-      marginBottom: spacing.xs,
       position: 'relative' as const,
+      flexShrink: 0,
     },
     editBadge: {
       position: 'absolute' as const,
@@ -82,26 +76,27 @@ export function WorkerProfileHero({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
-    editBadgeHovered: {
-      opacity: 0.9,
+    identity: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.xs,
     },
     name: {
-      ...typography.title,
-      fontSize: 24,
-      lineHeight: 30,
-      textAlign: 'center',
+      fontSize: 26,
+      lineHeight: 32,
+      fontFamily: fontBold,
+      fontWeight: '700',
+      letterSpacing: -0.4,
+      color: colors.labelPrimary,
     },
     meta: {
-      ...typography.subtitle,
+      ...typography.body,
       fontSize: 14,
       lineHeight: 20,
-      textAlign: 'center',
-      marginTop: spacing.xs,
+      color: colors.labelSecondary,
     },
     badgeRow: {
-      justifyContent: 'center',
       marginTop: spacing.xs,
-      width: '100%' as const,
     },
   }));
 
@@ -109,22 +104,14 @@ export function WorkerProfileHero({
     <WorkerProfileAvatar
       displayName={displayName}
       photoUri={photoUri}
-      size={72}
+      size={64}
       isLoading={isUploading}
     />
   );
 
   return (
-    <View style={styles.card}>
-      <LinearGradient
-        colors={heroGradient}
-        locations={[0, 0.35, 0.65, 0.85, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
-      <View style={styles.content}>
+    <View style={styles.band}>
+      <View style={styles.row}>
         <View style={styles.avatarWrap}>
           {editable ? (
             <Pressable
@@ -146,14 +133,16 @@ export function WorkerProfileHero({
             avatar
           )}
         </View>
-        <Text style={styles.name} numberOfLines={2}>
-          {name}
-        </Text>
-        <Text style={styles.meta}>{metaLine}</Text>
-        <View style={styles.badgeRow}>
-          <BadgeRow>
-            <AccountTypeBadge label={getAccountTypeLabel('worker')} inRow />
-          </BadgeRow>
+        <View style={styles.identity}>
+          <Text style={styles.name} numberOfLines={2}>
+            {name}
+          </Text>
+          <Text style={styles.meta}>{metaLine}</Text>
+          <View style={styles.badgeRow}>
+            <BadgeRow>
+              <AccountTypeBadge label={getAccountTypeLabel('worker')} inRow />
+            </BadgeRow>
+          </View>
         </View>
       </View>
     </View>

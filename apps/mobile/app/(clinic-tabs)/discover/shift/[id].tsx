@@ -4,9 +4,9 @@ import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,16 +21,9 @@ export default function ClinicDiscoverShiftDetailScreen() {
   const [shift, setShift] = useState<LiveShiftPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     content: {
       gap: spacing.lg,
-    },
-    clinicCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
     },
     accessoryColumn: {
       alignItems: 'flex-end',
@@ -69,29 +62,26 @@ export default function ClinicDiscoverShiftDetailScreen() {
 
   if (isLoading || !shift) {
     return (
-      <OnboardingShell>
-        <AuthScreenHeader
-          title="Fill-in details"
-          subtitle={isLoading ? undefined : 'Fill-in not found.'}
-          onBack={() => router.back()}
-        />
+      <FormScreen
+        title="Fill-in details"
+        subtitle={isLoading ? undefined : 'Fill-in not found.'}
+        onBack={() => router.back()}>
         {isLoading ? <PageLoadingDetail /> : null}
-      </OnboardingShell>
+      </FormScreen>
     );
   }
 
   const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
 
   return (
-    <OnboardingShell atmosphere="subtle">
+    <FormScreen
+      eyebrow="Discover"
+      title="Fill-in details"
+      subtitle={shift.clinic.clinic_name}
+      onBack={() => router.back()}
+      accent="secondary">
       <View style={styles.content}>
-        <AuthScreenHeader
-          eyebrow="Discover"
-          title="Fill-in details"
-          subtitle={shift.clinic.clinic_name}
-          onBack={() => router.back()}
-        />
-        <View style={styles.clinicCard}>
+        <SurfaceCard>
           <ClinicPostHeader
             layout="split"
             clinicName={shift.clinic.clinic_name}
@@ -107,9 +97,9 @@ export default function ClinicDiscoverShiftDetailScreen() {
             }
             stackedAccessory
           />
-        </View>
+        </SurfaceCard>
         <ShiftPostDetailView shift={shift} />
       </View>
-    </OnboardingShell>
+    </FormScreen>
   );
 }

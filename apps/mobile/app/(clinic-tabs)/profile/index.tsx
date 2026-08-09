@@ -38,7 +38,7 @@ import {
   CLINIC_PROFILE_PRACTICE,
   CLINIC_PROFILE_TEAM,
 } from '@/lib/routing';
-import { useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { isClinicGroupsEnabled } from '@chairside/api';
 
@@ -71,7 +71,7 @@ export default function ClinicAccountProfileScreen() {
     : null;
 
   const styles = useThemedStyles(({ spacing }) => ({
-    content: { gap: spacing.xl },
+    content: { gap: spacing.lg },
   }));
 
   if (!isClinicProfileReady) {
@@ -168,7 +168,7 @@ export default function ClinicAccountProfileScreen() {
                   : 'Your manager access'
               }
               iconColor={colors.info}
-              iconBackgroundColor={`${colors.info}18`}
+              iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
               onPress={() => router.push(CLINIC_PROFILE_TEAM)}
             />
           ) : null}
@@ -179,7 +179,7 @@ export default function ClinicAccountProfileScreen() {
               isGroupOwner: isGroup && isOwner,
             })}
             iconColor={colors.info}
-            iconBackgroundColor={`${colors.info}18`}
+            iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
             onPress={() => router.push(CLINIC_PROFILE_NOTIFICATIONS)}
           />
           <ProfileSettingsRow
@@ -187,7 +187,7 @@ export default function ClinicAccountProfileScreen() {
             title="Messaging"
             subtitle={getClinicMessagingSubtitle(clinicProfile)}
             iconColor={colors.success}
-            iconBackgroundColor={`${colors.success}18`}
+            iconBackgroundColor={colorWithAlpha(colors.success, 0.094)}
             onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}
           />
           <ProfileSettingsRow
@@ -195,7 +195,7 @@ export default function ClinicAccountProfileScreen() {
             title="Plans & billing"
             subtitle={getClinicBillingSubtitle(getClinicPlanLabel(billing?.plan ?? 'free'))}
             iconColor={colors.warning}
-            iconBackgroundColor={`${colors.warning}18`}
+            iconBackgroundColor={colorWithAlpha(colors.warning, 0.094)}
             onPress={() => router.push(CLINIC_PROFILE_BILLING)}
           />
           {isCompact ? (

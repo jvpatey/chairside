@@ -14,9 +14,8 @@ import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import {
   getClinicOutreachUpgradeMessage,
 } from '@/components/billing/ClinicUpgradePrompt';
-import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { FormScreen } from '@/components/ui/FormScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
@@ -66,7 +65,6 @@ export default function FindAvailableWorkersScreen() {
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
-    form: { gap: spacing.lg },
     section: { gap: spacing.sm },
     label: { ...typography.body, fontWeight: '600' },
     list: { gap: spacing.md },
@@ -230,15 +228,12 @@ export default function FindAvailableWorkersScreen() {
   return (
     <>
       {upgradePrompt}
-      <OnboardingShell>
-      <View style={styles.form}>
-        <AuthScreenHeader
-          title="Find available workers"
-          subtitle="Browse candidates who opted into fill-in outreach and message them directly. Phone numbers stay private."
-          accent={FILL_IN_ACCENT}
-          onBack={handleBack}
-        />
-
+      <FormScreen
+        title="Find available workers"
+        subtitle="Browse candidates who opted into fill-in outreach and message them directly. Phone numbers stay private."
+        accent={FILL_IN_ACCENT}
+        onBack={handleBack}
+      >
         {isProfileComplete && isOutreachLocked ? (
           <PlanUpgradeCallout
             title="Upgrade to message workers"
@@ -335,8 +330,7 @@ export default function FindAvailableWorkersScreen() {
             </View>
           </>
         )}
-      </View>
-    </OnboardingShell>
+      </FormScreen>
     </>
   );
 }

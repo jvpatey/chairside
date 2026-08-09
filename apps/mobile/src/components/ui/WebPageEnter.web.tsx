@@ -9,17 +9,25 @@ type WebPageEnterProps = {
   style?: StyleProp<ViewStyle>;
   /** When false, skip the fade/slide-in (e.g. split-view panes). */
   animate?: boolean;
+  /** `mount` = on load (default). `visible` = when scrolled into view. */
+  trigger?: 'mount' | 'visible';
 };
 
-export function WebPageEnter({ children, delayMs = 0, style, animate = true }: WebPageEnterProps) {
+export function WebPageEnter({
+  children,
+  delayMs = 0,
+  style,
+  animate = true,
+  trigger = 'mount',
+}: WebPageEnterProps) {
   if (!animate) {
     return <View style={style}>{children}</View>;
   }
 
-  const { opacity, translateY } = useEnterAnimation(delayMs);
+  const { opacity, translateY, ref } = useEnterAnimation(delayMs, { trigger });
 
   return (
-    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+    <Animated.View ref={ref} style={[style, { opacity, transform: [{ translateY }] }]}>
       {children}
     </Animated.View>
   );

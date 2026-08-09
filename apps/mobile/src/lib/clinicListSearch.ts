@@ -67,7 +67,7 @@ export function matchesClinicApplicationSummaryFilter(
   filter: ClinicApplicationSummaryFilter,
 ): boolean {
   if (filter === 'all') return true;
-  return summary.unseen_count > 0;
+  return summary.action_needed_count > 0;
 }
 
 export function matchesClinicApplicationSearch(

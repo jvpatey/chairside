@@ -114,17 +114,22 @@ export function formatJobApplicationSummaryMeta(summary: {
   screening_count?: number;
   pending_count: number;
   unseen_count?: number;
+  action_needed_count?: number;
   shortlisted_count?: number;
   interview_count?: number;
 }): string | undefined {
   if (summary.applicant_count === 0) return undefined;
 
   const parts: string[] = [];
-  const unseenCount = summary.unseen_count ?? summary.pending_count;
+  const actionNeededCount = summary.action_needed_count ?? summary.pending_count;
+  const unseenCount = summary.unseen_count ?? 0;
 
   if ((summary.screening_count ?? 0) > 0) {
     const count = summary.screening_count ?? 0;
     parts.push(count === 1 ? '1 screening' : `${count} screening`);
+  }
+  if (actionNeededCount > 0) {
+    parts.push(actionNeededCount === 1 ? '1 to review' : `${actionNeededCount} to review`);
   }
   if (unseenCount > 0) {
     parts.push(unseenCount === 1 ? '1 new' : `${unseenCount} new`);
@@ -288,6 +293,53 @@ export function formatApplicationDate(value: string | null | undefined): string 
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+/** Calendar date from YYYY-MM-DD, e.g. "Jun 29, 2026". */
+export function formatISODateLabel(isoDate: string): string {
+  const trimmed = isoDate.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) return trimmed;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const date = new Date(year, month, day);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month ||
+    date.getDate() !== day
+  ) {
+    return trimmed;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function formatFillInPostTitle(shiftDate: string): string {
+  return `Fill-in · ${formatISODateLabel(shiftDate)}`;
+}
+
+export function formatFillInInquiryPostTitle(shiftDate: string): string {
+  return `Fill-in inquiry · ${formatISODateLabel(shiftDate)}`;
+}
+
+/** Rewrites ISO date suffixes in fill-in post titles for display. */
+export function formatPostTitleDisplay(postTitle: string): string {
+  const trimmed = postTitle.trim();
+  if (!trimmed) return postTitle;
+
+  const fillInMatch = /^(Fill-in(?: inquiry)? · )(\d{4}-\d{2}-\d{2})$/.exec(trimmed);
+  if (fillInMatch) {
+    return `${fillInMatch[1]}${formatISODateLabel(fillInMatch[2])}`;
+  }
+
+  return postTitle;
 }
 
 export function formatApplicationScreeningStatus(

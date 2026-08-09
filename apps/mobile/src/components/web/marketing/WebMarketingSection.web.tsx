@@ -2,7 +2,11 @@ import type { ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
+
+/** Offset sticky marketing nav when scrolling to section anchors. */
+const SECTION_SCROLL_MARGIN = 88;
 
 type WebMarketingSectionProps = {
   children: ReactNode;
@@ -13,6 +17,8 @@ type WebMarketingSectionProps = {
   maxWidth?: number;
   /** Optional full-bleed layer behind content (gradients, atmosphere). */
   atmosphere?: ReactNode;
+  /** Anchor id for in-page nav (maps to nativeID on web). */
+  sectionId?: string;
 };
 
 /**
@@ -25,12 +31,16 @@ export function WebMarketingSection({
   contentStyle,
   maxWidth = CONTENT_MAX_WIDTH.xwide,
   atmosphere,
+  sectionId,
 }: WebMarketingSectionProps) {
   const styles = useThemedStyles(({ spacing }) => ({
     bleed: {
       width: '100%' as const,
       alignSelf: 'stretch' as const,
       position: 'relative' as const,
+      ...(sectionId
+        ? webOnlyStyle({ scrollMarginTop: SECTION_SCROLL_MARGIN } as object)
+        : {}),
     },
     content: {
       width: '100%' as const,
@@ -43,7 +53,7 @@ export function WebMarketingSection({
   }));
 
   return (
-    <View style={[styles.bleed, style]}>
+    <View nativeID={sectionId} style={[styles.bleed, style]}>
       {atmosphere}
       <View style={[styles.content, contentStyle]}>{children}</View>
     </View>

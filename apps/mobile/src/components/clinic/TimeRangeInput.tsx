@@ -1,13 +1,16 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
+import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   defaultEndTimeDate,
   defaultStartTimeDate,
   formatTime12h,
   formatTime24h,
   formatTimeRangePreview,
+  isValidTimeRange,
   parseTime24h,
 } from '@/lib/time';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
@@ -25,6 +28,10 @@ type TimeRangeInputProps = {
   schedule: TimeRange;
   onChange: (schedule: TimeRange) => void;
   showPreview?: boolean;
+  required?: boolean;
+  invalid?: boolean;
+  errorMessage?: string;
+  embedded?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
   accent?: GradientAccent;
 };
@@ -47,31 +54,48 @@ export function TimeRangeInput({
   schedule,
   onChange,
   showPreview = false,
+  required = false,
+  invalid = false,
+  errorMessage,
+  embedded = false,
   onPickerOpenChange,
   accent = 'primary',
 }: TimeRangeInputProps) {
   const { colors } = useTheme();
+  const { isCompact } = useResponsiveLayout();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const [activeField, setActiveField] = useState<ActiveField>(null);
   const [pickerDate, setPickerDate] = useState(() => defaultStartTimeDate());
 
+  const rangeInvalid =
+    invalid ||
+    Boolean(
+      schedule.startTime &&
+        schedule.endTime &&
+        !isValidTimeRange(schedule.startTime, schedule.endTime),
+    );
+  const resolvedError =
+    errorMessage ??
+    (rangeInvalid && schedule.startTime && schedule.endTime
+      ? 'End time must be after start time.'
+      : undefined);
+
+  useEffect(() => {
+    onPickerOpenChange?.(activeField != null);
+  }, [activeField, onPickerOpenChange]);
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.sm,
     },
-    sectionLabel: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
     row: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: isCompact ? ('column' as const) : ('row' as const),
+      alignItems: isCompact ? ('stretch' as const) : ('center' as const),
       gap: spacing.sm,
     },
     rowLabel: {
-      width: 36,
+      width: isCompact ? undefined : 36,
       fontSize: 14,
       fontWeight: '600',
       color: colors.labelPrimary,
@@ -94,14 +118,21 @@ export function TimeRangeInput({
       paddingVertical: 10,
       alignItems: 'center',
     },
+    timeButtonInvalid: {
+      borderColor: colors.destructive,
+    },
     timeButtonText: {
       fontSize: typography.body.fontSize,
       color: colors.labelPrimary,
     },
+    timeButtonPlaceholder: {
+      color: colors.labelSecondary,
+    },
     dash: {
       fontSize: 14,
       color: colors.labelSecondary,
-      marginTop: 22,
+      alignSelf: 'center',
+      marginTop: isCompact ? 0 : 22,
     },
     pickerWrap: {
       gap: spacing.xs,
@@ -123,6 +154,11 @@ export function TimeRangeInput({
       color: colors.labelSecondary,
     },
     previewText: typography.body,
+    error: {
+      ...typography.subtitle,
+      color: colors.destructive,
+      fontSize: 13,
+    },
   }));
 
   const timeButtonActiveStyle = {
@@ -158,9 +194,10 @@ export function TimeRangeInput({
 
   const handlePickerChange = (event: DateTimePickerEvent, date?: Date) => {
     if (Platform.OS === 'android') {
+      const field = activeField;
       setActiveField(null);
-      if (event.type === 'dismissed' || !date || !activeField) return;
-      commitTime(activeField, date);
+      if (event.type === 'dismissed' || !date || !field) return;
+      commitTime(field, date);
       return;
     }
 
@@ -179,45 +216,47 @@ export function TimeRangeInput({
     setActiveField(null);
   };
 
+  const renderTimeButton = (field: 'start' | 'end', label: string) => {
+    const time = field === 'start' ? schedule.startTime : schedule.endTime;
+    const isEmpty = !time.trim();
+
+    return (
+      <View style={styles.fieldBlock}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        <Pressable
+          style={[
+            styles.timeButton,
+            activeField === field && timeButtonActiveStyle,
+            rangeInvalid && styles.timeButtonInvalid,
+          ]}
+          onPress={() => handleFieldPress(field)}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} time`}
+        >
+          <Text
+            style={[styles.timeButtonText, isEmpty && styles.timeButtonPlaceholder]}
+          >
+            {displayTime(time)}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.wrap}>
-      {sectionLabel ? <Text style={styles.sectionLabel}>{sectionLabel}</Text> : null}
+      {!embedded && sectionLabel ? (
+        <FormFieldLabel label={sectionLabel} required={required} />
+      ) : null}
 
       <View style={styles.row}>
         {rowLabel ? <Text style={styles.rowLabel}>{rowLabel}</Text> : null}
-
-        <View style={styles.fieldBlock}>
-          <Text style={styles.fieldLabel}>Start</Text>
-          <Pressable
-            style={[
-              styles.timeButton,
-              activeField === 'start' && timeButtonActiveStyle,
-            ]}
-            onPress={() => handleFieldPress('start')}
-            accessibilityRole="button"
-            accessibilityLabel="Start time"
-          >
-            <Text style={styles.timeButtonText}>{displayTime(schedule.startTime)}</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.dash}>–</Text>
-
-        <View style={styles.fieldBlock}>
-          <Text style={styles.fieldLabel}>End</Text>
-          <Pressable
-            style={[
-              styles.timeButton,
-              activeField === 'end' && timeButtonActiveStyle,
-            ]}
-            onPress={() => handleFieldPress('end')}
-            accessibilityRole="button"
-            accessibilityLabel="End time"
-          >
-            <Text style={styles.timeButtonText}>{displayTime(schedule.endTime)}</Text>
-          </Pressable>
-        </View>
+        {renderTimeButton('start', 'Start')}
+        {!isCompact ? <Text style={styles.dash}>–</Text> : null}
+        {renderTimeButton('end', 'End')}
       </View>
+
+      {resolvedError ? <Text style={styles.error}>{resolvedError}</Text> : null}
 
       {activeField ? (
         <View style={styles.pickerWrap}>
@@ -225,7 +264,7 @@ export function TimeRangeInput({
             value={pickerDate}
             mode="time"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            is24Hour
+            is24Hour={false}
             onChange={handlePickerChange}
           />
           {Platform.OS === 'ios' ? (

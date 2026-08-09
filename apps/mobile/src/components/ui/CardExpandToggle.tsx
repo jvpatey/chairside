@@ -1,22 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { GradientHairline } from '@/components/ui/GradientHairline';
 import {
-  webFullBleedRowInsets,
   webHover,
   webListRowHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
-import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { radii, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type CardExpandToggleProps = {
   expanded: boolean;
   onPress: () => void;
-  bleedPadding?: number;
-  /** When true, skip row hover styling (parent card owns hover). */
+  /** Horizontal inset for label row — matches card body padding. */
+  contentPadding?: number;
+  /** Rounds the footer control to the card bottom when it is the last row. */
+  roundedBottom?: boolean;
+  /** When true, skip row hover styling. */
   suppressHover?: boolean;
   accent?: GradientAccent;
 };
@@ -24,7 +25,8 @@ type CardExpandToggleProps = {
 export function CardExpandToggle({
   expanded,
   onPress,
-  bleedPadding,
+  contentPadding,
+  roundedBottom = false,
   suppressHover = false,
   accent,
 }: CardExpandToggleProps) {
@@ -34,19 +36,33 @@ export function CardExpandToggle({
   const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
 
   const styles = useThemedStyles(({ spacing, colors }) => ({
-    toggleWrap: {
-      marginTop: spacing.xs,
-      gap: spacing.xs,
+    footer: {
+      alignSelf: 'stretch',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.separator,
+      overflow: 'hidden',
+      ...(roundedBottom
+        ? {
+            borderBottomLeftRadius: radii.lg,
+            borderBottomRightRadius: radii.lg,
+          }
+        : null),
     },
     toggle: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.xs,
-      paddingTop: spacing.xs,
-      paddingBottom: spacing.xs,
-      borderRadius: 10,
-      ...(bleedPadding != null ? webFullBleedRowInsets(bleedPadding) : null),
+      minHeight: 44,
+      paddingHorizontal: contentPadding ?? spacing.md,
+      paddingVertical: spacing.sm + 2,
+      alignSelf: 'stretch',
+      ...(roundedBottom
+        ? {
+            borderBottomLeftRadius: radii.lg,
+            borderBottomRightRadius: radii.lg,
+          }
+        : null),
       ...webPointer(),
     },
     toggleHovered: webListRowHoverStyles(colors),
@@ -61,8 +77,7 @@ export function CardExpandToggle({
   }));
 
   return (
-    <View style={styles.toggleWrap}>
-      <GradientHairline />
+    <View style={styles.footer}>
       <Pressable
         style={({ pressed, hovered }) => [
           styles.toggle,

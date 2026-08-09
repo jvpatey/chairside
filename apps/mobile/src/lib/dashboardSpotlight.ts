@@ -9,6 +9,7 @@ import type {
 import type { Ionicons } from '@expo/vector-icons';
 
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import type { GradientAccent } from '@/theme';
 
 export type DashboardSpotlightItem = {
@@ -118,7 +119,7 @@ export function pickWorkerSpotlight(input: WorkerSpotlightInput): DashboardSpotl
         : 'Your upcoming fill-in shift is confirmed.',
       ctaLabel: 'View shift',
       accent: 'secondary',
-      icon: 'calendar-outline',
+      icon: FILL_IN_ICON.outline,
       onPress: () => input.onOpenApplication(confirmedFillIn),
     });
   }
@@ -199,7 +200,7 @@ export function pickClinicSpotlight(input: ClinicSpotlightInput): DashboardSpotl
         : 'An upcoming confirmed fill-in is on your schedule.',
       ctaLabel: 'View fill-in',
       accent: 'secondary',
-      icon: 'calendar-outline',
+      icon: FILL_IN_ICON.outline,
       onPress: () => input.onOpenConfirmedFillIn(nextConfirmed),
     });
   }

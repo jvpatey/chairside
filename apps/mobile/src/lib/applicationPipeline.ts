@@ -133,6 +133,12 @@ const FILTER_STATUS_MAP: Record<Exclude<ApplicantListFilter, 'all' | 'follow_up'
   decided: ['selected', 'rejected', 'hired'],
 };
 
+export function getDueFollowUpApplications(applications: ClinicApplication[]): ClinicApplication[] {
+  return applications
+    .filter((application) => isClinicWorkerCrmFollowUpDue(application.clinic_crm?.follow_up_at))
+    .sort(compareFollowUpApplications);
+}
+
 export function hasApplicantFollowUpScheduled(application: ClinicApplication): boolean {
   return isClinicWorkerCrmFollowUpScheduled(application.clinic_crm?.follow_up_at);
 }
@@ -172,6 +178,23 @@ export function filterApplicationsByView(
   return applications
     .filter((application) => statuses.includes(application.status))
     .sort(compareApplications);
+}
+
+export function sortDashboardApplications(
+  applications: ClinicApplication[],
+  isHighlighted: (application: ClinicApplication) => boolean,
+): ClinicApplication[] {
+  return [...applications]
+    .filter((application) => application.post_type === 'job')
+    .sort((a, b) => {
+      const aHighlighted = isHighlighted(a);
+      const bHighlighted = isHighlighted(b);
+      if (aHighlighted !== bHighlighted) {
+        return aHighlighted ? -1 : 1;
+      }
+
+      return compareApplications(a, b);
+    });
 }
 
 /** Controls New highlight vs pipeline status badge on clinic applicant surfaces. */

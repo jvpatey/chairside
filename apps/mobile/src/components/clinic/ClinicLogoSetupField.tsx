@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -13,8 +14,6 @@ export function ClinicLogoSetupField() {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     section: { gap: spacing.sm, alignItems: 'center' as const },
     labelRow: { alignSelf: 'stretch' as const, gap: spacing.xs },
-    label: { ...typography.body, fontWeight: '600' as const },
-    hint: typography.subtitle,
     actions: {
       flexDirection: 'row' as const,
       gap: spacing.md,
@@ -30,10 +29,11 @@ export function ClinicLogoSetupField() {
   return (
     <View style={styles.section}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{isGroup ? 'Group logo (optional)' : 'Clinic logo (optional)'}</Text>
-        <Text style={styles.hint}>
-          Shown on your profile and postings so candidates recognize your practice.
-        </Text>
+        <FormSectionHeader
+          icon="image-outline"
+          label={isGroup ? 'Group logo' : 'Clinic logo'}
+          hint="Shown on your profile and postings so candidates recognize your practice."
+        />
       </View>
       <Pressable
         onPress={() => void pickLogo()}

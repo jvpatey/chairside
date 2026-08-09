@@ -5,11 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 
-import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
-import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
 import { DashboardHeroName, DashboardHeroSubtitle } from '@/components/dashboard/DashboardHeroIdentity';
 import {
@@ -22,6 +21,7 @@ import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
+import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -73,35 +73,6 @@ export function WorkerSetupBanner({ onPress }: WorkerSetupBannerProps) {
       </View>
       <OnboardingButton label="Continue setup" onPress={onPress} />
     </View>
-  );
-}
-
-type WorkerDashboardHeroProps = {
-  displayName?: string | null;
-  workerProfile?: WorkerProfile | null;
-  showActions?: boolean;
-};
-
-export function WorkerDashboardHero({
-  displayName,
-  workerProfile,
-  showActions = true,
-}: WorkerDashboardHeroProps) {
-  const { photoUri } = useProfilePhoto();
-  const subtitle =
-    (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
-    'Dental professional';
-
-  return (
-    <DashboardHeroCard
-      profileHref={WORKER_PROFILE}
-      avatarKind="worker"
-      displayName={displayName}
-      photoUri={photoUri}
-      namePlaceholder="Your profile"
-      subtitle={subtitle}
-      showActions={showActions}
-    />
   );
 }
 
@@ -166,7 +137,7 @@ export { DashboardSectionHeader as WorkerSectionHeader } from '@/components/dash
 /** @deprecated Use `DashboardQuickActionTile` from `@/components/dashboard/DashboardQuickActionTile`. */
 export { DashboardQuickActionTile as QuickActionTile } from '@/components/dashboard/DashboardQuickActionTile';
 
-export type WorkerOverviewStat = DashboardOverviewStat;
+export type WorkerOverviewStat = DashboardOverviewStat | 'saved';
 
 type WorkerStatGridProps = {
   openRoles: number;
@@ -208,13 +179,15 @@ export function WorkerStatGrid({
 }
 
 const OVERVIEW_TITLES: Record<WorkerOverviewStat, string> = {
-  roles: 'Open roles near you',
-  'fill-ins': 'Fill-in shifts',
-  applications: 'Your applications',
+  roles: 'Opportunities',
+  'fill-ins': 'Fill-ins',
+  applications: 'Applications',
+  saved: 'Saved',
 };
 
 type WorkerOverviewPanelProps = {
   selected: WorkerOverviewStat;
+  embedded?: boolean;
   jobs: LiveJobPost[];
   shifts: LiveShiftPost[];
   jobApplications: WorkerApplication[];
@@ -232,6 +205,7 @@ type WorkerOverviewPanelProps = {
 
 export function WorkerOverviewPanel({
   selected,
+  embedded = false,
   jobs,
   shifts,
   jobApplications,
@@ -286,11 +260,13 @@ export function WorkerOverviewPanel({
 
   return (
     <View style={styles.root}>
-      <DashboardSectionHeader
-        title={OVERVIEW_TITLES[selected]}
-        actionLabel={onViewAllPress ? 'View all' : undefined}
-        onActionPress={onViewAllPress}
-      />
+      {!embedded ? (
+        <DashboardSectionHeader
+          title={OVERVIEW_TITLES[selected]}
+          actionLabel={onViewAllPress ? 'View all' : undefined}
+          onActionPress={onViewAllPress}
+        />
+      ) : null}
       <FadeInSection key={selected} delayMs={0}>
         {selected === 'roles' ? (
         jobs.length === 0 ? (
@@ -305,6 +281,7 @@ export function WorkerOverviewPanel({
               <RoleListingCard
                 key={job.id}
                 job={job}
+                embedded={embedded}
                 isSaved={savedJobIds?.has(job.id) ?? false}
                 onToggleSaved={
                   onToggleSavedJob
@@ -324,7 +301,7 @@ export function WorkerOverviewPanel({
         confirmedShiftApplications.length === 0 &&
         activeShiftApplications.length === 0 ? (
           <DashboardEmptyState
-            icon="calendar-outline"
+            icon={FILL_IN_ICON.outline}
             title="No fill-in shifts yet"
             message="Temporary and urgent shifts in your province will show up here."
             accent="secondary"
@@ -338,6 +315,7 @@ export function WorkerOverviewPanel({
                   <FillInListingCard
                     key={shift.id}
                     shift={shift}
+                    embedded={embedded}
                     accent="secondary"
                     isSaved={savedShiftIds?.has(shift.id) ?? false}
                     onToggleSaved={
@@ -358,6 +336,7 @@ export function WorkerOverviewPanel({
                   <WorkerApplicationListCard
                     key={application.id}
                     application={application}
+                    embedded={embedded}
                     hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                     returnTo="dashboard-fill-ins"
                   />
@@ -371,6 +350,7 @@ export function WorkerOverviewPanel({
                   <WorkerApplicationListCard
                     key={application.id}
                     application={application}
+                    embedded={embedded}
                     hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                     returnTo="dashboard-fill-ins"
                   />
@@ -387,6 +367,7 @@ export function WorkerOverviewPanel({
             icon="document-text-outline"
             title="No applications yet"
             message="When you apply to roles, your application status will appear here."
+            accent="tertiary"
           />
         ) : (
           <View style={styles.list}>
@@ -394,6 +375,7 @@ export function WorkerOverviewPanel({
               <WorkerApplicationListCard
                 key={application.id}
                 application={application}
+                embedded={embedded}
                 hasUnreadMessages={Boolean(unreadMap?.[application.id])}
                 returnTo="dashboard-applications"
               />
@@ -401,6 +383,54 @@ export function WorkerOverviewPanel({
           </View>
         )
         ) : null}
+
+      {selected === 'saved' ? (
+        (savedJobIds?.size ?? 0) + (savedShiftIds?.size ?? 0) === 0 ? (
+          <DashboardEmptyState
+            icon="bookmark-outline"
+            title="No saved posts yet"
+            message="Save roles and fill-ins to review them here."
+          />
+        ) : (
+          <View style={styles.list}>
+            {jobs
+              .filter((job) => savedJobIds?.has(job.id))
+              .slice(0, 5)
+              .map((job) => (
+                <RoleListingCard
+                  key={job.id}
+                  job={job}
+                  embedded={embedded}
+                  isSaved
+                  onToggleSaved={
+                    onToggleSavedJob
+                      ? () => onToggleSavedJob(job.id, false)
+                      : undefined
+                  }
+                  onPress={onJobPress ? () => onJobPress(job.id) : undefined}
+                />
+              ))}
+            {shifts
+              .filter((shift) => savedShiftIds?.has(shift.id))
+              .slice(0, 5)
+              .map((shift) => (
+                <FillInListingCard
+                  key={shift.id}
+                  shift={shift}
+                  embedded={embedded}
+                  accent="secondary"
+                  isSaved
+                  onToggleSaved={
+                    onToggleSavedShift
+                      ? () => onToggleSavedShift(shift.id, false)
+                      : undefined
+                  }
+                  onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+                />
+              ))}
+          </View>
+        )
+      ) : null}
       </FadeInSection>
     </View>
   );

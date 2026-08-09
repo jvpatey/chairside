@@ -5,6 +5,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { DashboardIconBadge } from '@/components/dashboard/DashboardIconBadge';
 import type { DashboardSpotlightItem } from '@/lib/dashboardSpotlight';
 import { webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import {
   fontBold,
   fontRegular,
@@ -21,8 +22,8 @@ type DashboardSpotlightCardProps = {
 /** Priority spotlight card surfacing the highest-value dashboard action. */
 export function DashboardSpotlightCard({ item, onDismiss }: DashboardSpotlightCardProps) {
   const { colors, isDark } = useTheme();
-  const brandColor = item.accent === 'secondary' ? colors.secondary : colors.primary;
-  const brandSubtle = item.accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
+  const brandColor = resolveAccentColor(colors, item.accent);
+  const brandSubtle = resolveAccentSubtle(colors, item.accent);
 
   const styles = useThemedStyles(({ colors, spacing, radii, elevation, isDark }) => ({
     card: {

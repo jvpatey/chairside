@@ -1,22 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { DashboardIconBadge } from '@/components/dashboard/DashboardIconBadge';
-import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
+import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
-  colorWithAlpha,
-  fontBold,
   fontRegular,
   fontSemibold,
-  getPrimaryTileGradient,
-  getSecondaryTileGradient,
   useTheme,
   useThemedStyles,
 } from '@/theme';
-import { webPointer, webTileHoverStyles } from '@/lib/webPressableStyles';
+import { webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 
 export type DashboardQuickActionVariant = 'primary' | 'secondary';
 
@@ -26,9 +20,7 @@ type DashboardQuickActionTileProps = {
   icon: keyof typeof Ionicons.glyphMap;
   variant?: DashboardQuickActionVariant;
   compact?: boolean;
-  /** Blocks interaction and dims the tile. */
   disabled?: boolean;
-  /** Dims the tile while keeping it pressable (e.g. show upgrade on tap). */
   dimmed?: boolean;
   accessibilityHint?: string;
   onPress: () => void;
@@ -45,81 +37,86 @@ export function DashboardQuickActionTile({
   accessibilityHint,
   onPress,
 }: DashboardQuickActionTileProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
-  const isPrimary = variant === 'primary';
   const useStackedLayout = !isTablet;
   const isVisuallyMuted = disabled || dimmed;
-  const gradientColors = isPrimary
-    ? getPrimaryTileGradient(colors, isDark)
-    : getSecondaryTileGradient(colors, isDark);
-  const onGradient = isPrimary ? colors.primaryOnPrimary : colors.secondaryOnSecondary;
-  const onGradientMuted = colorWithAlpha(onGradient, 0.82);
+  const accent = variant === 'primary' ? 'primary' : 'secondary';
+  const accentColor = resolveAccentColor(colors, accent);
+  const accentSubtle = resolveAccentSubtle(colors, accent);
 
-  const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     tile: {
       flex: 1,
-      borderRadius: dashboardControlRadii.quickAction,
-      paddingHorizontal: useStackedLayout ? spacing.sm + 2 : spacing.md,
-      paddingVertical: useStackedLayout ? spacing.sm + 4 : spacing.md,
-      overflow: 'hidden',
+      borderRadius: radii.lg,
+      paddingHorizontal: spacing.md,
+      paddingVertical: compact ? spacing.sm + 2 : spacing.md,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: isPrimary
-        ? colorWithAlpha(colors.primary, isDark ? 0.45 : 0.34)
-        : colorWithAlpha(colors.secondary, isDark ? 0.32 : 0.3),
-      minHeight: compact ? 72 : useStackedLayout ? 84 : isTablet ? 108 : 96,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
+      minHeight: compact ? 72 : useStackedLayout ? 84 : isTablet ? 96 : 88,
       justifyContent: 'center',
-      ...elevation('raised'),
       ...webPointer(),
-    },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
+      ...webOnlyStyle({
+        transitionProperty: 'background-color, opacity',
+        transitionDuration: '140ms',
+      } as const),
     },
     row: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
+      gap: spacing.sm,
+      minWidth: 0,
     },
     stacked: {
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.sm,
     },
+    iconBadge: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
     textBlock: {
       flex: 1,
       minWidth: 0,
-      gap: 4,
+      gap: 2,
     },
-    tileHovered: webTileHoverStyles(colors, isDark),
+    stackedTextBlock: {
+      alignItems: 'center',
+      gap: 2,
+      minWidth: 0,
+    },
+    tileHovered: webListRowHoverStyles(colors),
     tilePressed: {
       opacity: 0.88,
-      transform: [{ scale: 0.982 }],
     },
     tileDisabled: {
       opacity: 0.52,
     },
-    iconHalo: {
-      flexShrink: 0,
-    },
     label: {
-      fontSize: useStackedLayout ? 14 : 16,
-      lineHeight: useStackedLayout ? 18 : 22,
-      fontFamily: useStackedLayout ? fontSemibold : fontBold,
-      fontWeight: useStackedLayout ? '600' : '700',
-      color: onGradient,
+      fontSize: useStackedLayout ? 14 : 15,
+      lineHeight: useStackedLayout ? 18 : 20,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelPrimary,
       letterSpacing: -0.2,
       textAlign: useStackedLayout ? ('center' as const) : ('left' as const),
     },
     description: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 12,
+      lineHeight: 16,
       fontFamily: fontRegular,
-      color: onGradientMuted,
+      color: colors.labelTertiary,
+      textAlign: useStackedLayout ? ('center' as const) : ('left' as const),
     },
     chevron: {
       flexShrink: 0,
-      opacity: 0.72,
+      opacity: 0.45,
     },
   }));
 
@@ -136,6 +133,12 @@ export function DashboardQuickActionTile({
       ? 'Posting limit reached. Remove an active ad or upgrade your plan.'
       : 'Opens this section of the app');
 
+  const iconBadge = (
+    <View style={[styles.iconBadge, { backgroundColor: accentSubtle }]}>
+      <Ionicons name={icon} size={18} color={accentColor} />
+    </View>
+  );
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -150,31 +153,21 @@ export function DashboardQuickActionTile({
         isWeb && hovered && !pressed && !disabled && styles.tileHovered,
         pressed && !disabled && styles.tilePressed,
       ]}>
-      <LinearGradient colors={gradientColors} style={styles.gradient} />
       {useStackedLayout ? (
         <View style={styles.stacked}>
-          <View style={styles.iconHalo}>
-            <DashboardIconBadge
-              icon={icon}
-              accent={isPrimary ? 'primary' : 'secondary'}
-              size="sm"
-              onGradient
-            />
+          {iconBadge}
+          <View style={styles.stackedTextBlock}>
+            <Text style={styles.label} numberOfLines={2}>
+              {label}
+            </Text>
+            <Text style={styles.description} numberOfLines={2}>
+              {description}
+            </Text>
           </View>
-          <Text style={styles.label} numberOfLines={2}>
-            {label}
-          </Text>
         </View>
       ) : (
         <View style={styles.row}>
-          <View style={styles.iconHalo}>
-            <DashboardIconBadge
-              icon={icon}
-              accent={isPrimary ? 'primary' : 'secondary'}
-              size="md"
-              onGradient
-            />
-          </View>
+          {iconBadge}
           <View style={styles.textBlock}>
             <Text style={styles.label} numberOfLines={1}>
               {label}
@@ -183,7 +176,9 @@ export function DashboardQuickActionTile({
               {description}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={onGradient} style={styles.chevron} />
+          {Platform.OS !== 'web' ? (
+            <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} style={styles.chevron} />
+          ) : null}
         </View>
       )}
     </Pressable>

@@ -1,126 +1,110 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import {
+  FieldBlock,
+  FieldDivider,
+  profileSettingsHintStyle,
+} from '@/components/profile/ProfileDetailBlocks';
+import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
+import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
+import { EditPillButton } from '@/components/ui/EditPillButton';
+import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInAvailabilityPrimaryToggle } from '@/components/worker/FillInAvailabilityPrimaryToggle';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { getFillInAvailabilityCollapsedSummary } from '@/lib/fillInAvailabilitySummary';
-import { WORKER_FILLIN_AVAILABILITY } from '@/lib/routing';
-import { webHover, webPointer } from '@/lib/webPressableStyles';
-import {
-  FILL_IN_HERO_GRADIENT_LOCATIONS,
-  getFillInHeroGradient,
-  radii,
-  spacing,
-  useTheme,
-  useThemedStyles,
-} from '@/theme';
+import { WORKER_FILLIN_AVAILABILITY, WORKER_SETUP_AVAILABILITY_SCHEDULE } from '@/lib/routing';
+import { useTheme, useThemedStyles } from '@/theme';
 
 function navigateToManageAvailability() {
   router.push(WORKER_FILLIN_AVAILABILITY);
 }
 
+function navigateToEditSchedule() {
+  router.push(WORKER_SETUP_AVAILABILITY_SCHEDULE);
+}
+
 export function FillInAvailabilitySummaryCard() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const summary = getFillInAvailabilityCollapsedSummary(workerProfile, availabilityBlocks);
-  const gradient = getFillInHeroGradient(colors, isDark);
+  const isAvailable = workerProfile?.short_notice_available ?? false;
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
-    wrap: {
-      borderRadius: radii.lg,
-      overflow: 'hidden',
-      position: 'relative',
+    stack: {
+      gap: spacing.lg,
     },
-    gradient: StyleSheet.absoluteFillObject,
-    content: {
-      padding: spacing.md,
+    body: {
       gap: spacing.sm,
     },
-    managePressable: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    managePressableHovered: {
-      backgroundColor: `${colors.labelPrimary}08`,
-    },
-    manageText: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    status: {
+    hint: profileSettingsHintStyle({ typography, colors }),
+    statusValue: {
       fontSize: 15,
+      lineHeight: 22,
       fontWeight: '600',
       color: colors.labelPrimary,
     },
     statusPositive: {
       color: colors.success,
     },
-    schedule: {
-      ...typography.subtitle,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelSecondary,
-    },
-    manageLabel: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.secondary,
-    },
-    chevron: {
-      marginTop: 2,
+    daysCardMuted: {
+      opacity: 0.55,
     },
   }));
 
   return (
-    <View style={styles.wrap}>
-      <LinearGradient
-        colors={gradient}
-        locations={FILL_IN_HERO_GRADIENT_LOCATIONS}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
-      <View style={styles.content}>
-        <FillInAvailabilityPrimaryToggle bleedPadding={spacing.md} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Manage fill-in availability"
-          onPress={navigateToManageAvailability}
-          style={({ pressed, hovered }) => [
-            styles.managePressable,
-            webHover(hovered, pressed, styles.managePressableHovered),
-            pressed && { opacity: 0.85 },
-          ]}
-        >
-          <View style={styles.manageText}>
+    <View style={styles.stack}>
+      <ProfileSettingsCard
+        title="Available for fill-ins"
+        icon={FILL_IN_ICON.outline}
+        iconAccent="secondary"
+        collapsible
+        headerAccessory={<FillInAvailabilityPrimaryToggle variant="switchOnly" />}>
+        <View style={styles.body}>
+          <Text style={styles.hint}>
+            {isAvailable
+              ? 'You appear open to short-notice fill-in opportunities.'
+              : 'Turn on when you can cover urgent shifts.'}
+          </Text>
+          <FieldBlock label={summary.primaryLabel}>
             <Text
               style={[
-                styles.status,
+                styles.statusValue,
                 summary.primaryTone === 'positive' ? styles.statusPositive : null,
-              ]}
-            >
+              ]}>
               {summary.primary}
             </Text>
-            <Text style={styles.schedule}>
-              {summary.secondaryLabel}: {summary.secondary}
-            </Text>
-            <Text style={styles.manageLabel}>Manage availability</Text>
-          </View>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={colors.labelTertiary}
-            style={styles.chevron}
+          </FieldBlock>
+          <FieldDivider />
+          <ProfileSettingsRow
+            embedded
+            icon="settings-outline"
+            title="Manage availability"
+            subtitle="Alerts, outreach, and notification settings"
+            iconColor={colors.secondary}
+            iconBackgroundColor={colors.secondarySubtle}
+            onPress={navigateToManageAvailability}
           />
-        </Pressable>
-      </View>
+        </View>
+      </ProfileSettingsCard>
+
+      <ProfileSettingsCard
+        key={availabilityBlocks.length === 0 ? 'schedule-empty' : 'schedule-set'}
+        title="Available days"
+        icon="calendar-outline"
+        iconAccent="secondary"
+        collapsible
+        defaultExpanded={availabilityBlocks.length === 0}
+        headerAccessory={<EditPillButton label="Edit days" onPress={navigateToEditSchedule} />}
+        style={!isAvailable ? styles.daysCardMuted : undefined}>
+        <Text style={styles.hint}>
+          {isAvailable
+            ? 'Days and hours you can cover fill-in shifts.'
+            : 'Turn on fill-ins above, then set which days you can work.'}
+        </Text>
+        <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
+      </ProfileSettingsCard>
     </View>
   );
 }

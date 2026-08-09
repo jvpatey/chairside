@@ -1,10 +1,11 @@
 import { getSupabaseClient } from './client';
 import { throwWithMessage } from './errors';
-import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
+import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL, formatFillInPostTitle } from '@chairside/config';
 import {
   APPLICATION_UPDATE_GRACE_MS,
   FILL_IN_PENDING_STATUSES,
   hasWorkerApplicationClinicUpdate,
+  isClinicApplicationAwaitingClinicAction,
   isClinicApplicationUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
@@ -16,6 +17,7 @@ export {
   APPLICATION_UPDATE_GRACE_MS,
   FILL_IN_PENDING_STATUSES,
   hasWorkerApplicationClinicUpdate,
+  isClinicApplicationAwaitingClinicAction,
   isClinicApplicationUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
@@ -270,7 +272,7 @@ function buildWorkerShiftApplication(
 
   return {
     ...application,
-    post_title: `Fill-in · ${shiftDate}`,
+    post_title: formatFillInPostTitle(shiftDate),
     post_type: 'shift',
     post_status: shift?.status ?? null,
     post_role_type: roleType,
@@ -346,8 +348,10 @@ export type JobApplicationSummary = {
   applicant_count: number;
   screening_count: number;
   pending_count: number;
-  /** Unseen applicants still needing clinic attention (applied or screening_submitted). */
+  /** Unseen applicants (applied or screening_submitted) not yet opened by clinic. */
   unseen_count: number;
+  /** Applicants in early triage awaiting clinic action (applied, screening_submitted, reviewed). */
+  action_needed_count: number;
   shortlisted_count: number;
   interview_count: number;
 };
@@ -410,7 +414,7 @@ export async function listClinicApplications(
   const shiftMap = new Map(
     (shiftsResult.data ?? []).map((shift) => [
       shift.id,
-      { title: `Fill-in · ${shift.shift_date}`, role_type: shift.role_type },
+      { title: formatFillInPostTitle(shift.shift_date), role_type: shift.role_type },
     ]),
   );
 
@@ -510,7 +514,7 @@ export async function listWorkerApplications(
     (shiftsResult.data ?? []).map((shift) => [
       shift.id,
       {
-        title: `Fill-in · ${shift.shift_date}`,
+        title: formatFillInPostTitle(shift.shift_date),
         clinic_id: shift.clinic_id,
         status: shift.status,
         role_type: shift.role_type,
@@ -758,7 +762,7 @@ export async function getClinicApplication(
 
     const enriched: ClinicApplication = {
       ...application,
-      post_title: `Fill-in · ${shift.shift_date}`,
+      post_title: formatFillInPostTitle(shift.shift_date),
       post_type: 'shift',
       post_role_type: shift.role_type,
       worker_account_deleted: Boolean(application.worker_account_deleted_at),
@@ -1041,6 +1045,9 @@ export async function listJobApplicationSummaries(
       if (isClinicNewApplication(application)) {
         existing.unseen_count += 1;
       }
+      if (isClinicApplicationAwaitingClinicAction(application)) {
+        existing.action_needed_count += 1;
+      }
       if (application.status === 'in_progress') {
         existing.shortlisted_count += 1;
       }
@@ -1059,6 +1066,7 @@ export async function listJobApplicationSummaries(
         screening_count: application.status === 'screening_submitted' ? 1 : 0,
         pending_count: application.status === 'applied' ? 1 : 0,
         unseen_count: isClinicNewApplication(application) ? 1 : 0,
+        action_needed_count: isClinicApplicationAwaitingClinicAction(application) ? 1 : 0,
         shortlisted_count: application.status === 'in_progress' ? 1 : 0,
         interview_count:
           application.status === 'interview_offered' || application.status === 'interview_scheduled'
@@ -1069,6 +1077,9 @@ export async function listJobApplicationSummaries(
   }
 
   return [...summaries.values()].sort((a, b) => {
+    if (b.action_needed_count !== a.action_needed_count) {
+      return b.action_needed_count - a.action_needed_count;
+    }
     if (b.unseen_count !== a.unseen_count) {
       return b.unseen_count - a.unseen_count;
     }
@@ -1593,7 +1604,7 @@ export async function listFillInCoverRequests(
     shifts.map((shift) => [
       shift.id,
       {
-        title: `Fill-in · ${shift.shift_date}`,
+        title: formatFillInPostTitle(shift.shift_date),
         role_type: shift.role_type,
         shift_date: shift.shift_date,
         start_time: shift.start_time,
@@ -1717,7 +1728,7 @@ export async function listUpcomingConfirmedFillIns(
       workerPhotoStoragePath: row.worker_account_deleted_at
         ? null
         : (row.worker_photo_storage_path ?? null),
-      postTitle: `Fill-in · ${shift.shift_date}`,
+      postTitle: formatFillInPostTitle(shift.shift_date),
       shiftDate: shift.shift_date,
       startTime: shift.start_time,
       endTime: shift.end_time,

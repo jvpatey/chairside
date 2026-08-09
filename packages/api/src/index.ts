@@ -31,6 +31,7 @@ export {
 } from './fillInOutreach';
 export {
   createSessionFromUrl,
+  establishSessionAfterSignUp,
   getAuthErrorMessage,
   resetPasswordForEmail,
   updatePassword,
@@ -291,6 +292,7 @@ export {
   markApplicationSeenByWorker,
   markApplicationSeenByClinic,
   markApplicationsSeenByWorker,
+  isClinicApplicationAwaitingClinicAction,
   isClinicApplicationUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
@@ -325,6 +327,7 @@ export {
   type WorkerApplication,
 } from './applications';
 export {
+  deleteMessage,
   getConversation,
   getConversationByApplicationId,
   getCounterpartLastReadAt,

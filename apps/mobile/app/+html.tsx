@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 const SITE_TITLE = 'Chairside — Dental staffing, simplified';
 const SITE_DESCRIPTION =
   'One platform for Canadian dental clinics hiring and professionals finding work.';
-const THEME_COLOR_LIGHT = '#F2F2F7';
-const THEME_COLOR_DARK = '#0C0C0E';
+const THEME_COLOR_LIGHT = '#F4F6FB';
+const THEME_COLOR_DARK = '#0B0D12';
 const PRIMARY_COLOR = '#1A6FD4';
 
 // This file is web-only and used to configure the root HTML for every
@@ -28,10 +28,15 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta property="og:title" content={SITE_TITLE} />
         <meta property="og:description" content={SITE_DESCRIPTION} />
         <meta property="og:url" content="https://chairside.app" />
+        <meta property="og:image" content="https://chairside.app/assets/images/og-share.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Chairside — Dental staffing, simplified" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={SITE_TITLE} />
         <meta name="twitter:description" content={SITE_DESCRIPTION} />
+        <meta name="twitter:image" content="https://chairside.app/assets/images/og-share.png" />
 
         <link rel="icon" href="/assets/images/favicon.png" />
 
@@ -47,6 +52,7 @@ export default function Root({ children }: { children: ReactNode }) {
 const globalStyles = `
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 html,

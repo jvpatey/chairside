@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
@@ -10,7 +10,8 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow, webTypography } from '@/theme/web';
+import { getElevationStyle, radii } from '@/theme/tokens';
+import { webOnboardingAtmosphereStyle, webTypography } from '@/theme/web';
 
 type AuthWebBrandVisual = 'appPreview' | 'rolePaths';
 
@@ -33,24 +34,27 @@ export function AuthWebBrandPanel({
   subtitle = ONBOARDING_SUBTITLE,
   visual = 'appPreview',
 }: AuthWebBrandPanelProps) {
-  const { isDark } = useTheme();
   const { isWide } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     panel: {
       flex: isWide ? 1 : undefined,
+      position: 'relative' as const,
+      overflow: isWide ? ('hidden' as const) : ('visible' as const),
+      backgroundColor: colors.backgroundGrouped,
+    },
+    atmosphere: {
+      ...StyleSheet.absoluteFillObject,
+      pointerEvents: 'none' as const,
+      ...webOnboardingAtmosphereStyle(isDark),
+    },
+    content: {
       paddingTop: isWide ? spacing.xl * 1.5 : insets.top + spacing.lg,
       paddingBottom: isWide ? spacing.xl * 1.5 : spacing.lg,
       paddingHorizontal: isWide ? spacing.xl * 1.5 : spacing.lg,
       justifyContent: 'center' as const,
       gap: isWide ? spacing.xl : spacing.md,
-      position: 'relative' as const,
-      overflow: isWide ? ('hidden' as const) : ('visible' as const),
-      // @ts-expect-error web gradient
-      backgroundImage: isDark
-        ? 'linear-gradient(160deg, rgba(74, 154, 255, 0.14) 0%, rgba(152, 150, 255, 0.08) 40%, rgba(12, 12, 14, 1) 100%)'
-        : 'linear-gradient(160deg, rgba(26, 111, 212, 0.1) 0%, rgba(88, 86, 214, 0.06) 40%, rgba(242, 242, 247, 1) 100%)',
     },
     copy: {
       gap: spacing.md,
@@ -72,16 +76,19 @@ export function AuthWebBrandPanel({
 
   return (
     <View style={styles.panel}>
-      <ChairsideWordmark variant="small" />
-      <View style={styles.copy}>
-        <Text style={styles.headline}>{headline}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-      </View>
-      {isWide ? (
-        <View style={styles.visual}>
-          <AuthWebBrandVisualPanel visual={visual} />
+      <View style={styles.atmosphere} />
+      <View style={styles.content}>
+        <ChairsideWordmark variant="small" />
+        <View style={styles.copy}>
+          <Text style={styles.headline}>{headline}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-      ) : null}
+        {isWide ? (
+          <View style={styles.visual}>
+            <AuthWebBrandVisualPanel visual={visual} />
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -124,14 +131,13 @@ export function AuthWebFormPanel({ children, footer, scrollable = true }: AuthWe
     },
     card: {
       width: '100%' as const,
-      borderRadius: 24,
+      borderRadius: radii.lg,
       padding: spacing.xl,
       backgroundColor: colors.surface,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       gap: spacing.lg,
-      // @ts-expect-error web shadow
-      boxShadow: getWebShadow(isDark, 'raised'),
+      ...getElevationStyle({ isDark, level: 'subtle' }),
     },
     footer: {
       width: '100%' as const,

@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
+import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
+import {
+  formFieldInputRowStyle,
+  formFieldInputStyle,
+} from '@/theme/formFieldTokens';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function sanitizeHourlyRate(value: string): string {
@@ -20,59 +25,45 @@ export function parseCompensation(value: string): string {
 type CompensationInputProps = {
   onChange: (compensation: string) => void;
   initialValue?: string;
+  embedded?: boolean;
 };
 
-export function CompensationInput({ onChange, initialValue }: CompensationInputProps) {
+export function CompensationInput({ onChange, initialValue, embedded = false }: CompensationInputProps) {
   const { colors } = useTheme();
   const [rate, setRate] = useState(() => parseCompensation(initialValue ?? ''));
   const preview = formatCompensation(rate);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles((theme) => ({
     wrap: {
-      gap: spacing.sm,
+      gap: theme.spacing.sm,
     },
-    label: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
+    row: formFieldInputRowStyle(theme),
     prefix: {
-      fontSize: typography.body.fontSize,
-      color: colors.labelSecondary,
+      fontSize: theme.typography.body.fontSize,
+      color: theme.colors.labelSecondary,
+      paddingLeft: theme.spacing.md,
     },
     input: {
-      flex: 1,
-      fontSize: typography.body.fontSize,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      borderRadius: 12,
-      paddingHorizontal: spacing.md,
-      paddingVertical: 12,
-      color: colors.labelPrimary,
-      textAlign: 'center',
+      ...formFieldInputStyle(theme),
+      textAlign: 'center' as const,
     },
     suffix: {
-      fontSize: typography.body.fontSize,
-      color: colors.labelSecondary,
+      fontSize: theme.typography.body.fontSize,
+      color: theme.colors.labelSecondary,
+      paddingRight: theme.spacing.md,
     },
     preview: {
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: theme.colors.fillSubtle,
       borderRadius: 12,
-      padding: spacing.md,
-      gap: spacing.xs,
+      padding: theme.spacing.md,
+      gap: theme.spacing.xs,
     },
     previewLabel: {
       fontSize: 13,
       fontWeight: '600',
-      color: colors.labelSecondary,
+      color: theme.colors.labelSecondary,
     },
-    previewText: typography.body,
+    previewText: theme.typography.body,
   }));
 
   useEffect(() => {
@@ -81,7 +72,7 @@ export function CompensationInput({ onChange, initialValue }: CompensationInputP
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>Compensation (optional)</Text>
+      {!embedded ? <FormFieldLabel label="Compensation (optional)" /> : null}
 
       <View style={styles.row}>
         <Text style={styles.prefix}>$</Text>

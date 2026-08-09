@@ -1,4 +1,5 @@
 import { PillBadge } from '@/components/ui/PillBadge';
+import { resolveAccentColor, resolveAccentOnColor } from '@/lib/accentColors';
 import { useTheme, type GradientAccent } from '@/theme';
 
 type ApplicationCardBadgeProps = {
@@ -6,10 +7,10 @@ type ApplicationCardBadgeProps = {
   accent?: GradientAccent;
 };
 
-export function ApplicationCardBadge({ label, accent = 'primary' }: ApplicationCardBadgeProps) {
+export function ApplicationCardBadge({ label, accent = 'tertiary' }: ApplicationCardBadgeProps) {
   const { colors } = useTheme();
-  const backgroundColor = accent === 'secondary' ? colors.secondary : colors.primary;
-  const color = accent === 'secondary' ? colors.secondaryOnSecondary : colors.primaryOnPrimary;
+  const backgroundColor = resolveAccentColor(colors, accent);
+  const color = resolveAccentOnColor(colors, accent);
 
   return (
     <PillBadge

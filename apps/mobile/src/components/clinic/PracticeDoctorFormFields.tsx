@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { PracticeDoctorAvatar } from '@/components/clinic/PracticeDoctorAvatar';
 import { AuthField } from '@/components/onboarding/AuthField';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import {
   webHover,
   webPointer,
@@ -64,11 +65,6 @@ export function PracticeDoctorFormFields({
     roleSection: {
       gap: spacing.sm,
     },
-    roleLabel: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
-    },
     bioHint: {
       ...typography.subtitle,
       fontSize: 12,
@@ -79,6 +75,7 @@ export function PracticeDoctorFormFields({
 
   return (
     <View style={styles.wrap}>
+      <FormSectionHeader icon="camera-outline" label="Doctor photo" />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Change doctor photo"
@@ -95,7 +92,7 @@ export function PracticeDoctorFormFields({
           isLoading={isPhotoLoading}
         />
         <Text style={[styles.photoLink, { color: colors.primary }]}>
-          {photoUri ? 'Change photo' : 'Add photo (optional)'}
+          {photoUri ? 'Change photo' : 'Add photo'}
         </Text>
       </Pressable>
 
@@ -105,17 +102,19 @@ export function PracticeDoctorFormFields({
         value={name}
         onChangeText={onNameChange}
         autoCapitalize="words"
+        icon="person-outline"
       />
 
       <View style={styles.roleSection}>
         <AuthField
-          label="Role or specialty (optional)"
+          label="Role or specialty"
           placeholder="e.g. Owner Dentist"
           value={title}
           onChangeText={onTitleChange}
           autoCapitalize="words"
+          icon="ribbon-outline"
         />
-        <Text style={styles.roleLabel}>Quick role</Text>
+        <FormSectionHeader icon="medkit-outline" label="Quick role" />
         <ChipSelector
           options={PRACTICE_DOCTOR_ROLE_OPTIONS.map((role) => ({
             value: role,
@@ -128,7 +127,7 @@ export function PracticeDoctorFormFields({
 
       {locationOptions.length > 0 && onLocationIdsChange ? (
         <View style={styles.roleSection}>
-          <Text style={styles.roleLabel}>Works at</Text>
+          <FormSectionHeader icon="location-outline" label="Works at" />
           <ChipSelector
             options={locationOptions}
             selected={selectedLocationIds}
@@ -140,12 +139,13 @@ export function PracticeDoctorFormFields({
       ) : null}
 
       <AuthField
-        label="Bio (optional)"
+        label="Bio"
         placeholder="A short note about this doctor’s background or focus"
         value={bio}
         onChangeText={(text) => onBioChange(text.slice(0, PRACTICE_DOCTOR_BIO_MAX_LENGTH))}
         autoCapitalize="sentences"
         multiline
+        icon="document-text-outline"
       />
       <Text style={styles.bioHint}>
         {bio.length}/{PRACTICE_DOCTOR_BIO_MAX_LENGTH}

@@ -9,9 +9,9 @@ import { useThemedStyles } from '@/theme';
 
 type SetupBillingUpsellLinkProps = {
   label?: string;
-  /** Scroll billing sheet to Group vs Clinic sections when opened. */
+  /** Scroll billing page to Group vs Clinic sections when opened. */
   focus?: ClinicBillingScrollFocus;
-  /** Defaults to opening the setup-safe billing modal. */
+  /** Defaults to opening Plans & billing. */
   onPress?: () => void;
 };
 

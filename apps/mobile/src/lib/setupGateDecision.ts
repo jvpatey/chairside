@@ -17,6 +17,8 @@ type ClinicGateInput = {
   isAuthReady: boolean;
   session: unknown;
   profile: Profile | null;
+  /** False while session exists but auth profile fetch has not settled. */
+  isProfileReady: boolean;
   isClinicProfileReady: boolean;
   clinicProfile: ClinicProfile | null;
   membership: unknown;
@@ -29,6 +31,8 @@ type WorkerGateInput = {
   isAuthReady: boolean;
   session: unknown;
   profile: Profile | null;
+  /** False while session exists but auth profile fetch has not settled. */
+  isProfileReady: boolean;
   isWorkerProfileReady: boolean;
   workerProfile: { setup_completed_at?: string | null } | null;
   isWorkerSetupComplete: (profile: NonNullable<WorkerGateInput['workerProfile']>) => boolean;
@@ -37,6 +41,8 @@ type WorkerGateInput = {
 export function getClinicSetupGateDecision(input: ClinicGateInput): SetupGateDecision {
   if (!input.isAuthReady) return { type: 'loading' };
   if (!input.session) return { type: 'redirect', href: '/(onboarding)/welcome' };
+  // Session recovered but profile still loading — do not treat null as "pick role".
+  if (!input.isProfileReady) return { type: 'loading' };
   if (input.profile === null) {
     return { type: 'redirect', href: '/(onboarding)/role?fromAuth=1' };
   }
@@ -72,6 +78,8 @@ export function getClinicSetupGateDecision(input: ClinicGateInput): SetupGateDec
 export function getWorkerSetupGateDecision(input: WorkerGateInput): SetupGateDecision {
   if (!input.isAuthReady) return { type: 'loading' };
   if (!input.session) return { type: 'redirect', href: '/(onboarding)/welcome' };
+  // Session recovered but profile still loading — do not treat null as "pick role".
+  if (!input.isProfileReady) return { type: 'loading' };
   if (input.profile === null) {
     return { type: 'redirect', href: '/(onboarding)/role?fromAuth=1' };
   }

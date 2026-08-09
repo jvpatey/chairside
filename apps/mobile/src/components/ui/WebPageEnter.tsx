@@ -7,6 +7,8 @@ type WebPageEnterProps = {
   style?: StyleProp<ViewStyle>;
   /** When false, skip the fade/slide-in (e.g. split-view panes). */
   animate?: boolean;
+  /** Web-only — native passthrough ignores this. */
+  trigger?: 'mount' | 'visible';
 };
 
 /** Native passthrough — web animation lives in WebPageEnter.web.tsx */

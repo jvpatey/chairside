@@ -7,11 +7,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 
 import { MessageableClinicListItem } from '@/components/messaging/MessageableClinicListItem';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
+import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -54,31 +55,18 @@ export function WorkerMessageClinicsPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [isStarting, setIsStarting] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
+  const styles = useThemedStyles(({ spacing, typography, colors, radii }) => ({
     content: { gap: spacing.lg },
     scroll: { flex: 1 },
     scrollContent: {
       gap: spacing.lg,
       paddingBottom: spacing.md,
     },
-    searchWrap: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-    },
-    searchInput: {
-      ...typography.body,
-      color: colors.labelPrimary,
-      padding: 0,
-    },
     emptyCard: {
       alignItems: 'center',
       gap: spacing.md,
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.xl,
@@ -198,19 +186,12 @@ export function WorkerMessageClinicsPanel({
         </View>
       ) : (
         <>
-          <View style={styles.searchWrap}>
-            <TextInput
-              accessibilityLabel="Search clinics"
-              placeholder="Search clinics by name, city, or specialty"
-              placeholderTextColor={colors.labelTertiary}
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-            />
-          </View>
+          <ListSearchFilterRow
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search clinics by name, city, or specialty"
+            accessibilityLabel="Search clinics"
+          />
 
           {filteredClinics.length === 0 ? (
             <View style={styles.emptyCard}>
@@ -268,7 +249,6 @@ export function WorkerMessageClinicsPanel({
         constrainWidth={false}
         scroll={scroll ?? true}
         fillsContainer={fillsContainer}
-        animateEntry={false}
       >
         {scrollableBody}
       </Screen>

@@ -129,10 +129,10 @@ export function ConversationListItem({
   const ownDeliveryStatus = getLastOwnMessageDeliveryStatus(conversation, role, viewerId);
 
   const avatarSize = compact ? 40 : 48;
-  const primaryTitle = compact ? display.inboxContextLine : display.cardName;
-  const secondaryLine = compact ? display.cardName : display.cardTitle;
+  const primaryTitle = display.cardName;
+  const detailLine = compact ? display.inboxContextLine : null;
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     row: {
       flexDirection: 'row',
       alignItems: 'stretch',
@@ -150,7 +150,7 @@ export function ConversationListItem({
       flex: 1,
       flexDirection: 'row',
       alignItems: compact ? 'flex-start' : 'center',
-      gap: compact ? 0 : spacing.md,
+      gap: spacing.sm,
       minWidth: 0,
       ...webPointer(),
     },
@@ -175,12 +175,6 @@ export function ConversationListItem({
       letterSpacing: -0.2,
       color: colors.labelPrimary,
       flex: 1,
-    },
-    counterpart: {
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.labelTertiary,
-      fontWeight: '500',
     },
     metaRow: {
       flexDirection: 'row',
@@ -245,7 +239,7 @@ export function ConversationListItem({
     },
     timestamp: {
       fontSize: 12,
-      color: conversation.unread ? colors.primary : colors.labelTertiary,
+      color: conversation.unread ? colors.primary : colors.labelSecondary,
       fontWeight: conversation.unread ? '600' : '400',
     },
     unreadDot: {
@@ -261,7 +255,7 @@ export function ConversationListItem({
       zIndex: 2,
       width: 32,
       height: 32,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       alignItems: 'center',
       justifyContent: 'center',
       ...webPointer(),
@@ -341,9 +335,7 @@ export function ConversationListItem({
           accessibilityState={{ selected }}
           onPress={onPress}
           style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
-          {!compact ? (
-            <ConversationAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
-          ) : null}
+          <ConversationAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
           <View style={styles.textWrap}>
             <View style={[styles.titleRow, onDelete ? styles.titleRowWithMenu : null]}>
               <View style={{ flex: 1, gap: compact ? 4 : 0, minWidth: 0 }}>
@@ -360,9 +352,9 @@ export function ConversationListItem({
                     {primaryTitle}
                   </Text>
                 )}
-                {compact && secondaryLine ? (
-                  <Text style={styles.counterpart} numberOfLines={1}>
-                    {secondaryLine}
+                {compact && detailLine ? (
+                  <Text style={styles.context} numberOfLines={1}>
+                    {detailLine}
                   </Text>
                 ) : null}
               </View>
