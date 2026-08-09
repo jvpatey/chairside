@@ -15,6 +15,8 @@ type MasterDetailLayoutProps = {
   style?: StyleProp<ViewStyle>;
   contextCollapsed?: boolean;
   onContextCollapsedChange?: (collapsed: boolean) => void;
+  /** Web-only card-style panes; ignored on native. */
+  roundedPanes?: boolean;
 };
 
 /**

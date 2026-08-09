@@ -72,7 +72,7 @@ export function ClinicWorkerCrmSheetBottom(props: ClinicWorkerCrmSheetProps) {
 export function ClinicWorkerCrmSheet(props: ClinicWorkerCrmSheetProps) {
   if (Platform.OS === 'web') {
     const { ClinicWorkerCrmSheet: WebClinicWorkerCrmSheet } =
-      require('./ClinicWorkerCrmSheet.web') as typeof import('./ClinicWorkerCrmSheet.web');
+      require('./ClinicWorkerCrmSheetWeb') as typeof import('./ClinicWorkerCrmSheetWeb');
     return <WebClinicWorkerCrmSheet {...props} />;
   }
 

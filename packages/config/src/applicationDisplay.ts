@@ -114,17 +114,22 @@ export function formatJobApplicationSummaryMeta(summary: {
   screening_count?: number;
   pending_count: number;
   unseen_count?: number;
+  action_needed_count?: number;
   shortlisted_count?: number;
   interview_count?: number;
 }): string | undefined {
   if (summary.applicant_count === 0) return undefined;
 
   const parts: string[] = [];
-  const unseenCount = summary.unseen_count ?? summary.pending_count;
+  const actionNeededCount = summary.action_needed_count ?? summary.pending_count;
+  const unseenCount = summary.unseen_count ?? 0;
 
   if ((summary.screening_count ?? 0) > 0) {
     const count = summary.screening_count ?? 0;
     parts.push(count === 1 ? '1 screening' : `${count} screening`);
+  }
+  if (actionNeededCount > 0) {
+    parts.push(actionNeededCount === 1 ? '1 to review' : `${actionNeededCount} to review`);
   }
   if (unseenCount > 0) {
     parts.push(unseenCount === 1 ? '1 new' : `${unseenCount} new`);

@@ -199,6 +199,7 @@ export function ClinicApplicationStatusBadge({
   applicationKitSubmittedAt,
   statusClosedBy,
 }: ClinicApplicationStatusBadgeProps) {
+  const { colors } = useTheme();
   const label =
     status === 'screening_submitted'
       ? formatClinicScreeningStatus({
@@ -214,10 +215,19 @@ export function ClinicApplicationStatusBadge({
           })
         : formatClinicApplicationStatus(status, postType);
 
+  const variant = getClinicApplicationStatusVariant(status, postType);
+  const palette = useStatusVariantPalette(variant);
+  const resolvedPalette =
+    variant === 'applied'
+      ? { color: colors.tertiary, backgroundColor: colors.tertiarySubtle }
+      : palette;
+
   return (
-    <ApplicationStatusBadge
+    <PillBadge
       label={label}
-      variant={getClinicApplicationStatusVariant(status, postType)}
+      color={resolvedPalette.color}
+      backgroundColor={resolvedPalette.backgroundColor}
+      showDot
     />
   );
 }

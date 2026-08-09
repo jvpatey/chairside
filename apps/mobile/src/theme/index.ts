@@ -17,6 +17,8 @@ export {
   getHeroBandGradient,
   getPrimaryTileGradient,
   getSecondaryTileGradient,
+  getTertiaryTileGradient,
+  getTileGradient,
   getSpotlightGradient,
   getStatCardIdleGradient,
   getStatCardSelectedGradient,

@@ -69,7 +69,7 @@ export function CancelFillInSheetBottom({
 export function CancelFillInSheet(props: CancelFillInSheetProps) {
   if (Platform.OS === 'web') {
     const { CancelFillInSheet: WebCancelFillInSheet } =
-      require('./CancelFillInSheet.web') as typeof import('./CancelFillInSheet.web');
+      require('./CancelFillInSheetWeb') as typeof import('./CancelFillInSheetWeb');
     return <WebCancelFillInSheet {...props} />;
   }
 

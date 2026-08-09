@@ -372,7 +372,7 @@ export function FileTabWell<T extends string = string>({
                   {tab.count}
                 </Text>
               ) : null}
-              {tab.badgeCount != null && tab.badgeCount > 0 ? (
+              {tab.badgeCount != null && tab.badgeCount > 0 && !isSelected ? (
                 <NotificationCountBadge count={tab.badgeCount} />
               ) : null}
             </View>

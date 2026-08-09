@@ -781,7 +781,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     };
 
     const badge = options.tabBarBadge;
-    const hasBadge = badge != null && badge !== 0;
+    const hasBadge = badge != null && badge !== 0 && !isFocused;
 
     return (
       <Pressable

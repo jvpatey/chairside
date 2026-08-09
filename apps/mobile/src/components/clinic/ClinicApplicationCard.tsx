@@ -18,25 +18,24 @@ import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatRelativeApplicationAge } from '@/lib/dates';
-import {
-  getApplicationMatchDisplayContext,
-  parseApplicationJobMatch,
-} from '@/lib/matchDisplay';
-import {
-  getClinicApplicationRoute,
-  type ClinicApplicationReturnTarget,
-} from '@/lib/routing';
+import { getApplicationMatchDisplayContext, parseApplicationJobMatch } from '@/lib/matchDisplay';
+import { getClinicApplicationRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ClinicApplicationCardProps = {
   application: ClinicApplication;
   returnTo?: ClinicApplicationReturnTarget;
   roleJobId?: string;
+  /** When set, Back restores Applications split view with this role selected. */
+  selectJobId?: string;
   hasUnreadMessages?: boolean;
   embedded?: boolean;
 };
 
-function buildQualificationsLine(application: ClinicApplication, roleJobId?: string): string | null {
+function buildQualificationsLine(
+  application: ClinicApplication,
+  roleJobId?: string,
+): string | null {
   const experienceLabel =
     application.years_of_experience != null
       ? `${application.years_of_experience} ${
@@ -44,9 +43,7 @@ function buildQualificationsLine(application: ClinicApplication, roleJobId?: str
         } experience`
       : null;
   const educationLabel = formatApplicationEducation(application.education);
-  const roleLabel = roleJobId
-    ? null
-    : formatRoleTypesLabel(resolveWorkerRoleTypes(application));
+  const roleLabel = roleJobId ? null : formatRoleTypesLabel(resolveWorkerRoleTypes(application));
 
   return [experienceLabel, educationLabel, roleLabel].filter(Boolean).join(' · ') || null;
 }
@@ -90,6 +87,7 @@ export function ClinicApplicationCard({
   application,
   returnTo = 'applications-tab',
   roleJobId,
+  selectJobId,
   hasUnreadMessages = false,
   embedded = false,
 }: ClinicApplicationCardProps) {
@@ -102,9 +100,7 @@ export function ClinicApplicationCard({
   const workerDeleted = application.worker_account_deleted;
 
   const applicantName = getApplicantDisplayName(application);
-  const photoUri = useWorkerPhotoUri(
-    workerDeleted ? null : application.worker_photo_storage_path,
-  );
+  const photoUri = useWorkerPhotoUri(workerDeleted ? null : application.worker_photo_storage_path);
   const qualificationsLine = buildQualificationsLine(application, roleJobId);
   const contextLine = buildContextLine(application, hasUnreadMessages, workerDeleted);
   const postContextLine = !roleJobId ? application.post_title?.trim() || null : null;
@@ -163,7 +159,7 @@ export function ClinicApplicationCard({
   }));
 
   const openDetail = () => {
-    router.push(getClinicApplicationRoute(application.id, returnTo, roleJobId));
+    router.push(getClinicApplicationRoute(application.id, returnTo, roleJobId, selectJobId));
   };
 
   return (

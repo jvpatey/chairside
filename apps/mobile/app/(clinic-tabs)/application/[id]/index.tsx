@@ -46,15 +46,17 @@ export default function ClinicApplicationDetailScreen() {
   const { user } = useAuth();
   const { clinicProfile } = useClinicProfile();
   const { markApplicationSeen } = useApplicationTabBadge();
-  const { id, returnTo, roleJobId } = useLocalSearchParams<{
+  const { id, returnTo, roleJobId, selectJobId } = useLocalSearchParams<{
     id?: string;
     returnTo?: string;
     roleJobId?: string;
+    selectJobId?: string;
   }>();
   const applicationId = typeof id === 'string' ? id : '';
   const resolvedReturnTo =
     typeof returnTo === 'string' ? (returnTo as ClinicApplicationReturnTarget) : undefined;
   const resolvedRoleJobId = typeof roleJobId === 'string' ? roleJobId : undefined;
+  const resolvedSelectJobId = typeof selectJobId === 'string' ? selectJobId : undefined;
 
   const [application, setApplication] = useState<ClinicApplication | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
@@ -76,8 +78,13 @@ export default function ClinicApplicationDetailScreen() {
   }));
 
   const goBack = useCallback(() => {
-    navigateAfterClinicApplication(router, resolvedReturnTo, resolvedRoleJobId);
-  }, [resolvedReturnTo, resolvedRoleJobId]);
+    navigateAfterClinicApplication(
+      router,
+      resolvedReturnTo,
+      resolvedRoleJobId,
+      resolvedSelectJobId,
+    );
+  }, [resolvedReturnTo, resolvedRoleJobId, resolvedSelectJobId]);
 
   const load = useCallback(async () => {
     if (!user?.id || !applicationId) {
@@ -123,13 +130,17 @@ export default function ClinicApplicationDetailScreen() {
 
   const defaultLocation = formatClinicAddress(clinicProfile);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
+  const reviewAccent =
+    application?.post_type === 'shift' ? ('secondary' as const) : ('tertiary' as const);
 
   return (
     <>
       <FormScreen
         eyebrow="Application review"
         title={formatPostTitleDisplay(application?.post_title || 'Applicant')}
-        onBack={goBack}>
+        onBack={goBack}
+        accent={reviewAccent}
+        atmosphereAccent={reviewAccent}>
         <View style={styles.content}>
           <FormErrorBanner message={formError} />
           {isLoading ? (

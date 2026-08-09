@@ -40,10 +40,7 @@ function statusIcon(
   }
 }
 
-function useStatusVariantStyles(
-  variant: ApplicationStatusSummary['variant'],
-  audience: ApplicationStatusSummaryAudience,
-) {
+function useStatusVariantStyles(variant: ApplicationStatusSummary['variant']) {
   const { colors, isDark } = useTheme();
 
   switch (variant) {
@@ -58,15 +55,10 @@ function useStatusVariantStyles(
         iconColor: colors.warning,
       };
     case 'info':
-      return audience === 'worker'
-        ? {
-            badgeBg: colors.tertiarySubtle,
-            iconColor: colors.tertiary,
-          }
-        : {
-            badgeBg: colors.primarySubtle,
-            iconColor: colors.primary,
-          };
+      return {
+        badgeBg: colors.tertiarySubtle,
+        iconColor: colors.tertiary,
+      };
     default:
       return {
         badgeBg: colors.fillSubtle,
@@ -90,7 +82,7 @@ export function ApplicantReviewHero({
     status.audience,
     { isHighlighted: status.isHighlighted },
   );
-  const variantStyles = useStatusVariantStyles(summary?.variant ?? 'default', status.audience);
+  const variantStyles = useStatusVariantStyles(summary?.variant ?? 'default');
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     band: {

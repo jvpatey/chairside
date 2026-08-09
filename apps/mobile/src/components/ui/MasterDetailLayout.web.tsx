@@ -3,7 +3,11 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
-import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import {
+  useShellAtmosphere,
+  useTabAtmosphere,
+  useTabAtmosphereAccent,
+} from '@/contexts/TabAtmosphereContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -28,6 +32,8 @@ type MasterDetailLayoutProps = {
   style?: StyleProp<ViewStyle>;
   contextCollapsed?: boolean;
   onContextCollapsedChange?: (collapsed: boolean) => void;
+  /** Card-style panes with rounded corners — for workspace split views like Applications. */
+  roundedPanes?: boolean;
 };
 
 /** Web master/detail with optional third context pane at xwide widths. */
@@ -40,6 +46,7 @@ export function MasterDetailLayout({
   style,
   contextCollapsed = false,
   onContextCollapsedChange,
+  roundedPanes = false,
 }: MasterDetailLayoutProps) {
   const { colors } = useTheme();
   const { isTablet, isXWide } = useResponsiveLayout();
@@ -56,7 +63,7 @@ export function MasterDetailLayout({
   const contextExpanded = !contextCollapsed || !contextCollapsible;
   const contextPaneWidth = contextExpanded ? CONTEXT_WIDTH : CONTEXT_RAIL_WIDTH;
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
     root: {
       flex: 1,
       minHeight: 0,
@@ -68,19 +75,43 @@ export function MasterDetailLayout({
       minHeight: 0,
       width: '100%',
     },
+    rowRounded: {
+      gap: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
+    },
     pane: {
       position: 'relative' as const,
-      overflow: 'hidden' as const,
       flexDirection: 'column' as const,
       minHeight: 0,
+    },
+    paneClip: {
+      overflow: 'hidden' as const,
+    },
+    detailPane: {
+      overflow: 'visible' as const,
+    },
+    roundedShell: {
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
+      boxShadow: getWebShadow(isDark, 'subtle') as ViewStyle['boxShadow'],
+    },
+    roundedDetailShell: {
+      backgroundColor: colors.background,
     },
     masterFixed: {
       width: masterWidth,
       flexShrink: 0,
       flexGrow: 0,
-      borderRightWidth: 0.5,
-      borderRightColor: colors.separator,
-      backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
+      ...(roundedPanes
+        ? null
+        : {
+            borderRightWidth: 0.5,
+            borderRightColor: colors.separator,
+            backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
+          }),
     },
     masterExpanded: {
       flex: 1,
@@ -88,13 +119,19 @@ export function MasterDetailLayout({
       flexGrow: 1,
       minWidth: masterWidth,
       maxWidth: '42%',
-      borderRightWidth: 0.5,
-      borderRightColor: colors.separator,
-      backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
+      ...(roundedPanes
+        ? null
+        : {
+            borderRightWidth: 0.5,
+            borderRightColor: colors.separator,
+            backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
+          }),
     },
     detailBase: {
       minWidth: 0,
-      backgroundColor: passThroughAtmosphere ? 'transparent' : colors.background,
+      ...(roundedPanes
+        ? null
+        : { backgroundColor: passThroughAtmosphere ? 'transparent' : colors.background }),
     },
     detailExpanded: {
       flex: 1.45,
@@ -151,38 +188,37 @@ export function MasterDetailLayout({
 
   return (
     <View style={[styles.root, style]}>
-      <View style={styles.row}>
+      <View style={[styles.row, roundedPanes ? styles.rowRounded : null]}>
         <View
           style={[
             styles.pane,
+            styles.paneClip,
+            roundedPanes ? styles.roundedShell : null,
             contextExpanded ? styles.masterFixed : styles.masterExpanded,
             PANE_TRANSITION,
           ]}
         >
-          {atmosphereLayer}
+          {!roundedPanes ? atmosphereLayer : null}
           <View style={styles.paneContent}>{master}</View>
         </View>
 
         <View
           style={[
             styles.pane,
+            roundedPanes ? styles.paneClip : styles.detailPane,
+            roundedPanes ? styles.roundedShell : null,
+            roundedPanes ? styles.roundedDetailShell : null,
             styles.detailBase,
             contextExpanded ? styles.detailCompact : styles.detailExpanded,
             PANE_TRANSITION,
           ]}
         >
-          {atmosphereLayer}
           <View style={styles.paneContent}>{detail}</View>
         </View>
 
         {showContext ? (
           <View
-            style={[
-              styles.pane,
-              styles.contextPane,
-              { width: contextPaneWidth },
-              PANE_TRANSITION,
-            ]}
+            style={[styles.pane, styles.contextPane, { width: contextPaneWidth }, PANE_TRANSITION]}
           >
             {atmosphereLayer}
             <View

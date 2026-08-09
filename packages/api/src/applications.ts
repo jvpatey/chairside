@@ -5,6 +5,7 @@ import {
   APPLICATION_UPDATE_GRACE_MS,
   FILL_IN_PENDING_STATUSES,
   hasWorkerApplicationClinicUpdate,
+  isClinicApplicationAwaitingClinicAction,
   isClinicApplicationUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
@@ -16,6 +17,7 @@ export {
   APPLICATION_UPDATE_GRACE_MS,
   FILL_IN_PENDING_STATUSES,
   hasWorkerApplicationClinicUpdate,
+  isClinicApplicationAwaitingClinicAction,
   isClinicApplicationUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
@@ -346,8 +348,10 @@ export type JobApplicationSummary = {
   applicant_count: number;
   screening_count: number;
   pending_count: number;
-  /** Unseen applicants still needing clinic attention (applied or screening_submitted). */
+  /** Unseen applicants (applied or screening_submitted) not yet opened by clinic. */
   unseen_count: number;
+  /** Applicants in early triage awaiting clinic action (applied, screening_submitted, reviewed). */
+  action_needed_count: number;
   shortlisted_count: number;
   interview_count: number;
 };
@@ -1041,6 +1045,9 @@ export async function listJobApplicationSummaries(
       if (isClinicNewApplication(application)) {
         existing.unseen_count += 1;
       }
+      if (isClinicApplicationAwaitingClinicAction(application)) {
+        existing.action_needed_count += 1;
+      }
       if (application.status === 'in_progress') {
         existing.shortlisted_count += 1;
       }
@@ -1059,6 +1066,7 @@ export async function listJobApplicationSummaries(
         screening_count: application.status === 'screening_submitted' ? 1 : 0,
         pending_count: application.status === 'applied' ? 1 : 0,
         unseen_count: isClinicNewApplication(application) ? 1 : 0,
+        action_needed_count: isClinicApplicationAwaitingClinicAction(application) ? 1 : 0,
         shortlisted_count: application.status === 'in_progress' ? 1 : 0,
         interview_count:
           application.status === 'interview_offered' || application.status === 'interview_scheduled'
@@ -1069,6 +1077,9 @@ export async function listJobApplicationSummaries(
   }
 
   return [...summaries.values()].sort((a, b) => {
+    if (b.action_needed_count !== a.action_needed_count) {
+      return b.action_needed_count - a.action_needed_count;
+    }
     if (b.unseen_count !== a.unseen_count) {
       return b.unseen_count - a.unseen_count;
     }

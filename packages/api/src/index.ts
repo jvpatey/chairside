@@ -292,6 +292,7 @@ export {
   markApplicationSeenByWorker,
   markApplicationSeenByClinic,
   markApplicationsSeenByWorker,
+  isClinicApplicationAwaitingClinicAction,
   isClinicApplicationUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,

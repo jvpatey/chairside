@@ -154,6 +154,28 @@ export function getSecondaryTileGradient(
     : [colors.secondary, colorWithAlpha(end, 0.86)];
 }
 
+/** Tertiary (mint) quick-action tile gradient. */
+export function getTertiaryTileGradient(
+  colors: Colors,
+  isDark: boolean,
+): readonly [string, string] {
+  const end = GRADIENT_HUE_SHIFT.tertiaryEnd;
+  return isDark
+    ? [colorWithAlpha(colors.tertiary, 0.48), colorWithAlpha(end, 0.3)]
+    : [colors.tertiary, colorWithAlpha(end, 0.88)];
+}
+
+/** Tile gradient for the active brand accent. */
+export function getTileGradient(
+  colors: Colors,
+  isDark: boolean,
+  accent: GradientAccent = 'primary',
+): readonly [string, string] {
+  if (accent === 'secondary') return getSecondaryTileGradient(colors, isDark);
+  if (accent === 'tertiary') return getTertiaryTileGradient(colors, isDark);
+  return getPrimaryTileGradient(colors, isDark);
+}
+
 /** Selected stat cell accent gradient. */
 export function getStatSelectedGradient(
   colors: Colors,

@@ -603,6 +603,7 @@ export function getClinicApplicationRoute(
   applicationId: string,
   returnTo?: ClinicApplicationReturnTarget,
   roleJobId?: string,
+  selectJobId?: string,
 ): Href {
   return {
     pathname: '/(clinic-tabs)/application/[id]',
@@ -610,7 +611,17 @@ export function getClinicApplicationRoute(
       id: applicationId,
       returnTo: returnTo ?? '',
       ...(roleJobId ? { roleJobId } : {}),
+      ...(selectJobId ? { selectJobId } : {}),
     },
+  } as unknown as Href;
+}
+
+/** Applications hub; optional jobId re-selects that role in split view. */
+export function getClinicApplicationsRoute(jobId?: string): Href {
+  if (!jobId) return CLINIC_APPLICATIONS;
+  return {
+    pathname: '/(clinic-tabs)/applications',
+    params: { jobId },
   } as unknown as Href;
 }
 
@@ -618,15 +629,18 @@ export function navigateAfterClinicApplication(
   router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
   returnTo?: string,
   roleJobId?: string,
+  selectJobId?: string,
 ) {
-  if (roleJobId) {
-    router.replace(
-      getClinicRoleApplicationsRoute(roleJobId, normalizeApplicantReturnTarget(returnTo)),
-    );
-    return;
-  }
-  if (router.canGoBack?.()) {
-    router.back();
+  // Prefer explicit destinations. Tab navigators (especially on web) often make
+  // router.back() skip Applications and land on the dashboard.
+  if (returnTo === 'applications-tab') {
+    if (roleJobId) {
+      router.replace(
+        getClinicRoleApplicationsRoute(roleJobId, normalizeApplicantReturnTarget(returnTo)),
+      );
+      return;
+    }
+    router.replace(getClinicApplicationsRoute(selectJobId));
     return;
   }
   if (returnTo === 'dashboard-applications') {
@@ -657,7 +671,17 @@ export function navigateAfterClinicApplication(
     router.replace(getClinicCalendarSidebarRoute());
     return;
   }
-  router.replace(CLINIC_APPLICATIONS);
+  if (roleJobId) {
+    router.replace(
+      getClinicRoleApplicationsRoute(roleJobId, normalizeApplicantReturnTarget(returnTo)),
+    );
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(getClinicApplicationsRoute(selectJobId));
 }
 
 export function getWorkerMessagesRoute(conversationId?: string): Href {

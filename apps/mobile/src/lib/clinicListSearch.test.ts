@@ -31,7 +31,8 @@ describe('clinicListSearch', () => {
       applicant_count: 2,
       screening_count: 0,
       pending_count: 1,
-      unseen_count: 1,
+      unseen_count: 0,
+      action_needed_count: 1,
       shortlisted_count: 0,
       interview_count: 0,
     } satisfies JobApplicationSummary;

@@ -4,6 +4,7 @@ import {
   formatFillInInquiryPostTitle,
   formatFillInPostTitle,
   formatISODateLabel,
+  formatJobApplicationSummaryMeta,
   formatPostTitleDisplay,
 } from './applicationDisplay';
 
@@ -29,6 +30,22 @@ describe('formatFillInInquiryPostTitle', () => {
     expect(formatFillInInquiryPostTitle('2026-06-29')).toBe(
       'Fill-in inquiry · Jun 29, 2026',
     );
+  });
+});
+
+describe('formatJobApplicationSummaryMeta', () => {
+  it('shows action and new counts separately', () => {
+    expect(
+      formatJobApplicationSummaryMeta({
+        applicant_count: 3,
+        pending_count: 1,
+        unseen_count: 1,
+        action_needed_count: 2,
+        screening_count: 0,
+        shortlisted_count: 0,
+        interview_count: 0,
+      }),
+    ).toBe('2 to review · 1 new');
   });
 });
 

@@ -76,7 +76,7 @@ function RoleApplicationSummaryRow({
       style={
         selected
           ? {
-              borderColor: colors.primary,
+              borderColor: colors.tertiary,
               borderWidth: 1.5,
             }
           : undefined
@@ -97,34 +97,46 @@ function RoleApplicationSummaryRow({
 }
 
 export default function ClinicApplicationsScreen() {
-  const params = useLocalSearchParams<{ mode?: string; date?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; date?: string; jobId?: string }>();
   const { isProfileComplete } = useClinicProfile();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const { isWide } = useResponsiveLayout();
   const [summaries, setSummaries] = useState<JobApplicationSummary[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [summaryFilter, setSummaryFilter] = useState<ClinicApplicationSummaryFilter>('all');
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(
+    typeof params.jobId === 'string' ? params.jobId : null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
   const useSplit = isWide;
 
   const styles = useThemedStyles(({ spacing }) => ({
-    content: { gap: spacing.lg, flex: useSplit ? 1 : undefined, minHeight: useSplit ? 0 : undefined },
+    content: {
+      gap: spacing.lg,
+      flex: useSplit ? 1 : undefined,
+      minHeight: useSplit ? 0 : undefined,
+    },
+    splitContent: {
+      gap: 0,
+      flex: 1,
+      minHeight: 0,
+    },
     list: { gap: spacing.lg },
     masterPane: {
       gap: spacing.lg,
       flex: 1,
       minHeight: 0,
       paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.xl,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.lg,
     },
     detailEmpty: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      minHeight: 0,
       padding: spacing.xl,
+      justifyContent: 'center',
     },
   }));
 
@@ -139,9 +151,16 @@ export default function ClinicApplicationsScreen() {
   );
 
   const needsAttentionCount = useMemo(
+    () => summaries.filter((summary) => summary.action_needed_count > 0).length,
+    [summaries],
+  );
+
+  const unseenRolesCount = useMemo(
     () => summaries.filter((summary) => summary.unseen_count > 0).length,
     [summaries],
   );
+
+  const isNeedsAttentionFilter = summaryFilter === 'needs_attention';
 
   const applicationFilterTabs = useMemo(
     () => [
@@ -149,24 +168,23 @@ export default function ClinicApplicationsScreen() {
         value: 'all' as const,
         label: 'All roles',
         count: summaries.length,
-        accent: 'primary' as const,
+        accent: 'tertiary' as const,
         icon: 'briefcase-outline' as const,
       },
       {
         value: 'needs_attention' as const,
         label: 'Needs attention',
-        count: needsAttentionCount,
-        badgeCount: needsAttentionCount,
-        accent: 'primary' as const,
+        count: isNeedsAttentionFilter ? undefined : needsAttentionCount,
+        badgeCount:
+          isNeedsAttentionFilter || unseenRolesCount === 0 ? undefined : unseenRolesCount,
+        accent: 'tertiary' as const,
         icon: 'alert-circle-outline' as const,
       },
     ],
-    [needsAttentionCount, summaries.length],
+    [isNeedsAttentionFilter, needsAttentionCount, summaries.length, unseenRolesCount],
   );
 
   const hasSearch = hasActiveListSearch(searchQuery);
-  const isNeedsAttentionFilter = summaryFilter === 'needs_attention';
-  const hasActiveFilters = isNeedsAttentionFilter;
 
   const load = useCallback(async () => {
     if (!clinicId) {
@@ -206,21 +224,53 @@ export default function ClinicApplicationsScreen() {
   }, [params.date, params.mode]);
 
   useEffect(() => {
+    if (typeof params.jobId === 'string' && params.jobId.length > 0) {
+      setSelectedJobId(params.jobId);
+    }
+  }, [params.jobId]);
+
+  useEffect(() => {
     if (!useSplit) {
       setSelectedJobId(null);
       return;
     }
+    // Keep a param-driven selection while summaries are still loading.
     if (filteredSummaries.length === 0) {
-      setSelectedJobId(null);
       return;
     }
     setSelectedJobId((current) => {
       if (current && filteredSummaries.some((row) => row.job_post_id === current)) {
         return current;
       }
+      const fromParams = typeof params.jobId === 'string' ? params.jobId : null;
+      if (fromParams && filteredSummaries.some((row) => row.job_post_id === fromParams)) {
+        return fromParams;
+      }
       return filteredSummaries[0]?.job_post_id ?? null;
     });
-  }, [filteredSummaries, useSplit]);
+  }, [filteredSummaries, params.jobId, useSplit]);
+
+  const detailEmptyState = useMemo(() => {
+    if (hasSearch && filteredSummaries.length === 0) {
+      return {
+        icon: 'search-outline' as const,
+        title: 'No roles match your search',
+        message: 'Try a different search or filter.',
+      };
+    }
+    if (isNeedsAttentionFilter && filteredSummaries.length === 0) {
+      return {
+        icon: 'alert-circle-outline' as const,
+        title: 'No roles need attention',
+        message: 'Roles with applicants awaiting your review will appear here.',
+      };
+    }
+    return {
+      icon: 'people-outline' as const,
+      title: 'Select a role',
+      message: 'Choose a role on the left to review applicants.',
+    };
+  }, [filteredSummaries.length, hasSearch, isNeedsAttentionFilter]);
 
   const postRoleCta = isProfileComplete
     ? {
@@ -241,7 +291,15 @@ export default function ClinicApplicationsScreen() {
     filteredSummaries.length === 0 ? (
       <EmptyState
         embedded
-        icon={hasSearch || hasActiveFilters ? 'search-outline' : 'document-text-outline'}
+        fill={useSplit}
+        accent="tertiary"
+        icon={
+          hasSearch
+            ? 'search-outline'
+            : isNeedsAttentionFilter
+              ? 'alert-circle-outline'
+              : 'document-text-outline'
+        }
         title={
           hasSearch
             ? 'No roles match your search'
@@ -253,7 +311,7 @@ export default function ClinicApplicationsScreen() {
           hasSearch
             ? 'Try a different search or filter.'
             : isNeedsAttentionFilter
-              ? 'Roles with new applicants will appear here.'
+              ? 'Roles with applicants awaiting your review will appear here.'
               : 'They will appear here when workers apply to your roles.'
         }
         {...(hasSearch || isNeedsAttentionFilter ? {} : postRoleCta)}
@@ -284,7 +342,8 @@ export default function ClinicApplicationsScreen() {
       <FileTabWell
         tabs={applicationFilterTabs}
         selected={summaryFilter}
-        onSelect={setSummaryFilter}>
+        onSelect={setSummaryFilter}
+        fillHeight={useSplit}>
         {listBody}
       </FileTabWell>
     </>
@@ -298,8 +357,13 @@ export default function ClinicApplicationsScreen() {
       onRefresh={onRefresh}
       scroll={!useSplit}
       fillsContainer={useSplit}
-      constrainWidth={!useSplit}>
-      <View style={styles.content}>
+      constrainWidth={!useSplit}
+      contentContainerStyle={
+        useSplit
+          ? { paddingHorizontal: 0, paddingBottom: 0, flex: 1, minHeight: 0 }
+          : undefined
+      }>
+      <View style={[styles.content, useSplit ? styles.splitContent : null]}>
         {loadError ? (
           <DashboardErrorBanner
             message="Could not load applications."
@@ -317,7 +381,9 @@ export default function ClinicApplicationsScreen() {
           />
         ) : useSplit ? (
           <MasterDetailLayout
-            showDetail={Boolean(selectedJobId)}
+            roundedPanes
+            style={{ flex: 1, minHeight: 0 }}
+            showDetail
             master={<View style={styles.masterPane}>{filtersAndList}</View>}
             detail={
               selectedJobId ? (
@@ -330,9 +396,12 @@ export default function ClinicApplicationsScreen() {
               ) : (
                 <View style={styles.detailEmpty}>
                   <EmptyState
-                    icon="people-outline"
-                    title="Select a role"
-                    message="Choose a role on the left to review applicants."
+                    embedded
+                    fill
+                    accent="tertiary"
+                    icon={detailEmptyState.icon}
+                    title={detailEmptyState.title}
+                    message={detailEmptyState.message}
                   />
                 </View>
               )

@@ -6,7 +6,7 @@ import {
 } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { Alert, Platform, ScrollView, View } from 'react-native';
 
 import { ApplicantFilterBar } from '@/components/clinic/ApplicantFilterBar';
 import { ApplicantPipelineSectionBlock } from '@/components/clinic/ApplicantPipelineSection';
@@ -32,6 +32,7 @@ import {
 import { getClinicCalendarRoute } from '@/lib/calendarNavigation';
 import { hasActiveListSearch, matchesClinicApplicationSearch } from '@/lib/clinicListSearch';
 import { formatPostedDateLabel } from '@/lib/dates';
+import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import type { ClinicApplicationReturnTarget } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
@@ -77,12 +78,42 @@ export function ClinicRoleApplicantsPanel({
     Partial<Record<ApplicantPipelineSectionId, boolean>>
   >({});
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     root: { flex: 1, minHeight: 0 },
-    content: { gap: spacing.md, paddingBottom: spacing.xl },
+    embeddedShell: {
+      flex: 1,
+      minHeight: 0,
+      alignSelf: 'stretch',
+      backgroundColor: colors.background,
+    },
+    embeddedHeader: {
+      flexShrink: 0,
+      paddingHorizontal: spacing.lg,
+      paddingTop: Platform.OS === 'web' ? spacing.lg : spacing.md,
+      paddingBottom: spacing.sm,
+    },
+    embeddedScroll: {
+      flex: 1,
+      minHeight: 0,
+      ...webScrollbarStyles(),
+    },
+    content: {
+      gap: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.xxl,
+    },
+    contentFill: {
+      flexGrow: 1,
+    },
     filterAndSections: { gap: spacing.md },
+    filterAndSectionsEmbedded: { flex: 1, minHeight: 0 },
+    filterEmpty: {
+      flex: 1,
+      minHeight: 220,
+      justifyContent: 'center',
+    },
     sections: { gap: spacing.lg },
-    embeddedPad: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+    embeddedPad: { paddingHorizontal: spacing.lg },
   }));
 
   const load = useCallback(async () => {
@@ -182,7 +213,8 @@ export function ClinicRoleApplicantsPanel({
           key={application.id}
           application={application}
           returnTo={returnTo ?? 'applications-tab'}
-          roleJobId={jobId}
+          roleJobId={embedded ? undefined : jobId}
+          selectJobId={embedded ? jobId : undefined}
           hasUnreadMessages={Boolean(unreadMap[application.id])}
         />
       ))}
@@ -210,6 +242,21 @@ export function ClinicRoleApplicantsPanel({
 
     const sectionTitle = APPLICANT_FILTER_SECTION_TITLES[listFilter];
 
+    if (filteredApplications.length === 0) {
+      return (
+        <View style={embedded ? styles.filterEmpty : undefined}>
+          <EmptyState
+            embedded={embedded}
+            fill={embedded}
+            accent="tertiary"
+            icon="people-outline"
+            title={`No ${sectionTitle.toLowerCase()} applicants`}
+            message={FILTER_EMPTY_MESSAGES[listFilter]}
+          />
+        </View>
+      );
+    }
+
     return (
       <View style={styles.sections}>
         {listFilter === 'interview' && scheduledInterviewCount > 0 ? (
@@ -224,15 +271,7 @@ export function ClinicRoleApplicantsPanel({
           title={sectionTitle}
           count={filteredApplications.length}
           expanded>
-          {filteredApplications.length === 0 ? (
-            <EmptyState
-              icon="people-outline"
-              title={`No ${sectionTitle.toLowerCase()} applicants`}
-              message={FILTER_EMPTY_MESSAGES[listFilter]}
-            />
-          ) : (
-            renderApplicationCards(filteredApplications)
-          )}
+          {renderApplicationCards(filteredApplications)}
         </ApplicantPipelineSectionBlock>
         {listFilter === 'decided' ? renderArchivedSection() : null}
       </View>
@@ -240,7 +279,7 @@ export function ClinicRoleApplicantsPanel({
   };
 
   const body = (
-    <View style={[styles.content, embedded ? styles.embeddedPad : null]}>
+    <View>
       {isLoading ? (
         <PageLoadingList />
       ) : !hasAnyApplicants ? (
@@ -258,7 +297,11 @@ export function ClinicRoleApplicantsPanel({
           }
         />
       ) : (
-        <View style={styles.filterAndSections}>
+        <View
+          style={[
+            styles.filterAndSections,
+            embedded ? styles.filterAndSectionsEmbedded : null,
+          ]}>
           <ListSearchFilterRow
             value={searchQuery}
             onChange={setSearchQuery}
@@ -276,11 +319,16 @@ export function ClinicRoleApplicantsPanel({
           {listFilter === 'all' ? (
             sections.length === 0 ? (
               <>
-                <EmptyState
-                  icon="people-outline"
-                  title="No active applicants"
-                  message="No active applicants for this role."
-                />
+                <View style={embedded ? styles.filterEmpty : undefined}>
+                  <EmptyState
+                    embedded={embedded}
+                    fill={embedded}
+                    accent="tertiary"
+                    icon="people-outline"
+                    title="No active applicants"
+                    message="No active applicants for this role."
+                  />
+                </View>
                 {renderArchivedSection()}
               </>
             ) : (
@@ -312,17 +360,28 @@ export function ClinicRoleApplicantsPanel({
   );
 
   if (embedded) {
+    const scrollContentStyle = [styles.content, styles.contentFill];
+
     return (
       <>
         {upgradePrompt}
-        <View style={styles.root}>
-          <AuthScreenHeader
-            eyebrow="Applications for"
-            title={postTitle || 'Role'}
-            subtitle={postPostedLabel || undefined}
-          />
-          <ScrollView style={styles.root} contentContainerStyle={{ flexGrow: 1 }}>
-            {body}
+        <View style={styles.embeddedShell}>
+          <View style={styles.embeddedHeader}>
+            <AuthScreenHeader
+              eyebrow="Applications for"
+              title={postTitle || 'Role'}
+              subtitle={postPostedLabel || undefined}
+              accent="tertiary"
+              compact
+            />
+          </View>
+          <ScrollView
+            style={styles.embeddedScroll}
+            contentContainerStyle={scrollContentStyle}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.embeddedPad}>{body}</View>
           </ScrollView>
         </View>
       </>
@@ -336,6 +395,7 @@ export function ClinicRoleApplicantsPanel({
         eyebrow="Applications for"
         title={postTitle || 'Role'}
         subtitle={postPostedLabel || undefined}
+        accent="tertiary"
         onBack={onBack}>
         {body}
       </FormScreen>

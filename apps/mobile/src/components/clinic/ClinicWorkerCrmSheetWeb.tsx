@@ -3,7 +3,7 @@ import { ClinicWorkerCrmSheetBody } from '@/components/clinic/ClinicWorkerCrmShe
 import {
   ClinicWorkerCrmSheetBottom,
   type ClinicWorkerCrmSheetProps,
-} from '@/components/clinic/ClinicWorkerCrmSheet.tsx';
+} from '@/components/clinic/ClinicWorkerCrmSheet';
 
 export function ClinicWorkerCrmSheet(props: ClinicWorkerCrmSheetProps) {
   const { visible, onClose } = props;

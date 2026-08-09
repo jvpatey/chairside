@@ -88,14 +88,15 @@ import {
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
 import { getClinicApplicantBadgeVisibility } from '@/lib/applicationPipeline';
+import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
 import { fontSemibold, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 function useBrandColors(accent: GradientAccent) {
   const { colors } = useTheme();
   return {
-    brand: accent === 'secondary' ? colors.secondary : colors.primary,
-    brandSubtle: accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle,
+    brand: resolveAccentColor(colors, accent),
+    brandSubtle: resolveAccentSubtle(colors, accent),
   };
 }
 
@@ -544,7 +545,7 @@ export function ClinicApplicationDetailCard({
   const { isHydrated: screeningDismissHydrated, dismissedIds: dismissedScreeningReviewIds, dismiss: dismissScreeningReviewBadge } =
     useDismissedScreeningReviews();
   const isJob = application.post_type === 'job';
-  const accent: GradientAccent = isJob ? 'primary' : 'secondary';
+  const accent: GradientAccent = isJob ? 'tertiary' : 'secondary';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
   const interviewSummary = formatInterviewDateTime(

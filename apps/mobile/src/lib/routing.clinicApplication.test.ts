@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   getClinicApplicationRoute,
+  getClinicApplicationsRoute,
   getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
   navigateAfterClinicApplication,
@@ -56,9 +57,31 @@ describe('getClinicApplicationRoute', () => {
       },
     });
   });
+
+  it('includes selectJobId when restoring Applications split selection', () => {
+    expect(
+      getClinicApplicationRoute('app-123', 'applications-tab', undefined, 'job-456'),
+    ).toEqual({
+      pathname: '/(clinic-tabs)/application/[id]',
+      params: {
+        id: 'app-123',
+        returnTo: 'applications-tab',
+        selectJobId: 'job-456',
+      },
+    });
+  });
 });
 
 describe('navigateAfterClinicApplication', () => {
+  it('returns to Applications hub for applications-tab without roleJobId', () => {
+    const router = { replace: vi.fn(), back: vi.fn(), canGoBack: vi.fn(() => true) };
+
+    navigateAfterClinicApplication(router, 'applications-tab', undefined, 'job-456');
+
+    expect(router.back).not.toHaveBeenCalled();
+    expect(router.replace).toHaveBeenCalledWith(getClinicApplicationsRoute('job-456'));
+  });
+
   it('returns to the role applicant list when roleJobId is present', () => {
     const router = { replace: vi.fn(), back: vi.fn(), canGoBack: vi.fn(() => true) };
 
@@ -68,6 +91,15 @@ describe('navigateAfterClinicApplication', () => {
     expect(router.replace).toHaveBeenCalledWith(
       getClinicRoleApplicationsRoute('job-456', 'applications-tab'),
     );
+  });
+
+  it('returns to the applications tab when history and roleJobId are unavailable', () => {
+    const router = { replace: vi.fn(), back: vi.fn(), canGoBack: vi.fn(() => false) };
+
+    navigateAfterClinicApplication(router, 'applications-tab');
+
+    expect(router.back).not.toHaveBeenCalled();
+    expect(router.replace).toHaveBeenCalledWith('/(clinic-tabs)/applications');
   });
 });
 

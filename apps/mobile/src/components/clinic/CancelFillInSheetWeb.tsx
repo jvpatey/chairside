@@ -3,7 +3,7 @@ import { CancelFillInSheetBody } from '@/components/clinic/CancelFillInSheetBody
 import {
   CancelFillInSheetBottom,
   type CancelFillInSheetProps,
-} from '@/components/clinic/CancelFillInSheet.tsx';
+} from '@/components/clinic/CancelFillInSheet';
 
 export function CancelFillInSheet(props: CancelFillInSheetProps) {
   const { visible, onClose } = props;

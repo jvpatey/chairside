@@ -17,7 +17,7 @@ import {
   type GradientAccent,
 } from '@/theme';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { resolveAccentColor } from '@/lib/accentColors';
+import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 
 export type DashboardOverviewStat = 'roles' | 'fill-ins' | 'applications';
 
@@ -75,16 +75,19 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
   const isLabelOnly = variant === 'label';
   const isCompact = density === 'compact';
   const manySegments = stats.length >= 5;
+  const segmentInset = isCompact ? 2 : 0;
   const selectedIndex = stats.findIndex((stat) => stat.key === selected);
   const resolvedSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
   const selectedAccent = segmentAccents?.[resolvedSelectedIndex] ?? accent;
   const brandColor = resolveAccentColor(colors, selectedAccent);
+  const selectedSubtle = resolveAccentSubtle(colors, selectedAccent);
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     grid: {
       flexDirection: 'row',
       borderRadius: dashboardControlRadii.statBar,
       padding: 3,
+      gap: isCompact ? spacing.xs : 0,
       backgroundColor: isDark ? colorWithAlpha(colors.surfaceElevated, 0.68) : colors.fillSubtle,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
@@ -97,6 +100,9 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
     cellWrap: {
       flex: 1,
       position: 'relative',
+      overflow: 'hidden',
+      borderRadius: dashboardControlRadii.statSegment,
+      ...(isCompact ? { minWidth: 0, padding: segmentInset } : null),
     },
     badgeAnchor: {
       position: 'absolute',
@@ -150,7 +156,12 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
       flex: 1,
     },
     cellHovered: webOnlyStyle({
-      backgroundColor: isDark ? colorWithAlpha(colors.surfaceElevated, 0.7) : colors.surfaceElevated,
+      backgroundColor: isDark
+        ? colorWithAlpha(colors.surfaceElevated, 0.55)
+        : colorWithAlpha(colors.labelPrimary, 0.05),
+    } as ViewStyle),
+    cellSelectedHovered: webOnlyStyle({
+      backgroundColor: 'transparent',
     } as ViewStyle),
     value: {
       fontSize: isCompact ? 18 : manySegments ? 20 : 22,
@@ -172,7 +183,7 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
 
   const indicatorAccentStyle = {
     borderColor: isDark ? `${brandColor}77` : colorWithAlpha(brandColor, 0.42),
-    backgroundColor: isDark ? colorWithAlpha(brandColor, 0.16) : colors.surfaceElevated,
+    backgroundColor: isDark ? colorWithAlpha(brandColor, 0.16) : selectedSubtle,
   };
   const selectedTextColor = { color: brandColor };
 
@@ -194,12 +205,21 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
     start: { x: 0, y: 0 },
     end: { x: 0, y: 1 },
   };
-  const gradientColors = indicatorGradient.colors as readonly [
+  const resolvedIndicatorGradient =
+    !isDark && isCompact && !segmentGradient
+      ? {
+          colors: [selectedSubtle, selectedSubtle] as const,
+          locations: undefined,
+          start: { x: 0, y: 0 },
+          end: { x: 0, y: 1 },
+        }
+      : indicatorGradient;
+  const gradientColors = resolvedIndicatorGradient.colors as readonly [
     ColorValue,
     ColorValue,
     ...ColorValue[],
   ];
-  const gradientLocations = indicatorGradient.locations as
+  const gradientLocations = resolvedIndicatorGradient.locations as
     | readonly [number, number, ...number[]]
     | undefined;
 
@@ -217,8 +237,8 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
         <LinearGradient
           colors={gradientColors}
           locations={gradientLocations}
-          start={indicatorGradient.start}
-          end={indicatorGradient.end}
+          start={resolvedIndicatorGradient.start}
+          end={resolvedIndicatorGradient.end}
           style={styles.gradient}
         />
       </SlidingSegmentIndicator>
@@ -237,7 +257,12 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
             style={styles.cellWrap}
             onLayout={(event) => {
               const { x, y, width, height } = event.nativeEvent.layout;
-              onSegmentLayout(index, { x, y, width, height });
+              onSegmentLayout(index, {
+                x: x + segmentInset,
+                y: y + segmentInset,
+                width: width - segmentInset * 2,
+                height: height - segmentInset * 2,
+              });
             }}>
             {badgeCount > 0 ? (
               <View style={styles.badgeAnchor}>
@@ -257,6 +282,7 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
                   !pressed &&
                   !isSelected &&
                   styles.cellHovered,
+                isWeb && hovered && !pressed && isSelected && styles.cellSelectedHovered,
                 pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
               ]}>
               {!isLabelOnly ? (
@@ -273,7 +299,7 @@ export function DashboardStatGrid<T extends string = DashboardOverviewStat>({
                 {stat.label}
               </Text>
             </Pressable>
-            {index < stats.length - 1 && !isSelected && !isNextSelected ? (
+            {index < stats.length - 1 && !isCompact && !isSelected && !isNextSelected ? (
               <View style={styles.divider} />
             ) : null}
           </View>

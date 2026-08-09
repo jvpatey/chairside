@@ -109,7 +109,7 @@ function DockTabItem({
   const accessibilityLabel = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
   const label = options.title ?? route.name;
   const badge = options.tabBarBadge;
-  const hasBadge = badge != null && badge !== 0 && badge !== '0';
+  const hasBadge = badge != null && badge !== 0 && badge !== '0' && !isFocused;
   const iconScale = useSharedValue(isFocused ? 1.08 : 1);
 
   useEffect(() => {
