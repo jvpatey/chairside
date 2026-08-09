@@ -18,6 +18,7 @@ import {
   getConversationInboxEmptyMessage,
   type ConversationInboxFilter,
 } from '@/lib/conversationInbox';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { formatMessageSearchPreview, matchesConversationSearch } from '@/lib/messageThreadDisplay';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import type { MessageThreadFocus } from '@/lib/routing';
@@ -187,7 +188,7 @@ export function ConversationInboxList({
             value: 'fill_ins' as const,
             label: 'Fill-ins',
             count: filterCounts.fill_ins,
-            icon: 'calendar-outline' as const,
+            icon: FILL_IN_ICON.outline,
             accent: 'secondary' as const,
           },
           {

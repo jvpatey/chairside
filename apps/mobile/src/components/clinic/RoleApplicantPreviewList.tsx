@@ -14,8 +14,8 @@ import {
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { radii } from '@/theme/tokens';
 
-const ROW_MIN_HEIGHT = 48;
-const LIST_MAX_HEIGHT = ROW_MIN_HEIGHT * 3 + 2;
+const ROW_MIN_HEIGHT = 52;
+const LIST_MAX_HEIGHT = ROW_MIN_HEIGHT * 3 + 4;
 
 type RoleApplicantPreviewListProps = {
   applicants: JobApplicantPreview[];
@@ -38,8 +38,8 @@ function ApplicantPreviewRow({
       alignItems: 'center',
       gap: spacing.sm,
       minHeight: ROW_MIN_HEIGHT,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
       borderRadius: radii.sm,
       ...webPointer(),
       ...webOnlyStyle({
@@ -125,7 +125,7 @@ export function RoleApplicantPreviewList({
       maxHeight: applicants.length > 3 ? LIST_MAX_HEIGHT : undefined,
     },
     scrollContent: {
-      padding: spacing.xs,
+      padding: spacing.sm,
       gap: spacing.xs,
     },
   }));

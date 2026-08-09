@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { ThemeColors } from '@/theme/colors';
@@ -10,7 +11,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
 const HERO_FEATURE = {
-  icon: 'calendar-outline' as const,
+  icon: FILL_IN_ICON.outline,
   title: 'Fill chairs, same day',
   highlight: 'same day',
   subtitle: 'Built for same-day coverage',
@@ -20,7 +21,7 @@ const HERO_FEATURE = {
 const SATELLITE_FEATURES = [
   {
     id: 'availability',
-    icon: 'flash-outline' as const,
+    icon: FILL_IN_ICON.outline,
     title: "Let clinics know you're free",
     highlight: "you're free",
     body: 'Turn on fill-in mode, get discovered nearby, and get alerts when shifts open.',

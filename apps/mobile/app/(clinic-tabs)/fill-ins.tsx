@@ -57,6 +57,7 @@ import {
   filterShiftPostsForFillInsListMode,
   type FillInsListMode,
 } from '@/lib/fillInFilters';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import {
   HISTORY_SHIFT_STATUS_FILTER_OPTIONS,
@@ -248,7 +249,7 @@ export default function ClinicFillInsScreen() {
         label: 'Active',
         count: activeFillInCount,
         accent: 'secondary' as const,
-        icon: 'calendar-outline' as const,
+        icon: FILL_IN_ICON.outline,
       },
       {
         value: 'history' as const,
@@ -410,7 +411,7 @@ export default function ClinicFillInsScreen() {
               {
                 label: 'Post fill-in',
                 description: 'Temp or urgent shift',
-                icon: 'calendar-outline',
+                icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 dimmed: fillInLimitReached,
                 onPress: handlePostFillInPress,
@@ -501,7 +502,7 @@ export default function ClinicFillInsScreen() {
                   <EmptyState
                     embedded
                     fill={equalEmptyColumns}
-                    icon="calendar-outline"
+                    icon={FILL_IN_ICON.outline}
                     title="No fill-ins yet"
                     message="Post a fill-in shift when you need temporary or urgent coverage."
                     ctaLabel={

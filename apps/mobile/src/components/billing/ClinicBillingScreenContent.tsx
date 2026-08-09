@@ -106,7 +106,7 @@ function PlanComparisonIntro({
       </Text>
       <Text style={styles.body}>
         {isGroupFamily
-          ? 'Workers stay free. Upgrade for more locations and managers, hiring tools, and org-wide posting limits.'
+          ? 'Workers stay free. Upgrade for more locations and managers, hiring tools, and posting limits across your group.'
           : 'Workers stay free. Upgrade for more postings, outreach, SMS alerts, or priority placement.'}
       </Text>
     </View>

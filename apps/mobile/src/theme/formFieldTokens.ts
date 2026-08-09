@@ -3,6 +3,7 @@ import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-nati
 import { fontSemibold } from '@/theme/fonts';
 import { radii } from '@/theme/tokens';
 import type { Colors } from '@/theme/colors';
+import type { GradientAccent } from '@/theme';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 
 export const FORM_CONTENT_MAX_WIDTH = 640;
@@ -53,12 +54,22 @@ export function formFieldInputRowStyle(
   };
 }
 
-export function formFieldInputRowFocusedStyle({ colors }: FormFieldTheme): ViewStyle {
+export function formAccentColors(colors: Colors, accent: GradientAccent = 'primary') {
+  return accent === 'secondary'
+    ? { border: colors.secondary, ring: colors.secondarySubtle }
+    : { border: colors.primary, ring: colors.primarySubtle };
+}
+
+export function formFieldInputRowFocusedStyle(
+  { colors }: FormFieldTheme,
+  accent: GradientAccent = 'primary',
+): ViewStyle {
+  const { border, ring } = formAccentColors(colors, accent);
   return {
-    borderColor: colors.primary,
+    borderColor: border,
     borderWidth: 1,
     ...webOnlyStyle({
-      boxShadow: `0 0 0 3px ${colors.primarySubtle}`,
+      boxShadow: `0 0 0 3px ${ring}`,
     } as ViewStyle),
   };
 }

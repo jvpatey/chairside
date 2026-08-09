@@ -60,6 +60,7 @@ import {
   buildClinicAttentionItems,
   summarizeJobApplicantPreviews,
 } from '@/lib/dashboardAttention';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
 import { sortDashboardApplications } from '@/lib/applicationPipeline';
 import { getFirstName } from '@/lib/greeting';
@@ -453,7 +454,7 @@ export default function ClinicDashboardScreen() {
               {
                 label: 'Post fill-in',
                 description: 'Temp or urgent shift',
-                icon: 'calendar-outline',
+                icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 disabled: fillInLimitReached,
                 onPress: () => guardPosting(getPostShiftRoute('fill-ins-tab')),
@@ -482,7 +483,7 @@ export default function ClinicDashboardScreen() {
                 count: counts.fillInsPosted,
                 badgeCount: fillInUpdateCount,
                 accent: 'secondary',
-                icon: 'calendar-outline',
+                icon: FILL_IN_ICON.outline,
               },
               {
                 value: 'applications',

@@ -12,10 +12,10 @@ import {
   ROLE_EMPLOYMENT_TYPE_OPTIONS,
   ROLE_TYPE_OPTIONS,
 } from '@chairside/config';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { CLINIC_POSTINGS } from '@/lib/routing';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OfferingsInput } from '@/components/clinic/OfferingsInput';
@@ -30,15 +30,19 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { useFormSectionScroll } from '@/hooks/useFormSectionScroll';
+import { usePostingFormScreenProps } from '@/hooks/usePostingFormScreenProps';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
+import { showFormError } from '@/lib/formErrors';
 import { useThemedStyles } from '@/theme';
 
 function applyJobToForm(job: JobPostWithScreening) {
@@ -96,6 +100,8 @@ export default function PostJobScreen() {
   const jobId = typeof id === 'string' ? id : undefined;
   const isEditing = Boolean(jobId);
   const roleLimitReached = !isEditing && isRolePostingLimitReached(billing);
+  const { setSectionRef, scrollToFirstSection } = useFormSectionScroll();
+  const postingFormProps = usePostingFormScreenProps();
 
   const [roleType, setRoleType] = useState<RoleType>('hygienist');
   const [employmentType, setEmploymentType] = useState<EmploymentType>('permanent');
@@ -116,14 +122,19 @@ export default function PostJobScreen() {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [formKey, setFormKey] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [wageValid, setWageValid] = useState(true);
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
+    form: { gap: spacing.lg },
     section: { gap: spacing.sm },
-    label: {
-      ...typography.body,
-      fontWeight: '600',
+    helper: typography.subtitle,
+    fieldError: {
+      ...typography.subtitle,
+      color: colors.destructive,
+      fontSize: 13,
+      marginTop: spacing.xs,
     },
-    loading: typography.subtitle,
   }));
 
   const resetForm = useCallback(() => {
@@ -137,16 +148,10 @@ export default function PostJobScreen() {
     setScreeningEnabled(DEFAULT_CREATE_FORM.screeningEnabled);
     setSelectedCatalogSlugs(DEFAULT_CREATE_FORM.selectedCatalogSlugs);
     setCustomQuestions(DEFAULT_CREATE_FORM.customQuestions);
+    setTitleError(null);
+    setWageValid(true);
     setFormKey((current) => current + 1);
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!isEditing) {
-        resetForm();
-      }
-    }, [isEditing, resetForm]),
-  );
 
   const loadJob = useCallback(async () => {
     if (!jobId || !user?.id) {
@@ -159,10 +164,7 @@ export default function PostJobScreen() {
       const job = await getJobPostWithScreening(clinicId ?? user.id, jobId);
       if (!job) {
         const message = 'This posting may have been removed.';
-        setFormError(message);
-        if (Platform.OS !== 'web') {
-          Alert.alert('Role not found', message);
-        }
+        setFormError(showFormError(message, { title: 'Role not found' }));
         router.back();
         return;
       }
@@ -182,10 +184,7 @@ export default function PostJobScreen() {
       setFormKey((current) => current + 1);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please try again.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Could not load role', message);
-      }
+      setFormError(showFormError(message, { title: 'Could not load role' }));
       router.back();
     } finally {
       setIsLoading(false);
@@ -199,28 +198,30 @@ export default function PostJobScreen() {
   const handleSubmit = async () => {
     if (!user?.id || !clinicId || !title.trim()) {
       const message = 'Enter a job title to continue.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Missing information', message);
-      }
+      setTitleError(message);
+      setFormError(showFormError(message));
+      scrollToFirstSection(['title']);
       return;
     }
 
     if (isGroup && !locationId) {
       const message = 'Choose which location this role is for.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Missing information', message);
-      }
+      setFormError(showFormError(message));
+      scrollToFirstSection(['location']);
+      return;
+    }
+
+    if (!wageValid) {
+      const message = 'Maximum wage must be greater than minimum.';
+      setFormError(showFormError(message, { title: 'Invalid compensation' }));
+      scrollToFirstSection(['wage']);
       return;
     }
 
     if (screeningEnabled && selectedCatalogSlugs.length === 0 && customQuestions.length === 0) {
       const message = 'Select at least one question or turn off screening.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Screening questions', message);
-      }
+      setFormError(showFormError(message, { title: 'Screening questions' }));
+      scrollToFirstSection(['screening']);
       return;
     }
 
@@ -241,6 +242,7 @@ export default function PostJobScreen() {
 
     setIsSubmitting(true);
     setFormError(null);
+    setTitleError(null);
     try {
       const screeningQuestions = screeningEnabled
         ? screeningQuestionInputFromSelection(selectedCatalogSlugs, customQuestions)
@@ -256,6 +258,7 @@ export default function PostJobScreen() {
         description: description.trim() || undefined,
         screening_enabled: screeningEnabled,
         screeningQuestions,
+        ...(isGroup ? { location_id: locationId } : {}),
       };
 
       if (isEditing && jobId) {
@@ -278,21 +281,38 @@ export default function PostJobScreen() {
         return;
       }
       const message = error instanceof Error ? error.message : 'Please try again.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert(isEditing ? 'Could not save changes' : 'Could not publish', message);
-      }
+      setFormError(
+        showFormError(message, {
+          title: isEditing ? 'Could not save changes' : 'Could not publish',
+        }),
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const submitButton = (
+    <OnboardingButton
+      label={
+        isSubmitting
+          ? isEditing
+            ? 'Saving…'
+            : 'Publishing…'
+          : isEditing
+            ? 'Save changes'
+            : 'Publish role'
+      }
+      disabled={isSubmitting || roleLimitReached}
+      onPress={handleSubmit}
+    />
+  );
+
   if (isLoading) {
     return (
       <FormScreen
+        {...postingFormProps}
         title={isEditing ? 'Edit role' : 'Post a role'}
         onBack={() => router.back()}
-        constrainFormWidth
       >
         <PageLoadingDetail />
       </FormScreen>
@@ -303,6 +323,7 @@ export default function PostJobScreen() {
     <>
       {upgradePrompt}
       <FormScreen
+        {...postingFormProps}
         title={isEditing ? 'Edit role' : 'Post a role'}
         subtitle={
           isEditing
@@ -310,29 +331,33 @@ export default function PostJobScreen() {
             : 'Create a full-time or part-time job posting.'
         }
         onBack={() => router.back()}
-        constrainFormWidth
+        footer={submitButton}
       >
         <FormErrorBanner message={formError} />
 
+        <View style={styles.form}>
         {isGroup ? (
-          <View style={styles.section}>
-            <Text style={styles.label}>Location</Text>
+          <View ref={setSectionRef('location')} style={styles.section} collapsable={false}>
+            <FormSectionHeader icon="location-outline" label="Location" required />
             <ChipSelector
               options={accessibleLocations.map((location) => ({
                 value: location.id,
                 label: location.name,
               }))}
               selected={locationId}
-              onChange={(value) => setLocationId(value as string)}
+              onChange={(value) => {
+                setLocationId(value as string);
+                setFormError(null);
+              }}
             />
             {attributionLabel ? (
-              <Text style={styles.loading}>Will show as posted by {attributionLabel}</Text>
+              <Text style={styles.helper}>Will show as posted by {attributionLabel}</Text>
             ) : null}
           </View>
         ) : null}
 
         <View style={styles.section}>
-          <Text style={styles.label}>Role type</Text>
+          <FormSectionHeader icon="person-outline" label="Role type" />
           <ChipSelector
             options={ROLE_TYPE_OPTIONS}
             selected={roleType}
@@ -341,7 +366,7 @@ export default function PostJobScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Employment type</Text>
+          <FormSectionHeader icon="briefcase-outline" label="Employment type" />
           <ChipSelector
             options={ROLE_EMPLOYMENT_TYPE_OPTIONS}
             selected={employmentType}
@@ -349,8 +374,35 @@ export default function PostJobScreen() {
           />
         </View>
 
-        <AuthField label="Job title" placeholder="Dental hygienist" value={title} onChangeText={setTitle} autoCapitalize="words" />
-        <WageRangeInput key={`wage-${formKey}`} initialValue={wageRange} onChange={setWageRange} />
+        <View ref={setSectionRef('title')} collapsable={false}>
+          <AuthField
+            label="Job title"
+            placeholder="Dental hygienist"
+            value={title}
+            onChangeText={(value) => {
+              setTitle(value);
+              setTitleError(null);
+              setFormError(null);
+            }}
+            autoCapitalize="words"
+            required
+            invalid={Boolean(titleError)}
+            icon="create-outline"
+          />
+          {titleError ? <Text style={styles.fieldError}>{titleError}</Text> : null}
+        </View>
+
+        <View ref={setSectionRef('wage')} style={styles.section} collapsable={false}>
+          <FormSectionHeader icon="cash-outline" label="Compensation (optional)" />
+          <WageRangeInput
+            key={`wage-${formKey}`}
+            initialValue={wageRange}
+            onChange={setWageRange}
+            onValidationChange={setWageValid}
+            embedded
+          />
+        </View>
+
         <ScheduleInput key={`schedule-${formKey}`} initialValue={schedule} onChange={setSchedule} />
         <OfferingsInput key={`offerings-${formKey}`} initialValue={offerings} onChange={setOfferings} />
 
@@ -361,24 +413,27 @@ export default function PostJobScreen() {
           onChangeText={setDescription}
           multiline
           autoCapitalize="sentences"
+          icon="document-text-outline"
         />
 
-        <ScreeningToggleSection
-          enabled={screeningEnabled}
-          selectedCatalogSlugs={selectedCatalogSlugs}
-          customQuestions={customQuestions}
-          onEnabledChange={setScreeningEnabled}
-          onSelectedCatalogSlugsChange={setSelectedCatalogSlugs}
-          onCustomQuestionsChange={setCustomQuestions}
-          locked={billing != null && !billing.canUseScreeningQuestions}
-          onLockedPress={showScreeningUpgrade}
-          customScreeningLimit={
-            billing?.customScreeningLimit != null && billing.customScreeningLimit > 0
-              ? billing.customScreeningLimit
-              : null
-          }
-          onCustomCapPress={showScreeningCapUpgrade}
-        />
+        <View ref={setSectionRef('screening')} collapsable={false}>
+          <ScreeningToggleSection
+            enabled={screeningEnabled}
+            selectedCatalogSlugs={selectedCatalogSlugs}
+            customQuestions={customQuestions}
+            onEnabledChange={setScreeningEnabled}
+            onSelectedCatalogSlugsChange={setSelectedCatalogSlugs}
+            onCustomQuestionsChange={setCustomQuestions}
+            locked={billing != null && !billing.canUseScreeningQuestions}
+            onLockedPress={showScreeningUpgrade}
+            customScreeningLimit={
+              billing?.customScreeningLimit != null && billing.customScreeningLimit > 0
+                ? billing.customScreeningLimit
+                : null
+            }
+            onCustomCapPress={showScreeningCapUpgrade}
+          />
+        </View>
 
         {roleLimitReached && billing ? (
           <PlanUpgradeCallout
@@ -387,12 +442,7 @@ export default function PostJobScreen() {
             compact
           />
         ) : null}
-
-        <OnboardingButton
-          label={isSubmitting ? (isEditing ? 'Saving…' : 'Publishing…') : isEditing ? 'Save changes' : 'Publish role'}
-          disabled={isSubmitting || roleLimitReached}
-          onPress={handleSubmit}
-        />
+        </View>
       </FormScreen>
     </>
   );

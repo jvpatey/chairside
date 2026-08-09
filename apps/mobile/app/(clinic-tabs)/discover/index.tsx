@@ -31,6 +31,7 @@ import {
   filterClinicDiscoverShifts,
 } from '@/lib/clinicDiscoverFilters';
 import { hasActiveListSearch } from '@/lib/clinicListSearch';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { type ClinicDiscoverTab, type RoleTypeFilter } from '@/lib/postingFilters';
 import {
   getClinicDiscoverJobDetailRoute,
@@ -152,7 +153,7 @@ export default function ClinicDiscoverScreen() {
         label: 'Fill-ins',
         count: shifts.length,
         accent: 'secondary' as const,
-        icon: 'calendar-outline' as const,
+        icon: FILL_IN_ICON.outline,
       },
     ],
     [jobs.length, shifts.length],
@@ -163,7 +164,7 @@ export default function ClinicDiscoverScreen() {
   ) : sourceCount === 0 ? (
     <EmptyState
       embedded
-      icon={selectedTab === 'roles' ? 'briefcase-outline' : 'calendar-outline'}
+      icon={selectedTab === 'roles' ? 'briefcase-outline' : FILL_IN_ICON.outline}
       title={
         selectedTab === 'roles' ? 'No other clinic roles yet' : 'No other clinic fill-ins yet'
       }

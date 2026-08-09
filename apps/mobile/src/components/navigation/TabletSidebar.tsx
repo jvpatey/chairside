@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { getSidebarNavIconColor } from '@/components/navigation/sidebarNavIcons';
 import { AccountMenuSheetHeader } from '@/components/navigation/AccountMenuSheetHeader';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
@@ -531,6 +532,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       position: 'relative',
       alignItems: 'center',
       justifyContent: 'center',
+      flexShrink: 0,
     },
     label: {
       flex: 1,
@@ -757,7 +759,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     const tabAccent = getTabAccentForName(route.name);
     const activeColor = resolveAccentColor(colors, tabAccent);
     const activeBackground = resolveAccentSubtle(colors, tabAccent);
-    const color = isFocused ? activeColor : colors.tabInactive;
+    const iconColor = getSidebarNavIconColor(colors, tabAccent, isFocused);
+    const iconSize = 20;
     const itemLabel = options.tabBarAccessibilityLabel ?? options.title ?? route.name;
     const titleLabel = options.title ?? route.name;
 
@@ -830,7 +833,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           <View style={[styles.accentBar, { backgroundColor: activeColor }]} />
         ) : null}
         <View style={styles.iconWrap}>
-          {options.tabBarIcon?.({ focused: isFocused, color, size: 20 })}
+          {options.tabBarIcon?.({ focused: isFocused, color: iconColor, size: iconSize })}
           {hasBadge && isCollapsed ? (
             <View style={[styles.badge, styles.badgeCollapsed]}>
               <Text style={[styles.badgeText, styles.badgeTextCollapsed]}>{badge}</Text>
@@ -1059,7 +1062,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             <Ionicons
               name={isProfileActive ? 'settings' : 'settings-outline'}
               size={20}
-              color={isProfileActive ? colors.primary : colors.tabInactive}
+              color={getSidebarNavIconColor(colors, 'primary', isProfileActive)}
             />
           </View>
           {!isCollapsed ? (

@@ -10,6 +10,7 @@ import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { fillInTabIcon } from '@/lib/fillInIcons';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -54,7 +55,7 @@ function WorkerTabNavigator() {
           title: 'Fill-ins',
           tabBarBadge: fillInPendingCount > 0 ? fillInPendingCount : undefined,
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'flash' : 'flash-outline'} size={22} color={color} />
+            <Ionicons name={fillInTabIcon(focused)} size={22} color={color} />
           ),
         }}
       />

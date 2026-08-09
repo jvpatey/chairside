@@ -250,6 +250,7 @@ export async function updateJobPost(
   if (input.offerings !== undefined) patch.offerings = input.offerings;
   if (input.screening_enabled !== undefined) patch.screening_enabled = input.screening_enabled;
   if (input.status !== undefined) patch.status = input.status;
+  if (input.location_id !== undefined) patch.location_id = input.location_id;
 
   const { data, error } = await supabase
     .from('job_posts')
@@ -440,6 +441,7 @@ export async function updateShiftPost(
   if (input.urgency !== undefined) patch.urgency = input.urgency;
   if (input.description !== undefined) patch.description = input.description || null;
   if (input.status !== undefined) patch.status = input.status;
+  if (input.location_id !== undefined) patch.location_id = input.location_id;
 
   const { data, error } = await supabase
     .from('shift_posts')

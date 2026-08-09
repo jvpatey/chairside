@@ -13,6 +13,7 @@ import {
   calendarEventKindLabel,
   formatCalendarEventTime,
 } from '@/lib/calendarEvents';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { formatShiftDateLabel, parseISODate } from '@/lib/dates';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -40,7 +41,12 @@ function getConfirmedFillInPresentation(event: CalendarEvent) {
 function EventAvatar({ event }: { event: CalendarEvent }) {
   const { colors } = useTheme();
   const accent = calendarEventAccent(event.kind);
-  const iconName = event.kind === 'interview' ? 'videocam-outline' : 'calendar-outline';
+  const iconName =
+    event.kind === 'interview'
+      ? 'videocam-outline'
+      : event.kind === 'confirmed_fill_in'
+        ? FILL_IN_ICON.outline
+        : 'calendar-outline';
   const backgroundColor = accent === 'primary' ? colors.primarySubtle : colors.secondarySubtle;
   const iconColor = accent === 'primary' ? colors.primary : colors.secondary;
 

@@ -15,6 +15,7 @@ import {
   useApplicationTabBadge,
 } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { fillInTabIcon } from '@/lib/fillInIcons';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -74,7 +75,7 @@ function ClinicTabNavigator() {
             title: 'Fill-ins',
             tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'flash' : 'flash-outline'} size={22} color={color} />
+              <Ionicons name={fillInTabIcon(focused)} size={22} color={color} />
             ),
           }}
         />

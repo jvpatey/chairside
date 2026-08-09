@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import type { Ionicons } from '@expo/vector-icons';
 
-import type { Colors } from '@/theme/colors';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -90,7 +90,7 @@ const TYPE_META: Record<string, NotificationDisplayMeta> = {
     subtitle: 'Shift confirmed',
   },
   fill_in_posted: {
-    icon: 'calendar-outline',
+    icon: FILL_IN_ICON.outline,
     accent: 'urgent',
     subtitle: 'New fill-in',
   },

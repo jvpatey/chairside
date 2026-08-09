@@ -7,6 +7,7 @@ import { PillBadge } from '@/components/ui/PillBadge';
 import { DashboardWidgetHeader } from '@/components/dashboard/DashboardWidgetHeader';
 import { DashboardWidgetIconBadge } from '@/components/dashboard/DashboardWidgetIconBadge';
 import { dashboardWidgetTokens } from '@/components/dashboard/dashboardTokens';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { colorWithAlpha, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
@@ -39,7 +40,7 @@ function formatEventTime(startsAt: string, endsAt: string | null): string {
 }
 
 function eventIcon(kind: CalendarEvent['kind']): keyof typeof Ionicons.glyphMap {
-  return kind === 'confirmed_fill_in' ? 'calendar-outline' : 'videocam-outline';
+  return kind === 'confirmed_fill_in' ? FILL_IN_ICON.outline : 'videocam-outline';
 }
 
 /** Always-visible dashboard calendar glance — flat surface with upcoming previews or empty state. */

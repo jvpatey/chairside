@@ -22,7 +22,7 @@ import {
   formFieldInputRowStyle,
   formFieldInputStyle,
 } from '@/theme/formFieldTokens';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type AuthFieldProps = {
   label: string;
@@ -46,6 +46,7 @@ type AuthFieldProps = {
   trailingAccessory?: ReactNode;
   /** Inside ProfileSettingsCard — card header carries the label. */
   embedded?: boolean;
+  accent?: GradientAccent;
 };
 
 export function AuthField({
@@ -69,6 +70,7 @@ export function AuthField({
   enablePasswordVisibilityToggle = false,
   trailingAccessory,
   embedded = false,
+  accent = 'primary',
 }: AuthFieldProps) {
   const { colors } = useTheme();
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -86,7 +88,7 @@ export function AuthField({
     inputRowInvalid: {
       borderColor: theme.colors.destructive,
     },
-    inputRowFocused: formFieldInputRowFocusedStyle(theme),
+    inputRowFocused: formFieldInputRowFocusedStyle(theme, accent),
     input: formFieldInputStyle(theme, { multiline, editable }),
     inputDisabled: {
       color: theme.colors.labelTertiary,
@@ -176,7 +178,13 @@ export function AuthField({
     <View ref={wrapRef} style={styles.wrap} collapsable={false}>
       {!embedded ? (
         icon ? (
-          <FormSectionHeader icon={icon} label={label} required={required} hint={hint} />
+          <FormSectionHeader
+            icon={icon}
+            label={label}
+            required={required}
+            hint={hint}
+            accent={accent === 'secondary' ? 'secondary' : accent === 'primary' ? 'primary' : 'tertiary'}
+          />
         ) : (
           <FormFieldLabel label={label} required={required} />
         )

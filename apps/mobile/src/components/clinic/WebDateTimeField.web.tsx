@@ -22,6 +22,8 @@ type WebDateFieldProps = {
   placeholder?: string;
   style?: ViewStyle;
   accent?: GradientAccent;
+  autoOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 type WebTimeFieldProps = {
@@ -33,6 +35,7 @@ type WebTimeFieldProps = {
   style?: ViewStyle;
   onOpenChange?: (open: boolean) => void;
   accent?: GradientAccent;
+  invalid?: boolean;
 };
 
 function useWebPickerFieldStyles(brandColor: string, brandSubtle: string) {
@@ -59,6 +62,9 @@ function useWebPickerFieldStyles(brandColor: string, brandSubtle: string) {
     pickerButtonActive: {
       borderColor: brandColor,
       backgroundColor: brandSubtle,
+    },
+    pickerButtonInvalid: {
+      borderColor: colors.destructive,
     },
     pickerButtonPressed: {
       opacity: 0.92,
@@ -112,12 +118,24 @@ export function WebDateField({
   placeholder = 'Select date',
   style,
   accent = 'primary',
+  autoOpen = false,
+  onOpenChange,
 }: WebDateFieldProps) {
   const { colors } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const styles = useWebPickerFieldStyles(brandColor, brandSubtle);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
+
+  useEffect(() => {
+    if (autoOpen) {
+      setOpen(true);
+    }
+  }, [autoOpen]);
 
   const displayValue = useMemo(() => {
     const parsed = parseISODate(value);
@@ -178,6 +196,7 @@ export function WebTimeField({
   style,
   onOpenChange,
   accent = 'primary',
+  invalid = false,
 }: WebTimeFieldProps) {
   const { colors } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
@@ -211,6 +230,7 @@ export function WebTimeField({
         style={({ pressed, hovered }) => [
           styles.pickerButton,
           open && styles.pickerButtonActive,
+          invalid && styles.pickerButtonInvalid,
           !open && webHover(hovered, pressed, styles.pickerButtonHovered),
           pressed && styles.pickerButtonPressed,
         ]}>

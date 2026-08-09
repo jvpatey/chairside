@@ -1,19 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { Pressable, Text, type TextStyle, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ChairsideBrandText } from '@/components/brand/ChairsideWordmark';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
+import { PillBadge } from '@/components/ui/PillBadge';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
-import {
-  webHover,
-  webLinkUnderline,
-  webOnlyStyle,
-  webPointer,
-  webTextLinkHoverStyles,
-  useWebCardLift,
-} from '@/lib/webPressableStyles';
+import { webOnlyStyle, useWebCardLift } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webGlassSurface, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
@@ -32,7 +27,7 @@ const AUDIENCES = [
     points: [
       'Post roles and same-day fill-ins',
       'Screen, message, and hire in one place',
-      'One clinic or a multi-location group with managers',
+      'Single clinic or multi-location group',
     ],
     cta: 'Start hiring',
   },
@@ -42,6 +37,7 @@ const AUDIENCES = [
     accent: 'secondary' as const,
     title: 'For professionals',
     subtitle: 'Find work on your terms',
+    badge: 'Always free',
     points: [
       'Browse permanent roles and fill-in shifts',
       'Signal availability and get discovered',
@@ -111,7 +107,21 @@ function AudiencePanel({ audience }: { audience: Audience }) {
     },
     top: {
       flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: spacing.sm,
+    },
+    iconWrap: {
+      marginTop: 2,
+    },
+    headerText: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    titleRow: {
+      flexDirection: 'row' as const,
       alignItems: 'center' as const,
+      flexWrap: 'wrap' as const,
       gap: spacing.sm,
     },
     title: {
@@ -127,40 +137,23 @@ function AudiencePanel({ audience }: { audience: Audience }) {
       marginTop: 2,
     },
     points: {
-      gap: 0,
+      gap: spacing.sm,
       flex: 1,
     },
     point: {
-      paddingVertical: spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: colors.separator,
-    },
-    pointFirst: {
-      borderTopWidth: 0,
-      paddingTop: 0,
+      flexDirection: 'row' as const,
+      gap: spacing.sm,
+      alignItems: 'flex-start' as const,
     },
     pointText: {
+      flex: 1,
       fontSize: 15,
       lineHeight: 22,
       color: colors.labelSecondary,
     },
-    link: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      alignSelf: 'flex-start' as const,
-      gap: 6,
+    cta: {
+      alignSelf: 'stretch' as const,
       marginTop: 'auto' as const,
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.sm,
-      marginLeft: -spacing.sm,
-      borderRadius: 8,
-      ...webPointer(),
-    },
-    linkLabel: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: '600' as const,
-      color: tint,
     },
   }));
 
@@ -169,39 +162,41 @@ function AudiencePanel({ audience }: { audience: Audience }) {
       <View style={styles.atmosphere} />
       <View style={styles.content}>
         <View style={styles.top}>
-          <Ionicons name={audience.icon} size={22} color={tint} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.title}>{audience.title}</Text>
+          <View style={styles.iconWrap}>
+            <Ionicons name={audience.icon} size={22} color={tint} />
+          </View>
+          <View style={styles.headerText}>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>{audience.title}</Text>
+              {'badge' in audience && audience.badge ? (
+                <PillBadge
+                  label={audience.badge}
+                  color={colors.tertiary}
+                  backgroundColor={colors.tertiarySubtle}
+                  size="sm"
+                />
+              ) : null}
+            </View>
             <Text style={styles.subtitle}>{audience.subtitle}</Text>
           </View>
         </View>
 
         <View style={styles.points}>
-          {audience.points.map((point, index) => (
-            <View key={point} style={[styles.point, index === 0 && styles.pointFirst]}>
+          {audience.points.map((point) => (
+            <View key={point} style={styles.point}>
+              <Ionicons name="checkmark-circle" size={17} color={tint} style={{ marginTop: 2 }} />
               <Text style={styles.pointText}>{point}</Text>
             </View>
           ))}
         </View>
 
-        <Pressable
-          accessibilityRole="link"
+        <OnboardingButton
+          label={audience.cta}
           onPress={() => router.push(ONBOARDING_HREF)}
-          style={({ pressed, hovered }) => [
-            styles.link,
-            webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
-            pressed && { opacity: 0.85 },
-          ]}
-        >
-          {({ hovered }) => (
-            <>
-              <Text style={[styles.linkLabel, webLinkUnderline(hovered, tint) as TextStyle]}>
-                {audience.cta}
-              </Text>
-              <Ionicons name="arrow-forward" size={15} color={tint} />
-            </>
-          )}
-        </Pressable>
+          variant={audience.accent === 'primary' ? 'primary' : 'secondary'}
+          accent={audience.accent}
+          style={styles.cta}
+        />
       </View>
     </View>
   );
@@ -214,12 +209,19 @@ function AudienceBridge({ compact }: { compact?: boolean }) {
     wrap: {
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      width: compact ? ('100%' as const) : 112,
-      flexShrink: 0,
-      paddingVertical: compact ? spacing.md : 0,
-      position: 'relative' as const,
       alignSelf: 'center' as const,
-      zIndex: 2,
+      width: compact ? ('100%' as const) : 168,
+      flexShrink: 0,
+      paddingVertical: compact ? spacing.md : spacing.lg,
+      paddingHorizontal: compact ? 0 : spacing.sm,
+      gap: spacing.sm,
+    },
+    ringCluster: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      width: ringSize,
+      height: ringSize,
+      position: 'relative' as const,
     },
     glow: {
       position: 'absolute' as const,
@@ -227,7 +229,8 @@ function AudienceBridge({ compact }: { compact?: boolean }) {
       height: ringSize + 44,
       borderRadius: 999,
       pointerEvents: 'none' as const,
-      zIndex: 0,
+      top: -22,
+      left: -22,
       ...webOnlyStyle({
         backgroundImage: isDark
           ? 'radial-gradient(circle, rgba(74, 154, 255, 0.22) 0%, rgba(152, 150, 255, 0.1) 45%, transparent 70%)'
@@ -247,9 +250,10 @@ function AudienceBridge({ compact }: { compact?: boolean }) {
       borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
       ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'floating') } as object),
     },
-    below: {
+    copy: {
       alignItems: 'center' as const,
-      marginTop: spacing.sm,
+      gap: 4,
+      maxWidth: compact ? 280 : 168,
     },
     tagline: {
       fontSize: 11,
@@ -260,52 +264,30 @@ function AudienceBridge({ compact }: { compact?: boolean }) {
       color: colors.labelTertiary,
       textAlign: 'center' as const,
     },
+    sublabel: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '500' as const,
+      color: colors.labelSecondary,
+      textAlign: 'center' as const,
+    },
   }));
 
   return (
-    <View style={styles.wrap} accessibilityRole="text" accessibilityLabel="Chairside — one platform">
-      <View style={styles.glow} />
-      <View style={styles.ring}>
-        <ChairsideBrandText variant="small" />
-      </View>
-      {compact ? (
-        <View style={styles.below}>
-          <Text style={styles.tagline}>Same platform · different goals</Text>
+    <View
+      style={styles.wrap}
+      accessibilityRole="text"
+      accessibilityLabel="Chairside — one platform. Clinics hire, professionals join free.">
+      <View style={styles.ringCluster}>
+        <View style={styles.glow} />
+        <View style={styles.ring}>
+          <ChairsideBrandText variant="small" />
         </View>
-      ) : null}
-    </View>
-  );
-}
-
-function AudienceConnector({ side }: { side: 'left' | 'right' }) {
-  const styles = useThemedStyles(({ spacing, isDark }) => ({
-    slot: {
-      width: spacing.lg,
-      alignSelf: 'center' as const,
-      justifyContent: 'center' as const,
-      flexShrink: 0,
-      zIndex: 0,
-    },
-    line: {
-      height: 2,
-      width: '100%' as const,
-      borderRadius: 1,
-      ...webOnlyStyle({
-        backgroundImage:
-          side === 'left'
-            ? isDark
-              ? 'linear-gradient(90deg, transparent 0%, rgba(74, 154, 255, 0.55) 100%)'
-              : 'linear-gradient(90deg, transparent 0%, rgba(26, 111, 212, 0.45) 100%)'
-            : isDark
-              ? 'linear-gradient(90deg, rgba(152, 150, 255, 0.55) 0%, transparent 100%)'
-              : 'linear-gradient(90deg, rgba(88, 86, 214, 0.45) 0%, transparent 100%)',
-      } as object),
-    },
-  }));
-
-  return (
-    <View style={styles.slot} pointerEvents="none">
-      <View style={styles.line} />
+      </View>
+      <View style={styles.copy}>
+        <Text style={styles.tagline}>One platform</Text>
+        <Text style={styles.sublabel}>Clinics hire · Professionals join free</Text>
+      </View>
     </View>
   );
 }
@@ -316,6 +298,7 @@ function AudienceGrid() {
     row: {
       flexDirection: 'row' as const,
       alignItems: 'stretch' as const,
+      gap: spacing.lg,
     },
     stack: {
       gap: spacing.lg,
@@ -344,11 +327,9 @@ function AudienceGrid() {
       <WebPageEnter delayMs={0} style={{ flex: 1, minWidth: 0, alignSelf: 'stretch' }} trigger="visible">
         <AudiencePanel audience={clinic} />
       </WebPageEnter>
-      <AudienceConnector side="left" />
       <WebPageEnter delayMs={80} style={{ alignSelf: 'center' }} trigger="visible">
         <AudienceBridge />
       </WebPageEnter>
-      <AudienceConnector side="right" />
       <WebPageEnter delayMs={160} style={{ flex: 1, minWidth: 0, alignSelf: 'stretch' }} trigger="visible">
         <AudiencePanel audience={worker} />
       </WebPageEnter>
@@ -394,7 +375,7 @@ export function WebLandingAudience() {
       atmosphere={<View style={styles.atmosphere} />}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Built for both sides</Text>
-        <Text style={styles.title}>One platform, two audiences</Text>
+        <Text style={styles.title}>Built for clinics and professionals</Text>
       </View>
 
       <AudienceGrid />

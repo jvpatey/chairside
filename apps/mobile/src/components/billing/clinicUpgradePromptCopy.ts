@@ -36,7 +36,7 @@ export function getClinicPublishLimitMessage(
   }
 
   if (plan === 'group_starter') {
-    return `Your Group Starter plan includes 5 active ${postingLabelPlural} org-wide. Upgrade to Group Pro for unlimited posting.`;
+    return `Your Group Starter plan includes 5 active ${postingLabelPlural} across your group. Upgrade to Group Pro for unlimited posting.`;
   }
 
   return 'Upgrade your plan for unlimited active roles and fill-ins.';

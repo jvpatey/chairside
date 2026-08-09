@@ -16,6 +16,7 @@ import {
   getClinicPlanSubtleBackground,
   getRecommendedUpgradePlan,
 } from '@/lib/clinicPlanPresentation';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 type BillingHeroProps = {
@@ -199,7 +200,7 @@ export function BillingHero({
         hint={formatMetricHint(billing.activeFillInCount, billing.activeFillInLimit)}
         atLimit={fillInAtLimit}
         accent={colors.secondary}
-        icon="calendar-outline"
+        icon={FILL_IN_ICON.outline}
       />
     </View>
   );

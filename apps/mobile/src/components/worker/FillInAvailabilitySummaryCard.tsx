@@ -12,6 +12,7 @@ import { EditPillButton } from '@/components/ui/EditPillButton';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInAvailabilityPrimaryToggle } from '@/components/worker/FillInAvailabilityPrimaryToggle';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { getFillInAvailabilityCollapsedSummary } from '@/lib/fillInAvailabilitySummary';
 import { WORKER_FILLIN_AVAILABILITY, WORKER_SETUP_AVAILABILITY_SCHEDULE } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -56,7 +57,7 @@ export function FillInAvailabilitySummaryCard() {
     <View style={styles.stack}>
       <ProfileSettingsCard
         title="Available for fill-ins"
-        icon="flash-outline"
+        icon={FILL_IN_ICON.outline}
         iconAccent="secondary"
         collapsible
         headerAccessory={<FillInAvailabilityPrimaryToggle variant="switchOnly" />}>

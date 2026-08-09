@@ -1,11 +1,11 @@
 export const MOBILE_TAB_ORDER: Record<'worker' | 'clinic', string[]> = {
-  worker: ['index', 'browse', 'applications', 'calendar', 'fillins', 'messages'],
-  clinic: ['index', 'postings', 'applications', 'calendar', 'fill-ins', 'messages'],
+  worker: ['index', 'browse', 'applications', 'fillins', 'calendar', 'messages'],
+  clinic: ['index', 'postings', 'applications', 'fill-ins', 'calendar', 'messages'],
 };
 
 export const TABLET_SIDEBAR_TAB_ORDER: Record<'worker' | 'clinic', string[]> = {
-  worker: ['index', 'browse', 'applications', 'calendar', 'fillins', 'messages'],
-  clinic: ['index', 'postings', 'discover', 'applications', 'calendar', 'fill-ins', 'messages'],
+  worker: ['index', 'browse', 'applications', 'fillins', 'calendar', 'messages'],
+  clinic: ['index', 'postings', 'applications', 'fill-ins', 'discover', 'calendar', 'messages'],
 };
 
 export type SidebarSection = {
@@ -15,11 +15,11 @@ export type SidebarSection = {
 
 export const TABLET_SIDEBAR_SECTIONS: Record<'worker' | 'clinic', SidebarSection[]> = {
   worker: [
-    { label: null, routes: ['index', 'browse', 'applications'] },
-    { label: null, routes: ['calendar', 'fillins', 'messages'] },
+    { label: null, routes: ['index', 'browse', 'applications', 'fillins'] },
+    { label: null, routes: ['calendar', 'messages'] },
   ],
   clinic: [
-    { label: null, routes: ['index', 'postings', 'discover', 'applications'] },
-    { label: null, routes: ['calendar', 'fill-ins', 'messages'] },
+    { label: null, routes: ['index', 'postings', 'applications', 'fill-ins'] },
+    { label: null, routes: ['discover', 'calendar', 'messages'] },
   ],
 };

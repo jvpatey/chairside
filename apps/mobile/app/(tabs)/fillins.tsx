@@ -51,6 +51,7 @@ import {
   partitionWorkerShiftApplications,
   type FillInsTabMode,
 } from '@/lib/fillInFilters';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import type { WorkerBrowseViewMode } from '@/lib/postingFilters';
 import { toShiftCelebrationCandidates } from '@/lib/hiringCelebrationCandidates';
@@ -326,7 +327,7 @@ export default function FillInsScreen() {
         label: 'Open',
         count: filteredShifts.length,
         accent: 'secondary' as const,
-        icon: 'calendar-outline' as const,
+        icon: FILL_IN_ICON.outline,
       },
       {
         value: 'confirmed' as const,
@@ -351,7 +352,7 @@ export default function FillInsScreen() {
   ) : filteredShifts.length === 0 ? (
     <DashboardEmptyState
       embedded
-      icon="calendar-outline"
+      icon={FILL_IN_ICON.outline}
       title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'}
       message={
         hasActiveFillInFilters

@@ -1,8 +1,9 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
 import {
   addDays,
   formatShiftDateLabel,
@@ -25,6 +26,9 @@ type ShiftDateInputProps = {
   value: string;
   onChange: (isoDate: string) => void;
   accent?: GradientAccent;
+  required?: boolean;
+  embedded?: boolean;
+  onPickerOpenChange?: (open: boolean) => void;
 };
 
 function resolveMode(value: string): ShiftDateMode {
@@ -33,7 +37,14 @@ function resolveMode(value: string): ShiftDateMode {
   return 'custom';
 }
 
-export function ShiftDateInput({ value, onChange, accent = 'primary' }: ShiftDateInputProps) {
+export function ShiftDateInput({
+  value,
+  onChange,
+  accent = 'primary',
+  required = false,
+  embedded = false,
+  onPickerOpenChange,
+}: ShiftDateInputProps) {
   const { colors } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const brandSubtle = accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
@@ -44,14 +55,13 @@ export function ShiftDateInput({ value, onChange, accent = 'primary' }: ShiftDat
   const selectedDate = parseISODate(value) ?? today;
   const minDate = today;
 
+  useEffect(() => {
+    onPickerOpenChange?.(mode === 'custom' && showPicker);
+  }, [mode, showPicker, onPickerOpenChange]);
+
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.sm,
-    },
-    label: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
     },
     dateDisplay: {
       backgroundColor: colors.fillSubtle,
@@ -97,16 +107,20 @@ export function ShiftDateInput({ value, onChange, accent = 'primary' }: ShiftDat
 
   const handleModeChange = (nextMode: ShiftDateMode) => {
     setMode(nextMode);
-    setShowPicker(false);
 
     if (nextMode === 'today') {
+      setShowPicker(false);
       onChange(todayISO());
       return;
     }
 
     if (nextMode === 'tomorrow') {
+      setShowPicker(false);
       onChange(toISODate(addDays(today, 1)));
+      return;
     }
+
+    setShowPicker(true);
   };
 
   const handleDateDisplayPress = () => {
@@ -144,7 +158,7 @@ export function ShiftDateInput({ value, onChange, accent = 'primary' }: ShiftDat
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>Shift date</Text>
+      {!embedded ? <FormFieldLabel label="Shift date" required={required} /> : null}
       <ChipSelector
         options={[...SHIFT_DATE_OPTIONS]}
         selected={mode}

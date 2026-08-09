@@ -1,7 +1,8 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, Platform } from 'react-native';
 
 import { ChipScrollTrack } from '@/components/clinic/ChipScrollTrack';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -30,8 +31,10 @@ export function ChipSelector<T extends string>({
   onChange,
 }: ChipSelectorProps<T>) {
   const { colors } = useTheme();
+  const { isWide } = useResponsiveLayout();
   const tabAccent = useTabAtmosphereAccent();
   const resolvedAccent = accent ?? tabAccent;
+  const useWrapLayout = !horizontal || (Platform.OS === 'web' && isWide);
   const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
   const brandSubtle = resolvedAccent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -122,7 +125,9 @@ export function ChipSelector<T extends string>({
 
   const resolvedFadeColor = fadeColor ?? colors.surface;
 
-  return horizontal ? (
+  return useWrapLayout ? (
+    <View style={[styles.wrap, disabled && styles.disabled]}>{chips}</View>
+  ) : (
     <ChipScrollTrack
       disabled={disabled}
       fadeColor={resolvedFadeColor}
@@ -130,7 +135,5 @@ export function ChipSelector<T extends string>({
     >
       {chips}
     </ChipScrollTrack>
-  ) : (
-    <View style={[styles.wrap, disabled && styles.disabled]}>{chips}</View>
   );
 }

@@ -13,6 +13,7 @@ import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'rea
 import { CustomScreeningQuestionSheet } from '@/components/clinic/CustomScreeningQuestionSheet';
 import { ScreeningQuestionPicker } from '@/components/clinic/ScreeningQuestionPicker';
 import { ScreeningWorkerPreviewModal } from '@/components/clinic/ScreeningWorkerPreviewModal';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -167,12 +168,15 @@ export function ScreeningToggleSection({
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Screening questions</Text>
-          <Text style={styles.subtitle}>
-            {locked
-              ? 'Upgrade to Starter or Pro to ask screening questions before the full application.'
-              : 'Workers complete screening first. You can request their full application after reviewing responses.'}
-          </Text>
+          <FormSectionHeader
+            icon="clipboard-outline"
+            label="Screening questions"
+            hint={
+              locked
+                ? 'Upgrade to Starter or Pro to ask screening questions before the full application.'
+                : 'Workers complete screening first. You can request their full application after reviewing responses.'
+            }
+          />
         </View>
         <ThemedSwitch
           value={enabled && !locked}

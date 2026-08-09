@@ -2,6 +2,7 @@ import type { ClinicApplication, JobApplicationSummary } from '@chairside/api';
 
 import type { DashboardAttentionItem } from '@/components/dashboard/DashboardNeedsAttention';
 import { getDueFollowUpApplications } from '@/lib/applicationPipeline';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 
 type BuildClinicAttentionInput = {
   newApplications: number;
@@ -60,7 +61,7 @@ export function buildClinicAttentionItems({
         fillInUpdateCount === 1
           ? '1 pending fill-in request'
           : `${fillInUpdateCount} pending fill-in requests`,
-      icon: 'calendar-outline',
+      icon: FILL_IN_ICON.outline,
       accent: 'secondary',
       urgent: true,
       onPress: onOpenFillIns,
@@ -125,7 +126,7 @@ export function buildWorkerAttentionItems({
         fillInPendingCount === 1
           ? '1 update to check'
           : `${fillInPendingCount} updates to check`,
-      icon: 'calendar-outline',
+      icon: FILL_IN_ICON.outline,
       accent: 'secondary',
       onPress: onOpenFillIns,
     });

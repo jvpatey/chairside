@@ -9,8 +9,9 @@ import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
-import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
+import { FadeInSection } from '@/components/dashboard/FadeInSection';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { DashboardHeroCard } from '@/components/dashboard/DashboardHeroCard';
 import { DashboardHeroActions } from '@/components/dashboard/DashboardHeroActions';
 import { DashboardHeroName, DashboardHeroSubtitle } from '@/components/dashboard/DashboardHeroIdentity';
@@ -356,7 +357,7 @@ export function DashboardOverviewPanel({
       {selected === 'fill-ins' ? (
         liveShifts.length === 0 && confirmedFillIns.length === 0 ? (
           <DashboardEmptyState
-            icon="calendar-outline"
+            icon={FILL_IN_ICON.outline}
             title="No fill-in shifts yet"
             message="Post a fill-in shift when you need temporary coverage."
             accent="secondary"

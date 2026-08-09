@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
-import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { ProfileDetailStack } from '@/components/profile/ProfileDetailBlocks';
+import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { NotificationCategoryPreferences } from '@/components/notifications/NotificationCategoryPreferences';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { FillInSettingsLink } from '@/components/worker/FillInSettingsLink';
@@ -41,7 +42,7 @@ export default function WorkerProfileNotificationsScreen() {
           <WorkerJobNotificationPreferences />
         </ProfileSettingsCard>
 
-        <ProfileSettingsCard title="Fill-in shifts" icon="calendar-outline" iconAccent="secondary">
+        <ProfileSettingsCard title="Fill-in shifts" icon={FILL_IN_ICON.outline} iconAccent="secondary">
           <FillInSettingsLink />
         </ProfileSettingsCard>
       </ProfileDetailStack>

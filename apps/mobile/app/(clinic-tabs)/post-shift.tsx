@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { CompensationInput } from '@/components/clinic/CompensationInput';
@@ -21,16 +21,20 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { useFormSectionScroll } from '@/hooks/useFormSectionScroll';
+import { usePostingFormScreenProps } from '@/hooks/usePostingFormScreenProps';
 import { todayISO } from '@/lib/dates';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
   isFillInPostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
+import { showFormError } from '@/lib/formErrors';
 import { isValidTimeRange, normalizeTime24h, parseTime24h } from '@/lib/time';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -64,6 +68,8 @@ export default function PostShiftScreen() {
   const shiftId = typeof id === 'string' ? id : undefined;
   const isEditing = Boolean(shiftId);
   const resolvedReturnTo = (typeof returnTo === 'string' ? returnTo : 'fill-ins-tab') as FillInReturnTarget;
+  const { setSectionRef, scrollToFirstSection } = useFormSectionScroll();
+  const postingFormProps = usePostingFormScreenProps();
 
   const handleBack = useCallback(() => {
     navigateAfterFillInSave(router, resolvedReturnTo);
@@ -84,22 +90,20 @@ export default function PostShiftScreen() {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [formKey, setFormKey] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const countsTowardLimit = shiftDate.trim() >= todayISO();
   const fillInLimitReached =
     !isEditing && countsTowardLimit && isFillInPostingLimitReached(billing);
 
   const handleCompensationChange = useCallback((value: string) => {
     setCompensation(value);
+    setFormError(null);
   }, []);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
+    form: { gap: spacing.lg },
     section: { gap: spacing.sm },
-    label: {
-      ...typography.body,
-      fontWeight: '600',
-    },
     loading: typography.subtitle,
-    helper: typography.subtitle,
     notice: {
       backgroundColor: brandSubtle,
       borderRadius: 16,
@@ -146,10 +150,7 @@ export default function PostShiftScreen() {
       const shift = await getShiftPost(clinicId ?? user.id, shiftId);
       if (!shift) {
         const message = 'This shift may have been removed.';
-        setFormError(message);
-        if (Platform.OS !== 'web') {
-          Alert.alert('Fill-in not found', message);
-        }
+        setFormError(showFormError(message, { title: 'Fill-in not found' }));
         handleBack();
         return;
       }
@@ -165,10 +166,7 @@ export default function PostShiftScreen() {
       setFormKey((current) => current + 1);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please try again.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Could not load fill-in', message);
-      }
+      setFormError(showFormError(message, { title: 'Could not load fill-in' }));
       handleBack();
     } finally {
       setIsLoading(false);
@@ -182,37 +180,29 @@ export default function PostShiftScreen() {
   const handleSubmit = async () => {
     if (!user?.id || !clinicId || !shiftDate.trim()) {
       const message = 'Select a shift date to continue.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Missing information', message);
-      }
+      setFormError(showFormError(message));
+      scrollToFirstSection(['date']);
       return;
     }
 
     if (isGroup && !locationId) {
       const message = 'Choose which location this fill-in is for.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Missing information', message);
-      }
+      setFormError(showFormError(message));
+      scrollToFirstSection(['location']);
       return;
     }
 
     if (!parseTime24h(startTime) || !parseTime24h(endTime)) {
       const message = 'Choose a valid start and end time.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Invalid times', message);
-      }
+      setFormError(showFormError(message, { title: 'Invalid times' }));
+      scrollToFirstSection(['hours']);
       return;
     }
 
     if (!isValidTimeRange(startTime, endTime)) {
       const message = 'End time must be after start time.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Invalid times', message);
-      }
+      setFormError(showFormError(message, { title: 'Invalid times' }));
+      scrollToFirstSection(['hours']);
       return;
     }
 
@@ -232,11 +222,12 @@ export default function PostShiftScreen() {
         end_time: endTime.trim(),
         compensation: compensation.trim() || undefined,
         description: description.trim() || undefined,
+        ...(isGroup ? { location_id: locationId } : {}),
       };
 
       if (isEditing && shiftId) {
         await updateShiftPost(clinicId, shiftId, payload);
-        navigateAfterFillInSave(router, returnTo);
+        navigateAfterFillInSave(router, resolvedReturnTo);
       } else {
         await createShiftPost(clinicId, {
           ...payload,
@@ -245,29 +236,47 @@ export default function PostShiftScreen() {
           location_id: locationId,
           ...attribution,
         });
-        navigateAfterFillInSave(router, returnTo);
+        navigateAfterFillInSave(router, resolvedReturnTo);
       }
     } catch (error) {
       if (handleBillingError(error)) {
         return;
       }
       const message = error instanceof Error ? error.message : 'Please try again.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert(isEditing ? 'Could not save changes' : 'Could not publish', message);
-      }
+      setFormError(
+        showFormError(message, {
+          title: isEditing ? 'Could not save changes' : 'Could not publish',
+        }),
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const submitButton = (
+    <OnboardingButton
+      label={
+        isSubmitting
+          ? isEditing
+            ? 'Saving…'
+            : 'Publishing…'
+          : isEditing
+            ? 'Save changes'
+            : 'Publish fill-in'
+      }
+      disabled={isSubmitting || fillInLimitReached || pickerOpen}
+      accent={FILL_IN_ACCENT}
+      onPress={handleSubmit}
+    />
+  );
+
   if (isLoading) {
     return (
       <FormScreen
+        {...postingFormProps}
         title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
         accent={FILL_IN_ACCENT}
         onBack={handleBack}
-        constrainFormWidth
       >
         <PageLoadingDetail />
       </FormScreen>
@@ -278,6 +287,7 @@ export default function PostShiftScreen() {
     <>
       {upgradePrompt}
       <FormScreen
+        {...postingFormProps}
         title={isEditing ? 'Edit fill-in' : 'Post a fill-in'}
         subtitle={
           isEditing
@@ -286,30 +296,34 @@ export default function PostShiftScreen() {
         }
         accent={FILL_IN_ACCENT}
         onBack={handleBack}
-        constrainFormWidth
+        footer={submitButton}
       >
         <FormErrorBanner message={formError} />
 
+        <View style={styles.form}>
         {isGroup ? (
-          <View style={styles.section}>
-            <Text style={styles.label}>Location</Text>
+          <View ref={setSectionRef('location')} style={styles.section} collapsable={false}>
+            <FormSectionHeader icon="location-outline" label="Location" required accent="secondary" />
             <ChipSelector
               options={accessibleLocations.map((location) => ({
                 value: location.id,
                 label: location.name,
               }))}
               selected={locationId}
-              onChange={(value) => setLocationId(value as string)}
+              onChange={(value) => {
+                setLocationId(value as string);
+                setFormError(null);
+              }}
               accent={FILL_IN_ACCENT}
             />
             {attributionLabel ? (
-              <Text style={styles.helper}>Will show as posted by {attributionLabel}</Text>
+              <Text style={styles.loading}>Will show as posted by {attributionLabel}</Text>
             ) : null}
           </View>
         ) : null}
 
         <View style={styles.section}>
-          <Text style={styles.label}>Role type</Text>
+          <FormSectionHeader icon="person-outline" label="Role type" accent="secondary" />
           <ChipSelector
             options={ROLE_TYPE_OPTIONS}
             selected={roleType}
@@ -318,29 +332,48 @@ export default function PostShiftScreen() {
           />
         </View>
 
-        <ShiftDateInput
-          key={`date-${formKey}`}
-          value={shiftDate}
-          onChange={setShiftDate}
-          accent={FILL_IN_ACCENT}
-        />
+        <View ref={setSectionRef('date')} style={styles.section} collapsable={false}>
+          <FormSectionHeader icon="calendar-outline" label="Shift date" required accent="secondary" />
+          <ShiftDateInput
+            key={`date-${formKey}`}
+            value={shiftDate}
+            onChange={(value) => {
+              setShiftDate(value);
+              setFormError(null);
+            }}
+            accent={FILL_IN_ACCENT}
+            required
+            embedded
+            onPickerOpenChange={setPickerOpen}
+          />
+        </View>
 
-        <TimeRangeInput
-          sectionLabel="Shift hours"
-          schedule={{ startTime, endTime }}
-          onChange={({ startTime: nextStart, endTime: nextEnd }) => {
-            setStartTime(nextStart);
-            setEndTime(nextEnd);
-          }}
-          showPreview
-          accent={FILL_IN_ACCENT}
-        />
+        <View ref={setSectionRef('hours')} style={styles.section} collapsable={false}>
+          <FormSectionHeader icon="time-outline" label="Shift hours" required accent="secondary" />
+          <TimeRangeInput
+            schedule={{ startTime, endTime }}
+            onChange={({ startTime: nextStart, endTime: nextEnd }) => {
+              setStartTime(nextStart);
+              setEndTime(nextEnd);
+              setFormError(null);
+            }}
+            showPreview
+            required
+            accent={FILL_IN_ACCENT}
+            embedded
+            onPickerOpenChange={setPickerOpen}
+          />
+        </View>
 
-        <CompensationInput
-          key={`comp-${formKey}`}
-          initialValue={compensation}
-          onChange={handleCompensationChange}
-        />
+        <View style={styles.section}>
+          <FormSectionHeader icon="cash-outline" label="Compensation (optional)" accent="secondary" />
+          <CompensationInput
+            key={`comp-${formKey}`}
+            initialValue={compensation}
+            onChange={handleCompensationChange}
+            embedded
+          />
+        </View>
 
         <AuthField
           label="Description"
@@ -349,6 +382,8 @@ export default function PostShiftScreen() {
           onChangeText={setDescription}
           multiline
           autoCapitalize="sentences"
+          accent={FILL_IN_ACCENT}
+          icon="document-text-outline"
         />
 
         {!isEditing ? (
@@ -376,21 +411,7 @@ export default function PostShiftScreen() {
             compact
           />
         ) : null}
-
-        <OnboardingButton
-          label={
-            isSubmitting
-              ? isEditing
-                ? 'Saving…'
-                : 'Publishing…'
-              : isEditing
-                ? 'Save changes'
-                : 'Publish fill-in'
-          }
-          disabled={isSubmitting || fillInLimitReached}
-          accent={FILL_IN_ACCENT}
-          onPress={handleSubmit}
-        />
+        </View>
       </FormScreen>
     </>
   );

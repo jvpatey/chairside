@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 
-import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
@@ -21,6 +21,7 @@ import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
+import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -300,7 +301,7 @@ export function WorkerOverviewPanel({
         confirmedShiftApplications.length === 0 &&
         activeShiftApplications.length === 0 ? (
           <DashboardEmptyState
-            icon="calendar-outline"
+            icon={FILL_IN_ICON.outline}
             title="No fill-in shifts yet"
             message="Temporary and urgent shifts in your province will show up here."
             accent="secondary"

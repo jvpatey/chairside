@@ -11,6 +11,7 @@ import { Screen } from '@/components/ui/Screen';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -60,7 +61,7 @@ export function WorkerFillInsInboxPanel({ compact = false }: WorkerFillInsInboxP
               value: 'open' as const,
               label: 'Open',
               accent: 'secondary' as const,
-              icon: 'calendar-outline' as const,
+              icon: FILL_IN_ICON.outline,
             },
           ]
         : []),

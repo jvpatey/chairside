@@ -4,11 +4,9 @@ import {
   type ClinicPlan,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
@@ -18,8 +16,6 @@ import { useContentSwapAnimation } from '@/lib/webMotion.web';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
-const ONBOARDING_HREF = '/(onboarding)/role' as Href;
-
 type PricingAudience = 'clinic' | 'group';
 
 const CLINIC_AUDIENCE_PLANS: readonly ClinicPlan[] = ['free', 'starter', 'pro'];
@@ -28,13 +24,12 @@ const GROUP_AUDIENCE_PLANS: readonly ClinicPlan[] = ['free', 'group_starter', 'g
 const TRUST_POINTS = [
   { icon: 'leaf-outline' as const, label: 'Start free' },
   { icon: 'trending-up-outline' as const, label: 'Upgrade when hiring volume grows' },
-  { icon: 'medical-outline' as const, label: 'Professionals stay free' },
 ] as const;
 
 const GROUP_FREE_TAGLINE = 'Try multi-location hiring at no cost';
 const GROUP_FREE_FEATURES = [
   'Up to 2 locations and 1 manager',
-  '1 active role and 1 fill-in org-wide',
+  '1 active role and 1 fill-in across your group',
   'Review applications and message candidates',
 ] as const;
 
@@ -290,7 +285,6 @@ function PricingPlanCard({
     },
     features: {
       gap: spacing.sm,
-      flex: 1,
     },
     featureRow: {
       flexDirection: 'row' as const,
@@ -303,13 +297,7 @@ function PricingPlanCard({
       lineHeight: 20,
       color: colors.labelSecondary,
     },
-    cta: {
-      alignSelf: 'stretch' as const,
-      marginTop: 'auto' as const,
-    },
   }));
-
-  const ctaLabel = plan === 'free' ? 'Start free' : 'Get started';
 
   return (
     <WebPageEnter
@@ -345,13 +333,6 @@ function PricingPlanCard({
               </View>
             ))}
           </View>
-
-          <OnboardingButton
-            label={ctaLabel}
-            onPress={() => router.push(ONBOARDING_HREF)}
-            variant={brand ? 'primary' : 'secondary'}
-            style={styles.cta}
-          />
         </View>
       </View>
     </WebPageEnter>
@@ -417,8 +398,8 @@ function PricingAudiencePanel({
 
   const subtitle =
     displayAudience === 'clinic'
-      ? 'Post your first role and fill-in at no cost. Professionals always join free.'
-      : 'Try up to 2 locations and 1 manager free. Upgrade for more sites and org-wide hiring.';
+      ? 'Post your first role and fill-in at no cost. Upgrade when you need more.'
+      : 'Try up to 2 locations and 1 manager free. Upgrade for more locations and hiring across your group.';
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     panel: {
@@ -430,7 +411,7 @@ function PricingAudiencePanel({
       lineHeight: 26,
       color: colors.labelSecondary,
       textAlign: 'center' as const,
-      maxWidth: 520,
+      maxWidth: 780,
       alignSelf: 'center' as const,
     },
     cards: {
@@ -487,13 +468,24 @@ export function WebLandingPricing() {
       color: colors.labelPrimary,
       textAlign: 'center' as const,
     },
+    subline: {
+      ...webTypography.subtitle,
+      fontSize: 17,
+      lineHeight: 26,
+      color: colors.labelSecondary,
+      textAlign: 'center' as const,
+      maxWidth: 720,
+    },
   }));
 
   return (
     <WebMarketingSection style={styles.bleed} sectionId="pricing">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Pricing</Text>
-        <Text style={styles.title}>Start free, upgrade when you need more</Text>
+        <Text style={styles.title}>Clinic plans. Professionals always free.</Text>
+        <Text style={styles.subline}>
+          Dental professionals always join and apply free — no subscription.
+        </Text>
       </View>
 
       <PricingAudienceToggle value={audience} onChange={handleAudienceChange} />

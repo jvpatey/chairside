@@ -39,6 +39,7 @@ import { FileTabWell, type FileTabOption } from '@/components/dashboard/FileTabW
 import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { buildWorkerAttentionItems } from '@/lib/dashboardAttention';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { buildWorkerHeroPulse } from '@/lib/dashboardPulse';
 import { getFirstName } from '@/lib/greeting';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
@@ -334,7 +335,7 @@ export default function WorkerDashboardScreen() {
         count: counts.openFillInsInProvince,
         badgeCount: fillInPendingCount,
         accent: 'secondary' as const,
-        icon: 'calendar-outline' as const,
+        icon: FILL_IN_ICON.outline,
       },
     ];
     if (savedCount > 0) {
@@ -404,7 +405,7 @@ export default function WorkerDashboardScreen() {
               {
                 label: 'Find fill-ins',
                 description: 'Browse temp shifts nearby',
-                icon: 'calendar-outline',
+                icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 onPress: () => router.push(WORKER_FILLINS),
               },

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
 import { APP_STORE_URL } from '@/constants';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useEnterAnimation } from '@/lib/webMotion.web';
 import {
@@ -20,7 +21,7 @@ const PANEL_ASPECT_RATIO = 1556 / 890;
 const SIDEBAR_ITEMS = [
   'grid-outline',
   'briefcase-outline',
-  'calendar-outline',
+  FILL_IN_ICON.outline,
   'chatbubbles-outline',
   'person-outline',
 ] as const;

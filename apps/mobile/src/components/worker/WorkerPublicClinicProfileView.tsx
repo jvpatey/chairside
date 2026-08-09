@@ -21,6 +21,7 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicLocationCard } from '@/components/worker/ClinicLocationCard';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -371,7 +372,7 @@ export function WorkerPublicClinicProfileView({
           ))
         ) : (
           <ProfileEmptyState
-            icon="calendar-outline"
+            icon={FILL_IN_ICON.outline}
             title="No open fill-ins right now"
             description={
               acceptsGeneralMessages
