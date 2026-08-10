@@ -51,7 +51,7 @@ const DURATION_OPTIONS = [
   { value: '90', label: '90 min' },
 ] as const;
 
-export type InterviewScheduleSheetMode = 'offer' | 'edit_offer' | 'propose_reschedule';
+export type InterviewScheduleSheetMode = 'offer' | 'edit_offer' | 'propose_reschedule' | 'counter_offer';
 
 export type InterviewScheduleSheetBodyProps = {
   visible: boolean;
@@ -91,6 +91,13 @@ const MODE_COPY: Record<
     submitLabel: 'Send proposal',
     showCalendarLink: false,
   },
+  counter_offer: {
+    title: 'Suggest another time',
+    subtitle:
+      'Share a time that works for you. The clinic will review before confirming.',
+    submitLabel: 'Send suggestion',
+    showCalendarLink: false,
+  },
 };
 
 function defaultInterviewDate(): Date {
@@ -105,17 +112,20 @@ function resolveInitialInterviewState(
   defaultLocation?: string | null,
 ): { interviewAt: Date; durationMinutes: string; location: string; details: string } {
   const sourceAt =
-    mode === 'propose_reschedule'
+    mode === 'propose_reschedule' || mode === 'counter_offer'
       ? application.interview_proposed_at ?? application.interview_at
       : application.interview_at;
   const sourceDuration =
-    mode === 'propose_reschedule'
+    mode === 'propose_reschedule' || mode === 'counter_offer'
       ? application.interview_proposed_duration_minutes ?? application.interview_duration_minutes
       : application.interview_duration_minutes;
+  // Counter-offer details are the worker's availability note — don't seed clinic invite notes.
   const sourceDetails =
-    mode === 'propose_reschedule'
-      ? application.interview_proposed_details ?? application.interview_details
-      : application.interview_details;
+    mode === 'counter_offer'
+      ? application.interview_proposed_details
+      : mode === 'propose_reschedule'
+        ? application.interview_proposed_details ?? application.interview_details
+        : application.interview_details;
 
   const parsed = parseInterviewDetailsBlob(sourceDetails);
   const interviewAt = sourceAt ? new Date(sourceAt) : defaultInterviewDate();
@@ -546,11 +556,17 @@ export function InterviewScheduleSheetBody({
         </View>
 
         <View style={styles.fieldBlock}>
-          <Text style={styles.fieldLabel}>Location</Text>
+          <Text style={styles.fieldLabel}>
+            {mode === 'counter_offer' ? 'Location (optional)' : 'Location'}
+          </Text>
           <TextInput
             value={location}
             onChangeText={setLocation}
-            placeholder="Clinic address or meeting link"
+            placeholder={
+              mode === 'counter_offer'
+                ? 'Clinic address or meeting link if you know it'
+                : 'Clinic address or meeting link'
+            }
             placeholderTextColor={colors.labelTertiary}
             style={styles.detailsInput}
             multiline
@@ -558,11 +574,17 @@ export function InterviewScheduleSheetBody({
         </View>
 
         <View style={styles.fieldBlock}>
-          <Text style={styles.fieldLabel}>Details for candidate</Text>
+          <Text style={styles.fieldLabel}>
+            {mode === 'counter_offer' ? 'Message to clinic (optional)' : 'Details for candidate'}
+          </Text>
           <TextInput
             value={details}
             onChangeText={setDetails}
-            placeholder="What to bring, parking, contact person…"
+            placeholder={
+              mode === 'counter_offer'
+                ? "I'm interested, but that time doesn't work. I'm available…"
+                : 'What to bring, parking, contact person…'
+            }
             placeholderTextColor={colors.labelTertiary}
             style={styles.detailsInput}
             multiline

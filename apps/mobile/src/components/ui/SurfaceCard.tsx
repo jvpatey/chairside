@@ -16,6 +16,7 @@ import {
   webCardLiftBase,
 } from '@/lib/webPressableStyles';
 import {
+  colorWithAlpha,
   getSurfaceGradient,
   radii,
   type ElevationLevel,
@@ -24,7 +25,7 @@ import {
   useThemedStyles,
 } from '@/theme';
 
-import { cardMinHeights, type CardPaddingTier } from './cardLayout';
+import { cardMinHeights, cardShellRadii, type CardPaddingTier } from './cardLayout';
 
 export type SurfaceCardVariant = 'default' | 'success' | 'inner';
 
@@ -79,13 +80,15 @@ export function SurfaceCard({
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     card: {
-      borderRadius: radii.lg,
+      borderRadius: isInner ? cardShellRadii.inner : radii.lg,
       overflow: 'hidden',
-      borderWidth: isInner ? 0 : StyleSheet.hairlineWidth,
+      borderWidth: isInner ? 1 : StyleSheet.hairlineWidth,
       borderColor:
         variant === 'success'
           ? `${colors.success}40`
-          : colors.separator,
+          : isInner
+            ? colorWithAlpha(colors.labelPrimary, isDark ? 0.28 : 0.14)
+            : colors.separator,
       ...(padding === 'none' ? null : { padding: padding === 'lg' ? spacing.lg : spacing.md }),
       ...(gap ? { gap: spacing.sm } : null),
       ...(minHeight != null ? { minHeight } : null),
@@ -98,9 +101,7 @@ export function SurfaceCard({
       backgroundColor:
         variant === 'success'
           ? `${colors.success}10`
-          : isInner
-            ? colors.surface
-            : colors.surface,
+          : colors.surface,
     },
     gradient: {
       ...StyleSheet.absoluteFillObject,

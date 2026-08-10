@@ -12,8 +12,6 @@ import {
   type CalendarEvent,
   type ClinicApplication,
   type ClinicDashboardCounts,
-  listUpcomingConfirmedFillIns,
-  type ConfirmedFillInSummary,
   type Conversation,
   type JobPost,
   type ShiftPost,
@@ -64,6 +62,7 @@ import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
 import { sortDashboardApplications } from '@/lib/applicationPipeline';
 import { getFirstName } from '@/lib/greeting';
+import { isDecidedApplicationStatus } from '@chairside/config';
 import {
   isFillInPostingLimitReached,
   isRolePostingLimitReached,
@@ -124,7 +123,6 @@ export default function ClinicDashboardScreen() {
   const [shiftPendingCounts, setShiftPendingCounts] = useState<Record<string, number>>({});
   const [shiftApplicationCounts, setShiftApplicationCounts] = useState<Record<string, number>>({});
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [confirmedFillIns, setConfirmedFillIns] = useState<ConfirmedFillInSummary[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -146,7 +144,6 @@ export default function ClinicDashboardScreen() {
         counts,
         pendingShiftCounts,
         conversationRows,
-        confirmed,
         clinicApplications,
         calendarRows,
       ] = await Promise.all([
@@ -158,7 +155,6 @@ export default function ClinicDashboardScreen() {
           locationIds: scopedLocationIds,
         }),
         listConversationsForClinic(clinicId, { locationIds: scopedLocationIds }),
-        listUpcomingConfirmedFillIns(clinicId, { locationIds: scopedLocationIds }),
         listClinicApplications(clinicId, 'active', { locationIds: scopedLocationIds }),
         listClinicCalendarEvents(clinicId),
       ]);
@@ -177,7 +173,6 @@ export default function ClinicDashboardScreen() {
       setShiftPendingCounts(pendingShiftCounts);
       setShiftApplicationCounts(Object.fromEntries(shiftApplicationCountEntries));
       setConversations(conversationRows);
-      setConfirmedFillIns(confirmed);
       setApplications(clinicApplications);
       setCalendarEvents(calendarRows);
       await refreshUnread();
@@ -201,7 +196,6 @@ export default function ClinicDashboardScreen() {
         setShiftPendingCounts({});
         setShiftApplicationCounts({});
         setConversations([]);
-        setConfirmedFillIns([]);
       }
     } finally {
       setIsLoading(false);
@@ -324,7 +318,11 @@ export default function ClinicDashboardScreen() {
   );
 
   const dashboardApplications = useMemo(
-    () => sortDashboardApplications(applications, isApplicationHighlighted),
+    () =>
+      sortDashboardApplications(
+        applications.filter((application) => !isDecidedApplicationStatus(application.status)),
+        isApplicationHighlighted,
+      ),
     [applications, isApplicationHighlighted],
   );
 
@@ -429,7 +427,11 @@ export default function ClinicDashboardScreen() {
           </FadeInSection>
         ) : null
       }
-      needsAttention={<DashboardNeedsAttention items={attentionItems} />}
+      needsAttention={
+        attentionItems.length > 0 ? (
+          <DashboardNeedsAttention items={attentionItems} />
+        ) : null
+      }
       calendar={
         <FadeInSection delayMs={60}>
           <DashboardCalendarWidget
@@ -500,7 +502,6 @@ export default function ClinicDashboardScreen() {
               applicantPreviewByJobId={applicantPreviewByJobId}
               jobs={jobs}
               shifts={shifts}
-              confirmedFillIns={confirmedFillIns}
               applications={dashboardApplications}
               applicantCounts={applicantCounts}
               shiftPendingCounts={shiftPendingCounts}
@@ -511,7 +512,6 @@ export default function ClinicDashboardScreen() {
               onJobDeleted={handleJobDeleted}
               onShiftUpdated={handleShiftUpdated}
               onShiftDeleted={handleShiftDeleted}
-              onConfirmedFillInsUpdated={() => void loadDashboard()}
               onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
               onJobApplicationsPress={(jobId) =>
                 router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))

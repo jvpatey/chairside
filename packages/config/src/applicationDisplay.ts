@@ -204,6 +204,17 @@ export function isActiveApplicationStatus(status: string | null | undefined): bo
   );
 }
 
+export function isWorkerJobApplicationPipelineActive(application: {
+  status?: string | null;
+  post_status?: string | null;
+}): boolean {
+  return (
+    isActiveApplicationStatus(application.status) &&
+    application.post_status !== 'filled' &&
+    application.post_status !== 'closed'
+  );
+}
+
 export function isScreeningStageStatus(status: string | null | undefined): boolean {
   return status === 'screening_submitted';
 }

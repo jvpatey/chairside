@@ -1,5 +1,6 @@
 import type {
   ClinicApplication,
+  ConfirmedFillInSummary,
   FillInCoverRequest,
   FillInOutreachWorker,
   JobApplicationSummary,
@@ -90,6 +91,13 @@ export function matchesClinicApplicationSearch(
     ],
     query,
   );
+}
+
+export function matchesConfirmedFillInSearch(
+  row: Pick<ConfirmedFillInSummary, 'workerName' | 'postTitle' | 'shiftDate'>,
+  query: string,
+): boolean {
+  return matchesAnyListSearchText([row.workerName, row.postTitle, row.shiftDate], query);
 }
 
 export function matchesShiftPostSearch(shift: ShiftPost, query: string): boolean {

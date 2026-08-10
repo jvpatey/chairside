@@ -5,7 +5,7 @@ import type { MatchTier } from '@chairside/core';
 
 import { parseISODate, startOfDay, todayISO } from '@/lib/dates';
 
-export type JobStatusFilter = 'live' | 'paused' | 'all';
+export type JobStatusFilter = 'live' | 'paused' | 'filled' | 'all';
 
 export type ShiftStatusFilter = 'open' | 'filled' | 'closed' | 'expired' | 'all';
 
@@ -95,6 +95,7 @@ export const JOB_STATUS_FILTER_OPTIONS: { value: JobStatusFilter; label: string 
   { value: 'all', label: 'All' },
   { value: 'live', label: 'Live' },
   { value: 'paused', label: 'Paused' },
+  { value: 'filled', label: 'Filled' },
 ];
 
 export function isMainListJob(job: JobPost): boolean {
@@ -120,6 +121,10 @@ export function filterJobPostsForMainList(
   statusFilter: JobStatusFilter,
   roleTypeFilter: RoleTypeFilter,
 ): JobPost[] {
+  if (statusFilter === 'filled') {
+    return filterFilledJobPosts(jobs, roleTypeFilter);
+  }
+
   const mainJobs = jobs.filter(isMainListJob);
 
   const byStatus = (() => {

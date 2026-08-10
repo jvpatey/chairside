@@ -50,6 +50,9 @@ export default function RoleScreen() {
   const cardsRow = useTileCards && isWide;
 
   const styles = useThemedStyles(({ spacing }) => ({
+    stack: {
+      gap: spacing.lg,
+    },
     cards: {
       flexDirection: cardsRow ? ('row' as const) : ('column' as const),
       gap: spacing.md,
@@ -152,37 +155,39 @@ export default function RoleScreen() {
           </Animated.View>
         </View>
       }>
-      <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
-        <AuthScreenHeader
-          title={
-            <>
-              How will you use <ChairsideBrandText />?
-            </>
-          }
-          subtitle={subtitle}
-          backLabel={
-            isPostAuth || isChangingRole ? (isSigningOut ? 'Signing out…' : 'Sign out') : 'Back'
-          }
-          onBack={handleBack}
-        />
-      </Animated.View>
-      <View style={styles.cards}>
-        {ROLE_OPTIONS.map((option, index) => (
-          <Animated.View
-            key={option.role}
-            style={styles.cardWrap}
-            entering={enterFadeUp(authCardDelay(index), reducedMotion)}>
-            <RoleCard
-              title={option.title}
-              description={option.description}
-              icon={option.icon}
-              accent={option.role === 'clinic' ? 'primary' : 'secondary'}
-              selected={selectedRole === option.role}
-              onPress={() => setSelectedRole(option.role)}
-              variant={useTileCards ? 'tile' : 'list'}
-            />
-          </Animated.View>
-        ))}
+      <View style={styles.stack}>
+        <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
+          <AuthScreenHeader
+            title={
+              <>
+                How will you use <ChairsideBrandText />?
+              </>
+            }
+            subtitle={subtitle}
+            backLabel={
+              isPostAuth || isChangingRole ? (isSigningOut ? 'Signing out…' : 'Sign out') : 'Back'
+            }
+            onBack={handleBack}
+          />
+        </Animated.View>
+        <View style={styles.cards}>
+          {ROLE_OPTIONS.map((option, index) => (
+            <Animated.View
+              key={option.role}
+              style={styles.cardWrap}
+              entering={enterFadeUp(authCardDelay(index), reducedMotion)}>
+              <RoleCard
+                title={option.title}
+                description={option.description}
+                icon={option.icon}
+                accent={option.role === 'clinic' ? 'primary' : 'secondary'}
+                selected={selectedRole === option.role}
+                onPress={() => setSelectedRole(option.role)}
+                variant={useTileCards ? 'tile' : 'list'}
+              />
+            </Animated.View>
+          ))}
+        </View>
       </View>
     </OnboardingShell>
   );

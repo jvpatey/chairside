@@ -1,6 +1,6 @@
 import {
   canWorkerHideApplication,
-  isActiveApplicationStatus,
+  isWorkerJobApplicationPipelineActive,
 } from '@chairside/config';
 import type { WorkerApplication } from '@chairside/api';
 import { hideWorkerApplication } from '@chairside/api';
@@ -24,11 +24,7 @@ export function partitionWorkerApplications(applications: WorkerApplication[]): 
   const past: WorkerApplication[] = [];
 
   for (const application of applications) {
-    if (
-      isActiveApplicationStatus(application.status) &&
-      application.post_status !== 'filled' &&
-      application.post_status !== 'closed'
-    ) {
+    if (isWorkerJobApplicationPipelineActive(application)) {
       active.push(application);
     } else {
       past.push(application);

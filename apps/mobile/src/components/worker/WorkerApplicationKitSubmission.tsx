@@ -101,8 +101,7 @@ export function WorkerApplicationKitSubmission({
             profile={workerProfile}
             displayName={profile?.display_name}
             photoStoragePath={workerProfile.photo_storage_path}
-            showDefaultNote
-            coverNote={coverMessage}
+            showDefaultNote={false}
             embedded
           />
         ) : null}

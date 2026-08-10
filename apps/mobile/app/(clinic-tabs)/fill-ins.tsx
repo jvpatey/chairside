@@ -68,6 +68,7 @@ import {
 import {
   hasActiveListSearch,
   matchesClinicApplicationSearch,
+  matchesConfirmedFillInSearch,
   matchesShiftPostSearch,
 } from '@/lib/clinicListSearch';
 import {
@@ -128,6 +129,7 @@ export default function ClinicFillInsScreen() {
   const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
   const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
   const [fillInsListMode, setFillInsListMode] = useState<FillInsListMode>('active');
+  const [coveragePanelMode, setCoveragePanelMode] = useState<'requests' | 'confirmed'>('requests');
   const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('past');
@@ -236,6 +238,13 @@ export default function ClinicFillInsScreen() {
     [coverRequests, coverSearchQuery],
   );
 
+  const filteredConfirmedRows = useMemo(
+    () =>
+      confirmedRows.filter((row) => matchesConfirmedFillInSearch(row, coverSearchQuery)),
+    [confirmedRows, coverSearchQuery],
+  );
+
+  const hasCoverSearch = hasActiveListSearch(coverSearchQuery);
   const hasShiftSearch = hasActiveListSearch(shiftSearchQuery);
   const activeFillInCount = useMemo(() => countActiveFillIns(shifts), [shifts]);
   const historyFillInCount = useMemo(
@@ -261,10 +270,32 @@ export default function ClinicFillInsScreen() {
     ],
     [activeFillInCount, historyFillInCount],
   );
+  const coveragePanelTabs = useMemo(
+    () => [
+      {
+        value: 'requests' as const,
+        label: 'Cover requests',
+        count: coverRequests.length,
+        accent: 'secondary' as const,
+        icon: 'mail-outline' as const,
+      },
+      {
+        value: 'confirmed' as const,
+        label: 'Confirmed',
+        count: confirmedRows.length,
+        accent: 'secondary' as const,
+        icon: 'checkmark-circle-outline' as const,
+      },
+    ],
+    [confirmedRows.length, coverRequests.length],
+  );
+  const rightPanelEmpty =
+    coveragePanelMode === 'requests'
+      ? filteredCoverRequests.length === 0
+      : filteredConfirmedRows.length === 0;
   // Equal-height panes when both lists show empty states (incl. filtered-empty);
   // once either side has list cards, each column sizes to its own content.
-  const equalEmptyColumns =
-    isWide && filteredShifts.length === 0 && filteredCoverRequests.length === 0;
+  const equalEmptyColumns = isWide && filteredShifts.length === 0 && rightPanelEmpty;
   const hasShiftFilters =
     (fillInsListMode === 'history' &&
       (shiftStatusFilter !== 'all' ||
@@ -285,6 +316,14 @@ export default function ClinicFillInsScreen() {
     }
     setShiftStatusFilter('all');
     setShiftDateFilter('past');
+  };
+
+  const handleCoveragePanelModeChange = (value: 'requests' | 'confirmed') => {
+    if (value === coveragePanelMode) return;
+    animateFillInsColumnLayout();
+    setCoveragePanelMode(value);
+    setExpandedConfirmedId(null);
+    setCoverSearchQuery('');
   };
 
   const load = useCallback(async () => {
@@ -455,37 +494,6 @@ export default function ClinicFillInsScreen() {
               equalEmptyColumns ? styles.desktopFillInsColumnWide : null,
               !isWide ? styles.stackOrderFillIns : null,
             ]}>
-          {confirmedRows.length > 0 ? (
-            <View style={styles.section}>
-              <DashboardSectionHeader
-                title={sectionTitleWithCount('Upcoming confirmed', confirmedRows.length)}
-              />
-              <View style={styles.list}>
-                <StaggeredList>
-                  {confirmedRows.map((row) => (
-                    <ConfirmedFillInCard
-                      key={row.applicationId}
-                      clinicId={user?.id ?? ''}
-                      workerName={row.workerName}
-                      workerPhotoStoragePath={row.workerPhotoStoragePath}
-                      shiftDate={row.shiftDate}
-                      startTime={row.startTime}
-                      endTime={row.endTime}
-                      applicationId={row.applicationId}
-                      shiftPostId={row.shiftPostId}
-                      returnTo="fill-ins-tab"
-                      expanded={expandedConfirmedId === row.applicationId}
-                      onExpandChange={(next) =>
-                        setExpandedConfirmedId(next ? row.applicationId : null)
-                      }
-                      onUpdated={() => void load()}
-                    />
-                  ))}
-                </StaggeredList>
-              </View>
-            </View>
-          ) : null}
-
           <View style={[styles.section, equalEmptyColumns ? styles.sectionWide : null]}>
             <DashboardSectionHeader
               title={sectionTitleWithCount('Your fill-ins', activeFillInCount)}
@@ -633,35 +641,73 @@ export default function ClinicFillInsScreen() {
               equalEmptyColumns ? styles.sectionWide : null,
               !isWide ? styles.stackOrderNeeds : null,
             ]}>
-            <DashboardSectionHeader
-              title={sectionTitleWithCount('Cover requests', coverRequests.length)}
-            />
+            <DashboardSectionHeader title="Coverage" />
             <AnimateHeight
               enabled={isWide && !equalEmptyColumns}
               style={[styles.columnPanel, equalEmptyColumns ? styles.columnPanelWide : null]}>
-              {coverRequests.length === 0 ? (
-                <View
-                  style={[
-                    styles.columnPanelBody,
-                    equalEmptyColumns ? styles.columnPanelBodyWide : null,
-                  ]}>
-                  <EmptyState
-                    embedded
-                    fill={equalEmptyColumns}
-                    icon="checkmark-circle-outline"
-                    title="No pending cover requests"
-                    message="New requests from workers will appear here when they apply to cover a fill-in."
-                  />
-                </View>
-              ) : (
-                <View style={styles.list}>
-                  <ListSearchFilterRow
-                    value={coverSearchQuery}
-                    onChange={setCoverSearchQuery}
-                    placeholder="Search applicant name"
-                    accessibilityLabel="Search cover requests"
-                  />
-                  {filteredCoverRequests.length === 0 ? (
+              <FileTabWell
+                tabs={coveragePanelTabs}
+                selected={coveragePanelMode}
+                onSelect={handleCoveragePanelModeChange}>
+                <Animated.View
+                  key={coveragePanelMode}
+                  entering={LIST_BODY_ENTER}
+                  exiting={LIST_BODY_EXIT}>
+                  {coveragePanelMode === 'requests' ? (
+                    coverRequests.length === 0 ? (
+                      <View
+                        style={[
+                          styles.columnPanelBody,
+                          equalEmptyColumns ? styles.columnPanelBodyWide : null,
+                        ]}>
+                        <EmptyState
+                          embedded
+                          fill={equalEmptyColumns}
+                          icon="mail-outline"
+                          title="No pending cover requests"
+                          message="New requests from workers will appear here when they apply to cover a fill-in."
+                        />
+                      </View>
+                    ) : (
+                      <View style={styles.list}>
+                        <ListSearchFilterRow
+                          value={coverSearchQuery}
+                          onChange={setCoverSearchQuery}
+                          placeholder="Search applicant name"
+                          accessibilityLabel="Search cover requests"
+                        />
+                        {filteredCoverRequests.length === 0 ? (
+                          <View
+                            style={[
+                              styles.columnPanelBody,
+                              equalEmptyColumns ? styles.columnPanelBodyWide : null,
+                            ]}>
+                            <EmptyState
+                              embedded
+                              fill={equalEmptyColumns}
+                              icon="search-outline"
+                              title="No matching cover requests"
+                              message="Try a different search term."
+                            />
+                          </View>
+                        ) : (
+                          <StaggeredList>
+                            {filteredCoverRequests.map((request) => (
+                              <FillInApplicantCard
+                                key={request.id}
+                                application={request}
+                                clinicId={user?.id ?? ''}
+                                returnTo="fill-ins-tab"
+                                hasUnreadMessages={Boolean(unreadMap[request.id])}
+                                onUpdated={() => void load()}
+                                onConfirmed={(payload) => showCelebration(payload)}
+                              />
+                            ))}
+                          </StaggeredList>
+                        )}
+                      </View>
+                    )
+                  ) : confirmedRows.length === 0 ? (
                     <View
                       style={[
                         styles.columnPanelBody,
@@ -670,28 +716,68 @@ export default function ClinicFillInsScreen() {
                       <EmptyState
                         embedded
                         fill={equalEmptyColumns}
-                        icon="search-outline"
-                        title="No matching cover requests"
-                        message="Try a different search term."
+                        icon="checkmark-circle-outline"
+                        title="No confirmed fill-ins yet"
+                        message="When you confirm a cover request, the upcoming shift will appear here."
                       />
                     </View>
                   ) : (
-                    <StaggeredList>
-                      {filteredCoverRequests.map((request) => (
-                        <FillInApplicantCard
-                          key={request.id}
-                          application={request}
-                          clinicId={user?.id ?? ''}
-                          returnTo="fill-ins-tab"
-                          hasUnreadMessages={Boolean(unreadMap[request.id])}
-                          onUpdated={() => void load()}
-                          onConfirmed={(payload) => showCelebration(payload)}
-                        />
-                      ))}
-                    </StaggeredList>
+                    <View style={styles.list}>
+                      <ListSearchFilterRow
+                        value={coverSearchQuery}
+                        onChange={setCoverSearchQuery}
+                        placeholder="Search worker name"
+                        accessibilityLabel="Search confirmed fill-ins"
+                      />
+                      {filteredConfirmedRows.length === 0 ? (
+                        <View
+                          style={[
+                            styles.columnPanelBody,
+                            equalEmptyColumns ? styles.columnPanelBodyWide : null,
+                          ]}>
+                          <EmptyState
+                            embedded
+                            fill={equalEmptyColumns}
+                            icon="search-outline"
+                            title={
+                              hasCoverSearch
+                                ? 'No matching confirmed fill-ins'
+                                : 'No confirmed fill-ins yet'
+                            }
+                            message={
+                              hasCoverSearch
+                                ? 'Try a different search term.'
+                                : 'When you confirm a cover request, the upcoming shift will appear here.'
+                            }
+                          />
+                        </View>
+                      ) : (
+                        <StaggeredList>
+                          {filteredConfirmedRows.map((row) => (
+                            <ConfirmedFillInCard
+                              key={row.applicationId}
+                              clinicId={user?.id ?? ''}
+                              workerName={row.workerName}
+                              workerPhotoStoragePath={row.workerPhotoStoragePath}
+                              shiftDate={row.shiftDate}
+                              startTime={row.startTime}
+                              endTime={row.endTime}
+                              applicationId={row.applicationId}
+                              shiftPostId={row.shiftPostId}
+                              returnTo="fill-ins-tab"
+                              expanded={expandedConfirmedId === row.applicationId}
+                              onExpandChange={(next) =>
+                                setExpandedConfirmedId(next ? row.applicationId : null)
+                              }
+                              onUpdated={() => void load()}
+                            />
+                          ))}
+                        </StaggeredList>
+                      )}
+                    </View>
                   )}
-                </View>
-              )}
+                </Animated.View>
+              </FileTabWell>
             </AnimateHeight>
           </View>
           </ResponsiveColumns>

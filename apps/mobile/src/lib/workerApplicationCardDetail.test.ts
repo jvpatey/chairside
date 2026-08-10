@@ -129,6 +129,35 @@ describe('getWorkerApplicationCardDetail', () => {
     expect(getWorkerApplicationCardDetail(application)).toContain('Aug');
   });
 
+  it('shows clinic invite time for pending interview offers', () => {
+    const application = makeWorkerApplication({
+      post_type: 'job',
+      status: 'interview_offered',
+      interview_at: '2026-08-15T14:00:00.000Z',
+      interview_duration_minutes: 45,
+      interview_proposed_at: null,
+    });
+
+    expect(getWorkerApplicationCardDetail(application)).toMatch(/^Interview /);
+    expect(getWorkerApplicationCardDetail(application)).toContain('Aug');
+  });
+
+  it('prefers the worker suggestion when a counter-offer is pending', () => {
+    const application = makeWorkerApplication({
+      post_type: 'job',
+      status: 'interview_offered',
+      interview_at: '2026-08-15T14:00:00.000Z',
+      interview_duration_minutes: 45,
+      interview_proposed_at: '2026-08-16T16:00:00.000Z',
+      interview_proposed_duration_minutes: 45,
+      interview_proposed_by: 'worker',
+    });
+
+    const detail = getWorkerApplicationCardDetail(application);
+    expect(detail).toMatch(/^Suggested /);
+    expect(detail).toContain('clinic invite');
+  });
+
   it('shows kit submission CTA when the clinic requested the application profile', () => {
     const application = makeWorkerApplication({
       post_type: 'job',

@@ -48,6 +48,8 @@ import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import {
+  getWorkerOpenListExcludedShiftIds,
+  isFillInsTabMode,
   partitionWorkerShiftApplications,
   type FillInsTabMode,
 } from '@/lib/fillInFilters';
@@ -159,7 +161,7 @@ export default function FillInsScreen() {
 
   useEffect(() => {
     const tab = params.tab;
-    if (tab === 'open' || tab === 'confirmed' || tab === 'history') {
+    if (isFillInsTabMode(tab)) {
       setSelectedMode(tab);
       return;
     }
@@ -168,33 +170,37 @@ export default function FillInsScreen() {
     }
   }, [params.tab]);
 
-  const filteredShifts = useMemo(
-    () =>
-      filterAndSortLiveShifts(shifts, workerProfile, availabilityBlocks, {
-        searchQuery,
-        roleTypeFilter,
-        sort,
-        distanceFilter,
-        softwareFilter,
-        payListedFilter,
-        availabilityFilter,
-        savedOnlyFilter,
-      }).filter((shift) => savedOnlyFilter !== 'saved_only' || savedShiftIds.has(shift.id)),
-    [
-      availabilityBlocks,
-      availabilityFilter,
-      distanceFilter,
-      payListedFilter,
-      roleTypeFilter,
-      savedOnlyFilter,
-      savedShiftIds,
+  const filteredShifts = useMemo(() => {
+    const excludedShiftIds = getWorkerOpenListExcludedShiftIds(applications);
+    return filterAndSortLiveShifts(shifts, workerProfile, availabilityBlocks, {
       searchQuery,
-      shifts,
-      softwareFilter,
+      roleTypeFilter,
       sort,
-      workerProfile,
-    ],
-  );
+      distanceFilter,
+      softwareFilter,
+      payListedFilter,
+      availabilityFilter,
+      savedOnlyFilter,
+    }).filter(
+      (shift) =>
+        !excludedShiftIds.has(shift.id) &&
+        (savedOnlyFilter !== 'saved_only' || savedShiftIds.has(shift.id)),
+    );
+  }, [
+    applications,
+    availabilityBlocks,
+    availabilityFilter,
+    distanceFilter,
+    payListedFilter,
+    roleTypeFilter,
+    savedOnlyFilter,
+    savedShiftIds,
+    searchQuery,
+    shifts,
+    softwareFilter,
+    sort,
+    workerProfile,
+  ]);
 
   const handleToggleSavedShift = useCallback(
     async (shiftId: string, nextSaved: boolean) => {
@@ -238,7 +244,8 @@ export default function FillInsScreen() {
     cancelledApplications,
     declinedApplications,
   } = useMemo(() => partitionWorkerShiftApplications(applications), [applications]);
-  const activeFillInCount = upcomingConfirmed.length + upcomingInProgress.length;
+  const pendingFillInCount = upcomingInProgress.length;
+  const confirmedFillInCount = upcomingConfirmed.length;
   const historyFillInCount =
     cancelledApplications.length +
     declinedApplications.length +
@@ -330,9 +337,16 @@ export default function FillInsScreen() {
         icon: FILL_IN_ICON.outline,
       },
       {
+        value: 'pending' as const,
+        label: 'Pending',
+        count: pendingFillInCount,
+        accent: 'secondary' as const,
+        icon: 'hourglass-outline' as const,
+      },
+      {
         value: 'confirmed' as const,
         label: 'Confirmed',
-        count: activeFillInCount,
+        count: confirmedFillInCount,
         accent: 'secondary' as const,
         icon: 'checkmark-circle-outline' as const,
       },
@@ -344,7 +358,7 @@ export default function FillInsScreen() {
         icon: 'time-outline' as const,
       },
     ],
-    [activeFillInCount, filteredShifts.length, historyFillInCount],
+    [confirmedFillInCount, filteredShifts.length, historyFillInCount, pendingFillInCount],
   );
 
   const openListContent = isLoading ? (
@@ -439,47 +453,54 @@ export default function FillInsScreen() {
               )
             ) : null}
 
+            {selectedMode === 'pending' ? (
+              isLoading ? (
+                <PageLoadingList rowCount={3} />
+              ) : pendingFillInCount === 0 ? (
+                <DashboardEmptyState
+                  embedded
+                  icon="hourglass-outline"
+                  title="No pending cover requests"
+                  message="When you request to cover a fill-in, it stays here until the clinic confirms or declines."
+                />
+              ) : (
+                <View style={styles.applicationGroup}>
+                  <StaggeredList>
+                    {upcomingInProgress.map((application) => (
+                      <WorkerApplicationListCard
+                        key={application.id}
+                        application={application}
+                        returnTo="fill-ins-tab"
+                      />
+                    ))}
+                  </StaggeredList>
+                </View>
+              )
+            ) : null}
+
             {selectedMode === 'confirmed' ? (
               isLoading ? (
                 <PageLoadingList rowCount={3} />
-              ) : activeFillInCount === 0 ? (
+              ) : confirmedFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
-                  icon="document-text-outline"
-                  title="No fill-in shifts yet"
-                  message="Request to cover an open shift and track confirmed and in-progress fill-ins here."
+                  icon="checkmark-circle-outline"
+                  title="No confirmed fill-ins yet"
+                  message="When a clinic confirms your cover request, the shift will appear here."
                 />
               ) : (
-                <>
-                  {upcomingConfirmed.length > 0 ? (
-                    <View style={styles.applicationGroup}>
-                      <DashboardSectionHeader title="Upcoming confirmed" compact />
-                      <StaggeredList>
-                        {upcomingConfirmed.map((application) => (
-                          <WorkerApplicationListCard
-                            key={application.id}
-                            application={application}
-                            returnTo="fill-ins-tab"
-                          />
-                        ))}
-                      </StaggeredList>
-                    </View>
-                  ) : null}
-                  {upcomingInProgress.length > 0 ? (
-                    <View style={styles.applicationGroup}>
-                      <DashboardSectionHeader title="In progress" compact />
-                      <StaggeredList>
-                        {upcomingInProgress.map((application) => (
-                          <WorkerApplicationListCard
-                            key={application.id}
-                            application={application}
-                            returnTo="fill-ins-tab"
-                          />
-                        ))}
-                      </StaggeredList>
-                    </View>
-                  ) : null}
-                </>
+                <View style={styles.applicationGroup}>
+                  <DashboardSectionHeader title="Upcoming confirmed" compact />
+                  <StaggeredList>
+                    {upcomingConfirmed.map((application) => (
+                      <WorkerApplicationListCard
+                        key={application.id}
+                        application={application}
+                        returnTo="fill-ins-tab"
+                      />
+                    ))}
+                  </StaggeredList>
+                </View>
               )
             ) : null}
 

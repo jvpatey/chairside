@@ -10,6 +10,7 @@ import {
   getApplicantDisplayName,
   requestApplicationKit,
   updateApplicationStatus,
+  markJobApplicantHired,
   type ClinicApplication,
 } from '@chairside/api';
 import {
@@ -36,6 +37,7 @@ import {
   cloneElement,
   isValidElement,
   useEffect,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
@@ -43,7 +45,6 @@ import {
 import { Alert, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
-import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { ApplicantReviewHero } from '@/components/matching/ApplicantReviewHero';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import {
@@ -87,7 +88,7 @@ import {
 } from '@/lib/routing';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
-import { getClinicApplicantBadgeVisibility } from '@/lib/applicationPipeline';
+import { getFirstName } from '@/lib/greeting';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
 import { fontSemibold, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
@@ -569,6 +570,17 @@ export function ClinicApplicationDetailCard({
     }
   }, [application.id, hasNewApplication, markApplicationSeen]);
 
+  // Repair older hires where the application was selected but the role stayed live.
+  const repairedHireRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isJob || application.status !== 'selected' || !application.job_post_id) return;
+    if (repairedHireRef.current === application.id) return;
+    repairedHireRef.current = application.id;
+    void markJobApplicantHired(application.id).catch(() => {
+      // Ignore — role may already be filled or RPC not migrated yet.
+    });
+  }, [application.id, application.job_post_id, application.status, isJob]);
+
   const styles = useThemedStyles(({ spacing }) => ({
     stack: {
       gap: spacing.lg,
@@ -577,7 +589,11 @@ export function ClinicApplicationDetailCard({
 
   const updateStatus = async (status: Parameters<typeof updateApplicationStatus>[1]) => {
     try {
-      await updateApplicationStatus(application.id, status);
+      if (status === 'selected') {
+        await markJobApplicantHired(application.id);
+      } else {
+        await updateApplicationStatus(application.id, status);
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshApplicationTabBadge();
       if (status === 'selected') {
@@ -642,9 +658,12 @@ export function ClinicApplicationDetailCard({
   };
 
   const acceptWorkerProposal = () => {
+    const isPendingInvite = application.status === 'interview_offered';
     showConfirmActionSheet({
-      title: 'Accept new time?',
-      message: 'The confirmed interview will move to the proposed time.',
+      title: isPendingInvite ? 'Accept suggested time?' : 'Accept new time?',
+      message: isPendingInvite
+        ? 'This confirms the interview at the candidate’s suggested time.'
+        : 'The confirmed interview will move to the proposed time.',
       confirmLabel: 'Accept',
       onConfirm: async () => {
         try {
@@ -662,9 +681,12 @@ export function ClinicApplicationDetailCard({
   };
 
   const declineWorkerProposal = () => {
+    const isPendingInvite = application.status === 'interview_offered';
     showConfirmActionSheet({
-      title: 'Decline new time?',
-      message: 'The confirmed interview time will stay as scheduled.',
+      title: isPendingInvite ? 'Decline suggestion?' : 'Decline new time?',
+      message: isPendingInvite
+        ? 'Your original interview invitation stays. The candidate can accept it or suggest again.'
+        : 'The confirmed interview time will stay as scheduled.',
       confirmLabel: 'Decline',
       destructive: true,
       onConfirm: async () => {
@@ -741,6 +763,7 @@ export function ClinicApplicationDetailCard({
   };
 
   const applicantName = getApplicantDisplayName(application);
+  const applicantFirstName = getFirstName(applicantName) ?? applicantName;
   const workerDeleted = application.worker_account_deleted;
 
   const isFillInPending =
@@ -864,6 +887,15 @@ export function ClinicApplicationDetailCard({
     });
   };
 
+  const handleMarkHired = () => {
+    showConfirmActionSheet({
+      title: 'Mark hired?',
+      message: `Confirm ${applicantName} as hired for ${application.post_title}? They will be notified.`,
+      confirmLabel: 'Mark hired',
+      onConfirm: () => updateStatus('selected'),
+    });
+  };
+
   const handleSubmitCancelConfirmedFillIn = async (message: string) => {
     await cancelConfirmedFillIn(application.id, { message });
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -883,7 +915,6 @@ export function ClinicApplicationDetailCard({
   };
 
   const showNewBadge = hasNewApplication;
-  const { showStatusBadge } = getClinicApplicantBadgeVisibility(application, hasNewApplication);
 
   const rejectAction = (): ActionButtonSpec => ({
     key: 'reject',
@@ -982,20 +1013,42 @@ export function ClinicApplicationDetailCard({
     }
 
     if (application.status === 'interview_offered') {
-      primary.push(
-        {
-          key: 'edit-invite',
-          label: 'Edit invite',
-          variant: 'secondary',
-          onPress: () => onScheduleInterview?.(application, 'edit_offer'),
-        },
-        {
-          key: 'cancel-invite',
-          label: 'Cancel invite',
-          variant: 'secondary',
-          onPress: cancelInterviewInvite,
-        },
-      );
+      if (workerProposedChange) {
+        primary.push({
+          key: 'accept-time',
+          label: 'Accept suggested time',
+          onPress: acceptWorkerProposal,
+        });
+        secondary.push(
+          {
+            key: 'send-different-time',
+            label: 'Send different time',
+            variant: 'secondary',
+            onPress: () => onScheduleInterview?.(application, 'edit_offer'),
+          },
+          {
+            key: 'decline-time',
+            label: 'Decline suggestion',
+            variant: 'secondary',
+            onPress: declineWorkerProposal,
+          },
+        );
+      } else {
+        primary.push(
+          {
+            key: 'edit-invite',
+            label: 'Edit invite',
+            variant: 'secondary',
+            onPress: () => onScheduleInterview?.(application, 'edit_offer'),
+          },
+          {
+            key: 'cancel-invite',
+            label: 'Cancel invite',
+            variant: 'secondary',
+            onPress: cancelInterviewInvite,
+          },
+        );
+      }
       destructive.push(rejectAction());
       return { primary, secondary, destructive };
     }
@@ -1017,7 +1070,7 @@ export function ClinicApplicationDetailCard({
         primary.push({
           key: 'mark-hired',
           label: 'Mark hired',
-          onPress: () => void updateStatus('selected'),
+          onPress: handleMarkHired,
         });
         secondary.push(
           {
@@ -1103,31 +1156,16 @@ export function ClinicApplicationDetailCard({
           title={applicantName}
           meta={metaParts.length > 0 ? metaParts.join(' · ') : null}
           trailingBadge={
-            showStatusBadge ? (
-              <ClinicApplicationStatusBadge
-                status={application.status}
-                postType={application.post_type}
-                applicationKitRequestedAt={application.application_kit_requested_at}
-                applicationKitSubmittedAt={application.application_kit_submitted_at}
-                statusClosedBy={application.status_closed_by}
+            jobMatch && matchContext ? (
+              <MatchTierBadge
+                breakdown={jobMatch}
+                context={matchContext}
+                subtitle={application.post_title}
+                audience="clinic"
               />
-            ) : null
-          }
-          badges={
-            showNewBadge || (jobMatch && matchContext) ? (
-              <>
-                {showNewBadge ? <ApplicationCardBadge accent={accent} /> : null}
-                {jobMatch && matchContext ? (
-                  <MatchTierBadge
-                    breakdown={jobMatch}
-                    context={matchContext}
-                    subtitle={application.post_title}
-                    audience="clinic"
-                  />
-                ) : null}
-              </>
             ) : undefined
           }
+          badges={showNewBadge ? <ApplicationCardBadge accent={accent} /> : undefined}
           status={{
             audience: 'clinic',
             status: application.status,
@@ -1135,6 +1173,8 @@ export function ClinicApplicationDetailCard({
             applicationKitRequestedAt: application.application_kit_requested_at,
             applicationKitSubmittedAt: application.application_kit_submitted_at,
             interviewProposedAt: application.interview_proposed_at,
+            interviewProposedBy: application.interview_proposed_by,
+            counterpartFirstName: applicantFirstName,
             statusNote: application.status_note,
             statusClosedBy: application.status_closed_by,
             workerAccountDeleted: workerDeleted,
@@ -1194,16 +1234,32 @@ export function ClinicApplicationDetailCard({
               {application.interview_details ? (
                 <CardInfoPanelText>{application.interview_details}</CardInfoPanelText>
               ) : null}
+              {application.status === 'interview_offered' &&
+              workerProposedChange &&
+              proposedSummary ? (
+                <CardInfoPanelText>
+                  {applicantFirstName} suggested · {proposedSummary}
+                </CardInfoPanelText>
+              ) : null}
+              {application.status === 'interview_offered' &&
+              workerProposedChange &&
+              application.interview_proposed_details ? (
+                <CardInfoPanelText>
+                  {applicantFirstName}'s message: {application.interview_proposed_details}
+                </CardInfoPanelText>
+              ) : null}
               {application.status === 'interview_scheduled' && clinicProposedChange ? (
                 <CardInfoPanelText>
-                  Awaiting candidate response to new time
+                  Awaiting {applicantFirstName}'s response to new time
                   {proposedSummary ? ` · ${proposedSummary}` : ''}
                 </CardInfoPanelText>
               ) : null}
               {application.status === 'interview_scheduled' &&
               workerProposedChange &&
               proposedSummary ? (
-                <CardInfoPanelText>Proposed new time · {proposedSummary}</CardInfoPanelText>
+                <CardInfoPanelText>
+                  {applicantFirstName} proposed · {proposedSummary}
+                </CardInfoPanelText>
               ) : null}
             </CardInfoPanel>
           </SurfaceCard>

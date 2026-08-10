@@ -27,7 +27,7 @@ import { SectionPanel, profileSettingsHintStyle } from '@/components/profile/Pro
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { getApplyScreeningRoute, WORKER_APPLICATIONS, WORKER_FILLINS, WORKER_SETUP_BASICS } from '@/lib/routing';
+import { getApplyScreeningRoute, WORKER_APPLICATIONS, WORKER_PENDING_FILLINS, WORKER_SETUP_BASICS } from '@/lib/routing';
 import { getApplyApplicationKitEditRoute } from '@/hooks/useSetupEditMode';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import {
@@ -194,7 +194,7 @@ export default function ApplyScreen() {
         shiftPostId: type === 'shift' ? id : undefined,
         coverMessage: coverMessage.trim() || undefined,
       });
-      router.replace(type === 'shift' ? WORKER_FILLINS : WORKER_APPLICATIONS);
+      router.replace(type === 'shift' ? WORKER_PENDING_FILLINS : WORKER_APPLICATIONS);
     } catch (error) {
       const message = getErrorMessage(error, 'Please try again.');
       setFormError(message);
@@ -317,8 +317,7 @@ export default function ApplyScreen() {
               profile={workerProfile}
               displayName={profile?.display_name}
               photoStoragePath={workerProfile?.photo_storage_path}
-              showDefaultNote
-              coverNote={coverMessage}
+              showDefaultNote={false}
               title={type === 'shift' ? 'Cover request preview' : 'Application profile preview'}
               hint={
                 type === 'shift'

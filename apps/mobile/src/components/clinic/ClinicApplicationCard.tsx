@@ -1,6 +1,9 @@
 import { getApplicantDisplayName, type ClinicApplication } from '@chairside/api';
 import {
   formatApplicationEducation,
+  formatClinicApplicationStatus,
+  formatClinicScreeningStatus,
+  formatClinicShiftApplicationStatus,
   formatInterviewDateTime,
   formatRoleTypesLabel,
   resolveWorkerRoleTypes,
@@ -10,17 +13,17 @@ import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
-import { ClinicApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
-import { BadgeRow } from '@/components/ui/BadgeRow';
+import { CardSectionDivider } from '@/components/ui/CardTitleSection';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatRelativeApplicationAge } from '@/lib/dates';
+import { getFirstName } from '@/lib/greeting';
 import { getApplicationMatchDisplayContext, parseApplicationJobMatch } from '@/lib/matchDisplay';
 import { getClinicApplicationRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
-import { useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type ClinicApplicationCardProps = {
   application: ClinicApplication;
@@ -57,19 +60,34 @@ function buildContextLine(
   const appliedLabel = relativeAge ? `Applied ${relativeAge}` : null;
 
   const interviewAt =
-    application.status === 'interview_scheduled'
+    application.status === 'interview_scheduled' || application.status === 'interview_offered'
       ? application.interview_at
-      : application.status === 'interview_offered'
-        ? application.interview_proposed_at
-        : null;
+      : null;
   const interviewDuration =
-    application.status === 'interview_scheduled'
+    application.status === 'interview_scheduled' || application.status === 'interview_offered'
       ? application.interview_duration_minutes
-      : application.interview_proposed_duration_minutes;
+      : null;
   const interviewSummary = interviewAt
     ? formatInterviewDateTime(interviewAt, interviewDuration)
     : null;
-  const interviewLabel = interviewSummary ? `Interview ${interviewSummary}` : null;
+  let interviewLabel = interviewSummary ? `Interview ${interviewSummary}` : null;
+  if (
+    application.status === 'interview_offered' &&
+    application.interview_proposed_by === 'worker' &&
+    application.interview_proposed_at
+  ) {
+    const suggested = formatInterviewDateTime(
+      application.interview_proposed_at,
+      application.interview_proposed_duration_minutes,
+    );
+    if (suggested) {
+      const firstName =
+        getFirstName(application.worker_display_name) ||
+        application.worker_display_name?.trim() ||
+        'Applicant';
+      interviewLabel = `${firstName} suggested · ${suggested}`;
+    }
+  }
 
   const locationLabel = workerDeleted ? null : application.worker_address?.trim() || null;
 
@@ -81,6 +99,24 @@ function buildContextLine(
   ]
     .filter(Boolean)
     .join(' · ');
+}
+
+function getClinicApplicationStatusLabel(application: ClinicApplication): string {
+  if (application.status === 'screening_submitted') {
+    return formatClinicScreeningStatus({
+      status: application.status,
+      post_type: application.post_type,
+      application_kit_requested_at: application.application_kit_requested_at,
+      application_kit_submitted_at: application.application_kit_submitted_at,
+    });
+  }
+  if (application.post_type === 'shift') {
+    return formatClinicShiftApplicationStatus({
+      status: application.status,
+      status_closed_by: application.status_closed_by,
+    });
+  }
+  return formatClinicApplicationStatus(application.status, application.post_type);
 }
 
 export function ClinicApplicationCard({
@@ -104,6 +140,8 @@ export function ClinicApplicationCard({
   const qualificationsLine = buildQualificationsLine(application, roleJobId);
   const contextLine = buildContextLine(application, hasUnreadMessages, workerDeleted);
   const postContextLine = !roleJobId ? application.post_title?.trim() || null : null;
+  const statusLabel = getClinicApplicationStatusLabel(application);
+  const hasDetailsBelow = Boolean(qualificationsLine || contextLine);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
@@ -115,6 +153,12 @@ export function ClinicApplicationCard({
       flex: 1,
       minWidth: 0,
       gap: spacing.sm,
+    },
+    headerStack: {
+      gap: spacing.xs,
+    },
+    identityBlock: {
+      gap: 2,
     },
     titleRow: {
       flexDirection: 'row',
@@ -142,6 +186,31 @@ export function ClinicApplicationCard({
       flexShrink: 0,
       paddingTop: 1,
     },
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      minWidth: 0,
+    },
+    statusText: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: fontSemibold,
+      fontWeight: '600',
+      color: colors.labelSecondary,
+    },
+    statusValue: {
+      color: colors.labelPrimary,
+    },
+    detailsBlock: {
+      gap: spacing.xs,
+    },
+    details: {
+      gap: spacing.xs,
+      paddingTop: spacing.sm,
+    },
     qualifications: {
       fontSize: 14,
       lineHeight: 20,
@@ -167,49 +236,54 @@ export function ClinicApplicationCard({
       <View style={styles.row}>
         <WorkerProfileAvatar displayName={applicantName} photoUri={photoUri} size={44} />
         <View style={styles.body}>
-          <View style={styles.titleRow}>
-            <Text style={styles.name} numberOfLines={2}>
-              {applicantName}
-            </Text>
-            {jobMatch && matchContext ? (
-              <View style={styles.matchSlot}>
-                <MatchTierBadge
-                  breakdown={jobMatch}
-                  context={matchContext}
-                  subtitle={application.post_title}
-                  audience="clinic"
-                />
+          <View style={styles.headerStack}>
+            <View style={styles.identityBlock}>
+              <View style={styles.titleRow}>
+                <Text style={styles.name} numberOfLines={2}>
+                  {applicantName}
+                </Text>
+                {jobMatch && matchContext ? (
+                  <View style={styles.matchSlot}>
+                    <MatchTierBadge
+                      breakdown={jobMatch}
+                      context={matchContext}
+                      subtitle={application.post_title}
+                      audience="clinic"
+                    />
+                  </View>
+                ) : null}
               </View>
-            ) : null}
+              {postContextLine ? (
+                <Text style={styles.postContext} numberOfLines={1}>
+                  {postContextLine}
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={styles.statusRow}>
+              <Text style={styles.statusText} numberOfLines={1}>
+                Status: <Text style={styles.statusValue}>{statusLabel}</Text>
+              </Text>
+              {hasNewApplication ? <ApplicationCardBadge /> : null}
+            </View>
           </View>
 
-          {postContextLine ? (
-            <Text style={styles.postContext} numberOfLines={1}>
-              {postContextLine}
-            </Text>
-          ) : null}
-
-          <BadgeRow>
-            <ClinicApplicationStatusBadge
-              status={application.status}
-              postType={application.post_type}
-              applicationKitRequestedAt={application.application_kit_requested_at}
-              applicationKitSubmittedAt={application.application_kit_submitted_at}
-              statusClosedBy={application.status_closed_by}
-            />
-            {hasNewApplication ? <ApplicationCardBadge /> : null}
-          </BadgeRow>
-
-          {qualificationsLine ? (
-            <Text style={styles.qualifications} numberOfLines={2}>
-              {qualificationsLine}
-            </Text>
-          ) : null}
-
-          {contextLine ? (
-            <Text style={styles.context} numberOfLines={2}>
-              {contextLine}
-            </Text>
+          {hasDetailsBelow ? (
+            <View style={styles.detailsBlock}>
+              <CardSectionDivider />
+              <View style={styles.details}>
+                {qualificationsLine ? (
+                  <Text style={styles.qualifications} numberOfLines={2}>
+                    {qualificationsLine}
+                  </Text>
+                ) : null}
+                {contextLine ? (
+                  <Text style={styles.context} numberOfLines={2}>
+                    {contextLine}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
           ) : null}
         </View>
         <View style={styles.chevron}>

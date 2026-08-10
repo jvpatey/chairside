@@ -58,6 +58,10 @@ import { useDashboardWelcomeCelebration } from '@/hooks/useDashboardWelcomeCeleb
 import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import {
+  partitionWorkerApplications,
+} from '@/lib/workerApplicationHide';
+import { getWorkerOpenListExcludedShiftIds, partitionWorkerShiftApplications } from '@/lib/fillInFilters';
+import {
   WORKER_APPLICATIONS,
   WORKER_BROWSE,
   WORKER_FILLINS,
@@ -184,6 +188,22 @@ export default function WorkerDashboardScreen() {
   const openJobs = useMemo(
     () => jobs.filter((job) => !appliedJobPostIds.has(job.id)),
     [appliedJobPostIds, jobs],
+  );
+
+  const openShifts = useMemo(() => {
+    const excludedShiftIds = getWorkerOpenListExcludedShiftIds(shiftApplications);
+    return shifts.filter((shift) => !excludedShiftIds.has(shift.id));
+  }, [shiftApplications, shifts]);
+
+  const fillInOverviewCount = useMemo(() => {
+    const { upcomingConfirmed, upcomingInProgress } =
+      partitionWorkerShiftApplications(shiftApplications);
+    return openShifts.length + upcomingConfirmed.length + upcomingInProgress.length;
+  }, [openShifts.length, shiftApplications]);
+
+  const activeJobApplicationCount = useMemo(
+    () => partitionWorkerApplications(jobApplications).active.length,
+    [jobApplications],
   );
 
   const handleToggleSavedJob = useCallback(
@@ -316,7 +336,7 @@ export default function WorkerDashboardScreen() {
     const tabs: FileTabOption<WorkerOverviewStat>[] = [
       {
         value: 'roles' as const,
-        label: 'Opportunities',
+        label: 'Roles',
         count: openJobs.length,
         accent: 'primary' as const,
         icon: 'briefcase-outline' as const,
@@ -324,7 +344,7 @@ export default function WorkerDashboardScreen() {
       {
         value: 'applications' as const,
         label: 'Applications',
-        count: counts.pendingApplications,
+        count: activeJobApplicationCount,
         badgeCount: applicationUpdateCount,
         accent: 'tertiary' as const,
         icon: 'document-text-outline' as const,
@@ -332,7 +352,7 @@ export default function WorkerDashboardScreen() {
       {
         value: 'fill-ins' as const,
         label: 'Fill-ins',
-        count: counts.openFillInsInProvince,
+        count: fillInOverviewCount,
         badgeCount: fillInPendingCount,
         accent: 'secondary' as const,
         icon: FILL_IN_ICON.outline,
@@ -350,8 +370,8 @@ export default function WorkerDashboardScreen() {
     return tabs;
   }, [
     applicationUpdateCount,
-    counts.openFillInsInProvince,
-    counts.pendingApplications,
+    activeJobApplicationCount,
+    fillInOverviewCount,
     fillInPendingCount,
     openJobs.length,
     savedCount,
@@ -381,7 +401,11 @@ export default function WorkerDashboardScreen() {
           </FadeInSection>
         ) : null
       }
-      needsAttention={<DashboardNeedsAttention items={attentionItems} />}
+      needsAttention={
+        attentionItems.length > 0 ? (
+          <DashboardNeedsAttention items={attentionItems} />
+        ) : null
+      }
       calendar={
         <FadeInSection delayMs={60}>
           <DashboardCalendarWidget
@@ -424,13 +448,15 @@ export default function WorkerDashboardScreen() {
               embedded
               selected={selectedOverview}
               jobs={openJobs}
-              shifts={shifts}
+              shifts={openShifts}
               jobApplications={jobApplications}
               shiftApplications={shiftApplications}
               savedJobIds={savedJobIds}
               savedShiftIds={savedShiftIds}
               unreadMap={unreadMap}
-              onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
+              onJobPress={(jobId) =>
+                router.push(getWorkerJobDetailRoute(jobId, 'dashboard-roles'))
+              }
               onShiftPress={(shiftId) =>
                 router.push(getWorkerShiftDetailRoute(shiftId, 'dashboard-fill-ins'))
               }

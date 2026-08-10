@@ -1,6 +1,10 @@
 import type { ClinicPlan } from '@chairside/config';
+import {
+  isDecidedApplicationStatus,
+  isWorkerJobApplicationPipelineActive,
+} from '@chairside/config';
 import { isMatchableSoftware } from '@chairside/core';
-import { isClinicNewApplication } from './applicationNotificationPredicates';
+import { isClinicApplicationHighlighted } from './applicationNotificationPredicates';
 import { getClinicPlanMap } from './billing';
 import { getSupabaseClient } from './client';
 import {
@@ -569,7 +573,7 @@ export async function getClinicDashboardCounts(
     supabase
       .from('applications')
       .select(
-        'id, job_post_id, status, clinic_hidden_at, clinic_attention_at, clinic_last_seen_at, created_at',
+        'id, job_post_id, status, clinic_hidden_at, clinic_attention_at, clinic_last_seen_at, created_at, interview_proposed_at, interview_proposed_by',
       )
       .not('job_post_id', 'is', null)
       .is('clinic_hidden_at', null),
@@ -588,17 +592,21 @@ export async function getClinicDashboardCounts(
   const clinicApplications =
     applicationsResult.data?.filter(
       (application) =>
-        application.job_post_id != null && jobIds.has(application.job_post_id),
+        application.job_post_id != null &&
+        jobIds.has(application.job_post_id) &&
+        !isDecidedApplicationStatus(application.status),
     ) ?? [];
 
   const totalApplications = clinicApplications.length;
   const newApplications = clinicApplications.filter((application) =>
-    isClinicNewApplication({
+    isClinicApplicationHighlighted({
       post_type: 'job',
       status: application.status,
       clinic_hidden_at: null,
       clinic_attention_at: application.clinic_attention_at,
       clinic_last_seen_at: application.clinic_last_seen_at,
+      interview_proposed_at: application.interview_proposed_at,
+      interview_proposed_by: application.interview_proposed_by,
     }),
   ).length;
   const applicationsWeekDelta = clinicApplications.filter(
@@ -1003,16 +1011,40 @@ export async function getWorkerDashboardCounts(
     listLiveShiftPosts(province),
     getSupabaseClient()
       .from('applications')
-      .select('id, status, job_post_id, shift_post_id')
+      .select('id, status, job_post_id, shift_post_id, worker_hidden_at')
       .eq('worker_id', workerId),
   ]);
 
   if (applicationsResult.error) throw applicationsResult.error;
 
-  const pendingApplications =
+  const visibleJobApplications =
     applicationsResult.data?.filter(
-      (row) => row.job_post_id && ['applied', 'reviewed', 'in_progress'].includes(row.status),
-    ).length ?? 0;
+      (row) => row.job_post_id && !row.worker_hidden_at,
+    ) ?? [];
+
+  let pendingApplications = 0;
+
+  if (visibleJobApplications.length > 0) {
+    const jobIds = visibleJobApplications
+      .map((row) => row.job_post_id)
+      .filter(Boolean) as string[];
+
+    const { data: jobPosts, error: jobPostsError } = await getSupabaseClient()
+      .from('job_posts')
+      .select('id, status')
+      .in('id', jobIds);
+
+    if (jobPostsError) throw jobPostsError;
+
+    const postStatusById = new Map((jobPosts ?? []).map((job) => [job.id, job.status]));
+
+    pendingApplications = visibleJobApplications.filter((row) =>
+      isWorkerJobApplicationPipelineActive({
+        status: row.status,
+        post_status: postStatusById.get(row.job_post_id!),
+      }),
+    ).length;
+  }
 
   return {
     openRolesInProvince: jobs.length,

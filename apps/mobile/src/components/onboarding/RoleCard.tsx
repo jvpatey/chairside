@@ -86,16 +86,20 @@ export function RoleCard({
     },
     textBlock: {
       flex: 1,
-      gap: spacing.xs,
+      gap: spacing.sm,
+      paddingVertical: 2,
     },
     title: {
       ...typography.body,
       fontWeight: '600' as const,
+      lineHeight: 22,
       color: colors.labelPrimary,
     },
     description: {
       ...typography.subtitle,
-      minHeight: typography.subtitle.lineHeight * 2,
+      fontSize: 15,
+      lineHeight: 22,
+      minHeight: 44,
     },
     check: {
       width: 24,

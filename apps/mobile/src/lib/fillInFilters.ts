@@ -5,8 +5,32 @@ import type { RoleTypeFilter, ShiftDateFilter, ShiftStatusFilter } from '@/lib/p
 import { filterShiftPosts } from '@/lib/postingFilters';
 
 export type FillInsListMode = 'active' | 'history';
+export type FillInsTabMode = 'open' | 'pending' | 'confirmed' | 'history';
 
 const IN_PROGRESS_STATUSES = ['applied', 'reviewed', 'in_progress'] as const;
+
+/** Matches ACTIVE_SHIFT_COVER_STATUSES + hired — hide from Open browse. */
+const OPEN_LIST_EXCLUDED_STATUSES = new Set([
+  'applied',
+  'reviewed',
+  'in_progress',
+  'interview_offered',
+  'interview_scheduled',
+  'hired',
+]);
+
+export function getWorkerOpenListExcludedShiftIds(
+  applications: Array<Pick<WorkerApplication, 'shift_post_id' | 'status'>>,
+): Set<string> {
+  const excluded = new Set<string>();
+  for (const application of applications) {
+    if (!application.shift_post_id) continue;
+    if (OPEN_LIST_EXCLUDED_STATUSES.has(application.status)) {
+      excluded.add(application.shift_post_id);
+    }
+  }
+  return excluded;
+}
 
 function isCancelledShiftApplication(application: WorkerApplication): boolean {
   return application.status === 'rejected' && Boolean(application.status_closed_by);
@@ -30,6 +54,29 @@ export function isPastShiftDate(shiftDate: string | null | undefined): boolean {
 
 export function isExpiredLiveShift(shift: Pick<ShiftPost, 'status' | 'shift_date'>): boolean {
   return shift.status === 'live' && isPastShiftDate(shift.shift_date);
+}
+
+/** Which fill-ins inbox tab should stay selected for a given shift application. */
+export function resolveWorkerFillInsTabMode(
+  application:
+    | Pick<WorkerApplication, 'status' | 'shift_date' | 'status_closed_by'>
+    | null
+    | undefined,
+): Exclude<FillInsTabMode, 'open'> {
+  if (!application) return 'pending';
+
+  if (application.status === 'hired') {
+    return isPastShiftDate(application.shift_date) ? 'history' : 'confirmed';
+  }
+
+  if (
+    IN_PROGRESS_STATUSES.includes(application.status as (typeof IN_PROGRESS_STATUSES)[number]) &&
+    isTodayOrUpcomingShiftDate(application.shift_date)
+  ) {
+    return 'pending';
+  }
+
+  return 'history';
 }
 
 function compareShiftApplicationsByDateAsc(a: WorkerApplication, b: WorkerApplication): number {
@@ -138,10 +185,15 @@ export const FILL_INS_LIST_MODE_OPTIONS: { value: FillInsListMode; label: string
   { value: 'history', label: 'History' },
 ];
 
-export type FillInsTabMode = 'open' | 'confirmed' | 'history';
-
 export const FILL_INS_TAB_MODE_OPTIONS: { value: FillInsTabMode; label: string }[] = [
   { value: 'open', label: 'Open' },
+  { value: 'pending', label: 'Pending' },
   { value: 'confirmed', label: 'Confirmed' },
   { value: 'history', label: 'History' },
 ];
+
+export function isFillInsTabMode(value: string | undefined): value is FillInsTabMode {
+  return (
+    value === 'open' || value === 'pending' || value === 'confirmed' || value === 'history'
+  );
+}

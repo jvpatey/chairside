@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { cardShellRadii } from '@/components/ui/cardLayout';
+import { CardSectionDivider } from '@/components/ui/CardTitleSection';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { radii } from '@/theme/tokens';
@@ -57,6 +58,8 @@ type BrowseListRowProps = {
   showChevron?: boolean;
   /** Tighter padding and type for phone dashboard rows. */
   compact?: boolean;
+  /** Stacked layout: hairline between title and meta/detail block. */
+  detailsDivider?: boolean;
   /** `split` — header above a tinted content band (matches tile cards). */
   layout?: 'stacked' | 'split';
   /** When `header`, only the header block is pressable with inset hover (for rows with external footers). */
@@ -84,6 +87,7 @@ export function BrowseListRow({
   onPress,
   showChevron = true,
   compact = false,
+  detailsDivider = false,
   layout = 'split',
   pressScope = 'row',
 }: BrowseListRowProps) {
@@ -153,6 +157,10 @@ export function BrowseListRow({
       flex: 1,
       gap: isSplit ? spacing.xs : 2,
       minWidth: 0,
+    },
+    detailsDivider: {
+      paddingVertical: spacing.sm,
+      alignSelf: 'stretch',
     },
     eyebrow: {
       fontSize: 11,
@@ -305,6 +313,11 @@ export function BrowseListRow({
       <Text style={styles.title} numberOfLines={2}>
         {title}
       </Text>
+      {detailsDivider && (meta || detail || postedLabel || footer || textFooter) ? (
+        <View style={styles.detailsDivider}>
+          <CardSectionDivider />
+        </View>
+      ) : null}
       {meta ? (
         <Text style={styles.meta} numberOfLines={1}>
           {meta}
@@ -332,6 +345,11 @@ export function BrowseListRow({
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
+        {detailsDivider && (meta || headerDetail) ? (
+          <View style={styles.detailsDivider}>
+            <CardSectionDivider />
+          </View>
+        ) : null}
         {meta ? (
           <Text style={styles.location} numberOfLines={2}>
             {meta}

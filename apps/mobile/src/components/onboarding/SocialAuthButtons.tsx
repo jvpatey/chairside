@@ -117,6 +117,8 @@ export function SocialAuthButtons({
   const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
       gap: spacing.sm,
+      // Native OnboardingShell has no body gap (web does); match inter-button spacing.
+      ...(Platform.OS !== 'web' ? { marginTop: spacing.sm } : null),
     },
     dividerRow: {
       flexDirection: 'row',

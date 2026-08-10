@@ -22,6 +22,7 @@ type WorkerApplicationCardDetailInput = Pick<
   | 'interview_duration_minutes'
   | 'interview_proposed_at'
   | 'interview_proposed_duration_minutes'
+  | 'interview_proposed_by'
   | 'status_note'
   | 'status_closed_by'
   | 'clinic_account_deleted'
@@ -46,6 +47,7 @@ function toStatusSummaryInput(
     applicationKitRequestedAt: application.application_kit_requested_at,
     applicationKitSubmittedAt: application.application_kit_submitted_at,
     interviewProposedAt: application.interview_proposed_at,
+    interviewProposedBy: application.interview_proposed_by,
     statusNote: application.status_note,
     statusClosedBy: application.status_closed_by,
     clinicAccountDeleted: application.clinic_account_deleted,
@@ -54,18 +56,28 @@ function toStatusSummaryInput(
 
 function formatInterviewDetail(application: WorkerApplicationCardDetailInput): string | null {
   const interviewAt =
-    application.status === 'interview_scheduled'
+    application.status === 'interview_scheduled' || application.status === 'interview_offered'
       ? application.interview_at
-      : application.status === 'interview_offered'
-        ? application.interview_proposed_at
-        : null;
+      : null;
   const interviewDuration =
-    application.status === 'interview_scheduled'
+    application.status === 'interview_scheduled' || application.status === 'interview_offered'
       ? application.interview_duration_minutes
-      : application.interview_proposed_duration_minutes;
+      : null;
   const interviewSummary = interviewAt
     ? formatInterviewDateTime(interviewAt, interviewDuration)
     : null;
+
+  if (application.status === 'interview_offered' && application.interview_proposed_at) {
+    const suggested = formatInterviewDateTime(
+      application.interview_proposed_at,
+      application.interview_proposed_duration_minutes,
+    );
+    if (suggested) {
+      return interviewSummary
+        ? `Suggested ${suggested} · clinic invite ${interviewSummary}`
+        : `Suggested ${suggested}`;
+    }
+  }
 
   return interviewSummary ? `Interview ${interviewSummary}` : null;
 }
