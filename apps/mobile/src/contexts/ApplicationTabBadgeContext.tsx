@@ -14,6 +14,8 @@ import {
   getWorkerApplicationUpdateCount,
   getWorkerShiftApplicationUpdateCount,
   getWorkerRoleTypes,
+  isClinicApplicationHighlighted,
+  isClinicInterviewProposalUnseen,
   isClinicNewApplication,
   isWorkerApplicationUpdateUnseen,
   isWorkerFillInApplicationUpdateCountable,
@@ -54,6 +56,8 @@ type ApplicationTabBadgeContextValue = {
       | 'worker_last_seen_at'
       | 'clinic_attention_at'
       | 'clinic_last_seen_at'
+      | 'interview_proposed_at'
+      | 'interview_proposed_by'
     >,
   ) => boolean;
   getApplicationHighlightLabel: (
@@ -69,6 +73,8 @@ type ApplicationTabBadgeContextValue = {
       | 'worker_last_seen_at'
       | 'clinic_attention_at'
       | 'clinic_last_seen_at'
+      | 'interview_proposed_at'
+      | 'interview_proposed_by'
     >,
   ) => string | null;
 };
@@ -200,6 +206,8 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
         | 'worker_last_seen_at'
         | 'clinic_attention_at'
         | 'clinic_last_seen_at'
+        | 'interview_proposed_at'
+        | 'interview_proposed_by'
       >,
     ) => {
       if (locallySeenApplicationIds.has(application.id)) {
@@ -207,7 +215,7 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
       }
 
       if (role === 'clinic') {
-        return isClinicNewApplication(application);
+        return isClinicApplicationHighlighted(application);
       }
       if (application.post_type === 'shift') {
         return isWorkerFillInApplicationUpdateCountable(application);
@@ -231,10 +239,15 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
         | 'worker_last_seen_at'
         | 'clinic_attention_at'
         | 'clinic_last_seen_at'
+        | 'interview_proposed_at'
+        | 'interview_proposed_by'
       >,
     ) => {
       if (!isApplicationHighlighted(application)) return null;
-      return role === 'clinic' ? 'New applicant' : 'Update';
+      if (role !== 'clinic') return 'Update';
+      if (isClinicInterviewProposalUnseen(application)) return 'Update';
+      if (isClinicNewApplication(application)) return 'New applicant';
+      return 'Update';
     },
     [isApplicationHighlighted, role],
   );

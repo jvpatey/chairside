@@ -1,4 +1,5 @@
-import { listLiveJobPosts, listWorkerAppliedJobPostIds, getWorkerSavedJobPostIds, saveJobPost, unsaveJobPost, type LiveJobPost } from '@chairside/api';
+import { listLiveJobPosts, listWorkerJobApplicationStatuses, getWorkerSavedJobPostIds, saveJobPost, unsaveJobPost, type LiveJobPost } from '@chairside/api';
+import { isActiveApplicationStatus } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
@@ -47,26 +48,33 @@ import { useThemedStyles } from '@/theme';
 
 function renderRoleListingCards(
   jobs: EnrichedLiveJobPost[],
-  appliedJobIds: Set<string>,
+  applicationStatuses: Record<string, string>,
   savedJobIds: Set<string>,
   workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
   onToggleSaved: (jobId: string, nextSaved: boolean) => void,
 ) {
   return (
     <StaggeredList>
-      {jobs.map((job) => (
-        <RoleListingCard
-          key={job.id}
-          job={job}
-          hasApplied={appliedJobIds.has(job.id)}
-          isSaved={savedJobIds.has(job.id)}
-          onToggleSaved={() => onToggleSaved(job.id, !savedJobIds.has(job.id))}
-          distanceLabel={job.distanceLabel}
-          jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
-          matchContext={workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined}
-          onPress={() => router.push(getWorkerJobDetailRoute(job.id))}
-        />
-      ))}
+      {jobs.map((job) => {
+        const status = applicationStatuses[job.id];
+        return (
+          <RoleListingCard
+            key={job.id}
+            job={job}
+            applicationStatus={
+              status && isActiveApplicationStatus(status) ? status : null
+            }
+            isSaved={savedJobIds.has(job.id)}
+            onToggleSaved={() => onToggleSaved(job.id, !savedJobIds.has(job.id))}
+            distanceLabel={job.distanceLabel}
+            jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
+            matchContext={
+              workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
+            }
+            onPress={() => router.push(getWorkerJobDetailRoute(job.id, 'browse-tab'))}
+          />
+        );
+      })}
     </StaggeredList>
   );
 }
@@ -80,7 +88,7 @@ export default function BrowseScreen() {
   const [selectedMode, setSelectedMode] = useState<RolesBrowseMode>('open');
   const [viewMode, setViewMode] = useState<WorkerBrowseViewMode>('list');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
-  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+  const [applicationStatuses, setApplicationStatuses] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState(DEFAULT_WORKER_ROLE_BROWSE_FILTERS.searchQuery);
   const [roleTypeFilter, setRoleTypeFilter] = useState(
     DEFAULT_WORKER_ROLE_BROWSE_FILTERS.roleTypeFilter,
@@ -111,17 +119,17 @@ export default function BrowseScreen() {
     setIsLoading(true);
     setLoadError(false);
     try {
-      const [jobRows, appliedIds, savedIds] = await Promise.all([
+      const [jobRows, statuses, savedIds] = await Promise.all([
         listLiveJobPosts(province),
-        user?.id ? listWorkerAppliedJobPostIds(user.id) : Promise.resolve([]),
+        user?.id ? listWorkerJobApplicationStatuses(user.id) : Promise.resolve({}),
         user?.id ? getWorkerSavedJobPostIds(user.id) : Promise.resolve(new Set<string>()),
       ]);
       setJobs(jobRows);
-      setAppliedJobIds(new Set(appliedIds));
+      setApplicationStatuses(statuses);
       setSavedJobIds(savedIds);
     } catch {
       setJobs([]);
-      setAppliedJobIds(new Set());
+      setApplicationStatuses({});
       setSavedJobIds(new Set());
       setLoadError(true);
     } finally {
@@ -180,6 +188,11 @@ export default function BrowseScreen() {
     [savedJobIds, user?.id],
   );
 
+  const appliedJobIds = useMemo(
+    () => new Set(Object.keys(applicationStatuses)),
+    [applicationStatuses],
+  );
+
   const { openJobs, appliedJobs, savedJobs } = useMemo(() => {
     const open: EnrichedLiveJobPost[] = [];
     const applied: EnrichedLiveJobPost[] = [];
@@ -189,15 +202,18 @@ export default function BrowseScreen() {
       if (savedJobIds.has(job.id)) {
         saved.push(job);
       }
-      if (appliedJobIds.has(job.id)) {
-        applied.push(job);
+      const status = applicationStatuses[job.id];
+      if (status) {
+        if (isActiveApplicationStatus(status)) {
+          applied.push(job);
+        }
       } else {
         open.push(job);
       }
     }
 
     return { openJobs: open, appliedJobs: applied, savedJobs: saved };
-  }, [appliedJobIds, filteredJobs, savedJobIds]);
+  }, [applicationStatuses, filteredJobs, savedJobIds]);
 
   const tabJobs =
     selectedMode === 'open'
@@ -248,7 +264,7 @@ export default function BrowseScreen() {
       province={province}
       unmappableCount={unmappableJobCount}
       workerHasCoordinates={workerCoords != null}
-      onSelectItem={(item) => router.push(getWorkerJobDetailRoute(item.id))}
+      onSelectItem={(item) => router.push(getWorkerJobDetailRoute(item.id, 'browse-tab'))}
     />
   );
 
@@ -366,8 +382,9 @@ export default function BrowseScreen() {
       case 'applied':
         return {
           icon: 'checkmark-circle-outline' as const,
-          title: 'No applied roles in this filter',
-          message: 'Roles you apply to will appear here while they are still posted.',
+          title: 'No active applications',
+          message:
+            'Roles you apply to appear here while they are in progress. Hired and closed applications move to Applications → Past.',
         };
       case 'saved':
         return {
@@ -403,7 +420,7 @@ export default function BrowseScreen() {
       <View style={styles.cardList}>
         {renderRoleListingCards(
           tabJobs,
-          appliedJobIds,
+          applicationStatuses,
           savedJobIds,
           workerProfile,
           handleToggleSavedJob,

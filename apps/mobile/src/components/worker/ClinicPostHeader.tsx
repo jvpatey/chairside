@@ -58,6 +58,8 @@ type ClinicPostHeaderProps = {
    * `stacked` — original single-block layout for detail screens.
    */
   layout?: 'stacked' | 'split';
+  /** Split layout: row between identity and divider (e.g. status + save). */
+  preDividerRow?: ReactNode;
 };
 
 export function ClinicPostHeader({
@@ -80,6 +82,7 @@ export function ClinicPostHeader({
   avatarSize = 48,
   stackedAccessory = false,
   layout = 'stacked',
+  preDividerRow,
 }: ClinicPostHeaderProps) {
   const logoUri = useClinicLogoUri(logoStoragePath);
   const { spacing } = useTheme();
@@ -335,6 +338,7 @@ export function ClinicPostHeader({
     return (
       <View style={styles.wrap}>
         {identityBlock}
+        {preDividerRow ? <View>{preDividerRow}</View> : null}
         {detailsContent ? (
           <>
             <CardSectionDivider />

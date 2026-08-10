@@ -195,6 +195,12 @@ export function getActiveTabBarName(
   const mainTab = getMainTabFromRelativePath(relative, role);
   if (mainTab) return mainTab;
 
+  // Profile is a hidden tab (`href: null`). Keep Home selected so the dock
+  // indicator and label/icon colors stay in sync.
+  if (isProfilePath(relative)) {
+    return 'index';
+  }
+
   const returnTab = getTabBarNameFromReturnTo(returnTo, role);
   if (returnTab) return returnTab;
 

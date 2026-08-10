@@ -105,6 +105,7 @@ export {
   hasApplicationKitSubmitted,
   hasPendingInterviewProposal,
   isActiveApplicationStatus,
+  isWorkerJobApplicationPipelineActive,
   isAwaitingApplicationKit,
   isScreeningStageStatus,
   isTerminalApplicationStatus,

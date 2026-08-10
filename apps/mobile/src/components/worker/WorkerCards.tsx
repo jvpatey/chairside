@@ -22,6 +22,7 @@ import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
+import { partitionWorkerApplications } from '@/lib/workerApplicationHide';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { WORKER_PROFILE } from '@/lib/routing';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -179,7 +180,7 @@ export function WorkerStatGrid({
 }
 
 const OVERVIEW_TITLES: Record<WorkerOverviewStat, string> = {
-  roles: 'Opportunities',
+  roles: 'Roles',
   'fill-ins': 'Fill-ins',
   applications: 'Applications',
   saved: 'Saved',
@@ -221,7 +222,7 @@ export function WorkerOverviewPanel({
   onViewAllPress,
 }: WorkerOverviewPanelProps) {
   const styles = useThemedStyles(({ spacing }) => {
-    const cardGap = dashboardSectionGap(spacing);
+    const cardGap = embedded ? spacing.sm : dashboardSectionGap(spacing);
     return {
       root: {
         width: '100%',
@@ -233,7 +234,8 @@ export function WorkerOverviewPanel({
   });
 
   const previewJobApplications = useMemo(() => {
-    return [...jobApplications]
+    const { active } = partitionWorkerApplications(jobApplications);
+    return [...active]
       .sort((a, b) => {
         const aUnread = unreadMap?.[a.id] ? 1 : 0;
         const bUnread = unreadMap?.[b.id] ? 1 : 0;
@@ -345,7 +347,7 @@ export function WorkerOverviewPanel({
             ) : null}
             {activeShiftApplications.length > 0 ? (
               <View style={styles.group}>
-                <DashboardSectionHeader title="In progress" compact />
+                <DashboardSectionHeader title="Pending" compact />
                 {activeShiftApplications.map((application) => (
                   <WorkerApplicationListCard
                     key={application.id}
@@ -362,11 +364,11 @@ export function WorkerOverviewPanel({
       ) : null}
 
       {selected === 'applications' ? (
-        jobApplications.length === 0 ? (
+        previewJobApplications.length === 0 ? (
           <DashboardEmptyState
             icon="document-text-outline"
-            title="No applications yet"
-            message="When you apply to roles, your application status will appear here."
+            title="No active applications"
+            message="When you apply to roles, your in-progress applications will appear here."
             accent="tertiary"
           />
         ) : (

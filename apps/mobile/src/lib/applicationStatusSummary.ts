@@ -14,6 +14,9 @@ export type ApplicationStatusSummaryInput = {
   applicationKitRequestedAt?: string | null;
   applicationKitSubmittedAt?: string | null;
   interviewProposedAt?: string | null;
+  interviewProposedBy?: 'clinic' | 'worker' | null;
+  /** First name of the other party — used for clinic-facing personalized copy. */
+  counterpartFirstName?: string | null;
   statusNote?: string | null;
   statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
   workerAccountDeleted?: boolean;
@@ -138,6 +141,11 @@ function screeningClinicSummary(
     nextStep: 'Use Request full application after you have reviewed their responses.',
     variant: isHighlighted ? 'warning' : 'info',
   };
+}
+
+function clinicCounterpartLabel(application: ApplicationStatusSummaryInput): string {
+  const name = application.counterpartFirstName?.trim();
+  return name || 'Applicant';
 }
 
 export function getApplicationStatusSummary(
@@ -271,16 +279,35 @@ export function getApplicationStatusSummary(
   }
 
   if (status === 'interview_offered') {
+    const hasProposal = hasPendingInterviewProposal({
+      interview_proposed_at: application.interviewProposedAt,
+    });
+    const person = clinicCounterpartLabel(application);
+    if (hasProposal && application.interviewProposedBy === 'worker') {
+      return {
+        headline:
+          audience === 'worker' ? 'Suggestion sent' : `${person} suggested a new time`,
+        description:
+          audience === 'worker'
+            ? 'You suggested another interview time. Waiting for the clinic to respond.'
+            : `${person} is interested but suggested a different interview time.`,
+        nextStep:
+          audience === 'worker'
+            ? 'You can edit your suggestion or decline the interview below.'
+            : 'Accept their suggestion, send a different time, or decline it.',
+        variant: 'warning',
+      };
+    }
     return {
       headline: 'Interview invitation',
       description:
         audience === 'worker'
           ? 'The clinic sent an interview invitation.'
-          : 'Interview invitation sent to the candidate.',
+          : `Interview invitation sent to ${person}.`,
       nextStep:
         audience === 'worker'
           ? 'Review the details and respond below.'
-          : 'Awaiting candidate response.',
+          : `Awaiting ${person}'s response.`,
       variant: 'warning',
     };
   }
@@ -289,12 +316,18 @@ export function getApplicationStatusSummary(
     const hasProposal = hasPendingInterviewProposal({
       interview_proposed_at: application.interviewProposedAt,
     });
+    const workerProposed = application.interviewProposedBy === 'worker';
+    const person = clinicCounterpartLabel(application);
     return {
       headline: hasProposal ? 'Interview time proposed' : 'Interview scheduled',
       description: hasProposal
-        ? audience === 'worker'
-          ? 'The clinic proposed a new interview time.'
-          : 'The candidate proposed a new interview time.'
+        ? workerProposed
+          ? audience === 'worker'
+            ? 'You proposed a new interview time.'
+            : `${person} proposed a new interview time.`
+          : audience === 'worker'
+            ? 'The clinic proposed a new interview time.'
+            : 'You proposed a new interview time.'
         : audience === 'worker'
           ? 'Your interview is scheduled.'
           : 'The interview is scheduled.',

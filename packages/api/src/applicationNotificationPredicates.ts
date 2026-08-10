@@ -75,13 +75,52 @@ export function isClinicNewApplication(application: ClinicAttentionApplication):
   );
 }
 
-export function isClinicApplicationAwaitingClinicAction(
-  application: Pick<ClinicAttentionApplication, 'post_type' | 'status' | 'clinic_hidden_at'>,
+type ClinicInterviewProposalApplication = ClinicAttentionApplication & {
+  interview_proposed_at?: string | null;
+  interview_proposed_by?: string | null;
+};
+
+/** Unseen worker counter-proposal / reschedule request on an interview invite or confirmed interview. */
+export function isClinicInterviewProposalUnseen(
+  application: ClinicInterviewProposalApplication,
 ): boolean {
   return (
     application.post_type === 'job' &&
     !application.clinic_hidden_at &&
+    (application.status === 'interview_offered' || application.status === 'interview_scheduled') &&
+    Boolean(application.interview_proposed_at?.trim()) &&
+    application.interview_proposed_by === 'worker' &&
+    isClinicApplicationUnseen(application)
+  );
+}
+
+/** Any clinic-side application row that should show a New/Update badge. */
+export function isClinicApplicationHighlighted(
+  application: ClinicInterviewProposalApplication,
+): boolean {
+  return isClinicNewApplication(application) || isClinicInterviewProposalUnseen(application);
+}
+
+export function isClinicApplicationAwaitingClinicAction(
+  application: Pick<ClinicAttentionApplication, 'post_type' | 'status' | 'clinic_hidden_at'> & {
+    interview_proposed_at?: string | null;
+    interview_proposed_by?: string | null;
+  },
+): boolean {
+  if (application.post_type !== 'job' || application.clinic_hidden_at) {
+    return false;
+  }
+
+  if (
     CLINIC_AWAITING_ACTION_STATUSES.includes(application.status as ApplicationNotificationStatus)
+  ) {
+    return true;
+  }
+
+  return (
+    (application.status === 'interview_offered' || application.status === 'interview_scheduled') &&
+    Boolean(application.interview_proposed_at?.trim()) &&
+    application.interview_proposed_by === 'worker'
   );
 }
 

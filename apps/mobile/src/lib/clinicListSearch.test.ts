@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   matchesClinicApplicationSummaryFilter,
+  matchesConfirmedFillInSearch,
   matchesJobApplicationSummarySearch,
   matchesJobPostSearch,
 } from '@/lib/clinicListSearch';
@@ -40,5 +41,16 @@ describe('clinicListSearch', () => {
     expect(matchesJobApplicationSummarySearch(summary, 'front desk')).toBe(true);
     expect(matchesClinicApplicationSummaryFilter(summary, 'needs_attention')).toBe(true);
     expect(matchesClinicApplicationSummaryFilter(summary, 'all')).toBe(true);
+  });
+
+  it('matches confirmed fill-ins by worker name', () => {
+    const row = {
+      workerName: 'Jeffrey Patey',
+      postTitle: 'Dental Hygienist',
+      shiftDate: '2026-08-10',
+    };
+
+    expect(matchesConfirmedFillInSearch(row, 'jeffrey')).toBe(true);
+    expect(matchesConfirmedFillInSearch(row, 'assistant')).toBe(false);
   });
 });

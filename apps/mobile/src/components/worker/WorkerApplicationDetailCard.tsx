@@ -41,7 +41,6 @@ import { Alert, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-
 import { ApplicationScreeningSection } from '@/components/clinic/ApplicationScreeningSection';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
-import { WorkerApplicationStatusBadge } from '@/components/matching/ApplicationStatusBadge';
 import { ApplicantReviewHero } from '@/components/matching/ApplicantReviewHero';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -75,6 +74,7 @@ import {
 } from '@/lib/routing';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { confirmHideWorkerApplication } from '@/lib/workerApplicationHide';
+import { getWorkerInterviewOfferedActionKeys } from '@/lib/workerInterviewOfferedActions';
 import {
   getWorkerApplicationClinicLocationLabel,
   getWorkerApplicationMapsDestination,
@@ -766,16 +766,39 @@ export function WorkerApplicationDetailCard({
     }
 
     if (application.status === 'interview_offered' && interviewSummary) {
-      primary.push({
-        key: 'accept-interview',
-        label: 'Accept interview',
-        onPress: handleAcceptInterview,
+      const actionKeys = getWorkerInterviewOfferedActionKeys({
+        hasInterviewSummary: true,
+        workerProposedChange,
       });
-      destructive.push({
-        key: 'decline-interview',
-        label: 'Decline interview',
-        onPress: handleDeclineInterview,
-      });
+
+      for (const key of actionKeys) {
+        if (key === 'accept-interview') {
+          primary.push({
+            key: 'accept-interview',
+            label: 'Accept interview',
+            onPress: handleAcceptInterview,
+          });
+        } else if (key === 'suggest-time') {
+          secondary.push({
+            key: 'suggest-time',
+            label: 'Suggest another time',
+            onPress: () => setRescheduleVisible(true),
+          });
+        } else if (key === 'edit-suggestion') {
+          secondary.push({
+            key: 'edit-suggestion',
+            label: 'Edit suggestion',
+            onPress: () => setRescheduleVisible(true),
+          });
+        } else if (key === 'decline-interview') {
+          destructive.push({
+            key: 'decline-interview',
+            label: 'Decline interview',
+            onPress: handleDeclineInterview,
+          });
+        }
+      }
+
       appendCancelIfNeeded();
       return { primary, secondary, destructive };
     }
@@ -925,14 +948,6 @@ export function WorkerApplicationDetailCard({
           title={formatPostTitleDisplay(application.post_title)}
           meta={metaParts.length > 0 ? metaParts.join(' · ') : null}
           trailingBadge={
-            <WorkerApplicationStatusBadge
-              status={application.status}
-              postType={application.post_type}
-              statusNote={application.status_note}
-              statusClosedBy={application.status_closed_by}
-            />
-          }
-          badges={
             jobMatch && matchContext ? (
               <MatchTierBadge
                 breakdown={jobMatch}
@@ -948,6 +963,7 @@ export function WorkerApplicationDetailCard({
             applicationKitRequestedAt: application.application_kit_requested_at,
             applicationKitSubmittedAt: application.application_kit_submitted_at,
             interviewProposedAt: application.interview_proposed_at,
+            interviewProposedBy: application.interview_proposed_by,
             statusNote: application.status_note,
             statusClosedBy: application.status_closed_by,
             clinicAccountDeleted: clinicDeleted,
@@ -991,6 +1007,19 @@ export function WorkerApplicationDetailCard({
                 <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
                 {application.interview_details ? (
                   <CardInfoPanelText>{application.interview_details}</CardInfoPanelText>
+                ) : null}
+                {application.status === 'interview_offered' && workerProposedChange ? (
+                  <CardInfoPanelText>
+                    Suggestion sent · awaiting clinic response
+                    {proposedSummary ? ` · ${proposedSummary}` : ''}
+                  </CardInfoPanelText>
+                ) : null}
+                {application.status === 'interview_offered' &&
+                workerProposedChange &&
+                application.interview_proposed_details ? (
+                  <CardInfoPanelText>
+                    Your message: {application.interview_proposed_details}
+                  </CardInfoPanelText>
                 ) : null}
                 {showInterviewClinicMapsLink && clinicMapsDestination && clinicMapsLabel ? (
                   <ApplicationClinicMapsLink
@@ -1120,10 +1149,24 @@ export function WorkerApplicationDetailCard({
           visible
           application={application as unknown as ClinicApplication}
           clinicName={application.clinic_name}
-          mode="propose_reschedule"
-          titleOverride="Request new time"
-          subtitleOverride="The confirmed interview stays until the clinic accepts your proposed time."
-          submitLabelOverride="Send request"
+          mode={
+            application.status === 'interview_offered' ? 'counter_offer' : 'propose_reschedule'
+          }
+          titleOverride={
+            application.status === 'interview_offered'
+              ? workerProposedChange
+                ? 'Edit suggestion'
+                : 'Suggest another time'
+              : 'Request new time'
+          }
+          subtitleOverride={
+            application.status === 'interview_offered'
+              ? 'Share a time that works for you. The clinic will review before confirming.'
+              : 'The confirmed interview stays until the clinic accepts your proposed time.'
+          }
+          submitLabelOverride={
+            application.status === 'interview_offered' ? 'Send suggestion' : 'Send request'
+          }
           onSubmit={async (input) => {
             await proposeApplicationInterviewUpdateAsWorker(
               application.worker_id,

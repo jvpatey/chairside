@@ -6,7 +6,9 @@ import {
   FILL_IN_PENDING_STATUSES,
   hasWorkerApplicationClinicUpdate,
   isClinicApplicationAwaitingClinicAction,
+  isClinicApplicationHighlighted,
   isClinicApplicationUnseen,
+  isClinicInterviewProposalUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
   isWorkerApplicationUpdateHighlighted,
@@ -18,7 +20,9 @@ export {
   FILL_IN_PENDING_STATUSES,
   hasWorkerApplicationClinicUpdate,
   isClinicApplicationAwaitingClinicAction,
+  isClinicApplicationHighlighted,
   isClinicApplicationUnseen,
+  isClinicInterviewProposalUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
   isWorkerApplicationUpdateHighlighted,
@@ -878,20 +882,29 @@ export async function getClinicNewApplicationCount(
 
   const { data, error } = await supabase
     .from('applications')
-    .select('status, clinic_attention_at, clinic_last_seen_at')
+    .select(
+      'status, clinic_attention_at, clinic_last_seen_at, interview_proposed_at, interview_proposed_by',
+    )
     .in('job_post_id', jobIds)
     .is('clinic_hidden_at', null)
-    .in('status', ['applied', 'screening_submitted']);
+    .in('status', [
+      'applied',
+      'screening_submitted',
+      'interview_offered',
+      'interview_scheduled',
+    ]);
 
   if (error) throw error;
 
   return (data ?? []).filter((application) =>
-    isClinicNewApplication({
+    isClinicApplicationHighlighted({
       post_type: 'job',
       status: application.status,
       clinic_hidden_at: null,
       clinic_attention_at: application.clinic_attention_at,
       clinic_last_seen_at: application.clinic_last_seen_at,
+      interview_proposed_at: application.interview_proposed_at,
+      interview_proposed_by: application.interview_proposed_by,
     }),
   ).length;
 }
@@ -972,15 +985,30 @@ export async function markApplicationsSeenByWorker(applicationIds: string[]): Pr
 }
 
 export async function listWorkerAppliedJobPostIds(workerId: string): Promise<string[]> {
+  const statuses = await listWorkerJobApplicationStatuses(workerId);
+  return Object.keys(statuses);
+}
+
+/** Map of job_post_id → application status for the worker's job applications. */
+export async function listWorkerJobApplicationStatuses(
+  workerId: string,
+): Promise<Record<string, string>> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('applications')
-    .select('job_post_id')
+    .select('job_post_id, status')
     .eq('worker_id', workerId)
     .not('job_post_id', 'is', null);
 
   if (error) throw error;
-  return (data ?? []).map((row) => row.job_post_id).filter(Boolean) as string[];
+
+  const statuses: Record<string, string> = {};
+  for (const row of data ?? []) {
+    if (row.job_post_id && typeof row.status === 'string') {
+      statuses[row.job_post_id] = row.status;
+    }
+  }
+  return statuses;
 }
 
 export async function getJobPostApplicationCountsMap(
@@ -1042,7 +1070,7 @@ export async function listJobApplicationSummaries(
       if (application.status === 'applied') {
         existing.pending_count += 1;
       }
-      if (isClinicNewApplication(application)) {
+      if (isClinicApplicationHighlighted(application)) {
         existing.unseen_count += 1;
       }
       if (isClinicApplicationAwaitingClinicAction(application)) {
@@ -1065,7 +1093,7 @@ export async function listJobApplicationSummaries(
         applicant_count: 1,
         screening_count: application.status === 'screening_submitted' ? 1 : 0,
         pending_count: application.status === 'applied' ? 1 : 0,
-        unseen_count: isClinicNewApplication(application) ? 1 : 0,
+        unseen_count: isClinicApplicationHighlighted(application) ? 1 : 0,
         action_needed_count: isClinicApplicationAwaitingClinicAction(application) ? 1 : 0,
         shortlisted_count: application.status === 'in_progress' ? 1 : 0,
         interview_count:
@@ -1275,6 +1303,21 @@ export async function updateApplicationStatus(
   return data as Application;
 }
 
+/** Mark a job applicant hired and fill the related role posting. */
+export async function markJobApplicantHired(applicationId: string): Promise<Application> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('mark_job_applicant_hired', {
+    application_id: applicationId,
+  });
+
+  if (error) throw error;
+  const row = data as Application | null;
+  if (!row?.job_post_id) {
+    throw new Error('Job application not found');
+  }
+  return row;
+}
+
 export async function offerApplicationInterview(
   applicationId: string,
   input: ScheduleApplicationInterviewInput,
@@ -1376,6 +1419,11 @@ export async function updateApplicationInterviewOffer(
       interview_at: input.interviewAt,
       interview_duration_minutes: input.durationMinutes,
       interview_details: input.details?.trim() || null,
+      // Clear any worker counter-proposal when the clinic sends a fresh invite time.
+      interview_proposed_at: null,
+      interview_proposed_duration_minutes: null,
+      interview_proposed_details: null,
+      interview_proposed_by: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', applicationId)

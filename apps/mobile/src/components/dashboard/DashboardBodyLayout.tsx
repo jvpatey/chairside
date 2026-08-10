@@ -102,11 +102,17 @@ export function DashboardBodyLayout({
     hasRenderableContent(checklist) ||
     hasRenderableContent(alerts);
 
-  const attentionRow = hasRenderableContent(needsAttention) ? (
-    <View style={useDesktopGrid ? styles.attentionNextUpRow : styles.attentionNextUpStack}>
-      {needsAttention}
-    </View>
-  ) : null;
+  // Don't wrap on phone — an empty wrapper still consumes flex `gap` and doubles
+  // the space above Calendar when Needs attention has nothing to show.
+  const attentionRow = hasRenderableContent(needsAttention)
+    ? useDesktopGrid
+      ? (
+          <View style={styles.attentionNextUpRow}>{needsAttention}</View>
+        )
+      : (
+          needsAttention
+        )
+    : null;
 
   if (useDesktopGrid) {
     return (
@@ -131,8 +137,9 @@ export function DashboardBodyLayout({
       {quickActions}
       {error}
       {attentionRow}
-      {calendar}
+      {IS_WEB ? calendar : null}
       {workspace}
+      {!IS_WEB ? calendar : null}
       {messages}
       {planUsage}
       {insights}

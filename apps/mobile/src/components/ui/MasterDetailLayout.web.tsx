@@ -77,6 +77,7 @@ export function MasterDetailLayout({
     },
     rowRounded: {
       gap: spacing.md,
+      paddingTop: spacing.md,
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.md,
     },

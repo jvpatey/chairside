@@ -23,7 +23,13 @@ import { SavePostButton } from '@/components/worker/SavePostButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getApplyRoute, getWorkerClinicProfileRoute, getWorkerClinicProfileBackLabel, navigateAfterWorkerPostingDetail, parseWorkerPostingReturnParams } from '@/lib/routing';
+import {
+  getApplyRoute,
+  getWorkerClinicProfileRoute,
+  getWorkerClinicProfileBackLabel,
+  navigateAfterWorkerJobDetail,
+  parseWorkerPostingReturnParams,
+} from '@/lib/routing';
 import { guardApply } from '@/lib/workerGuard';
 import {
   buildLiveJobMatchDisplayContext,
@@ -51,9 +57,10 @@ export default function WorkerJobDetailScreen() {
     [applicationId, applicationReturnTo, returnTo],
   );
   const backLabel = getWorkerClinicProfileBackLabel(returnContext);
+  const resolvedReturnTo = typeof returnTo === 'string' ? returnTo : undefined;
   const goBack = useCallback(() => {
-    navigateAfterWorkerPostingDetail(router, returnContext);
-  }, [returnContext]);
+    navigateAfterWorkerJobDetail(router, resolvedReturnTo, returnContext);
+  }, [resolvedReturnTo, returnContext]);
   const [job, setJob] = useState<LiveJobPost | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [isSaved, setIsSaved] = useState(false);

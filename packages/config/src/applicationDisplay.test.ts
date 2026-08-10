@@ -6,6 +6,7 @@ import {
   formatISODateLabel,
   formatJobApplicationSummaryMeta,
   formatPostTitleDisplay,
+  isWorkerJobApplicationPipelineActive,
 } from './applicationDisplay';
 
 describe('formatISODateLabel', () => {
@@ -46,6 +47,47 @@ describe('formatJobApplicationSummaryMeta', () => {
         interview_count: 0,
       }),
     ).toBe('2 to review · 1 new');
+  });
+});
+
+describe('isWorkerJobApplicationPipelineActive', () => {
+  it('counts interview invitations as active pipeline applications', () => {
+    expect(
+      isWorkerJobApplicationPipelineActive({
+        status: 'interview_offered',
+        post_status: 'live',
+      }),
+    ).toBe(true);
+  });
+
+  it('excludes applications on filled or closed roles', () => {
+    expect(
+      isWorkerJobApplicationPipelineActive({
+        status: 'interview_offered',
+        post_status: 'filled',
+      }),
+    ).toBe(false);
+  });
+
+  it('treats hired and declined applications as past (not active pipeline)', () => {
+    expect(
+      isWorkerJobApplicationPipelineActive({
+        status: 'selected',
+        post_status: 'filled',
+      }),
+    ).toBe(false);
+    expect(
+      isWorkerJobApplicationPipelineActive({
+        status: 'hired',
+        post_status: 'filled',
+      }),
+    ).toBe(false);
+    expect(
+      isWorkerJobApplicationPipelineActive({
+        status: 'rejected',
+        post_status: 'live',
+      }),
+    ).toBe(false);
   });
 });
 

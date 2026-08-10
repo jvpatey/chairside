@@ -1,11 +1,10 @@
-import type { ConfirmedFillInSummary, ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
+import type { ClinicApplication, JobPost, ShiftPost } from '@chairside/api';
 import { formatJobApplicationSummaryMeta } from '@chairside/config';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { View } from 'react-native';
 
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
-import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
 import { ClinicApplicationCard } from '@/components/clinic/ClinicApplicationCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
@@ -163,7 +162,6 @@ type DashboardOverviewPanelProps = {
   applicantPreviewByJobId?: JobApplicantPreviewMap;
   jobs: JobPost[];
   shifts: ShiftPost[];
-  confirmedFillIns?: ConfirmedFillInSummary[];
   applications: ClinicApplication[];
   applicantCounts?: Record<string, number>;
   shiftPendingCounts?: Record<string, number>;
@@ -174,7 +172,6 @@ type DashboardOverviewPanelProps = {
   onJobDeleted?: (jobId: string) => void;
   onShiftUpdated?: (shift: ShiftPost) => void;
   onShiftDeleted?: (shiftId: string) => void;
-  onConfirmedFillInsUpdated?: () => void;
   onJobPress?: (jobId: string) => void;
   onJobApplicationsPress?: (jobId: string) => void;
   onApplicantPress?: (applicationId: string, jobId: string) => void;
@@ -258,7 +255,6 @@ export function DashboardOverviewPanel({
   applicantPreviewByJobId,
   jobs,
   shifts,
-  confirmedFillIns = [],
   applications,
   applicantCounts,
   shiftPendingCounts = {},
@@ -269,27 +265,20 @@ export function DashboardOverviewPanel({
   onJobDeleted,
   onShiftUpdated,
   onShiftDeleted,
-  onConfirmedFillInsUpdated,
   onJobPress,
   onJobApplicationsPress,
   onApplicantPress,
   onViewAllPress,
 }: DashboardOverviewPanelProps) {
   const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
-  const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
   const styles = useThemedStyles(({ spacing }) => {
-    const cardGap = dashboardSectionGap(spacing);
+    const cardGap = embedded ? spacing.sm : dashboardSectionGap(spacing);
     return {
       root: {
         width: '100%',
         alignSelf: 'stretch' as const,
       },
       list: {
-        gap: cardGap,
-        width: '100%',
-        alignSelf: 'stretch' as const,
-      },
-      subsection: {
         gap: cardGap,
         width: '100%',
         alignSelf: 'stretch' as const,
@@ -355,7 +344,7 @@ export function DashboardOverviewPanel({
       ) : null}
 
       {selected === 'fill-ins' ? (
-        liveShifts.length === 0 && confirmedFillIns.length === 0 ? (
+        liveShifts.length === 0 ? (
           <DashboardEmptyState
             icon={FILL_IN_ICON.outline}
             title="No fill-in shifts yet"
@@ -364,54 +353,22 @@ export function DashboardOverviewPanel({
           />
         ) : (
           <View style={styles.list}>
-                {confirmedFillIns.length > 0 ? (
-              <View style={styles.subsection}>
-                <DashboardSectionHeader title="Upcoming confirmed" compact />
-                {confirmedFillIns.map((row) => (
-                  <ConfirmedFillInCard
-                    key={row.applicationId}
-                    embedded={embedded}
-                    clinicId={clinicId ?? ''}
-                    workerName={row.workerName}
-                    workerPhotoStoragePath={row.workerPhotoStoragePath}
-                    shiftDate={row.shiftDate}
-                    startTime={row.startTime}
-                    endTime={row.endTime}
-                    applicationId={row.applicationId}
-                    shiftPostId={row.shiftPostId}
-                    returnTo="dashboard-fill-ins"
-                    expanded={expandedConfirmedId === row.applicationId}
-                    onExpandChange={(next) =>
-                      setExpandedConfirmedId(next ? row.applicationId : null)
-                    }
-                    onUpdated={onConfirmedFillInsUpdated}
-                  />
-                ))}
-              </View>
-            ) : null}
-            {liveShifts.length > 0 ? (
-              <View style={styles.subsection}>
-                {confirmedFillIns.length > 0 ? (
-                  <DashboardSectionHeader title="Open fill-ins" compact />
-                ) : null}
-                {liveShifts.map((shift) => (
-                  <FillInPostingCard
-                    key={shift.id}
-                    embedded={embedded}
-                    shift={shift}
-                    pendingRequestCount={shiftPendingCounts[shift.id] ?? 0}
-                    applicationCount={shiftApplicationCounts[shift.id] ?? 0}
-                    clinicId={clinicId}
-                    returnTo={fillInReturnTo}
-                    accent="secondary"
-                    expanded={expandedShiftId === shift.id}
-                    onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
-                    onShiftUpdated={onShiftUpdated}
-                    onShiftDeleted={() => onShiftDeleted?.(shift.id)}
-                  />
-                ))}
-              </View>
-            ) : null}
+            {liveShifts.map((shift) => (
+              <FillInPostingCard
+                key={shift.id}
+                embedded={embedded}
+                shift={shift}
+                pendingRequestCount={shiftPendingCounts[shift.id] ?? 0}
+                applicationCount={shiftApplicationCounts[shift.id] ?? 0}
+                clinicId={clinicId}
+                returnTo={fillInReturnTo}
+                accent="secondary"
+                expanded={expandedShiftId === shift.id}
+                onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
+                onShiftUpdated={onShiftUpdated}
+                onShiftDeleted={() => onShiftDeleted?.(shift.id)}
+              />
+            ))}
           </View>
         )
       ) : null}

@@ -3,13 +3,12 @@ import type { CalendarEvent } from '@chairside/api';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { PillBadge } from '@/components/ui/PillBadge';
 import { DashboardWidgetHeader } from '@/components/dashboard/DashboardWidgetHeader';
 import { DashboardWidgetIconBadge } from '@/components/dashboard/DashboardWidgetIconBadge';
 import { dashboardWidgetTokens } from '@/components/dashboard/dashboardTokens';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { colorWithAlpha, fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 const PREVIEW_LIMIT = 2;
 const IS_WEB = Platform.OS === 'web';
@@ -49,7 +48,7 @@ export function DashboardCalendarWidget({
   onEventPress,
   onViewAllPress,
 }: DashboardCalendarWidgetProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const upcomingCount = events.length;
   const previews = events.slice(0, PREVIEW_LIMIT);
 
@@ -131,13 +130,6 @@ export function DashboardCalendarWidget({
     onViewAllPress();
   };
 
-  const upcomingBadgeLabel =
-    upcomingCount === 1
-      ? '1 upcoming'
-      : upcomingCount > 1
-        ? `${upcomingCount} upcoming`
-        : null;
-
   return (
     <View style={styles.card}>
       <DashboardWidgetHeader
@@ -145,28 +137,17 @@ export function DashboardCalendarWidget({
         icon="calendar-outline"
         accent="tertiary"
         trailing={
-          <>
-            {upcomingBadgeLabel ? (
-              <PillBadge
-                label={upcomingBadgeLabel}
-                color={colors.tertiary}
-                backgroundColor={colorWithAlpha(colors.tertiary, isDark ? 0.2 : 0.12)}
-                borderColor={colorWithAlpha(colors.tertiary, 0.28)}
-                size="sm"
-              />
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="View calendar"
-              hitSlop={8}
-              onPress={handleViewAll}
-              style={({ pressed, hovered }) => [
-                styles.viewAllPressable,
-                webHover(hovered, pressed, styles.viewAllHovered),
-              ]}>
-              <Text style={styles.viewAll}>View all</Text>
-            </Pressable>
-          </>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View calendar"
+            hitSlop={8}
+            onPress={handleViewAll}
+            style={({ pressed, hovered }) => [
+              styles.viewAllPressable,
+              webHover(hovered, pressed, styles.viewAllHovered),
+            ]}>
+            <Text style={styles.viewAll}>View all</Text>
+          </Pressable>
         }
       />
 

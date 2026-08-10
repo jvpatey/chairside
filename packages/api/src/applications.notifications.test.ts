@@ -4,7 +4,9 @@ import {
   APPLICATION_UPDATE_GRACE_MS,
   hasWorkerApplicationClinicUpdate,
   isClinicApplicationAwaitingClinicAction,
+  isClinicApplicationHighlighted,
   isClinicApplicationUnseen,
+  isClinicInterviewProposalUnseen,
   isClinicNewApplication,
   isClinicNewFillInRequest,
   isWorkerApplicationUpdateHighlighted,
@@ -124,6 +126,74 @@ describe('isClinicNewApplication', () => {
   });
 });
 
+describe('isClinicInterviewProposalUnseen', () => {
+  it('highlights unseen worker suggestions on pending invites', () => {
+    expect(
+      isClinicInterviewProposalUnseen({
+        post_type: 'job',
+        status: 'interview_offered',
+        clinic_hidden_at: null,
+        clinic_attention_at: attentionAt(20_000),
+        clinic_last_seen_at: attentionAt(5_000),
+        interview_proposed_at: attentionAt(20_000),
+        interview_proposed_by: 'worker',
+      }),
+    ).toBe(true);
+  });
+
+  it('does not highlight clinic-proposed reschedules or already-seen suggestions', () => {
+    expect(
+      isClinicInterviewProposalUnseen({
+        post_type: 'job',
+        status: 'interview_scheduled',
+        clinic_hidden_at: null,
+        clinic_attention_at: attentionAt(20_000),
+        clinic_last_seen_at: attentionAt(5_000),
+        interview_proposed_at: attentionAt(20_000),
+        interview_proposed_by: 'clinic',
+      }),
+    ).toBe(false);
+
+    expect(
+      isClinicInterviewProposalUnseen({
+        post_type: 'job',
+        status: 'interview_offered',
+        clinic_hidden_at: null,
+        clinic_attention_at: attentionAt(10_000),
+        clinic_last_seen_at: attentionAt(20_000),
+        interview_proposed_at: attentionAt(10_000),
+        interview_proposed_by: 'worker',
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('isClinicApplicationHighlighted', () => {
+  it('includes new applicants and unseen interview suggestions', () => {
+    expect(
+      isClinicApplicationHighlighted({
+        post_type: 'job',
+        status: 'applied',
+        clinic_hidden_at: null,
+        clinic_attention_at: baseCreatedAt,
+        clinic_last_seen_at: null,
+      }),
+    ).toBe(true);
+
+    expect(
+      isClinicApplicationHighlighted({
+        post_type: 'job',
+        status: 'interview_offered',
+        clinic_hidden_at: null,
+        clinic_attention_at: attentionAt(20_000),
+        clinic_last_seen_at: attentionAt(5_000),
+        interview_proposed_at: attentionAt(20_000),
+        interview_proposed_by: 'worker',
+      }),
+    ).toBe(true);
+  });
+});
+
 describe('isClinicApplicationAwaitingClinicAction', () => {
   const baseApplication = {
     post_type: 'job' as const,
@@ -141,7 +211,18 @@ describe('isClinicApplicationAwaitingClinicAction', () => {
     }
   });
 
-  it('excludes hidden applications and later pipeline statuses', () => {
+  it('includes pending worker interview suggestions', () => {
+    expect(
+      isClinicApplicationAwaitingClinicAction({
+        ...baseApplication,
+        status: 'interview_offered',
+        interview_proposed_at: attentionAt(10_000),
+        interview_proposed_by: 'worker',
+      }),
+    ).toBe(true);
+  });
+
+  it('excludes hidden applications and later pipeline statuses without proposals', () => {
     expect(
       isClinicApplicationAwaitingClinicAction({
         ...baseApplication,

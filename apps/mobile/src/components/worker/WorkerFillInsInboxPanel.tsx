@@ -1,5 +1,5 @@
 import { listWorkerShiftApplications, type WorkerApplication } from '@chairside/api';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
 
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
@@ -22,14 +22,28 @@ import { useThemedStyles } from '@/theme';
 
 type WorkerFillInsInboxPanelProps = {
   compact?: boolean;
+  /** Keep this tab selected when the panel remounts (e.g. master/detail). */
+  initialMode?: FillInsTabMode;
 };
 
-export function WorkerFillInsInboxPanel({ compact = false }: WorkerFillInsInboxPanelProps) {
+export function WorkerFillInsInboxPanel({
+  compact = false,
+  initialMode,
+}: WorkerFillInsInboxPanelProps) {
   const { user } = useAuth();
-  const [selectedMode, setSelectedMode] = useState<FillInsTabMode>(compact ? 'confirmed' : 'open');
+  const defaultMode: FillInsTabMode = compact ? 'pending' : 'open';
+  const resolvedInitialMode =
+    initialMode && !(compact && initialMode === 'open') ? initialMode : defaultMode;
+  const [selectedMode, setSelectedMode] = useState<FillInsTabMode>(resolvedInitialMode);
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!initialMode) return;
+    if (compact && initialMode === 'open') return;
+    setSelectedMode(initialMode);
+  }, [compact, initialMode]);
 
   const {
     upcomingConfirmed,
@@ -40,7 +54,8 @@ export function WorkerFillInsInboxPanel({ compact = false }: WorkerFillInsInboxP
     declinedApplications,
   } = useMemo(() => partitionWorkerShiftApplications(applications), [applications]);
 
-  const activeFillInCount = upcomingConfirmed.length + upcomingInProgress.length;
+  const pendingFillInCount = upcomingInProgress.length;
+  const confirmedFillInCount = upcomingConfirmed.length;
   const historyFillInCount =
     cancelledApplications.length +
     declinedApplications.length +
@@ -66,9 +81,16 @@ export function WorkerFillInsInboxPanel({ compact = false }: WorkerFillInsInboxP
           ]
         : []),
       {
+        value: 'pending' as const,
+        label: 'Pending',
+        count: pendingFillInCount,
+        accent: 'secondary' as const,
+        icon: 'hourglass-outline' as const,
+      },
+      {
         value: 'confirmed' as const,
         label: 'Confirmed',
-        count: activeFillInCount,
+        count: confirmedFillInCount,
         accent: 'secondary' as const,
         icon: 'checkmark-circle-outline' as const,
       },
@@ -81,7 +103,7 @@ export function WorkerFillInsInboxPanel({ compact = false }: WorkerFillInsInboxP
       },
     ];
     return compact ? tabs.filter((tab) => tab.value !== 'open') : tabs;
-  }, [activeFillInCount, compact, historyFillInCount]);
+  }, [compact, confirmedFillInCount, historyFillInCount, pendingFillInCount]);
 
   const load = useCallback(async () => {
     if (!user?.id) {
@@ -129,9 +151,10 @@ export function WorkerFillInsInboxPanel({ compact = false }: WorkerFillInsInboxP
 
   return (
     <Screen
-      title={compact ? undefined : 'Fill-ins'}
+      title="Fill-ins"
       subtitle={compact ? undefined : 'Temp shifts and your availability.'}
-      showHeader={!compact}
+      showHeader
+      headerVariant={compact ? 'tabletSection' : undefined}
       constrainWidth={!compact}
       scroll={!compact}
       fillsContainer={compact}
@@ -148,19 +171,29 @@ export function WorkerFillInsInboxPanel({ compact = false }: WorkerFillInsInboxP
       ) : (
         <View style={styles.content}>
           <FileTabWell tabs={fillInTabs} selected={selectedMode} onSelect={setSelectedMode}>
-            {selectedMode === 'confirmed' ? (
-              activeFillInCount === 0 ? (
+            {selectedMode === 'pending' ? (
+              pendingFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
-                  icon="document-text-outline"
-                  title="No fill-in shifts yet"
-                  message="Request to cover an open shift and track confirmed and in-progress fill-ins here."
+                  icon="hourglass-outline"
+                  title="No pending cover requests"
+                  message="When you request to cover a fill-in, it stays here until the clinic confirms or declines."
                 />
               ) : (
-                <>
-                  {renderApplicationGroup('Upcoming confirmed', upcomingConfirmed)}
-                  {renderApplicationGroup('In progress', upcomingInProgress)}
-                </>
+                renderApplicationGroup('Pending requests', upcomingInProgress)
+              )
+            ) : null}
+
+            {selectedMode === 'confirmed' ? (
+              confirmedFillInCount === 0 ? (
+                <DashboardEmptyState
+                  embedded
+                  icon="checkmark-circle-outline"
+                  title="No confirmed fill-ins yet"
+                  message="When a clinic confirms your cover request, the shift will appear here."
+                />
+              ) : (
+                renderApplicationGroup('Upcoming confirmed', upcomingConfirmed)
               )
             ) : null}
 

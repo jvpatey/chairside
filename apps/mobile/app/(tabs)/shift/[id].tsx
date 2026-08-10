@@ -10,7 +10,7 @@ import {
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
 import {
@@ -37,7 +37,7 @@ import {
   parseWorkerPostingReturnParams,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
-import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
+import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
 import { guardApply } from '@/lib/workerGuard';
 import { useThemedStyles } from '@/theme';
 
@@ -100,19 +100,8 @@ export default function WorkerShiftDetailScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    compensation: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.primary,
-    },
   }));
 
   const loadShift = useCallback(async () => {
@@ -237,6 +226,12 @@ export default function WorkerShiftDetailScreen() {
       accent="secondary"
       footer={footerAction}>
       <View style={styles.content}>
+        <ShiftPostDetailView
+          shift={shift}
+          softwareUsed={shift.clinic.software_used}
+          section="hero"
+          heroAccessory={<ShiftUrgencyBadge urgency={shift.urgency} />}
+        />
         <SurfaceCard
           onPress={() =>
             router.push(
@@ -251,22 +246,17 @@ export default function WorkerShiftDetailScreen() {
           <ClinicPostHeader
             clinicName={shift.clinic.clinic_name}
             logoStoragePath={shift.clinic.logo_storage_path}
-            title={formatShiftPostRoleTitle(shift.role_type)}
             location={location || null}
             detail={formatShiftPostMeta(shift)}
-            accessory={<ShiftUrgencyBadge urgency={shift.urgency} />}
             textFooter={statusFooter}
-            footer={
-              shift.compensation ? (
-                <View style={styles.footer}>
-                  <Text style={styles.compensation}>{shift.compensation}</Text>
-                </View>
-              ) : null
-            }
           />
           <ClinicProfileLinkFooter />
         </SurfaceCard>
-        <ShiftPostDetailView shift={shift} softwareUsed={shift.clinic.software_used} />
+        <ShiftPostDetailView
+          shift={shift}
+          softwareUsed={shift.clinic.software_used}
+          section="details"
+        />
       </View>
     </FormScreen>
   );

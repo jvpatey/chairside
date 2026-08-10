@@ -183,6 +183,7 @@ export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_FILLIN_AVAILABILITY: Href = '/(tabs)/fill-in-availability' as Href;
 export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;
+export const WORKER_PENDING_FILLINS: Href = '/(tabs)/fillins?tab=pending' as Href;
 export const WORKER_PAST_FILLINS: Href = '/(tabs)/fillins?tab=history' as Href;
 export const WORKER_PROFILE: Href = '/(tabs)/profile' as Href;
 export const WORKER_PROFILE_PROFESSIONAL: Href = '/(tabs)/profile/professional' as Href;
@@ -395,14 +396,61 @@ export function getRoleHistoryRoute(): Href {
   return '/(clinic-tabs)/role-history' as Href;
 }
 
+export type WorkerJobDetailReturnTarget = 'browse-tab' | 'dashboard-roles';
+
+export type WorkerJobDetailReturnParam =
+  | WorkerJobDetailReturnTarget
+  | WorkerClinicProfileRouteOptions;
+
 export function getWorkerJobDetailRoute(
   jobId: string,
-  options?: WorkerClinicProfileRouteOptions,
+  returnTo?: WorkerJobDetailReturnParam,
 ): Href {
+  if (typeof returnTo === 'object' && returnTo) {
+    return {
+      pathname: '/(tabs)/job/[id]',
+      params: { id: jobId, ...buildPostingReturnParams(returnTo) },
+    } as unknown as Href;
+  }
+
   return {
     pathname: '/(tabs)/job/[id]',
-    params: { id: jobId, ...buildPostingReturnParams(options) },
+    params:
+      typeof returnTo === 'string'
+        ? { id: jobId, returnTo }
+        : { id: jobId },
   } as unknown as Href;
+}
+
+/** Prefer explicit tab destinations — native tab history often lands on Home instead of Roles. */
+export function navigateAfterWorkerJobDetail(
+  router: { replace: (href: Href) => void; back: () => void; canGoBack?: () => boolean },
+  returnTo?: string,
+  postingReturn?: WorkerClinicProfileRouteOptions,
+) {
+  if (
+    returnTo === 'application-detail' ||
+    postingReturn?.returnTo === 'application-detail' ||
+    postingReturn?.returnTo === 'messages-tab' ||
+    postingReturn?.returnTo === 'job-detail' ||
+    postingReturn?.returnTo === 'shift-detail'
+  ) {
+    navigateAfterWorkerPostingDetail(router, postingReturn);
+    return;
+  }
+  if (returnTo === 'browse-tab') {
+    router.replace(WORKER_BROWSE);
+    return;
+  }
+  if (returnTo === 'dashboard-roles') {
+    router.replace(getWorkerHomeRoute('roles'));
+    return;
+  }
+  if (router.canGoBack?.()) {
+    router.back();
+    return;
+  }
+  router.replace(WORKER_BROWSE);
 }
 
 export function getWorkerClinicProfileRoute(

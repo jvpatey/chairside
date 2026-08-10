@@ -72,7 +72,9 @@ export default function ClinicPostingsScreen() {
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
-  const [jobStatusFilter, setJobStatusFilter] = useState<Extract<JobStatusFilter, 'live' | 'paused'>>('live');
+  const [jobStatusFilter, setJobStatusFilter] = useState<
+    Extract<JobStatusFilter, 'live' | 'paused' | 'filled'>
+  >('live');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -85,6 +87,10 @@ export default function ClinicPostingsScreen() {
   }, [tab]);
 
   const mainListJobs = useMemo(() => filterJobPostsForMainList(jobs, 'all', 'all'), [jobs]);
+  const filledRoleCount = useMemo(
+    () => jobs.filter((job) => job.status === 'filled').length,
+    [jobs],
+  );
 
   const filteredJobs = useMemo(
     () =>
@@ -111,7 +117,7 @@ export default function ClinicPostingsScreen() {
   const hasActiveFilters = jobRoleTypeFilter !== 'all';
 
   const historyCounts = useMemo(() => countHistoryJobs(jobs), [jobs]);
-  const hasRoleHistory = historyCounts.archived > 0 || historyCounts.filled > 0;
+  const hasRoleHistory = historyCounts.archived > 0;
   const liveRoleCount = useMemo(
     () => mainListJobs.filter((job) => job.status === 'live').length,
     [mainListJobs],
@@ -136,15 +142,16 @@ export default function ClinicPostingsScreen() {
         accent: 'primary' as const,
         icon: 'pause-circle-outline' as const,
       },
+      {
+        value: 'filled' as const,
+        label: 'Filled',
+        count: filledRoleCount,
+        accent: 'tertiary' as const,
+        icon: 'checkmark-circle-outline' as const,
+      },
     ],
-    [liveRoleCount, pausedRoleCount],
+    [filledRoleCount, liveRoleCount, pausedRoleCount],
   );
-
-  useEffect(() => {
-    if (liveRoleCount === 0 && pausedRoleCount > 0 && jobStatusFilter === 'live') {
-      setJobStatusFilter('paused');
-    }
-  }, [jobStatusFilter, liveRoleCount, pausedRoleCount]);
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: {
@@ -239,8 +246,9 @@ export default function ClinicPostingsScreen() {
     [refreshBilling],
   );
 
-  const showRoleControls = !isLoading && mainListJobs.length > 0;
-  const historyDetail = `${historyCounts.archived === 1 ? '1 archived' : `${historyCounts.archived} archived`} · ${historyCounts.filled === 1 ? '1 filled' : `${historyCounts.filled} filled`}`;
+  const showRoleControls = !isLoading && (mainListJobs.length > 0 || filledRoleCount > 0);
+  const historyDetail =
+    historyCounts.archived === 1 ? '1 archived role' : `${historyCounts.archived} archived roles`;
 
   return (
     <>
@@ -315,11 +323,11 @@ export default function ClinicPostingsScreen() {
                 title="No roles yet"
                 message="Post your first role to start receiving applications from candidates."
               />
-            ) : mainListJobs.length === 0 ? (
+            ) : mainListJobs.length === 0 && filledRoleCount === 0 ? (
               <EmptyState
                 icon="briefcase-outline"
                 title="No active roles"
-                message="Paused and live roles appear here. View role history for archived and filled roles."
+                message="Paused and live roles appear here. View role history for archived roles."
               />
             ) : (
               <FileTabWell
@@ -335,14 +343,18 @@ export default function ClinicPostingsScreen() {
                         ? 'No roles match your search'
                         : jobStatusFilter === 'live'
                           ? 'No live roles'
-                          : 'No paused roles'
+                          : jobStatusFilter === 'paused'
+                            ? 'No paused roles'
+                            : 'No filled roles'
                     }
                     message={
                       hasSearch || hasActiveFilters
                         ? 'Try a different search or filter, or publish a new role.'
                         : jobStatusFilter === 'live'
-                          ? 'Publish a new role or check the Paused tab.'
-                          : 'Paused roles will appear here when you pause a live posting.'
+                          ? 'Publish a new role or check the Paused or Filled tabs.'
+                          : jobStatusFilter === 'paused'
+                            ? 'Paused roles will appear here when you pause a live posting.'
+                            : 'Roles move here when you hire a candidate.'
                     }
                   />
                 ) : (
@@ -403,7 +415,7 @@ export default function ClinicPostingsScreen() {
                         <Ionicons name="time-outline" size={20} color={colors.labelSecondary} />
                       </View>
                     }
-                    title="Archived & filled roles"
+                    title="Archived roles"
                     headerDetail={historyDetail}
                     onPress={() => router.push(getRoleHistoryRoute())}
                   />

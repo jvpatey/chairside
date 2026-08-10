@@ -21,6 +21,13 @@ describe('getActiveTabBarName', () => {
     ).toBe('index');
   });
 
+  it('keeps Home selected on profile hub routes', () => {
+    expect(getActiveTabBarName('/(tabs)/profile', 'worker')).toBe('index');
+    expect(getActiveTabBarName('/(tabs)/profile/account', 'worker')).toBe('index');
+    expect(getActiveTabBarName('/(clinic-tabs)/profile', 'clinic')).toBe('index');
+    expect(getActiveTabBarName('/(clinic-tabs)/profile/billing', 'clinic')).toBe('index');
+  });
+
   it('resolves main tabs from pathname', () => {
     expect(getActiveTabBarName('/(clinic-tabs)/applications', 'clinic')).toBe('applications');
     expect(getActiveTabBarName('/(clinic-tabs)/discover', 'clinic')).toBe('discover');

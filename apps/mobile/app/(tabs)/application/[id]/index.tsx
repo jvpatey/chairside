@@ -18,6 +18,7 @@ import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
+import { resolveWorkerFillInsTabMode } from '@/lib/fillInFilters';
 import { toCelebrationCandidate } from '@/lib/hiringCelebrationCandidates';
 import {
   getWorkerApplicationPostingReturnOptions,
@@ -183,15 +184,16 @@ export default function WorkerApplicationDetailScreen() {
 
   if (isTablet) {
     const fillInContext = isFillInApplicationReturn(resolvedReturnTo);
+    const fillInTabMode = resolveWorkerFillInsTabMode(application);
     const master = fillInContext ? (
-      <WorkerFillInsInboxPanel compact />
+      <WorkerFillInsInboxPanel compact initialMode={fillInTabMode} />
     ) : (
       <WorkerApplicationsInboxPanel compact />
     );
 
     return (
       <>
-        <MasterDetailLayout master={master} detail={detail} showDetail />
+        <MasterDetailLayout roundedPanes master={master} detail={detail} showDetail />
         <HiringCelebrationModal
           visible={celebrationVisible}
           payload={celebrationPayload}

@@ -205,6 +205,7 @@ export function RolePostingCard({
         <BrowseListRow
           layout={mobileEmbedded ? 'stacked' : 'split'}
           compact={mobileEmbedded}
+          detailsDivider={embedded}
           avatar={clinicAvatar}
           eyebrow={
             mobileEmbedded
