@@ -16,6 +16,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ResumePdfViewer } from '@/components/resume/ResumePdfViewer';
+import {
+  isCandidateSummaryTipDismissed,
+  markCandidateSummaryTipDismissed,
+} from '@/lib/candidateSummaryTipStorage';
 import { isNativePdfViewerAvailable } from '@/lib/nativePdfViewer';
 import {
   printApplicationPdfPacket,
@@ -41,6 +45,16 @@ type ApplicationPdfPacketPreviewModalProps = {
   onPdfError: (message: string) => void;
 };
 
+function resumeStatusLabel(packet: ApplicationPdfPacketResult | null): string {
+  if (!packet) return '';
+  if (packet.resumeAttached) {
+    return packet.previewKind === 'html'
+      ? 'Resume included in download'
+      : 'Resume included';
+  }
+  return 'No resume on file';
+}
+
 export function ApplicationPdfPacketPreviewModal({
   visible,
   candidateName,
@@ -55,10 +69,12 @@ export function ApplicationPdfPacketPreviewModal({
   const { colors } = useTheme();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showTip, setShowTip] = useState(false);
   const canUseNativePdf = isNativePdfViewerAvailable();
   const canShowInlinePdf = canUseNativePdf || Platform.OS === 'web';
   const localUri = packet?.uri ?? null;
   const fileName = packet?.fileName ?? 'candidate-packet.pdf';
+  const resumeLabel = resumeStatusLabel(packet);
 
   useEffect(() => {
     if (localUri && canShowInlinePdf) {
@@ -67,6 +83,17 @@ export function ApplicationPdfPacketPreviewModal({
       setIsPdfLoading(false);
     }
   }, [canShowInlinePdf, localUri]);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    void isCandidateSummaryTipDismissed().then((dismissed) => {
+      if (!cancelled) setShowTip(!dismissed);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
@@ -78,7 +105,7 @@ export function ApplicationPdfPacketPreviewModal({
       paddingBottom: spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.separator,
-      gap: spacing.xs,
+      gap: spacing.sm,
     },
     headerRow: {
       flexDirection: 'row',
@@ -100,6 +127,43 @@ export function ApplicationPdfPacketPreviewModal({
       ...typography.subtitle,
       fontSize: 13,
       color: colors.labelSecondary,
+    },
+    tip: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      backgroundColor: colors.fillSubtle,
+      borderRadius: 12,
+      padding: spacing.md,
+    },
+    tipText: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.xs,
+    },
+    tipTitle: {
+      ...typography.subtitle,
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.labelPrimary,
+    },
+    tipBody: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
+    tipDismiss: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      ...webPointer(),
+    },
+    tipDismissPressed: {
+      opacity: 0.6,
     },
     headerActions: {
       flexDirection: 'row',
@@ -166,6 +230,11 @@ export function ApplicationPdfPacketPreviewModal({
       flex: 1,
     },
   }));
+
+  const handleDismissTip = () => {
+    setShowTip(false);
+    void markCandidateSummaryTipDismissed();
+  };
 
   const handleShare = async () => {
     if (!localUri || !packet || isExporting) return;
@@ -235,13 +304,9 @@ export function ApplicationPdfPacketPreviewModal({
               <Text style={styles.title} numberOfLines={1}>
                 Candidate summary
               </Text>
-              <Text style={styles.subtitle} numberOfLines={1}>
+              <Text style={styles.subtitle} numberOfLines={2}>
                 {candidateName}
-                {packet?.resumeAttached
-                  ? packet.previewKind === 'html'
-                    ? ' · Resume included in download'
-                    : ' · Resume included'
-                  : ''}
+                {resumeLabel ? ` · ${resumeLabel}` : ''}
               </Text>
             </View>
             <View style={styles.headerActions}>
@@ -289,6 +354,27 @@ export function ApplicationPdfPacketPreviewModal({
               </Pressable>
             </View>
           </View>
+
+          {showTip && !isLoading && !error ? (
+            <View style={styles.tip}>
+              <View style={styles.tipText}>
+                <Text style={styles.tipTitle}>What this PDF includes</Text>
+                <Text style={styles.tipBody}>
+                  A one-page summary of this candidate's application details and screening answers.
+                  When a resume is on file, it is attached on the following pages so you can
+                  download, share, or print everything together.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss tip"
+                hitSlop={8}
+                onPress={handleDismissTip}
+                style={({ pressed }) => [styles.tipDismiss, pressed && styles.tipDismissPressed]}>
+                <Ionicons name="close" size={16} color={colors.labelSecondary} />
+              </Pressable>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.body}>

@@ -121,6 +121,8 @@ type ClinicApplicationDetailCardProps = {
 type ActionButtonSpec = {
   key: string;
   label: string;
+  /** Short supporting line under secondary actions (e.g. Candidate summary). */
+  description?: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
   onPress: () => void;
   disabled?: boolean;
@@ -458,7 +460,7 @@ function ActionPanel({
   removeAction: ActionButtonSpec | null;
   accent?: GradientAccent;
 }) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     actionStack: {
       gap: spacing.sm,
       alignSelf: 'stretch',
@@ -466,6 +468,17 @@ function ActionPanel({
     divider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
+    },
+    summaryBlock: {
+      gap: spacing.xs,
+      alignSelf: 'stretch',
+    },
+    summaryHint: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelTertiary,
+      paddingHorizontal: spacing.xs,
     },
   }));
 
@@ -482,13 +495,18 @@ function ActionPanel({
         {hasWorkflow ? <ApplicationActionButtons actions={workflowActions} accent={accent} /> : null}
         {hasWorkflow ? <View style={styles.divider} /> : null}
         {summaryAction ? (
-          <OnboardingButton
-            label={summaryAction.label}
-            variant="secondary"
-            accent={accent}
-            disabled={summaryAction.disabled}
-            onPress={summaryAction.onPress}
-          />
+          <View style={styles.summaryBlock}>
+            <OnboardingButton
+              label={summaryAction.label}
+              variant="secondary"
+              accent={accent}
+              disabled={summaryAction.disabled}
+              onPress={summaryAction.onPress}
+            />
+            {summaryAction.description ? (
+              <Text style={styles.summaryHint}>{summaryAction.description}</Text>
+            ) : null}
+          </View>
         ) : null}
         <OnboardingButton
           label={messageAction.label}
@@ -1197,7 +1215,9 @@ export function ClinicApplicationDetailCard({
               canGenerateApplicationPdfPacket(application)
                 ? {
                     key: 'candidate-summary',
-                    label: isGeneratingPdf ? 'Preparing summary…' : 'Candidate summary',
+                    label: isGeneratingPdf ? 'Preparing summary…' : 'Export candidate summary',
+                    description:
+                      'Shareable PDF with application details and resume (when available).',
                     onPress: () => void handleOpenCandidatePacket(),
                     disabled: isGeneratingPdf,
                   }
