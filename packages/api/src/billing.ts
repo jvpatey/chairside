@@ -1,6 +1,7 @@
 import type { ClinicPlan, ClinicPlanFamily } from '@chairside/config';
+import { isPaidClinicPlan } from '@chairside/config';
 import { getSupabaseClient } from './client';
-import { throwWithMessage } from './errors';
+import { getErrorMessage, throwWithMessage } from './errors';
 
 export type ClinicSubscriptionStatus =
   | 'active'
@@ -41,6 +42,11 @@ export type ClinicBillingState = {
   maxManagers: number | null;
   canAddManager: boolean;
   currentPeriodEnd: string | null;
+};
+
+export type ClinicSubscriptionSyncResult = {
+  plan: ClinicPlan;
+  status: ClinicSubscriptionStatus;
 };
 
 type ClinicBillingStateRow = {
@@ -142,6 +148,39 @@ export function isClinicBillingLimitError(message: string): boolean {
   );
 }
 
+/** RevenueCat / Stripe already has this product for the customer. */
+export function isAlreadySubscribedPurchaseError(error: unknown): boolean {
+  if (error && typeof error === 'object') {
+    const record = error as { errorCode?: unknown; code?: unknown; underlyingErrorMessage?: unknown };
+    const code = String(record.errorCode ?? record.code ?? '').toLowerCase();
+    if (
+      code.includes('productalreadypurchased') ||
+      code.includes('already_purchased')
+    ) {
+      return true;
+    }
+    if (
+      typeof record.underlyingErrorMessage === 'string' &&
+      isAlreadySubscribedPurchaseError(new Error(record.underlyingErrorMessage))
+    ) {
+      return true;
+    }
+  }
+
+  const message = getErrorMessage(error, '').toLowerCase();
+  if (!message) return false;
+  return (
+    message.includes('already subscribed') ||
+    message.includes('already purchased') ||
+    message.includes('already own') ||
+    message.includes("you've already") ||
+    message.includes('you already') ||
+    message.includes('product already purchased') ||
+    message.includes('cannot purchase product') ||
+    message.includes("can't subscribe to this product again")
+  );
+}
+
 export async function getClinicBillingState(
   clinicId?: string,
 ): Promise<ClinicBillingState> {
@@ -174,8 +213,20 @@ export async function getClinicPlanMap(
   );
 }
 
-export async function syncClinicSubscriptionFromRevenueCat(): Promise<void> {
+export async function syncClinicSubscriptionFromRevenueCat(): Promise<ClinicSubscriptionSyncResult> {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.functions.invoke('revenuecat-sync');
+  const { data, error } = await supabase.functions.invoke('revenuecat-sync');
   if (error) throwWithMessage(error, 'Could not sync subscription.');
+
+  const payload = data as { plan?: ClinicPlan; status?: ClinicSubscriptionStatus; error?: string } | null;
+  if (payload?.error) {
+    throw new Error(payload.error);
+  }
+  if (!payload?.plan || !payload.status) {
+    throw new Error('Could not sync subscription.');
+  }
+
+  return { plan: payload.plan, status: payload.status };
 }
+
+export { isPaidClinicPlan };

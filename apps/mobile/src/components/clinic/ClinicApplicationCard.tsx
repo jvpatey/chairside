@@ -209,7 +209,7 @@ export function ClinicApplicationCard({
     },
     details: {
       gap: spacing.xs,
-      paddingTop: spacing.sm,
+      paddingTop: spacing.xs,
     },
     qualifications: {
       fontSize: 14,

@@ -1,10 +1,13 @@
 export {
   getClinicBillingState,
   getClinicPlanMap,
+  isAlreadySubscribedPurchaseError,
   isClinicBillingLimitError,
+  isPaidClinicPlan,
   syncClinicSubscriptionFromRevenueCat,
   type ClinicBillingState,
   type ClinicSubscriptionStatus,
+  type ClinicSubscriptionSyncResult,
 } from './billing';
 export { createSupabaseClient, getSupabaseClient } from './client';
 export { getAuthStorage, isWebAuth } from './authStorage';

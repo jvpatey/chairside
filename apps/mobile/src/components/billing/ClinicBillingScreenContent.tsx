@@ -159,11 +159,13 @@ export function ClinicBillingScreenContent({
     purchasePackage,
     restorePurchases,
     manageSubscription,
+    refreshBilling,
     isPurchasing,
     isRestoring,
     isManagingSubscription,
     billingError,
-    isNativeBillingAvailable,
+    isHealingSubscription,
+    revenueCatPlan,
     isWebBillingAvailable,
     isPurchaseBillingAvailable,
     canManageSubscription,
@@ -177,6 +179,17 @@ export function ClinicBillingScreenContent({
   const clinicPlansSectionRef = useRef<View>(null);
   const profileScroll = useProfileDetailScroll();
   const emphasizeGroupCaps = scrollFocus === 'group';
+
+  // Re-check RC vs DB whenever the billing screen opens (heals already-subscribed desync).
+  useEffect(() => {
+    void refreshBilling({ forceSubscriptionSync: true });
+  }, [refreshBilling]);
+
+  const showSubscriptionHealNotice =
+    isHealingSubscription ||
+    (revenueCatPlan != null &&
+      revenueCatPlan !== 'free' &&
+      billing?.plan === 'free');
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: { gap: isWebSheet ? spacing.md : spacing.lg },
@@ -461,6 +474,12 @@ export function ClinicBillingScreenContent({
 
   return (
     <View style={styles.content}>
+      {showSubscriptionHealNotice ? (
+        <Text style={[styles.notice, styles.noticeEmphasis]}>
+          Subscription found — refreshing…
+        </Text>
+      ) : null}
+
       {billing ? (
         <BillingHero
           billing={billing}
@@ -700,16 +719,16 @@ export function ClinicBillingScreenContent({
         </View>
       </View>
 
-      {isNativeBillingAvailable ? (
+      {isPurchaseBillingAvailable ? (
         <Pressable
           style={styles.actionLink}
-          disabled={isRestoring}
+          disabled={isRestoring || isHealingSubscription}
           onPress={() => {
             setLocalError(null);
             void restorePurchases().catch(() => {});
           }}>
           <Text style={styles.actionLinkText}>
-            {isRestoring ? 'Restoring…' : 'Restore purchases'}
+            {isRestoring || isHealingSubscription ? 'Restoring…' : 'Restore purchases'}
           </Text>
         </Pressable>
       ) : null}

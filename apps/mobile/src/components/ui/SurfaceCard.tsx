@@ -87,7 +87,7 @@ export function SurfaceCard({
         variant === 'success'
           ? `${colors.success}40`
           : isInner
-            ? colorWithAlpha(colors.labelPrimary, isDark ? 0.28 : 0.14)
+            ? colorWithAlpha(colors.labelPrimary, isDark ? 0.08 : 0.14)
             : colors.separator,
       ...(padding === 'none' ? null : { padding: padding === 'lg' ? spacing.lg : spacing.md }),
       ...(gap ? { gap: spacing.sm } : null),

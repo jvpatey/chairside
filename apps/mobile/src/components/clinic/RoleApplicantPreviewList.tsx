@@ -128,28 +128,43 @@ export function RoleApplicantPreviewList({
       padding: spacing.sm,
       gap: spacing.xs,
     },
+    emptyRow: {
+      minHeight: ROW_MIN_HEIGHT,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      justifyContent: 'center',
+    },
+    emptyText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelTertiary,
+    },
   }));
-
-  if (applicants.length === 0) return null;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
         <Text style={styles.headerLabel}>Applicants</Text>
       </View>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        nestedScrollEnabled
-        showsVerticalScrollIndicator={applicants.length > 3}>
-        {applicants.map((applicant) => (
-          <ApplicantPreviewRow
-            key={applicant.id}
-            applicant={applicant}
-            onPress={() => onApplicantPress(applicant.id)}
-          />
-        ))}
-      </ScrollView>
+      {applicants.length === 0 ? (
+        <View style={styles.emptyRow} accessibilityLabel="No applicants yet">
+          <Text style={styles.emptyText}>No applicants yet</Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={applicants.length > 3}>
+          {applicants.map((applicant) => (
+            <ApplicantPreviewRow
+              key={applicant.id}
+              applicant={applicant}
+              onPress={() => onApplicantPress(applicant.id)}
+            />
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }

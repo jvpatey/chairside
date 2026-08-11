@@ -6,7 +6,7 @@ import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
 import { isInvalidWageRange } from '@/lib/scheduleString';
 import { useTheme, useThemedStyles } from '@/theme';
 
-export type RolePayType = 'hourly' | 'commission';
+export type RolePayType = 'hourly' | 'commission' | 'discuss';
 
 export const COMMISSION_WAGE_LABEL = 'Commission';
 
@@ -28,6 +28,9 @@ function formatHourlyRange(min: string, max: string): string {
 }
 
 export function formatWageRange(min: string, max: string, payType: RolePayType = 'hourly'): string {
+  if (payType === 'discuss') {
+    return '';
+  }
   if (payType === 'commission') {
     return COMMISSION_WAGE_LABEL;
   }
@@ -40,7 +43,7 @@ export function parseWageRange(wageRange: string): {
   payType: RolePayType;
 } {
   const range = wageRange.trim();
-  if (!range) return { min: '', max: '', payType: 'hourly' };
+  if (!range) return { min: '', max: '', payType: 'discuss' };
 
   if (range === COMMISSION_WAGE_LABEL || /^commission$/i.test(range) || /commission/i.test(range)) {
     const legacyAmountMatch = /^\$(\d+) commission$/.exec(range);
@@ -63,12 +66,13 @@ export function parseWageRange(wageRange: string): {
   const singleMatch = /^\$(\d+)\/hr$/.exec(range);
   if (singleMatch) return { min: singleMatch[1], max: singleMatch[1], payType: 'hourly' };
 
-  return { min: '', max: '', payType: 'hourly' };
+  return { min: '', max: '', payType: 'discuss' };
 }
 
-const PAY_TYPE_OPTIONS = [
+const PAY_TYPE_OPTIONS: { value: RolePayType; label: string }[] = [
   { value: 'hourly', label: 'Hourly' },
   { value: 'commission', label: 'Commission' },
+  { value: 'discuss', label: 'To be discussed' },
 ];
 
 type WageRangeInputProps = {
@@ -96,11 +100,6 @@ export function WageRangeInput({
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
       gap: spacing.sm,
-    },
-    label: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.labelSecondary,
     },
     hourlyRow: {
       flexDirection: 'row',
@@ -151,6 +150,11 @@ export function WageRangeInput({
       color: colors.destructive,
       fontSize: 13,
     },
+    hint: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
     preview: {
       backgroundColor: colors.fillSubtle,
       borderRadius: 12,
@@ -168,7 +172,7 @@ export function WageRangeInput({
   const handlePayTypeChange = (value: string) => {
     const nextType = value as RolePayType;
     setPayType(nextType);
-    if (nextType === 'commission') {
+    if (nextType === 'commission' || nextType === 'discuss') {
       setMin('');
       setMax('');
     }
@@ -184,7 +188,7 @@ export function WageRangeInput({
 
   return (
     <View style={styles.wrap}>
-      {!embedded ? <FormFieldLabel label="Compensation (optional)" /> : null}
+      {!embedded ? <FormFieldLabel label="Compensation" /> : null}
 
       <ChipSelector
         options={PAY_TYPE_OPTIONS}
@@ -223,6 +227,10 @@ export function WageRangeInput({
           </View>
           <Text style={styles.suffix}>/hr</Text>
         </View>
+      ) : null}
+
+      {payType === 'discuss' ? (
+        <Text style={styles.hint}>Pay won’t appear on the listing.</Text>
       ) : null}
 
       {isInvalid ? (

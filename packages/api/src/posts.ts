@@ -7,6 +7,7 @@ import { isMatchableSoftware } from '@chairside/core';
 import { isClinicApplicationHighlighted } from './applicationNotificationPredicates';
 import { getClinicPlanMap } from './billing';
 import { getSupabaseClient } from './client';
+import { throwWithMessage } from './errors';
 import {
   getJobPostScreeningQuestions,
   replaceJobPostScreeningQuestions,
@@ -264,7 +265,7 @@ export async function updateJobPost(
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) throwWithMessage(error, 'Could not save role.');
 
   if (input.screeningQuestions !== undefined || input.screening_enabled !== undefined) {
     const enabled = input.screening_enabled ?? (data as JobPost).screening_enabled;
@@ -334,7 +335,7 @@ export async function createJobPost(clinicId: string, input: CreateJobPostInput)
       .eq('id', clinicId)
       .maybeSingle();
 
-    if (profileError) throw profileError;
+    if (profileError) throwWithMessage(profileError, 'Could not load clinic profile.');
 
     if (specialty === undefined) {
       specialty = clinicProfile?.specialty ?? 'general';
@@ -371,7 +372,7 @@ export async function createJobPost(clinicId: string, input: CreateJobPostInput)
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) throwWithMessage(error, 'Could not publish role.');
 
   const job = data as JobPost;
   if (input.screening_enabled && input.screeningQuestions?.length) {
@@ -410,7 +411,7 @@ export async function createShiftPost(
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) throwWithMessage(error, 'Could not publish fill-in.');
   return data as ShiftPost;
 }
 

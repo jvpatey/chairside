@@ -103,7 +103,14 @@ export default function ClinicDashboardScreen() {
     groupDisplayName,
   } = useClinicActingContext();
   const { isTablet } = useResponsiveLayout();
-  const { billing, isBillingReady, refreshBilling, upgradePrompt } = useClinicUpgradePrompt();
+  const {
+    billing,
+    isBillingReady,
+    isHealingSubscription,
+    revenueCatPlan,
+    refreshBilling,
+    upgradePrompt,
+  } = useClinicUpgradePrompt();
   const { logoUri } = useClinicLogo();
   const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
   const { overview } = useLocalSearchParams<{ overview?: string }>();
@@ -536,6 +543,14 @@ export default function ClinicDashboardScreen() {
               secondaryLabel="Fill-ins"
               secondaryUsed={billing.activeFillInCount}
               secondaryLimit={billing.activeFillInLimit}
+              syncNotice={
+                isHealingSubscription ||
+                (revenueCatPlan != null &&
+                  revenueCatPlan !== 'free' &&
+                  billing.plan === 'free')
+                  ? 'Subscription found — refreshing…'
+                  : null
+              }
               onViewPlansPress={() =>
                 openClinicBillingModal({
                   focus: billing.planFamily === 'group' || isGroup ? 'group' : 'clinic',

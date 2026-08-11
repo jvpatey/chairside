@@ -1,5 +1,6 @@
 import {
   createJobPost,
+  getErrorMessage,
   getJobPostWithScreening,
   screeningQuestionInputFromSelection,
   updateJobPost,
@@ -280,7 +281,7 @@ export default function PostJobScreen() {
       if (handleBillingError(error)) {
         return;
       }
-      const message = error instanceof Error ? error.message : 'Please try again.';
+      const message = getErrorMessage(error, 'Please try again.');
       setFormError(
         showFormError(message, {
           title: isEditing ? 'Could not save changes' : 'Could not publish',
@@ -393,7 +394,7 @@ export default function PostJobScreen() {
         </View>
 
         <View ref={setSectionRef('wage')} style={styles.section} collapsable={false}>
-          <FormSectionHeader icon="cash-outline" label="Compensation (optional)" />
+          <FormSectionHeader icon="cash-outline" label="Compensation" />
           <WageRangeInput
             key={`wage-${formKey}`}
             initialValue={wageRange}

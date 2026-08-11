@@ -359,7 +359,7 @@ export default function ClinicPostingsScreen() {
                   />
                 ) : (
                   <View style={styles.cardList}>
-                    <ResponsiveGrid>
+                    <ResponsiveGrid maxColumns={2}>
                       {filteredJobs.map((job) => (
                         <RolePostingCard
                           key={job.id}

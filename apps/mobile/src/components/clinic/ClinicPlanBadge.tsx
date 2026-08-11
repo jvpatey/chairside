@@ -37,7 +37,6 @@ export function ClinicPlanBadge({ plan, onPress, compact = false }: ClinicPlanBa
       paddingHorizontal: spacing.sm - 2,
       paddingVertical: 3,
       borderRadius: radii.pill,
-      backgroundColor,
       maxWidth: '100%',
       ...webPointer(),
     },
@@ -46,7 +45,6 @@ export function ClinicPlanBadge({ plan, onPress, compact = false }: ClinicPlanBa
       lineHeight: 14,
       fontFamily: fontSemibold,
       fontWeight: '600',
-      color: accent,
       flexShrink: 0,
     },
   }));
@@ -54,7 +52,7 @@ export function ClinicPlanBadge({ plan, onPress, compact = false }: ClinicPlanBa
   const content = (
     <>
       <Ionicons name={icon} size={12} color={accent} />
-      <Text style={styles.label} numberOfLines={1}>
+      <Text style={[styles.label, { color: accent }]} numberOfLines={1}>
         {label}
       </Text>
     </>
@@ -62,7 +60,7 @@ export function ClinicPlanBadge({ plan, onPress, compact = false }: ClinicPlanBa
 
   if (!onPress) {
     return (
-      <View style={styles.badge} accessibilityLabel={label}>
+      <View style={[styles.badge, { backgroundColor }]} accessibilityLabel={label}>
         {content}
       </View>
     );
@@ -76,7 +74,7 @@ export function ClinicPlanBadge({ plan, onPress, compact = false }: ClinicPlanBa
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
-      style={styles.badge}>
+      style={[styles.badge, { backgroundColor }]}>
       {content}
     </Pressable>
   );

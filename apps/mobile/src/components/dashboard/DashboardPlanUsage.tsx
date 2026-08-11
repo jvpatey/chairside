@@ -16,6 +16,8 @@ type DashboardPlanUsageProps = {
   secondaryUsed?: number;
   secondaryLimit?: number | null;
   onViewPlansPress?: () => void;
+  /** Shown while RevenueCat and DB subscription state are being reconciled. */
+  syncNotice?: string | null;
 };
 
 function formatUsageMeta(used: number, limit: number | null): string {
@@ -39,6 +41,7 @@ export function DashboardPlanUsage({
   secondaryUsed,
   secondaryLimit,
   onViewPlansPress,
+  syncNotice = null,
 }: DashboardPlanUsageProps) {
   const { colors } = useTheme();
   const compact = useDashboardAsideCompact();
@@ -94,6 +97,18 @@ export function DashboardPlanUsage({
       fontFamily: fontRegular,
       color: colors.labelSecondary,
     },
+    syncNotice: {
+      fontSize: compact ? 12 : 13,
+      lineHeight: compact ? 16 : 18,
+      fontFamily: fontRegular,
+      color: colors.labelPrimary,
+      backgroundColor: colors.primarySubtle,
+      borderRadius: radii.sm,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.primary,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
   }));
 
   const primaryLimit = limit ?? used;
@@ -133,6 +148,11 @@ export function DashboardPlanUsage({
       />
 
       <View style={styles.body}>
+        {syncNotice ? (
+          <Text style={styles.syncNotice} accessibilityLiveRegion="polite">
+            {syncNotice}
+          </Text>
+        ) : null}
         <View style={styles.row}>
           <ProgressRing
             completed={used}

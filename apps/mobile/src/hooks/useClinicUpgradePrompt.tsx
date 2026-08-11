@@ -1,4 +1,4 @@
-import { isClinicBillingLimitError } from '@chairside/api';
+import { getErrorMessage, isClinicBillingLimitError } from '@chairside/api';
 import { useCallback, useState } from 'react';
 
 import {
@@ -11,7 +11,8 @@ import type { ClinicBillingScrollFocus } from '@/components/billing/ClinicBillin
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 
 export function useClinicUpgradePrompt() {
-  const { billing, isBillingReady, refreshBilling } = useClinicBilling();
+  const { billing, isBillingReady, refreshBilling, isHealingSubscription, revenueCatPlan } =
+    useClinicBilling();
   const [reason, setReason] = useState<ClinicUpgradeReason | null>(null);
 
   const closeUpgradePrompt = useCallback(() => setReason(null), []);
@@ -33,8 +34,8 @@ export function useClinicUpgradePrompt() {
   const showAddManagerUpgrade = useCallback(() => setReason('add_manager'), []);
 
   const handleBillingError = useCallback((error: unknown): boolean => {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!isClinicBillingLimitError(message)) return false;
+    const message = getErrorMessage(error, '');
+    if (!message || !isClinicBillingLimitError(message)) return false;
 
     const normalized = message.toLowerCase();
     if (normalized.includes('sms fill-in alerts')) {
@@ -108,6 +109,8 @@ export function useClinicUpgradePrompt() {
   return {
     billing,
     isBillingReady,
+    isHealingSubscription,
+    revenueCatPlan,
     refreshBilling,
     upgradePrompt,
     closeUpgradePrompt,
