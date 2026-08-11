@@ -31,6 +31,8 @@ type WorkerPublicClinicProfileViewProps = {
   shifts: LiveShiftPost[];
   onJobPress: (jobId: string) => void;
   onShiftPress: (shiftId: string) => void;
+  /** Hide candidate messaging copy when a clinic is viewing another clinic. */
+  audience?: 'worker' | 'clinic';
 };
 
 function normalizeWebsiteUrl(url: string): string {
@@ -232,6 +234,7 @@ export function WorkerPublicClinicProfileView({
   shifts,
   onJobPress,
   onShiftPress,
+  audience = 'worker',
 }: WorkerPublicClinicProfileViewProps) {
   const logoUri = useClinicLogoUri(profile.logo_storage_path);
   const locationLabel = [profile.city, getProvinceLabel(profile.province)].filter(Boolean).join(', ');
@@ -245,7 +248,8 @@ export function WorkerPublicClinicProfileView({
   const hasPracticeDetails = Boolean(teamSizeLabel || softwareUsed.length > 0 || hasDoctors);
   const acceptsGeneralMessages = profile.accepts_general_candidate_messages;
   const hasNoPostings = jobs.length === 0 && shifts.length === 0;
-  const showGeneralMessageHint = acceptsGeneralMessages && hasNoPostings;
+  const showGeneralMessageHint =
+    audience === 'worker' && acceptsGeneralMessages && hasNoPostings;
 
   const styles = useThemedStyles(({ spacing }) => ({
     sectionBlock: {
@@ -352,7 +356,7 @@ export function WorkerPublicClinicProfileView({
             icon="briefcase-outline"
             title="No open roles right now"
             description={
-              acceptsGeneralMessages
+              audience === 'worker' && acceptsGeneralMessages
                 ? 'No roles are posted, but you can still message this clinic if you are interested in working there.'
                 : 'Check back later for new opportunities.'
             }
@@ -375,7 +379,7 @@ export function WorkerPublicClinicProfileView({
             icon={FILL_IN_ICON.outline}
             title="No open fill-ins right now"
             description={
-              acceptsGeneralMessages
+              audience === 'worker' && acceptsGeneralMessages
                 ? 'No fill-ins are posted, but you can still message this clinic about future opportunities.'
                 : 'This clinic has no upcoming shifts posted.'
             }

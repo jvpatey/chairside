@@ -2,6 +2,10 @@ import { FilterSheetSection } from '@/components/ui/FilterSheet';
 import { AdaptiveFilterShell } from '@/components/ui/AdaptiveFilterShell';
 import type { GradientAccent } from '@/theme';
 import {
+  CLINIC_DISCOVER_SORT_OPTIONS,
+  type ClinicDiscoverSort,
+} from '@/lib/clinicDiscoverFilters';
+import {
   JOB_STATUS_FILTER_OPTIONS,
   PAY_LISTED_FILTER_OPTIONS,
   ROLE_TYPE_FILTER_OPTIONS,
@@ -49,6 +53,7 @@ type RoleTypeFiltersProps = {
   onRoleTypeChange: (value: RoleTypeFilter) => void;
   accessibilityLabel?: string;
   sheetTitle?: string;
+  disabled?: boolean;
 };
 
 export function RoleTypeFilters({
@@ -56,6 +61,7 @@ export function RoleTypeFilters({
   onRoleTypeChange,
   accessibilityLabel = 'Filter by role type',
   sheetTitle = 'Filter by role',
+  disabled = false,
 }: RoleTypeFiltersProps) {
   const defaultRoleType: RoleTypeFilter = 'all';
   const activeCount = roleTypeFilter === defaultRoleType ? 0 : 1;
@@ -66,12 +72,82 @@ export function RoleTypeFilters({
       onReset={() => onRoleTypeChange(defaultRoleType)}
       title={sheetTitle}
       accessibilityLabel={accessibilityLabel}
+      disabled={disabled}
     >
       <FilterSheetSection
         label="Role type"
         options={ROLE_TYPE_FILTER_OPTIONS}
         selected={roleTypeFilter}
         onChange={onRoleTypeChange}
+      />
+    </AdaptiveFilterShell>
+  );
+}
+
+type ClinicDiscoverFiltersProps = {
+  roleTypeFilter: RoleTypeFilter;
+  sort: ClinicDiscoverSort;
+  distanceFilter: WorkerDistanceFilter;
+  onRoleTypeChange: (value: RoleTypeFilter) => void;
+  onSortChange: (value: ClinicDiscoverSort) => void;
+  onDistanceFilterChange: (value: WorkerDistanceFilter) => void;
+  accessibilityLabel?: string;
+  sheetTitle?: string;
+  disabled?: boolean;
+};
+
+export function ClinicDiscoverFilters({
+  roleTypeFilter,
+  sort,
+  distanceFilter,
+  onRoleTypeChange,
+  onSortChange,
+  onDistanceFilterChange,
+  accessibilityLabel = 'Filter discover',
+  sheetTitle = 'Filter discover',
+  disabled = false,
+}: ClinicDiscoverFiltersProps) {
+  const defaults = {
+    roleTypeFilter: 'all' as RoleTypeFilter,
+    sort: 'distance' as ClinicDiscoverSort,
+    distanceFilter: 'all' as WorkerDistanceFilter,
+  };
+  const activeCount =
+    (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
+    (sort === defaults.sort ? 0 : 1) +
+    (distanceFilter === defaults.distanceFilter ? 0 : 1);
+
+  const handleReset = () => {
+    onRoleTypeChange(defaults.roleTypeFilter);
+    onSortChange(defaults.sort);
+    onDistanceFilterChange(defaults.distanceFilter);
+  };
+
+  return (
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={handleReset}
+      title={sheetTitle}
+      accessibilityLabel={accessibilityLabel}
+      disabled={disabled}
+    >
+      <FilterSheetSection
+        label="Role type"
+        options={ROLE_TYPE_FILTER_OPTIONS}
+        selected={roleTypeFilter}
+        onChange={onRoleTypeChange}
+      />
+      <FilterSheetSection
+        label="Sort"
+        options={CLINIC_DISCOVER_SORT_OPTIONS}
+        selected={sort}
+        onChange={onSortChange}
+      />
+      <FilterSheetSection
+        label="Distance"
+        options={WORKER_DISTANCE_FILTER_OPTIONS}
+        selected={distanceFilter}
+        onChange={onDistanceFilterChange}
       />
     </AdaptiveFilterShell>
   );

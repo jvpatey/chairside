@@ -5,16 +5,30 @@ import {
 } from '@chairside/config';
 
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
-import type { RoleTypeFilter } from '@/lib/postingFilters';
+import type { RoleTypeFilter, WorkerDistanceFilter } from '@/lib/postingFilters';
+
+export type ClinicDiscoverSort = 'distance' | 'newest';
 
 export type ClinicDiscoverFiltersState = {
   searchQuery: string;
   roleTypeFilter: RoleTypeFilter;
+  sort: ClinicDiscoverSort;
+  distanceFilter: WorkerDistanceFilter;
 };
+
+/** Fixed near-me radius for clinic Discover (no worker travel preference). */
+export const CLINIC_DISCOVER_NEAR_ME_RADIUS_KM = 50;
+
+export const CLINIC_DISCOVER_SORT_OPTIONS: { value: ClinicDiscoverSort; label: string }[] = [
+  { value: 'distance', label: 'Nearest' },
+  { value: 'newest', label: 'Newest' },
+];
 
 export const DEFAULT_CLINIC_DISCOVER_FILTERS: ClinicDiscoverFiltersState = {
   searchQuery: '',
   roleTypeFilter: 'all',
+  sort: 'distance',
+  distanceFilter: 'all',
 };
 
 export type EnrichedClinicDiscoverJob = LiveJobPost & {
@@ -64,6 +78,27 @@ function matchesRoleTypeFilter<T extends { role_type: string }>(
   roleTypeFilter: RoleTypeFilter,
 ): boolean {
   return roleTypeFilter === 'all' || item.role_type === roleTypeFilter;
+}
+
+function matchesDistanceFilter(
+  distanceKm: number | null,
+  distanceFilter: WorkerDistanceFilter,
+): boolean {
+  switch (distanceFilter) {
+    case 'all':
+      return true;
+    case 'near_me':
+      return distanceKm != null && distanceKm <= CLINIC_DISCOVER_NEAR_ME_RADIUS_KM;
+    case 'distance_available':
+      return distanceKm != null;
+  }
+}
+
+function compareDistanceAsc(a: number | null, b: number | null): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return a - b;
 }
 
 function getClinicDistanceKm(
@@ -139,6 +174,30 @@ function enrichShift(
   };
 }
 
+export function getDefaultClinicDiscoverSort(
+  viewerClinic: Pick<ClinicProfile, 'latitude' | 'longitude'> | null | undefined,
+): ClinicDiscoverSort {
+  return viewerClinic?.latitude != null && viewerClinic?.longitude != null
+    ? 'distance'
+    : 'newest';
+}
+
+export function countClinicDiscoverFilterChanges(
+  filters: ClinicDiscoverFiltersState,
+  defaults: ClinicDiscoverFiltersState = DEFAULT_CLINIC_DISCOVER_FILTERS,
+): number {
+  return (
+    (filters.roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
+    (filters.sort === defaults.sort ? 0 : 1) +
+    (filters.distanceFilter === defaults.distanceFilter ? 0 : 1) +
+    (normalizeSearchQuery(filters.searchQuery) ? 1 : 0)
+  );
+}
+
+export function getClinicDiscoverSortLabel(sort: ClinicDiscoverSort): string {
+  return sort === 'distance' ? 'nearest first' : 'newest first';
+}
+
 export function filterClinicDiscoverJobs(
   jobs: LiveJobPost[],
   viewerClinic: ClinicProfile | null,
@@ -146,13 +205,23 @@ export function filterClinicDiscoverJobs(
 ): EnrichedClinicDiscoverJob[] {
   const query = normalizeSearchQuery(filters.searchQuery);
 
-  return jobs
+  const filtered = jobs
     .map((job) => enrichJob(job, viewerClinic))
     .filter((job) => {
       if (!matchesRoleTypeFilter(job, filters.roleTypeFilter)) return false;
+      if (!matchesDistanceFilter(job.distanceKm, filters.distanceFilter)) return false;
       return matchesTextSearch(buildJobSearchHaystack(job), query);
-    })
-    .sort((left, right) => right.created_at.localeCompare(left.created_at));
+    });
+
+  if (filters.sort === 'distance') {
+    return filtered.sort((left, right) => {
+      const byDistance = compareDistanceAsc(left.distanceKm, right.distanceKm);
+      if (byDistance !== 0) return byDistance;
+      return right.created_at.localeCompare(left.created_at);
+    });
+  }
+
+  return filtered.sort((left, right) => right.created_at.localeCompare(left.created_at));
 }
 
 export function filterClinicDiscoverShifts(
@@ -162,11 +231,21 @@ export function filterClinicDiscoverShifts(
 ): EnrichedClinicDiscoverShift[] {
   const query = normalizeSearchQuery(filters.searchQuery);
 
-  return shifts
+  const filtered = shifts
     .map((shift) => enrichShift(shift, viewerClinic))
     .filter((shift) => {
       if (!matchesRoleTypeFilter(shift, filters.roleTypeFilter)) return false;
+      if (!matchesDistanceFilter(shift.distanceKm, filters.distanceFilter)) return false;
       return matchesTextSearch(buildShiftSearchHaystack(shift), query);
-    })
-    .sort((left, right) => left.shift_date.localeCompare(right.shift_date));
+    });
+
+  if (filters.sort === 'distance') {
+    return filtered.sort((left, right) => {
+      const byDistance = compareDistanceAsc(left.distanceKm, right.distanceKm);
+      if (byDistance !== 0) return byDistance;
+      return left.shift_date.localeCompare(right.shift_date);
+    });
+  }
+
+  return filtered.sort((left, right) => left.shift_date.localeCompare(right.shift_date));
 }

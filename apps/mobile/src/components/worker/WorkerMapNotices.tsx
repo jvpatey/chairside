@@ -34,7 +34,7 @@ export function WorkerMapNotices({ unmappableCount, workerHasCoordinates }: Work
       next.push({
         id: 'province',
         title: 'Showing your province',
-        body: 'Add your worker address in profile setup to center the map near you and improve distance sorting.',
+        body: 'Add your address in profile setup to center the map near you and improve distance sorting.',
       });
     }
 

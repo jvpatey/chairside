@@ -10,6 +10,7 @@ type AdaptiveFilterShellProps = {
   title: string;
   accessibilityLabel?: string;
   accent?: GradientAccent;
+  disabled?: boolean;
   children: ReactNode;
 };
 
@@ -20,6 +21,7 @@ export function AdaptiveFilterShell({
   title,
   accessibilityLabel,
   accent,
+  disabled = false,
   children,
 }: AdaptiveFilterShellProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -31,6 +33,7 @@ export function AdaptiveFilterShell({
         onPress={() => setSheetOpen(true)}
         accessibilityLabel={accessibilityLabel}
         accent={accent}
+        disabled={disabled}
       />
       <FilterSheet
         visible={sheetOpen}

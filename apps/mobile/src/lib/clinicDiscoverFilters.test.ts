@@ -1,4 +1,4 @@
-import type { LiveJobPost, LiveShiftPost } from '@chairside/api';
+import type { ClinicProfile, LiveJobPost, LiveShiftPost } from '@chairside/api';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -13,7 +13,7 @@ const viewerClinic = {
   province: 'NS',
   latitude: 44.65,
   longitude: -63.57,
-} as const;
+} as ClinicProfile;
 
 function makeJob(overrides: Partial<LiveJobPost> = {}): LiveJobPost {
   return {

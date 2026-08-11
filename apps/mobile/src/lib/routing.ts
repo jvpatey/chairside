@@ -253,6 +253,19 @@ export function getClinicDiscoverShiftDetailRoute(shiftId: string): Href {
   } as Href;
 }
 
+export function getClinicDiscoverClinicProfileRoute(
+  clinicId: string,
+  options?: { fromJobId?: string; fromShiftId?: string },
+): Href {
+  const params: Record<string, string> = { id: clinicId };
+  if (options?.fromJobId) params.fromJobId = options.fromJobId;
+  if (options?.fromShiftId) params.fromShiftId = options.fromShiftId;
+  return {
+    pathname: '/(clinic-tabs)/discover/clinic/[id]',
+    params,
+  } as Href;
+}
+
 export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
   if (tab === 'fill-ins') {
     return CLINIC_FILL_INS;

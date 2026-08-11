@@ -5,12 +5,14 @@ import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { getClinicDiscoverClinicProfileRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicDiscoverJobDetailScreen() {
@@ -87,6 +89,14 @@ export default function ClinicDiscoverJobDetailScreen() {
           />
         </SurfaceCard>
         <JobPostDetailView job={job} />
+        <OnboardingButton
+          label="View clinic profile"
+          onPress={() =>
+            router.push(
+              getClinicDiscoverClinicProfileRoute(job.clinic_id, { fromJobId: job.id }),
+            )
+          }
+        />
       </View>
     </FormScreen>
   );
