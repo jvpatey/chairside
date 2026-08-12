@@ -141,6 +141,7 @@ export {
   REVENUECAT_PACKAGE_LOOKUP,
   REVENUECAT_PRODUCT_IDS,
   clinicPlanIncludesFeature,
+  isClinicPlanFeatureIntro,
   formatClinicActiveOpportunityLimit,
   getClinicActiveFillInLimit,
   getClinicActiveOpportunityLimit,

@@ -83,7 +83,7 @@ export function getClinicBulkOutreachUpgradeMessage(
 }
 
 export function getClinicCrmUpgradeMessage(planFamily: ClinicPlanFamily = 'clinic'): string {
-  return `CRM notes, tags, and follow-ups are available on ${paidPlanLabel(planFamily)} plans.`;
+  return `Private candidate notes, tags, and follow-up reminders are available on ${paidPlanLabel(planFamily)} plans.`;
 }
 
 export function getClinicPdfExportUpgradeMessage(
@@ -150,7 +150,7 @@ export function getClinicUpgradePromptTitle(reason: ClinicUpgradeReason): string
     case 'bulk_outreach':
       return 'Upgrade for bulk outreach';
     case 'crm':
-      return 'Upgrade for CRM';
+      return 'Upgrade for private notes';
     case 'pdf_export':
       return 'Upgrade for PDF export';
     case 'discover':

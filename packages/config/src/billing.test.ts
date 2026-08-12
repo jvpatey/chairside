@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CLINIC_PLAN_MARKETING,
   clinicPlanIncludesFeature,
+  isClinicPlanFeatureIntro,
   formatClinicActiveOpportunityLimit,
   getClinicActiveFillInLimit,
   getClinicActiveRoleLimit,
@@ -36,6 +38,13 @@ describe('billing config', () => {
     ).toBe('pro');
     expect(resolveClinicPlanFromEntitlements({ clinic_starter: true })).toBe('starter');
     expect(resolveClinicPlanFromEntitlements({})).toBe('free');
+  });
+
+  it('nests Pro marketing under Starter instead of restating shared tools', () => {
+    expect(CLINIC_PLAN_MARKETING.pro.features[0]).toBe('Everything in Starter, plus:');
+    expect(CLINIC_PLAN_MARKETING.group_pro.features[0]).toBe('Everything in Group Starter, plus:');
+    expect(isClinicPlanFeatureIntro('Everything in Starter, plus:')).toBe(true);
+    expect(isClinicPlanFeatureIntro('Clinic Discover')).toBe(false);
   });
 
   it('ranks plans with group tiers above clinic tiers', () => {

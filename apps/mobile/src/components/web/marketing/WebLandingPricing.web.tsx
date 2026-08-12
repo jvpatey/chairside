@@ -1,6 +1,7 @@
 import {
   CLINIC_PLAN_LABELS,
   CLINIC_PLAN_MARKETING,
+  isClinicPlanFeatureIntro,
   type ClinicPlan,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
@@ -297,6 +298,13 @@ function PricingPlanCard({
       lineHeight: 20,
       color: colors.labelSecondary,
     },
+    featureIntro: {
+      flex: 1,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+    },
   }));
 
   return (
@@ -321,17 +329,22 @@ function PricingPlanCard({
           <PricingCardPrice plan={plan} audience={audience} styles={styles} />
 
           <View style={styles.features}>
-            {features.map((feature) => (
-              <View key={feature} style={styles.featureRow}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={17}
-                  color={featureAccent}
-                  style={{ marginTop: 1 }}
-                />
-                <Text style={styles.feature}>{feature}</Text>
-              </View>
-            ))}
+            {features.map((feature) => {
+              const isIntro = isClinicPlanFeatureIntro(feature);
+              return (
+                <View key={feature} style={styles.featureRow}>
+                  {isIntro ? null : (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={17}
+                      color={featureAccent}
+                      style={{ marginTop: 1 }}
+                    />
+                  )}
+                  <Text style={isIntro ? styles.featureIntro : styles.feature}>{feature}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
       </View>
@@ -396,23 +409,9 @@ function PricingAudiencePanel({
   const plans =
     displayAudience === 'clinic' ? CLINIC_AUDIENCE_PLANS : GROUP_AUDIENCE_PLANS;
 
-  const subtitle =
-    displayAudience === 'clinic'
-      ? 'Post your first role and fill-in at no cost. Upgrade when you need more.'
-      : 'Try up to 2 locations and 1 manager free. Upgrade for more locations and hiring across your group.';
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     panel: {
       gap: spacing.xl,
-    },
-    subtitle: {
-      ...webTypography.subtitle,
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.labelSecondary,
-      textAlign: 'center' as const,
-      maxWidth: 780,
-      alignSelf: 'center' as const,
     },
     cards: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
@@ -425,8 +424,6 @@ function PricingAudiencePanel({
     <Animated.View
       style={[styles.panel, { opacity, transform: [{ translateY }] }]}
       accessibilityLiveRegion="polite">
-      <Text style={styles.subtitle}>{subtitle}</Text>
-
       <View style={styles.cards}>
         {plans.map((plan) => (
           <PricingPlanCard
@@ -444,6 +441,10 @@ function PricingAudiencePanel({
 export function WebLandingPricing() {
   const { isWide } = useResponsiveLayout();
   const [audience, setAudience] = useState<PricingAudience>('clinic');
+  const subtitle =
+    audience === 'clinic'
+      ? 'Post your first role and fill-in at no cost. Upgrade when you need more.'
+      : 'Try up to 2 locations and 1 manager free. Upgrade for more locations and hiring across your group.';
 
   const handleAudienceChange = (next: PricingAudience) => {
     if (next === audience) return;
@@ -483,9 +484,7 @@ export function WebLandingPricing() {
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Pricing</Text>
         <Text style={styles.title}>Clinic plans. Professionals always free.</Text>
-        <Text style={styles.subline}>
-          Dental professionals always join and apply free — no subscription.
-        </Text>
+        <Text style={styles.subline}>{subtitle}</Text>
       </View>
 
       <PricingAudienceToggle value={audience} onChange={handleAudienceChange} />

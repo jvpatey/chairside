@@ -18,7 +18,7 @@ import {
 describe('ClinicUpgradePrompt Phase B helpers', () => {
   it('titles Phase B reasons', () => {
     expect(getClinicUpgradePromptTitle('screening')).toBe('Upgrade for screening');
-    expect(getClinicUpgradePromptTitle('crm')).toBe('Upgrade for CRM');
+    expect(getClinicUpgradePromptTitle('crm')).toBe('Upgrade for private notes');
     expect(getClinicUpgradePromptTitle('pdf_export')).toBe('Upgrade for PDF export');
     expect(getClinicUpgradePromptTitle('discover')).toBe('Upgrade for Discover');
     expect(getClinicUpgradePromptTitle('general_messaging')).toBe('Upgrade for open inquiries');
