@@ -8,6 +8,7 @@ import {
   type ApplicationPdfPacketOptions,
   type ApplicationPdfPacketResult,
 } from '@/lib/applicationPdfPacketContent';
+import { withPacketScreeningQuestions } from '@/lib/applicationPdfPacketQuestions';
 
 export type { ApplicationPdfPacketOptions, ApplicationPdfPacketResult } from '@/lib/applicationPdfPacketContent';
 export {
@@ -30,11 +31,19 @@ function mountHtmlForCapture(html: string): HTMLElement {
   container.appendChild(styleEl);
 
   const pageEl = parsed.querySelector('.page');
-  container.appendChild(pageEl ? pageEl.cloneNode(true) : parsed.body.cloneNode(true));
+  const pageClone = (pageEl ? pageEl.cloneNode(true) : parsed.body.cloneNode(true)) as HTMLElement;
+  if (pageClone instanceof HTMLElement) {
+    pageClone.style.padding = '0';
+  }
+  container.appendChild(pageClone);
 
   document.body.appendChild(container);
   return container;
 }
+
+const PAGE_MARGIN_X_PT = 40;
+const PAGE_MARGIN_TOP_PT = 36;
+const PAGE_MARGIN_BOTTOM_PT = 32;
 
 async function htmlToPdfBytes(html: string): Promise<Uint8Array> {
   const [{ jsPDF }, html2canvasModule] = await Promise.all([
@@ -64,21 +73,47 @@ async function htmlToPdfBytes(html: string): Promise<Uint8Array> {
     const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
-    const imgWidth = pdfWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const contentWidth = pdfWidth - PAGE_MARGIN_X_PT * 2;
+    const contentHeight = pdfHeight - PAGE_MARGIN_TOP_PT - PAGE_MARGIN_BOTTOM_PT;
+    const scale = contentWidth / canvas.width;
+    const pageSliceHeightPx = contentHeight / scale;
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    let sourceY = 0;
+    let pageIndex = 0;
+    while (sourceY < canvas.height - 0.5) {
+      const sliceHeightPx = Math.min(pageSliceHeightPx, canvas.height - sourceY);
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvas.width;
+      sliceCanvas.height = Math.max(1, Math.ceil(sliceHeightPx));
+      const ctx = sliceCanvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not prepare candidate packet page.');
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+      ctx.drawImage(
+        canvas,
+        0,
+        sourceY,
+        canvas.width,
+        sliceHeightPx,
+        0,
+        0,
+        canvas.width,
+        sliceHeightPx,
+      );
 
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfHeight;
-
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
+      if (pageIndex > 0) pdf.addPage();
+      pdf.addImage(
+        sliceCanvas.toDataURL('image/jpeg', 0.92),
+        'JPEG',
+        PAGE_MARGIN_X_PT,
+        PAGE_MARGIN_TOP_PT,
+        contentWidth,
+        sliceHeightPx * scale,
+      );
+      sourceY += sliceHeightPx;
+      pageIndex += 1;
     }
 
     return new Uint8Array(pdf.output('arraybuffer'));
@@ -152,16 +187,17 @@ export async function generateApplicationPdfPacket(
     throw new Error('Full application must be submitted before generating a candidate packet.');
   }
 
-  const fileName = buildApplicationPdfPacketFileName(options.application);
-  const html = buildApplicationPdfPacketHtml(options);
+  const resolved = await withPacketScreeningQuestions(options);
+  const fileName = buildApplicationPdfPacketFileName(resolved.application);
+  const html = buildApplicationPdfPacketHtml(resolved);
 
   return {
     uri: createHtmlPreviewUri(html),
     previewKind: 'html',
     sourceHtml: html,
-    exportOptions: options,
+    exportOptions: resolved,
     fileName,
-    resumeAttached: Boolean(options.application.resume_storage_path),
+    resumeAttached: Boolean(resolved.application.resume_storage_path),
   };
 }
 

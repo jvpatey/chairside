@@ -10,6 +10,7 @@ import {
   type ApplicationPdfPacketOptions,
   type ApplicationPdfPacketResult,
 } from '@/lib/applicationPdfPacketContent';
+import { withPacketScreeningQuestions } from '@/lib/applicationPdfPacketQuestions';
 import {
   buildResumeFileName,
   downloadResumeToCache,
@@ -83,8 +84,9 @@ export async function generateApplicationPdfPacket(
     throw new Error('Full application must be submitted before generating a candidate packet.');
   }
 
-  const fileName = buildApplicationPdfPacketFileName(options.application);
-  const html = buildApplicationPdfPacketHtml(options);
+  const resolved = await withPacketScreeningQuestions(options);
+  const fileName = buildApplicationPdfPacketFileName(resolved.application);
+  const html = buildApplicationPdfPacketHtml(resolved);
   const { uri: summaryUri } = await Print.printToFileAsync({ html });
 
   let resumeAttached = false;
