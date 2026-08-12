@@ -56,7 +56,10 @@ export function useClinicUpgradePrompt() {
       setReason('pdf_export');
     } else if (normalized.includes('discover')) {
       setReason('discover');
-    } else if (normalized.includes('general candidate messaging')) {
+    } else if (
+      normalized.includes('general candidate messaging') ||
+      normalized.includes('open inquiries require')
+    ) {
       setReason('general_messaging');
     } else if (normalized.includes('location limit')) {
       setReason('add_location');

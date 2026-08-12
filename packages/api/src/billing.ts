@@ -147,6 +147,8 @@ export function isClinicBillingLimitError(message: string): boolean {
     normalized.includes('application pdf export requires a paid clinic plan') ||
     normalized.includes('clinic discover requires a paid clinic plan') ||
     normalized.includes('general candidate messaging requires a paid clinic plan') ||
+    normalized.includes('open inquiries require a paid clinic plan') ||
+    normalized.includes('open inquiries require a pro plan') ||
     normalized.includes('custom screening question limit reached') ||
     normalized.includes('hiring insights require a pro plan') ||
     normalized.includes('bulk fill-in outreach requires a pro plan')

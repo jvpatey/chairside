@@ -23,6 +23,8 @@ describe('isClinicBillingLimitError', () => {
     expect(
       isClinicBillingLimitError('General candidate messaging requires a paid clinic plan.'),
     ).toBe(true);
+    expect(isClinicBillingLimitError('Open inquiries require a paid clinic plan.')).toBe(true);
+    expect(isClinicBillingLimitError('Open inquiries require a Pro plan.')).toBe(true);
     expect(
       isClinicBillingLimitError('Location limit reached. Upgrade your plan to add more locations.'),
     ).toBe(true);

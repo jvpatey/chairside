@@ -273,7 +273,7 @@ export function WorkerPublicClinicProfileView({
       {showGeneralMessageHint ? (
         <CardInfoPanel variant="info" icon="chatbubble-ellipses-outline" title="Open to inquiries">
           <CardInfoPanelText>
-            This clinic accepts general messages from candidates, even without an open role or fill-in.
+            This clinic accepts open inquiries from candidates, even without an open role or fill-in.
             Use Message clinic below to introduce yourself.
           </CardInfoPanelText>
         </CardInfoPanel>

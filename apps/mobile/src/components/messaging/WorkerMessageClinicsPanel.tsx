@@ -23,7 +23,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 const CLINICS_TITLE = 'Message a clinic';
 const CLINICS_SUBTITLE =
-  'Reach out to clinics in your province, even if they do not have a role posted right now.';
+  'Reach out to clinics in your province that are open to inquiries, even if they do not have a role posted right now.';
 
 type WorkerMessageClinicsPanelProps = {
   /** Split-view master pane: Screen shell with back navigation. */
@@ -132,7 +132,7 @@ export function WorkerMessageClinicsPanel({
   const openConversation = useCallback(
     (conversationId: string, title: string) => {
       if (onConversationStarted) {
-        onConversationStarted(conversationId, title, 'General inquiry');
+        onConversationStarted(conversationId, title, 'Open inquiry');
         return;
       }
 
@@ -140,7 +140,7 @@ export function WorkerMessageClinicsPanel({
         getWorkerConversationRoute(conversationId, {
           conversationId,
           title,
-          subtitle: 'General inquiry',
+          subtitle: 'Open inquiry',
         }),
       );
     },
@@ -201,7 +201,7 @@ export function WorkerMessageClinicsPanel({
               <Text style={styles.emptyTitle}>No clinics to message yet</Text>
               <Text style={styles.emptyBody}>
                 {clinics.length === 0
-                  ? 'No clinics in your province are open to general messages right now. Check back later, or message a clinic from a role, fill-in, or clinic profile.'
+                  ? 'No clinics in your province are open to inquiries right now. Check back later, or message a clinic from a role, fill-in, or clinic profile.'
                   : 'No clinics match your search. Try a different clinic name, city, or specialty.'}
               </Text>
             </View>

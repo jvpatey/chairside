@@ -42,7 +42,7 @@ export function MessageThreadPlaceholder({
           title: filteredEmpty ? 'No matching conversations' : 'No messages yet',
           body: filteredEmpty
             ? 'Try a different filter to see more conversations.'
-            : 'When applicants reach out or you message them, conversations will appear here.',
+            : 'When applicants reach out, you start an open inquiry, or you message them, conversations will appear here.',
         };
 
   return (

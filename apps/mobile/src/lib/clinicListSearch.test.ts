@@ -1,4 +1,4 @@
-import type { JobApplicationSummary, JobPost } from '@chairside/api';
+import type { JobApplicationSummary, JobPost, OpenInquiryWorker } from '@chairside/api';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -6,6 +6,7 @@ import {
   matchesConfirmedFillInSearch,
   matchesJobApplicationSummarySearch,
   matchesJobPostSearch,
+  matchesOpenInquiryWorkerSearch,
 } from '@/lib/clinicListSearch';
 
 describe('clinicListSearch', () => {
@@ -56,5 +57,24 @@ describe('clinicListSearch', () => {
 
     expect(matchesConfirmedFillInSearch(row, 'jeffrey')).toBe(true);
     expect(matchesConfirmedFillInSearch(row, 'assistant')).toBe(false);
+  });
+
+  it('matches open inquiry candidates by name, city, bio, and role', () => {
+    const worker = {
+      workerId: 'w1',
+      displayName: 'Ada Lovelace',
+      roleTypes: ['hygienist'],
+      city: 'Halifax',
+      yearsOfExperience: 4,
+      bio: 'Loves perio.',
+      photoStoragePath: null,
+      existingConversationId: null,
+    } satisfies OpenInquiryWorker;
+
+    expect(matchesOpenInquiryWorkerSearch(worker, 'ada')).toBe(true);
+    expect(matchesOpenInquiryWorkerSearch(worker, 'halifax')).toBe(true);
+    expect(matchesOpenInquiryWorkerSearch(worker, 'perio')).toBe(true);
+    expect(matchesOpenInquiryWorkerSearch(worker, 'hygienist')).toBe(true);
+    expect(matchesOpenInquiryWorkerSearch(worker, 'assistant')).toBe(false);
   });
 });

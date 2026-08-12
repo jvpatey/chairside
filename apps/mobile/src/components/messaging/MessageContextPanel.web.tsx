@@ -364,7 +364,12 @@ export function MessageContextPanel({
           body: 'You can still read the conversation history.',
         };
 
-  const eyebrowLabel = role === 'worker' ? 'About this clinic' : 'About this applicant';
+  const eyebrowLabel =
+    role === 'worker'
+      ? 'About this clinic'
+      : conversation.conversation_type === 'general'
+        ? 'About this candidate'
+        : 'About this applicant';
 
   return (
     <View style={styles.panel}>

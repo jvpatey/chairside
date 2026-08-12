@@ -45,6 +45,7 @@ function getEmptyStateTitle(filter: ConversationInboxFilter, hasSearch: boolean)
   if (hasSearch) return 'No matching conversations';
   if (filter === 'unread') return "You're all caught up";
   if (filter === 'all') return 'No messages yet';
+  if (filter === 'general') return 'No open inquiries';
   return 'No matching conversations';
 }
 
@@ -85,8 +86,10 @@ export function ConversationInboxList({
       paddingBottom: spacing.md,
     },
     headerBlock: {
-      gap: spacing.md,
       flexShrink: 0,
+    },
+    headerBlockSpaced: {
+      marginBottom: spacing.md,
     },
     chrome: {
       flexShrink: 0,
@@ -193,7 +196,7 @@ export function ConversationInboxList({
           },
           {
             value: 'general' as const,
-            label: 'General',
+            label: 'Open inquiries',
             count: filterCounts.general,
             icon: 'chatbubble-outline' as const,
             accent: 'primary' as const,
@@ -325,11 +328,9 @@ export function ConversationInboxList({
       </View>
     );
 
-  const headerContent = (
-    <View style={styles.headerBlock}>
-      {header ?? null}
-    </View>
-  );
+  const headerContent = header ? (
+    <View style={[styles.headerBlock, !compact && styles.headerBlockSpaced]}>{header}</View>
+  ) : null;
 
   const searchMeta =
     hasSearch && debouncedQuery.length >= MESSAGE_SEARCH_MIN_LENGTH ? (

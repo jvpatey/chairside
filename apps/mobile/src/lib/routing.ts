@@ -167,6 +167,7 @@ export const CLINIC_POSTINGS: Href = '/(clinic-tabs)/postings' as Href;
 export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
 export const CLINIC_DISCOVER: Href = '/(clinic-tabs)/discover' as Href;
 export const CLINIC_FIND_AVAILABLE_WORKERS: Href = '/(clinic-tabs)/find-available-workers' as Href;
+export const CLINIC_OPEN_INQUIRY_CANDIDATES: Href = '/(clinic-tabs)/open-inquiry-candidates' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const CLINIC_PROFILE_PRACTICE: Href = '/(clinic-tabs)/profile/practice' as Href;

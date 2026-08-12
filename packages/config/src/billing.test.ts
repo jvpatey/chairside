@@ -46,6 +46,11 @@ describe('billing config', () => {
 
   it('gates outreach and premium features by plan family', () => {
     expect(clinicPlanIncludesFeature('free', 'fill_in_outreach')).toBe(false);
+    expect(clinicPlanIncludesFeature('free', 'general_candidate_messaging')).toBe(false);
+    expect(clinicPlanIncludesFeature('starter', 'general_candidate_messaging')).toBe(false);
+    expect(clinicPlanIncludesFeature('group_starter', 'general_candidate_messaging')).toBe(false);
+    expect(clinicPlanIncludesFeature('pro', 'general_candidate_messaging')).toBe(true);
+    expect(clinicPlanIncludesFeature('group_pro', 'general_candidate_messaging')).toBe(true);
     expect(clinicPlanIncludesFeature('starter', 'fill_in_sms')).toBe(true);
     expect(clinicPlanIncludesFeature('group_starter', 'screening_questions')).toBe(true);
     expect(clinicPlanIncludesFeature('group_starter', 'priority_listing')).toBe(false);

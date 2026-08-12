@@ -101,7 +101,9 @@ export function getClinicDiscoverUpgradeMessage(
 export function getClinicGeneralMessagingUpgradeMessage(
   planFamily: ClinicPlanFamily = 'clinic',
 ): string {
-  return `General candidate messaging is available on ${paidPlanLabel(planFamily)} plans.`;
+  return planFamily === 'group'
+    ? 'You can already message applicants. Group Pro adds open inquiries — browse candidates in your area, and let them reach you without applying.'
+    : 'You can already message applicants. Clinic Pro adds open inquiries — browse candidates in your area, and let them reach you without applying.';
 }
 
 export function getClinicAddLocationUpgradeMessage(
@@ -154,7 +156,7 @@ export function getClinicUpgradePromptTitle(reason: ClinicUpgradeReason): string
     case 'discover':
       return 'Upgrade for Discover';
     case 'general_messaging':
-      return 'Upgrade for messaging';
+      return 'Upgrade for open inquiries';
     case 'add_location':
       return 'Upgrade to add locations';
     case 'add_manager':

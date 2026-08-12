@@ -11,6 +11,9 @@ import { addDays, isSameDay, parseISODate, startOfDay } from '@/lib/dates';
 import { formatShiftPostDateLabel, formatShiftPostMeta } from '@/lib/shiftPostDisplay';
 import { formatTimeRangePreview } from '@/lib/time';
 
+export const OPEN_INQUIRY_LABEL = 'Open inquiry';
+export const OPEN_INQUIRIES_LABEL = 'Open inquiries';
+
 export type ConversationDisplay = {
   contextLine: string;
   threadTitle: string;
@@ -29,7 +32,7 @@ function formatSpecialtyLabel(specialty: string | null | undefined): string | nu
 
 function formatCardRole(conversation: Conversation): string {
   if (conversation.conversation_type === 'general') {
-    return 'General inquiry';
+    return OPEN_INQUIRY_LABEL;
   }
   if (conversation.conversation_type === 'outreach') {
     return 'Fill-in outreach';
@@ -75,7 +78,9 @@ function formatInboxContextLine(conversation: Conversation, role: 'worker' | 'cl
 
   if (conversation.conversation_type === 'general') {
     const base =
-      role === 'worker' ? 'General inquiry · Reach out without applying' : 'General inquiry';
+      role === 'worker'
+        ? `${OPEN_INQUIRY_LABEL} · Reach out without applying`
+        : OPEN_INQUIRY_LABEL;
     return [base, deletedNote].filter(Boolean).join(' · ');
   }
 
@@ -201,11 +206,11 @@ export function formatConversationDisplay(
 
   if (conversation.conversation_type === 'general') {
     return {
-      contextLine: 'General inquiry',
+      contextLine: OPEN_INQUIRY_LABEL,
       threadTitle: conversation.counterpart_name,
-      threadSubtitle: 'General inquiry',
+      threadSubtitle: OPEN_INQUIRY_LABEL,
       cardName: conversation.counterpart_name,
-      cardTitle: 'General inquiry',
+      cardTitle: OPEN_INQUIRY_LABEL,
       cardMeta: formatCardMeta(conversation, role),
       inboxContextLine,
     };
@@ -270,7 +275,7 @@ export function getConversationTypeChip(conversation: Conversation): {
   tone: 'role' | 'fill_in' | 'general' | 'outreach';
 } {
   if (conversation.conversation_type === 'general') {
-    return { label: 'General', tone: 'general' };
+    return { label: OPEN_INQUIRY_LABEL, tone: 'general' };
   }
   if (conversation.conversation_type === 'outreach') {
     return { label: 'Fill-in', tone: 'outreach' };

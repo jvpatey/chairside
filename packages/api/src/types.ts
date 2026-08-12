@@ -175,6 +175,7 @@ export type WorkerProfileRow = {
   phone: string | null;
   fill_in_sms_opt_in: boolean;
   accepts_clinic_fill_in_outreach: boolean;
+  accepts_general_clinic_messages: boolean;
   job_notification_opt_in: boolean;
   expo_push_token: string | null;
   resume_storage_path: string | null;
@@ -412,6 +413,7 @@ export type Database = {
           phone?: string | null;
           fill_in_sms_opt_in?: boolean;
           accepts_clinic_fill_in_outreach?: boolean;
+          accepts_general_clinic_messages?: boolean;
           job_notification_opt_in?: boolean;
           expo_push_token?: string | null;
           resume_storage_path?: string | null;
@@ -571,6 +573,36 @@ export type Database = {
       get_or_create_general_conversation: {
         Args: { p_clinic_id: string };
         Returns: string;
+      };
+      get_or_create_general_conversation_as_clinic: {
+        Args: { p_worker_id: string };
+        Returns: string;
+      };
+      list_messageable_clinics_for_worker: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          clinic_name: string;
+          city: string | null;
+          province: string;
+          specialty: string;
+          description: string | null;
+          logo_storage_path: string | null;
+          existing_conversation_id: string | null;
+        }[];
+      };
+      list_open_inquiry_workers_for_clinic: {
+        Args: { p_role_type?: string | null };
+        Returns: {
+          worker_id: string;
+          display_name: string;
+          role_types: string[];
+          city: string | null;
+          years_of_experience: number | null;
+          bio: string | null;
+          photo_storage_path: string | null;
+          existing_conversation_id: string | null;
+        }[];
       };
       hide_worker_conversation: {
         Args: { p_conversation_id: string };

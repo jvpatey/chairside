@@ -343,6 +343,7 @@ export {
   getCounterpartLastReadAt,
   getMessageDeliveryStatus,
   getOrCreateGeneralConversation,
+  getOrCreateGeneralConversationAsClinic,
   getUnreadConversationCount,
   getUnreadConversationMap,
   hideClinicConversation,
@@ -361,6 +362,11 @@ export {
   type MessageSearchHit,
   type MessageableClinic,
 } from './messages';
+export {
+  listOpenInquiryWorkersForClinic,
+  type ListOpenInquiryWorkersInput,
+  type OpenInquiryWorker,
+} from './openInquiries';
 export {
   buildScreeningAnswersPayload,
   evaluateScreeningSubmission,

@@ -52,7 +52,7 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
       'Up to 5 active roles and 5 active fill-ins',
       'Screening questions, CRM notes, and PDF export',
       'Direct fill-in outreach and SMS alerts',
-      'Clinic Discover and general candidate messaging',
+      'Clinic Discover',
     ],
   },
   pro: {
@@ -63,6 +63,7 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
       'Priority marketplace placement and Pro badge',
       'Hiring insights and bulk fill-in outreach',
       'Unlimited custom screening questions',
+      'Open inquiries — message candidates in your area, and let them reach you without applying',
     ],
   },
   group_starter: {
@@ -72,7 +73,6 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
       'Up to 5 locations and 3 managers',
       'Up to 5 active roles and 5 fill-ins across your group',
       'Screening, CRM, outreach, SMS, and Discover',
-      'Location-scoped dashboard and group messaging',
     ],
   },
   group_pro: {
@@ -83,6 +83,7 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
       'Priority placement and Pro badge per location',
       'Hiring insights across your group with per-location breakdown',
       'Bulk fill-in outreach and unlimited screening',
+      'Open inquiries — message candidates in your area, and let them reach you without applying',
     ],
   },
 };
@@ -273,11 +274,11 @@ export function clinicPlanIncludesFeature(
     case 'crm_followups':
     case 'application_pdf_export':
     case 'clinic_discover':
-    case 'general_candidate_messaging':
       return plan === 'starter' || plan === 'pro' || plan === 'group_starter' || plan === 'group_pro';
     case 'priority_listing':
     case 'bulk_outreach':
     case 'hiring_insights':
+    case 'general_candidate_messaging':
       return plan === 'pro' || plan === 'group_pro';
     default:
       return false;

@@ -119,10 +119,14 @@ export function getClinicMemberProfileSubtitle(input: {
   return 'Add a photo and bio';
 }
 
-export function getClinicMessagingSubtitle(profile: ClinicProfile | null): string {
+export function getClinicMessagingSubtitle(
+  profile: ClinicProfile | null,
+  options?: { locked?: boolean },
+): string {
+  if (options?.locked) return 'Upgrade for open inquiries';
   return profile?.accepts_general_candidate_messages
-    ? 'Candidates can message you'
-    : "Candidates can't message you";
+    ? 'Open to inquiries'
+    : 'Not open to inquiries';
 }
 
 export function getClinicNotificationsSubtitle(options?: {

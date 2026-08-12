@@ -7,7 +7,7 @@ export const CONVERSATION_INBOX_FILTERS: { value: ConversationInboxFilter; label
   { value: 'unread', label: 'Unread' },
   { value: 'roles', label: 'Roles' },
   { value: 'fill_ins', label: 'Fill-ins' },
-  { value: 'general', label: 'General' },
+  { value: 'general', label: 'Open inquiries' },
 ];
 
 export type ConversationFilterCounts = Record<ConversationInboxFilter, number>;
@@ -83,12 +83,12 @@ export function getConversationInboxEmptyMessage(
   }
   if (filter === 'general') {
     return role === 'worker'
-      ? 'No general clinic inquiries yet. Use Message a clinic above to start one.'
-      : 'No direct inquiries yet. Turn on letting candidates message you above to receive them.';
+      ? 'No open inquiries yet. Message a clinic above, or opt in so clinics can reach you.'
+      : 'No open inquiries yet. Turn on inbound messages or browse candidates who opted in.';
   }
   return role === 'worker'
     ? 'No conversations yet. Message a clinic from an application or use Message a clinic above.'
-    : 'No conversations yet. Message an applicant from their application details, or turn on letting candidates message you above.';
+    : 'No conversations yet. Message an applicant from their application details, or start an open inquiry.';
 }
 
 export type ConversationInboxGroupVariant = 'standalone' | 'group-lead' | 'group-thread';

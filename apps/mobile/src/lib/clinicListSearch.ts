@@ -5,6 +5,7 @@ import type {
   FillInOutreachWorker,
   JobApplicationSummary,
   JobPost,
+  OpenInquiryWorker,
   ShiftPost,
 } from '@chairside/api';
 import {
@@ -125,6 +126,21 @@ export function matchesFillInOutreachWorkerSearch(
       worker.displayName,
       worker.city,
       worker.availabilitySummary,
+      ...worker.roleTypes.map((roleType) => getRoleTypeLabel(roleType)),
+    ],
+    query,
+  );
+}
+
+export function matchesOpenInquiryWorkerSearch(
+  worker: OpenInquiryWorker,
+  query: string,
+): boolean {
+  return matchesAnyListSearchText(
+    [
+      worker.displayName,
+      worker.city,
+      worker.bio,
       ...worker.roleTypes.map((roleType) => getRoleTypeLabel(roleType)),
     ],
     query,

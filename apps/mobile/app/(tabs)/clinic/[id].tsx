@@ -103,7 +103,7 @@ export default function WorkerClinicProfileScreen() {
         getWorkerConversationRoute(conversationId, {
           conversationId,
           title: postings.profile.clinic_name,
-          subtitle: 'General inquiry',
+          subtitle: 'Open inquiry',
         }),
       );
     } catch (error) {

@@ -9,7 +9,7 @@ import { useTheme, useThemedStyles } from '@/theme';
 const MESSAGE_CLINIC_INFO = {
   title: 'Message a clinic',
   message:
-    'Browse clinics in your province that welcome general inquiries. You can reach out even if they do not have a role or fill-in posted right now.\n\nMessages about your applications and fill-ins still appear in your inbox below.',
+    'Browse clinics in your province that welcome open inquiries. You can reach out even if they do not have a role or fill-in posted right now.\n\nMessages about your applications and fill-ins still appear in your inbox below.',
 };
 
 type WorkerMessageClinicActionProps = {
@@ -106,7 +106,7 @@ export function WorkerMessageClinicAction({
   };
 
   return (
-    <View style={{ gap: 8 }}>
+    <View>
       <View style={styles.row}>
         <Pressable
           accessibilityRole="button"
@@ -136,7 +136,7 @@ export function WorkerMessageClinicAction({
         </Pressable>
       </View>
       {infoVisible ? (
-        <View style={styles.infoPanel} accessibilityRole="text">
+        <View style={[styles.infoPanel, { marginTop: 8 }]} accessibilityRole="text">
           <Text style={styles.infoTitle}>{MESSAGE_CLINIC_INFO.title}</Text>
           <Text style={styles.infoMessage}>{MESSAGE_CLINIC_INFO.message}</Text>
         </View>

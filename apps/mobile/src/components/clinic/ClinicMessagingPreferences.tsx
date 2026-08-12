@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
@@ -7,6 +8,7 @@ import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { CLINIC_OPEN_INQUIRY_CANDIDATES } from '@/lib/routing';
 import {
   IS_WEB,
   webHover,
@@ -20,9 +22,9 @@ type ClinicMessagingPreferencesProps = {
 };
 
 const GENERAL_MESSAGES_INFO = {
-  title: 'Let candidates message you',
+  title: 'Let candidates message you without applying',
   message:
-    'When enabled, completed candidates in your province can message your clinic without applying to a specific role or fill-in.\n\nMessages about applications and fill-ins still work the same when someone applies.',
+    'When enabled, completed candidates in your province can start an open inquiry without applying to a specific role or fill-in.\n\nYou can also browse candidates who opted in. Messages about applications and fill-ins still work the same when someone applies.',
 };
 
 function showGeneralMessagesInfo(setInfoVisible: (updater: (current: boolean) => boolean) => void) {
@@ -109,6 +111,21 @@ export function ClinicMessagingPreferences({
       lineHeight: 18,
       color: colors.labelSecondary,
     },
+    browseRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      gap: spacing.sm,
+      ...webPointer(),
+    },
+    browseLabel: {
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '500',
+      color: colors.primary,
+    },
   }));
 
   useEffect(() => {
@@ -145,10 +162,18 @@ export function ClinicMessagingPreferences({
     void persistAcceptsGeneralMessages(value);
   };
 
-  const title = compact ? 'Let candidates message you' : 'Allow candidates to message you';
+  const handleBrowseCandidates = () => {
+    if (messagingLocked) {
+      showGeneralMessagingUpgrade();
+      return;
+    }
+    router.push(CLINIC_OPEN_INQUIRY_CANDIDATES);
+  };
+
+  const title = 'Let candidates message you without applying';
   const hint = messagingLocked
-    ? 'Upgrade to Starter or Pro to let candidates message your clinic without applying.'
-    : 'Candidates in your province can message your clinic even when they are not applying to a specific posting.';
+    ? 'Upgrade to Pro for open inquiries. You can already message applicants.'
+    : 'Candidates in your province can message your clinic even when they are not applying. You can also browse candidates who opted in.';
 
   if (!compact) {
     return (
@@ -157,7 +182,7 @@ export function ClinicMessagingPreferences({
         <SettingsToggleRow
           title={title}
           hint={hint}
-          value={acceptsGeneralMessages && !messagingLocked}
+          value={acceptsGeneralMessages}
           disabled={isSaving}
           onValueChange={handleToggle}
         />
@@ -200,7 +225,7 @@ export function ClinicMessagingPreferences({
           </View>
           <View style={styles.switchWrap}>
             <ThemedSwitch
-              value={acceptsGeneralMessages && !messagingLocked}
+              value={acceptsGeneralMessages}
               disabled={isSaving}
               onValueChange={handleToggle}
             />
@@ -213,6 +238,20 @@ export function ClinicMessagingPreferences({
           <Text style={styles.infoMessage}>{GENERAL_MESSAGES_INFO.message}</Text>
         </View>
       ) : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Browse candidates"
+        accessibilityHint="Find workers who opted into open inquiries"
+        onPress={handleBrowseCandidates}
+        style={({ pressed, hovered }) => [
+          styles.card,
+          styles.browseRow,
+          IS_WEB && webHover(hovered, pressed, styles.labelPressableHovered),
+          pressed && styles.labelPressablePressed,
+        ]}>
+        <Text style={styles.browseLabel}>Browse candidates</Text>
+        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+      </Pressable>
     </View>
   );
 }
