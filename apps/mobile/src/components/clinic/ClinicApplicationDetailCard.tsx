@@ -1159,9 +1159,13 @@ export function ClinicApplicationDetailCard({
     !awaitingKit &&
     application.screening &&
     !dismissedScreeningReviewIds.has(application.id)
-      ? hasNewApplication
-        ? 'New'
-        : 'Needs review'
+      ? application.screening.outcome === 'flagged'
+        ? 'Flagged'
+        : application.screening.outcome === 'pass'
+          ? 'Qualified'
+          : hasNewApplication
+            ? 'New'
+            : 'Needs review'
       : null;
 
   return (
@@ -1308,6 +1312,8 @@ export function ClinicApplicationDetailCard({
               }>
               <ApplicationScreeningSection
                 screening={application.screening}
+                jobPostId={application.job_post_id}
+                defaultExpanded={isScreeningStage && !awaitingKit}
                 onExpandedChange={(expanded) => {
                   if (expanded) void dismissScreeningReviewBadge(application.id);
                 }}

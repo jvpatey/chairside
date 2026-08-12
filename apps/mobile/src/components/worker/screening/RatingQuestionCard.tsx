@@ -9,21 +9,29 @@ type RatingQuestionCardProps = {
   prompt: string;
   value?: RatingScaleValue;
   onChange: (value: RatingScaleValue) => void;
+  compact?: boolean;
+  showScaleLabels?: boolean;
 };
 
-export function RatingQuestionCard({ prompt, value, onChange }: RatingQuestionCardProps) {
+export function RatingQuestionCard({
+  prompt,
+  value,
+  onChange,
+  compact = false,
+  showScaleLabels = true,
+}: RatingQuestionCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: compact ? 14 : 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.md,
+      padding: compact ? spacing.sm : spacing.md,
+      gap: compact ? spacing.sm : spacing.md,
     },
     prompt: {
       ...typography.body,
-      fontSize: 15,
+      fontSize: compact ? 14 : 15,
       fontWeight: '600',
     },
     scale: {
@@ -32,7 +40,7 @@ export function RatingQuestionCard({ prompt, value, onChange }: RatingQuestionCa
     },
     segment: {
       flex: 1,
-      minHeight: 44,
+      minHeight: compact ? 36 : 44,
       borderRadius: 10,
       borderWidth: 1.5,
       borderColor: colors.separator,
@@ -101,10 +109,12 @@ export function RatingQuestionCard({ prompt, value, onChange }: RatingQuestionCa
           );
         })}
       </View>
-      <View style={styles.labels}>
-        <Text style={styles.labelText}>Not at all</Text>
-        <Text style={styles.labelText}>Strongly agree</Text>
-      </View>
+      {showScaleLabels ? (
+        <View style={styles.labels}>
+          <Text style={styles.labelText}>Not at all</Text>
+          <Text style={styles.labelText}>Strongly agree</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

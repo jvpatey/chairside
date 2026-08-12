@@ -1,7 +1,12 @@
 import type { ClinicPlan, ClinicPlanFamily } from '@chairside/config';
 import { isPaidClinicPlan } from '@chairside/config';
 import { getSupabaseClient } from './client';
-import { getErrorMessage, throwWithMessage } from './errors';
+import {
+  getErrorMessage,
+  getFunctionsHttpStatus,
+  resolveFunctionErrorMessage,
+  throwWithMessage,
+} from './errors';
 
 export type ClinicSubscriptionStatus =
   | 'active'
@@ -148,6 +153,42 @@ export function isClinicBillingLimitError(message: string): boolean {
   );
 }
 
+export const CLINIC_BILLING_SESSION_EXPIRED_MESSAGE =
+  'Your session expired. Sign in again, then tap Restore purchases if you already paid.';
+
+export function isClinicBillingSessionExpiredError(error: unknown): boolean {
+  const status = getFunctionsHttpStatus(error);
+  if (status === 401) {
+    return true;
+  }
+
+  const message = getErrorMessage(error, '').toLowerCase();
+  if (!message) {
+    return false;
+  }
+
+  return (
+    message.includes('invalid or expired session') ||
+    message.includes('missing authorization') ||
+    message.includes('session expired') ||
+    message.includes('jwt expired') ||
+    /\b401\b/.test(message)
+  );
+}
+
+export async function ensureClinicBillingSession(): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (!userError && userData.user) {
+    return;
+  }
+
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError || !refreshData.session?.user) {
+    throw new Error(CLINIC_BILLING_SESSION_EXPIRED_MESSAGE);
+  }
+}
+
 /** RevenueCat / Stripe already has this product for the customer. */
 export function isAlreadySubscribedPurchaseError(error: unknown): boolean {
   if (error && typeof error === 'object') {
@@ -213,14 +254,33 @@ export async function getClinicPlanMap(
   );
 }
 
+function toClinicBillingSyncError(error: unknown, fallback: string): Error {
+  if (isClinicBillingSessionExpiredError(error)) {
+    return new Error(CLINIC_BILLING_SESSION_EXPIRED_MESSAGE);
+  }
+
+  const message = getErrorMessage(error, fallback);
+  if (isClinicBillingSessionExpiredError(message)) {
+    return new Error(CLINIC_BILLING_SESSION_EXPIRED_MESSAGE);
+  }
+
+  return new Error(message);
+}
+
 export async function syncClinicSubscriptionFromRevenueCat(): Promise<ClinicSubscriptionSyncResult> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.functions.invoke('revenuecat-sync');
-  if (error) throwWithMessage(error, 'Could not sync subscription.');
-
   const payload = data as { plan?: ClinicPlan; status?: ClinicSubscriptionStatus; error?: string } | null;
+  if (error) {
+    const detailed = await resolveFunctionErrorMessage(error, payload);
+    throw toClinicBillingSyncError(
+      detailed ? new Error(detailed) : error,
+      getErrorMessage(error, 'Could not sync subscription.'),
+    );
+  }
+
   if (payload?.error) {
-    throw new Error(payload.error);
+    throw toClinicBillingSyncError(payload.error, payload.error);
   }
   if (!payload?.plan || !payload.status) {
     throw new Error('Could not sync subscription.');

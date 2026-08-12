@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[revenuecat-sync]', message);
-    return new Response(JSON.stringify({ error: 'Could not sync subscription' }), {
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

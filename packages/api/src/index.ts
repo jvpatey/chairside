@@ -1,8 +1,11 @@
 export {
+  CLINIC_BILLING_SESSION_EXPIRED_MESSAGE,
+  ensureClinicBillingSession,
   getClinicBillingState,
   getClinicPlanMap,
   isAlreadySubscribedPurchaseError,
   isClinicBillingLimitError,
+  isClinicBillingSessionExpiredError,
   isPaidClinicPlan,
   syncClinicSubscriptionFromRevenueCat,
   type ClinicBillingState,
@@ -360,6 +363,7 @@ export {
 } from './messages';
 export {
   buildScreeningAnswersPayload,
+  evaluateScreeningSubmission,
   getApplicationScreening,
   getApplicationScreeningMap,
   getJobPostScreeningQuestions,

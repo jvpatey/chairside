@@ -12,7 +12,7 @@ import {
 } from './authDisplayName';
 import { getAuthStorage } from './authStorage';
 import { getSupabaseClient, getSupabaseConfig } from './client';
-import { getErrorMessage } from './errors';
+import { getErrorMessage, resolveFunctionErrorMessage } from './errors';
 import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
 import { ensureProfileName } from './profile';
 import type { UserRole } from './types';
@@ -160,38 +160,17 @@ export async function signOut() {
   }
 }
 
-/** functions.invoke only reports a generic message — read the response body. */
-async function resolveFunctionErrorMessage(
-  error: unknown,
-  fallback: string,
-): Promise<string> {
-  const context = (error as { context?: { json?: () => Promise<unknown> } })?.context;
-
-  if (context && typeof context.json === 'function') {
-    try {
-      const body = await context.json();
-      if (body && typeof body === 'object' && 'error' in body) {
-        const message = (body as { error: unknown }).error;
-        if (message) return String(message);
-      }
-    } catch {
-      // Body was empty or not JSON — fall back to the generic message.
-    }
-  }
-
-  return getErrorMessage(error, fallback);
-}
-
 export async function deleteAccount() {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.functions.invoke('delete-account');
 
   if (error) {
     throw new Error(
-      await resolveFunctionErrorMessage(
-        error,
-        'Could not delete your account. Please try again or contact support.',
-      ),
+      (await resolveFunctionErrorMessage(error, data)) ??
+        getErrorMessage(
+          error,
+          'Could not delete your account. Please try again or contact support.',
+        ),
     );
   }
 

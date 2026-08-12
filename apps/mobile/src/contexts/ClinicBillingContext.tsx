@@ -1,4 +1,5 @@
 import {
+  ensureClinicBillingSession,
   getClinicBillingState,
   isAlreadySubscribedPurchaseError,
   isPaidClinicPlan,
@@ -293,6 +294,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       setIsPurchasing(true);
       setBillingError(null);
       try {
+        await ensureClinicBillingSession();
         const nextPlan = await purchaseBillingPackage(purchasePackageArg);
         setRevenueCatPlan(nextPlan);
         await syncClinicSubscriptionFromRevenueCat();
@@ -336,6 +338,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
     setIsRestoring(true);
     setBillingError(null);
     try {
+      await ensureClinicBillingSession();
       await configureRevenueCat(clinicId);
       const nextPlan = await restoreRevenueCatPurchases();
       setRevenueCatPlan(nextPlan);
@@ -356,6 +359,7 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
     setIsManagingSubscription(true);
     setBillingError(null);
     try {
+      await ensureClinicBillingSession();
       const opened = await openSubscriptionManagement();
       if (!opened) {
         setBillingError('Subscription management is not available for this account yet.');

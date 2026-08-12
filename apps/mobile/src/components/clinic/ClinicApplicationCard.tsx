@@ -10,7 +10,7 @@ import {
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
@@ -23,6 +23,7 @@ import { formatRelativeApplicationAge } from '@/lib/dates';
 import { getFirstName } from '@/lib/greeting';
 import { getApplicationMatchDisplayContext, parseApplicationJobMatch } from '@/lib/matchDisplay';
 import { getClinicApplicationRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
+import { getScreeningOutcomeLabel } from '@/lib/screeningTriage';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type ClinicApplicationCardProps = {
@@ -141,7 +142,19 @@ export function ClinicApplicationCard({
   const contextLine = buildContextLine(application, hasUnreadMessages, workerDeleted);
   const postContextLine = !roleJobId ? application.post_title?.trim() || null : null;
   const statusLabel = getClinicApplicationStatusLabel(application);
-  const hasDetailsBelow = Boolean(qualificationsLine || contextLine);
+  const screeningOutcome =
+    application.status === 'screening_submitted' && !workerDeleted
+      ? application.screening?.outcome ?? null
+      : null;
+  const outcomeLabel =
+    screeningOutcome === 'flagged'
+      ? 'Screening flagged'
+      : getScreeningOutcomeLabel(screeningOutcome);
+  const showMatchBadge = Boolean(jobMatch && matchContext);
+  const showQualifications = Boolean(qualificationsLine);
+  const stackOutcomeBadge = Platform.OS !== 'web';
+  const stackContextLine = stackOutcomeBadge && Boolean(contextLine);
+  const hasFooterMeta = showQualifications || (!stackContextLine && Boolean(contextLine));
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
@@ -186,14 +199,18 @@ export function ClinicApplicationCard({
       flexShrink: 0,
       paddingTop: 1,
     },
+    statusBlock: {
+      gap: spacing.sm,
+    },
     statusRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
       minWidth: 0,
+      flexWrap: 'wrap',
     },
     statusText: {
-      flex: 1,
+      flexShrink: 1,
       minWidth: 0,
       fontSize: 14,
       lineHeight: 20,
@@ -204,11 +221,33 @@ export function ClinicApplicationCard({
     statusValue: {
       color: colors.labelPrimary,
     },
+    outcomeBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      borderWidth: 1,
+    },
+    outcomeBadgePass: {
+      backgroundColor: `${colors.success}14`,
+      borderColor: `${colors.success}33`,
+    },
+    outcomeBadgeFlagged: {
+      backgroundColor: `${colors.warning}14`,
+      borderColor: `${colors.warning}40`,
+    },
+    outcomeBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.labelPrimary,
+    },
     detailsBlock: {
       gap: spacing.xs,
     },
     details: {
       gap: spacing.xs,
+    },
+    detailsAfterDivider: {
       paddingTop: spacing.xs,
     },
     qualifications: {
@@ -227,6 +266,16 @@ export function ClinicApplicationCard({
     },
   }));
 
+  const outcomeBadge = outcomeLabel ? (
+    <View
+      style={[
+        styles.outcomeBadge,
+        screeningOutcome === 'flagged' ? styles.outcomeBadgeFlagged : styles.outcomeBadgePass,
+      ]}>
+      <Text style={styles.outcomeBadgeText}>{outcomeLabel}</Text>
+    </View>
+  ) : null;
+
   const openDetail = () => {
     router.push(getClinicApplicationRoute(application.id, returnTo, roleJobId, selectJobId));
   };
@@ -242,7 +291,7 @@ export function ClinicApplicationCard({
                 <Text style={styles.name} numberOfLines={2}>
                   {applicantName}
                 </Text>
-                {jobMatch && matchContext ? (
+                {showMatchBadge && jobMatch && matchContext ? (
                   <View style={styles.matchSlot}>
                     <MatchTierBadge
                       breakdown={jobMatch}
@@ -260,24 +309,33 @@ export function ClinicApplicationCard({
               ) : null}
             </View>
 
-            <View style={styles.statusRow}>
-              <Text style={styles.statusText} numberOfLines={1}>
-                Status: <Text style={styles.statusValue}>{statusLabel}</Text>
-              </Text>
-              {hasNewApplication ? <ApplicationCardBadge /> : null}
+            <View style={styles.statusBlock}>
+              <View style={styles.statusRow}>
+                <Text style={styles.statusText} numberOfLines={1}>
+                  Status: <Text style={styles.statusValue}>{statusLabel}</Text>
+                </Text>
+                {!stackOutcomeBadge ? outcomeBadge : null}
+                {hasNewApplication ? <ApplicationCardBadge /> : null}
+              </View>
+              {stackOutcomeBadge ? outcomeBadge : null}
+              {stackContextLine ? (
+                <Text style={styles.context} numberOfLines={2}>
+                  {contextLine}
+                </Text>
+              ) : null}
             </View>
           </View>
 
-          {hasDetailsBelow ? (
+          {hasFooterMeta ? (
             <View style={styles.detailsBlock}>
-              <CardSectionDivider />
-              <View style={styles.details}>
-                {qualificationsLine ? (
+              {showQualifications ? <CardSectionDivider /> : null}
+              <View style={[styles.details, showQualifications && styles.detailsAfterDivider]}>
+                {showQualifications ? (
                   <Text style={styles.qualifications} numberOfLines={2}>
                     {qualificationsLine}
                   </Text>
                 ) : null}
-                {contextLine ? (
+                {!stackContextLine && contextLine ? (
                   <Text style={styles.context} numberOfLines={2}>
                     {contextLine}
                   </Text>

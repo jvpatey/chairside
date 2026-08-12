@@ -29,6 +29,7 @@ describe('clinicListSearch', () => {
       job_post_id: 'job-1',
       post_title: 'Front Desk Coordinator',
       post_created_at: null,
+      post_status: 'live',
       applicant_count: 2,
       screening_count: 0,
       pending_count: 1,
@@ -41,6 +42,9 @@ describe('clinicListSearch', () => {
     expect(matchesJobApplicationSummarySearch(summary, 'front desk')).toBe(true);
     expect(matchesClinicApplicationSummaryFilter(summary, 'needs_attention')).toBe(true);
     expect(matchesClinicApplicationSummaryFilter(summary, 'all')).toBe(true);
+    expect(
+      matchesClinicApplicationSummaryFilter({ ...summary, post_status: 'filled' }, 'all'),
+    ).toBe(false);
   });
 
   it('matches confirmed fill-ins by worker name', () => {

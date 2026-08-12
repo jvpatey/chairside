@@ -6,6 +6,7 @@ import {
   formatISODateLabel,
   formatJobApplicationSummaryMeta,
   formatPostTitleDisplay,
+  isOpenClinicHiringPostStatus,
   isWorkerJobApplicationPipelineActive,
 } from './applicationDisplay';
 
@@ -47,6 +48,18 @@ describe('formatJobApplicationSummaryMeta', () => {
         interview_count: 0,
       }),
     ).toBe('2 to review · 1 new');
+  });
+});
+
+describe('isOpenClinicHiringPostStatus', () => {
+  it('keeps live and paused roles in the hiring inbox', () => {
+    expect(isOpenClinicHiringPostStatus('live')).toBe(true);
+    expect(isOpenClinicHiringPostStatus('paused')).toBe(true);
+  });
+
+  it('treats filled and closed roles as history', () => {
+    expect(isOpenClinicHiringPostStatus('filled')).toBe(false);
+    expect(isOpenClinicHiringPostStatus('closed')).toBe(false);
   });
 });
 

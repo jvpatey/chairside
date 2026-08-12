@@ -306,8 +306,8 @@ export default function ApplyScreen() {
             <View style={styles.screeningContent}>
               <Text style={styles.screeningEyebrow}>Screening questions</Text>
               <Text style={styles.screeningText}>
-                You will answer screening questions first. Your full application profile is only sent
-                if the clinic requests it after reviewing your responses.
+                The clinic requires you to answer screening questions first. Based on your
+                responses, they may request your full application.
               </Text>
             </View>
           </View>

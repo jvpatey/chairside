@@ -1,6 +1,6 @@
 import type { WorkerApplication } from '@chairside/api';
 
-type CelebrationCandidate = {
+export type CelebrationCandidate = {
   id: string;
   postType: 'job' | 'shift';
   status: string;

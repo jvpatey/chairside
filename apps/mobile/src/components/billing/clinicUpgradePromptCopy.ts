@@ -55,7 +55,7 @@ export function getClinicSmsUpgradeMessage(planFamily: ClinicPlanFamily = 'clini
 export function getClinicScreeningUpgradeMessage(
   planFamily: ClinicPlanFamily = 'clinic',
 ): string {
-  return `Screening questions are available on ${paidPlanLabel(planFamily)} plans.`;
+  return `Screening lets you filter for qualifications before requesting full applications (culture fit optional). Available on ${paidPlanLabel(planFamily)}.`;
 }
 
 export function getClinicScreeningCapUpgradeMessage(

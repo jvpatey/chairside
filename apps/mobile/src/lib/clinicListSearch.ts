@@ -11,6 +11,7 @@ import {
   formatApplicationStatus,
   formatClinicApplicationStatus,
   getRoleTypeLabel,
+  isOpenClinicHiringPostStatus,
 } from '@chairside/config';
 
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
@@ -67,6 +68,7 @@ export function matchesClinicApplicationSummaryFilter(
   summary: JobApplicationSummary,
   filter: ClinicApplicationSummaryFilter,
 ): boolean {
+  if (!isOpenClinicHiringPostStatus(summary.post_status)) return false;
   if (filter === 'all') return true;
   return summary.action_needed_count > 0;
 }

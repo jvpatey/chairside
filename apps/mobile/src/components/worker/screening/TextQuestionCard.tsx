@@ -6,22 +6,28 @@ type TextQuestionCardProps = {
   prompt: string;
   value?: string;
   onChange: (value: string) => void;
+  compact?: boolean;
 };
 
-export function TextQuestionCard({ prompt, value = '', onChange }: TextQuestionCardProps) {
+export function TextQuestionCard({
+  prompt,
+  value = '',
+  onChange,
+  compact = false,
+}: TextQuestionCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: compact ? 14 : 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.md,
+      padding: compact ? spacing.sm : spacing.md,
+      gap: compact ? spacing.sm : spacing.md,
     },
     prompt: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: compact ? 14 : 15,
+      lineHeight: compact ? 20 : 22,
     },
     input: {
       fontSize: typography.body.fontSize,
@@ -32,7 +38,7 @@ export function TextQuestionCard({ prompt, value = '', onChange }: TextQuestionC
       paddingHorizontal: spacing.md,
       paddingVertical: 12,
       color: colors.labelPrimary,
-      minHeight: 96,
+      minHeight: compact ? 80 : 96,
       textAlignVertical: 'top',
     },
   }));

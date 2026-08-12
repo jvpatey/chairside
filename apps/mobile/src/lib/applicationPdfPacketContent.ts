@@ -159,29 +159,68 @@ function buildScreeningSectionHtml(screening: ApplicationScreening | null): stri
   const questions = screening.answers?.questions ?? [];
   if (questions.length === 0) return '';
 
-  const items = questions
-    .map((item) => {
-      const answer = formatScreeningAnswer(
-        item.type,
-        item.answer as boolean | number | string,
-        getScreeningCatalogQuestion(item.id)?.unitLabel,
-      );
-      const reverseNote = item.reverseScored
-        ? '<div class="muted">Lower scores are preferred for this trait.</div>'
-        : '';
-      return `
+  const qualifications: typeof questions = [];
+  const culture: typeof questions = [];
+  for (const item of questions) {
+    const catalog = getScreeningCatalogQuestion(item.id);
+    if (catalog?.category === 'qualifications') {
+      qualifications.push(item);
+    } else {
+      culture.push(item);
+    }
+  }
+
+  const renderItems = (items: typeof questions) =>
+    items
+      .map((item) => {
+        const answer = formatScreeningAnswer(
+          item.type,
+          item.answer as boolean | number | string,
+          getScreeningCatalogQuestion(item.id)?.unitLabel,
+        );
+        const reverseNote = item.reverseScored
+          ? '<div class="muted">Lower scores are preferred for this trait.</div>'
+          : '';
+        const failed =
+          screening.failedQuestionIds?.includes(item.id) === true
+            ? '<div class="muted">Did not meet must-pass requirement.</div>'
+            : '';
+        return `
         <div class="qa">
           <div class="qa-q">${escapeHtml(item.prompt)}</div>
           <div class="qa-a">${escapeHtml(answer)}</div>
+          ${failed}
           ${reverseNote}
         </div>
       `;
-    })
-    .join('');
+      })
+      .join('');
+
+  const outcomeLine =
+    screening.outcome === 'pass'
+      ? '<p><strong>Screening outcome:</strong> Qualified</p>'
+      : screening.outcome === 'flagged'
+        ? `<p><strong>Screening outcome:</strong> Needs review — did not meet: ${escapeHtml(
+            (screening.failedQuestionIds ?? [])
+              .map((id) => getScreeningCatalogQuestion(id)?.shortLabel ?? id)
+              .join(', ') || 'must-pass requirements',
+          )}</p>`
+        : screening.outcome === 'incomplete'
+          ? '<p><strong>Screening outcome:</strong> Incomplete</p>'
+          : '';
+
+  const qualsHtml =
+    qualifications.length > 0
+      ? `<h3>Qualifications</h3>${renderItems(qualifications)}`
+      : '';
+  const cultureHtml =
+    culture.length > 0 ? `<h3>Culture &amp; work style</h3>${renderItems(culture)}` : '';
 
   return `
       <h2>Screening responses</h2>
-      ${items}
+      ${outcomeLine}
+      ${qualsHtml}
+      ${cultureHtml}
   `;
 }
 

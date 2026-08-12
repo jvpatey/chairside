@@ -33,6 +33,7 @@ export function buildPreviewScreeningQuestions(
         min: preset.min,
         max: preset.max,
         unitLabel: preset.unitLabel,
+        knockout: null,
       },
     ];
   });
@@ -45,6 +46,7 @@ export function buildPreviewScreeningQuestions(
     prompt: question.prompt,
     sortOrder: 1000 + index,
     reverseScored: false,
+    knockout: null,
   }));
 
   return [...catalogQuestions, ...custom].sort((a, b) => a.sortOrder - b.sortOrder);
