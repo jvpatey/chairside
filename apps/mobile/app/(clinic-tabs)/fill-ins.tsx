@@ -60,7 +60,10 @@ import {
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import {
+  DEFAULT_CLINIC_FILL_IN_SORT,
   HISTORY_SHIFT_STATUS_FILTER_OPTIONS,
+  sortClinicFillInPosts,
+  type ClinicFillInSort,
   type RoleTypeFilter,
   type ShiftDateFilter,
   type ShiftStatusFilter,
@@ -133,6 +136,7 @@ export default function ClinicFillInsScreen() {
   const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('past');
+  const [shiftSort, setShiftSort] = useState<ClinicFillInSort>(DEFAULT_CLINIC_FILL_IN_SORT);
   const [coverSearchQuery, setCoverSearchQuery] = useState('');
   const [shiftSearchQuery, setShiftSearchQuery] = useState('');
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
@@ -215,20 +219,26 @@ export default function ClinicFillInsScreen() {
 
   const filteredShifts = useMemo(
     () =>
-      filterShiftPostsForFillInsListMode(
-        shifts,
-        fillInsListMode,
-        shiftStatusFilter,
-        shiftRoleTypeFilter,
-        shiftDateFilter,
-      ).filter((shift) => matchesShiftPostSearch(shift, shiftSearchQuery)),
+      sortClinicFillInPosts(
+        filterShiftPostsForFillInsListMode(
+          shifts,
+          fillInsListMode,
+          shiftStatusFilter,
+          shiftRoleTypeFilter,
+          shiftDateFilter,
+        ).filter((shift) => matchesShiftPostSearch(shift, shiftSearchQuery)),
+        shiftSort,
+        pendingCounts,
+      ),
     [
-      shifts,
       fillInsListMode,
-      shiftStatusFilter,
-      shiftRoleTypeFilter,
+      pendingCounts,
       shiftDateFilter,
+      shiftRoleTypeFilter,
       shiftSearchQuery,
+      shiftSort,
+      shiftStatusFilter,
+      shifts,
     ],
   );
 
@@ -297,6 +307,7 @@ export default function ClinicFillInsScreen() {
   // once either side has list cards, each column sizes to its own content.
   const equalEmptyColumns = isWide && filteredShifts.length === 0 && rightPanelEmpty;
   const hasShiftFilters =
+    shiftSort !== DEFAULT_CLINIC_FILL_IN_SORT ||
     (fillInsListMode === 'history' &&
       (shiftStatusFilter !== 'all' ||
         shiftRoleTypeFilter !== 'all' ||
@@ -544,19 +555,23 @@ export default function ClinicFillInsScreen() {
                                 statusFilter: 'all',
                                 roleTypeFilter: 'all',
                                 shiftDateFilter: 'past',
+                                sort: DEFAULT_CLINIC_FILL_IN_SORT,
                               }
                             : {
                                 statusFilter: 'open',
                                 roleTypeFilter: 'all',
                                 shiftDateFilter: 'all',
+                                sort: DEFAULT_CLINIC_FILL_IN_SORT,
                               }
                         }
                         statusFilter={shiftStatusFilter}
                         roleTypeFilter={shiftRoleTypeFilter}
                         shiftDateFilter={shiftDateFilter}
+                        sort={shiftSort}
                         onStatusChange={setShiftStatusFilter}
                         onRoleTypeChange={setShiftRoleTypeFilter}
                         onShiftDateChange={setShiftDateFilter}
+                        onSortChange={setShiftSort}
                       />
                     }
                   />

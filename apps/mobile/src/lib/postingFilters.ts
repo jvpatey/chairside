@@ -20,6 +20,80 @@ export const JOB_POSTED_SORT_OPTIONS: { value: JobPostedSort; label: string }[] 
   { value: 'oldest', label: 'Oldest' },
 ];
 
+export type ClinicRoleSort = 'newest' | 'oldest' | 'updated' | 'applicants';
+export type ClinicFillInSort = 'newest' | 'oldest' | 'updated' | 'shift_date' | 'requests';
+
+export const DEFAULT_CLINIC_ROLE_SORT: ClinicRoleSort = 'newest';
+export const DEFAULT_CLINIC_FILL_IN_SORT: ClinicFillInSort = 'newest';
+
+export const CLINIC_ROLE_SORT_OPTIONS: { value: ClinicRoleSort; label: string }[] = [
+  { value: 'newest', label: 'Newest posted' },
+  { value: 'oldest', label: 'Oldest posted' },
+  { value: 'updated', label: 'Last updated' },
+  { value: 'applicants', label: 'Most applicants' },
+];
+
+export const CLINIC_FILL_IN_SORT_OPTIONS: { value: ClinicFillInSort; label: string }[] = [
+  { value: 'newest', label: 'Newest posted' },
+  { value: 'oldest', label: 'Oldest posted' },
+  { value: 'updated', label: 'Last updated' },
+  { value: 'shift_date', label: 'Shift date' },
+  { value: 'requests', label: 'Most requests' },
+];
+
+export function sortClinicRolePosts(
+  jobs: JobPost[],
+  sort: ClinicRoleSort,
+  applicantCounts: Record<string, number> = {},
+): JobPost[] {
+  return [...jobs].sort((a, b) => {
+    switch (sort) {
+      case 'oldest':
+        return a.created_at.localeCompare(b.created_at);
+      case 'updated':
+        return (
+          b.updated_at.localeCompare(a.updated_at) || b.created_at.localeCompare(a.created_at)
+        );
+      case 'applicants': {
+        const diff = (applicantCounts[b.id] ?? 0) - (applicantCounts[a.id] ?? 0);
+        return diff !== 0 ? diff : b.created_at.localeCompare(a.created_at);
+      }
+      case 'newest':
+      default:
+        return b.created_at.localeCompare(a.created_at);
+    }
+  });
+}
+
+export function sortClinicFillInPosts(
+  shifts: ShiftPost[],
+  sort: ClinicFillInSort,
+  requestCounts: Record<string, number> = {},
+): ShiftPost[] {
+  return [...shifts].sort((a, b) => {
+    switch (sort) {
+      case 'oldest':
+        return a.created_at.localeCompare(b.created_at);
+      case 'updated':
+        return (
+          b.updated_at.localeCompare(a.updated_at) || b.created_at.localeCompare(a.created_at)
+        );
+      case 'shift_date': {
+        const dateCompare = a.shift_date.localeCompare(b.shift_date);
+        if (dateCompare !== 0) return dateCompare;
+        return a.start_time.localeCompare(b.start_time);
+      }
+      case 'requests': {
+        const diff = (requestCounts[b.id] ?? 0) - (requestCounts[a.id] ?? 0);
+        return diff !== 0 ? diff : b.created_at.localeCompare(a.created_at);
+      }
+      case 'newest':
+      default:
+        return b.created_at.localeCompare(a.created_at);
+    }
+  });
+}
+
 export type WorkerBrowseSort = 'recommended' | 'distance' | 'newest' | 'oldest';
 
 export const WORKER_BROWSE_SORT_OPTIONS: { value: WorkerBrowseSort; label: string }[] = [

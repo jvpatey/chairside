@@ -11,6 +11,7 @@ type ListSearchFilterRowProps = {
   accessibilityLabel?: string;
   disabled?: boolean;
   filter?: ReactNode;
+  trailing?: ReactNode;
 };
 
 export function ListSearchFilterRow({
@@ -20,6 +21,7 @@ export function ListSearchFilterRow({
   accessibilityLabel = 'Search',
   disabled = false,
   filter,
+  trailing,
 }: ListSearchFilterRowProps) {
   const styles = useThemedStyles(({ spacing }) => ({
     row: {
@@ -45,6 +47,7 @@ export function ListSearchFilterRow({
         />
       </View>
       {filter}
+      {trailing}
     </View>
   );
 }

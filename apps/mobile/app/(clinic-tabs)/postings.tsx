@@ -20,9 +20,13 @@ import {
   getRoleHistoryRoute,
 } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
-import { RoleTypeFilters } from '@/components/clinic/PostingFilters';
+import { ClinicListingViewToggle } from '@/components/clinic/ClinicListingViewToggle';
+import { ClinicPostingTable } from '@/components/clinic/ClinicPostingTable';
+import { ClinicRoleListRow } from '@/components/clinic/ClinicRoleListRow';
+import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
@@ -41,13 +45,18 @@ import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
+import { useClinicListingViewMode } from '@/hooks/useClinicListingViewMode';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { CLINIC_ROLE_TABLE_COLUMNS } from '@/lib/clinicPostingListDisplay';
 import {
   countHistoryJobs,
+  DEFAULT_CLINIC_ROLE_SORT,
   filterJobPostsForMainList,
+  sortClinicRolePosts,
+  type ClinicRoleSort,
   type JobStatusFilter,
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
@@ -60,9 +69,14 @@ import {
 } from '@/lib/clinicPlanPresentation';
 import { useTheme, useThemedStyles } from '@/theme';
 
+const LIST_BODY_ENTER = FadeIn.duration(220);
+const LIST_BODY_EXIT = FadeOut.duration(140);
+
 export default function ClinicPostingsScreen() {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
+  const { mode, setMode, isWide } = useClinicListingViewMode('roles');
+  const tableMode = isWide && Platform.OS === 'web';
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
@@ -76,6 +90,7 @@ export default function ClinicPostingsScreen() {
     Extract<JobStatusFilter, 'live' | 'paused' | 'filled'>
   >('live');
   const [jobRoleTypeFilter, setJobRoleTypeFilter] = useState<RoleTypeFilter>('all');
+  const [jobSort, setJobSort] = useState<ClinicRoleSort>(DEFAULT_CLINIC_ROLE_SORT);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -94,10 +109,14 @@ export default function ClinicPostingsScreen() {
 
   const filteredJobs = useMemo(
     () =>
-      filterJobPostsForMainList(jobs, jobStatusFilter, jobRoleTypeFilter).filter((job) =>
-        matchesJobPostSearch(job, searchQuery),
+      sortClinicRolePosts(
+        filterJobPostsForMainList(jobs, jobStatusFilter, jobRoleTypeFilter).filter((job) =>
+          matchesJobPostSearch(job, searchQuery),
+        ),
+        jobSort,
+        applicantCounts,
       ),
-    [jobs, jobStatusFilter, jobRoleTypeFilter, searchQuery],
+    [applicantCounts, jobRoleTypeFilter, jobSort, jobStatusFilter, jobs, searchQuery],
   );
 
   const applicantPreviewByJobId = useMemo(
@@ -114,7 +133,7 @@ export default function ClinicPostingsScreen() {
   );
 
   const hasSearch = hasActiveListSearch(searchQuery);
-  const hasActiveFilters = jobRoleTypeFilter !== 'all';
+  const hasActiveFilters = jobRoleTypeFilter !== 'all' || jobSort !== DEFAULT_CLINIC_ROLE_SORT;
 
   const historyCounts = useMemo(() => countHistoryJobs(jobs), [jobs]);
   const hasRoleHistory = historyCounts.archived > 0;
@@ -303,12 +322,17 @@ export default function ClinicPostingsScreen() {
             placeholder="Search role title or type"
             accessibilityLabel="Search roles"
             filter={
-              <RoleTypeFilters
+              <RolePostingFilters
                 roleTypeFilter={jobRoleTypeFilter}
+                sort={jobSort}
                 onRoleTypeChange={setJobRoleTypeFilter}
+                onSortChange={setJobSort}
                 accessibilityLabel="Filter roles"
                 sheetTitle="Filter roles"
               />
+            }
+            trailing={
+              <ClinicListingViewToggle selected={mode} onChange={setMode} />
             }
           />
         ) : null}
@@ -358,36 +382,69 @@ export default function ClinicPostingsScreen() {
                     }
                   />
                 ) : (
-                  <View style={styles.cardList}>
-                    <ResponsiveGrid maxColumns={2}>
-                      {filteredJobs.map((job) => (
-                        <RolePostingCard
-                          key={job.id}
-                          job={job}
-                          applicantCount={applicantCounts[job.id] ?? 0}
-                          applicants={applicantPreviewByJobId[job.id]}
-                          onPress={() => router.push(getJobDetailRoute(job.id))}
-                          onApplicantsPress={() =>
-                            router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
-                          }
-                          onApplicantPress={(applicationId) =>
-                            router.push(
-                              getClinicApplicationRoute(applicationId, 'postings-tab', job.id),
-                            )
-                          }
-                          manage={
-                            user?.id
-                              ? {
-                                  clinicId: clinicId ?? user.id,
-                                  onUpdated: handleJobUpdated,
-                                  onDeleted: () => handleJobDeleted(job.id),
-                                }
-                              : undefined
-                          }
-                        />
-                      ))}
-                    </ResponsiveGrid>
-                  </View>
+                  <Animated.View
+                    key={mode}
+                    entering={LIST_BODY_ENTER}
+                    exiting={LIST_BODY_EXIT}>
+                    {mode === 'cards' ? (
+                      <View style={styles.cardList}>
+                        <ResponsiveGrid maxColumns={2}>
+                          {filteredJobs.map((job) => (
+                            <RolePostingCard
+                              key={job.id}
+                              job={job}
+                              applicantCount={applicantCounts[job.id] ?? 0}
+                              applicants={applicantPreviewByJobId[job.id]}
+                              onPress={() => router.push(getJobDetailRoute(job.id))}
+                              onApplicantsPress={() =>
+                                router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
+                              }
+                              onApplicantPress={(applicationId) =>
+                                router.push(
+                                  getClinicApplicationRoute(applicationId, 'postings-tab', job.id),
+                                )
+                              }
+                              manage={
+                                user?.id
+                                  ? {
+                                      clinicId: clinicId ?? user.id,
+                                      onUpdated: handleJobUpdated,
+                                      onDeleted: () => handleJobDeleted(job.id),
+                                    }
+                                  : undefined
+                              }
+                            />
+                          ))}
+                        </ResponsiveGrid>
+                      </View>
+                    ) : (
+                      <ClinicPostingTable
+                        columns={CLINIC_ROLE_TABLE_COLUMNS}
+                        showHeader={tableMode}>
+                        {filteredJobs.map((job) => (
+                          <ClinicRoleListRow
+                            key={job.id}
+                            job={job}
+                            tableMode={tableMode}
+                            applicantCount={applicantCounts[job.id] ?? 0}
+                            onPress={() => router.push(getJobDetailRoute(job.id))}
+                            onApplicantsPress={() =>
+                              router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
+                            }
+                            manage={
+                              user?.id
+                                ? {
+                                    clinicId: clinicId ?? user.id,
+                                    onUpdated: handleJobUpdated,
+                                    onDeleted: () => handleJobDeleted(job.id),
+                                  }
+                                : undefined
+                            }
+                          />
+                        ))}
+                      </ClinicPostingTable>
+                    )}
+                  </Animated.View>
                 )}
               </FileTabWell>
             )}
