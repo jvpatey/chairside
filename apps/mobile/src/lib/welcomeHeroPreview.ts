@@ -13,8 +13,8 @@ export const WELCOME_HERO_CLINIC = {
 } as const;
 
 export const WELCOME_HERO_WORKER = {
-  firstName: 'Alex',
-  displayName: 'Alex',
+  firstName: 'John',
+  displayName: 'John',
 } as const;
 
 export type WelcomeHeroApplicant = JobApplicantPreview & {
@@ -150,7 +150,7 @@ export function getWelcomeHeroPreview(now = new Date()): WelcomeHeroPreview {
 
   const applicants: WelcomeHeroApplicant[] = [
     applicant(
-      'preview-applicant-alex',
+      'preview-applicant-john',
       WELCOME_HERO_WORKER.displayName,
       {
         ...roleMatchBase,

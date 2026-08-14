@@ -23,7 +23,7 @@ describe('getWelcomeHeroPreview', () => {
 
   it('keeps applicant photos off the network', () => {
     expect(preview.applicants.map((applicant) => applicant.photoPath)).toEqual([null, null, null]);
-    expect(preview.applicants.map((applicant) => applicant.name)).toEqual(['Alex', 'Sam', 'Riley']);
+    expect(preview.applicants.map((applicant) => applicant.name)).toEqual(['John', 'Sam', 'Riley']);
   });
 
   it('computes real match tiers from calculateJobMatch', () => {
@@ -55,7 +55,7 @@ describe('getWelcomeHeroPreview', () => {
       education: applicant.education,
       yearsOfExperience: applicant.yearsOfExperience,
     }))).toEqual([
-      { name: 'Alex', status: 'applied', isNew: true, education: 'diploma', yearsOfExperience: 8 },
+      { name: 'John', status: 'applied', isNew: true, education: 'diploma', yearsOfExperience: 8 },
       { name: 'Sam', status: 'reviewed', isNew: false, education: 'bachelors', yearsOfExperience: 5 },
       { name: 'Riley', status: 'applied', isNew: false, education: 'diploma', yearsOfExperience: 3 },
     ]);
