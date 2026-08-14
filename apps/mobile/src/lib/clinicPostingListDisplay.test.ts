@@ -6,24 +6,34 @@ import {
   formatClinicApplicantCount,
   formatClinicPostingLocation,
   formatClinicPostingPostedDate,
+  formatClinicPostingTableLocation,
   formatClinicRoleCompactMeta,
+  getClinicRoleTableColumns,
 } from './clinicPostingListDisplay';
 
 describe('clinicPostingListDisplay', () => {
-  it('builds CSS grid templates from table columns', () => {
-    expect(clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS)).toContain('minmax(180px, 1.6fr)');
-    expect(clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS)).toContain('72px');
-    expect(clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS)).toContain('88px');
-    expect(CLINIC_ROLE_TABLE_COLUMNS.map((column) => column.label)).toEqual([
-      'Role',
-      'Type',
-      'Status',
-      'Location',
-      'Applicants',
-      'Posted',
-      'Pay',
-      '',
+  it('omits location for single-site clinics and includes it for groups', () => {
+    expect(getClinicRoleTableColumns(false).map((column) => column.key)).toEqual([
+      'role',
+      'status',
+      'applicants',
+      'posted',
+      'pay',
+      'actions',
     ]);
+    expect(getClinicRoleTableColumns(true).map((column) => column.key)).toEqual([
+      'role',
+      'status',
+      'location',
+      'applicants',
+      'posted',
+      'pay',
+      'actions',
+    ]);
+    expect(clinicPostingTableGridTemplate(getClinicRoleTableColumns(false))).toBe(
+      'minmax(240px, 2.4fr) 104px 148px 96px minmax(92px, 0.9fr) 44px',
+    );
+    expect(CLINIC_ROLE_TABLE_COLUMNS).toEqual(getClinicRoleTableColumns(true));
   });
 
   it('formats location, counts, and posted dates', () => {
@@ -32,9 +42,12 @@ describe('clinicPostingListDisplay', () => {
     );
     expect(formatClinicPostingLocation(null, 'Halifax', 'NS')).toBe('Halifax, NS');
     expect(formatClinicPostingLocation(null, null, null)).toBe('');
+    expect(formatClinicPostingTableLocation('Downtown', 'Halifax')).toBe('Downtown');
+    expect(formatClinicPostingTableLocation(null, 'Halifax')).toBe('Halifax');
     expect(formatClinicApplicantCount(1)).toBe('1 applicant');
     expect(formatClinicApplicantCount(3)).toBe('3 applicants');
-    expect(formatClinicPostingPostedDate('2026-01-15T15:00:00.000Z')).toMatch(/Jan 15, 2026/);
+    expect(formatClinicPostingPostedDate('2026-01-15T15:00:00.000Z')).toMatch(/Jan 15/);
+    expect(formatClinicPostingPostedDate('2026-01-15T15:00:00.000Z')).not.toMatch(/2026/);
     expect(formatClinicPostingPostedDate(null)).toBe('—');
   });
 

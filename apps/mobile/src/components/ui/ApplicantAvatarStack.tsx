@@ -13,6 +13,10 @@ type ApplicantAvatarStackProps = {
   photoPaths?: (string | null)[];
   maxVisible?: number;
   size?: number;
+  /** When set, overflow uses this total instead of `names.length`. */
+  totalCount?: number;
+  /** Hide the +N chip when a sibling count is shown instead. */
+  showOverflow?: boolean;
 };
 
 function StackAvatar({
@@ -37,9 +41,13 @@ export function ApplicantAvatarStack({
   photoPaths = [],
   maxVisible = 3,
   size = 32,
+  totalCount,
+  showOverflow = true,
 }: ApplicantAvatarStackProps) {
   const visible = names.slice(0, maxVisible);
-  const overflow = names.length - visible.length;
+  const overflow = showOverflow
+    ? Math.max(0, (totalCount ?? names.length) - visible.length)
+    : 0;
   const overlap = Math.round(size * 0.28);
 
   const styles = useThemedStyles(({ colors, radii }) => ({

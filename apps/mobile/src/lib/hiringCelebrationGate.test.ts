@@ -75,4 +75,36 @@ describe('pickWorkerHiringCelebration', () => {
     expect(result.toShow).toBeNull();
     expect(result.nextKnownHiredIds.has('hygienist-hire')).toBe(true);
   });
+
+  it('does not celebrate a confirmed fill-in after the shift date', () => {
+    const pastFillIn = candidate({
+      id: 'past-fill-in',
+      postType: 'shift',
+      status: 'hired',
+      postTitle: 'Fill-in',
+      shiftDate: '2026-08-10',
+      updatedAt: new Date(now - 60 * 60 * 1000).toISOString(),
+    });
+
+    const result = pickWorkerHiringCelebration([pastFillIn], [], now);
+
+    expect(result.toShow).toBeNull();
+    expect([...result.nextKnownHiredIds]).toEqual(['past-fill-in']);
+  });
+
+  it('celebrates a newly confirmed upcoming fill-in', () => {
+    const upcomingFillIn = candidate({
+      id: 'upcoming-fill-in',
+      postType: 'shift',
+      status: 'hired',
+      postTitle: 'Fill-in',
+      shiftDate: '2026-08-18',
+      updatedAt: new Date(now - 60 * 60 * 1000).toISOString(),
+    });
+
+    const result = pickWorkerHiringCelebration([upcomingFillIn], [], now);
+
+    expect(result.toShow?.id).toBe('upcoming-fill-in');
+    expect(result.nextKnownHiredIds.has('upcoming-fill-in')).toBe(false);
+  });
 });

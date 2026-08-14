@@ -15,15 +15,28 @@ import {
   profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
+import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useThemedStyles } from '@/theme';
 
 type ClinicPracticeViewProps = {
   profile: ClinicProfile | null;
+  onEditContact?: () => void;
+  onEditLocation?: () => void;
+  onEditPractice?: () => void;
 };
 
-export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
+function sectionEditAccessory(onPress?: () => void) {
+  return onPress ? <EditPillButton label="Edit" onPress={onPress} /> : undefined;
+}
+
+export function ClinicPracticeView({
+  profile,
+  onEditContact,
+  onEditLocation,
+  onEditPractice,
+}: ClinicPracticeViewProps) {
   const { locations } = useClinicProfile();
   const { logoUri } = useClinicLogo();
   const doctorLocations = locations
@@ -80,10 +93,17 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
         </CardInfoPanelText>
       </CardInfoPanel>
 
-      <SectionPanel icon="call-outline" title="Contact">
+      <SectionPanel
+        icon="call-outline"
+        title="Contact"
+        headerAccessory={sectionEditAccessory(onEditContact)}>
         <Text style={styles.hint}>
-          Who candidates can reach and how your team prefers to be contacted.
+          Your practice name and who candidates can reach.
         </Text>
+        <FieldBlock label="Clinic name">
+          <FieldValue value={profile.clinic_name} />
+        </FieldBlock>
+        <FieldDivider />
         <FieldBlock label="Contact name">
           <FieldValue value={profile.contact_name} />
         </FieldBlock>
@@ -93,7 +113,10 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel icon="location-outline" title="Location">
+      <SectionPanel
+        icon="location-outline"
+        title="Location"
+        headerAccessory={sectionEditAccessory(onEditLocation)}>
         <Text style={styles.hint}>
           Where your practice is based — shown on roles, fill-ins, and your public clinic profile.
         </Text>
@@ -106,7 +129,10 @@ export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
         </FieldBlock>
       </SectionPanel>
 
-      <SectionPanel icon="medkit-outline" title="Practice setup">
+      <SectionPanel
+        icon="medkit-outline"
+        title="Practice setup"
+        headerAccessory={sectionEditAccessory(onEditPractice)}>
         <Text style={styles.hint}>
           Your clinical environment, team size, and doctors help candidates understand day-to-day
           work at your practice.

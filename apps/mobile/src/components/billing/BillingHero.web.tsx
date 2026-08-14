@@ -64,7 +64,7 @@ export function BillingHero({
   activePriceLabel = null,
 }: BillingHeroProps) {
   const { colors, isDark } = useTheme();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const plan = billing.plan;
   const planLabel = getClinicPlanLabel(plan);
   const brandAccent = getClinicPlanBrandAccentColor(plan, colors);

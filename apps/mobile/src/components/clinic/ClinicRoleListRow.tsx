@@ -7,7 +7,7 @@ import { Platform, Pressable, Text, View } from 'react-native';
 import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
-import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
+import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
@@ -16,54 +16,63 @@ import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
+import type { JobApplicantPreview } from '@/lib/dashboardAttention';
 import {
-  CLINIC_ROLE_TABLE_COLUMNS,
   clinicPostingTableGridTemplate,
   formatClinicApplicantCount,
-  formatClinicPostingLocation,
+  formatClinicPostingTableLocation,
   formatClinicPostingPostedDate,
   formatClinicRoleCompactMeta,
+  getClinicRoleTableColumns,
+  type ClinicPostingTableColumn,
 } from '@/lib/clinicPostingListDisplay';
-import { webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
+import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
+import { webTransition } from '@/theme/web';
 
 import type { RolePostingCardManageProps } from '@/components/clinic/RolePostingCard';
 
 type ClinicRoleListRowProps = {
   job: JobPost;
   applicantCount?: number;
+  applicants?: JobApplicantPreview[];
   tableMode?: boolean;
+  columns?: readonly ClinicPostingTableColumn[];
   onPress?: () => void;
   onApplicantsPress?: () => void;
   manage?: RolePostingCardManageProps;
 };
 
+const TABLE_AVATAR_STACK_MAX = 3;
+const TABLE_AVATAR_SIZE = 24;
+
 export function ClinicRoleListRow({
   job,
   applicantCount = 0,
+  applicants = [],
   tableMode = false,
+  columns: columnsProp,
   onPress,
   onApplicantsPress,
   manage,
 }: ClinicRoleListRowProps) {
   const { colors } = useTheme();
-  const { clinicProfile, locations } = useClinicProfile();
+  const { clinicProfile, locations, accessibleLocations } = useClinicProfile();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment();
   const logoStoragePath = useResolvedClinicLogoPath(job.location_id);
   const logoUri = useClinicLogoUri(logoStoragePath);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const locationRecord = locations.find((location) => location.id === job.location_id);
-  const locationLabel =
-    formatClinicPostingLocation(
-      locationRecord?.name,
-      locationRecord?.city ?? clinicProfile?.city,
-      locationRecord?.province ?? clinicProfile?.province,
-    ) || '—';
+  const locationLabel = formatClinicPostingTableLocation(
+    locationRecord?.name,
+    locationRecord?.city ?? clinicProfile?.city,
+  );
   const roleMeta = formatJobPostRoleMeta(job);
   const postedDate = formatClinicPostingPostedDate(job.created_at);
   const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
-  const gridTemplate = clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS);
+  const columns = columnsProp ?? getClinicRoleTableColumns(accessibleLocations.length > 1);
+  const gridTemplate = clinicPostingTableGridTemplate(columns);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     listRowWrap: {
@@ -80,16 +89,16 @@ export function ClinicRoleListRow({
       zIndex: 1,
     },
     tableRow: {
-      minHeight: Platform.OS === 'web' ? 40 : 44,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      minHeight: 56,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 12,
       ...webPointer(),
+      ...webTransition(['background-color']),
       ...webOnlyStyle({
         display: 'grid',
         gridTemplateColumns: gridTemplate,
         alignItems: 'center',
-        justifyItems: 'start',
-        gap: spacing.sm,
+        columnGap: spacing.lg,
       } as const),
     },
     tableRowHovered: webListRowHoverStyles(colors),
@@ -97,45 +106,105 @@ export function ClinicRoleListRow({
       opacity: 0.88,
     },
     roleCell: {
+      minWidth: 0,
+      width: '100%',
+      gap: 2,
+    },
+    titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
       minWidth: 0,
-      width: '100%',
-      maxWidth: '100%',
     },
     title: {
       flex: 1,
       minWidth: 0,
-      fontSize: 14,
+      fontSize: 15,
+      lineHeight: 20,
       fontWeight: '600',
+      letterSpacing: -0.2,
       color: colors.labelPrimary,
     },
     featuredMark: {
       flexShrink: 0,
     },
+    subtitle: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelTertiary,
+      minWidth: 0,
+    },
     cell: {
       fontSize: 13,
+      lineHeight: 18,
       color: colors.labelSecondary,
+      minWidth: 0,
+      width: '100%',
+      overflow: 'hidden',
       whiteSpace: 'nowrap' as const,
+    },
+    numericCell: {
+      minWidth: 0,
+      width: '100%',
+      ...webOnlyStyle({ justifySelf: 'end' } as const),
+    },
+    numericText: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '500',
+      color: colors.labelSecondary,
+      textAlign: 'right' as const,
+      fontVariant: ['tabular-nums'] as const,
+    },
+    applicantCluster: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 8,
+      minHeight: 28,
+    },
+    applicantButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 8,
+      minHeight: 28,
+      paddingRight: 6,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    applicantButtonHovered: webListRowHoverStyles(colors),
+    applicantCount: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '600',
+      color: colors.primary,
+      fontVariant: ['tabular-nums'] as const,
     },
     pay: {
       fontSize: 13,
+      lineHeight: 18,
       fontWeight: '600',
-      color: colors.primary,
-      whiteSpace: 'nowrap' as const,
+      color: colors.labelPrimary,
+      textAlign: 'right' as const,
+      fontVariant: ['tabular-nums'] as const,
     },
     muted: {
       fontSize: 13,
+      lineHeight: 18,
       color: colors.labelTertiary,
+      textAlign: 'right' as const,
     },
     menuButton: {
-      width: 28,
-      height: 28,
+      width: 32,
+      height: 32,
+      borderRadius: 8,
       alignItems: 'center',
       justifyContent: 'center',
       ...webOnlyStyle({ justifySelf: 'end' } as const),
+      ...webPointer(),
     },
+    menuButtonHovered: webListRowHoverStyles(colors),
     menuButtonPressed: {
       opacity: 0.6,
     },
@@ -156,27 +225,124 @@ export function ClinicRoleListRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Manage role posting"
-      hitSlop={10}
+      hitSlop={8}
       onPress={(event) => {
         event.stopPropagation?.();
         handleManagePress();
       }}
-      style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}>
+      style={({ pressed, hovered }) => [
+        styles.menuButton,
+        webHover(hovered, pressed, styles.menuButtonHovered),
+        pressed && styles.menuButtonPressed,
+      ]}>
       <Ionicons name="ellipsis-horizontal" size={18} color={colors.labelTertiary} />
     </Pressable>
-  ) : null;
+  ) : (
+    <View />
+  );
+
+  const applicantStack =
+    applicants.length > 0 ? (
+      <ApplicantAvatarStack
+        names={applicants.map((applicant) => applicant.name)}
+        photoPaths={applicants.map((applicant) => applicant.photoPath)}
+        maxVisible={TABLE_AVATAR_STACK_MAX}
+        size={TABLE_AVATAR_SIZE}
+        showOverflow={false}
+      />
+    ) : null;
+
+  const applicantCountLabel = (
+    <Text style={applicantCount > 0 ? styles.applicantCount : styles.cell}>
+      {applicantCount > 0 ? applicantCount : '—'}
+    </Text>
+  );
 
   const applicantControl =
     applicantCount > 0 && onApplicantsPress ? (
-      <ApplicantCountButton
-        label={String(applicantCount)}
-        onPress={onApplicantsPress}
+      <Pressable
+        accessibilityRole="button"
         accessibilityLabel={`Review ${formatClinicApplicantCount(applicantCount)}`}
-        showChevron={false}
-      />
+        onPress={(event) => {
+          event.stopPropagation?.();
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onApplicantsPress();
+        }}
+        style={({ pressed, hovered }) => [
+          styles.applicantButton,
+          webHover(hovered, pressed, styles.applicantButtonHovered),
+          pressed && { opacity: 0.75 },
+        ]}>
+        {applicantStack}
+        {applicantCountLabel}
+      </Pressable>
     ) : (
-      <Text style={styles.muted}>{applicantCount}</Text>
+      <View style={styles.applicantCluster}>
+        {applicantStack}
+        {applicantCountLabel}
+      </View>
     );
+
+  const renderTableCell = (column: ClinicPostingTableColumn) => {
+    switch (column.key) {
+      case 'role':
+        return (
+          <View key={column.key} style={styles.roleCell}>
+            <View style={styles.titleRow}>
+              {isFeatured ? (
+                <View style={styles.featuredMark}>
+                  <FeaturedListingBadge compact />
+                </View>
+              ) : null}
+              <Text style={styles.title} numberOfLines={1}>
+                {job.title}
+              </Text>
+            </View>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {roleMeta}
+            </Text>
+          </View>
+        );
+      case 'status':
+        return (
+          <View key={column.key}>
+            <JobPostStatusBadge status={job.status} size="sm" />
+          </View>
+        );
+      case 'location':
+        return (
+          <Text key={column.key} style={styles.cell} numberOfLines={1}>
+            {locationLabel}
+          </Text>
+        );
+      case 'applicants':
+        return (
+          <View key={column.key}>
+            {applicantControl}
+          </View>
+        );
+      case 'posted':
+        return (
+          <Text key={column.key} style={[styles.numericText, styles.numericCell]} numberOfLines={1}>
+            {postedDate}
+          </Text>
+        );
+      case 'pay':
+        return (
+          <Text
+            key={column.key}
+            style={[job.wage_range ? styles.pay : styles.muted, styles.numericCell]}
+            numberOfLines={1}
+          >
+            {job.wage_range || '—'}
+          </Text>
+        );
+      case 'actions':
+        return <View key={column.key}>{manageButton}</View>;
+      default:
+        return null;
+    }
+  };
 
   if (tableMode && Platform.OS === 'web') {
     return (
@@ -189,32 +355,7 @@ export function ClinicRoleListRow({
           hovered && !pressed && styles.tableRowHovered,
           pressed && styles.tableRowPressed,
         ]}>
-        <View style={styles.roleCell}>
-          {isFeatured ? (
-            <View style={styles.featuredMark}>
-              <FeaturedListingBadge compact />
-            </View>
-          ) : null}
-          <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={28} />
-          <Text style={styles.title} numberOfLines={1}>
-            {job.title}
-          </Text>
-        </View>
-        <Text style={styles.cell} numberOfLines={1}>
-          {roleMeta}
-        </Text>
-        <JobPostStatusBadge status={job.status} />
-        <Text style={styles.cell} numberOfLines={1}>
-          {locationLabel}
-        </Text>
-        {applicantControl}
-        <Text style={styles.cell} numberOfLines={1}>
-          {postedDate}
-        </Text>
-        <Text style={job.wage_range ? styles.pay : styles.muted} numberOfLines={1}>
-          {job.wage_range || '—'}
-        </Text>
-        {manageButton ?? <View />}
+        {columns.map(renderTableCell)}
       </Pressable>
     );
   }
@@ -242,7 +383,7 @@ export function ClinicRoleListRow({
             <JobPostStatusBadge status={job.status} />
           </BadgeRow>
         }
-        trailing={manageButton}
+        trailing={manage ? manageButton : null}
         onPress={onPress}
         showChevron={Boolean(onPress)}
       />

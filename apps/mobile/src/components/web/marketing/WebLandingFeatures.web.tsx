@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 
-import { FILL_IN_ICON } from '@/lib/fillInIcons';
+import { WelcomeHeroFillInCard } from '@/components/onboarding/WelcomeHeroFillInCard.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import type { ThemeColors } from '@/theme/colors';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
+import { getWelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import { webCardLiftBase, webOnlyStyle, useWebCardLift } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
@@ -41,20 +43,6 @@ const SATELLITE_FEATURES = [
     body: 'Invite managers, assign locations, and keep hiring in one place across your practices.',
   },
 ] as const;
-
-const CALENDAR_DAYS = [
-  { label: 'Mon', day: '30', status: 'empty' as const },
-  { label: 'Tue', day: '1', status: 'open' as const, shift: 'Hygienist' },
-  { label: 'Wed', day: '2', status: 'filled' as const, shift: 'Assistant' },
-  { label: 'Thu', day: '3', status: 'open' as const, shift: 'Receptionist' },
-  { label: 'Fri', day: '4', status: 'empty' as const },
-] as const;
-
-function dayAccent(status: (typeof CALENDAR_DAYS)[number]['status'], colors: ThemeColors) {
-  if (status === 'open') return colors.primary;
-  if (status === 'filled') return colors.success;
-  return colors.labelTertiary;
-}
 
 function HighlightTitle({
   title,
@@ -152,181 +140,9 @@ function FeatureCardHeader({
   );
 }
 
-function FeatureAvailabilityPreview() {
-  const { colors } = useTheme();
-  const openCount = CALENDAR_DAYS.filter((day) => day.status === 'open').length;
-
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
-    shell: {
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      backgroundColor: colors.backgroundGrouped,
-      overflow: 'hidden' as const,
-      ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'subtle') } as object),
-    },
-    header: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 2,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.separator,
-      backgroundColor: colors.surface,
-    },
-    headerLabel: {
-      fontSize: 12,
-      fontWeight: '600' as const,
-      letterSpacing: 0.4,
-      textTransform: 'uppercase' as const,
-      color: colors.labelSecondary,
-    },
-    badge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      borderRadius: 999,
-      backgroundColor: `${colors.primary}20`,
-    },
-    badgeText: {
-      fontSize: 11,
-      fontWeight: '600' as const,
-      color: colors.primary,
-    },
-    body: {
-      padding: spacing.md,
-      gap: spacing.md,
-    },
-    weekRow: {
-      flexDirection: 'row' as const,
-      gap: spacing.xs,
-    },
-    dayCell: {
-      flex: 1,
-      minWidth: 0,
-      alignItems: 'center' as const,
-      gap: 4,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: 2,
-      borderRadius: 10,
-      borderWidth: 1,
-      backgroundColor: colors.surface,
-    },
-    dayCellEmpty: {
-      borderColor: colors.separator,
-    },
-    dayCellOpen: {
-      borderColor: `${colors.primary}55`,
-      ...webOnlyStyle({
-        backgroundImage: `linear-gradient(180deg, ${colors.primary}18 0%, ${colors.surface} 100%)`,
-      } as object),
-    },
-    dayCellFilled: {
-      borderColor: `${colors.success}44`,
-    },
-    dayLabel: {
-      fontSize: 10,
-      fontWeight: '600' as const,
-      letterSpacing: 0.3,
-      textTransform: 'uppercase' as const,
-      color: colors.labelTertiary,
-    },
-    dayNumber: {
-      fontSize: 15,
-      lineHeight: 18,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-    },
-    shiftDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    legend: {
-      gap: spacing.xs,
-    },
-    legendRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: spacing.sm,
-    },
-    legendDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-    },
-    legendText: {
-      flex: 1,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelSecondary,
-    },
-    legendRole: {
-      fontWeight: '600' as const,
-      color: colors.labelPrimary,
-    },
-  }));
-
-  const openDays = CALENDAR_DAYS.filter((day) => day.status === 'open' && 'shift' in day);
-  const filledDays = CALENDAR_DAYS.filter((day) => day.status === 'filled' && 'shift' in day);
-
-  return (
-    <View style={styles.shell}>
-      <View style={styles.header}>
-        <Text style={styles.headerLabel}>This week</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {openCount} open shift{openCount === 1 ? '' : 's'}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.body}>
-        <View style={styles.weekRow}>
-          {CALENDAR_DAYS.map((day) => {
-            const accent = dayAccent(day.status, colors);
-            const cellStyle =
-              day.status === 'open'
-                ? styles.dayCellOpen
-                : day.status === 'filled'
-                  ? styles.dayCellFilled
-                  : styles.dayCellEmpty;
-
-            return (
-              <View key={day.label} style={[styles.dayCell, cellStyle]}>
-                <Text style={styles.dayLabel}>{day.label}</Text>
-                <Text style={styles.dayNumber}>{day.day}</Text>
-                {day.status !== 'empty' ? (
-                  <View style={[styles.shiftDot, { backgroundColor: accent }]} />
-                ) : (
-                  <View style={{ height: 6 }} />
-                )}
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.legend}>
-          {openDays.map((day) => (
-            <View key={`open-${day.label}`} style={styles.legendRow}>
-              <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
-              <Text style={styles.legendText}>
-                <Text style={styles.legendRole}>{day.shift}</Text> needed · {day.label}
-              </Text>
-            </View>
-          ))}
-          {filledDays.map((day) => (
-            <View key={`filled-${day.label}`} style={styles.legendRow}>
-              <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-              <Text style={styles.legendText}>
-                <Text style={styles.legendRole}>{day.shift}</Text> filled · {day.label}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
+function FeatureFillInSnapshot() {
+  const preview = useMemo(() => getWelcomeHeroPreview(), []);
+  return <WelcomeHeroFillInCard preview={preview} />;
 }
 
 function FeatureHeroCard() {
@@ -358,7 +174,7 @@ function FeatureHeroCard() {
     preview: {
       flex: isWide ? 1 : undefined,
       width: '100%' as const,
-      maxWidth: isWide ? 380 : undefined,
+      maxWidth: isWide ? 420 : undefined,
       alignSelf: isWide ? ('stretch' as const) : ('stretch' as const),
     },
     body: {
@@ -383,7 +199,7 @@ function FeatureHeroCard() {
             <Text style={styles.body}>{HERO_FEATURE.body}</Text>
           </View>
           <View style={styles.preview}>
-            <FeatureAvailabilityPreview />
+            <FeatureFillInSnapshot />
           </View>
         </View>
       </View>

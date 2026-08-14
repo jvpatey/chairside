@@ -16,10 +16,7 @@ import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import {
-  AUTH_STAGGER,
-  enterFadeUp,
-} from '@/components/onboarding/onboardingAnimations';
+import { AUTH_STAGGER, enterFadeUp } from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
@@ -34,11 +31,7 @@ import {
   getPasswordTooShortMessage,
   passwordsMatch,
 } from '@/lib/passwordPolicy';
-import {
-  webHover,
-  webPointer,
-  webTextLinkHoverStyles,
-} from '@/lib/webPressableStyles';
+import { webHover, webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
 
@@ -53,8 +46,7 @@ export default function SignUpScreen() {
     inviteToken?: string;
   }>();
   const role = parseRole(roleParam);
-  const pendingInviteToken =
-    typeof inviteToken === 'string' ? inviteToken.trim() : '';
+  const pendingInviteToken = typeof inviteToken === 'string' ? inviteToken.trim() : '';
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const reducedMotion = useReducedMotion();
@@ -68,10 +60,7 @@ export default function SignUpScreen() {
   const confirmHasInput = confirmPassword.length > 0;
   const passwordsDoMatch = passwordsMatch(password, confirmPassword);
   const canSubmit =
-    Boolean(email.trim()) &&
-    passwordEvaluation.isValid &&
-    passwordsDoMatch &&
-    confirmHasInput;
+    Boolean(email.trim()) && passwordEvaluation.isValid && passwordsDoMatch && confirmHasInput;
 
   useEffect(() => {
     if (pendingInviteToken) {
@@ -98,7 +87,7 @@ export default function SignUpScreen() {
     },
     footer: {
       gap: spacing.md,
-      marginTop: spacing.lg,
+      marginTop: Platform.OS === 'web' ? 0 : spacing.lg,
     },
     switchRow: {
       flexDirection: 'row',
@@ -217,8 +206,7 @@ export default function SignUpScreen() {
       }
 
       if (user) {
-        const message =
-          'We sent a confirmation link. Open it to finish setting up your account.';
+        const message = 'We sent a confirmation link. Open it to finish setting up your account.';
         setFormError(message);
         if (Platform.OS !== 'web') {
           Alert.alert('Confirm your email', message);
@@ -267,12 +255,14 @@ export default function SignUpScreen() {
                 styles.switchLinkPressable,
                 webHover(hovered, pressed, styles.switchLinkHovered),
                 pressed && { opacity: 0.75 },
-              ]}>
+              ]}
+            >
               <Text style={styles.switchLink}>Sign in</Text>
             </Pressable>
           </View>
         </View>
-      }>
+      }
+    >
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
         <AuthScreenHeader
           title={pendingInviteToken ? 'Create your clinic account' : 'Create your account'}
@@ -291,9 +281,7 @@ export default function SignUpScreen() {
           onGooglePress={() => runSocialSignIn(signInWithGoogle)}
         />
       </Animated.View>
-      <Animated.View
-        entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)}
-        style={styles.form}>
+      <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
         <FormErrorBanner message={formError} />
         <AuthField
           label="Email"
@@ -330,7 +318,8 @@ export default function SignUpScreen() {
             style={[
               styles.matchHint,
               passwordsDoMatch ? styles.matchHintSuccess : styles.matchHintError,
-            ]}>
+            ]}
+          >
             {passwordsDoMatch ? 'Passwords match' : 'Passwords do not match'}
           </Text>
         ) : null}

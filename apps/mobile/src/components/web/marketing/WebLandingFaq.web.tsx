@@ -17,7 +17,7 @@ const FAQ_ITEMS = [
     id: 'free-tier',
     question: 'Is there really a free tier?',
     answer:
-      'Yes. Clinics can post their first role and fill-in at no cost. Dental professionals — hygienists, assistants, receptionists, and others — always join and apply for free.',
+      'Yes. Clinics can keep one live role and one live fill-in at no cost. Dental professionals — hygienists, assistants, receptionists, and others — always join and apply for free.',
   },
   {
     id: 'who-can-join',
@@ -35,19 +35,19 @@ const FAQ_ITEMS = [
     id: 'fill-ins',
     question: 'How do fill-in shifts work?',
     answer:
-      'Clinics post same-day or short-notice coverage needs. Professionals turn on fill-in availability, browse nearby openings, and apply in-app. Clinics review applicants and message candidates without leaving the platform.',
+      'Clinics post same-day or short-notice coverage needs. Professionals turn on fill-in availability, browse nearby openings, and apply in-app. Clinics review applicants and message candidates without leaving Chairside.',
+  },
+  {
+    id: 'matching',
+    question: 'How does matching and screening work?',
+    answer:
+      'Professionals see match scores on roles so they can tell fit at a glance. Clinics can add screening questions on paid plans, then compare applicants before opening a message.',
   },
   {
     id: 'groups',
     question: 'Can multi-location groups use Chairside?',
     answer:
-      'Yes. Group plans let you manage multiple locations, invite managers, and keep hiring centralized. Start with the free group tier to try up to two locations before upgrading.',
-  },
-  {
-    id: 'ios-app',
-    question: 'Is there an iOS app?',
-    answer:
-      'Chairside works in your browser today on desktop and mobile. A native iOS app is in development — sign up on the web now and your account will carry over when the app launches.',
+      'Yes. Group plans let you manage multiple locations, invite managers, and keep hiring centralized. Start free with up to two locations and one manager, plus one live role and one live fill-in across the group.',
   },
 ] as const;
 

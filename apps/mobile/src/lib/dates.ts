@@ -44,11 +44,12 @@ export function parseISODate(value: string): Date | null {
 }
 
 export function formatShiftDateLabel(date: Date): string {
+  const sameYear = date.getFullYear() === new Date().getFullYear();
   return date.toLocaleDateString(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
   });
 }
 
@@ -60,10 +61,11 @@ export function formatPostedDateLabel(isoTimestamp: string | null | undefined): 
   if (!isoTimestamp) return '';
   const date = new Date(isoTimestamp);
   if (Number.isNaN(date.getTime())) return '';
+  const sameYear = date.getFullYear() === new Date().getFullYear();
   return `Posted ${date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
   })}`;
 }
 

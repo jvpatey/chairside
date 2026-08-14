@@ -1,4 +1,5 @@
 import type { CelebrationCandidate } from './hiringCelebrationCandidates';
+import { toISODate } from './dates';
 
 /** Ignore hires older than this so past roles don't celebrate on a later visit. */
 export const HIRING_CELEBRATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -21,6 +22,17 @@ export function isRecentHiringCelebration(
   return ageMs >= 0 && ageMs <= HIRING_CELEBRATION_MAX_AGE_MS;
 }
 
+/** Confirmed fill-ins should not celebrate after the shift date has passed. */
+export function isPastFillInCelebration(
+  candidate: CelebrationCandidate,
+  now = Date.now(),
+): boolean {
+  if (candidate.postType !== 'shift') return false;
+  const shiftDate = candidate.shiftDate?.trim();
+  if (!shiftDate) return false;
+  return shiftDate < toISODate(new Date(now));
+}
+
 export function pickWorkerHiringCelebration(
   candidates: CelebrationCandidate[],
   knownHiredIds: Iterable<string>,
@@ -37,7 +49,11 @@ export function pickWorkerHiringCelebration(
   const nextKnownHiredIds = new Set(known);
 
   const recentNew = discovered
-    .filter((candidate) => isRecentHiringCelebration(candidate.updatedAt, now))
+    .filter(
+      (candidate) =>
+        !isPastFillInCelebration(candidate, now) &&
+        isRecentHiringCelebration(candidate.updatedAt, now),
+    )
     .sort((a, b) => {
       const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0;
       const bTime = b.updatedAt ? Date.parse(b.updatedAt) : 0;

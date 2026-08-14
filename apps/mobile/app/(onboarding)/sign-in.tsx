@@ -14,10 +14,7 @@ import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import {
-  AUTH_STAGGER,
-  enterFadeUp,
-} from '@/components/onboarding/onboardingAnimations';
+import { AUTH_STAGGER, enterFadeUp } from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
@@ -55,8 +52,7 @@ export default function SignInScreen() {
   const [resetLinkSent, setResetLinkSent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [resetHint, setResetHint] = useState<string | null>(null);
-  const pendingInviteToken =
-    typeof inviteToken === 'string' ? inviteToken.trim() : '';
+  const pendingInviteToken = typeof inviteToken === 'string' ? inviteToken.trim() : '';
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -102,7 +98,7 @@ export default function SignInScreen() {
     },
     footer: {
       gap: spacing.md,
-      marginTop: spacing.lg,
+      marginTop: Platform.OS === 'web' ? 0 : spacing.lg,
     },
     switchRow: {
       flexDirection: 'row',
@@ -265,14 +261,16 @@ export default function SignInScreen() {
                 styles.switchLinkPressable,
                 webHover(hovered, pressed, styles.switchLinkHovered),
                 pressed && { opacity: 0.75 },
-              ]}>
+              ]}
+            >
               <Text style={styles.switchLink}>
                 {pendingInviteToken ? 'Create clinic account' : 'Get started'}
               </Text>
             </Pressable>
           </View>
         </View>
-      }>
+      }
+    >
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
         <AuthScreenHeader
           title={pendingInviteToken ? 'Join your clinic team' : 'Welcome back'}
@@ -291,9 +289,7 @@ export default function SignInScreen() {
           onGooglePress={() => runSocialSignIn(signInWithGoogle)}
         />
       </Animated.View>
-      <Animated.View
-        entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)}
-        style={styles.form}>
+      <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
         {resetLinkSent ? <FormSuccessBanner message={PASSWORD_RESET_SENT_MESSAGE} /> : null}
         <AuthField
@@ -335,7 +331,8 @@ export default function SignInScreen() {
             webHover(hovered, pressed, styles.forgotHovered, isSendingReset),
             pressed && !isSendingReset && { opacity: 0.75 },
             webOnlyStyle({ tabIndex: isSendingReset ? -1 : 0 } as never),
-          ]}>
+          ]}
+        >
           <Text style={[styles.forgotText, isSendingReset && styles.forgotTextDisabled]}>
             {isSendingReset ? 'Sending reset link…' : 'Forgot password?'}
           </Text>

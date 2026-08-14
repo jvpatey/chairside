@@ -18,12 +18,19 @@ export default function ClinicProfilePracticeScreen() {
     <ProfileDetailScreen
       title="Practice details"
       subtitle="Contact, location, and practice setup candidates use to understand your clinic."
-      actionLabel="Edit"
-      onActionPress={() =>
-        router.push(getSetupEditRoute('/(clinic-setup)/basics', 'clinic-practice'))
-      }
       onBack={() => navigateToClinicProfileHub(router)}>
-      <ClinicPracticeView profile={clinicProfile} />
+      <ClinicPracticeView
+        profile={clinicProfile}
+        onEditContact={() =>
+          router.push(getSetupEditRoute('/(clinic-setup)/basics', 'clinic-practice'))
+        }
+        onEditLocation={() =>
+          router.push(getSetupEditRoute('/(clinic-setup)/location', 'clinic-practice'))
+        }
+        onEditPractice={() =>
+          router.push(getSetupEditRoute('/(clinic-setup)/practice', 'clinic-practice'))
+        }
+      />
     </ProfileDetailScreen>
   );
 }

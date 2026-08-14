@@ -33,12 +33,12 @@ export function ClinicPostingTable({
       backgroundColor: colors.surface,
       borderRadius: cardShellRadii.group,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.06 : 0.05),
+      borderColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.08 : 0.06),
       overflow: 'hidden',
     },
     header: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 10,
       backgroundColor: colors.backgroundGrouped,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.06 : 0.05),
@@ -46,8 +46,7 @@ export function ClinicPostingTable({
         display: 'grid',
         gridTemplateColumns: gridTemplate,
         alignItems: 'center',
-        justifyItems: 'start',
-        gap: spacing.md,
+        columnGap: spacing.lg,
         position: 'sticky',
         top: 0,
         zIndex: 1,
@@ -56,10 +55,13 @@ export function ClinicPostingTable({
     headerLabel: {
       fontSize: 11,
       fontWeight: '600',
-      letterSpacing: 0.4,
+      letterSpacing: 0.3,
       textTransform: 'uppercase',
       color: colors.labelTertiary,
+      minWidth: 0,
     },
+    headerStart: webOnlyStyle({ justifySelf: 'start', textAlign: 'left' } as const),
+    headerEnd: webOnlyStyle({ justifySelf: 'end', textAlign: 'right' } as const),
     item: {
       alignSelf: 'stretch',
     },
@@ -69,11 +71,22 @@ export function ClinicPostingTable({
     <View style={styles.group}>
       {showHeader && Platform.OS === 'web' ? (
         <View accessibilityRole="header" style={styles.header}>
-          {columns.map((column) => (
-            <Text key={column.key || 'actions'} style={styles.headerLabel} numberOfLines={1}>
-              {column.label}
-            </Text>
-          ))}
+          {columns.map((column) =>
+            column.label ? (
+              <Text
+                key={column.key}
+                style={[
+                  styles.headerLabel,
+                  column.align === 'end' ? styles.headerEnd : styles.headerStart,
+                ]}
+                numberOfLines={1}
+              >
+                {column.label}
+              </Text>
+            ) : (
+              <View key={column.key || 'actions'} />
+            ),
+          )}
         </View>
       ) : null}
       {items.map((child, index) => (
@@ -81,7 +94,7 @@ export function ClinicPostingTable({
           key={isValidElement(child) && child.key != null ? child.key : index}
           style={styles.item}>
           {isValidElement(child) ? child : child}
-          {index < items.length - 1 ? <ListGroupItemSeparator /> : null}
+          {index < items.length - 1 ? <ListGroupItemSeparator inset={20} /> : null}
         </View>
       ))}
     </View>

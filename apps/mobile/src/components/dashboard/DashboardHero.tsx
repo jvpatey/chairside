@@ -48,6 +48,8 @@ type DashboardHeroProps = {
   showActions?: boolean;
   /** Hide avatar in action cluster on web/tablet (sidebar owns identity). */
   hideProfileOnWebTablet?: boolean;
+  /** Render the phone overlay layout even when the window is tablet-sized (marketing preview). */
+  forcePhoneLayout?: boolean;
 };
 
 function formatDashboardDate(date = new Date()) {
@@ -93,15 +95,17 @@ export function DashboardHero({
   contextSlot,
   showActions = true,
   hideProfileOnWebTablet = false,
+  forcePhoneLayout = false,
 }: DashboardHeroProps) {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const reduceMotion = usePrefersReducedMotion();
-  const overlayActions = !isTablet && showActions;
+  const overlayActions = (forcePhoneLayout || !isTablet) && showActions;
   const heroOpensProfile = Platform.OS !== 'web';
-  const hideProfileInActions = hideProfileOnWebTablet && IS_WEB && isTablet;
+  const hideProfileInActions = hideProfileOnWebTablet && IS_WEB && isTablet && !forcePhoneLayout;
   const isWeb = Platform.OS === 'web';
   const timeIcon = getTimeOfDayIcon();
+  const isPhoneGreeting = forcePhoneLayout || !(IS_WEB && isTablet);
 
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     band: {
@@ -161,7 +165,7 @@ export function DashboardHero({
     greeting: {
       flex: 1,
       minWidth: 0,
-      fontSize: IS_WEB && isTablet ? 15 : 14,
+      fontSize: 14,
       lineHeight: 20,
       fontFamily: fontRegular,
       color: colors.labelSecondary,
@@ -265,7 +269,11 @@ export function DashboardHero({
           <View style={styles.greetingGlyph}>
             <Ionicons name={timeIcon} size={15} color={colors.tertiary} />
           </View>
-          <Text style={styles.greeting} accessibilityRole="text" numberOfLines={1}>
+          <Text
+            style={[styles.greeting, !isPhoneGreeting && { fontSize: 15 }]}
+            accessibilityRole="text"
+            numberOfLines={1}
+          >
             {getTimeOfDayGreeting(greetingName)}
           </Text>
         </View>

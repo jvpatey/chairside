@@ -152,13 +152,20 @@ export function SectionPanel({
   icon,
   iconAccent,
   title,
+  headerAccessory,
   children,
   collapsible = false,
   defaultExpanded = true,
   variant = 'default',
 }: Pick<
   ProfileSettingsCardProps,
-  'icon' | 'iconAccent' | 'title' | 'collapsible' | 'defaultExpanded' | 'variant'
+  | 'icon'
+  | 'iconAccent'
+  | 'title'
+  | 'headerAccessory'
+  | 'collapsible'
+  | 'defaultExpanded'
+  | 'variant'
 > & {
   children: ReactNode;
 }) {
@@ -171,6 +178,7 @@ export function SectionPanel({
       title={title}
       icon={icon}
       iconAccent={iconAccent}
+      headerAccessory={headerAccessory}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
       variant={variant}>

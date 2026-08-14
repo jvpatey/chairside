@@ -58,6 +58,8 @@ type FileTabWellProps<T extends string = string> = {
   tabsOnly?: boolean;
   /** Stretch tab panel to fill a flex parent (split-view master lists). */
   fillHeight?: boolean;
+  /** When false, icon tabs stay equal width instead of expanding the selected tab. */
+  expandSelectedTab?: boolean;
   /** Optional fourth tab e.g. Insights — rendered muted when locked */
   lockedTab?: T;
   onLockedTabPress?: () => void;
@@ -73,6 +75,7 @@ export function FileTabWell<T extends string = string>({
   compactTabs: compactTabsProp,
   tabsOnly = false,
   fillHeight = false,
+  expandSelectedTab = true,
   lockedTab,
   onLockedTabPress,
 }: FileTabWellProps<T>) {
@@ -90,7 +93,7 @@ export function FileTabWell<T extends string = string>({
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: isDark ? subtleDivider : colors.separator,
       borderRadius: radii.lg,
-      overflow: 'hidden' as const,
+      overflow: 'visible' as const,
       backgroundColor: colors.surface,
       width: '100%',
       alignSelf: 'stretch' as const,
@@ -107,6 +110,9 @@ export function FileTabWell<T extends string = string>({
       backgroundColor: colors.backgroundGrouped,
       borderBottomWidth: compactTabs ? 0 : StyleSheet.hairlineWidth,
       borderBottomColor: subtleDivider,
+      overflow: 'hidden' as const,
+      borderTopLeftRadius: radii.lg,
+      borderTopRightRadius: radii.lg,
     },
     inlineTabScroll: {
       flexGrow: 0,
@@ -259,6 +265,9 @@ export function FileTabWell<T extends string = string>({
     panel: {
       backgroundColor: colors.surface,
       padding: compactTabs ? spacing.sm : spacing.md,
+      overflow: 'visible' as const,
+      borderBottomLeftRadius: radii.lg,
+      borderBottomRightRadius: radii.lg,
     },
     inlinePanel: {
       flex: 1,
@@ -281,7 +290,7 @@ export function FileTabWell<T extends string = string>({
     onSelect(value);
   };
 
-  const useExpandingTabs = tabs.some((tab) => Boolean(tab.icon));
+  const useExpandingTabs = expandSelectedTab && tabs.some((tab) => Boolean(tab.icon));
 
   const renderInlineTabs = () => (
     <ScrollView

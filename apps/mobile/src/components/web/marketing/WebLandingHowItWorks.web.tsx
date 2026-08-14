@@ -12,21 +12,21 @@ import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web
 const STEPS = [
   {
     number: '01',
-    icon: 'person-circle-outline' as const,
-    title: 'Create your profile',
-    body: 'Set up your clinic or build your professional profile once.',
+    icon: 'swap-horizontal-outline' as const,
+    title: 'Choose your side',
+    body: 'Clinic or professional — then set up your profile once.',
   },
   {
     number: '02',
-    icon: 'briefcase-outline' as const,
-    title: 'Post or apply',
-    body: 'Post roles and fill-ins, or browse openings and turn on availability.',
+    icon: 'flash-outline' as const,
+    title: 'Post or get discovered',
+    body: 'Clinics post roles and same-day fill-ins. Professionals browse openings and turn on availability.',
   },
   {
     number: '03',
-    icon: 'chatbubbles-outline' as const,
-    title: 'Connect in-app',
-    body: 'Message and move forward without the email thread spiral.',
+    icon: 'checkmark-circle-outline' as const,
+    title: 'Hire in Chairside',
+    body: 'Review matches, message in-app, and hire or confirm coverage without leaving Chairside.',
   },
 ] as const;
 

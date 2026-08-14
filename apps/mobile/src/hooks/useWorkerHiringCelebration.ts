@@ -1,22 +1,14 @@
 import { useCallback } from 'react';
 
+import type { CelebrationCandidate } from '@/lib/hiringCelebrationCandidates';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
 import { pickWorkerHiringCelebration } from '@/lib/hiringCelebrationGate';
 import {
+  addKnownHiredApplicationIds,
   filterUncelebratedCelebrationCandidates,
   getKnownHiredApplicationIds,
-  setKnownHiredApplicationIds,
+  markApplicationCelebrated,
 } from '@/lib/hiringCelebrationStorage';
-
-type CelebrationCandidate = {
-  id: string;
-  postType: 'job' | 'shift';
-  status: string;
-  counterpartName: string;
-  postTitle: string;
-  shiftDateLabel?: string | null;
-  updatedAt?: string;
-};
 
 export function useWorkerHiringCelebration(
   showCelebration: (payload: HiringCelebrationPayload) => void,
@@ -25,16 +17,19 @@ export function useWorkerHiringCelebration(
     async (applications: CelebrationCandidate[]) => {
       const known = await getKnownHiredApplicationIds('worker');
       const { toShow, nextKnownHiredIds } = pickWorkerHiringCelebration(applications, known);
-      await setKnownHiredApplicationIds('worker', nextKnownHiredIds);
+      if (toShow) nextKnownHiredIds.add(toShow.id);
+      await addKnownHiredApplicationIds('worker', nextKnownHiredIds);
 
       if (!toShow) return;
 
       const uncelebrated = await filterUncelebratedCelebrationCandidates('worker', [toShow]);
-      if (uncelebrated.length === 0) {
-        nextKnownHiredIds.add(toShow.id);
-        await setKnownHiredApplicationIds('worker', nextKnownHiredIds);
-        return;
-      }
+      if (uncelebrated.length === 0) return;
+
+      await markApplicationCelebrated(
+        'worker',
+        toShow.id,
+        toShow.updatedAt ?? new Date().toISOString(),
+      );
 
       showCelebration({
         applicationId: toShow.id,
