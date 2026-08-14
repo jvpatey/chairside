@@ -8,22 +8,28 @@ type YesNoQuestionCardProps = {
   prompt: string;
   value?: boolean;
   onChange: (value: boolean) => void;
+  compact?: boolean;
 };
 
-export function YesNoQuestionCard({ prompt, value, onChange }: YesNoQuestionCardProps) {
+export function YesNoQuestionCard({
+  prompt,
+  value,
+  onChange,
+  compact = false,
+}: YesNoQuestionCardProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: compact ? 14 : 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.md,
+      padding: compact ? spacing.sm : spacing.md,
+      gap: compact ? spacing.sm : spacing.md,
     },
     prompt: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: compact ? 14 : 15,
+      lineHeight: compact ? 20 : 22,
     },
     options: {
       flexDirection: 'row',
@@ -31,7 +37,7 @@ export function YesNoQuestionCard({ prompt, value, onChange }: YesNoQuestionCard
     },
     option: {
       flex: 1,
-      minHeight: 48,
+      minHeight: compact ? 40 : 48,
       borderRadius: 12,
       borderWidth: 1.5,
       borderColor: colors.separator,

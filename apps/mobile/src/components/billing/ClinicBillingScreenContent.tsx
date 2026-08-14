@@ -106,8 +106,8 @@ function PlanComparisonIntro({
       </Text>
       <Text style={styles.body}>
         {isGroupFamily
-          ? 'Workers stay free. Upgrade for more locations and managers, hiring tools, and posting limits across your group.'
-          : 'Workers stay free. Upgrade for more postings, outreach, SMS alerts, or priority placement.'}
+          ? 'Workers stay free. Upgrade for more locations and managers, hiring tools, open inquiries, and posting limits across your group.'
+          : 'Workers stay free. Upgrade for more postings, open inquiries, outreach, SMS alerts, or priority placement.'}
       </Text>
     </View>
   );
@@ -159,16 +159,20 @@ export function ClinicBillingScreenContent({
     purchasePackage,
     restorePurchases,
     manageSubscription,
+    refreshBilling,
     isPurchasing,
     isRestoring,
     isManagingSubscription,
     billingError,
-    isNativeBillingAvailable,
+    isHealingSubscription,
+    revenueCatPlan,
     isWebBillingAvailable,
     isPurchaseBillingAvailable,
     canManageSubscription,
     isBillingReady,
     isRefreshing,
+    activeBillingCycle,
+    activePriceLabel,
   } = useClinicBilling();
   const [localError, setLocalError] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
@@ -177,6 +181,17 @@ export function ClinicBillingScreenContent({
   const clinicPlansSectionRef = useRef<View>(null);
   const profileScroll = useProfileDetailScroll();
   const emphasizeGroupCaps = scrollFocus === 'group';
+
+  // Re-check RC vs DB whenever the billing screen opens (heals already-subscribed desync).
+  useEffect(() => {
+    void refreshBilling({ forceSubscriptionSync: true });
+  }, [refreshBilling]);
+
+  const showSubscriptionHealNotice =
+    isHealingSubscription ||
+    (revenueCatPlan != null &&
+      revenueCatPlan !== 'free' &&
+      billing?.plan === 'free');
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: { gap: isWebSheet ? spacing.md : spacing.lg },
@@ -461,6 +476,12 @@ export function ClinicBillingScreenContent({
 
   return (
     <View style={styles.content}>
+      {showSubscriptionHealNotice ? (
+        <Text style={[styles.notice, styles.noticeEmphasis]}>
+          Subscription found — refreshing…
+        </Text>
+      ) : null}
+
       {billing ? (
         <BillingHero
           billing={billing}
@@ -468,6 +489,8 @@ export function ClinicBillingScreenContent({
           isManagingSubscription={isManagingSubscription}
           isPurchaseBillingAvailable={isPurchaseBillingAvailable}
           isPurchasing={isPurchasing}
+          activeBillingCycle={activeBillingCycle}
+          activePriceLabel={activePriceLabel}
           recommendedUpgradeLabel={
             recommendedUpgrade
               ? `Upgrade to ${getClinicPlanLabel(recommendedUpgrade)}`
@@ -700,16 +723,16 @@ export function ClinicBillingScreenContent({
         </View>
       </View>
 
-      {isNativeBillingAvailable ? (
+      {isPurchaseBillingAvailable ? (
         <Pressable
           style={styles.actionLink}
-          disabled={isRestoring}
+          disabled={isRestoring || isHealingSubscription}
           onPress={() => {
             setLocalError(null);
             void restorePurchases().catch(() => {});
           }}>
           <Text style={styles.actionLinkText}>
-            {isRestoring ? 'Restoring…' : 'Restore purchases'}
+            {isRestoring || isHealingSubscription ? 'Restoring…' : 'Restore purchases'}
           </Text>
         </Pressable>
       ) : null}

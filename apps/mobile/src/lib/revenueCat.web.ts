@@ -10,6 +10,7 @@ import type { ClinicPlan } from '@chairside/config';
 
 import {
   getClinicPlanFromEntitlements,
+  getProductIdFromActiveEntitlements,
   normalizeWebBillingPriceAmount,
   resolveBillingPackageMeta,
   type BillingOfferings,
@@ -128,6 +129,14 @@ export async function getCurrentClinicPlan(): Promise<ClinicPlan | null> {
   const customerInfo = await getPurchasesInstance().getCustomerInfo();
   updateManagementUrl(customerInfo);
   return getClinicPlanFromCustomerInfo(customerInfo);
+}
+
+export async function getActiveSubscriptionProductId(): Promise<string | null> {
+  if (!isWebRevenueCatConfigured() || !Purchases.isConfigured()) return null;
+
+  const customerInfo = await getPurchasesInstance().getCustomerInfo();
+  updateManagementUrl(customerInfo);
+  return getProductIdFromActiveEntitlements(customerInfo.entitlements.active);
 }
 
 export function getSubscriptionManagementUrl(): string | null {

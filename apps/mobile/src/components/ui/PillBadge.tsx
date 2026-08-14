@@ -84,9 +84,11 @@ export function PillBadge({
     <View style={styles.row}>
       {leading}
       {showDot ? <View style={[styles.dot, { backgroundColor: color }]} /> : null}
-      <Text style={[styles.label, { color }]} numberOfLines={1}>
-        {label}
-      </Text>
+      {label ? (
+        <Text style={[styles.label, { color }]} numberOfLines={1}>
+          {label}
+        </Text>
+      ) : null}
     </View>
   );
 

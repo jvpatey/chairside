@@ -41,7 +41,7 @@ export function formatClinicSubscriptionStatus(
     return `Access until ${formatBillingDate(currentPeriodEnd)}`;
   }
   if (status === 'grace_period') {
-    return 'Payment issue — update billing to keep access';
+    return 'Payment issue — open Manage subscription to update billing and keep access';
   }
   if (status === 'expired') {
     return 'Subscription expired';
@@ -50,6 +50,73 @@ export function formatClinicSubscriptionStatus(
     return `Renews ${formatBillingDate(currentPeriodEnd)}`;
   }
   return null;
+}
+
+export function formatBillingCycleLabel(cycle: 'monthly' | 'yearly'): string {
+  return cycle === 'monthly' ? 'Monthly' : 'Yearly';
+}
+
+export function formatNextChargeLabel(
+  status: ClinicSubscriptionStatus,
+  priceLabel: string | null | undefined,
+  currentPeriodEnd: string | null | undefined,
+): string | null {
+  if ((status !== 'active' && status !== 'trialing') || !priceLabel || !currentPeriodEnd) {
+    return null;
+  }
+  return `Next charge ${priceLabel} on ${formatBillingDate(currentPeriodEnd)}`;
+}
+
+export type SubscriptionFact = {
+  label: string;
+  value: string;
+};
+
+/** Label/value rows for the billing hero fact grid (cycle, renews/access, next charge). */
+export function getSubscriptionFacts(input: {
+  status: ClinicSubscriptionStatus;
+  currentPeriodEnd?: string | null;
+  billingCycle?: 'monthly' | 'yearly' | null;
+  priceLabel?: string | null;
+}): SubscriptionFact[] {
+  const facts: SubscriptionFact[] = [];
+
+  if (input.billingCycle) {
+    facts.push({
+      label: 'Billing cycle',
+      value: formatBillingCycleLabel(input.billingCycle),
+    });
+  }
+
+  if (input.status === 'cancelled' && input.currentPeriodEnd) {
+    facts.push({ label: 'Access until', value: formatBillingDate(input.currentPeriodEnd) });
+  } else if (input.status === 'expired') {
+    facts.push({ label: 'Status', value: 'Expired' });
+  } else if (
+    input.currentPeriodEnd &&
+    (input.status === 'active' || input.status === 'trialing' || input.status === 'grace_period')
+  ) {
+    facts.push({ label: 'Renews', value: formatBillingDate(input.currentPeriodEnd) });
+  }
+
+  if ((input.status === 'active' || input.status === 'trialing') && input.priceLabel) {
+    facts.push({ label: 'Next charge', value: input.priceLabel });
+  }
+
+  return facts;
+}
+
+export function getSubscriptionWarning(status: ClinicSubscriptionStatus): string | null {
+  if (status === 'grace_period') {
+    return 'Payment issue — open Manage subscription to update billing and keep access';
+  }
+  return null;
+}
+
+export function getSubscriptionManagementHistoryHint(platform: 'web' | 'native'): string {
+  return platform === 'web'
+    ? 'Invoices and payment history are in your billing portal.'
+    : 'Invoices and payment history are in your App Store subscriptions.';
 }
 
 function planHasPaidRenewal(status: ClinicSubscriptionStatus): boolean {

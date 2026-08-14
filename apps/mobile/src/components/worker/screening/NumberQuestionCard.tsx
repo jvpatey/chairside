@@ -10,6 +10,7 @@ type NumberQuestionCardProps = {
   max?: number;
   unitLabel?: string;
   onChange: (value: number) => void;
+  compact?: boolean;
 };
 
 export function NumberQuestionCard({
@@ -19,22 +20,23 @@ export function NumberQuestionCard({
   max = 99,
   unitLabel,
   onChange,
+  compact = false,
 }: NumberQuestionCardProps) {
   const [text, setText] = useState(value != null ? String(value) : '');
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: compact ? 14 : 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.md,
+      padding: compact ? spacing.sm : spacing.md,
+      gap: compact ? spacing.sm : spacing.md,
     },
     prompt: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: compact ? 14 : 15,
+      lineHeight: compact ? 20 : 22,
     },
     inputRow: {
       flexDirection: 'row',
@@ -51,7 +53,7 @@ export function NumberQuestionCard({
       paddingHorizontal: spacing.md,
       paddingVertical: 12,
       color: colors.labelPrimary,
-      minHeight: 48,
+      minHeight: compact ? 44 : 48,
     },
     unit: {
       ...typography.subtitle,

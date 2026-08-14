@@ -8,6 +8,7 @@ import { NotificationCategoryPreferences } from '@/components/notifications/Noti
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { FillInSettingsLink } from '@/components/worker/FillInSettingsLink';
 import { WorkerJobNotificationPreferences } from '@/components/worker/WorkerJobNotificationPreferences';
+import { WorkerOpenInquiryPreferences } from '@/components/worker/WorkerOpenInquiryPreferences';
 import { NOTIFICATION_PREFERENCE_CATEGORIES } from '@chairside/config';
 import { navigateToWorkerProfileHub } from '@/lib/routing';
 
@@ -44,6 +45,10 @@ export default function WorkerProfileNotificationsScreen() {
 
         <ProfileSettingsCard title="Fill-in shifts" icon={FILL_IN_ICON.outline} iconAccent="secondary">
           <FillInSettingsLink />
+        </ProfileSettingsCard>
+
+        <ProfileSettingsCard title="Open inquiries" icon="chatbubbles-outline" iconAccent="primary">
+          <WorkerOpenInquiryPreferences />
         </ProfileSettingsCard>
       </ProfileDetailStack>
     </ProfileDetailScreen>

@@ -26,6 +26,7 @@ export function WorkerBrowseWebLayout({ list, map, showMap = false }: WorkerBrow
     mapPane: {
       flex: 1,
       minWidth: 0,
+      minHeight: 420,
       borderRadius: 20,
       overflow: 'hidden' as const,
       borderWidth: StyleSheet.hairlineWidth,

@@ -267,6 +267,11 @@ export function isTerminalApplicationStatus(status: string | null | undefined): 
   return status === 'rejected' || status === 'selected' || status === 'hired';
 }
 
+/** Live or paused roles still in the hiring inbox. Filled/closed belong in Role History. */
+export function isOpenClinicHiringPostStatus(status: string | null | undefined): boolean {
+  return status !== 'filled' && status !== 'closed';
+}
+
 export function canWorkerHideApplication(input: {
   status: string;
   worker_hidden_at?: string | null;

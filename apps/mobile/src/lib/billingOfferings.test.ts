@@ -7,7 +7,9 @@ import {
   formatYearlySavingsBadge,
   formatYearlySavingsDetail,
   formatYearlySavingsLabel,
+  getProductIdFromActiveEntitlements,
   normalizeWebBillingPriceAmount,
+  resolveActiveBillingDetails,
   resolveBillingPackageMeta,
   type BillingOfferings,
 } from './billingOfferings';
@@ -143,5 +145,55 @@ describe('billingOfferings', () => {
 
     expect(computeYearlySavings(monthly, yearly)?.percent).toBe(19);
     expect(computeYearlySavings(monthly, yearly)?.formattedAmount).toBe('CA$69.89');
+  });
+
+  it('resolves active product id from entitlements by plan priority', () => {
+    expect(
+      getProductIdFromActiveEntitlements({
+        clinic_starter: { productIdentifier: 'clinic_starter_monthly' },
+        clinic_pro: { productIdentifier: 'clinic_pro_yearly' },
+      }),
+    ).toBe('clinic_pro_yearly');
+
+    expect(
+      getProductIdFromActiveEntitlements({
+        clinic_group_starter: { productIdentifier: 'group_starter_monthly' },
+        clinic_pro: { productIdentifier: 'clinic_pro_monthly' },
+      }),
+    ).toBe('group_starter_monthly');
+
+    expect(getProductIdFromActiveEntitlements({})).toBeNull();
+  });
+
+  it('resolves active billing cycle and price from product id + offerings', () => {
+    const offerings: BillingOfferings = {
+      packages: [
+        {
+          identifier: 'pro_yearly',
+          productIdentifier: 'clinic_pro_yearly',
+          priceLabel: 'CA$499',
+          priceAmount: 499,
+          currencyCode: 'CAD',
+          billingCycle: 'yearly',
+          plan: 'pro',
+          source: {},
+        },
+      ],
+    };
+
+    expect(resolveActiveBillingDetails('clinic_pro_yearly', offerings)).toEqual({
+      billingCycle: 'yearly',
+      priceLabel: 'CA$499',
+      plan: 'pro',
+    });
+
+    expect(resolveActiveBillingDetails('clinic_pro_yearly', null)).toEqual({
+      billingCycle: 'yearly',
+      priceLabel: null,
+      plan: 'pro',
+    });
+
+    expect(resolveActiveBillingDetails('unknown_product', offerings)).toBeNull();
+    expect(resolveActiveBillingDetails(null, offerings)).toBeNull();
   });
 });

@@ -57,11 +57,14 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as RevenueCatWebhookBody;
     const event = body.event;
+    const eventType = event?.type?.trim() || '';
     const clinicId = event?.app_user_id ?? event?.original_app_user_id;
 
-    if (!clinicId) {
-      return new Response(JSON.stringify({ error: 'Missing app user id' }), {
-        status: 400,
+    // TEST pings and transfer-style events often omit app_user_id. Ack them so RevenueCat
+    // does not count a 4xx as a 100% webhook failure.
+    if (!clinicId || eventType === 'TEST') {
+      return new Response(JSON.stringify({ ok: true, ignored: true, type: eventType || null }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -84,7 +87,7 @@ Deno.serve(async (req) => {
     }
 
     const subscriber = await fetchRevenueCatSubscriber(clinicId);
-    const status = mapWebhookStatus(event?.type ?? 'RENEWAL');
+    const status = mapWebhookStatus(eventType || 'RENEWAL');
     const resolved = resolveClinicSubscriptionFromSubscriber(subscriber, status);
 
     if (event?.expiration_at_ms) {
@@ -114,7 +117,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[revenuecat-webhook]', message);
-    return new Response(JSON.stringify({ error: 'Webhook processing failed' }), {
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -95,7 +95,7 @@ function getEmptyStateCopy(
   if (conversation?.conversation_type === 'general') {
     return {
       title: 'Start the conversation',
-      body: 'Ask about future opportunities, availability, or the clinic’s team.',
+      body: 'Ask about future opportunities, availability, or working together.',
     };
   }
   if (conversation?.conversation_type === 'outreach') {
@@ -115,7 +115,7 @@ function getClosedBannerMessage(conversation: Conversation | null): string {
     return 'This person is no longer signed up for Chairside. You can still read past messages.';
   }
   if (conversation?.conversation_type === 'general') {
-    return 'This clinic is no longer accepting general messages. You can still read past messages.';
+    return 'This open inquiry is no longer available. You can still read past messages.';
   }
   if (conversation?.conversation_type === 'outreach') {
     return 'This fill-in outreach thread is closed. You can still read past messages.';

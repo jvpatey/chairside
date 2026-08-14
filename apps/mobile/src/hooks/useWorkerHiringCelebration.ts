@@ -1,7 +1,12 @@
 import { useCallback } from 'react';
 
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
-import { filterUncelebratedCelebrationCandidates } from '@/lib/hiringCelebrationStorage';
+import { pickWorkerHiringCelebration } from '@/lib/hiringCelebrationGate';
+import {
+  filterUncelebratedCelebrationCandidates,
+  getKnownHiredApplicationIds,
+  setKnownHiredApplicationIds,
+} from '@/lib/hiringCelebrationStorage';
 
 type CelebrationCandidate = {
   id: string;
@@ -18,34 +23,27 @@ export function useWorkerHiringCelebration(
 ) {
   const checkApplications = useCallback(
     async (applications: CelebrationCandidate[]) => {
-      const eligible = applications.filter((application) =>
-        application.postType === 'shift'
-          ? application.status === 'hired'
-          : application.status === 'selected',
-      );
+      const known = await getKnownHiredApplicationIds('worker');
+      const { toShow, nextKnownHiredIds } = pickWorkerHiringCelebration(applications, known);
+      await setKnownHiredApplicationIds('worker', nextKnownHiredIds);
 
-      if (eligible.length === 0) return;
+      if (!toShow) return;
 
-      const sorted = [...eligible].sort((a, b) => {
-        const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-        const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-        return bTime - aTime;
-      });
-
-      const uncelebrated = await filterUncelebratedCelebrationCandidates('worker', sorted);
-      if (uncelebrated.length === 0) return;
-
-      const next = uncelebrated[0];
-      if (!next) return;
+      const uncelebrated = await filterUncelebratedCelebrationCandidates('worker', [toShow]);
+      if (uncelebrated.length === 0) {
+        nextKnownHiredIds.add(toShow.id);
+        await setKnownHiredApplicationIds('worker', nextKnownHiredIds);
+        return;
+      }
 
       showCelebration({
-        applicationId: next.id,
-        postType: next.postType,
+        applicationId: toShow.id,
+        postType: toShow.postType,
         audience: 'worker',
-        counterpartName: next.counterpartName,
-        postTitle: next.postTitle,
-        shiftDateLabel: next.shiftDateLabel,
-        applicationUpdatedAt: next.updatedAt,
+        counterpartName: toShow.counterpartName,
+        postTitle: toShow.postTitle,
+        shiftDateLabel: toShow.shiftDateLabel,
+        applicationUpdatedAt: toShow.updatedAt,
       });
     },
     [showCelebration],

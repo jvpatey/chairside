@@ -23,7 +23,7 @@ import type { MessageThreadFocus } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 const CLINIC_MESSAGES_SUBTITLE =
-  'Conversations with applicants about roles, fill-ins, and general inquiries.';
+  'Conversations with applicants about roles, fill-ins, and open inquiries.';
 
 type ClinicMessagesInboxPanelProps = {
   compact?: boolean;

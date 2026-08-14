@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildConversationInboxSections,
   buildGroupedConversationInboxList,
+  CONVERSATION_INBOX_FILTERS,
   getConversationCounterpartId,
+  getConversationInboxEmptyMessage,
 } from '@/lib/conversationInbox';
 
 function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
@@ -86,5 +88,18 @@ describe('buildConversationInboxSections', () => {
       'b',
     ]);
     expect(sections[1]?.kind).toBe('standalone');
+  });
+});
+
+describe('open inquiry inbox copy', () => {
+  it('labels the general filter as Open inquiries', () => {
+    expect(CONVERSATION_INBOX_FILTERS.find((filter) => filter.value === 'general')?.label).toBe(
+      'Open inquiries',
+    );
+  });
+
+  it('explains how clinics and workers start open inquiries', () => {
+    expect(getConversationInboxEmptyMessage('general', 'clinic')).toContain('browse candidates');
+    expect(getConversationInboxEmptyMessage('general', 'worker')).toContain('Message a clinic');
   });
 });

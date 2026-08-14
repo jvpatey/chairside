@@ -7,9 +7,13 @@ import {
 } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Platform, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
-import { RoleTypeFilters } from '@/components/clinic/PostingFilters';
+import { ClinicListingViewToggle } from '@/components/clinic/ClinicListingViewToggle';
+import { ClinicPostingTable } from '@/components/clinic/ClinicPostingTable';
+import { ClinicRoleListRow } from '@/components/clinic/ClinicRoleListRow';
+import { RolePostingFilters } from '@/components/clinic/PostingFilters';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { FormScreen } from '@/components/ui/FormScreen';
@@ -17,17 +21,26 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicListingViewMode } from '@/hooks/useClinicListingViewMode';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { CLINIC_ROLE_TABLE_COLUMNS } from '@/lib/clinicPostingListDisplay';
+import type { ClinicListingViewMode } from '@/lib/clinicListingViewStorage';
 import {
+  DEFAULT_CLINIC_ROLE_SORT,
   filterArchivedJobPosts,
   filterFilledJobPosts,
   isArchivedJob,
   isFilledJob,
+  sortClinicRolePosts,
+  type ClinicRoleSort,
   type RoleTypeFilter,
 } from '@/lib/postingFilters';
 import { getClinicRoleApplicationsRoute, getClinicApplicationRoute, getJobDetailRoute } from '@/lib/routing';
 import { summarizeJobApplicantPreviews } from '@/lib/dashboardAttention';
 import { useThemedStyles } from '@/theme';
+
+const LIST_BODY_ENTER = FadeIn.duration(220);
+const LIST_BODY_EXIT = FadeOut.duration(140);
 
 function HistorySection({
   title,
@@ -38,6 +51,8 @@ function HistorySection({
   emptyTitle,
   emptyBody,
   clinicId,
+  viewMode,
+  tableMode,
   onJobUpdated,
   onJobDeleted,
 }: {
@@ -49,6 +64,8 @@ function HistorySection({
   emptyTitle: string;
   emptyBody: string;
   clinicId?: string;
+  viewMode: ClinicListingViewMode;
+  tableMode: boolean;
   onJobUpdated?: (job: JobPost) => void;
   onJobDeleted?: (jobId: string) => void;
 }) {
@@ -91,34 +108,65 @@ function HistorySection({
           <EmptyState icon="archive-outline" title={emptyTitle} message={emptyBody} />
         </View>
       ) : (
-        <View style={styles.cardList}>
-          <StaggeredList>
-            {jobs.map((job) => (
-              <RolePostingCard
-                key={job.id}
-                job={job}
-                applicantCount={applicantCounts[job.id] ?? 0}
-                applicants={applicantPreviewByJobId[job.id]}
-                onPress={() => router.push(getJobDetailRoute(job.id))}
-                onApplicantsPress={() =>
-                  router.push(getClinicRoleApplicationsRoute(job.id, 'role-history'))
-                }
-                onApplicantPress={(applicationId) =>
-                  router.push(getClinicApplicationRoute(applicationId, 'role-history', job.id))
-                }
-                manage={
-                  clinicId && onJobUpdated && onJobDeleted
-                    ? {
-                        clinicId,
-                        onUpdated: onJobUpdated,
-                        onDeleted: () => onJobDeleted(job.id),
-                      }
-                    : undefined
-                }
-              />
-            ))}
-          </StaggeredList>
-        </View>
+        <Animated.View
+          key={viewMode}
+          entering={LIST_BODY_ENTER}
+          exiting={LIST_BODY_EXIT}>
+          {viewMode === 'cards' ? (
+            <View style={styles.cardList}>
+              <StaggeredList>
+                {jobs.map((job) => (
+                  <RolePostingCard
+                    key={job.id}
+                    job={job}
+                    applicantCount={applicantCounts[job.id] ?? 0}
+                    applicants={applicantPreviewByJobId[job.id]}
+                    onPress={() => router.push(getJobDetailRoute(job.id))}
+                    onApplicantsPress={() =>
+                      router.push(getClinicRoleApplicationsRoute(job.id, 'role-history'))
+                    }
+                    onApplicantPress={(applicationId) =>
+                      router.push(getClinicApplicationRoute(applicationId, 'role-history', job.id))
+                    }
+                    manage={
+                      clinicId && onJobUpdated && onJobDeleted
+                        ? {
+                            clinicId,
+                            onUpdated: onJobUpdated,
+                            onDeleted: () => onJobDeleted(job.id),
+                          }
+                        : undefined
+                    }
+                  />
+                ))}
+              </StaggeredList>
+            </View>
+          ) : (
+            <ClinicPostingTable columns={CLINIC_ROLE_TABLE_COLUMNS} showHeader={tableMode}>
+              {jobs.map((job) => (
+                <ClinicRoleListRow
+                  key={job.id}
+                  job={job}
+                  tableMode={tableMode}
+                  applicantCount={applicantCounts[job.id] ?? 0}
+                  onPress={() => router.push(getJobDetailRoute(job.id))}
+                  onApplicantsPress={() =>
+                    router.push(getClinicRoleApplicationsRoute(job.id, 'role-history'))
+                  }
+                  manage={
+                    clinicId && onJobUpdated && onJobDeleted
+                      ? {
+                          clinicId,
+                          onUpdated: onJobUpdated,
+                          onDeleted: () => onJobDeleted(job.id),
+                        }
+                      : undefined
+                  }
+                />
+              ))}
+            </ClinicPostingTable>
+          )}
+        </Animated.View>
       )}
     </View>
   );
@@ -126,20 +174,29 @@ function HistorySection({
 
 export default function RoleHistoryScreen() {
   const { user } = useAuth();
+  const { mode, setMode, isWide } = useClinicListingViewMode('role-history');
+  const tableMode = isWide && Platform.OS === 'web';
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
+  const [roleSort, setRoleSort] = useState<ClinicRoleSort>(DEFAULT_CLINIC_ROLE_SORT);
   const [isLoading, setIsLoading] = useState(true);
 
   const archivedJobs = useMemo(
-    () => filterArchivedJobPosts(jobs, roleTypeFilter),
-    [jobs, roleTypeFilter],
+    () =>
+      sortClinicRolePosts(
+        filterArchivedJobPosts(jobs, roleTypeFilter),
+        roleSort,
+        applicantCounts,
+      ),
+    [applicantCounts, jobs, roleSort, roleTypeFilter],
   );
 
   const filledJobs = useMemo(
-    () => filterFilledJobPosts(jobs, roleTypeFilter),
-    [jobs, roleTypeFilter],
+    () =>
+      sortClinicRolePosts(filterFilledJobPosts(jobs, roleTypeFilter), roleSort, applicantCounts),
+    [applicantCounts, jobs, roleSort, roleTypeFilter],
   );
 
   const hasHistory = useMemo(
@@ -153,6 +210,12 @@ export default function RoleHistoryScreen() {
     content: {
       gap: spacing.lg,
       paddingBottom: spacing.xl,
+    },
+    toolbar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: spacing.sm,
     },
     loading: typography.subtitle,
   }));
@@ -225,12 +288,17 @@ export default function RoleHistoryScreen() {
       onBack={() => router.back()}
       headerAccessory={
         showRoleFilter ? (
-          <RoleTypeFilters
-            roleTypeFilter={roleTypeFilter}
-            onRoleTypeChange={setRoleTypeFilter}
-            accessibilityLabel="Filter role history"
-            sheetTitle="Filter role history"
-          />
+          <View style={styles.toolbar}>
+            <RolePostingFilters
+              roleTypeFilter={roleTypeFilter}
+              sort={roleSort}
+              onRoleTypeChange={setRoleTypeFilter}
+              onSortChange={setRoleSort}
+              accessibilityLabel="Filter role history"
+              sheetTitle="Filter role history"
+            />
+            <ClinicListingViewToggle selected={mode} onChange={setMode} />
+          </View>
         ) : undefined
       }>
       <View style={styles.content}>
@@ -247,6 +315,8 @@ export default function RoleHistoryScreen() {
               emptyTitle="No archived roles"
               emptyBody="Archived roles appear here when you remove them from your active list."
               clinicId={user?.id}
+              viewMode={mode}
+              tableMode={tableMode}
               onJobUpdated={handleJobUpdated}
               onJobDeleted={handleJobDeleted}
             />
@@ -260,6 +330,8 @@ export default function RoleHistoryScreen() {
               emptyTitle="No filled roles"
               emptyBody="When you mark a role as filled, it will appear here for your records."
               clinicId={user?.id}
+              viewMode={mode}
+              tableMode={tableMode}
               onJobUpdated={handleJobUpdated}
               onJobDeleted={handleJobDeleted}
             />

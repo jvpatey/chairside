@@ -159,7 +159,6 @@ export function BrowseListRow({
       minWidth: 0,
     },
     detailsDivider: {
-      paddingVertical: spacing.sm,
       alignSelf: 'stretch',
     },
     eyebrow: {
@@ -315,7 +314,7 @@ export function BrowseListRow({
       </Text>
       {detailsDivider && (meta || detail || postedLabel || footer || textFooter) ? (
         <View style={styles.detailsDivider}>
-          <CardSectionDivider />
+          <CardSectionDivider insetEnd={24} />
         </View>
       ) : null}
       {meta ? (
@@ -347,7 +346,7 @@ export function BrowseListRow({
         </Text>
         {detailsDivider && (meta || headerDetail) ? (
           <View style={styles.detailsDivider}>
-            <CardSectionDivider />
+            <CardSectionDivider insetEnd={24} />
           </View>
         ) : null}
         {meta ? (

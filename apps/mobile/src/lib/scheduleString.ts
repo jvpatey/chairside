@@ -217,7 +217,11 @@ export function parseScheduleString(value: string): ParsedSchedule {
   };
 }
 
-export function isInvalidWageRange(min: string, max: string, payType: 'hourly' | 'commission'): boolean {
+export function isInvalidWageRange(
+  min: string,
+  max: string,
+  payType: 'hourly' | 'commission' | 'discuss',
+): boolean {
   if (payType !== 'hourly') return false;
   if (!min || !max) return false;
   return Number(min) > Number(max);

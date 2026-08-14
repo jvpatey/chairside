@@ -101,5 +101,46 @@ describe('applicationPdfPacket', () => {
     expect(html).toContain('wordmark-chair');
     expect(html).toContain('Candidate packet');
     expect(html).toContain('status-pill');
+    expect(html).toContain('@page { size: letter; margin: 0.5in 0.55in 0.45in; }');
+  });
+
+  it('includes qualification response and required values in screening export', () => {
+    const html = buildApplicationPdfPacketHtml({
+      application: makeApplication({
+        screening: {
+          status: 'completed',
+          createdAt: '2026-07-01T12:00:00.000Z',
+          outcome: 'flagged',
+          failedQuestionIds: ['years_experience_in_role'],
+          answers: {
+            questions: [
+              {
+                id: 'years_experience_in_role',
+                prompt: 'How many years of experience do you have in this role?',
+                type: 'number',
+                answer: 2,
+                knockout: { enabled: true, min: 5 },
+              },
+              {
+                id: 'team_setting',
+                prompt: 'How do you prefer to work with a team?',
+                type: 'rating_1_5',
+                answer: 4,
+              },
+            ],
+          },
+        },
+      }),
+    });
+
+    expect(html).toContain('Qualifications');
+    expect(html).toContain('Response');
+    expect(html).toContain('2 years');
+    expect(html).toContain('Required');
+    expect(html).toContain('5+ years');
+    expect(html).toContain('Culture');
+    const cultureStart = html.indexOf('Culture');
+    expect(cultureStart).toBeGreaterThan(-1);
+    expect(html.slice(cultureStart)).not.toContain('Required');
   });
 });

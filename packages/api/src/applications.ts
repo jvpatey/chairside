@@ -1,6 +1,11 @@
 import { getSupabaseClient } from './client';
 import { throwWithMessage } from './errors';
-import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL, formatFillInPostTitle } from '@chairside/config';
+import {
+  DELETED_CANDIDATE_LABEL,
+  DELETED_CLINIC_LABEL,
+  formatFillInPostTitle,
+  isOpenClinicHiringPostStatus,
+} from '@chairside/config';
 import {
   APPLICATION_UPDATE_GRACE_MS,
   FILL_IN_PENDING_STATUSES,
@@ -29,8 +34,10 @@ export {
   isWorkerApplicationUpdateUnseen,
 };
 import {
+  evaluateScreeningSubmission,
   getApplicationScreening,
   getApplicationScreeningMap,
+  getJobPostScreeningQuestions,
   insertApplicationScreening,
   type ApplicationScreening,
   type ScreeningSubmissionInput,
@@ -349,6 +356,7 @@ export type JobApplicationSummary = {
   job_post_id: string;
   post_title: string;
   post_created_at: string | null;
+  post_status: string | null;
   applicant_count: number;
   screening_count: number;
   pending_count: number;
@@ -1056,10 +1064,13 @@ export async function listJobApplicationSummaries(
     listJobPosts(clinicId, options),
   ]);
   const postCreatedAt = new Map(jobPosts.map((job) => [job.id, job.created_at]));
+  const postStatusById = new Map(jobPosts.map((job) => [job.id, job.status]));
   const summaries = new Map<string, JobApplicationSummary>();
 
   for (const application of applications) {
     if (application.post_type !== 'job' || !application.job_post_id) continue;
+    const postStatus = postStatusById.get(application.job_post_id) ?? null;
+    if (!isOpenClinicHiringPostStatus(postStatus)) continue;
 
     const existing = summaries.get(application.job_post_id);
     if (existing) {
@@ -1090,6 +1101,7 @@ export async function listJobApplicationSummaries(
         job_post_id: application.job_post_id,
         post_title: application.post_title,
         post_created_at: postCreatedAt.get(application.job_post_id) ?? null,
+        post_status: postStatus,
         applicant_count: 1,
         screening_count: application.status === 'screening_submitted' ? 1 : 0,
         pending_count: application.status === 'applied' ? 1 : 0,
@@ -1223,7 +1235,17 @@ export async function createApplication(
   const application = data as Application;
 
   if (input.screening && input.jobPostId) {
-    await insertApplicationScreening(application.id, input.screening);
+    let submission = input.screening;
+    if (submission.status === 'completed') {
+      const questions = await getJobPostScreeningQuestions(input.jobPostId);
+      const evaluation = evaluateScreeningSubmission(questions, submission.answers);
+      submission = {
+        ...submission,
+        outcome: evaluation.outcome,
+        failedQuestionIds: evaluation.failedQuestionIds,
+      };
+    }
+    await insertApplicationScreening(application.id, submission);
   }
 
   return application;

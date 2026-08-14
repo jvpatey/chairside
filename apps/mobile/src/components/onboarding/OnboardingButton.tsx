@@ -1,21 +1,23 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
-
 import {
-  getTileGradient,
-  radii,
-  useTheme,
-  useThemedStyles,
-  type GradientAccent,
-} from '@/theme';
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+
+import { getTileGradient, radii, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
-import { resolveAccentColor, resolveAccentOnColor, resolveAccentPressed, resolveAccentSubtle } from '@/lib/accentColors';
+import {
+  resolveAccentColor,
+  resolveAccentOnColor,
+  resolveAccentPressed,
+  resolveAccentSubtle,
+} from '@/lib/accentColors';
 
 const PRESS_SPRING = { damping: 15, stiffness: 400 } as const;
 
@@ -233,7 +235,8 @@ export function OnboardingButton({
             isWeb && hovered && !pressed && styles.destructiveHovered,
             pressed && styles.destructivePressed,
           ],
-        ]}>
+        ]}
+      >
         {isPrimary && !disabled && !solid ? (
           <LinearGradient colors={primaryGradient} style={styles.gradient} />
         ) : null}
@@ -250,7 +253,8 @@ export function OnboardingButton({
           ]}
           numberOfLines={split ? 1 : 2}
           adjustsFontSizeToFit={split}
-          minimumFontScale={split ? 0.82 : undefined}>
+          minimumFontScale={split ? 0.82 : undefined}
+        >
           {label}
         </Text>
       </Pressable>

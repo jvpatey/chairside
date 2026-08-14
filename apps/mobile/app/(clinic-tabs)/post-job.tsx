@@ -1,5 +1,6 @@
 import {
   createJobPost,
+  getErrorMessage,
   getJobPostWithScreening,
   screeningQuestionInputFromSelection,
   updateJobPost,
@@ -11,6 +12,7 @@ import {
   normalizeRoleEmploymentType,
   ROLE_EMPLOYMENT_TYPE_OPTIONS,
   ROLE_TYPE_OPTIONS,
+  type ScreeningKnockoutRule,
 } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CLINIC_POSTINGS } from '@/lib/routing';
@@ -58,6 +60,13 @@ function applyJobToForm(job: JobPostWithScreening) {
       type: question.type,
     }));
 
+  const knockouts: Record<string, ScreeningKnockoutRule | undefined> = {};
+  for (const question of job.screening_questions) {
+    if (!question.knockout?.enabled) continue;
+    const key = question.catalogSlug ?? question.id;
+    knockouts[key] = question.knockout;
+  }
+
   return {
     roleType: job.role_type,
     employmentType: normalizeRoleEmploymentType(job.employment_type),
@@ -69,6 +78,7 @@ function applyJobToForm(job: JobPostWithScreening) {
     screeningEnabled: job.screening_enabled,
     selectedCatalogSlugs: catalogSlugs,
     customQuestions,
+    knockouts,
   };
 }
 
@@ -83,6 +93,7 @@ const DEFAULT_CREATE_FORM = {
   screeningEnabled: false,
   selectedCatalogSlugs: [] as string[],
   customQuestions: [] as CustomScreeningQuestion[],
+  knockouts: {} as Record<string, ScreeningKnockoutRule | undefined>,
 };
 
 export default function PostJobScreen() {
@@ -113,6 +124,7 @@ export default function PostJobScreen() {
   const [screeningEnabled, setScreeningEnabled] = useState(false);
   const [selectedCatalogSlugs, setSelectedCatalogSlugs] = useState<string[]>([]);
   const [customQuestions, setCustomQuestions] = useState<CustomScreeningQuestion[]>([]);
+  const [knockouts, setKnockouts] = useState<Record<string, ScreeningKnockoutRule | undefined>>({});
   const [locationId, setLocationId] = useState<string | null>(
     accessibleLocations.find((location) => location.is_primary)?.id ??
       accessibleLocations[0]?.id ??
@@ -127,6 +139,9 @@ export default function PostJobScreen() {
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     form: { gap: spacing.lg },
+    screeningBlock: {
+      gap: spacing.sm,
+    },
     section: { gap: spacing.sm },
     helper: typography.subtitle,
     fieldError: {
@@ -148,6 +163,7 @@ export default function PostJobScreen() {
     setScreeningEnabled(DEFAULT_CREATE_FORM.screeningEnabled);
     setSelectedCatalogSlugs(DEFAULT_CREATE_FORM.selectedCatalogSlugs);
     setCustomQuestions(DEFAULT_CREATE_FORM.customQuestions);
+    setKnockouts(DEFAULT_CREATE_FORM.knockouts);
     setTitleError(null);
     setWageValid(true);
     setFormKey((current) => current + 1);
@@ -180,6 +196,7 @@ export default function PostJobScreen() {
       setScreeningEnabled(form.screeningEnabled);
       setSelectedCatalogSlugs(form.selectedCatalogSlugs);
       setCustomQuestions(form.customQuestions);
+      setKnockouts(form.knockouts);
       setLocationId(job.location_id ?? null);
       setFormKey((current) => current + 1);
     } catch (error) {
@@ -245,7 +262,7 @@ export default function PostJobScreen() {
     setTitleError(null);
     try {
       const screeningQuestions = screeningEnabled
-        ? screeningQuestionInputFromSelection(selectedCatalogSlugs, customQuestions)
+        ? screeningQuestionInputFromSelection(selectedCatalogSlugs, customQuestions, knockouts)
         : [];
 
       const payload = {
@@ -280,7 +297,7 @@ export default function PostJobScreen() {
       if (handleBillingError(error)) {
         return;
       }
-      const message = error instanceof Error ? error.message : 'Please try again.';
+      const message = getErrorMessage(error, 'Please try again.');
       setFormError(
         showFormError(message, {
           title: isEditing ? 'Could not save changes' : 'Could not publish',
@@ -332,6 +349,40 @@ export default function PostJobScreen() {
         }
         onBack={() => router.back()}
         footer={submitButton}
+        afterCard={
+          <>
+            <View ref={setSectionRef('screening')} style={styles.screeningBlock} collapsable={false}>
+              <ScreeningToggleSection
+                enabled={screeningEnabled}
+                selectedCatalogSlugs={selectedCatalogSlugs}
+                customQuestions={customQuestions}
+                knockouts={knockouts}
+                onEnabledChange={setScreeningEnabled}
+                onSelectedCatalogSlugsChange={setSelectedCatalogSlugs}
+                onCustomQuestionsChange={setCustomQuestions}
+                onKnockoutsChange={setKnockouts}
+                locked={billing != null && !billing.canUseScreeningQuestions}
+                onLockedPress={showScreeningUpgrade}
+                customScreeningLimit={
+                  billing?.customScreeningLimit != null && billing.customScreeningLimit > 0
+                    ? billing.customScreeningLimit
+                    : null
+                }
+                onCustomCapPress={showScreeningCapUpgrade}
+              />
+            </View>
+
+            {roleLimitReached && billing ? (
+              <View style={styles.screeningBlock}>
+                <PlanUpgradeCallout
+                  title={getClinicPostingLimitTitle('role')}
+                  message={getClinicPostingLimitReachedMessage(billing, 'role')}
+                  compact
+                />
+              </View>
+            ) : null}
+          </>
+        }
       >
         <FormErrorBanner message={formError} />
 
@@ -393,7 +444,7 @@ export default function PostJobScreen() {
         </View>
 
         <View ref={setSectionRef('wage')} style={styles.section} collapsable={false}>
-          <FormSectionHeader icon="cash-outline" label="Compensation (optional)" />
+          <FormSectionHeader icon="cash-outline" label="Compensation" />
           <WageRangeInput
             key={`wage-${formKey}`}
             initialValue={wageRange}
@@ -415,33 +466,6 @@ export default function PostJobScreen() {
           autoCapitalize="sentences"
           icon="document-text-outline"
         />
-
-        <View ref={setSectionRef('screening')} collapsable={false}>
-          <ScreeningToggleSection
-            enabled={screeningEnabled}
-            selectedCatalogSlugs={selectedCatalogSlugs}
-            customQuestions={customQuestions}
-            onEnabledChange={setScreeningEnabled}
-            onSelectedCatalogSlugsChange={setSelectedCatalogSlugs}
-            onCustomQuestionsChange={setCustomQuestions}
-            locked={billing != null && !billing.canUseScreeningQuestions}
-            onLockedPress={showScreeningUpgrade}
-            customScreeningLimit={
-              billing?.customScreeningLimit != null && billing.customScreeningLimit > 0
-                ? billing.customScreeningLimit
-                : null
-            }
-            onCustomCapPress={showScreeningCapUpgrade}
-          />
-        </View>
-
-        {roleLimitReached && billing ? (
-          <PlanUpgradeCallout
-            title={getClinicPostingLimitTitle('role')}
-            message={getClinicPostingLimitReachedMessage(billing, 'role')}
-            compact
-          />
-        ) : null}
         </View>
       </FormScreen>
     </>

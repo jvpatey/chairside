@@ -1,6 +1,9 @@
 import {
+  evaluateScreeningAnswers,
   getScreeningCatalogQuestion,
   resolveScreeningPrompt,
+  type ScreeningKnockoutRule,
+  type ScreeningOutcome,
   type ScreeningPromptContext,
   type ScreeningQuestionType,
 } from '@chairside/config';
@@ -15,6 +18,10 @@ export type JobPostScreeningQuestionRow = {
   custom_prompt: string | null;
   question_type: ScreeningQuestionType;
   sort_order: number;
+  knockout_enabled?: boolean | null;
+  knockout_expected_bool?: boolean | null;
+  knockout_min?: number | null;
+  knockout_max?: number | null;
 };
 
 export type ScreeningQuestion = {
@@ -28,6 +35,7 @@ export type ScreeningQuestion = {
   min?: number;
   max?: number;
   unitLabel?: string;
+  knockout: ScreeningKnockoutRule | null;
 };
 
 export type ScreeningQuestionInput = {
@@ -35,6 +43,7 @@ export type ScreeningQuestionInput = {
   customPrompt?: string;
   type: ScreeningQuestionType;
   sortOrder: number;
+  knockout?: ScreeningKnockoutRule | null;
 };
 
 export type ScreeningAnswerItem = {
@@ -43,6 +52,7 @@ export type ScreeningAnswerItem = {
   type: ScreeningQuestionType;
   answer: boolean | number | string;
   reverseScored?: boolean;
+  knockout?: ScreeningKnockoutRule | null;
 };
 
 export type ScreeningAnswersPayload = {
@@ -52,13 +62,27 @@ export type ScreeningAnswersPayload = {
 export type ScreeningSubmissionInput = {
   status: 'completed' | 'skipped';
   answers?: ScreeningAnswersPayload;
+  outcome?: ScreeningOutcome | null;
+  failedQuestionIds?: string[];
 };
 
 export type ApplicationScreening = {
   status: 'completed' | 'skipped';
   answers: ScreeningAnswersPayload | null;
   createdAt: string;
+  outcome: ScreeningOutcome | null;
+  failedQuestionIds: string[];
 };
+
+function mapKnockoutFromRow(row: JobPostScreeningQuestionRow): ScreeningKnockoutRule | null {
+  if (!row.knockout_enabled) return null;
+  return {
+    enabled: true,
+    expectedBool: row.knockout_expected_bool ?? null,
+    min: row.knockout_min ?? null,
+    max: row.knockout_max ?? null,
+  };
+}
 
 function mapScreeningQuestionRow(
   row: JobPostScreeningQuestionRow,
@@ -76,6 +100,7 @@ function mapScreeningQuestionRow(
     min: catalog?.min,
     max: catalog?.max,
     unitLabel: catalog?.unitLabel,
+    knockout: mapKnockoutFromRow(row),
   };
 }
 
@@ -162,17 +187,50 @@ export async function replaceJobPostScreeningQuestions(
 
   if (!screeningEnabled || questions.length === 0) return;
 
-  const rows = questions.map((question, index) => ({
-    job_post_id: jobPostId,
-    catalog_slug: question.catalogSlug ?? null,
-    custom_prompt: question.customPrompt?.trim() || null,
-    question_type: question.type,
-    sort_order: question.sortOrder ?? index,
-  }));
+  const rows = questions.map((question, index) => {
+    const knockout = question.knockout?.enabled ? question.knockout : null;
+    return {
+      job_post_id: jobPostId,
+      catalog_slug: question.catalogSlug ?? null,
+      custom_prompt: question.customPrompt?.trim() || null,
+      question_type: question.type,
+      sort_order: question.sortOrder ?? index,
+      knockout_enabled: Boolean(knockout?.enabled),
+      knockout_expected_bool: knockout?.enabled ? (knockout.expectedBool ?? null) : null,
+      knockout_min: knockout?.enabled ? (knockout.min ?? null) : null,
+      knockout_max: knockout?.enabled ? (knockout.max ?? null) : null,
+    };
+  });
 
-  const { error: insertError } = await supabase.from('job_post_screening_questions').insert(rows);
+  const { error: insertError } = await supabase
+    .from('job_post_screening_questions')
+    .insert(rows as never);
 
   if (insertError) throw insertError;
+}
+
+export function evaluateScreeningSubmission(
+  questions: ScreeningQuestion[],
+  answers: ScreeningAnswersPayload | null | undefined,
+): { outcome: ScreeningOutcome | null; failedQuestionIds: string[] } {
+  const evaluation = evaluateScreeningAnswers(
+    (answers?.questions ?? []).map((item) => ({
+      id: item.id,
+      type: item.type,
+      answer: item.answer,
+      prompt: item.prompt,
+    })),
+    questions.map((question) => ({
+      id: question.catalogSlug ?? question.id,
+      type: question.type,
+      prompt: question.prompt,
+      knockout: question.knockout,
+    })),
+  );
+  return {
+    outcome: evaluation.outcome,
+    failedQuestionIds: evaluation.failedQuestionIds,
+  };
 }
 
 export async function insertApplicationScreening(
@@ -184,9 +242,28 @@ export async function insertApplicationScreening(
     application_id: applicationId,
     status: submission.status,
     answers: submission.status === 'completed' ? (submission.answers ?? null) : null,
-  });
+    outcome: submission.status === 'completed' ? (submission.outcome ?? null) : null,
+    failed_question_ids:
+      submission.status === 'completed' ? (submission.failedQuestionIds ?? []) : [],
+  } as never);
 
   if (error) throw error;
+}
+
+function mapApplicationScreeningRow(data: {
+  status: string;
+  answers: unknown;
+  created_at: string;
+  outcome?: string | null;
+  failed_question_ids?: string[] | null;
+}): ApplicationScreening {
+  return {
+    status: data.status as ApplicationScreening['status'],
+    answers: (data.answers as ScreeningAnswersPayload | null) ?? null,
+    createdAt: data.created_at,
+    outcome: (data.outcome as ScreeningOutcome | null) ?? null,
+    failedQuestionIds: data.failed_question_ids ?? [],
+  };
 }
 
 export async function getApplicationScreening(
@@ -195,18 +272,14 @@ export async function getApplicationScreening(
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('application_screening_answers')
-    .select('status, answers, created_at')
+    .select('status, answers, created_at, outcome, failed_question_ids')
     .eq('application_id', applicationId)
     .maybeSingle();
 
   if (error) throw error;
   if (!data) return null;
 
-  return {
-    status: data.status as ApplicationScreening['status'],
-    answers: (data.answers as ScreeningAnswersPayload | null) ?? null,
-    createdAt: data.created_at,
-  };
+  return mapApplicationScreeningRow(data);
 }
 
 export async function getApplicationScreeningMap(
@@ -217,18 +290,22 @@ export async function getApplicationScreeningMap(
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('application_screening_answers')
-    .select('application_id, status, answers, created_at')
+    .select('application_id, status, answers, created_at, outcome, failed_question_ids')
     .in('application_id', applicationIds);
 
   if (error) throw error;
 
   const map = new Map<string, ApplicationScreening>();
   for (const row of data ?? []) {
-    map.set(row.application_id, {
-      status: row.status as ApplicationScreening['status'],
-      answers: (row.answers as ScreeningAnswersPayload | null) ?? null,
-      createdAt: row.created_at,
-    });
+    const typed = row as {
+      application_id: string;
+      status: string;
+      answers: unknown;
+      created_at: string;
+      outcome?: string | null;
+      failed_question_ids?: string[] | null;
+    };
+    map.set(typed.application_id, mapApplicationScreeningRow(typed));
   }
   return map;
 }
@@ -237,30 +314,30 @@ export function buildScreeningAnswersPayload(
   questions: ScreeningQuestion[],
   answers: Record<string, boolean | number | string | undefined>,
 ): ScreeningAnswersPayload {
-  return {
-    questions: questions
-      .map((question) => {
-        const answerKey = question.catalogSlug ?? question.id;
-        const answer = answers[answerKey];
-        if (answer === undefined) return null;
-        if (question.type === 'text' && typeof answer === 'string' && !answer.trim()) {
-          return null;
-        }
-        return {
-          id: answerKey,
-          prompt: question.prompt,
-          type: question.type,
-          answer: question.type === 'text' && typeof answer === 'string' ? answer.trim() : answer,
-          reverseScored: question.reverseScored || undefined,
-        };
-      })
-      .filter((item): item is ScreeningAnswerItem => item != null),
-  };
+  const items: ScreeningAnswerItem[] = [];
+  for (const question of questions) {
+    const answerKey = question.catalogSlug ?? question.id;
+    const answer = answers[answerKey];
+    if (answer === undefined) continue;
+    if (question.type === 'text' && typeof answer === 'string' && !answer.trim()) {
+      continue;
+    }
+    items.push({
+      id: answerKey,
+      prompt: question.prompt,
+      type: question.type,
+      answer: question.type === 'text' && typeof answer === 'string' ? answer.trim() : answer,
+      reverseScored: question.reverseScored || undefined,
+      knockout: question.knockout?.enabled ? question.knockout : undefined,
+    });
+  }
+  return { questions: items };
 }
 
 export function screeningQuestionInputFromSelection(
   selectedCatalogSlugs: string[],
   customQuestions: Array<{ id: string; prompt: string; type: ScreeningQuestionType }>,
+  knockouts: Record<string, ScreeningKnockoutRule | undefined> = {},
 ): ScreeningQuestionInput[] {
   const catalogInputs: ScreeningQuestionInput[] = selectedCatalogSlugs.map((slug, index) => {
     const preset = getScreeningCatalogQuestion(slug);
@@ -268,6 +345,7 @@ export function screeningQuestionInputFromSelection(
       catalogSlug: slug,
       type: preset?.type ?? 'yes_no',
       sortOrder: preset?.sortOrder ?? index,
+      knockout: knockouts[slug] ?? null,
     };
   });
 
@@ -275,6 +353,7 @@ export function screeningQuestionInputFromSelection(
     customPrompt: question.prompt,
     type: question.type,
     sortOrder: 1000 + index,
+    knockout: knockouts[question.id] ?? null,
   }));
 
   return [...catalogInputs, ...customInputs].sort((a, b) => a.sortOrder - b.sortOrder);

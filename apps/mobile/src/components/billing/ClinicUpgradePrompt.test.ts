@@ -18,10 +18,10 @@ import {
 describe('ClinicUpgradePrompt Phase B helpers', () => {
   it('titles Phase B reasons', () => {
     expect(getClinicUpgradePromptTitle('screening')).toBe('Upgrade for screening');
-    expect(getClinicUpgradePromptTitle('crm')).toBe('Upgrade for CRM');
+    expect(getClinicUpgradePromptTitle('crm')).toBe('Upgrade for private notes');
     expect(getClinicUpgradePromptTitle('pdf_export')).toBe('Upgrade for PDF export');
     expect(getClinicUpgradePromptTitle('discover')).toBe('Upgrade for Discover');
-    expect(getClinicUpgradePromptTitle('general_messaging')).toBe('Upgrade for messaging');
+    expect(getClinicUpgradePromptTitle('general_messaging')).toBe('Upgrade for open inquiries');
     expect(getClinicUpgradePromptTitle('add_location')).toBe('Upgrade to add locations');
     expect(getClinicUpgradePromptTitle('add_manager')).toBe('Upgrade to invite managers');
     expect(getClinicUpgradePromptTitle('hiring_insights')).toBe('Upgrade for hiring insights');
@@ -37,7 +37,10 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
     expect(getClinicCrmUpgradeMessage('group')).toContain('Group Starter or Group Pro');
     expect(getClinicPdfExportUpgradeMessage('clinic')).toContain('Starter or Pro');
     expect(getClinicDiscoverUpgradeMessage('clinic')).toContain('Starter or Pro');
-    expect(getClinicGeneralMessagingUpgradeMessage('group')).toContain('Group Starter');
+    expect(getClinicGeneralMessagingUpgradeMessage('group')).toContain('Group Pro');
+    expect(getClinicGeneralMessagingUpgradeMessage('clinic')).toContain('already message applicants');
+    expect(getClinicGeneralMessagingUpgradeMessage('clinic')).toContain('Clinic Pro');
+    expect(getClinicGeneralMessagingUpgradeMessage('clinic')).toContain('open inquiries');
     expect(getClinicScreeningCapUpgradeMessage('clinic')).toContain('5 custom screening');
     expect(getClinicHiringInsightsUpgradeMessage('group')).toContain('Group Pro');
     expect(getClinicBulkOutreachUpgradeMessage('clinic')).toContain('Clinic Pro');
@@ -72,6 +75,6 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
         plan: 'free',
         planFamily: 'clinic',
       }),
-    ).toContain('Screening questions');
+    ).toContain('Screening lets you filter');
   });
 });

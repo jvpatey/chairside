@@ -1,10 +1,16 @@
 export {
+  CLINIC_BILLING_SESSION_EXPIRED_MESSAGE,
+  ensureClinicBillingSession,
   getClinicBillingState,
   getClinicPlanMap,
+  isAlreadySubscribedPurchaseError,
   isClinicBillingLimitError,
+  isClinicBillingSessionExpiredError,
+  isPaidClinicPlan,
   syncClinicSubscriptionFromRevenueCat,
   type ClinicBillingState,
   type ClinicSubscriptionStatus,
+  type ClinicSubscriptionSyncResult,
 } from './billing';
 export { createSupabaseClient, getSupabaseClient } from './client';
 export { getAuthStorage, isWebAuth } from './authStorage';
@@ -337,6 +343,7 @@ export {
   getCounterpartLastReadAt,
   getMessageDeliveryStatus,
   getOrCreateGeneralConversation,
+  getOrCreateGeneralConversationAsClinic,
   getUnreadConversationCount,
   getUnreadConversationMap,
   hideClinicConversation,
@@ -356,7 +363,13 @@ export {
   type MessageableClinic,
 } from './messages';
 export {
+  listOpenInquiryWorkersForClinic,
+  type ListOpenInquiryWorkersInput,
+  type OpenInquiryWorker,
+} from './openInquiries';
+export {
   buildScreeningAnswersPayload,
+  evaluateScreeningSubmission,
   getApplicationScreening,
   getApplicationScreeningMap,
   getJobPostScreeningQuestions,

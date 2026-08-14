@@ -8,6 +8,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { resolveAccentColor, resolveAccentOnColor, resolveAccentSubtle } from '@/lib/accentColors';
 import { webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import {
+  colorWithAlpha,
   fontSemibold,
   useTheme,
   useThemedStyles,
@@ -81,10 +82,13 @@ export function FileTabWell<T extends string = string>({
   const compactTabs = compactTabsProp ?? (!isTablet && isDashboard);
   const isWeb = Platform.OS === 'web';
 
-  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
+  const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => {
+    const subtleDivider = colorWithAlpha(colors.labelPrimary, isDark ? 0.05 : 0.055);
+
+    return {
     shell: {
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
+      borderColor: isDark ? subtleDivider : colors.separator,
       borderRadius: radii.lg,
       overflow: 'hidden' as const,
       backgroundColor: colors.surface,
@@ -102,7 +106,7 @@ export function FileTabWell<T extends string = string>({
       alignItems: 'stretch',
       backgroundColor: colors.backgroundGrouped,
       borderBottomWidth: compactTabs ? 0 : StyleSheet.hairlineWidth,
-      borderBottomColor: colors.separator,
+      borderBottomColor: subtleDivider,
     },
     inlineTabScroll: {
       flexGrow: 0,
@@ -153,7 +157,6 @@ export function FileTabWell<T extends string = string>({
       fontVariant: ['tabular-nums'] as const,
     },
     tab: {
-      flex: 1,
       minWidth: 0,
       paddingTop: compactTabs ? spacing.sm + 4 : spacing.sm + 2,
       paddingBottom: compactTabs ? spacing.sm + 4 : spacing.sm + 2,
@@ -161,9 +164,22 @@ export function FileTabWell<T extends string = string>({
       backgroundColor: 'transparent',
       ...webPointer(),
       ...webOnlyStyle({
-        transitionProperty: 'background-color, opacity',
-        transitionDuration: '140ms',
+        transitionProperty: 'flex-grow, flex-basis, background-color, opacity, padding',
+        transitionDuration: '160ms',
       } as const),
+    },
+    tabEqual: {
+      flex: 1,
+    },
+    tabCollapsed: {
+      flexGrow: 0,
+      flexShrink: 0,
+      paddingHorizontal: compactTabs ? spacing.sm : spacing.sm + 2,
+    },
+    tabExpanded: {
+      flex: 1,
+      flexGrow: 1,
+      minWidth: 0,
     },
     tabSelected: {
       backgroundColor: colors.surface,
@@ -193,6 +209,10 @@ export function FileTabWell<T extends string = string>({
       minWidth: 0,
       width: '100%',
     },
+    tabInnerCollapsed: {
+      justifyContent: 'center',
+      width: 'auto',
+    },
     iconBadge: {
       width: compactTabs ? dashboardTabTokens.iconBadge.compactSize : dashboardTabTokens.iconBadge.size,
       height: compactTabs ? dashboardTabTokens.iconBadge.compactSize : dashboardTabTokens.iconBadge.size,
@@ -211,6 +231,10 @@ export function FileTabWell<T extends string = string>({
       fontFamily: fontSemibold,
       fontWeight: '600',
       color: colors.labelSecondary,
+      ...webOnlyStyle({
+        transitionProperty: 'opacity',
+        transitionDuration: '160ms',
+      } as const),
     },
     tabLabelSelected: {
       color: colors.labelPrimary,
@@ -223,6 +247,11 @@ export function FileTabWell<T extends string = string>({
       color: colors.labelTertiary,
       fontVariant: ['tabular-nums'] as const,
       flexShrink: 0,
+    },
+    tabCountCollapsed: {
+      fontSize: 12,
+      lineHeight: 16,
+      marginLeft: 2,
     },
     tabCountSelected: {
       color: colors.labelSecondary,
@@ -239,7 +268,8 @@ export function FileTabWell<T extends string = string>({
     tabPressed: {
       opacity: 0.88,
     },
-  }));
+  };
+  });
 
   const handleSelect = (value: T, locked: boolean) => {
     if (locked && onLockedTabPress) {
@@ -250,6 +280,8 @@ export function FileTabWell<T extends string = string>({
     void Haptics.selectionAsync();
     onSelect(value);
   };
+
+  const useExpandingTabs = tabs.some((tab) => Boolean(tab.icon));
 
   const renderInlineTabs = () => (
     <ScrollView
@@ -318,6 +350,9 @@ export function FileTabWell<T extends string = string>({
         const isLast = tabIndex === tabs.length - 1;
         const accent = tab.accent ?? 'primary';
         const { accentColor, accentSubtle, accentOn } = resolveFileTabAccentColors(colors, accent);
+        const hasIcon = Boolean(tab.icon);
+        const isCollapsed = useExpandingTabs && hasIcon && !isSelected;
+        const showLabel = !isCollapsed;
 
         return (
           <Pressable
@@ -325,9 +360,15 @@ export function FileTabWell<T extends string = string>({
             accessibilityRole="tab"
             accessibilityState={{ selected: isSelected }}
             accessibilityLabel={`${tab.label}${tab.count != null ? `: ${tab.count}` : ''}`}
+            {...(isCollapsed && isWeb ? ({ title: tab.label } as object) : null)}
             onPress={() => handleSelect(tab.value, isLocked)}
             style={({ pressed, hovered }) => [
               styles.tab,
+              useExpandingTabs && hasIcon
+                ? isSelected
+                  ? styles.tabExpanded
+                  : styles.tabCollapsed
+                : styles.tabEqual,
               isSelected && styles.tabSelected,
               compactTabs && isSelected && isFirst && styles.tabSelectedEdgeStart,
               compactTabs && isSelected && isLast && styles.tabSelectedEdgeEnd,
@@ -336,7 +377,7 @@ export function FileTabWell<T extends string = string>({
               pressed && !isSelected && styles.tabPressed,
             ]}
           >
-            <View style={styles.tabInner}>
+            <View style={[styles.tabInner, isCollapsed && styles.tabInnerCollapsed]}>
               {tab.icon ? (
                 <View
                   style={[
@@ -355,16 +396,19 @@ export function FileTabWell<T extends string = string>({
                   />
                 </View>
               ) : null}
-              <Text
-                style={[styles.tabLabel, isSelected && styles.tabLabelSelected]}
-                numberOfLines={1}
-              >
-                {compactTabs && tab.label === 'Applications' ? 'Apps' : tab.label}
-              </Text>
+              {showLabel ? (
+                <Text
+                  style={[styles.tabLabel, isSelected && styles.tabLabelSelected]}
+                  numberOfLines={1}
+                >
+                  {tab.label}
+                </Text>
+              ) : null}
               {tab.count != null ? (
                 <Text
                   style={[
                     styles.tabCount,
+                    isCollapsed && styles.tabCountCollapsed,
                     isSelected && styles.tabCountSelected,
                     isSelected ? { color: accentColor } : null,
                   ]}

@@ -32,6 +32,9 @@ function ActionMenuDialog({
   const confirmAction = actions[0];
   const isDestructiveConfirm = Boolean(confirmAction?.destructive);
   const hasRichHeader = Boolean(headerContent);
+  const stackConfirmActions = Boolean(
+    isConfirmDialog && confirmAction && confirmAction.label.trim().length > 18,
+  );
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     header: {
@@ -109,6 +112,9 @@ function ActionMenuDialog({
       marginTop: spacing.xs,
       width: '100%' as const,
     },
+    confirmActionsStacked: {
+      flexDirection: 'column',
+    },
     menuHeaderRich: {
       gap: spacing.xs,
     },
@@ -161,22 +167,46 @@ function ActionMenuDialog({
             {title ? <Text style={styles.title}>{title}</Text> : null}
             {message ? <Text style={styles.message}>{message}</Text> : null}
           </View>
-          <View style={styles.confirmActions}>
-            <OnboardingButton
-              label="Cancel"
-              variant="secondary"
-              split
-              onPress={onClose}
-            />
-            <OnboardingButton
-              label={confirmAction.label}
-              variant={confirmAction.destructive ? 'destructive' : 'primary'}
-              split
-              onPress={() => {
-                onClose();
-                confirmAction.onPress();
-              }}
-            />
+          <View
+            style={[
+              styles.confirmActions,
+              stackConfirmActions && styles.confirmActionsStacked,
+            ]}>
+            {stackConfirmActions ? (
+              <>
+                <OnboardingButton
+                  label={confirmAction.label}
+                  variant={confirmAction.destructive ? 'destructive' : 'primary'}
+                  onPress={() => {
+                    onClose();
+                    confirmAction.onPress();
+                  }}
+                />
+                <OnboardingButton
+                  label="Cancel"
+                  variant="secondary"
+                  onPress={onClose}
+                />
+              </>
+            ) : (
+              <>
+                <OnboardingButton
+                  label="Cancel"
+                  variant="secondary"
+                  split
+                  onPress={onClose}
+                />
+                <OnboardingButton
+                  label={confirmAction.label}
+                  variant={confirmAction.destructive ? 'destructive' : 'primary'}
+                  split
+                  onPress={() => {
+                    onClose();
+                    confirmAction.onPress();
+                  }}
+                />
+              </>
+            )}
           </View>
         </>
       ) : (

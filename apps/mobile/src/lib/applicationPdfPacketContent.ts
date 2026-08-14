@@ -1,17 +1,24 @@
-import type { ApplicationScreening, ClinicApplication } from '@chairside/api';
+import type {
+  ApplicationScreening,
+  ClinicApplication,
+  ScreeningQuestion,
+} from '@chairside/api';
 import {
   DELETED_CANDIDATE_LABEL,
   formatApplicationDate,
   formatApplicationEducation,
   formatClinicApplicationStatus,
   formatRoleTypesLabel,
+  formatScreeningAnswerValue,
+  formatScreeningRequirementLabel,
   getRoleTypeLabel,
   getScreeningCatalogQuestion,
   getSpecialtyLabel,
   hasApplicationKitSubmitted,
-  RATING_SCALE_OPTIONS,
   resolveWorkerRoleTypes,
 } from '@chairside/config';
+
+import { partitionScreeningAnswers, resolveScreeningKnockout } from '@/lib/screeningTriage';
 
 function sanitizeFileName(fileName: string): string {
   return fileName.replace(/[^\w.-]+/g, '_') || 'candidate';
@@ -29,6 +36,7 @@ function getApplicantDisplayName(
 export type ApplicationPdfPacketOptions = {
   application: ClinicApplication;
   clinicName?: string | null;
+  screeningQuestions?: ScreeningQuestion[];
 };
 
 export type ApplicationPdfPacketResult = {
@@ -59,21 +67,6 @@ export function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function formatScreeningAnswer(
-  type: 'yes_no' | 'rating_1_5' | 'number' | 'text',
-  answer: boolean | number | string,
-  unitLabel?: string,
-): string {
-  if (type === 'yes_no') return answer ? 'Yes' : 'No';
-  if (type === 'text') return String(answer).trim();
-  if (type === 'number') {
-    const value = String(answer);
-    return unitLabel ? `${value} ${unitLabel}` : value;
-  }
-  const option = RATING_SCALE_OPTIONS.find((item) => item.value === answer);
-  return option ? `${answer} · ${option.label}` : String(answer);
 }
 
 function buildFieldRows(application: ClinicApplication): { label: string; value: string }[] {
@@ -146,7 +139,10 @@ function buildFieldRows(application: ClinicApplication): { label: string; value:
   return rows;
 }
 
-function buildScreeningSectionHtml(screening: ApplicationScreening | null): string {
+function buildScreeningSectionHtml(
+  screening: ApplicationScreening | null,
+  jobQuestions?: ScreeningQuestion[],
+): string {
   if (!screening) return '';
 
   if (screening.status === 'skipped') {
@@ -159,38 +155,91 @@ function buildScreeningSectionHtml(screening: ApplicationScreening | null): stri
   const questions = screening.answers?.questions ?? [];
   if (questions.length === 0) return '';
 
-  const items = questions
-    .map((item) => {
-      const answer = formatScreeningAnswer(
-        item.type,
-        item.answer as boolean | number | string,
-        getScreeningCatalogQuestion(item.id)?.unitLabel,
-      );
-      const reverseNote = item.reverseScored
-        ? '<div class="muted">Lower scores are preferred for this trait.</div>'
-        : '';
-      return `
+  const { qualifications, culture } = partitionScreeningAnswers(questions);
+
+  const renderItems = (items: typeof questions, showRequired: boolean) =>
+    items
+      .map((item) => {
+        const catalog = getScreeningCatalogQuestion(item.id);
+        const answer = formatScreeningAnswerValue(
+          item.type,
+          item.answer as boolean | number | string,
+          catalog?.unitLabel,
+        );
+        const required = showRequired
+          ? formatScreeningRequirementLabel(
+              item.type,
+              resolveScreeningKnockout(item, jobQuestions),
+              catalog?.unitLabel,
+            )
+          : null;
+        const reverseNote = item.reverseScored
+          ? '<div class="muted">Lower scores are preferred for this trait.</div>'
+          : '';
+        const failed =
+          screening.failedQuestionIds?.includes(item.id) === true
+            ? '<div class="muted">Did not meet must-pass requirement.</div>'
+            : '';
+        const answersHtml = required
+          ? `
+          <div class="qa-answers">
+            <div class="qa-chip">
+              <div class="qa-chip-label">Response</div>
+              <div class="qa-a">${escapeHtml(answer)}</div>
+            </div>
+            <div class="qa-chip">
+              <div class="qa-chip-label">Required</div>
+              <div class="qa-a">${escapeHtml(required)}</div>
+            </div>
+          </div>`
+          : `<div class="qa-a">${escapeHtml(answer)}</div>`;
+        return `
         <div class="qa">
           <div class="qa-q">${escapeHtml(item.prompt)}</div>
-          <div class="qa-a">${escapeHtml(answer)}</div>
+          ${answersHtml}
+          ${failed}
           ${reverseNote}
         </div>
       `;
-    })
-    .join('');
+      })
+      .join('');
+
+  const outcomeLine =
+    screening.outcome === 'pass'
+      ? '<p><strong>Screening outcome:</strong> Qualified</p>'
+      : screening.outcome === 'flagged'
+        ? `<p><strong>Screening outcome:</strong> Needs review — did not meet: ${escapeHtml(
+            (screening.failedQuestionIds ?? [])
+              .map((id) => getScreeningCatalogQuestion(id)?.shortLabel ?? id)
+              .join(', ') || 'must-pass requirements',
+          )}</p>`
+        : screening.outcome === 'incomplete'
+          ? '<p><strong>Screening outcome:</strong> Incomplete</p>'
+          : '';
+
+  const qualsHtml =
+    qualifications.length > 0
+      ? `<h3>Qualifications</h3>${renderItems(qualifications, true)}`
+      : '';
+  const cultureHtml =
+    culture.length > 0
+      ? `<h3>Culture &amp; work style</h3>${renderItems(culture, false)}`
+      : '';
 
   return `
       <h2>Screening responses</h2>
-      ${items}
+      ${outcomeLine}
+      ${qualsHtml}
+      ${cultureHtml}
   `;
 }
 
 export function buildApplicationPdfPacketHtml(options: ApplicationPdfPacketOptions): string {
-  const { application, clinicName } = options;
+  const { application, clinicName, screeningQuestions } = options;
   const applicantName = getApplicantDisplayName(application);
   const rows = buildFieldRows(application);
   const coverMessage = application.cover_message?.trim();
-  const screeningHtml = buildScreeningSectionHtml(application.screening);
+  const screeningHtml = buildScreeningSectionHtml(application.screening, screeningQuestions);
   const statusLabel = formatClinicApplicationStatus(application.status, application.post_type);
   const roleTypeLabel = getRoleTypeLabel(application.post_role_type);
   const appliedDate = formatApplicationDate(application.created_at);
@@ -229,7 +278,7 @@ export function buildApplicationPdfPacketHtml(options: ApplicationPdfPacketOptio
   <head>
     <meta charset="utf-8" />
     <style>
-      @page { size: letter; margin: 0; }
+      @page { size: letter; margin: 0.5in 0.55in 0.45in; }
       * { box-sizing: border-box; }
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -239,8 +288,9 @@ export function buildApplicationPdfPacketHtml(options: ApplicationPdfPacketOptio
         margin: 0;
         background: #ffffff;
       }
-      .page {
-        padding: 0.5in 0.55in 0.45in;
+      .page { padding: 0; }
+      @media screen {
+        .page { padding: 0.5in 0.55in 0.45in; }
       }
       .brand-header {
         background: linear-gradient(135deg, #155eb8 0%, #1a6fd4 58%, #4a9aff 100%);
@@ -316,12 +366,14 @@ export function buildApplicationPdfPacketHtml(options: ApplicationPdfPacketOptio
         text-transform: uppercase;
         white-space: nowrap;
       }
-      .section { margin-bottom: 16px; }
+      .section { margin-bottom: 16px; break-inside: avoid; page-break-inside: avoid; }
       .card {
         background: #f8fafc;
         border: 1px solid #e3eaf3;
         border-radius: 12px;
         padding: 14px 16px;
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
       h2 {
         font-size: 9.5pt;
@@ -373,12 +425,35 @@ export function buildApplicationPdfPacketHtml(options: ApplicationPdfPacketOptio
         border-radius: 10px;
         padding: 10px 12px;
         margin-bottom: 8px;
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
       .qa-q {
         color: #5b6472;
         font-size: 9.5pt;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
         font-weight: 600;
+      }
+      .qa-answers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .qa-chip {
+        background: #f8fafc;
+        border: 1px solid #e3eaf3;
+        border-radius: 8px;
+        padding: 6px 10px;
+        min-width: 88px;
+      }
+      .qa-chip-label {
+        font-size: 7.5pt;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7a8494;
+        margin-bottom: 2px;
+        min-height: 10px;
       }
       .qa-a {
         font-weight: 700;

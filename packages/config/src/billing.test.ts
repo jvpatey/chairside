@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CLINIC_PLAN_MARKETING,
   clinicPlanIncludesFeature,
+  isClinicPlanFeatureIntro,
   formatClinicActiveOpportunityLimit,
   getClinicActiveFillInLimit,
   getClinicActiveRoleLimit,
@@ -38,6 +40,13 @@ describe('billing config', () => {
     expect(resolveClinicPlanFromEntitlements({})).toBe('free');
   });
 
+  it('nests Pro marketing under Starter instead of restating shared tools', () => {
+    expect(CLINIC_PLAN_MARKETING.pro.features[0]).toBe('Everything in Starter, plus:');
+    expect(CLINIC_PLAN_MARKETING.group_pro.features[0]).toBe('Everything in Group Starter, plus:');
+    expect(isClinicPlanFeatureIntro('Everything in Starter, plus:')).toBe(true);
+    expect(isClinicPlanFeatureIntro('Clinic Discover')).toBe(false);
+  });
+
   it('ranks plans with group tiers above clinic tiers', () => {
     expect(getClinicPlanRank('group_pro')).toBeGreaterThan(getClinicPlanRank('group_starter'));
     expect(getClinicPlanRank('group_starter')).toBeGreaterThan(getClinicPlanRank('pro'));
@@ -46,6 +55,11 @@ describe('billing config', () => {
 
   it('gates outreach and premium features by plan family', () => {
     expect(clinicPlanIncludesFeature('free', 'fill_in_outreach')).toBe(false);
+    expect(clinicPlanIncludesFeature('free', 'general_candidate_messaging')).toBe(false);
+    expect(clinicPlanIncludesFeature('starter', 'general_candidate_messaging')).toBe(false);
+    expect(clinicPlanIncludesFeature('group_starter', 'general_candidate_messaging')).toBe(false);
+    expect(clinicPlanIncludesFeature('pro', 'general_candidate_messaging')).toBe(true);
+    expect(clinicPlanIncludesFeature('group_pro', 'general_candidate_messaging')).toBe(true);
     expect(clinicPlanIncludesFeature('starter', 'fill_in_sms')).toBe(true);
     expect(clinicPlanIncludesFeature('group_starter', 'screening_questions')).toBe(true);
     expect(clinicPlanIncludesFeature('group_starter', 'priority_listing')).toBe(false);

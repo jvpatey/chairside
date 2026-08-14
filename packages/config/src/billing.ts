@@ -50,19 +50,21 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
     fallbackPriceLabel: 'Billed monthly or annually',
     features: [
       'Up to 5 active roles and 5 active fill-ins',
-      'Screening questions, CRM notes, and PDF export',
+      'Screening questions, private candidate notes, and PDF export',
       'Direct fill-in outreach and SMS alerts',
-      'Clinic Discover and general candidate messaging',
+      'Clinic Discover',
     ],
   },
   pro: {
-    tagline: 'Unlimited single-clinic hiring with priority placement',
+    tagline: 'Unlimited hiring with priority placement',
     fallbackPriceLabel: 'Billed monthly or annually',
     features: [
+      'Everything in Starter, plus:',
       'Unlimited active roles and fill-ins',
       'Priority marketplace placement and Pro badge',
       'Hiring insights and bulk fill-in outreach',
       'Unlimited custom screening questions',
+      'Open inquiries — message candidates in your area, and let them reach you without applying',
     ],
   },
   group_starter: {
@@ -71,21 +73,28 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
     features: [
       'Up to 5 locations and 3 managers',
       'Up to 5 active roles and 5 fill-ins across your group',
-      'Screening, CRM, outreach, SMS, and Discover',
-      'Location-scoped dashboard and group messaging',
+      'Screening questions, private candidate notes, and PDF export',
+      'Direct fill-in outreach and SMS alerts',
+      'Clinic Discover',
     ],
   },
   group_pro: {
     tagline: 'Unlimited multi-location hiring for growing groups',
     fallbackPriceLabel: 'Billed monthly or annually',
     features: [
+      'Everything in Group Starter, plus:',
       'Unlimited locations, managers, and postings',
       'Priority placement and Pro badge per location',
       'Hiring insights across your group with per-location breakdown',
       'Bulk fill-in outreach and unlimited screening',
+      'Open inquiries — message candidates in your area, and let them reach you without applying',
     ],
   },
 };
+
+export function isClinicPlanFeatureIntro(feature: string): boolean {
+  return feature.startsWith('Everything in ') && feature.endsWith(', plus:');
+}
 
 /** Active role limit per plan. `null` = unlimited. */
 export const CLINIC_ACTIVE_ROLE_LIMITS: Record<ClinicPlan, number | null> = {
@@ -137,6 +146,9 @@ export const CLINIC_CUSTOM_SCREENING_LIMITS: Record<ClinicPlan, number | null> =
   group_starter: 5,
   group_pro: null,
 };
+
+/** Max workers a clinic can include in one bulk fill-in outreach send. */
+export const FILL_IN_BULK_OUTREACH_MAX = 25;
 
 export const REVENUECAT_ENTITLEMENT_STARTER = 'clinic_starter';
 export const REVENUECAT_ENTITLEMENT_PRO = 'clinic_pro';
@@ -273,11 +285,11 @@ export function clinicPlanIncludesFeature(
     case 'crm_followups':
     case 'application_pdf_export':
     case 'clinic_discover':
-    case 'general_candidate_messaging':
       return plan === 'starter' || plan === 'pro' || plan === 'group_starter' || plan === 'group_pro';
     case 'priority_listing':
     case 'bulk_outreach':
     case 'hiring_insights':
+    case 'general_candidate_messaging':
       return plan === 'pro' || plan === 'group_pro';
     default:
       return false;

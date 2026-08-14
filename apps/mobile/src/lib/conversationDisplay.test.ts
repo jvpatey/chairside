@@ -46,7 +46,7 @@ describe('formatConversationDisplay', () => {
     expect(display.inboxContextLine.split(' · ')).not.toContain('Fill-in outreach');
   });
 
-  it('uses general inquiry copy for general conversations', () => {
+  it('uses open inquiry copy for general conversations', () => {
     const display = formatConversationDisplay(
       makeConversation({
         conversation_type: 'general',
@@ -59,6 +59,7 @@ describe('formatConversationDisplay', () => {
       }),
       'clinic',
     );
-    expect(display.inboxContextLine).toBe('General inquiry');
+    expect(display.inboxContextLine).toBe('Open inquiry');
+    expect(display.threadSubtitle).toBe('Open inquiry');
   });
 });

@@ -42,6 +42,12 @@ describe('getActiveTabBarName', () => {
     );
   });
 
+  it('keeps messages selected on open inquiry candidates', () => {
+    expect(getActiveTabBarName('/(clinic-tabs)/open-inquiry-candidates', 'clinic')).toBe(
+      'messages',
+    );
+  });
+
   it('keeps calendar selected when opened from calendar tab', () => {
     expect(
       getActiveTabBarName('/(tabs)/application/app-1', 'worker', 'calendar-tab'),

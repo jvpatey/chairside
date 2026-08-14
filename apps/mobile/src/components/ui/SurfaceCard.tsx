@@ -20,7 +20,6 @@ import {
   getSurfaceGradient,
   radii,
   type ElevationLevel,
-  type FeaturedListingGradient,
   useTheme,
   useThemedStyles,
 } from '@/theme';
@@ -39,8 +38,7 @@ type SurfaceCardProps = {
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
-  featuredOverlay?: FeaturedListingGradient | null;
-  /** Left accent rail color (semantic category). */
+  /** Left accent rail color (e.g. featured listing mark). */
   accentRailColor?: string;
 };
 
@@ -70,13 +68,12 @@ export function SurfaceCard({
   onPress,
   style,
   contentStyle,
-  featuredOverlay,
   accentRailColor,
 }: SurfaceCardProps) {
   const { colors, isDark } = useTheme();
   const surfaceGradient = getSurfaceGradient(colors, isDark);
   const isInner = variant === 'inner';
-  const showGradient = isDark && variant === 'default' && !featuredOverlay && !isInner;
+  const showGradient = isDark && variant === 'default' && !isInner && !accentRailColor;
 
   const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
     card: {
@@ -87,7 +84,7 @@ export function SurfaceCard({
         variant === 'success'
           ? `${colors.success}40`
           : isInner
-            ? colorWithAlpha(colors.labelPrimary, isDark ? 0.28 : 0.14)
+            ? colorWithAlpha(colors.labelPrimary, isDark ? 0.08 : 0.14)
             : colors.separator,
       ...(padding === 'none' ? null : { padding: padding === 'lg' ? spacing.lg : spacing.md }),
       ...(gap ? { gap: spacing.sm } : null),
@@ -134,16 +131,6 @@ export function SurfaceCard({
     <>
       {showGradient ? (
         <LinearGradient colors={surfaceGradient} style={styles.gradient} pointerEvents="none" />
-      ) : null}
-      {featuredOverlay ? (
-        <LinearGradient
-          colors={featuredOverlay.colors as [string, string, ...string[]]}
-          locations={featuredOverlay.locations as [number, number, ...number[]]}
-          start={featuredOverlay.start}
-          end={featuredOverlay.end}
-          style={styles.gradient}
-          pointerEvents="none"
-        />
       ) : null}
       {accentRailColor ? (
         <View style={[styles.accentRail, { backgroundColor: accentRailColor }]} pointerEvents="none" />

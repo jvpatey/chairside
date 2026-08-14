@@ -4,27 +4,20 @@ import {
   getLiveJobPost,
   type ScreeningQuestion,
 } from '@chairside/api';
-import type { RatingScaleValue } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { RatingQuestionCard } from '@/components/worker/screening/RatingQuestionCard';
-import { NumberQuestionCard } from '@/components/worker/screening/NumberQuestionCard';
-import { TextQuestionCard } from '@/components/worker/screening/TextQuestionCard';
 import { ScreeningIntroCard } from '@/components/worker/screening/ScreeningIntroCard';
-import { ScreeningWizardShell } from '@/components/worker/screening/ScreeningWizardShell';
-import { YesNoQuestionCard } from '@/components/worker/screening/YesNoQuestionCard';
+import { ScreeningQuestionList } from '@/components/worker/screening/ScreeningQuestionList';
 import { useAuth } from '@/contexts/AuthContext';
 import { WORKER_APPLICATIONS } from '@/lib/routing';
 import {
-  buildScreeningWizardPages,
   countAnsweredQuestions,
-  getScreeningQuestionKey,
-  isScreeningPageComplete,
+  isScreeningFormComplete,
   type ScreeningAnswerValue,
 } from '@/lib/screeningWizard';
 import { useThemedStyles } from '@/theme';
@@ -37,30 +30,18 @@ export default function ApplyScreeningScreen() {
   const jobId = typeof postId === 'string' ? postId : '';
 
   const [questions, setQuestions] = useState<ScreeningQuestion[]>([]);
-  const [pageIndex, setPageIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, ScreeningAnswerValue | undefined>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const pages = useMemo(() => buildScreeningWizardPages(questions), [questions]);
-  const currentPage = pages[pageIndex];
-
-  const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
-    content: { gap: spacing.lg },
-    reviewCard: {
-      backgroundColor: colors.surface,
-      borderRadius: radii.lg,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.lg,
-      gap: spacing.sm,
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    content: { gap: spacing.md },
+    progress: {
+      ...typography.subtitle,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
     },
-    reviewTitle: {
-      ...typography.body,
-      fontWeight: '700',
-      fontSize: 17,
-    },
-    reviewMeta: typography.subtitle,
     footer: {
       gap: spacing.sm,
     },
@@ -98,6 +79,10 @@ export default function ApplyScreeningScreen() {
 
   const submitScreening = async () => {
     if (!user?.id || !jobId) return;
+    if (!isScreeningFormComplete(questions, answers)) {
+      Alert.alert('Answer required', 'Answer every screening question to submit.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -120,154 +105,46 @@ export default function ApplyScreeningScreen() {
     }
   };
 
-  const handleContinue = () => {
-    if (!currentPage) return;
-
-    if (currentPage.kind === 'review') {
-      void submitScreening();
-      return;
-    }
-
-    if (currentPage.kind === 'questions' && !isScreeningPageComplete(currentPage, answers)) {
-      Alert.alert('Answer required', 'Answer each question on this page to continue.');
-      return;
-    }
-
-    setPageIndex((current) => Math.min(current + 1, pages.length - 1));
-  };
-
-  const handleBack = () => {
-    if (pageIndex === 0) {
-      router.back();
-      return;
-    }
-    setPageIndex((current) => current - 1);
-  };
-
-  if (isLoading || !currentPage) {
+  if (isLoading) {
     return (
-      <FormScreen
-        title="Screening questions"
-        subtitle={isLoading ? undefined : 'Unavailable'}
-        onBack={() => router.back()}
-      >
-        {isLoading ? <PageLoadingDetail /> : null}
+      <FormScreen title="Screening questions" onBack={() => router.back()}>
+        <PageLoadingDetail />
       </FormScreen>
     );
   }
 
   const answeredCount = countAnsweredQuestions(questions, answers);
-  const continueLabel =
-    currentPage.kind === 'review'
-      ? isSubmitting
-        ? 'Submitting…'
-        : 'Submit screening'
-      : 'Continue';
+  const canSubmit = isScreeningFormComplete(questions, answers);
 
   return (
     <FormScreen
       title="Screening questions"
-      subtitle="Required before your screening submission is sent"
-      onBack={handleBack}
+      subtitle="Based on your responses, they may request your full application"
+      onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={continueLabel}
-            disabled={isSubmitting}
-            onPress={handleContinue}
+            label={isSubmitting ? 'Submitting…' : 'Submit screening'}
+            disabled={isSubmitting || !canSubmit}
+            onPress={() => void submitScreening()}
           />
         </View>
       }
     >
       <View style={styles.content}>
-        <ScreeningWizardShell
-          stepIndex={pageIndex}
-          totalSteps={pages.length}
-          title={
-            currentPage.kind === 'intro'
-              ? 'Before you apply'
-              : currentPage.kind === 'review'
-                ? 'Ready to submit'
-                : currentPage.questions[0]?.type === 'rating_1_5'
-                  ? 'Rate these attributes'
-                  : 'Screening questions'
+        <ScreeningIntroCard />
+        {questions.length > 0 ? (
+          <Text style={styles.progress}>
+            {answeredCount} of {questions.length} answered
+          </Text>
+        ) : null}
+        <ScreeningQuestionList
+          questions={questions}
+          answers={answers}
+          onChange={(key, value) =>
+            setAnswers((current) => ({ ...current, [key]: value }))
           }
-          subtitle={
-            currentPage.kind === 'questions' && currentPage.questions[0]?.type === 'rating_1_5'
-              ? '5 = Strongly agree · 0 = Not at all'
-              : undefined
-          }>
-          {currentPage.kind === 'intro' ? (
-            <ScreeningIntroCard />
-          ) : null}
-
-          {currentPage.kind === 'questions'
-            ? currentPage.questions.map((question) => {
-                const key = getScreeningQuestionKey(question);
-                if (question.type === 'yes_no') {
-                  return (
-                    <YesNoQuestionCard
-                      key={key}
-                      prompt={question.prompt}
-                      value={answers[key] as boolean | undefined}
-                      onChange={(value) =>
-                        setAnswers((current) => ({ ...current, [key]: value }))
-                      }
-                    />
-                  );
-                }
-
-                if (question.type === 'number') {
-                  return (
-                    <NumberQuestionCard
-                      key={key}
-                      prompt={question.prompt}
-                      value={answers[key] as number | undefined}
-                      min={question.min}
-                      max={question.max}
-                      unitLabel={question.unitLabel}
-                      onChange={(value) =>
-                        setAnswers((current) => ({ ...current, [key]: value }))
-                      }
-                    />
-                  );
-                }
-
-                if (question.type === 'text') {
-                  return (
-                    <TextQuestionCard
-                      key={key}
-                      prompt={question.prompt}
-                      value={answers[key] as string | undefined}
-                      onChange={(value) =>
-                        setAnswers((current) => ({ ...current, [key]: value }))
-                      }
-                    />
-                  );
-                }
-
-                return (
-                  <RatingQuestionCard
-                    key={key}
-                    prompt={question.prompt}
-                    value={answers[key] as RatingScaleValue | undefined}
-                    onChange={(value) => setAnswers((current) => ({ ...current, [key]: value }))}
-                  />
-                );
-              })
-            : null}
-
-          {currentPage.kind === 'review' ? (
-            <View style={styles.reviewCard}>
-              <Text style={styles.reviewTitle}>Screening ready</Text>
-              <Text style={styles.reviewMeta}>
-                You answered {answeredCount} of {questions.length} screening question
-                {questions.length === 1 ? '' : 's'}. The clinic will review your responses and can
-                request your full application if they want to continue.
-              </Text>
-            </View>
-          ) : null}
-        </ScreeningWizardShell>
+        />
       </View>
     </FormScreen>
   );

@@ -3,12 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { HiringCelebrationAudience } from '@/lib/hiringCelebrationCopy';
 
 const STORAGE_KEY_PREFIX = 'hiring_celebrations_shown';
+const KNOWN_HIRED_KEY_PREFIX = 'hiring_celebrations_known';
 const LEGACY_SENTINEL = '__legacy__';
 
 type CelebratedTimestamps = Record<string, string>;
 
 function storageKey(audience: HiringCelebrationAudience): string {
   return `${STORAGE_KEY_PREFIX}_${audience}`;
+}
+
+function knownHiredStorageKey(audience: HiringCelebrationAudience): string {
+  return `${KNOWN_HIRED_KEY_PREFIX}_${audience}`;
 }
 
 async function persistCelebratedTimestamps(
@@ -52,6 +57,41 @@ export async function markApplicationCelebrated(
   const timestamps = await getCelebratedApplicationTimestamps(audience);
   timestamps[applicationId] = updatedAt;
   await persistCelebratedTimestamps(audience, timestamps);
+  await addKnownHiredApplicationId(audience, applicationId);
+}
+
+export async function getKnownHiredApplicationIds(
+  audience: HiringCelebrationAudience,
+): Promise<Set<string>> {
+  try {
+    const raw = await AsyncStorage.getItem(knownHiredStorageKey(audience));
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((id): id is string => typeof id === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+export async function setKnownHiredApplicationIds(
+  audience: HiringCelebrationAudience,
+  applicationIds: Iterable<string>,
+): Promise<void> {
+  await AsyncStorage.setItem(
+    knownHiredStorageKey(audience),
+    JSON.stringify([...new Set(applicationIds)]),
+  );
+}
+
+export async function addKnownHiredApplicationId(
+  audience: HiringCelebrationAudience,
+  applicationId: string,
+): Promise<void> {
+  const known = await getKnownHiredApplicationIds(audience);
+  if (known.has(applicationId)) return;
+  known.add(applicationId);
+  await setKnownHiredApplicationIds(audience, known);
 }
 
 export async function filterUncelebratedCelebrationCandidates<

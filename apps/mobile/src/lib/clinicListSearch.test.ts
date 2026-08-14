@@ -1,4 +1,4 @@
-import type { JobApplicationSummary, JobPost } from '@chairside/api';
+import type { JobApplicationSummary, JobPost, OpenInquiryWorker } from '@chairside/api';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -6,6 +6,7 @@ import {
   matchesConfirmedFillInSearch,
   matchesJobApplicationSummarySearch,
   matchesJobPostSearch,
+  matchesOpenInquiryWorkerSearch,
 } from '@/lib/clinicListSearch';
 
 describe('clinicListSearch', () => {
@@ -29,6 +30,7 @@ describe('clinicListSearch', () => {
       job_post_id: 'job-1',
       post_title: 'Front Desk Coordinator',
       post_created_at: null,
+      post_status: 'live',
       applicant_count: 2,
       screening_count: 0,
       pending_count: 1,
@@ -41,6 +43,9 @@ describe('clinicListSearch', () => {
     expect(matchesJobApplicationSummarySearch(summary, 'front desk')).toBe(true);
     expect(matchesClinicApplicationSummaryFilter(summary, 'needs_attention')).toBe(true);
     expect(matchesClinicApplicationSummaryFilter(summary, 'all')).toBe(true);
+    expect(
+      matchesClinicApplicationSummaryFilter({ ...summary, post_status: 'filled' }, 'all'),
+    ).toBe(false);
   });
 
   it('matches confirmed fill-ins by worker name', () => {
@@ -52,5 +57,24 @@ describe('clinicListSearch', () => {
 
     expect(matchesConfirmedFillInSearch(row, 'jeffrey')).toBe(true);
     expect(matchesConfirmedFillInSearch(row, 'assistant')).toBe(false);
+  });
+
+  it('matches open inquiry candidates by name, city, bio, and role', () => {
+    const worker = {
+      workerId: 'w1',
+      displayName: 'Ada Lovelace',
+      roleTypes: ['hygienist'],
+      city: 'Halifax',
+      yearsOfExperience: 4,
+      bio: 'Loves perio.',
+      photoStoragePath: null,
+      existingConversationId: null,
+    } satisfies OpenInquiryWorker;
+
+    expect(matchesOpenInquiryWorkerSearch(worker, 'ada')).toBe(true);
+    expect(matchesOpenInquiryWorkerSearch(worker, 'halifax')).toBe(true);
+    expect(matchesOpenInquiryWorkerSearch(worker, 'perio')).toBe(true);
+    expect(matchesOpenInquiryWorkerSearch(worker, 'hygienist')).toBe(true);
+    expect(matchesOpenInquiryWorkerSearch(worker, 'assistant')).toBe(false);
   });
 });

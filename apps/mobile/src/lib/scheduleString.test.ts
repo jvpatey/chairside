@@ -59,5 +59,6 @@ describe('scheduleString', () => {
     expect(isInvalidWageRange('50', '40', 'hourly')).toBe(true);
     expect(isInvalidWageRange('40', '50', 'hourly')).toBe(false);
     expect(isInvalidWageRange('50', '40', 'commission')).toBe(false);
+    expect(isInvalidWageRange('50', '40', 'discuss')).toBe(false);
   });
 });

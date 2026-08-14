@@ -11,6 +11,7 @@ type FilterTriggerButtonProps = {
   onPress: () => void;
   accessibilityLabel?: string;
   accent?: GradientAccent;
+  disabled?: boolean;
 };
 
 export function FilterTriggerButton({
@@ -18,6 +19,7 @@ export function FilterTriggerButton({
   onPress,
   accessibilityLabel = 'Filter',
   accent,
+  disabled = false,
 }: FilterTriggerButtonProps) {
   const { colors } = useTheme();
   const tabAccent = useTabAtmosphereAccent();
@@ -56,6 +58,9 @@ export function FilterTriggerButton({
       backgroundColor: brandSubtle,
       borderColor: brandColor,
     },
+    buttonDisabled: {
+      opacity: 0.45,
+    },
     badge: {
       position: 'absolute',
       top: -4,
@@ -79,14 +84,21 @@ export function FilterTriggerButton({
 
   return (
     <Pressable
+      disabled={disabled}
       style={({ pressed, hovered }) => [
         styles.button,
         isActive && styles.buttonActive,
-        isWeb && hovered && !pressed && (isActive ? styles.buttonActiveHovered : styles.buttonHovered),
-        isWeb && pressed && styles.buttonPressed,
+        disabled && styles.buttonDisabled,
+        !disabled &&
+          isWeb &&
+          hovered &&
+          !pressed &&
+          (isActive ? styles.buttonActiveHovered : styles.buttonHovered),
+        !disabled && isWeb && pressed && styles.buttonPressed,
       ]}
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       accessibilityLabel={
         isActive ? `${accessibilityLabel}, ${activeCount} active` : accessibilityLabel
       }

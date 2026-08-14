@@ -163,6 +163,9 @@ export async function upsertWorkerProfile(
   if (partial.accepts_clinic_fill_in_outreach !== undefined) {
     payload.accepts_clinic_fill_in_outreach = partial.accepts_clinic_fill_in_outreach;
   }
+  if (partial.accepts_general_clinic_messages !== undefined) {
+    payload.accepts_general_clinic_messages = partial.accepts_general_clinic_messages;
+  }
   if (partial.job_notification_opt_in !== undefined) {
     payload.job_notification_opt_in = partial.job_notification_opt_in;
   }

@@ -1,13 +1,6 @@
 import type { ScreeningQuestionType } from '@chairside/config';
 import { useEffect, useState } from 'react';
-import {
-  Keyboard,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Keyboard, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -20,7 +13,7 @@ import {
   adaptiveSheetScrollContent,
   adaptiveSheetTitle,
 } from '@/lib/adaptiveSheetBodyStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 const TYPE_OPTIONS = [
   { value: 'yes_no' as const, label: 'Yes / No' },
@@ -42,6 +35,7 @@ export function CustomScreeningQuestionSheetBody({
   onAdd,
   variant = 'sheet',
 }: CustomScreeningQuestionSheetProps) {
+  const { colors } = useTheme();
   const isDialog = variant === 'dialog';
   const [prompt, setPrompt] = useState('');
   const [type, setType] = useState<ScreeningQuestionType>('yes_no');
@@ -96,10 +90,8 @@ export function CustomScreeningQuestionSheetBody({
     }
   }, [visible]);
 
-  const dismissKeyboard = () => Keyboard.dismiss();
-
   const handleClose = () => {
-    dismissKeyboard();
+    Keyboard.dismiss();
     onClose();
   };
 
@@ -107,7 +99,7 @@ export function CustomScreeningQuestionSheetBody({
     const trimmed = prompt.trim();
     if (!trimmed) return;
 
-    dismissKeyboard();
+    Keyboard.dismiss();
     onAdd({
       id: `custom_${Date.now()}`,
       prompt: trimmed,
@@ -116,7 +108,7 @@ export function CustomScreeningQuestionSheetBody({
   };
 
   return (
-    <Pressable style={styles.root} onPress={dismissKeyboard}>
+    <View style={styles.root}>
       <View style={styles.header}>
         <Text style={styles.title}>Add custom question</Text>
       </View>
@@ -133,12 +125,13 @@ export function CustomScreeningQuestionSheetBody({
           <TextInput
             style={styles.input}
             placeholder="What would you like to ask applicants?"
+            placeholderTextColor={colors.labelTertiary}
             value={prompt}
             onChangeText={setPrompt}
             multiline
             autoCapitalize="sentences"
             returnKeyType="done"
-            blurOnSubmit
+            blurOnSubmit={false}
             accessibilityLabel="Custom screening question"
           />
         </View>
@@ -148,9 +141,10 @@ export function CustomScreeningQuestionSheetBody({
           <ChipSelector
             options={TYPE_OPTIONS}
             selected={type}
+            horizontal={false}
             onChange={(value) => {
-              dismissKeyboard();
-              setType(value as ScreeningQuestionType);
+              if (Array.isArray(value)) return;
+              setType(value);
             }}
           />
         </View>
@@ -164,6 +158,6 @@ export function CustomScreeningQuestionSheetBody({
         />
         <OnboardingButton label="Cancel" variant="secondary" onPress={handleClose} />
       </View>
-    </Pressable>
+    </View>
   );
 }

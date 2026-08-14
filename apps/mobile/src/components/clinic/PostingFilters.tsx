@@ -2,7 +2,14 @@ import { FilterSheetSection } from '@/components/ui/FilterSheet';
 import { AdaptiveFilterShell } from '@/components/ui/AdaptiveFilterShell';
 import type { GradientAccent } from '@/theme';
 import {
-  JOB_STATUS_FILTER_OPTIONS,
+  CLINIC_DISCOVER_SORT_OPTIONS,
+  type ClinicDiscoverSort,
+} from '@/lib/clinicDiscoverFilters';
+import {
+  CLINIC_FILL_IN_SORT_OPTIONS,
+  CLINIC_ROLE_SORT_OPTIONS,
+  DEFAULT_CLINIC_FILL_IN_SORT,
+  DEFAULT_CLINIC_ROLE_SORT,
   PAY_LISTED_FILTER_OPTIONS,
   ROLE_TYPE_FILTER_OPTIONS,
   SHIFT_DATE_FILTER_OPTIONS,
@@ -13,7 +20,8 @@ import {
   WORKER_MATCH_TIER_FILTER_OPTIONS,
   WORKER_SOFTWARE_FILTER_OPTIONS,
   SAVED_ONLY_FILTER_OPTIONS,
-  type JobStatusFilter,
+  type ClinicFillInSort,
+  type ClinicRoleSort,
   type PayListedFilter,
   type RoleTypeFilter,
   type SavedOnlyFilter,
@@ -26,29 +34,12 @@ import {
   type WorkerSoftwareFilter,
 } from '@/lib/postingFilters';
 
-type RolePostingFiltersProps = {
-  statusFilter: JobStatusFilter;
-  roleTypeFilter: RoleTypeFilter;
-  onStatusChange: (value: JobStatusFilter) => void;
-  onRoleTypeChange: (value: RoleTypeFilter) => void;
-};
-
-function countRolePostingFilterChanges(
-  statusFilter: JobStatusFilter,
-  roleTypeFilter: RoleTypeFilter,
-  defaults: { statusFilter: JobStatusFilter; roleTypeFilter: RoleTypeFilter },
-): number {
-  return (
-    (statusFilter === defaults.statusFilter ? 0 : 1) +
-    (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1)
-  );
-}
-
 type RoleTypeFiltersProps = {
   roleTypeFilter: RoleTypeFilter;
   onRoleTypeChange: (value: RoleTypeFilter) => void;
   accessibilityLabel?: string;
   sheetTitle?: string;
+  disabled?: boolean;
 };
 
 export function RoleTypeFilters({
@@ -56,6 +47,7 @@ export function RoleTypeFilters({
   onRoleTypeChange,
   accessibilityLabel = 'Filter by role type',
   sheetTitle = 'Filter by role',
+  disabled = false,
 }: RoleTypeFiltersProps) {
   const defaultRoleType: RoleTypeFilter = 'all';
   const activeCount = roleTypeFilter === defaultRoleType ? 0 : 1;
@@ -66,12 +58,135 @@ export function RoleTypeFilters({
       onReset={() => onRoleTypeChange(defaultRoleType)}
       title={sheetTitle}
       accessibilityLabel={accessibilityLabel}
+      disabled={disabled}
     >
       <FilterSheetSection
         label="Role type"
         options={ROLE_TYPE_FILTER_OPTIONS}
         selected={roleTypeFilter}
         onChange={onRoleTypeChange}
+      />
+    </AdaptiveFilterShell>
+  );
+}
+
+type RolePostingFiltersProps = {
+  roleTypeFilter: RoleTypeFilter;
+  sort: ClinicRoleSort;
+  onRoleTypeChange: (value: RoleTypeFilter) => void;
+  onSortChange: (value: ClinicRoleSort) => void;
+  accessibilityLabel?: string;
+  sheetTitle?: string;
+  disabled?: boolean;
+};
+
+export function RolePostingFilters({
+  roleTypeFilter,
+  sort,
+  onRoleTypeChange,
+  onSortChange,
+  accessibilityLabel = 'Filter roles',
+  sheetTitle = 'Filter roles',
+  disabled = false,
+}: RolePostingFiltersProps) {
+  const defaults = {
+    roleTypeFilter: 'all' as RoleTypeFilter,
+    sort: DEFAULT_CLINIC_ROLE_SORT,
+  };
+  const activeCount =
+    (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) + (sort === defaults.sort ? 0 : 1);
+
+  return (
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={() => {
+        onRoleTypeChange(defaults.roleTypeFilter);
+        onSortChange(defaults.sort);
+      }}
+      title={sheetTitle}
+      accessibilityLabel={accessibilityLabel}
+      disabled={disabled}
+    >
+      <FilterSheetSection
+        label="Sort by"
+        options={CLINIC_ROLE_SORT_OPTIONS}
+        selected={sort}
+        onChange={onSortChange}
+      />
+      <FilterSheetSection
+        label="Role type"
+        options={ROLE_TYPE_FILTER_OPTIONS}
+        selected={roleTypeFilter}
+        onChange={onRoleTypeChange}
+      />
+    </AdaptiveFilterShell>
+  );
+}
+
+type ClinicDiscoverFiltersProps = {
+  roleTypeFilter: RoleTypeFilter;
+  sort: ClinicDiscoverSort;
+  distanceFilter: WorkerDistanceFilter;
+  onRoleTypeChange: (value: RoleTypeFilter) => void;
+  onSortChange: (value: ClinicDiscoverSort) => void;
+  onDistanceFilterChange: (value: WorkerDistanceFilter) => void;
+  accessibilityLabel?: string;
+  sheetTitle?: string;
+  disabled?: boolean;
+};
+
+export function ClinicDiscoverFilters({
+  roleTypeFilter,
+  sort,
+  distanceFilter,
+  onRoleTypeChange,
+  onSortChange,
+  onDistanceFilterChange,
+  accessibilityLabel = 'Filter discover',
+  sheetTitle = 'Filter discover',
+  disabled = false,
+}: ClinicDiscoverFiltersProps) {
+  const defaults = {
+    roleTypeFilter: 'all' as RoleTypeFilter,
+    sort: 'distance' as ClinicDiscoverSort,
+    distanceFilter: 'all' as WorkerDistanceFilter,
+  };
+  const activeCount =
+    (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
+    (sort === defaults.sort ? 0 : 1) +
+    (distanceFilter === defaults.distanceFilter ? 0 : 1);
+
+  const handleReset = () => {
+    onRoleTypeChange(defaults.roleTypeFilter);
+    onSortChange(defaults.sort);
+    onDistanceFilterChange(defaults.distanceFilter);
+  };
+
+  return (
+    <AdaptiveFilterShell
+      activeCount={activeCount}
+      onReset={handleReset}
+      title={sheetTitle}
+      accessibilityLabel={accessibilityLabel}
+      disabled={disabled}
+    >
+      <FilterSheetSection
+        label="Role type"
+        options={ROLE_TYPE_FILTER_OPTIONS}
+        selected={roleTypeFilter}
+        onChange={onRoleTypeChange}
+      />
+      <FilterSheetSection
+        label="Sort"
+        options={CLINIC_DISCOVER_SORT_OPTIONS}
+        selected={sort}
+        onChange={onSortChange}
+      />
+      <FilterSheetSection
+        label="Distance"
+        options={WORKER_DISTANCE_FILTER_OPTIONS}
+        selected={distanceFilter}
+        onChange={onDistanceFilterChange}
       />
     </AdaptiveFilterShell>
   );
@@ -302,56 +417,22 @@ export function WorkerFillInBrowseFilters({
   );
 }
 
-export function RolePostingFilters({
-  statusFilter,
-  roleTypeFilter,
-  onStatusChange,
-  onRoleTypeChange,
-}: RolePostingFiltersProps) {
-  const defaults = { statusFilter: 'all' as JobStatusFilter, roleTypeFilter: 'all' as RoleTypeFilter };
-  const activeCount = countRolePostingFilterChanges(statusFilter, roleTypeFilter, defaults);
-
-  const handleReset = () => {
-    onStatusChange(defaults.statusFilter);
-    onRoleTypeChange(defaults.roleTypeFilter);
-  };
-
-  return (
-    <AdaptiveFilterShell
-      activeCount={activeCount}
-      onReset={handleReset}
-      title="Filter roles"
-      accessibilityLabel="Filter roles"
-    >
-      <FilterSheetSection
-        label="Status"
-        options={JOB_STATUS_FILTER_OPTIONS}
-        selected={statusFilter}
-        onChange={onStatusChange}
-      />
-      <FilterSheetSection
-        label="Role type"
-        options={ROLE_TYPE_FILTER_OPTIONS}
-        selected={roleTypeFilter}
-        onChange={onRoleTypeChange}
-      />
-    </AdaptiveFilterShell>
-  );
-}
-
 type ShiftPostingFilterDefaults = {
   statusFilter?: ShiftStatusFilter;
   roleTypeFilter?: RoleTypeFilter;
   shiftDateFilter?: ShiftDateFilter;
+  sort?: ClinicFillInSort;
 };
 
 type ShiftPostingFiltersProps = {
   statusFilter: ShiftStatusFilter;
   roleTypeFilter: RoleTypeFilter;
   shiftDateFilter: ShiftDateFilter;
+  sort?: ClinicFillInSort;
   onStatusChange: (value: ShiftStatusFilter) => void;
   onRoleTypeChange: (value: RoleTypeFilter) => void;
   onShiftDateChange: (value: ShiftDateFilter) => void;
+  onSortChange?: (value: ClinicFillInSort) => void;
   defaults?: ShiftPostingFilterDefaults;
   statusOptions?: { value: ShiftStatusFilter; label: string }[];
   includeStatusInSheet?: boolean;
@@ -363,12 +444,14 @@ function countShiftPostingFilterChanges(
   statusFilter: ShiftStatusFilter,
   roleTypeFilter: RoleTypeFilter,
   shiftDateFilter: ShiftDateFilter,
+  sort: ClinicFillInSort,
   defaults: Required<ShiftPostingFilterDefaults>,
 ): number {
   return (
     (statusFilter === defaults.statusFilter ? 0 : 1) +
     (roleTypeFilter === defaults.roleTypeFilter ? 0 : 1) +
-    (shiftDateFilter === defaults.shiftDateFilter ? 0 : 1)
+    (shiftDateFilter === defaults.shiftDateFilter ? 0 : 1) +
+    (sort === defaults.sort ? 0 : 1)
   );
 }
 
@@ -376,9 +459,11 @@ export function ShiftPostingFilters({
   statusFilter,
   roleTypeFilter,
   shiftDateFilter,
+  sort = DEFAULT_CLINIC_FILL_IN_SORT,
   onStatusChange,
   onRoleTypeChange,
   onShiftDateChange,
+  onSortChange,
   defaults,
   statusOptions = SHIFT_STATUS_FILTER_OPTIONS,
   includeStatusInSheet = true,
@@ -389,11 +474,13 @@ export function ShiftPostingFilters({
     statusFilter: defaults?.statusFilter ?? 'open',
     roleTypeFilter: defaults?.roleTypeFilter ?? 'all',
     shiftDateFilter: defaults?.shiftDateFilter ?? 'all',
+    sort: defaults?.sort ?? DEFAULT_CLINIC_FILL_IN_SORT,
   };
   const activeCount = countShiftPostingFilterChanges(
     statusFilter,
     roleTypeFilter,
     shiftDateFilter,
+    sort,
     resolvedDefaults,
   );
 
@@ -401,6 +488,7 @@ export function ShiftPostingFilters({
     onStatusChange(resolvedDefaults.statusFilter);
     onRoleTypeChange(resolvedDefaults.roleTypeFilter);
     onShiftDateChange(resolvedDefaults.shiftDateFilter);
+    onSortChange?.(resolvedDefaults.sort);
   };
 
   return (
@@ -411,6 +499,15 @@ export function ShiftPostingFilters({
       accessibilityLabel="Filter fill-ins"
       accent={accent}
     >
+      {onSortChange ? (
+        <FilterSheetSection
+          label="Sort by"
+          options={CLINIC_FILL_IN_SORT_OPTIONS}
+          selected={sort}
+          onChange={onSortChange}
+          accent={accent}
+        />
+      ) : null}
       {includeStatusInSheet ? (
         <FilterSheetSection
           label="Status"

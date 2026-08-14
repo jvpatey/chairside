@@ -23,3 +23,47 @@ export function getErrorMessage(error: unknown, fallback: string): string {
 export function throwWithMessage(error: unknown, fallback: string): never {
   throw new Error(getErrorMessage(error, fallback));
 }
+
+export function getFunctionsHttpStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object' || !('context' in error)) {
+    return null;
+  }
+
+  const context = (error as { context?: unknown }).context;
+  if (!context || typeof context !== 'object' || !('status' in context)) {
+    return null;
+  }
+
+  const status = (context as { status?: unknown }).status;
+  return typeof status === 'number' ? status : null;
+}
+
+export async function resolveFunctionErrorMessage(
+  error: unknown,
+  data: unknown,
+): Promise<string | null> {
+  if (data && typeof data === 'object' && data !== null && 'error' in data) {
+    const payloadError = (data as { error?: unknown }).error;
+    if (typeof payloadError === 'string' && payloadError.trim()) {
+      return payloadError.trim();
+    }
+  }
+
+  const context =
+    error && typeof error === 'object' && error !== null && 'context' in error
+      ? (error as { context?: unknown }).context
+      : null;
+
+  if (context && typeof context === 'object' && context !== null && 'json' in context) {
+    try {
+      const body = await (context as Response).json();
+      if (body && typeof body.error === 'string' && body.error.trim()) {
+        return body.error.trim();
+      }
+    } catch {
+      // Fall through to the generic invoke message.
+    }
+  }
+
+  return null;
+}

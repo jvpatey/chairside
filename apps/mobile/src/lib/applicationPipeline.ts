@@ -54,6 +54,17 @@ export const APPLICANT_FILTER_SECTION_TITLES: Record<
 };
 
 function compareApplications(a: ClinicApplication, b: ClinicApplication): number {
+  const outcomeRank = (application: ClinicApplication): number => {
+    if (application.status !== 'screening_submitted') return 1;
+    const outcome = application.screening?.outcome;
+    if (outcome === 'pass') return 0;
+    if (outcome === 'flagged' || outcome === 'incomplete') return 2;
+    return 1;
+  };
+  const rankA = outcomeRank(a);
+  const rankB = outcomeRank(b);
+  if (rankA !== rankB) return rankA - rankB;
+
   const tierA = MATCH_TIER_ORDER[a.match_tier ?? 'none'] ?? 4;
   const tierB = MATCH_TIER_ORDER[b.match_tier ?? 'none'] ?? 4;
   if (tierA !== tierB) return tierA - tierB;

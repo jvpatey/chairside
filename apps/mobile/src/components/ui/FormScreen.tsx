@@ -32,6 +32,8 @@ type FormScreenProps = {
   fillViewport?: boolean;
   /** Web-only: wrap scroll body in an elevated surface card (setup wizard). */
   elevatedCard?: boolean;
+  /** Rendered after the elevated card (still inside the scroll body). */
+  afterCard?: ReactNode;
 };
 
 /**
@@ -57,6 +59,7 @@ export function FormScreen({
   formMaxWidth = FORM_CONTENT_MAX_WIDTH,
   fillViewport = false,
   elevatedCard = false,
+  afterCard,
 }: FormScreenProps) {
   const useElevatedCard = elevatedCard && Platform.OS === 'web';
 
@@ -94,10 +97,11 @@ export function FormScreen({
     />
   ) : null;
 
-  const bodyContent = useElevatedCard ? (
-    <View style={styles.elevatedCard}>{children}</View>
-  ) : (
-    children
+  const bodyContent = (
+    <>
+      {useElevatedCard ? <View style={styles.elevatedCard}>{children}</View> : children}
+      {afterCard}
+    </>
   );
 
   const constrainedFooter =

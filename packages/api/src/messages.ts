@@ -250,14 +250,13 @@ function canSendApplicationMessages(
 
 function canSendGeneralMessages(
   messagingClosedAt: string | null,
-  clinicAcceptsGeneral: boolean,
   conversation: Pick<ConversationRow, 'worker_account_deleted_at' | 'clinic_account_deleted_at'>,
 ): boolean {
   if (messagingClosedAt) return false;
   if (conversation.worker_account_deleted_at || conversation.clinic_account_deleted_at) {
     return false;
   }
-  return clinicAcceptsGeneral;
+  return true;
 }
 
 function canSendOutreachMessages(
@@ -389,7 +388,7 @@ async function enrichWorkerConversations(
     const clinicIds = [...new Set(generalRows.map((row) => row.clinic_id))];
     const { data: clinics, error: clinicsError } = await supabase
       .from('clinic_profiles')
-      .select('id, clinic_name, logo_storage_path, accepts_general_candidate_messages')
+      .select('id, clinic_name, logo_storage_path')
       .in('id', clinicIds);
 
     if (clinicsError) throw clinicsError;
@@ -411,11 +410,7 @@ async function enrichWorkerConversations(
         counterpart_logo_storage_path: clinicDeleted ? null : (clinic?.logo_storage_path ?? null),
         counterpart_account_deleted: clinicDeleted,
         unread: isUnreadForRole(row, 'worker', workerId),
-        can_send: canSendGeneralMessages(
-          row.messaging_closed_at,
-          clinic?.accepts_general_candidate_messages ?? false,
-          row,
-        ),
+        can_send: canSendGeneralMessages(row.messaging_closed_at, row),
       });
     }
   }
@@ -480,15 +475,6 @@ async function enrichClinicConversations(
   const scopedLocationIds = isActiveLocationScope(options?.locationIds)
     ? new Set(options.locationIds)
     : null;
-
-  const { data: clinicProfile, error: clinicError } = await supabase
-    .from('clinic_profiles')
-    .select('accepts_general_candidate_messages')
-    .eq('id', clinicId)
-    .maybeSingle();
-
-  if (clinicError) throw clinicError;
-  const clinicAcceptsGeneral = clinicProfile?.accepts_general_candidate_messages ?? false;
 
   if (applicationRows.length > 0) {
     const applicationIds = applicationRows.map((row) => row.application_id!);
@@ -639,11 +625,11 @@ async function enrichClinicConversations(
         shift_end_time: null,
         counterpart_name: workerDeleted
           ? DELETED_CANDIDATE_LABEL
-          : profile?.display_name?.trim() || 'Applicant',
+          : profile?.display_name?.trim() || 'Candidate',
         counterpart_logo_storage_path: workerDeleted ? null : (worker?.photo_storage_path ?? null),
         counterpart_account_deleted: workerDeleted,
         unread: isUnreadForRole(row, 'clinic', clinicId),
-        can_send: canSendGeneralMessages(row.messaging_closed_at, clinicAcceptsGeneral, row),
+        can_send: canSendGeneralMessages(row.messaging_closed_at, row),
       });
     }
   }
@@ -768,50 +754,29 @@ export async function hideClinicConversation(
 }
 
 export async function listMessageableClinicsForWorker(
-  workerId: string,
+  _workerId?: string,
 ): Promise<MessageableClinic[]> {
   const supabase = getSupabaseClient();
-  const { data: worker, error: workerError } = await supabase
-    .from('worker_profiles')
-    .select('province, setup_completed_at')
-    .eq('id', workerId)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc('list_messageable_clinics_for_worker');
 
-  if (workerError) throw workerError;
-  if (!worker?.setup_completed_at || !worker.province) return [];
-
-  const { data: clinics, error: clinicsError } = await supabase
-    .from('clinic_profiles')
-    .select('id, clinic_name, city, province, specialty, description, logo_storage_path')
-    .eq('accepts_general_candidate_messages', true)
-    .eq('province', worker.province)
-    .not('setup_completed_at', 'is', null)
-    .order('clinic_name');
-
-  if (clinicsError) throw clinicsError;
-
-  const { data: conversations, error: conversationsError } = await supabase
-    .from('conversations')
-    .select('id, clinic_id')
-    .eq('worker_id', workerId)
-    .eq('conversation_type', 'general');
-
-  if (conversationsError) throw conversationsError;
-
-  const conversationMap = new Map(
-    (conversations ?? []).map((conversation) => [conversation.clinic_id, conversation.id]),
-  );
-
-  return (clinics ?? []).map((clinic) => ({
-    ...clinic,
-    existing_conversation_id: conversationMap.get(clinic.id) ?? null,
-  }));
+  if (error) throwWithMessage(error, 'Could not load clinics.');
+  return (data ?? []) as MessageableClinic[];
 }
 
 export async function getOrCreateGeneralConversation(clinicId: string): Promise<string> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.rpc('get_or_create_general_conversation', {
     p_clinic_id: clinicId,
+  });
+
+  if (error) throw error;
+  return data as string;
+}
+
+export async function getOrCreateGeneralConversationAsClinic(workerId: string): Promise<string> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_or_create_general_conversation_as_clinic', {
+    p_worker_id: workerId,
   });
 
   if (error) throw error;

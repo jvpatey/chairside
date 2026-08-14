@@ -108,6 +108,7 @@ function ClinicTabNavigator() {
         <Tabs.Screen name="post-job" options={{ href: null }} />
         <Tabs.Screen name="post-shift" options={{ href: null }} />
         <Tabs.Screen name="find-available-workers" options={{ href: null }} />
+        <Tabs.Screen name="open-inquiry-candidates" options={{ href: null }} />
         <Tabs.Screen name="outreach-compose" options={{ href: null }} />
         <Tabs.Screen name="job/[id]" options={{ href: null }} />
         <Tabs.Screen name="shift/[id]" options={{ href: null }} />

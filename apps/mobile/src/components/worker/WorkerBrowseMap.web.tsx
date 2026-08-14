@@ -196,7 +196,7 @@ export function WorkerBrowseMap({
   }, [workerCoords]);
 
   useEffect(() => {
-    if (!accessToken || !mapContainerEl || groups.length === 0 || mapRef.current) return;
+    if (!accessToken || !mapContainerEl || mapRef.current) return;
 
     const nextStyle = isDark ? MAP_STYLE.dark : MAP_STYLE.light;
     styleRef.current = nextStyle;
@@ -241,7 +241,7 @@ export function WorkerBrowseMap({
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- map is created once per mount cycle.
-  }, [accessToken, mapContainerEl, groups.length]);
+  }, [accessToken, mapContainerEl]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -318,22 +318,6 @@ export function WorkerBrowseMap({
         <WorkerMapUnavailable
           title="Map unavailable"
           body="Add a Mapbox access token to enable the map view. List view still works."
-        />
-      </View>
-    );
-  }
-
-  if (groups.length === 0) {
-    return (
-      <View style={styles.root}>
-        <WorkerMapUnavailable
-          title="No mappable clinics"
-          body={
-            unmappableCount > 0
-              ? 'These postings match your filters, but their clinics do not have map coordinates yet. Try list view or adjust filters.'
-              : 'No clinics with map coordinates match your current filters.'
-          }
-          icon="location-outline"
         />
       </View>
     );

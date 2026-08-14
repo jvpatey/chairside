@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
-import type { FeaturedListingGradient } from '@/theme';
 import { spacing, useThemedStyles, type GradientAccent } from '@/theme';
 
 import { CardExpandToggle } from './CardExpandToggle';
@@ -18,7 +17,7 @@ type ExpandableSurfaceCardProps = {
   bleedPadding?: number;
   style?: StyleProp<ViewStyle>;
   accent?: GradientAccent;
-  featuredGradient?: FeaturedListingGradient | null;
+  accentRailColor?: string;
 };
 
 /**
@@ -34,7 +33,7 @@ export function ExpandableSurfaceCard({
   bleedPadding,
   style,
   accent,
-  featuredGradient,
+  accentRailColor,
 }: ExpandableSurfaceCardProps) {
   const contentPadding = bleedPadding ?? (padding === 'lg' ? spacing.lg : spacing.md);
 
@@ -56,7 +55,7 @@ export function ExpandableSurfaceCard({
       variant={variant}
       padding="none"
       style={style}
-      featuredOverlay={featuredGradient}>
+      accentRailColor={accentRailColor}>
       <View style={styles.body}>{header}</View>
 
       <CardExpandToggle

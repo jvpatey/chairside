@@ -67,10 +67,7 @@ import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useDismissedScreeningReviews } from '@/hooks/useDismissedScreeningReviews';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
-import {
-  getApplicationMatchDisplayContext,
-  parseApplicationJobMatch,
-} from '@/lib/matchDisplay';
+import { getApplicationMatchDisplayContext, parseApplicationJobMatch } from '@/lib/matchDisplay';
 import {
   buildInterviewInviteInputFromApplication,
   openInterviewCalendarInvite,
@@ -108,10 +105,7 @@ type ClinicApplicationDetailCardProps = {
   hasUnreadMessages?: boolean;
   onUpdated?: () => void;
   onShortlisted?: () => void;
-  onScheduleInterview?: (
-    application: ClinicApplication,
-    mode?: InterviewScheduleSheetMode,
-  ) => void;
+  onScheduleInterview?: (application: ClinicApplication, mode?: InterviewScheduleSheetMode) => void;
   onHired?: (application: ClinicApplication) => void;
   onConfirmed?: (payload: HiringCelebrationPayload) => void;
   onRemoved?: () => void;
@@ -121,6 +115,8 @@ type ClinicApplicationDetailCardProps = {
 type ActionButtonSpec = {
   key: string;
   label: string;
+  /** Short supporting line under secondary actions (e.g. Candidate summary). */
+  description?: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
   onPress: () => void;
   disabled?: boolean;
@@ -210,10 +206,7 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
         <View key={index} style={styles.cell}>
           {isValidElement(child)
             ? cloneElement(child as ReactElement<{ style?: ViewStyle }>, {
-                style: [
-                  (child as ReactElement<{ style?: ViewStyle }>).props.style,
-                  { flex: 1 },
-                ],
+                style: [(child as ReactElement<{ style?: ViewStyle }>).props.style, { flex: 1 }],
               })
             : child}
         </View>
@@ -268,11 +261,7 @@ function ApplicationActionButtons({
   );
 }
 
-function ApplicantQualificationsGrid({
-  application,
-}: {
-  application: ClinicApplication;
-}) {
+function ApplicantQualificationsGrid({ application }: { application: ClinicApplication }) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     grid: {
       flexDirection: 'row',
@@ -398,10 +387,7 @@ function ApplicationSummaryCard({
   }));
 
   const hasContent =
-    coverMessage?.trim() ||
-    appliedLabel ||
-    (isScreeningStage && !kitSubmitted) ||
-    kitSubmitted;
+    coverMessage?.trim() || appliedLabel || (isScreeningStage && !kitSubmitted) || kitSubmitted;
 
   if (!hasContent) return null;
 
@@ -410,7 +396,8 @@ function ApplicationSummaryCard({
       <ApplicantDetailSection
         icon="document-text-outline"
         title="Application summary"
-        accent={accent}>
+        accent={accent}
+      >
         <View style={styles.metaList}>
           {appliedLabel ? (
             <ApplicationPreviewField label="Submitted" value={appliedLabel} preserveLabelCase />
@@ -423,11 +410,7 @@ function ApplicationSummaryCard({
             />
           ) : null}
           {kitSubmitted ? (
-            <ApplicationPreviewField
-              label="Candidate packet"
-              value="Submitted"
-              preserveLabelCase
-            />
+            <ApplicationPreviewField label="Candidate packet" value="Submitted" preserveLabelCase />
           ) : null}
         </View>
         {coverMessage?.trim() ? (
@@ -458,7 +441,7 @@ function ActionPanel({
   removeAction: ActionButtonSpec | null;
   accent?: GradientAccent;
 }) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     actionStack: {
       gap: spacing.sm,
       alignSelf: 'stretch',
@@ -466,6 +449,17 @@ function ActionPanel({
     divider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
+    },
+    summaryBlock: {
+      gap: spacing.xs,
+      alignSelf: 'stretch',
+    },
+    summaryHint: {
+      ...typography.subtitle,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelTertiary,
+      paddingHorizontal: spacing.xs,
     },
   }));
 
@@ -479,16 +473,23 @@ function ActionPanel({
   return (
     <SurfaceCard padding="md">
       <View style={styles.actionStack}>
-        {hasWorkflow ? <ApplicationActionButtons actions={workflowActions} accent={accent} /> : null}
+        {hasWorkflow ? (
+          <ApplicationActionButtons actions={workflowActions} accent={accent} />
+        ) : null}
         {hasWorkflow ? <View style={styles.divider} /> : null}
         {summaryAction ? (
-          <OnboardingButton
-            label={summaryAction.label}
-            variant="secondary"
-            accent={accent}
-            disabled={summaryAction.disabled}
-            onPress={summaryAction.onPress}
-          />
+          <View style={styles.summaryBlock}>
+            <OnboardingButton
+              label={summaryAction.label}
+              variant="secondary"
+              accent={accent}
+              disabled={summaryAction.disabled}
+              onPress={summaryAction.onPress}
+            />
+            {summaryAction.description ? (
+              <Text style={styles.summaryHint}>{summaryAction.description}</Text>
+            ) : null}
+          </View>
         ) : null}
         <OnboardingButton
           label={messageAction.label}
@@ -529,13 +530,8 @@ export function ClinicApplicationDetailCard({
   } = useApplicationTabBadge();
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const {
-    billing,
-    upgradePrompt,
-    showCrmUpgrade,
-    showPdfExportUpgrade,
-    handleBillingError,
-  } = useClinicUpgradePrompt();
+  const { billing, upgradePrompt, showCrmUpgrade, showPdfExportUpgrade, handleBillingError } =
+    useClinicUpgradePrompt();
   const [crmSheetVisible, setCrmSheetVisible] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfPreviewVisible, setPdfPreviewVisible] = useState(false);
@@ -543,8 +539,11 @@ export function ClinicApplicationDetailCard({
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
   const [cancelFillInSheetVisible, setCancelFillInSheetVisible] = useState(false);
   const [deleteFillInSheetVisible, setDeleteFillInSheetVisible] = useState(false);
-  const { isHydrated: screeningDismissHydrated, dismissedIds: dismissedScreeningReviewIds, dismiss: dismissScreeningReviewBadge } =
-    useDismissedScreeningReviews();
+  const {
+    isHydrated: screeningDismissHydrated,
+    dismissedIds: dismissedScreeningReviewIds,
+    dismiss: dismissScreeningReviewBadge,
+  } = useDismissedScreeningReviews();
   const isJob = application.post_type === 'job';
   const accent: GradientAccent = isJob ? 'tertiary' : 'secondary';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
@@ -558,10 +557,8 @@ export function ClinicApplicationDetailCard({
     application.interview_proposed_duration_minutes,
   );
   const pendingProposal = hasPendingInterviewProposal(application);
-  const workerProposedChange =
-    pendingProposal && application.interview_proposed_by === 'worker';
-  const clinicProposedChange =
-    pendingProposal && application.interview_proposed_by === 'clinic';
+  const workerProposedChange = pendingProposal && application.interview_proposed_by === 'worker';
+  const clinicProposedChange = pendingProposal && application.interview_proposed_by === 'clinic';
   const hasNewApplication = isApplicationHighlighted(application);
 
   useEffect(() => {
@@ -608,10 +605,7 @@ export function ClinicApplicationDetailCard({
         onUpdated?.();
       }
     } catch (error) {
-      Alert.alert(
-        'Update failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      Alert.alert('Update failed', error instanceof Error ? error.message : 'Please try again.');
     }
   };
 
@@ -639,7 +633,8 @@ export function ClinicApplicationDetailCard({
   const cancelScheduledInterview = () => {
     showConfirmActionSheet({
       title: 'Cancel interview?',
-      message: 'This returns the applicant to your shortlist. You can reschedule or continue messaging.',
+      message:
+        'This returns the applicant to your shortlist. You can reschedule or continue messaging.',
       confirmLabel: 'Cancel interview',
       destructive: true,
       onConfirm: async () => {
@@ -731,8 +726,7 @@ export function ClinicApplicationDetailCard({
   });
 
   const hasInterviewDetails =
-    (application.status === 'interview_offered' ||
-      application.status === 'interview_scheduled') &&
+    (application.status === 'interview_offered' || application.status === 'interview_scheduled') &&
     interviewSummary;
 
   const hasKitSubmitted = hasApplicationKitSubmitted(application);
@@ -745,10 +739,7 @@ export function ClinicApplicationDetailCard({
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onUpdated?.();
     } catch (error) {
-      Alert.alert(
-        'Request failed',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      Alert.alert('Request failed', error instanceof Error ? error.message : 'Please try again.');
     }
   };
 
@@ -793,9 +784,7 @@ export function ClinicApplicationDetailCard({
   const appliedDateLabel = formatApplicationDate(application.created_at);
   const appliedLabel = appliedDateLabel ? `Applied ${appliedDateLabel}` : null;
 
-  const photoUri = useWorkerPhotoUri(
-    workerDeleted ? null : application.worker_photo_storage_path,
-  );
+  const photoUri = useWorkerPhotoUri(workerDeleted ? null : application.worker_photo_storage_path);
   const metaParts = [
     workerDeleted ? null : application.worker_address?.trim(),
     experienceLabel,
@@ -1141,18 +1130,20 @@ export function ClinicApplicationDetailCard({
     !awaitingKit &&
     application.screening &&
     !dismissedScreeningReviewIds.has(application.id)
-      ? hasNewApplication
-        ? 'New'
-        : 'Needs review'
+      ? application.screening.outcome === 'flagged'
+        ? 'Flagged'
+        : application.screening.outcome === 'pass'
+          ? 'Qualified'
+          : hasNewApplication
+            ? 'New'
+            : 'Needs review'
       : null;
 
   return (
     <>
       <View style={styles.stack}>
         <ApplicantReviewHero
-          avatar={
-            <WorkerProfileAvatar displayName={applicantName} photoUri={photoUri} size={56} />
-          }
+          avatar={<WorkerProfileAvatar displayName={applicantName} photoUri={photoUri} size={56} />}
           title={applicantName}
           meta={metaParts.length > 0 ? metaParts.join(' · ') : null}
           trailingBadge={
@@ -1197,7 +1188,9 @@ export function ClinicApplicationDetailCard({
               canGenerateApplicationPdfPacket(application)
                 ? {
                     key: 'candidate-summary',
-                    label: isGeneratingPdf ? 'Preparing summary…' : 'Candidate summary',
+                    label: isGeneratingPdf ? 'Preparing summary…' : 'Export candidate summary',
+                    description:
+                      'Shareable PDF with application details and resume (when available).',
                     onPress: () => void handleOpenCandidatePacket(),
                     disabled: isGeneratingPdf,
                   }
@@ -1229,7 +1222,8 @@ export function ClinicApplicationDetailCard({
                 application.status === 'interview_offered'
                   ? 'Interview invitation'
                   : 'Interview scheduled'
-              }>
+              }
+            >
               <CardInfoPanelText>{interviewSummary}</CardInfoPanelText>
               {application.interview_details ? (
                 <CardInfoPanelText>{application.interview_details}</CardInfoPanelText>
@@ -1285,9 +1279,12 @@ export function ClinicApplicationDetailCard({
                 screeningBadgeLabel ? (
                   <ApplicationCardBadge label={screeningBadgeLabel} accent={accent} />
                 ) : null
-              }>
+              }
+            >
               <ApplicationScreeningSection
                 screening={application.screening}
+                jobPostId={application.job_post_id}
+                defaultExpanded={isScreeningStage && !awaitingKit}
                 onExpandedChange={(expanded) => {
                   if (expanded) void dismissScreeningReviewBadge(application.id);
                 }}

@@ -29,6 +29,7 @@ const CLINIC_STACK_FRAGMENTS = [
   '/shift-applicants/',
   '/role-history',
   '/discover/',
+  '/open-inquiry-candidates',
 ] as const;
 
 function normalizePath(pathname: string): string {
@@ -70,7 +71,8 @@ function isProfilePath(relativePath: string): boolean {
 function isFillInOutreachPath(relativePath: string): boolean {
   return (
     relativePath === '/find-available-workers' ||
-    relativePath.startsWith('/outreach-compose')
+    relativePath.startsWith('/outreach-compose') ||
+    relativePath === '/open-inquiry-candidates'
   );
 }
 
@@ -155,7 +157,7 @@ function getStackParentTabFromRelativePath(
 
   if (root === 'application') return 'applications';
   if (root === 'role-applicants') return 'applications';
-  if (root === 'conversation') return 'messages';
+  if (root === 'conversation' || root === 'open-inquiry-candidates') return 'messages';
   if (root === 'shift-applicants') return role === 'worker' ? 'fillins' : 'fill-ins';
 
   if (root === 'job' || root === 'post-job' || root === 'role-history') {

@@ -185,7 +185,9 @@ export default function ClinicAccountProfileScreen() {
           <ProfileSettingsRow
             icon="chatbubbles-outline"
             title="Messaging"
-            subtitle={getClinicMessagingSubtitle(clinicProfile)}
+            subtitle={getClinicMessagingSubtitle(clinicProfile, {
+              locked: billing != null && !billing.canUseGeneralCandidateMessaging,
+            })}
             iconColor={colors.success}
             iconBackgroundColor={colorWithAlpha(colors.success, 0.094)}
             onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}

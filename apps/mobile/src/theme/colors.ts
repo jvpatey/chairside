@@ -73,7 +73,7 @@ export const darkColors: Colors = {
   labelPrimary: '#FFFFFF',
   labelSecondary: '#E5EAF599',
   labelTertiary: '#E5EAF54D',
-  separator: '#2A2E3A',
+  separator: '#FFFFFF0A',
   fillSubtle: '#78788024',
   primary: '#4A9AFF',
   primaryPressed: '#3588F0',

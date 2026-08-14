@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
@@ -11,6 +12,7 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { getClinicDiscoverClinicProfileRoute } from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { useThemedStyles } from '@/theme';
 
@@ -99,6 +101,15 @@ export default function ClinicDiscoverShiftDetailScreen() {
           />
         </SurfaceCard>
         <ShiftPostDetailView shift={shift} />
+        <OnboardingButton
+          label="View clinic profile"
+          accent="secondary"
+          onPress={() =>
+            router.push(
+              getClinicDiscoverClinicProfileRoute(shift.clinic_id, { fromShiftId: shift.id }),
+            )
+          }
+        />
       </View>
     </FormScreen>
   );

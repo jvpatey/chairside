@@ -75,25 +75,46 @@ export function ResponsiveColumns({
 type ResponsiveGridProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Cap columns (e.g. roles list stays 2-up on x-wide web). Default uses layout `gridColumns`. */
+  maxColumns?: 1 | 2 | 3;
 };
 
 /** Single column on phone; 2-col at wide / 3-col at xwide via `gridColumns`. */
-export function ResponsiveGrid({ children, style }: ResponsiveGridProps) {
+export function ResponsiveGrid({ children, style, maxColumns }: ResponsiveGridProps) {
   const { gridColumns, isWide } = useResponsiveLayout();
-  const columns = isWide ? gridColumns : 1;
+  const layoutColumns = isWide ? gridColumns : 1;
+  const columns = maxColumns != null ? Math.min(layoutColumns, maxColumns) : layoutColumns;
   const itemWidth =
     columns === 3 ? ('31.5%' as const) : columns === 2 ? ('48%' as const) : ('100%' as const);
+  const useWebGrid = Platform.OS === 'web' && columns > 1;
 
   const styles = useThemedStyles(({ spacing }) => ({
     grid: {
-      flexDirection: columns > 1 ? ('row' as const) : ('column' as const),
-      flexWrap: columns > 1 ? ('wrap' as const) : ('nowrap' as const),
       gap: spacing.md,
+      ...(useWebGrid
+        ? webOnlyStyle({
+            display: 'grid',
+            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+            alignItems: 'stretch',
+          } as ViewStyle)
+        : {
+            flexDirection: columns > 1 ? ('row' as const) : ('column' as const),
+            flexWrap: columns > 1 ? ('wrap' as const) : ('nowrap' as const),
+          }),
     },
     item: {
-      width: itemWidth,
-      // Keep cards from stretching oddly when the last row is short
-      maxWidth: columns > 1 ? itemWidth : undefined,
+      ...(useWebGrid
+        ? webOnlyStyle({
+            minWidth: 0,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+          } as ViewStyle)
+        : {
+            width: itemWidth,
+            // Keep cards from stretching oddly when the last row is short
+            maxWidth: columns > 1 ? itemWidth : undefined,
+          }),
     },
   }));
 

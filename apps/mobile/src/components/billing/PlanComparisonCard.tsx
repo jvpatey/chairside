@@ -1,5 +1,6 @@
 import {
   CLINIC_PLAN_MARKETING,
+  isClinicPlanFeatureIntro,
   type ClinicPlan,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
@@ -173,6 +174,14 @@ export function PlanComparisonCard({
       color: colors.labelSecondary,
       flex: 1,
     },
+    featureIntro: {
+      ...typography.subtitle,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+      flex: 1,
+    },
   }));
 
   return (
@@ -233,17 +242,22 @@ export function PlanComparisonCard({
         </View>
 
         <View style={styles.features}>
-          {marketing.features.map((feature) => (
-            <View key={feature} style={styles.featureRow}>
-              <Ionicons
-                name="checkmark-circle"
-                size={17}
-                color={featureAccent}
-                style={{ marginTop: 1 }}
-              />
-              <Text style={styles.feature}>{feature}</Text>
-            </View>
-          ))}
+          {marketing.features.map((feature) => {
+            const isIntro = isClinicPlanFeatureIntro(feature);
+            return (
+              <View key={feature} style={styles.featureRow}>
+                {isIntro ? null : (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={17}
+                    color={featureAccent}
+                    style={{ marginTop: 1 }}
+                  />
+                )}
+                <Text style={isIntro ? styles.featureIntro : styles.feature}>{feature}</Text>
+              </View>
+            );
+          })}
         </View>
 
         {onPress ? (

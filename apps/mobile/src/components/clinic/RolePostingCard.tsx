@@ -26,6 +26,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { JobApplicantPreview } from '@/lib/dashboardAttention';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type RolePostingCardManageProps = {
@@ -87,14 +88,30 @@ export function RolePostingCard({
     }) ?? formatPostedDateLabel(job.created_at);
   const roleMeta = formatJobPostRoleMeta(job);
   const hasApplicants = applicantCount > 0;
-  const showApplicantList =
-    !hideActions && applicants.length > 0 && Boolean(onApplicantPress);
+  const showApplicantList = !hideActions && Boolean(onApplicantPress);
   const showApplicantPill =
     !showApplicantList && !hideActions && hasApplicants && Boolean(onApplicantsPress);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       overflow: 'hidden',
+    },
+    stretchCard: {
+      flex: 1,
+      alignSelf: 'stretch',
+      ...webOnlyStyle({
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      } as const),
+    },
+    stretchCardContent: {
+      flex: 1,
+      ...webOnlyStyle({
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+      } as const),
     },
     cardContent: {
       padding: spacing.md,
@@ -117,6 +134,10 @@ export function RolePostingCard({
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
+    },
+    applicantSectionGrow: {
+      flex: 1,
+      justifyContent: 'flex-end',
     },
   }));
 
@@ -200,8 +221,9 @@ export function RolePostingCard({
         variant={surfaceVariant}
         padding="none"
         onPress={showApplicantList ? undefined : onPress}
-        style={isFeatured ? featuredTreatment.styles.card : undefined}
-        featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
+        style={[styles.stretchCard, isFeatured ? featuredTreatment.cardStyle : null]}
+        contentStyle={styles.stretchCardContent}
+        accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
         <BrowseListRow
           layout={mobileEmbedded ? 'stacked' : 'split'}
           compact={mobileEmbedded}
@@ -229,10 +251,12 @@ export function RolePostingCard({
           showChevron={Boolean(onPress)}
         />
         {showApplicantList && onApplicantPress ? (
-          <RoleApplicantPreviewList
-            applicants={applicants}
-            onApplicantPress={onApplicantPress}
-          />
+          <View style={styles.applicantSectionGrow}>
+            <RoleApplicantPreviewList
+              applicants={applicants}
+              onApplicantPress={onApplicantPress}
+            />
+          </View>
         ) : null}
       </SurfaceCard>
     );
@@ -241,8 +265,8 @@ export function RolePostingCard({
   return (
     <SurfaceCard
       padding="none"
-      style={[styles.card, isFeatured && featuredTreatment.styles.card]}
-      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}
+      style={[styles.card, isFeatured ? featuredTreatment.cardStyle : null]}
+      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}
       onPress={onPress}>
       <View style={styles.cardContent}>
         <ClinicPostHeader

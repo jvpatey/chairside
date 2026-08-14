@@ -22,7 +22,7 @@ import type { MessageThreadFocus } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 const WORKER_MESSAGES_SUBTITLE =
-  'Conversations about your applications, fill-ins, and clinic outreach.';
+  'Conversations about your applications, fill-ins, and open inquiries.';
 
 export type WorkerMessagesInboxPanelProps = {
   compact?: boolean;

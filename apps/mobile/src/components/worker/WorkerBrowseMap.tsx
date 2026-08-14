@@ -169,22 +169,6 @@ export function WorkerBrowseMap({
     );
   }
 
-  if (groups.length === 0) {
-    return (
-      <View style={styles.root}>
-        <WorkerMapUnavailable
-          title="No mappable clinics"
-          body={
-            unmappableCount > 0
-              ? 'These postings match your filters, but their clinics do not have map coordinates yet. Try list view or adjust filters.'
-              : 'No clinics with map coordinates match your current filters.'
-          }
-          icon="location-outline"
-        />
-      </View>
-    );
-  }
-
   const Mapbox = maps.default;
   const MapView = maps.MapView;
   const Camera = maps.Camera;
