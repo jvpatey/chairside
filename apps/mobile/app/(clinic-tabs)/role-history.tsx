@@ -21,9 +21,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicListingViewMode } from '@/hooks/useClinicListingViewMode';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { CLINIC_ROLE_TABLE_COLUMNS } from '@/lib/clinicPostingListDisplay';
+import { getClinicRoleTableColumns } from '@/lib/clinicPostingListDisplay';
 import type { ClinicListingViewMode } from '@/lib/clinicListingViewStorage';
 import {
   DEFAULT_CLINIC_ROLE_SORT,
@@ -53,6 +54,7 @@ function HistorySection({
   clinicId,
   viewMode,
   tableMode,
+  columns,
   onJobUpdated,
   onJobDeleted,
 }: {
@@ -66,6 +68,7 @@ function HistorySection({
   clinicId?: string;
   viewMode: ClinicListingViewMode;
   tableMode: boolean;
+  columns: ReturnType<typeof getClinicRoleTableColumns>;
   onJobUpdated?: (job: JobPost) => void;
   onJobDeleted?: (jobId: string) => void;
 }) {
@@ -142,13 +145,15 @@ function HistorySection({
               </StaggeredList>
             </View>
           ) : (
-            <ClinicPostingTable columns={CLINIC_ROLE_TABLE_COLUMNS} showHeader={tableMode}>
+            <ClinicPostingTable columns={columns} showHeader={tableMode}>
               {jobs.map((job) => (
                 <ClinicRoleListRow
                   key={job.id}
                   job={job}
                   tableMode={tableMode}
+                  columns={columns}
                   applicantCount={applicantCounts[job.id] ?? 0}
+                  applicants={applicantPreviewByJobId[job.id]}
                   onPress={() => router.push(getJobDetailRoute(job.id))}
                   onApplicantsPress={() =>
                     router.push(getClinicRoleApplicationsRoute(job.id, 'role-history'))
@@ -174,8 +179,13 @@ function HistorySection({
 
 export default function RoleHistoryScreen() {
   const { user } = useAuth();
+  const { accessibleLocations } = useClinicProfile();
   const { mode, setMode, isWide } = useClinicListingViewMode('role-history');
   const tableMode = isWide && Platform.OS === 'web';
+  const roleTableColumns = useMemo(
+    () => getClinicRoleTableColumns(accessibleLocations.length > 1),
+    [accessibleLocations.length],
+  );
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
@@ -317,6 +327,7 @@ export default function RoleHistoryScreen() {
               clinicId={user?.id}
               viewMode={mode}
               tableMode={tableMode}
+              columns={roleTableColumns}
               onJobUpdated={handleJobUpdated}
               onJobDeleted={handleJobDeleted}
             />
@@ -332,6 +343,7 @@ export default function RoleHistoryScreen() {
               clinicId={user?.id}
               viewMode={mode}
               tableMode={tableMode}
+              columns={roleTableColumns}
               onJobUpdated={handleJobUpdated}
               onJobDeleted={handleJobDeleted}
             />

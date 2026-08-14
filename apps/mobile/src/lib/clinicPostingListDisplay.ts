@@ -3,23 +3,46 @@ import { formatJobPostRoleMeta } from '@chairside/config';
 
 import { formatPostedDateLabel } from '@/lib/dates';
 
+export type ClinicPostingTableColumnKey =
+  | 'role'
+  | 'status'
+  | 'location'
+  | 'applicants'
+  | 'posted'
+  | 'pay'
+  | 'actions';
+
 export type ClinicPostingTableColumn = {
-  key: string;
+  key: ClinicPostingTableColumnKey;
   label: string;
   width: string;
+  align?: 'start' | 'end';
 };
 
-export const CLINIC_ROLE_TABLE_COLUMNS: readonly ClinicPostingTableColumn[] = [
-  // Only Role flexes; other columns hug content so wide layouts stay dense.
-  { key: 'role', label: 'Role', width: 'minmax(200px, 1fr)' },
-  { key: 'type', label: 'Type', width: 'max-content' },
-  { key: 'status', label: 'Status', width: 'max-content' },
-  { key: 'location', label: 'Location', width: 'max-content' },
-  { key: 'applicants', label: 'Applicants', width: 'max-content' },
-  { key: 'posted', label: 'Posted', width: 'max-content' },
-  { key: 'pay', label: 'Pay', width: 'max-content' },
-  { key: 'actions', label: '', width: '40px' },
-];
+export function getClinicRoleTableColumns(
+  showLocation = false,
+): readonly ClinicPostingTableColumn[] {
+  return [
+    { key: 'role', label: 'Role', width: 'minmax(240px, 2.4fr)', align: 'start' },
+    { key: 'status', label: 'Status', width: '104px', align: 'start' },
+    ...(showLocation
+      ? ([
+          {
+            key: 'location',
+            label: 'Location',
+            width: 'minmax(128px, 1.1fr)',
+            align: 'start',
+          },
+        ] as const)
+      : []),
+    { key: 'applicants', label: 'Applicants', width: '148px', align: 'start' },
+    { key: 'posted', label: 'Posted', width: '96px', align: 'end' },
+    { key: 'pay', label: 'Pay', width: 'minmax(92px, 0.9fr)', align: 'end' },
+    { key: 'actions', label: '', width: '44px', align: 'end' },
+  ];
+}
+
+export const CLINIC_ROLE_TABLE_COLUMNS = getClinicRoleTableColumns(true);
 
 export function clinicPostingTableGridTemplate(
   columns: readonly ClinicPostingTableColumn[],
@@ -36,14 +59,22 @@ export function formatClinicPostingLocation(
   return [locationName, place].filter(Boolean).join(' · ');
 }
 
+export function formatClinicPostingTableLocation(
+  locationName?: string | null,
+  city?: string | null,
+): string {
+  return locationName?.trim() || city?.trim() || '—';
+}
+
 export function formatClinicPostingPostedDate(isoTimestamp: string | null | undefined): string {
   if (!isoTimestamp) return '—';
   const date = new Date(isoTimestamp);
   if (Number.isNaN(date.getTime())) return '—';
+  const sameYear = date.getFullYear() === new Date().getFullYear();
   return date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
   });
 }
 

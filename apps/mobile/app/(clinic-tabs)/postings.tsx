@@ -50,7 +50,7 @@ import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { CLINIC_ROLE_TABLE_COLUMNS } from '@/lib/clinicPostingListDisplay';
+import { getClinicRoleTableColumns } from '@/lib/clinicPostingListDisplay';
 import {
   countHistoryJobs,
   DEFAULT_CLINIC_ROLE_SORT,
@@ -79,7 +79,11 @@ export default function ClinicPostingsScreen() {
   const tableMode = isWide && Platform.OS === 'web';
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
-  const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, accessibleLocations } = useClinicProfile();
+  const roleTableColumns = useMemo(
+    () => getClinicRoleTableColumns(accessibleLocations.length > 1),
+    [accessibleLocations.length],
+  );
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
@@ -419,14 +423,16 @@ export default function ClinicPostingsScreen() {
                       </View>
                     ) : (
                       <ClinicPostingTable
-                        columns={CLINIC_ROLE_TABLE_COLUMNS}
+                        columns={roleTableColumns}
                         showHeader={tableMode}>
                         {filteredJobs.map((job) => (
                           <ClinicRoleListRow
                             key={job.id}
                             job={job}
                             tableMode={tableMode}
+                            columns={roleTableColumns}
                             applicantCount={applicantCounts[job.id] ?? 0}
+                            applicants={applicantPreviewByJobId[job.id]}
                             onPress={() => router.push(getJobDetailRoute(job.id))}
                             onApplicantsPress={() =>
                               router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
