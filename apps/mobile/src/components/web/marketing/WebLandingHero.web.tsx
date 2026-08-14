@@ -14,6 +14,7 @@ import { webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
 /** Clear sticky marketing nav + breathing room above hero content. */
 const NAV_CLEARANCE = 72;
+const PREVIEW_VERTICAL_RESERVE = NAV_CLEARANCE + 96;
 
 export function WebLandingHero() {
   const insets = useSafeAreaInsets();
@@ -24,10 +25,10 @@ export function WebLandingHero() {
     section: {
       justifyContent: 'center' as const,
       paddingTop: insets.top + NAV_CLEARANCE,
-      paddingBottom: spacing.xl * 2,
+      paddingBottom: spacing.xl * 1.5,
       paddingHorizontal: spacing.lg,
       position: 'relative' as const,
-      overflow: 'hidden' as const,
+      overflow: 'visible' as const,
     },
     atmosphere: {
       position: 'absolute' as const,
@@ -77,6 +78,7 @@ export function WebLandingHero() {
     visual: {
       flex: isWide ? 1.1 : undefined,
       minWidth: isWide ? 420 : undefined,
+      overflow: 'visible' as const,
     },
   }));
 
@@ -108,7 +110,13 @@ export function WebLandingHero() {
           </View>
         </WebPageEnter>
         <WebPageEnter delayMs={120} style={styles.visual}>
-          <WelcomeHeroAppPanel />
+          <WelcomeHeroAppPanel
+            maxHeight={
+              isWide
+                ? Math.max(380, windowHeight - insets.top - PREVIEW_VERTICAL_RESERVE)
+                : undefined
+            }
+          />
         </WebPageEnter>
       </View>
     </View>

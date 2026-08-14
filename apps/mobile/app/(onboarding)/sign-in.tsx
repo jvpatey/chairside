@@ -102,7 +102,7 @@ export default function SignInScreen() {
     },
     footer: {
       gap: spacing.md,
-      marginTop: spacing.lg,
+      marginTop: Platform.OS === 'web' ? 0 : spacing.lg,
     },
     switchRow: {
       flexDirection: 'row',

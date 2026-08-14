@@ -1,187 +1,99 @@
-import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
+import { WelcomeHeroClinicCanvas } from '@/components/onboarding/WelcomeHeroClinicCanvas.web';
+import { WelcomeHeroPhonePreview } from '@/components/onboarding/WelcomeHeroPhonePreview.web';
 import { APP_STORE_URL } from '@/constants';
-import { FILL_IN_ICON } from '@/lib/fillInIcons';
-import { useCountUp } from '@/hooks/useCountUp';
-import { useEnterAnimation } from '@/lib/webMotion.web';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { usePrefersReducedMotion } from '@/lib/motion';
+import { getWelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import {
   webHover,
   webOnlyStyle,
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
-import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow } from '@/theme/web';
-
-const PANEL_ASPECT_RATIO = 1556 / 890;
-
-const SIDEBAR_ITEMS = [
-  'grid-outline',
-  'briefcase-outline',
-  FILL_IN_ICON.outline,
-  'chatbubbles-outline',
-  'person-outline',
-] as const;
-
-const STAT_CARDS = [
-  { label: 'Open roles', value: 4, accent: 'primary' as const },
-  { label: 'Fill-ins this week', value: 3, accent: 'secondary' as const },
-  { label: 'New applications', value: 12, accent: 'success' as const },
-] as const;
-
-const ROLE_CARDS = [
-  {
-    id: 'hygienist',
-    title: 'Dental Hygienist',
-    meta: 'Permanent · Downtown Halifax',
-    applicants: 6,
-    status: 'active' as const,
-  },
-  {
-    id: 'assistant',
-    title: 'Dental Assistant',
-    meta: 'Fill-in · Wed 9:00 AM',
-    applicants: 2,
-    status: 'open' as const,
-  },
-  {
-    id: 'reception',
-    title: 'Receptionist',
-    meta: 'Permanent · Bedford',
-    applicants: 4,
-    status: 'active' as const,
-    pulseNew: true,
-  },
-] as const;
+import { useThemedStyles } from '@/theme';
 
 type WelcomeHeroAppPanelProps = {
-  enterDelayMs?: number;
+  compact?: boolean;
+  /** Scale the preview down when it would exceed this height. */
+  maxHeight?: number;
+  /** Overlay the worker iPhone. Defaults to wide landing, not compact auth. */
+  showPhone?: boolean;
 };
 
-function HeroStatValue({ value, animate }: { value: number; animate: boolean }) {
-  const displayValue = useCountUp(value, { durationMs: 720, delayMs: 280, enabled: animate });
-  const { colors } = useTheme();
+export function WelcomeHeroAppPanel({
+  compact = false,
+  maxHeight,
+  showPhone: showPhoneProp,
+}: WelcomeHeroAppPanelProps) {
+  const { isWide } = useResponsiveLayout();
+  const reduceMotion = usePrefersReducedMotion();
+  const preview = useMemo(() => getWelcomeHeroPreview(), []);
+  const showPhone = showPhoneProp ?? (isWide && !compact);
+  const appStoreUrl = APP_STORE_URL;
+  const [naturalHeight, setNaturalHeight] = useState(0);
+  const fitScale =
+    maxHeight != null && naturalHeight > 0 ? Math.min(1, maxHeight / naturalHeight) : 1;
+  const scaledHeight =
+    naturalHeight > 0 && fitScale < 1
+      ? naturalHeight * fitScale + (showPhone ? (compact ? 12 : 16) : 0)
+      : undefined;
 
-  const styles = useThemedStyles(() => ({
-    value: {
-      fontSize: 22,
-      lineHeight: 26,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-      letterSpacing: -0.3,
-    },
-  }));
-
-  return <Text style={styles.value}>{displayValue}</Text>;
-}
-
-function NewApplicationPulse({ visible }: { visible: boolean }) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.92)).current;
-
-  useEffect(() => {
-    if (!visible) return;
-
-    const prefersReduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (prefersReduced) {
-      opacity.setValue(1);
-      scale.setValue(1);
-      return;
-    }
-
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(opacity, { toValue: 1, duration: 420, useNativeDriver: true }),
-          Animated.spring(scale, { toValue: 1, tension: 280, friction: 18, useNativeDriver: true }),
-        ]),
-        Animated.delay(2200),
-        Animated.timing(opacity, { toValue: 0.55, duration: 380, useNativeDriver: true }),
-        Animated.delay(800),
-      ]),
-    );
-
-    loop.start();
-    return () => loop.stop();
-  }, [opacity, scale, visible]);
-
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ spacing }) => ({
-    badge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      borderRadius: 999,
-      backgroundColor: colorWithAlpha(colors.success, 0.16),
-      borderWidth: 1,
-      borderColor: colorWithAlpha(colors.success, 0.35),
-    },
-    text: {
-      fontSize: 10,
-      fontWeight: '700' as const,
-      letterSpacing: 0.3,
-      textTransform: 'uppercase' as const,
-      color: colors.success,
-    },
-  }));
-
-  return (
-    <Animated.View style={[styles.badge, { opacity, transform: [{ scale }] }]}>
-      <Text style={styles.text}>New application</Text>
-    </Animated.View>
-  );
-}
-
-export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
-  const { colors } = useTheme();
-  const { opacity: panelOpacity, translateY, ref } = useEnterAnimation(180, { trigger: 'visible' });
-  const [statsAnimate, setStatsAnimate] = useState(false);
-
-  useEffect(() => {
-    const id = panelOpacity.addListener(({ value }) => {
-      if (value > 0.35) setStatsAnimate(true);
-    });
-    return () => panelOpacity.removeListener(id);
-  }, [panelOpacity]);
-
-  const styles = useThemedStyles(({ colors, spacing, radii, isDark: dark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     wrap: {
       position: 'relative' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
       width: '100%',
       alignSelf: 'stretch' as const,
+      overflow: showPhone ? ('visible' as const) : ('hidden' as const),
     },
     glow: {
-      display: 'none' as const,
+      position: 'absolute' as const,
+      top: '8%',
+      left: '10%',
+      right: '4%',
+      bottom: '6%',
+      pointerEvents: 'none' as const,
+      ...webOnlyStyle({
+        backgroundImage: isDark
+          ? 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(74, 154, 255, 0.28) 0%, transparent 70%)'
+          : 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(26, 111, 212, 0.2) 0%, transparent 70%)',
+        filter: 'blur(28px)',
+      } as object),
     },
-    windowShell: {
-      width: '100%',
+    stage: {
+      ...webOnlyStyle({
+        perspective: '1600px',
+      } as object),
+    },
+    browser: {
       borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
       overflow: 'hidden' as const,
       ...webOnlyStyle({
-        boxShadow: dark
+        boxShadow: isDark
           ? '0 24px 48px rgba(0, 0, 0, 0.35)'
           : '0 20px 40px rgba(26, 111, 212, 0.12)',
       } as object),
     },
-    windowChrome: {
+    chrome: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: 6,
+      gap: 8,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingVertical: 10,
       borderBottomWidth: 1,
       borderBottomColor: colors.separator,
       backgroundColor: colors.backgroundGrouped,
+    },
+    dots: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
     },
     windowDot: {
       width: 10,
@@ -189,117 +101,32 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
       borderRadius: 5,
       backgroundColor: colors.fillSubtle,
     },
-    dashboardFrame: {
-      width: '100%',
-      aspectRatio: PANEL_ASPECT_RATIO,
-      backgroundColor: colors.backgroundGrouped,
-      flexDirection: 'row' as const,
-    },
-    sidebar: {
-      width: 52,
-      borderRightWidth: 1,
-      borderRightColor: colors.separator,
-      backgroundColor: colors.surface,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.sm,
-      gap: spacing.sm,
-      alignItems: 'center' as const,
-    },
-    sidebarItem: {
-      width: 34,
-      height: 34,
-      borderRadius: radii.md,
+    urlPill: {
+      flex: 1,
+      minWidth: 0,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      backgroundColor: colors.fillSubtle,
-    },
-    sidebarItemActive: {
-      backgroundColor: colorWithAlpha(colors.primary, dark ? 0.22 : 0.12),
-    },
-    main: {
-      flex: 1,
-      padding: spacing.md,
-      gap: spacing.md,
-      minWidth: 0,
-    },
-    statsRow: {
-      flexDirection: 'row' as const,
-      gap: spacing.sm,
-    },
-    statCard: {
-      flex: 1,
-      minWidth: 0,
-      borderRadius: radii.md,
-      padding: spacing.sm + 2,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      gap: 2,
-      ...webOnlyStyle({ boxShadow: getWebShadow(dark, 'subtle') } as object),
-    },
-    statLabel: {
-      fontSize: 10,
-      lineHeight: 13,
-      fontWeight: '600' as const,
-      letterSpacing: 0.2,
-      color: colors.labelTertiary,
-      textTransform: 'uppercase' as const,
-    },
-    rolesList: {
-      flex: 1,
-      gap: spacing.sm,
-    },
-    roleCard: {
-      borderRadius: radii.md,
-      padding: spacing.sm + 2,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      gap: spacing.xs,
-      ...webOnlyStyle({ boxShadow: getWebShadow(dark, 'subtle') } as object),
-    },
-    roleHeader: {
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start' as const,
-      justifyContent: 'space-between' as const,
-      gap: spacing.sm,
-    },
-    roleTitle: {
-      fontSize: 13,
-      lineHeight: 17,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-      flex: 1,
-    },
-    roleMeta: {
-      fontSize: 11,
-      lineHeight: 15,
-      color: colors.labelSecondary,
-    },
-    roleFooter: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
-      gap: spacing.sm,
-    },
-    applicantPill: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 4,
+      paddingVertical: 5,
       paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      borderRadius: 999,
-      backgroundColor: colors.fillSubtle,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.separator,
     },
-    applicantText: {
-      fontSize: 11,
+    urlText: {
+      fontSize: 12,
       fontWeight: '600' as const,
       color: colors.labelSecondary,
     },
-    statusDot: {
-      width: 7,
-      height: 7,
-      borderRadius: 4,
+    canvas: {
+      minHeight: 0,
+    },
+    phone: {
+      position: 'absolute' as const,
+      right: 0,
+      bottom: 0,
+      zIndex: 2,
+      pointerEvents: 'none' as const,
     },
     appPitch: {
       marginTop: spacing.md,
@@ -322,94 +149,81 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
     },
   }));
 
-  const statAccent = (accent: (typeof STAT_CARDS)[number]['accent']) => {
-    if (accent === 'secondary') return colors.secondary;
-    if (accent === 'success') return colors.success;
-    return colors.primary;
-  };
+  const browserTilt = reduceMotion || compact
+    ? null
+    : {
+        transform: [{ rotateY: '-8deg' }, { rotateX: '4deg' }] as const,
+      };
 
-  const appStoreUrl = APP_STORE_URL;
+  const phoneTilt = reduceMotion
+    ? null
+    : { transform: [{ rotateZ: '-8deg' }] as const };
 
   return (
-    <Animated.View
-      ref={ref}
-      style={[styles.wrap, { opacity: panelOpacity, transform: [{ translateY }] }]}
+    <View
+      style={[
+        styles.wrap,
+        showPhone && { paddingRight: compact ? 28 : 20, paddingBottom: compact ? 12 : 16 },
+        scaledHeight != null ? { height: scaledHeight } : null,
+      ]}
     >
-      <View style={styles.glow} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-      <View style={styles.windowShell}>
-        <View style={styles.windowChrome} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <View style={styles.windowDot} />
-          <View style={styles.windowDot} />
-          <View style={styles.windowDot} />
-        </View>
+      <View
+        onLayout={(event) => {
+          if (fitScale < 1) return;
+          const next = event.nativeEvent.layout.height;
+          if (next > 0 && Math.abs(next - naturalHeight) > 2) {
+            setNaturalHeight(next);
+          }
+        }}
+        style={
+          fitScale < 1
+            ? {
+                transform: [{ scale: fitScale }],
+                ...webOnlyStyle({
+                  transformOrigin: 'top center',
+                } as object),
+              }
+            : undefined
+        }
+      >
+      <View
+        style={styles.glow}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
+      <View style={styles.stage}>
         <View
-          style={styles.dashboardFrame}
-          accessibilityRole="image"
-          accessibilityLabel="Chairside dashboard preview with open roles, fill-ins, and applications"
+          style={[styles.browser, browserTilt]}
+          accessibilityLabel="Chairside product preview: clinic dashboard and professional app"
         >
-          <View style={styles.sidebar}>
-            {SIDEBAR_ITEMS.map((icon, index) => (
-              <View
-                key={icon}
-                style={[styles.sidebarItem, index === 0 && styles.sidebarItemActive]}
-              >
-                <Ionicons
-                  name={icon}
-                  size={16}
-                  color={index === 0 ? colors.primary : colors.labelTertiary}
-                />
-              </View>
-            ))}
+          <View
+            style={styles.chrome}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <View style={styles.dots}>
+              <View style={styles.windowDot} />
+              <View style={styles.windowDot} />
+              <View style={styles.windowDot} />
+            </View>
+            <View style={styles.urlPill}>
+              <Text style={styles.urlText} numberOfLines={1}>
+                chairsidedental.app
+              </Text>
+            </View>
           </View>
-
-          <View style={styles.main}>
-            <View style={styles.statsRow}>
-              {STAT_CARDS.map((stat) => (
-                <View key={stat.label} style={styles.statCard}>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
-                  <HeroStatValue value={stat.value} animate={statsAnimate} />
-                  <View
-                    style={[
-                      styles.statusDot,
-                      { backgroundColor: statAccent(stat.accent), alignSelf: 'flex-start' },
-                    ]}
-                  />
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.rolesList}>
-              {ROLE_CARDS.map((role) => (
-                <View key={role.id} style={styles.roleCard}>
-                  <View style={styles.roleHeader}>
-                    <Text style={styles.roleTitle}>{role.title}</Text>
-                    {'pulseNew' in role && role.pulseNew ? (
-                      <NewApplicationPulse visible={statsAnimate} />
-                    ) : null}
-                  </View>
-                  <Text style={styles.roleMeta}>{role.meta}</Text>
-                  <View style={styles.roleFooter}>
-                    <View style={styles.applicantPill}>
-                      <Ionicons name="people-outline" size={12} color={colors.labelSecondary} />
-                      <Text style={styles.applicantText}>{role.applicants} applicants</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        {
-                          backgroundColor:
-                            role.status === 'open' ? colors.primary : colors.success,
-                        },
-                      ]}
-                    />
-                  </View>
-                </View>
-              ))}
-            </View>
+          <View style={styles.canvas}>
+            <WelcomeHeroClinicCanvas compact={compact} preview={preview} />
           </View>
         </View>
       </View>
-      {appStoreUrl ? (
+      <View style={{ height: showPhone ? (compact ? 52 : 68) : 0 }} />
+      {showPhone ? (
+        <View style={[styles.phone, phoneTilt]}>
+          <WelcomeHeroPhonePreview preview={preview} compact={compact} />
+        </View>
+      ) : null}
+      {appStoreUrl && !compact ? (
         <View style={styles.appPitch}>
           <Pressable
             accessibilityRole="link"
@@ -425,6 +239,7 @@ export function WelcomeHeroAppPanel(_props: WelcomeHeroAppPanelProps = {}) {
           </Pressable>
         </View>
       ) : null}
-    </Animated.View>
+      </View>
+    </View>
   );
 }

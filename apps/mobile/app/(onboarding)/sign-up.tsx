@@ -98,7 +98,7 @@ export default function SignUpScreen() {
     },
     footer: {
       gap: spacing.md,
-      marginTop: spacing.lg,
+      marginTop: Platform.OS === 'web' ? 0 : spacing.lg,
     },
     switchRow: {
       flexDirection: 'row',

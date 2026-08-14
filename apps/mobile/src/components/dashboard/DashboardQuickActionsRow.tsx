@@ -22,11 +22,16 @@ export type DashboardQuickActionConfig = {
 
 type DashboardQuickActionsRowProps = {
   actions: [DashboardQuickActionConfig, DashboardQuickActionConfig];
+  /** Phone stacked tiles even on a wide window (marketing preview). */
+  forcePhoneLayout?: boolean;
 };
 
-export function DashboardQuickActionsRow({ actions }: DashboardQuickActionsRowProps) {
+export function DashboardQuickActionsRow({
+  actions,
+  forcePhoneLayout = false,
+}: DashboardQuickActionsRowProps) {
   const { isWide } = useResponsiveLayout();
-  const compact = IS_WEB && isWide;
+  const compact = forcePhoneLayout ? false : IS_WEB && isWide;
   const styles = useThemedStyles((theme) => getDashboardLayoutStyles(theme));
 
   return (
@@ -43,6 +48,7 @@ export function DashboardQuickActionsRow({ actions }: DashboardQuickActionsRowPr
             disabled={action.disabled}
             dimmed={action.dimmed}
             accessibilityHint={action.accessibilityHint}
+            forcePhoneLayout={forcePhoneLayout}
             onPress={action.onPress}
           />
         ))}

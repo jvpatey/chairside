@@ -58,6 +58,8 @@ type FileTabWellProps<T extends string = string> = {
   tabsOnly?: boolean;
   /** Stretch tab panel to fill a flex parent (split-view master lists). */
   fillHeight?: boolean;
+  /** When false, icon tabs stay equal width instead of expanding the selected tab. */
+  expandSelectedTab?: boolean;
   /** Optional fourth tab e.g. Insights — rendered muted when locked */
   lockedTab?: T;
   onLockedTabPress?: () => void;
@@ -73,6 +75,7 @@ export function FileTabWell<T extends string = string>({
   compactTabs: compactTabsProp,
   tabsOnly = false,
   fillHeight = false,
+  expandSelectedTab = true,
   lockedTab,
   onLockedTabPress,
 }: FileTabWellProps<T>) {
@@ -281,7 +284,7 @@ export function FileTabWell<T extends string = string>({
     onSelect(value);
   };
 
-  const useExpandingTabs = tabs.some((tab) => Boolean(tab.icon));
+  const useExpandingTabs = expandSelectedTab && tabs.some((tab) => Boolean(tab.icon));
 
   const renderInlineTabs = () => (
     <ScrollView

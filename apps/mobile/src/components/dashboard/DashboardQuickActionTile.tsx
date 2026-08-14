@@ -23,6 +23,8 @@ type DashboardQuickActionTileProps = {
   disabled?: boolean;
   dimmed?: boolean;
   accessibilityHint?: string;
+  /** Stacked phone tile even when the window is tablet-sized (marketing preview). */
+  forcePhoneLayout?: boolean;
   onPress: () => void;
 };
 
@@ -35,11 +37,12 @@ export function DashboardQuickActionTile({
   disabled = false,
   dimmed = false,
   accessibilityHint,
+  forcePhoneLayout = false,
   onPress,
 }: DashboardQuickActionTileProps) {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
-  const useStackedLayout = !isTablet;
+  const useStackedLayout = forcePhoneLayout || !isTablet;
   const isVisuallyMuted = disabled || dimmed;
   const accent = variant === 'primary' ? 'primary' : 'secondary';
   const accentColor = resolveAccentColor(colors, accent);

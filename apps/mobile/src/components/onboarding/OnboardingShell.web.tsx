@@ -222,7 +222,7 @@ export function OnboardingShell({
             brandSubtitle={brandSubtitle}
             brandVisual={brandVisual}
           >
-            {body}
+            <View style={[{ gap: spacing.md }, contentStyle]}>{children}</View>
           </AuthWebSplitLayout>
         </View>
       </FormScrollContext.Provider>

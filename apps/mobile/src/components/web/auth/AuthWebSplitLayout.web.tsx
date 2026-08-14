@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,9 +7,8 @@ import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel
 import { AuthWebRolePathsVisual } from '@/components/web/auth/AuthWebRolePathsVisual.web';
 import { ONBOARDING_SUBTITLE } from '@/constants';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { useThemedStyles } from '@/theme';
 import { getElevationStyle, radii } from '@/theme/tokens';
 import { webOnboardingAtmosphereStyle, webTypography } from '@/theme/web';
 
@@ -21,12 +20,18 @@ type AuthWebBrandPanelProps = {
   visual?: AuthWebBrandVisual;
 };
 
-function AuthWebBrandVisualPanel({ visual }: { visual: AuthWebBrandVisual }) {
+function AuthWebBrandVisualPanel({
+  visual,
+  maxHeight,
+}: {
+  visual: AuthWebBrandVisual;
+  maxHeight?: number;
+}) {
   if (visual === 'rolePaths') {
     return <AuthWebRolePathsVisual />;
   }
 
-  return <WelcomeHeroAppPanel />;
+  return <WelcomeHeroAppPanel compact showPhone={false} maxHeight={maxHeight} />;
 }
 
 export function AuthWebBrandPanel({
@@ -36,10 +41,12 @@ export function AuthWebBrandPanel({
 }: AuthWebBrandPanelProps) {
   const { isWide } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
+  const [previewMaxHeight, setPreviewMaxHeight] = useState(0);
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     panel: {
       flex: isWide ? 1 : undefined,
+      minHeight: isWide ? 0 : undefined,
       position: 'relative' as const,
       overflow: isWide ? ('hidden' as const) : ('visible' as const),
       backgroundColor: colors.backgroundGrouped,
@@ -50,15 +57,24 @@ export function AuthWebBrandPanel({
       ...webOnboardingAtmosphereStyle(isDark),
     },
     content: {
-      paddingTop: isWide ? spacing.xl * 1.5 : insets.top + spacing.lg,
-      paddingBottom: isWide ? spacing.xl * 1.5 : spacing.lg,
-      paddingHorizontal: isWide ? spacing.xl * 1.5 : spacing.lg,
-      justifyContent: 'center' as const,
-      gap: isWide ? spacing.xl : spacing.md,
+      flex: isWide ? 1 : undefined,
+      minHeight: isWide ? 0 : undefined,
+      paddingTop: isWide ? spacing.xl : insets.top + spacing.lg,
+      paddingBottom: isWide ? spacing.xl : spacing.lg,
+      paddingHorizontal: isWide ? 0 : spacing.lg,
+      justifyContent: 'flex-start' as const,
+    },
+    column: {
+      width: '100%' as const,
+      maxWidth: 480,
+      flex: isWide ? 1 : undefined,
+      minHeight: isWide ? 0 : undefined,
+      gap: spacing.md,
     },
     copy: {
-      gap: spacing.md,
-      maxWidth: 440,
+      gap: spacing.sm,
+      flexShrink: 0,
+      zIndex: 1,
     },
     headline: {
       ...(isWide ? webTypography.displaySm : webTypography.headline),
@@ -69,8 +85,12 @@ export function AuthWebBrandPanel({
       color: colors.labelSecondary,
     },
     visual: {
-      maxWidth: 520,
       width: '100%' as const,
+      flex: isWide ? 1 : undefined,
+      flexShrink: 1,
+      minHeight: 0,
+      justifyContent: 'flex-start' as const,
+      overflow: 'hidden' as const,
     },
   }));
 
@@ -78,16 +98,29 @@ export function AuthWebBrandPanel({
     <View style={styles.panel}>
       <View style={styles.atmosphere} />
       <View style={styles.content}>
-        <ChairsideWordmark variant="small" />
-        <View style={styles.copy}>
-          <Text style={styles.headline}>{headline}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
-        </View>
-        {isWide ? (
-          <View style={styles.visual}>
-            <AuthWebBrandVisualPanel visual={visual} />
+        <View style={styles.column}>
+          <ChairsideWordmark variant="small" align="left" />
+          <View style={styles.copy}>
+            <Text style={styles.headline}>{headline}</Text>
+            <Text style={styles.subtitle}>{subtitle}</Text>
           </View>
-        ) : null}
+          {isWide ? (
+            <View
+              style={styles.visual}
+              onLayout={(event) => {
+                const next = event.nativeEvent.layout.height;
+                if (next > 0 && Math.abs(next - previewMaxHeight) > 2) {
+                  setPreviewMaxHeight(next);
+                }
+              }}
+            >
+              <AuthWebBrandVisualPanel
+                visual={visual}
+                maxHeight={previewMaxHeight > 0 ? previewMaxHeight : undefined}
+              />
+            </View>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -102,7 +135,7 @@ type AuthWebFormPanelProps = {
 
 export function AuthWebFormPanel({ children, footer, scrollable = true }: AuthWebFormPanelProps) {
   const insets = useSafeAreaInsets();
-  const { isDark } = useTheme();
+  const { isWide } = useResponsiveLayout();
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outer: {
@@ -117,38 +150,39 @@ export function AuthWebFormPanel({ children, footer, scrollable = true }: AuthWe
     },
     inner: {
       flexGrow: 1,
-      paddingHorizontal: spacing.xl,
-      paddingTop: scrollable ? insets.top + spacing.xl : spacing.lg,
-      paddingBottom: insets.bottom + spacing.xl,
-      alignItems: 'center' as const,
-      ...(scrollable ? webOnlyStyle({ minHeight: '100%' } as object) : {}),
+      paddingHorizontal: isWide ? 0 : spacing.lg,
+      paddingTop: scrollable ? insets.top + spacing.lg : spacing.lg,
+      paddingBottom: insets.bottom + spacing.lg,
+      alignItems: 'stretch' as const,
+      justifyContent: 'center' as const,
     },
     stack: {
       width: '100%' as const,
-      maxWidth: 440,
       gap: spacing.md,
-      ...(scrollable ? webOnlyStyle({ marginTop: 'auto', marginBottom: 'auto' } as object) : {}),
     },
     card: {
       width: '100%' as const,
       borderRadius: radii.lg,
-      padding: spacing.xl,
+      padding: spacing.lg,
       backgroundColor: colors.surface,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      gap: spacing.lg,
+      gap: spacing.md,
       ...getElevationStyle({ isDark, level: 'subtle' }),
     },
     footer: {
       width: '100%' as const,
-      gap: spacing.md,
+      gap: spacing.sm,
+      paddingTop: spacing.sm,
     },
   }));
 
   const formBody = (
     <View style={styles.stack}>
-      <View style={styles.card}>{children}</View>
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
+      <View style={styles.card}>
+        {children}
+        {footer ? <View style={styles.footer}>{footer}</View> : null}
+      </View>
     </View>
   );
 
@@ -196,7 +230,13 @@ export function AuthWebSplitLayout({
     root: {
       flex: 1,
       minHeight: 0,
+      width: '100%' as const,
+      maxWidth: isWide ? 1120 : undefined,
+      alignSelf: 'center' as const,
       flexDirection: isWide ? ('row' as const) : ('column' as const),
+      alignItems: isWide ? ('stretch' as const) : undefined,
+      gap: isWide ? spacing.xl : 0,
+      paddingHorizontal: isWide ? spacing.xl : 0,
     },
     narrowScroll: {
       flex: 1,
@@ -208,10 +248,13 @@ export function AuthWebSplitLayout({
     },
     brand: {
       flex: isWide ? 1 : undefined,
+      minWidth: isWide ? 0 : undefined,
+      minHeight: isWide ? 0 : undefined,
     },
     form: {
-      flex: isWide ? 1 : undefined,
-      minWidth: isWide ? 480 : undefined,
+      width: isWide ? 440 : undefined,
+      flexGrow: 0,
+      flexShrink: 0,
       minHeight: 0,
     },
   }));
