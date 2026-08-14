@@ -10,6 +10,11 @@ export type HiringInsightsMetrics = {
   outreachThreads: number;
   confirmedFillIns: number;
   avgDaysToFirstApplicant: number | null;
+  interviewsOpen: number;
+  hiredCount: number;
+  avgDaysToHire: number | null;
+  pendingFillInRequests: number;
+  newApplicants7d: number;
 };
 
 export type HiringInsightsLocationBreakdown = {
@@ -31,6 +36,11 @@ type HiringInsightsMetricsRow = {
   outreach_threads: number;
   confirmed_fill_ins: number;
   avg_days_to_first_applicant: number | null;
+  interviews_open?: number;
+  hired_count?: number;
+  avg_days_to_hire?: number | null;
+  pending_fill_in_requests?: number;
+  new_applicants_7d?: number;
 };
 
 type HiringInsightsLocationRow = {
@@ -53,6 +63,11 @@ function mapMetrics(row: HiringInsightsMetricsRow): HiringInsightsMetrics {
     outreachThreads: row.outreach_threads ?? 0,
     confirmedFillIns: row.confirmed_fill_ins ?? 0,
     avgDaysToFirstApplicant: row.avg_days_to_first_applicant ?? null,
+    interviewsOpen: row.interviews_open ?? 0,
+    hiredCount: row.hired_count ?? 0,
+    avgDaysToHire: row.avg_days_to_hire ?? null,
+    pendingFillInRequests: row.pending_fill_in_requests ?? 0,
+    newApplicants7d: row.new_applicants_7d ?? 0,
   };
 }
 

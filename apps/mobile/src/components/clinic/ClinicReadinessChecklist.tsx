@@ -9,11 +9,11 @@ import { useDismissedGetStartedChecklist } from '@/hooks/useDismissedGetStartedC
 import {
   areAllGetStartedItemsComplete,
   isClinicEngagementStepComplete,
+  isClinicPostingStepComplete,
   type GetStartedChecklistItem,
 } from '@/lib/getStartedChecklist';
 import {
   CLINIC_APPLICATIONS,
-  CLINIC_POST_JOB,
   CLINIC_SETUP_BASICS,
   getClinicMessagesRoute,
 } from '@/lib/routing';
@@ -40,9 +40,26 @@ export function ClinicReadinessChecklist({
   const { isHydrated, isDismissed, dismiss } = useDismissedGetStartedChecklist('clinic');
 
   const profileComplete = isClinicProfileComplete(clinicProfile);
+  const hasPosted = isClinicPostingStepComplete({ fillInsPosted, openRoles });
   const hasPostedFillIn = fillInsPosted > 0;
   const hasPostedRole = openRoles > 0;
   const hasEngagement = isClinicEngagementStepComplete({ totalApplications, conversationCount });
+
+  const postingTitle = hasPosted
+    ? hasPostedRole && hasPostedFillIn
+      ? 'Role and fill-in posted'
+      : hasPostedRole
+        ? 'Role posted'
+        : 'Fill-in shift posted'
+    : 'Post a role or fill-in';
+
+  const postingBody = hasPosted
+    ? hasPostedRole && hasPostedFillIn
+      ? 'You have permanent and temporary postings live.'
+      : hasPostedRole
+        ? 'You have at least one role listing live.'
+        : 'You have at least one fill-in shift live.'
+    : 'Hire for a permanent role or cover a temporary shift.';
 
   const items = useMemo<GetStartedChecklistItem[]>(
     () => [
@@ -57,22 +74,19 @@ export function ClinicReadinessChecklist({
         onPress: () => router.push(CLINIC_SETUP_BASICS),
       },
       {
-        id: 'post-fill-in',
-        title: hasPostedFillIn ? 'Fill-in shift posted' : 'Post a fill-in shift',
-        body: hasPostedFillIn
-          ? 'You have at least one fill-in shift live.'
-          : 'Cover temporary or urgent shifts with available workers.',
-        complete: hasPostedFillIn,
-        onPress: onPostFillIn,
-      },
-      {
-        id: 'post-role',
-        title: hasPostedRole ? 'Role posted' : 'Post a role',
-        body: hasPostedRole
-          ? 'You have at least one role listing live.'
-          : 'Hire for full-time or part-time positions.',
-        complete: hasPostedRole,
-        onPress: onPostRole,
+        id: 'posting',
+        title: postingTitle,
+        body: postingBody,
+        complete: hasPosted,
+        primary: profileComplete && !hasPosted,
+        onPress: () => {
+          // Prefer the path they haven't tried yet; default to posting a role.
+          if (!hasPostedRole) {
+            onPostRole();
+            return;
+          }
+          onPostFillIn();
+        },
       },
       {
         id: 'review',
@@ -90,10 +104,13 @@ export function ClinicReadinessChecklist({
     ],
     [
       hasEngagement,
+      hasPosted,
       hasPostedFillIn,
       hasPostedRole,
       onPostFillIn,
       onPostRole,
+      postingBody,
+      postingTitle,
       profileComplete,
       totalApplications,
     ],

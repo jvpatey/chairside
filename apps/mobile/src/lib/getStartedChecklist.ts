@@ -98,8 +98,10 @@ export function isClinicGetStartedComplete(params: {
 }): boolean {
   return (
     isClinicProfileComplete(params.clinicProfile) &&
-    params.fillInsPosted > 0 &&
-    params.openRoles > 0 &&
+    isClinicPostingStepComplete({
+      fillInsPosted: params.fillInsPosted,
+      openRoles: params.openRoles,
+    }) &&
     isClinicEngagementStepComplete({
       totalApplications: params.totalApplications,
       conversationCount: params.conversationCount,
