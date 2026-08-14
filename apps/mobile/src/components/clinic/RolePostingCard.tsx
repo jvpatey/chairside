@@ -221,12 +221,9 @@ export function RolePostingCard({
         variant={surfaceVariant}
         padding="none"
         onPress={showApplicantList ? undefined : onPress}
-        style={[
-          styles.stretchCard,
-          isFeatured ? featuredTreatment.styles.card : undefined,
-        ]}
+        style={[styles.stretchCard, isFeatured ? featuredTreatment.cardStyle : null]}
         contentStyle={styles.stretchCardContent}
-        featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
+        accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
         <BrowseListRow
           layout={mobileEmbedded ? 'stacked' : 'split'}
           compact={mobileEmbedded}
@@ -268,8 +265,8 @@ export function RolePostingCard({
   return (
     <SurfaceCard
       padding="none"
-      style={[styles.card, isFeatured && featuredTreatment.styles.card]}
-      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}
+      style={[styles.card, isFeatured ? featuredTreatment.cardStyle : null]}
+      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}
       onPress={onPress}>
       <View style={styles.cardContent}>
         <ClinicPostHeader

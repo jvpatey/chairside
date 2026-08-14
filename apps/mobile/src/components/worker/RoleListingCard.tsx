@@ -115,8 +115,8 @@ export function RoleListingCard({
       variant={embedded ? 'inner' : 'default'}
       onPress={onPress}
       padding="none"
-      style={[styles.card, isFeatured && featuredTreatment.styles.card]}
-      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
+      style={[styles.card, isFeatured ? featuredTreatment.cardStyle : null]}
+      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
       <View style={styles.cardContent}>
         <ClinicPostHeader
           layout="split"

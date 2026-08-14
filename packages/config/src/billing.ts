@@ -147,6 +147,9 @@ export const CLINIC_CUSTOM_SCREENING_LIMITS: Record<ClinicPlan, number | null> =
   group_pro: null,
 };
 
+/** Max workers a clinic can include in one bulk fill-in outreach send. */
+export const FILL_IN_BULK_OUTREACH_MAX = 25;
+
 export const REVENUECAT_ENTITLEMENT_STARTER = 'clinic_starter';
 export const REVENUECAT_ENTITLEMENT_PRO = 'clinic_pro';
 export const REVENUECAT_ENTITLEMENT_GROUP_STARTER = 'clinic_group_starter';

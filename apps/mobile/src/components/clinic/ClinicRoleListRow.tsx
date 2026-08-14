@@ -11,6 +11,7 @@ import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
+import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
@@ -48,6 +49,7 @@ export function ClinicRoleListRow({
   const { colors } = useTheme();
   const { clinicProfile, locations } = useClinicProfile();
   const { billing } = useClinicBilling();
+  const featuredTreatment = useFeaturedListingTreatment();
   const logoStoragePath = useResolvedClinicLogoPath(job.location_id);
   const logoUri = useClinicLogoUri(logoStoragePath);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
@@ -64,6 +66,19 @@ export function ClinicRoleListRow({
   const gridTemplate = clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
+    listRowWrap: {
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    accentRail: {
+      position: 'absolute',
+      left: 0,
+      top: spacing.sm,
+      bottom: spacing.sm,
+      width: 3,
+      borderRadius: 2,
+      zIndex: 1,
+    },
     tableRow: {
       minHeight: Platform.OS === 'web' ? 40 : 44,
       paddingHorizontal: spacing.md,
@@ -190,20 +205,32 @@ export function ClinicRoleListRow({
   }
 
   return (
-    <BrowseListRow
-      compact
-      avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
-      title={job.title}
-      meta={formatClinicRoleCompactMeta(job, applicantCount)}
-      topTrailing={
-        <BadgeRow>
-          {isFeatured ? <FeaturedListingBadge /> : null}
-          <JobPostStatusBadge status={job.status} />
-        </BadgeRow>
-      }
-      trailing={manageButton}
-      onPress={onPress}
-      showChevron={Boolean(onPress)}
-    />
+    <View
+      style={[
+        styles.listRowWrap,
+        isFeatured ? { backgroundColor: featuredTreatment.cardStyle.backgroundColor } : null,
+      ]}>
+      {isFeatured ? (
+        <View
+          style={[styles.accentRail, { backgroundColor: featuredTreatment.railColor }]}
+          pointerEvents="none"
+        />
+      ) : null}
+      <BrowseListRow
+        compact
+        avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
+        title={job.title}
+        meta={formatClinicRoleCompactMeta(job, applicantCount)}
+        topTrailing={
+          <BadgeRow>
+            {isFeatured ? <FeaturedListingBadge /> : null}
+            <JobPostStatusBadge status={job.status} />
+          </BadgeRow>
+        }
+        trailing={manageButton}
+        onPress={onPress}
+        showChevron={Boolean(onPress)}
+      />
+    </View>
   );
 }

@@ -3,10 +3,10 @@ import {
   type FillInOutreachWorker,
   type RoleType,
 } from '@chairside/api';
-import { getRoleTypeLabel, ROLE_TYPE_OPTIONS } from '@chairside/config';
+import { FILL_IN_BULK_OUTREACH_MAX, getRoleTypeLabel, ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWorkerCard';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
@@ -61,21 +61,14 @@ export default function FindAvailableWorkersScreen() {
   const [workers, setWorkers] = useState<FillInOutreachWorker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [selectionHint, setSelectionHint] = useState<string | null>(null);
 
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     section: { gap: spacing.sm },
     label: { ...typography.body, fontWeight: '600' },
-    list: { gap: spacing.md },
-    empty: {
-      ...typography.subtitle,
-      fontSize: 14,
-      lineHeight: 20,
-      textAlign: 'center',
-      color: colors.labelSecondary,
-      paddingVertical: spacing.lg,
-    },
+    list: { gap: spacing.sm },
     lockedLabel: {
       ...typography.body,
       fontSize: 13,
@@ -83,15 +76,32 @@ export default function FindAvailableWorkersScreen() {
       color: colors.labelTertiary,
     },
     count: { ...typography.subtitle, fontSize: 13, color: colors.labelSecondary },
-    bulkBar: {
-      gap: spacing.sm,
-      paddingTop: spacing.sm,
-    },
-    bulkHint: {
+    selectionHint: {
       ...typography.subtitle,
       fontSize: 13,
       lineHeight: 18,
       color: colors.labelSecondary,
+    },
+    footer: {
+      gap: spacing.sm,
+    },
+    footerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    footerLink: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600',
+      color: colors.secondary,
+    },
+    footerLinkPressed: {
+      opacity: 0.7,
+    },
+    footerLinkDisabled: {
+      color: colors.labelTertiary,
     },
   }));
 
@@ -149,6 +159,14 @@ export default function FindAvailableWorkersScreen() {
     void loadWorkers();
   }, [loadWorkers]);
 
+  useEffect(() => {
+    const validIds = new Set(workers.map((worker) => worker.workerId));
+    setSelectedWorkerIds((current) => {
+      const next = current.filter((id) => validIds.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [workers]);
+
   useRefreshOnFocus(loadWorkers);
 
   const handleBack = () => {
@@ -194,11 +212,40 @@ export default function FindAvailableWorkersScreen() {
   };
 
   const toggleWorkerSelection = (workerId: string) => {
-    setSelectedWorkerIds((current) =>
-      current.includes(workerId)
-        ? current.filter((id) => id !== workerId)
-        : [...current, workerId],
-    );
+    setSelectedWorkerIds((current) => {
+      if (current.includes(workerId)) {
+        setSelectionHint(null);
+        return current.filter((id) => id !== workerId);
+      }
+      if (current.length >= FILL_IN_BULK_OUTREACH_MAX) {
+        setSelectionHint(`You can message up to ${FILL_IN_BULK_OUTREACH_MAX} workers at once.`);
+        return current;
+      }
+      setSelectionHint(null);
+      return [...current, workerId];
+    });
+  };
+
+  const handleSelectAllVisible = () => {
+    const visibleIds = filteredWorkers.map((worker) => worker.workerId);
+    const next = [...selectedWorkerIds];
+    for (const id of visibleIds) {
+      if (next.includes(id)) continue;
+      if (next.length >= FILL_IN_BULK_OUTREACH_MAX) {
+        setSelectionHint(`You can message up to ${FILL_IN_BULK_OUTREACH_MAX} workers at once.`);
+        break;
+      }
+      next.push(id);
+    }
+    if (next.length <= FILL_IN_BULK_OUTREACH_MAX && visibleIds.length <= FILL_IN_BULK_OUTREACH_MAX) {
+      setSelectionHint(null);
+    }
+    setSelectedWorkerIds(next);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedWorkerIds([]);
+    setSelectionHint(null);
   };
 
   const handleBulkCompose = () => {
@@ -207,7 +254,7 @@ export default function FindAvailableWorkersScreen() {
       return;
     }
 
-    const selectedWorkers = filteredWorkers.filter((worker) =>
+    const selectedWorkers = workers.filter((worker) =>
       selectedWorkerIds.includes(worker.workerId),
     );
     if (selectedWorkers.length === 0) return;
@@ -225,6 +272,53 @@ export default function FindAvailableWorkersScreen() {
     );
   };
 
+  const countLabel = useMemo(() => {
+    const base = `${filteredWorkers.length} worker${filteredWorkers.length === 1 ? '' : 's'} available`;
+    if (!bulkSelectionEnabled || selectedWorkerIds.length === 0) return base;
+    return `${base} · ${selectedWorkerIds.length} selected (${FILL_IN_BULK_OUTREACH_MAX} max)`;
+  }, [bulkSelectionEnabled, filteredWorkers.length, selectedWorkerIds.length]);
+
+  const canSelectMoreVisible =
+    bulkSelectionEnabled &&
+    filteredWorkers.some((worker) => !selectedWorkerIds.includes(worker.workerId)) &&
+    selectedWorkerIds.length < FILL_IN_BULK_OUTREACH_MAX;
+
+  const stickyFooter =
+    bulkSelectionEnabled && selectedWorkerIds.length > 0 ? (
+      <View style={styles.footer}>
+        <View style={styles.footerActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Select all visible workers"
+            disabled={!canSelectMoreVisible}
+            onPress={handleSelectAllVisible}
+            style={({ pressed }) => [
+              pressed && canSelectMoreVisible && styles.footerLinkPressed,
+            ]}>
+            <Text
+              style={[
+                styles.footerLink,
+                !canSelectMoreVisible && styles.footerLinkDisabled,
+              ]}>
+              Select all
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear selection"
+            onPress={handleClearSelection}
+            style={({ pressed }) => [pressed && styles.footerLinkPressed]}>
+            <Text style={styles.footerLink}>Clear</Text>
+          </Pressable>
+        </View>
+        <OnboardingButton
+          label={`Message ${selectedWorkerIds.length} selected`}
+          accent={FILL_IN_ACCENT}
+          onPress={handleBulkCompose}
+        />
+      </View>
+    ) : undefined;
+
   return (
     <>
       {upgradePrompt}
@@ -233,6 +327,7 @@ export default function FindAvailableWorkersScreen() {
         subtitle="Browse candidates who opted into fill-in outreach and message them directly. Phone numbers stay private."
         accent={FILL_IN_ACCENT}
         onBack={handleBack}
+        footer={stickyFooter}
       >
         {isProfileComplete && isOutreachLocked ? (
           <PlanUpgradeCallout
@@ -240,12 +335,6 @@ export default function FindAvailableWorkersScreen() {
             message={getClinicOutreachUpgradeMessage(billing?.planFamily ?? 'clinic')}
             accent={FILL_IN_ACCENT}
           />
-        ) : null}
-
-        {bulkSelectionEnabled ? (
-          <Text style={styles.bulkHint}>
-            Pro tip: select multiple workers below, then message them together.
-          </Text>
         ) : null}
 
         <View style={styles.section}>
@@ -302,18 +391,8 @@ export default function FindAvailableWorkersScreen() {
           />
         ) : (
           <>
-            <Text style={styles.count}>
-              {filteredWorkers.length} worker{filteredWorkers.length === 1 ? '' : 's'} available
-            </Text>
-            {bulkSelectionEnabled && selectedWorkerIds.length > 0 ? (
-              <View style={styles.bulkBar}>
-                <OnboardingButton
-                  label={`Message ${selectedWorkerIds.length} selected`}
-                  accent={FILL_IN_ACCENT}
-                  onPress={handleBulkCompose}
-                />
-              </View>
-            ) : null}
+            <Text style={styles.count}>{countLabel}</Text>
+            {selectionHint ? <Text style={styles.selectionHint}>{selectionHint}</Text> : null}
             <View style={styles.list}>
               <StaggeredList>
                 {filteredWorkers.map((worker) => (

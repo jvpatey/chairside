@@ -165,8 +165,8 @@ export function FillInPostingCard({
       onToggleExpand={toggleExpanded}
       variant={embedded ? 'inner' : 'default'}
       accent={accent}
-      style={isFeatured ? featuredTreatment.styles.card : undefined}
-      featuredGradient={isFeatured ? featuredTreatment.gradient : null}>
+      style={isFeatured ? featuredTreatment.cardStyle : undefined}
+      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
       <ShiftPostDetailView shift={shift} variant="embedded" showStatusBadge={false} accent={accent} />
       <View style={styles.actions}>
         {applicationCount > 0 ? (

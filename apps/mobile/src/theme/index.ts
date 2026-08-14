@@ -25,12 +25,9 @@ export {
   getStatSelectedGradient,
   getStatSelectedSegmentGradient,
   FILL_IN_HERO_GRADIENT_LOCATIONS,
-  FEATURED_LISTING_GRADIENT_LOCATIONS,
-  getFeaturedListingGradient,
   getFillInHeroGradient,
   getSurfaceGradient,
   getTabIndicatorGradient,
-  type FeaturedListingGradient,
   type GradientAccent,
 } from './gradients';
 export {

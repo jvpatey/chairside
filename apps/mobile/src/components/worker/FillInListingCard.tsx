@@ -76,8 +76,8 @@ export function FillInListingCard({
       variant={embedded ? 'inner' : 'default'}
       onPress={onPress}
       padding="none"
-      style={isFeatured ? featuredTreatment.styles.card : undefined}
-      featuredOverlay={isFeatured ? featuredTreatment.gradient : null}>
+      style={isFeatured ? featuredTreatment.cardStyle : undefined}
+      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
       <View style={styles.cardContent}>
         <ClinicPostHeader
           layout="split"
