@@ -11,7 +11,9 @@ import {
 
 describe('clinicPostingListDisplay', () => {
   it('builds CSS grid templates from table columns', () => {
-    expect(clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS)).toContain('minmax(140px, 2.2fr)');
+    expect(clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS)).toContain('minmax(180px, 1.6fr)');
+    expect(clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS)).toContain('72px');
+    expect(clinicPostingTableGridTemplate(CLINIC_ROLE_TABLE_COLUMNS)).toContain('88px');
     expect(CLINIC_ROLE_TABLE_COLUMNS.map((column) => column.label)).toEqual([
       'Role',
       'Type',

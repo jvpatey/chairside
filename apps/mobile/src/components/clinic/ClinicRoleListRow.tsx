@@ -88,7 +88,8 @@ export function ClinicRoleListRow({
         display: 'grid',
         gridTemplateColumns: gridTemplate,
         alignItems: 'center',
-        gap: spacing.sm,
+        justifyItems: 'start',
+        gap: spacing.md,
       } as const),
     },
     tableRowHovered: webListRowHoverStyles(colors),
@@ -100,6 +101,8 @@ export function ClinicRoleListRow({
       alignItems: 'center',
       gap: spacing.sm,
       minWidth: 0,
+      width: '100%',
+      maxWidth: '100%',
     },
     title: {
       flex: 1,
@@ -108,9 +111,13 @@ export function ClinicRoleListRow({
       fontWeight: '600',
       color: colors.labelPrimary,
     },
+    featuredMark: {
+      flexShrink: 0,
+    },
     cell: {
       fontSize: 13,
       color: colors.labelSecondary,
+      maxWidth: '100%',
     },
     pay: {
       fontSize: 13,
@@ -126,6 +133,7 @@ export function ClinicRoleListRow({
       height: 28,
       alignItems: 'center',
       justifyContent: 'center',
+      ...webOnlyStyle({ justifySelf: 'end' } as const),
     },
     menuButtonPressed: {
       opacity: 0.6,
@@ -160,12 +168,13 @@ export function ClinicRoleListRow({
   const applicantControl =
     applicantCount > 0 && onApplicantsPress ? (
       <ApplicantCountButton
-        label={formatClinicApplicantCount(applicantCount)}
+        label={String(applicantCount)}
         onPress={onApplicantsPress}
-        accessibilityLabel={`Review ${applicantCount} applicants`}
+        accessibilityLabel={`Review ${formatClinicApplicantCount(applicantCount)}`}
+        showChevron={false}
       />
     ) : (
-      <Text style={styles.muted}>{formatClinicApplicantCount(applicantCount)}</Text>
+      <Text style={styles.muted}>{applicantCount}</Text>
     );
 
   if (tableMode && Platform.OS === 'web') {
@@ -180,6 +189,11 @@ export function ClinicRoleListRow({
           pressed && styles.tableRowPressed,
         ]}>
         <View style={styles.roleCell}>
+          {isFeatured ? (
+            <View style={styles.featuredMark}>
+              <FeaturedListingBadge compact />
+            </View>
+          ) : null}
           <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={28} />
           <Text style={styles.title} numberOfLines={1}>
             {job.title}
