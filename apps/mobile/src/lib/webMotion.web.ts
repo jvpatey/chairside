@@ -151,6 +151,161 @@ export function useEnterAnimation(
   return { opacity, translateY, ref: trigger === 'visible' ? ref : undefined };
 }
 
+type SplitRevealOptions = {
+  /** Horizontal = panels bloom left/right; vertical = stack blooms up/down from seam. */
+  axis?: 'horizontal' | 'vertical';
+  trigger?: 'mount' | 'visible';
+  visibleThreshold?: number;
+};
+
+/**
+ * Audience-style reveal: seam pops in the center, then panels bloom outward.
+ * Opacity + translate/scale only (native driver). Runs once on mount or scroll-in.
+ */
+export function useSplitRevealAnimation({
+  axis = 'horizontal',
+  trigger = 'visible',
+  visibleThreshold = 0.12,
+}: SplitRevealOptions = {}) {
+  const stageRef = useRef<View>(null);
+  const hasAnimated = useRef(false);
+
+  const seamOpacity = useRef(new Animated.Value(0)).current;
+  const seamScale = useRef(new Animated.Value(0.94)).current;
+  const startOpacity = useRef(new Animated.Value(0)).current;
+  const startTranslate = useRef(new Animated.Value(axis === 'horizontal' ? 36 : 28)).current;
+  const endOpacity = useRef(new Animated.Value(0)).current;
+  const endTranslate = useRef(new Animated.Value(axis === 'horizontal' ? -36 : -28)).current;
+
+  const settle = useCallback(() => {
+    seamOpacity.setValue(1);
+    seamScale.setValue(1);
+    startOpacity.setValue(1);
+    startTranslate.setValue(0);
+    endOpacity.setValue(1);
+    endTranslate.setValue(0);
+  }, [endOpacity, endTranslate, seamOpacity, seamScale, startOpacity, startTranslate]);
+
+  const animate = useCallback(() => {
+    if (hasAnimated.current) return;
+    hasAnimated.current = true;
+
+    if (prefersReducedMotion()) {
+      settle();
+      return;
+    }
+
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(seamOpacity, {
+          toValue: 1,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+        Animated.spring(seamScale, {
+          toValue: 1,
+          tension: 80,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.stagger(70, [
+        Animated.parallel([
+          Animated.timing(startOpacity, {
+            toValue: 1,
+            duration: 420,
+            useNativeDriver: true,
+          }),
+          Animated.spring(startTranslate, {
+            toValue: 0,
+            tension: 68,
+            friction: 12,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(endOpacity, {
+            toValue: 1,
+            duration: 420,
+            useNativeDriver: true,
+          }),
+          Animated.spring(endTranslate, {
+            toValue: 0,
+            tension: 68,
+            friction: 12,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    ]).start();
+  }, [
+    endOpacity,
+    endTranslate,
+    seamOpacity,
+    seamScale,
+    settle,
+    startOpacity,
+    startTranslate,
+  ]);
+
+  useEffect(() => {
+    if (trigger === 'mount') {
+      animate();
+      return;
+    }
+
+    if (prefersReducedMotion()) {
+      settle();
+      hasAnimated.current = true;
+      return;
+    }
+
+    const node = stageRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      animate();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          animate();
+          observer.disconnect();
+        }
+      },
+      { threshold: visibleThreshold, rootMargin: '0px 0px -8% 0px' },
+    );
+
+    observer.observe(node as unknown as Element);
+    return () => observer.disconnect();
+  }, [animate, settle, trigger, visibleThreshold]);
+
+  const startTransform =
+    axis === 'horizontal'
+      ? [{ translateX: startTranslate }]
+      : [{ translateY: startTranslate }];
+  const endTransform =
+    axis === 'horizontal'
+      ? [{ translateX: endTranslate }]
+      : [{ translateY: endTranslate }];
+
+  return {
+    stageRef,
+    seamStyle: {
+      opacity: seamOpacity,
+      transform: [{ scale: seamScale }],
+    },
+    startStyle: {
+      opacity: startOpacity,
+      transform: startTransform,
+    },
+    endStyle: {
+      opacity: endOpacity,
+      transform: endTransform,
+    },
+  };
+}
+
 /** Width draw (0 → 100%) for connector lines on scroll reveal. */
 export function useConnectorDrawAnimation(delayMs = 0) {
   const scaleX = useRef(new Animated.Value(0)).current;

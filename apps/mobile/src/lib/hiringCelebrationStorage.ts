@@ -84,14 +84,26 @@ export async function setKnownHiredApplicationIds(
   );
 }
 
+export async function addKnownHiredApplicationIds(
+  audience: HiringCelebrationAudience,
+  applicationIds: Iterable<string>,
+): Promise<void> {
+  const known = await getKnownHiredApplicationIds(audience);
+  let changed = false;
+  for (const applicationId of applicationIds) {
+    if (known.has(applicationId)) continue;
+    known.add(applicationId);
+    changed = true;
+  }
+  if (!changed) return;
+  await setKnownHiredApplicationIds(audience, known);
+}
+
 export async function addKnownHiredApplicationId(
   audience: HiringCelebrationAudience,
   applicationId: string,
 ): Promise<void> {
-  const known = await getKnownHiredApplicationIds(audience);
-  if (known.has(applicationId)) return;
-  known.add(applicationId);
-  await setKnownHiredApplicationIds(audience, known);
+  await addKnownHiredApplicationIds(audience, [applicationId]);
 }
 
 export async function filterUncelebratedCelebrationCandidates<
@@ -115,13 +127,7 @@ export async function filterUncelebratedCelebrationCandidates<
       continue;
     }
 
-    if (!candidate.updatedAt) {
-      continue;
-    }
-
-    if (new Date(candidate.updatedAt).getTime() > new Date(celebratedAt).getTime()) {
-      uncelebrated.push(candidate);
-    }
+    // Already shown for this hire — do not re-open if the row is touched later.
   }
 
   if (Object.keys(legacyMigrations).length > 0) {

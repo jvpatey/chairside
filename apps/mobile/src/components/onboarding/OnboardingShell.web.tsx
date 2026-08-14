@@ -7,10 +7,15 @@ import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { OnboardingWebCenteredLayout } from '@/components/onboarding/OnboardingWebCenteredLayout.web';
 import { PageHeroGlow, type PageHeroGlowVariant } from '@/components/ui/PageHeroGlow';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
+import {
+  useShellAtmosphere,
+  useTabAtmosphere,
+  useTabAtmosphereAccent,
+} from '@/contexts/TabAtmosphereContext';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
-import { webStickyHeaderGlass, webTransition } from '@/theme/web';
+import { webOnboardingAtmosphereStyle, webStickyHeaderGlass, webTransition } from '@/theme/web';
 
 const HEADER_SCROLL_THRESHOLD = 8;
 const HEADER_GLASS_RAMP = 56;
@@ -186,9 +191,7 @@ export function OnboardingShell({
           style={[
             styles.footerInner,
             {
-              backgroundColor: passThroughAtmosphere
-                ? 'transparent'
-                : colors.backgroundGrouped,
+              backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
             },
           ]}
         >
@@ -213,9 +216,21 @@ export function OnboardingShell({
   if (authSplit) {
     return (
       <FormScrollContext.Provider value={{ scrollWrapIntoView: () => {} }}>
-        <View style={[styles.container, { backgroundColor: containerBackground }]}>
+        <View
+          style={[
+            styles.container,
+            { backgroundColor: containerBackground },
+            webOnlyStyle({ minHeight: '100dvh' } as ViewStyle),
+          ]}
+        >
           {tabAtmosphereLayer}
           {backgroundLayer}
+          <View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFillObject, webOnboardingAtmosphereStyle(isDark)]}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
           <AuthWebSplitLayout
             footer={footer}
             brandHeadline={brandHeadline}

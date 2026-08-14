@@ -1,14 +1,13 @@
 import { router, type Href } from 'expo-router';
 import { useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { Animated, Text, View } from 'react-native';
 
 import { ChairsideBrandText } from '@/components/brand/ChairsideWordmark';
+import { COMMISSION_WAGE_LABEL } from '@/components/clinic/WageRangeInput';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
-import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { PillBadge } from '@/components/ui/PillBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
@@ -18,6 +17,7 @@ import {
   getWelcomeHeroPreview,
   type WelcomeHeroPreview,
 } from '@/lib/welcomeHeroPreview';
+import { useSplitRevealAnimation } from '@/lib/webMotion.web';
 import { webOnlyStyle, useWebCardLift } from '@/lib/webPressableStyles';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
@@ -38,7 +38,6 @@ const AUDIENCES = [
     accent: 'secondary' as const,
     title: 'Professionals',
     subtitle: 'Find work on your terms',
-    badge: 'Always free',
     points: ['Browse roles and fill-ins', 'Signal availability and get discovered'],
     cta: 'Find work',
   },
@@ -170,7 +169,7 @@ function AudienceProductSnapshot({ audience }: { audience: Audience }) {
 
   return (
     <RoleListingCard
-      job={preview.job}
+      job={{ ...preview.job, wage_range: COMMISSION_WAGE_LABEL }}
       embedded
       jobMatch={workerMatch.match}
       matchContext={workerMatch.matchContext}
@@ -180,7 +179,7 @@ function AudienceProductSnapshot({ audience }: { audience: Audience }) {
 }
 
 function AudiencePanel({ audience }: { audience: Audience }) {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { liftStyle, hoverHandlers } = useWebCardLift(isDark);
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
@@ -213,12 +212,6 @@ function AudiencePanel({ audience }: { audience: Audience }) {
       zIndex: 1,
     },
     header: {
-      gap: spacing.sm,
-    },
-    titleRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      flexWrap: 'wrap' as const,
       gap: spacing.sm,
     },
     title: {
@@ -255,17 +248,7 @@ function AudiencePanel({ audience }: { audience: Audience }) {
       <View style={styles.atmosphere} />
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{audience.title}</Text>
-            {'badge' in audience && audience.badge ? (
-              <PillBadge
-                label={audience.badge}
-                color={colors.tertiary}
-                backgroundColor={colors.tertiarySubtle}
-                size="sm"
-              />
-            ) : null}
-          </View>
+          <Text style={styles.title}>{audience.title}</Text>
           <Text style={styles.subtitle}>{audience.subtitle}</Text>
         </View>
 
@@ -363,8 +346,12 @@ function AudienceBrandSeam({ horizontal }: { horizontal?: boolean }) {
   );
 }
 
-function AudienceGrid() {
-  const { isWide } = useResponsiveLayout();
+function AudienceGridStage({ axis }: { axis: 'horizontal' | 'vertical' }) {
+  const { stageRef, seamStyle, startStyle, endStyle } = useSplitRevealAnimation({
+    axis,
+    trigger: 'visible',
+  });
+
   const styles = useThemedStyles(({ spacing }) => ({
     row: {
       flexDirection: 'row' as const,
@@ -374,46 +361,56 @@ function AudienceGrid() {
     stack: {
       gap: spacing.md,
     },
+    panelSlot: {
+      flex: 1,
+      minWidth: 0,
+      alignSelf: 'stretch' as const,
+    },
+    seamSlot: {
+      alignSelf: 'center' as const,
+    },
   }));
 
   const [clinic, worker] = AUDIENCES;
 
-  if (!isWide) {
+  if (axis === 'vertical') {
     return (
-      <View style={styles.stack}>
-        <WebPageEnter delayMs={0} trigger="visible">
+      <Animated.View ref={stageRef} style={styles.stack}>
+        <Animated.View style={startStyle}>
           <AudiencePanel audience={clinic} />
-        </WebPageEnter>
-        <WebPageEnter delayMs={80} trigger="visible">
+        </Animated.View>
+        <Animated.View style={seamStyle}>
           <AudienceBrandSeam horizontal />
-        </WebPageEnter>
-        <WebPageEnter delayMs={160} trigger="visible">
+        </Animated.View>
+        <Animated.View style={endStyle}>
           <AudiencePanel audience={worker} />
-        </WebPageEnter>
-      </View>
+        </Animated.View>
+      </Animated.View>
     );
   }
 
   return (
-    <View style={styles.row}>
-      <WebPageEnter
-        delayMs={0}
-        style={{ flex: 1, minWidth: 0, alignSelf: 'stretch' }}
-        trigger="visible"
-      >
+    <Animated.View ref={stageRef} style={styles.row}>
+      <Animated.View style={[styles.panelSlot, startStyle]}>
         <AudiencePanel audience={clinic} />
-      </WebPageEnter>
-      <WebPageEnter delayMs={80} style={{ alignSelf: 'center' }} trigger="visible">
+      </Animated.View>
+      <Animated.View style={[styles.seamSlot, seamStyle]}>
         <AudienceBrandSeam />
-      </WebPageEnter>
-      <WebPageEnter
-        delayMs={160}
-        style={{ flex: 1, minWidth: 0, alignSelf: 'stretch' }}
-        trigger="visible"
-      >
+      </Animated.View>
+      <Animated.View style={[styles.panelSlot, endStyle]}>
         <AudiencePanel audience={worker} />
-      </WebPageEnter>
-    </View>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
+function AudienceGrid() {
+  const { isWide } = useResponsiveLayout();
+  return (
+    <AudienceGridStage
+      key={isWide ? 'wide' : 'narrow'}
+      axis={isWide ? 'horizontal' : 'vertical'}
+    />
   );
 }
 

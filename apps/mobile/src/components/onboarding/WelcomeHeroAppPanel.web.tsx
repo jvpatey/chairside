@@ -47,14 +47,16 @@ export function WelcomeHeroAppPanel({
       position: 'relative' as const,
       width: '100%',
       alignSelf: 'stretch' as const,
-      overflow: showPhone ? ('visible' as const) : ('hidden' as const),
+      overflow: 'visible' as const,
+      flex: compact && !showPhone ? 1 : undefined,
+      minHeight: compact && !showPhone ? 0 : undefined,
     },
     glow: {
       position: 'absolute' as const,
       top: '8%',
-      left: '10%',
+      left: '8%',
       right: '4%',
-      bottom: '6%',
+      bottom: '-18%',
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
@@ -64,8 +66,22 @@ export function WelcomeHeroAppPanel({
       } as object),
     },
     stage: {
+      flex: compact && !showPhone ? 1 : undefined,
+      minHeight: 0,
+      overflow: 'visible' as const,
       ...webOnlyStyle({
         perspective: '1600px',
+      } as object),
+    },
+    browserShadow: {
+      borderRadius: 16,
+      overflow: 'visible' as const,
+      flex: compact && !showPhone ? 1 : undefined,
+      minHeight: 0,
+      ...webOnlyStyle({
+        boxShadow: isDark
+          ? '0 24px 48px rgba(0, 0, 0, 0.35)'
+          : '0 20px 40px rgba(26, 111, 212, 0.12)',
       } as object),
     },
     browser: {
@@ -74,11 +90,8 @@ export function WelcomeHeroAppPanel({
       borderColor: colors.separator,
       backgroundColor: colors.surface,
       overflow: 'hidden' as const,
-      ...webOnlyStyle({
-        boxShadow: isDark
-          ? '0 24px 48px rgba(0, 0, 0, 0.35)'
-          : '0 20px 40px rgba(26, 111, 212, 0.12)',
-      } as object),
+      flex: compact && !showPhone ? 1 : undefined,
+      minHeight: 0,
     },
     chrome: {
       flexDirection: 'row' as const,
@@ -120,6 +133,7 @@ export function WelcomeHeroAppPanel({
     },
     canvas: {
       minHeight: 0,
+      flex: compact && !showPhone ? 1 : undefined,
     },
     phone: {
       position: 'absolute' as const,
@@ -149,96 +163,101 @@ export function WelcomeHeroAppPanel({
     },
   }));
 
-  const browserTilt = reduceMotion || compact
-    ? null
-    : {
-        transform: [{ rotateY: '-8deg' }, { rotateX: '4deg' }] as const,
-      };
+  const browserTilt =
+    reduceMotion || compact
+      ? null
+      : {
+          transform: [{ rotateY: '-8deg' }, { rotateX: '4deg' }] as const,
+        };
 
-  const phoneTilt = reduceMotion
-    ? null
-    : { transform: [{ rotateZ: '-8deg' }] as const };
+  const phoneTilt = reduceMotion ? null : { transform: [{ rotateZ: '-8deg' }] as const };
 
   return (
     <View
       style={[
         styles.wrap,
         showPhone && { paddingRight: compact ? 28 : 20, paddingBottom: compact ? 12 : 16 },
-        scaledHeight != null ? { height: scaledHeight } : null,
+        compact && !showPhone ? null : scaledHeight != null ? { height: scaledHeight } : null,
       ]}
     >
       <View
         onLayout={(event) => {
+          if (compact && !showPhone) return;
           if (fitScale < 1) return;
           const next = event.nativeEvent.layout.height;
           if (next > 0 && Math.abs(next - naturalHeight) > 2) {
             setNaturalHeight(next);
           }
         }}
-        style={
-          fitScale < 1
+        style={[
+          compact && !showPhone
+            ? { flex: 1, minHeight: 0, overflow: 'visible' as const }
+            : null,
+          !(compact && !showPhone) && fitScale < 1
             ? {
                 transform: [{ scale: fitScale }],
                 ...webOnlyStyle({
                   transformOrigin: 'top center',
                 } as object),
               }
-            : undefined
-        }
+            : undefined,
+        ]}
       >
-      <View
-        style={styles.glow}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      />
-      <View style={styles.stage}>
         <View
-          style={[styles.browser, browserTilt]}
-          accessibilityLabel="Chairside product preview: clinic dashboard and professional app"
-        >
-          <View
-            style={styles.chrome}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-          >
-            <View style={styles.dots}>
-              <View style={styles.windowDot} />
-              <View style={styles.windowDot} />
-              <View style={styles.windowDot} />
-            </View>
-            <View style={styles.urlPill}>
-              <Text style={styles.urlText} numberOfLines={1}>
-                chairsidedental.app
-              </Text>
+          style={styles.glow}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+        <View style={styles.stage}>
+          <View style={[styles.browserShadow, browserTilt]}>
+            <View
+              style={styles.browser}
+              accessibilityLabel="Chairside product preview: clinic dashboard and professional app"
+            >
+              <View
+                style={styles.chrome}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <View style={styles.dots}>
+                  <View style={styles.windowDot} />
+                  <View style={styles.windowDot} />
+                  <View style={styles.windowDot} />
+                </View>
+                <View style={styles.urlPill}>
+                  <Text style={styles.urlText} numberOfLines={1}>
+                    chairsidedental.app
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.canvas}>
+                <WelcomeHeroClinicCanvas compact={compact} preview={preview} />
+              </View>
             </View>
           </View>
-          <View style={styles.canvas}>
-            <WelcomeHeroClinicCanvas compact={compact} preview={preview} />
+        </View>
+        <View style={{ height: showPhone ? (compact ? 52 : 68) : 0 }} />
+        {showPhone ? (
+          <View style={[styles.phone, phoneTilt]}>
+            <WelcomeHeroPhonePreview preview={preview} compact={compact} />
           </View>
-        </View>
-      </View>
-      <View style={{ height: showPhone ? (compact ? 52 : 68) : 0 }} />
-      {showPhone ? (
-        <View style={[styles.phone, phoneTilt]}>
-          <WelcomeHeroPhonePreview preview={preview} compact={compact} />
-        </View>
-      ) : null}
-      {appStoreUrl && !compact ? (
-        <View style={styles.appPitch}>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel="Download on the App Store"
-            onPress={() => void Linking.openURL(appStoreUrl)}
-            style={({ pressed, hovered }) => [
-              styles.appStoreLink,
-              webHover(hovered, pressed, styles.appStoreLinkHovered),
-              pressed && { opacity: 0.75 },
-            ]}
-          >
-            <Text style={styles.appStoreLinkText}>Download for iPhone</Text>
-          </Pressable>
-        </View>
-      ) : null}
+        ) : null}
+        {appStoreUrl && !compact ? (
+          <View style={styles.appPitch}>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Download on the App Store"
+              onPress={() => void Linking.openURL(appStoreUrl)}
+              style={({ pressed, hovered }) => [
+                styles.appStoreLink,
+                webHover(hovered, pressed, styles.appStoreLinkHovered),
+                pressed && { opacity: 0.75 },
+              ]}
+            >
+              <Text style={styles.appStoreLinkText}>Download for iPhone</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     </View>
   );

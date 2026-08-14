@@ -236,15 +236,57 @@ function PreviewSidebar({ compact }: { compact: boolean }) {
   }));
 
   const primary = [
-    { route: 'index', icon: 'home-outline' as const, activeIcon: 'home' as const, label: 'Dashboard', active: true },
-    { route: 'postings', icon: 'briefcase-outline' as const, activeIcon: 'briefcase' as const, label: 'Roles', active: false },
-    { route: 'applications', icon: 'people-outline' as const, activeIcon: 'people' as const, label: 'Applications', active: false },
-    { route: 'fill-ins', icon: FILL_IN_ICON.outline, activeIcon: FILL_IN_ICON.filled, label: 'Fill-ins', active: false },
+    {
+      route: 'index',
+      icon: 'home-outline' as const,
+      activeIcon: 'home' as const,
+      label: 'Dashboard',
+      active: true,
+    },
+    {
+      route: 'postings',
+      icon: 'briefcase-outline' as const,
+      activeIcon: 'briefcase' as const,
+      label: 'Roles',
+      active: false,
+    },
+    {
+      route: 'applications',
+      icon: 'people-outline' as const,
+      activeIcon: 'people' as const,
+      label: 'Applications',
+      active: false,
+    },
+    {
+      route: 'fill-ins',
+      icon: FILL_IN_ICON.outline,
+      activeIcon: FILL_IN_ICON.filled,
+      label: 'Fill-ins',
+      active: false,
+    },
   ];
   const secondary = [
-    { route: 'discover', icon: 'compass-outline' as const, activeIcon: 'compass' as const, label: 'Discover', active: false },
-    { route: 'calendar', icon: 'today-outline' as const, activeIcon: 'today' as const, label: 'Calendar', active: false },
-    { route: 'messages', icon: 'chatbubbles-outline' as const, activeIcon: 'chatbubbles' as const, label: 'Messages', active: false },
+    {
+      route: 'discover',
+      icon: 'compass-outline' as const,
+      activeIcon: 'compass' as const,
+      label: 'Discover',
+      active: false,
+    },
+    {
+      route: 'calendar',
+      icon: 'today-outline' as const,
+      activeIcon: 'today' as const,
+      label: 'Calendar',
+      active: false,
+    },
+    {
+      route: 'messages',
+      icon: 'chatbubbles-outline' as const,
+      activeIcon: 'chatbubbles' as const,
+      label: 'Messages',
+      active: false,
+    },
   ];
 
   const renderItem = (item: (typeof primary)[number] | (typeof secondary)[number]) => {
@@ -258,11 +300,7 @@ function PreviewSidebar({ compact }: { compact: boolean }) {
           item.active && { backgroundColor: resolveAccentSubtle(colors, accent) },
         ]}
       >
-        <Ionicons
-          name={item.active ? item.activeIcon : item.icon}
-          size={20}
-          color={iconColor}
-        />
+        <Ionicons name={item.active ? item.activeIcon : item.icon} size={20} color={iconColor} />
       </View>
     );
   };
@@ -290,9 +328,12 @@ export function WelcomeHeroClinicCanvas({
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     root: {
+      flex: compact ? 1 : undefined,
       flexDirection: 'row' as const,
       alignItems: 'stretch' as const,
+      alignSelf: 'stretch' as const,
       minWidth: 0,
+      minHeight: compact ? 0 : undefined,
       backgroundColor: colors.backgroundGrouped,
     },
     main: {
@@ -360,10 +401,7 @@ export function WelcomeHeroClinicCanvas({
         />
       </View>
       {!compact ? (
-        <RoleApplicantPreviewList
-          applicants={visibleApplicants}
-          onApplicantPress={() => {}}
-        />
+        <RoleApplicantPreviewList applicants={visibleApplicants} onApplicantPress={() => {}} />
       ) : null}
     </SurfaceCard>
   );

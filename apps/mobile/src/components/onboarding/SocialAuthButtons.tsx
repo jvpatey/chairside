@@ -39,9 +39,7 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
     },
     appleHovered: webOnlyStyle({
       backgroundColor: isDark ? colors.surfaceElevated : '#1C1C1E',
-      boxShadow: isDark
-        ? '0 4px 12px rgba(0, 0, 0, 0.35)'
-        : '0 4px 12px rgba(0, 0, 0, 0.18)',
+      boxShadow: isDark ? '0 4px 12px rgba(0, 0, 0, 0.35)' : '0 4px 12px rgba(0, 0, 0, 0.18)',
     } as ViewStyle),
     google: {
       backgroundColor: colors.surface,
@@ -96,14 +94,17 @@ function SocialAuthButton({ label, disabled, onPress, variant }: SocialAuthButto
               isWeb && hovered && !pressed && !disabled && styles.googleHovered,
               pressed && !disabled && styles.googlePressed,
             ],
-      ]}>
+      ]}
+    >
       <View style={styles.content}>
         {isApple ? (
           <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
         ) : (
           <AntDesign name="google" size={20} color="#4285F4" />
         )}
-        <Text style={[styles.label, isApple ? styles.appleLabel : styles.googleLabel]}>{label}</Text>
+        <Text style={[styles.label, isApple ? styles.appleLabel : styles.googleLabel]}>
+          {label}
+        </Text>
       </View>
     </Pressable>
   );

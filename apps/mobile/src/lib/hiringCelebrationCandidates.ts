@@ -1,14 +1,28 @@
 import type { WorkerApplication } from '@chairside/api';
 
+import { formatShiftDateLabel, parseISODate } from '@/lib/dates';
+
 export type CelebrationCandidate = {
   id: string;
   postType: 'job' | 'shift';
   status: string;
   counterpartName: string;
   postTitle: string;
+  shiftDate?: string | null;
   shiftDateLabel?: string | null;
   updatedAt?: string;
 };
+
+function shiftFields(shiftDate?: string | null): Pick<
+  CelebrationCandidate,
+  'shiftDate' | 'shiftDateLabel'
+> {
+  const parsed = shiftDate ? parseISODate(shiftDate) : null;
+  return {
+    shiftDate: shiftDate ?? null,
+    shiftDateLabel: parsed ? formatShiftDateLabel(parsed) : null,
+  };
+}
 
 export function toJobCelebrationCandidates(
   applications: WorkerApplication[],
@@ -33,6 +47,7 @@ export function toShiftCelebrationCandidates(
     counterpartName: application.clinic_name,
     postTitle: application.post_title,
     updatedAt: application.updated_at,
+    ...shiftFields(application.shift_date),
   }));
 }
 

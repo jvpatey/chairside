@@ -93,7 +93,7 @@ export function FileTabWell<T extends string = string>({
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: isDark ? subtleDivider : colors.separator,
       borderRadius: radii.lg,
-      overflow: 'hidden' as const,
+      overflow: 'visible' as const,
       backgroundColor: colors.surface,
       width: '100%',
       alignSelf: 'stretch' as const,
@@ -110,6 +110,9 @@ export function FileTabWell<T extends string = string>({
       backgroundColor: colors.backgroundGrouped,
       borderBottomWidth: compactTabs ? 0 : StyleSheet.hairlineWidth,
       borderBottomColor: subtleDivider,
+      overflow: 'hidden' as const,
+      borderTopLeftRadius: radii.lg,
+      borderTopRightRadius: radii.lg,
     },
     inlineTabScroll: {
       flexGrow: 0,
@@ -262,6 +265,9 @@ export function FileTabWell<T extends string = string>({
     panel: {
       backgroundColor: colors.surface,
       padding: compactTabs ? spacing.sm : spacing.md,
+      overflow: 'visible' as const,
+      borderBottomLeftRadius: radii.lg,
+      borderBottomRightRadius: radii.lg,
     },
     inlinePanel: {
       flex: 1,

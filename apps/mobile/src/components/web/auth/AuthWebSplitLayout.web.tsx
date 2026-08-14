@@ -10,7 +10,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useThemedStyles } from '@/theme';
 import { getElevationStyle, radii } from '@/theme/tokens';
-import { webOnboardingAtmosphereStyle, webTypography } from '@/theme/web';
+import { webTypography } from '@/theme/web';
 
 type AuthWebBrandVisual = 'appPreview' | 'rolePaths';
 
@@ -43,18 +43,13 @@ export function AuthWebBrandPanel({
   const insets = useSafeAreaInsets();
   const [previewMaxHeight, setPreviewMaxHeight] = useState(0);
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     panel: {
       flex: isWide ? 1 : undefined,
       minHeight: isWide ? 0 : undefined,
       position: 'relative' as const,
-      overflow: isWide ? ('hidden' as const) : ('visible' as const),
-      backgroundColor: colors.backgroundGrouped,
-    },
-    atmosphere: {
-      ...StyleSheet.absoluteFillObject,
-      pointerEvents: 'none' as const,
-      ...webOnboardingAtmosphereStyle(isDark),
+      overflow: 'visible' as const,
+      backgroundColor: 'transparent',
     },
     content: {
       flex: isWide ? 1 : undefined,
@@ -90,13 +85,12 @@ export function AuthWebBrandPanel({
       flexShrink: 1,
       minHeight: 0,
       justifyContent: 'flex-start' as const,
-      overflow: 'hidden' as const,
+      overflow: 'visible' as const,
     },
   }));
 
   return (
     <View style={styles.panel}>
-      <View style={styles.atmosphere} />
       <View style={styles.content}>
         <View style={styles.column}>
           <ChairsideWordmark variant="small" align="left" />
@@ -140,9 +134,10 @@ export function AuthWebFormPanel({ children, footer, scrollable = true }: AuthWe
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     outer: {
       flex: scrollable ? 1 : undefined,
-      backgroundColor: colors.backgroundGrouped,
+      backgroundColor: 'transparent',
       minWidth: 0,
       minHeight: scrollable ? 0 : undefined,
+      overflow: 'visible' as const,
     },
     scroll: {
       flex: 1,
@@ -151,14 +146,26 @@ export function AuthWebFormPanel({ children, footer, scrollable = true }: AuthWe
     inner: {
       flexGrow: 1,
       paddingHorizontal: isWide ? 0 : spacing.lg,
-      paddingTop: scrollable ? insets.top + spacing.lg : spacing.lg,
-      paddingBottom: insets.bottom + spacing.lg,
+      paddingTop: isWide ? spacing.xl : scrollable ? insets.top + spacing.lg : spacing.lg,
+      paddingBottom: isWide ? spacing.xl : insets.bottom + spacing.lg,
       alignItems: 'stretch' as const,
-      justifyContent: 'center' as const,
+      justifyContent: isWide ? ('flex-start' as const) : ('center' as const),
+      overflow: 'visible' as const,
     },
     stack: {
       width: '100%' as const,
       gap: spacing.md,
+      overflow: 'visible' as const,
+    },
+    wordmarkSpacer: {
+      opacity: 0,
+      pointerEvents: 'none' as const,
+    },
+    cardShadow: {
+      width: '100%' as const,
+      borderRadius: radii.lg,
+      overflow: 'visible' as const,
+      ...getElevationStyle({ isDark, level: 'subtle' }),
     },
     card: {
       width: '100%' as const,
@@ -168,7 +175,7 @@ export function AuthWebFormPanel({ children, footer, scrollable = true }: AuthWe
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       gap: spacing.md,
-      ...getElevationStyle({ isDark, level: 'subtle' }),
+      overflow: 'hidden' as const,
     },
     footer: {
       width: '100%' as const,
@@ -179,9 +186,16 @@ export function AuthWebFormPanel({ children, footer, scrollable = true }: AuthWe
 
   const formBody = (
     <View style={styles.stack}>
-      <View style={styles.card}>
-        {children}
-        {footer ? <View style={styles.footer}>{footer}</View> : null}
+      {isWide ? (
+        <View style={styles.wordmarkSpacer} accessibilityElementsHidden>
+          <ChairsideWordmark variant="small" align="left" />
+        </View>
+      ) : null}
+      <View style={styles.cardShadow}>
+        <View style={styles.card}>
+          {children}
+          {footer ? <View style={styles.footer}>{footer}</View> : null}
+        </View>
       </View>
     </View>
   );
@@ -226,21 +240,27 @@ export function AuthWebSplitLayout({
   const { isWide } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     root: {
       flex: 1,
       minHeight: 0,
       width: '100%' as const,
       maxWidth: isWide ? 1120 : undefined,
       alignSelf: 'center' as const,
-      flexDirection: isWide ? ('row' as const) : ('column' as const),
-      alignItems: isWide ? ('stretch' as const) : undefined,
-      gap: isWide ? spacing.xl : 0,
+      justifyContent: isWide ? ('flex-start' as const) : undefined,
       paddingHorizontal: isWide ? spacing.xl : 0,
+      overflow: 'visible' as const,
+    },
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'stretch' as const,
+      gap: spacing.xl,
+      width: '100%' as const,
+      overflow: 'visible' as const,
     },
     narrowScroll: {
       flex: 1,
-      backgroundColor: colors.backgroundGrouped,
+      backgroundColor: 'transparent',
     },
     narrowScrollContent: {
       flexGrow: 1,
@@ -250,25 +270,22 @@ export function AuthWebSplitLayout({
       flex: isWide ? 1 : undefined,
       minWidth: isWide ? 0 : undefined,
       minHeight: isWide ? 0 : undefined,
+      overflow: 'visible' as const,
     },
     form: {
       width: isWide ? 440 : undefined,
       flexGrow: 0,
       flexShrink: 0,
-      minHeight: 0,
+      overflow: 'visible' as const,
     },
   }));
 
   const brandPanel = (
-    <AuthWebBrandPanel
-      headline={brandHeadline}
-      subtitle={brandSubtitle}
-      visual={brandVisual}
-    />
+    <AuthWebBrandPanel headline={brandHeadline} subtitle={brandSubtitle} visual={brandVisual} />
   );
 
   const formPanel = (
-    <AuthWebFormPanel scrollable={isWide} footer={footer}>
+    <AuthWebFormPanel scrollable={!isWide} footer={footer}>
       {children}
     </AuthWebFormPanel>
   );
@@ -289,8 +306,10 @@ export function AuthWebSplitLayout({
 
   return (
     <View style={styles.root}>
-      <View style={styles.brand}>{brandPanel}</View>
-      <View style={styles.form}>{formPanel}</View>
+      <View style={styles.row}>
+        <View style={styles.brand}>{brandPanel}</View>
+        <View style={styles.form}>{formPanel}</View>
+      </View>
     </View>
   );
 }

@@ -97,7 +97,20 @@ export function WelcomeHeroPhonePreview({
 
   const styles = useThemedStyles(({ colors, spacing, radii, isDark: dark }) => ({
     frame: {
+      overflow: 'visible' as const,
+      borderRadius: 44 * scale,
+      ...webOnlyStyle({
+        boxShadow: getWebShadow(dark, 'floating'),
+      } as object),
+    },
+    clip: {
+      width: '100%' as const,
+      height: '100%' as const,
+      borderRadius: 44 * scale,
       overflow: 'hidden' as const,
+      ...webOnlyStyle({
+        clipPath: `inset(0 round ${44 * scale}px)`,
+      } as object),
     },
     scaled: {
       position: 'absolute' as const,
@@ -111,9 +124,6 @@ export function WelcomeHeroPhonePreview({
       borderRadius: 44,
       padding: 12,
       backgroundColor: dark ? '#0B0D12' : '#1C1C1E',
-      ...webOnlyStyle({
-        boxShadow: getWebShadow(dark, 'floating'),
-      } as object),
     },
     screen: {
       flex: 1,
@@ -121,6 +131,9 @@ export function WelcomeHeroPhonePreview({
       overflow: 'hidden' as const,
       backgroundColor: colors.backgroundGrouped,
       position: 'relative' as const,
+      ...webOnlyStyle({
+        clipPath: 'inset(0 round 34px)',
+      } as object),
     },
     statusBar: {
       flexDirection: 'row' as const,
@@ -202,6 +215,7 @@ export function WelcomeHeroPhonePreview({
       borderWidth: 1,
       borderColor: colors.separator,
       borderRadius: radii.lg,
+      overflow: 'hidden' as const,
     },
     tabItem: {
       flex: 1,
@@ -209,6 +223,7 @@ export function WelcomeHeroPhonePreview({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       borderRadius: radii.sm,
+      overflow: 'hidden' as const,
       paddingHorizontal: 4,
       paddingVertical: spacing.xs,
       gap: 2,
@@ -269,19 +284,20 @@ export function WelcomeHeroPhonePreview({
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <View
-        style={[
-          styles.scaled,
-          {
-            transform: [
-              { translateX: -((PHONE_WIDTH - frameWidth) / 2) },
-              { translateY: -((PHONE_HEIGHT - frameHeight) / 2) },
-              { scale },
-            ],
-          },
-        ]}
-      >
-        <View style={styles.device}>
+      <View style={styles.clip}>
+        <View
+          style={[
+            styles.scaled,
+            {
+              transform: [
+                { translateX: -((PHONE_WIDTH - frameWidth) / 2) },
+                { translateY: -((PHONE_HEIGHT - frameHeight) / 2) },
+                { scale },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.device}>
           <View style={styles.screen}>
             <View style={styles.islandWrap}>
               <View style={styles.island} />
@@ -409,6 +425,7 @@ export function WelcomeHeroPhonePreview({
             </View>
             <View style={styles.homeIndicator} />
           </View>
+        </View>
         </View>
       </View>
     </View>

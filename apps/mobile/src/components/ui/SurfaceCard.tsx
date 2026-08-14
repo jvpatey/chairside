@@ -75,10 +75,19 @@ export function SurfaceCard({
   const isInner = variant === 'inner';
   const showGradient = isDark && variant === 'default' && !isInner && !accentRailColor;
 
-  const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, elevation, isDark }) => {
+    const radius = isInner ? cardShellRadii.inner : radii.lg;
+    return {
+    lift: {
+      borderRadius: radius,
+      overflow: 'visible' as const,
+      ...(isInner ? null : elevationLevel !== 'none' ? elevation(elevationLevel) : null),
+      ...webPointer(onPress ? 'pointer' : 'default'),
+      ...(onPress ? webCardLiftBase() : null),
+    },
     card: {
-      borderRadius: isInner ? cardShellRadii.inner : radii.lg,
-      overflow: 'hidden',
+      borderRadius: radius,
+      overflow: 'hidden' as const,
       borderWidth: isInner ? 1 : StyleSheet.hairlineWidth,
       borderColor:
         variant === 'success'
@@ -89,9 +98,6 @@ export function SurfaceCard({
       ...(padding === 'none' ? null : { padding: padding === 'lg' ? spacing.lg : spacing.md }),
       ...(gap ? { gap: spacing.sm } : null),
       ...(minHeight != null ? { minHeight } : null),
-      ...(isInner ? null : elevationLevel !== 'none' ? elevation(elevationLevel) : null),
-      ...webPointer(onPress ? 'pointer' : 'default'),
-      ...(onPress ? webCardLiftBase() : null),
       position: 'relative' as const,
     },
     cardDefault: {
@@ -123,9 +129,11 @@ export function SurfaceCard({
       width: 3,
       borderRadius: 2,
     },
-  }));
+  };
+  });
 
-  const cardStyle = [styles.card, styles.cardDefault, style];
+  const cardStyle = [styles.card, styles.cardDefault];
+  const liftStyle = [styles.lift, style, { overflow: 'visible' as const }];
 
   const inner = (
     <>
@@ -147,7 +155,11 @@ export function SurfaceCard({
   );
 
   if (!onPress) {
-    return <View style={cardStyle}>{inner}</View>;
+    return (
+      <View style={liftStyle}>
+        <View style={cardStyle}>{inner}</View>
+      </View>
+    );
   }
 
   return (
@@ -158,11 +170,11 @@ export function SurfaceCard({
         onPress();
       }}
       style={({ pressed, hovered }) => [
-        cardStyle,
+        liftStyle,
         webHover(hovered, pressed, styles.cardHovered),
         pressed && styles.cardPressed,
       ]}>
-      {inner}
+      <View style={cardStyle}>{inner}</View>
     </Pressable>
   );
 }
