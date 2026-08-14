@@ -10,14 +10,14 @@ export type ClinicPostingTableColumn = {
 };
 
 export const CLINIC_ROLE_TABLE_COLUMNS: readonly ClinicPostingTableColumn[] = [
-  // Role absorbs leftover width; compact columns stay near content size.
-  { key: 'role', label: 'Role', width: 'minmax(180px, 1.6fr)' },
-  { key: 'type', label: 'Type', width: 'minmax(150px, 1fr)' },
-  { key: 'status', label: 'Status', width: '72px' },
-  { key: 'location', label: 'Location', width: 'minmax(130px, 1.1fr)' },
-  { key: 'applicants', label: 'Applicants', width: '88px' },
-  { key: 'posted', label: 'Posted', width: '104px' },
-  { key: 'pay', label: 'Pay', width: 'minmax(80px, 0.7fr)' },
+  // Only Role flexes; other columns hug content so wide layouts stay dense.
+  { key: 'role', label: 'Role', width: 'minmax(200px, 1fr)' },
+  { key: 'type', label: 'Type', width: 'max-content' },
+  { key: 'status', label: 'Status', width: 'max-content' },
+  { key: 'location', label: 'Location', width: 'max-content' },
+  { key: 'applicants', label: 'Applicants', width: 'max-content' },
+  { key: 'posted', label: 'Posted', width: 'max-content' },
+  { key: 'pay', label: 'Pay', width: 'max-content' },
   { key: 'actions', label: '', width: '40px' },
 ];
 

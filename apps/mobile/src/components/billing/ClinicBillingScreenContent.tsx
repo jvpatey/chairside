@@ -171,6 +171,8 @@ export function ClinicBillingScreenContent({
     canManageSubscription,
     isBillingReady,
     isRefreshing,
+    activeBillingCycle,
+    activePriceLabel,
   } = useClinicBilling();
   const [localError, setLocalError] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
@@ -487,6 +489,8 @@ export function ClinicBillingScreenContent({
           isManagingSubscription={isManagingSubscription}
           isPurchaseBillingAvailable={isPurchaseBillingAvailable}
           isPurchasing={isPurchasing}
+          activeBillingCycle={activeBillingCycle}
+          activePriceLabel={activePriceLabel}
           recommendedUpgradeLabel={
             recommendedUpgrade
               ? `Upgrade to ${getClinicPlanLabel(recommendedUpgrade)}`

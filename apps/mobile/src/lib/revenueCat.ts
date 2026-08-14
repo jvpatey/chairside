@@ -26,6 +26,10 @@ export async function getCurrentClinicPlan(): Promise<ClinicPlan | null> {
   return null;
 }
 
+export async function getActiveSubscriptionProductId(): Promise<string | null> {
+  return null;
+}
+
 export async function openSubscriptionManagement(): Promise<boolean> {
   return false;
 }

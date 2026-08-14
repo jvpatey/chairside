@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatBillingCycleLabel,
+  formatBillingDate,
+  formatClinicSubscriptionStatus,
+  formatNextChargeLabel,
   getClinicPlanBrandAccentColor,
   getClinicPlanFeatureAccentColor,
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
+  getSubscriptionFacts,
+  getSubscriptionManagementHistoryHint,
   isFillInPostingLimitReached,
   isRolePostingLimitReached,
 } from './clinicPlanPresentation';
@@ -55,5 +61,60 @@ describe('clinicPlanPresentation posting limits', () => {
     expect(getClinicPlanFeatureAccentColor('pro', colors, false)).toBe('#5856D6');
     expect(getClinicPlanFeatureAccentColor('starter', colors, true)).toBe('#1A6FD4');
     expect(getClinicPlanFeatureAccentColor('free', colors, false)).toBe('#34C759');
+  });
+});
+
+describe('clinicPlanPresentation subscription copy', () => {
+  it('formats renewing vs cancelled status lines', () => {
+    expect(formatClinicSubscriptionStatus('active', '2027-03-01T12:00:00.000Z')).toMatch(
+      /^Renews /,
+    );
+    expect(formatClinicSubscriptionStatus('cancelled', '2027-03-01T12:00:00.000Z')).toMatch(
+      /^Access until /,
+    );
+    expect(formatClinicSubscriptionStatus('grace_period', null)).toContain('Manage subscription');
+  });
+
+  it('formats billing cycle and next charge labels', () => {
+    expect(formatBillingCycleLabel('monthly')).toBe('Monthly');
+    expect(formatBillingCycleLabel('yearly')).toBe('Yearly');
+
+    expect(
+      formatNextChargeLabel('active', 'CA$49', '2027-03-01T12:00:00.000Z'),
+    ).toMatch(/^Next charge CA\$49 on /);
+    expect(formatNextChargeLabel('cancelled', 'CA$49', '2027-03-01T12:00:00.000Z')).toBeNull();
+    expect(formatNextChargeLabel('active', null, '2027-03-01T12:00:00.000Z')).toBeNull();
+  });
+
+  it('builds subscription fact rows without repeating the renewal date', () => {
+    expect(
+      getSubscriptionFacts({
+        status: 'active',
+        currentPeriodEnd: '2027-03-01T12:00:00.000Z',
+        billingCycle: 'monthly',
+        priceLabel: 'CA$99.99',
+      }),
+    ).toEqual([
+      { label: 'Billing cycle', value: 'Monthly' },
+      { label: 'Renews', value: formatBillingDate('2027-03-01T12:00:00.000Z') },
+      { label: 'Next charge', value: 'CA$99.99' },
+    ]);
+
+    expect(
+      getSubscriptionFacts({
+        status: 'cancelled',
+        currentPeriodEnd: '2027-03-01T12:00:00.000Z',
+        billingCycle: 'yearly',
+        priceLabel: 'CA$499',
+      }),
+    ).toEqual([
+      { label: 'Billing cycle', value: 'Yearly' },
+      { label: 'Access until', value: formatBillingDate('2027-03-01T12:00:00.000Z') },
+    ]);
+  });
+
+  it('formats manage-subscription history hints by platform', () => {
+    expect(getSubscriptionManagementHistoryHint('web')).toContain('billing portal');
+    expect(getSubscriptionManagementHistoryHint('native')).toContain('App Store');
   });
 });

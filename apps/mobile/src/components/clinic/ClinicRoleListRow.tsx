@@ -89,7 +89,7 @@ export function ClinicRoleListRow({
         gridTemplateColumns: gridTemplate,
         alignItems: 'center',
         justifyItems: 'start',
-        gap: spacing.md,
+        gap: spacing.sm,
       } as const),
     },
     tableRowHovered: webListRowHoverStyles(colors),
@@ -117,12 +117,13 @@ export function ClinicRoleListRow({
     cell: {
       fontSize: 13,
       color: colors.labelSecondary,
-      maxWidth: '100%',
+      whiteSpace: 'nowrap' as const,
     },
     pay: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.primary,
+      whiteSpace: 'nowrap' as const,
     },
     muted: {
       fontSize: 13,

@@ -162,3 +162,59 @@ export function getClinicPlanFromEntitlements(
     clinic_starter: Boolean(activeEntitlements[REVENUECAT_ENTITLEMENT_STARTER]),
   });
 }
+
+const ACTIVE_ENTITLEMENT_PRODUCT_PRIORITY = [
+  REVENUECAT_ENTITLEMENT_GROUP_PRO,
+  REVENUECAT_ENTITLEMENT_GROUP_STARTER,
+  REVENUECAT_ENTITLEMENT_PRO,
+  REVENUECAT_ENTITLEMENT_STARTER,
+] as const;
+
+/** Product id for the highest active clinic entitlement, if RevenueCat exposes one. */
+export function getProductIdFromActiveEntitlements(
+  activeEntitlements: Record<string, { productIdentifier?: string | null } | undefined>,
+): string | null {
+  for (const key of ACTIVE_ENTITLEMENT_PRODUCT_PRIORITY) {
+    const productId = activeEntitlements[key]?.productIdentifier;
+    if (productId) return productId;
+  }
+
+  for (const entitlement of Object.values(activeEntitlements)) {
+    const productId = entitlement?.productIdentifier;
+    if (productId) return productId;
+  }
+
+  return null;
+}
+
+export type ActiveBillingDetails = {
+  billingCycle: BillingCycle;
+  priceLabel: string | null;
+  plan: BillingPlan;
+};
+
+/**
+ * Map an active store product id to billing cycle + current offering price.
+ * Cycle can resolve from the product id alone; price needs a matching offering package.
+ */
+export function resolveActiveBillingDetails(
+  productId: string | null | undefined,
+  offerings: BillingOfferings | null | undefined,
+): ActiveBillingDetails | null {
+  if (!productId) return null;
+
+  const meta = resolveBillingPackageMeta([productId]);
+  if (!meta) return null;
+
+  const normalizedProductId = productId.toLowerCase();
+  const matchedPackage =
+    offerings?.packages.find(
+      (pkg) => pkg.productIdentifier.toLowerCase() === normalizedProductId,
+    ) ?? findBillingPackage(offerings, meta.plan, meta.billingCycle);
+
+  return {
+    billingCycle: meta.billingCycle,
+    priceLabel: matchedPackage?.priceLabel ?? null,
+    plan: meta.plan,
+  };
+}

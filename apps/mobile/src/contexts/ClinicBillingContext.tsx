@@ -22,11 +22,13 @@ import {
 } from 'react';
 import { Platform } from 'react-native';
 
-import type { BillingOfferings, BillingPackage } from '@/lib/billingOfferings';
+import type { BillingCycle, BillingOfferings, BillingPackage } from '@/lib/billingOfferings';
+import { resolveActiveBillingDetails } from '@/lib/billingOfferings';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import {
   configureRevenueCat,
+  getActiveSubscriptionProductId,
   getBillingOfferings,
   getCurrentClinicPlan,
   logOutRevenueCat,
@@ -43,6 +45,8 @@ type ClinicBillingContextValue = {
   isHealingSubscription: boolean;
   offerings: BillingOfferings | null;
   revenueCatPlan: ClinicPlan | null;
+  activeBillingCycle: BillingCycle | null;
+  activePriceLabel: string | null;
   refreshBilling: (options?: { forceSubscriptionSync?: boolean }) => Promise<void>;
   purchasePackage: (purchasePackage: BillingPackage) => Promise<ClinicPlan | null>;
   restorePurchases: () => Promise<void>;
@@ -107,6 +111,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
   const [billing, setBilling] = useState<ClinicBillingState | null>(null);
   const [offerings, setOfferings] = useState<BillingOfferings | null>(null);
   const [revenueCatPlan, setRevenueCatPlan] = useState<ClinicPlan | null>(null);
+  const [activeBillingCycle, setActiveBillingCycle] = useState<BillingCycle | null>(null);
+  const [activePriceLabel, setActivePriceLabel] = useState<string | null>(null);
   const [isBillingReady, setIsBillingReady] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isHealingSubscription, setIsHealingSubscription] = useState(false);
@@ -133,6 +139,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       setBilling(null);
       setOfferings(null);
       setRevenueCatPlan(null);
+      setActiveBillingCycle(null);
+      setActivePriceLabel(null);
       setCanManageSubscription(false);
       setIsHealingSubscription(false);
       healedDesyncKeyRef.current = null;
@@ -166,15 +174,21 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
 
         let nextOfferings: BillingOfferings | null = null;
         let nextRevenueCatPlan: ClinicPlan | null = null;
+        let nextActiveBillingCycle: BillingCycle | null = null;
+        let nextActivePriceLabel: string | null = null;
         let revenueCatLoadFailed = false;
 
         try {
-          const [offeringsResult, planResult] = await Promise.all([
+          const [offeringsResult, planResult, productIdResult] = await Promise.all([
             getBillingOfferings(),
             getCurrentClinicPlan(),
+            getActiveSubscriptionProductId(),
           ]);
           nextOfferings = offeringsResult;
           nextRevenueCatPlan = planResult;
+          const activeDetails = resolveActiveBillingDetails(productIdResult, offeringsResult);
+          nextActiveBillingCycle = activeDetails?.billingCycle ?? null;
+          nextActivePriceLabel = activeDetails?.priceLabel ?? null;
         } catch (error) {
           revenueCatLoadFailed = true;
           if (isStale()) return;
@@ -196,8 +210,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
           (options?.forceSubscriptionSync || healedDesyncKeyRef.current !== desyncKey);
 
         if (shouldHealDesync && desyncKey) {
-          healedDesyncKeyRef.current = desyncKey;
           setIsHealingSubscription(true);
+          healedDesyncKeyRef.current = desyncKey;
           try {
             await syncClinicSubscriptionFromRevenueCat();
             if (isStale()) return;
@@ -230,6 +244,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
         if (!revenueCatLoadFailed) {
           setOfferings(nextOfferings);
           setRevenueCatPlan(nextRevenueCatPlan);
+          setActiveBillingCycle(nextActiveBillingCycle);
+          setActivePriceLabel(nextActivePriceLabel);
         }
         setCanManageSubscription(
           isOwner &&
@@ -243,6 +259,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
         setBilling(nextBilling);
         setOfferings(null);
         setRevenueCatPlan(null);
+        setActiveBillingCycle(null);
+        setActivePriceLabel(null);
         setCanManageSubscription(false);
       }
     } catch (error) {
@@ -394,6 +412,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       isHealingSubscription,
       offerings: isOwner ? offerings : null,
       revenueCatPlan,
+      activeBillingCycle: isOwner ? activeBillingCycle : null,
+      activePriceLabel: isOwner ? activePriceLabel : null,
       refreshBilling,
       purchasePackage,
       restorePurchases,
@@ -408,6 +428,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       canManageSubscription,
     }),
     [
+      activeBillingCycle,
+      activePriceLabel,
       billing,
       billingError,
       canManageSubscription,

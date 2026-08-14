@@ -11,6 +11,8 @@ type BillingMetricTileProps = {
   atLimit?: boolean;
   accent?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Quieter tile for nested hero footers. */
+  variant?: 'card' | 'inset';
 };
 
 const IS_WEB = Platform.OS === 'web';
@@ -22,25 +24,35 @@ export function BillingMetricTile({
   atLimit = false,
   accent,
   icon,
+  variant = 'card',
 }: BillingMetricTileProps) {
   const { colors, isDark } = useTheme();
   const tone = atLimit ? colors.warning : (accent ?? colors.primary);
+  const inset = variant === 'inset';
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii, isDark }) => ({
     tile: IS_WEB
       ? {
           flex: 1,
-          minWidth: 120,
-          backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
+          minWidth: inset ? 108 : 120,
+          backgroundColor: inset
+            ? colors.backgroundGrouped
+            : isDark
+              ? colors.surfaceElevated
+              : colors.surface,
           borderRadius: 14,
-          borderWidth: 1,
-          paddingVertical: spacing.md,
-          paddingHorizontal: spacing.md,
-          gap: spacing.xs,
+          borderWidth: inset ? StyleSheet.hairlineWidth : 1,
+          paddingVertical: inset ? spacing.sm + 2 : spacing.md,
+          paddingHorizontal: inset ? spacing.sm + 4 : spacing.md,
+          gap: inset ? 2 : spacing.xs,
           overflow: 'hidden' as const,
           position: 'relative' as const,
-          // @ts-expect-error web shadow
-          boxShadow: getWebShadow(isDark, 'subtle'),
+          ...(inset
+            ? {}
+            : {
+                // @ts-expect-error web shadow
+                boxShadow: getWebShadow(isDark, 'subtle'),
+              }),
         }
       : {
           flex: 1,
@@ -106,14 +118,13 @@ export function BillingMetricTile({
         {
           borderColor: colorWithAlpha(tone, isDark ? 0.32 : IS_WEB ? 0.18 : 0.16),
         },
-      ]}>
+      ]}
+    >
       <View style={styles.topRow}>
         {icon && IS_WEB ? (
           <View
-            style={[
-              styles.iconWrap,
-              { backgroundColor: colorWithAlpha(tone, isDark ? 0.2 : 0.1) },
-            ]}>
+            style={[styles.iconWrap, { backgroundColor: colorWithAlpha(tone, isDark ? 0.2 : 0.1) }]}
+          >
             <Ionicons name={icon} size={15} color={tone} />
           </View>
         ) : icon ? (
@@ -135,17 +146,16 @@ export function BillingMetricTile({
                 backgroundColor: colorWithAlpha(tone, isDark ? 0.18 : 0.1),
                 borderColor: colorWithAlpha(tone, isDark ? 0.28 : 0.2),
               },
-            ]}>
+            ]}
+          >
             <Text style={[styles.hintText, { color: atLimit ? colors.warning : tone }]}>
               {hint}
             </Text>
           </View>
         ) : (
           <Text
-            style={[
-              styles.hintText,
-              { color: atLimit ? colors.warning : colors.labelSecondary },
-            ]}>
+            style={[styles.hintText, { color: atLimit ? colors.warning : colors.labelSecondary }]}
+          >
             {hint}
           </Text>
         )

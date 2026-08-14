@@ -7,6 +7,7 @@ import Purchases, {
 
 import {
   getClinicPlanFromEntitlements,
+  getProductIdFromActiveEntitlements,
   resolveBillingPackageMeta,
   type BillingOfferings,
   type BillingPackage,
@@ -82,6 +83,12 @@ export async function getCurrentClinicPlan(): Promise<ClinicPlan | null> {
   if (!isRevenueCatConfigured()) return null;
   const customerInfo = await Purchases.getCustomerInfo();
   return getClinicPlanFromCustomerInfo(customerInfo);
+}
+
+export async function getActiveSubscriptionProductId(): Promise<string | null> {
+  if (!isRevenueCatConfigured()) return null;
+  const customerInfo = await Purchases.getCustomerInfo();
+  return getProductIdFromActiveEntitlements(customerInfo.entitlements.active);
 }
 
 export async function openSubscriptionManagement(): Promise<boolean> {
