@@ -1,20 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { formatApplicationDate, formatRoleTypesLabel } from '@chairside/config';
-import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
-import { DashboardHero } from '@/components/dashboard/DashboardHero';
-import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
-import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { FileTabWell } from '@/components/dashboard/FileTabWell';
-import type { DashboardOverviewStat } from '@/components/dashboard/DashboardStatGrid';
-import { WorkerApplicationStatusLabel } from '@/components/matching/ApplicationStatusBadge';
-import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
-import { RoleListingCard } from '@/components/worker/RoleListingCard';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
-import { WORKER_PROFILE } from '@/lib/routing';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { type WelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
@@ -34,56 +23,6 @@ function formatStatusTime(date = new Date()) {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-const WORKER_TABS = [
-  { icon: 'home' as const, outline: 'home-outline' as const, label: 'Home', active: true },
-  { icon: 'briefcase' as const, outline: 'briefcase-outline' as const, label: 'Roles', active: false },
-  { icon: 'document-text' as const, outline: 'document-text-outline' as const, label: 'Applications', active: false },
-  { icon: FILL_IN_ICON.filled, outline: FILL_IN_ICON.outline, label: 'Fill-ins', active: false },
-  { icon: 'today' as const, outline: 'today-outline' as const, label: 'Calendar', active: false },
-  { icon: 'chatbubbles' as const, outline: 'chatbubbles-outline' as const, label: 'Messages', active: false },
-] as const;
-
-function PreviewWorkerApplicationCard({ preview }: { preview: WelcomeHeroPreview }) {
-  const { colors } = useTheme();
-  const application = preview.applicants[0];
-  const appliedLabel = formatApplicationDate(application.appliedAt);
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    trailingRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'flex-end' as const,
-      gap: spacing.sm,
-    },
-  }));
-
-  return (
-    <SurfaceCard variant="inner" padding="md" gap>
-      <ClinicPostHeader
-        layout="split"
-        headerOnly
-        clinicName={preview.clinic.name}
-        logoStoragePath={null}
-        title={preview.job.title}
-        location={null}
-        statusLabel={
-          <WorkerApplicationStatusLabel
-            status={application.status}
-            postType="job"
-            showStatusPrefix
-          />
-        }
-        postedLabel={appliedLabel ? `Applied ${appliedLabel}` : null}
-        detail="The clinic is reviewing your application."
-        avatarSize={44}
-      />
-      <View style={styles.trailingRow}>
-        <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
-      </View>
-    </SurfaceCard>
-  );
-}
-
 export function WelcomeHeroPhonePreview({
   preview,
   compact = false,
@@ -92,10 +31,8 @@ export function WelcomeHeroPhonePreview({
   const scale = compact ? COMPACT_SCALE : LANDING_SCALE;
   const frameWidth = PHONE_WIDTH * scale;
   const frameHeight = PHONE_HEIGHT * scale;
-  const [selected, setSelected] = useState<DashboardOverviewStat>('roles');
-  const workerMatch = preview.applicants[0];
 
-  const styles = useThemedStyles(({ colors, spacing, radii, isDark: dark }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark: dark }) => ({
     frame: {
       overflow: 'visible' as const,
       borderRadius: 44 * scale,
@@ -176,66 +113,41 @@ export function WelcomeHeroPhonePreview({
       gap: spacing.lg,
       minHeight: 0,
     },
-    panelStack: {
-      ...webOnlyStyle({
-        display: 'grid',
-        alignItems: 'start',
-      } as object),
-    },
-    panelLayer: {
-      ...webOnlyStyle({
-        gridArea: '1 / 1',
-      } as object),
-    },
-    panelHidden: {
-      ...webOnlyStyle({
-        visibility: 'hidden',
-      } as object),
-      pointerEvents: 'none' as const,
-      zIndex: 0,
-    },
-    group: {
-      gap: spacing.sm,
-      width: '100%' as const,
-    },
-    tabBarOuter: {
-      paddingHorizontal: spacing.sm,
-      paddingTop: spacing.sm,
-      paddingBottom: spacing.sm,
-      backgroundColor: 'transparent',
-    },
-    dock: {
+    chip: {
+      alignSelf: 'flex-start' as const,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
-      gap: 4,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: spacing.xs,
-      backgroundColor: colors.surface,
+      gap: spacing.xs,
+      paddingVertical: 6,
+      paddingHorizontal: spacing.sm,
+      borderRadius: 999,
+      backgroundColor: colors.secondarySubtle,
       borderWidth: 1,
       borderColor: colors.separator,
-      borderRadius: radii.lg,
-      overflow: 'hidden' as const,
     },
-    tabItem: {
-      flex: 1,
-      minHeight: 54,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      borderRadius: radii.sm,
-      overflow: 'hidden' as const,
-      paddingHorizontal: 4,
-      paddingVertical: spacing.xs,
-      gap: 2,
-    },
-    tabLabel: {
-      fontSize: 10,
-      fontWeight: '500' as const,
-      color: colors.tabInactive,
-      textAlign: 'center' as const,
-    },
-    tabLabelActive: {
+    chipText: {
+      fontSize: 13,
       fontWeight: '600' as const,
+      color: colors.secondary,
+    },
+    title: {
+      fontSize: 22,
+      lineHeight: 28,
+      fontWeight: '700' as const,
+      letterSpacing: -0.4,
+      color: colors.labelPrimary,
+    },
+    subtitle: {
+      fontSize: 15,
+      lineHeight: 21,
+      color: colors.labelSecondary,
+      marginTop: 2,
+    },
+    headerBlock: {
+      gap: spacing.sm,
+    },
+    cardStack: {
+      gap: spacing.md,
     },
     homeIndicator: {
       alignSelf: 'center' as const,
@@ -245,38 +157,9 @@ export function WelcomeHeroPhonePreview({
       backgroundColor: colors.labelTertiary,
       opacity: 0.4,
       marginBottom: 8,
+      marginTop: spacing.sm,
     },
   }));
-
-  const roleCard = (
-    <RoleListingCard
-      job={preview.job}
-      embedded
-      jobMatch={workerMatch.match}
-      matchContext={workerMatch.matchContext}
-      distanceLabel={preview.fillInDistanceLabel}
-    />
-  );
-
-  const fillInCard = (
-    <View style={styles.group}>
-      <DashboardSectionHeader title="Open" compact />
-      <FillInListingCard
-        shift={preview.shift}
-        distanceLabel={preview.fillInDistanceLabel}
-        accent="secondary"
-        embedded
-      />
-    </View>
-  );
-
-  const applicationCard = <PreviewWorkerApplicationCard preview={preview} />;
-
-  const panels: { value: DashboardOverviewStat; content: ReactNode }[] = [
-    { value: 'roles', content: roleCard },
-    { value: 'applications', content: applicationCard },
-    { value: 'fill-ins', content: fillInCard },
-  ];
 
   return (
     <View
@@ -298,134 +181,51 @@ export function WelcomeHeroPhonePreview({
           ]}
         >
           <View style={styles.device}>
-          <View style={styles.screen}>
-            <View style={styles.islandWrap}>
-              <View style={styles.island} />
-            </View>
-            <View style={styles.statusBar}>
-              <Text style={styles.statusTime}>{formatStatusTime()}</Text>
-              <View style={styles.statusIcons}>
-                <Ionicons name="cellular" size={15} color={colors.labelPrimary} />
-                <Ionicons name="wifi" size={15} color={colors.labelPrimary} />
-                <Ionicons name="battery-full" size={18} color={colors.labelPrimary} />
+            <View style={styles.screen}>
+              <View style={styles.islandWrap}>
+                <View style={styles.island} />
               </View>
-            </View>
-
-            <View style={styles.body}>
-              <DashboardHero
-                profileHref={WORKER_PROFILE}
-                avatarKind="worker"
-                displayName={preview.workerFirstName}
-                namePlaceholder="Your profile"
-                subtitle={
-                  formatRoleTypesLabel([preview.job.role_type]) || 'Dental professional'
-                }
-                greetingName={preview.workerFirstName}
-                showActions={false}
-                forcePhoneLayout
-              />
-              <DashboardQuickActionsRow
-                forcePhoneLayout
-                actions={[
-                  {
-                    label: 'Find jobs',
-                    description: 'Browse open roles nearby',
-                    icon: 'briefcase-outline',
-                    variant: 'primary',
-                    onPress: () => setSelected('roles'),
-                  },
-                  {
-                    label: 'Find fill-ins',
-                    description: 'Browse temp shifts nearby',
-                    icon: FILL_IN_ICON.outline,
-                    variant: 'secondary',
-                    onPress: () => setSelected('fill-ins'),
-                  },
-                ]}
-              />
-              <FileTabWell<DashboardOverviewStat>
-                variant="dashboard"
-                compactTabs
-                selected={selected}
-                onSelect={setSelected}
-                tabs={[
-                  {
-                    value: 'roles',
-                    label: 'Roles',
-                    count: preview.workerStats.openRoles,
-                    accent: 'primary',
-                    icon: 'briefcase-outline',
-                  },
-                  {
-                    value: 'applications',
-                    label: 'Applications',
-                    count: preview.workerStats.applications,
-                    accent: 'tertiary',
-                    icon: 'document-text-outline',
-                  },
-                  {
-                    value: 'fill-ins',
-                    label: 'Fill-ins',
-                    count: preview.workerStats.fillIns,
-                    accent: 'secondary',
-                    icon: FILL_IN_ICON.outline,
-                  },
-                ]}
-              >
-                <View style={styles.panelStack}>
-                  {panels.map((panel) => {
-                    const isSelected = selected === panel.value;
-                    return (
-                      <View
-                        key={panel.value}
-                        style={[styles.panelLayer, !isSelected && styles.panelHidden]}
-                        accessibilityElementsHidden={!isSelected}
-                        importantForAccessibility={isSelected ? 'auto' : 'no-hide-descendants'}
-                      >
-                        {panel.content}
-                      </View>
-                    );
-                  })}
+              <View style={styles.statusBar}>
+                <Text style={styles.statusTime}>{formatStatusTime()}</Text>
+                <View style={styles.statusIcons}>
+                  <Ionicons name="cellular" size={15} color={colors.labelPrimary} />
+                  <Ionicons name="wifi" size={15} color={colors.labelPrimary} />
+                  <Ionicons name="battery-full" size={18} color={colors.labelPrimary} />
                 </View>
-              </FileTabWell>
-            </View>
+              </View>
 
-            <View style={styles.tabBarOuter}>
-              <View style={styles.dock}>
-                {WORKER_TABS.map((tab) => (
-                  <View
-                    key={tab.label}
-                    style={[
-                      styles.tabItem,
-                      tab.active && { backgroundColor: colors.primary },
-                    ]}
-                  >
-                    <Ionicons
-                      name={tab.active ? tab.icon : tab.outline}
-                      size={20}
-                      color={tab.active ? colors.primaryOnPrimary : colors.tabInactive}
-                    />
-                    <Text
-                      style={[
-                        styles.tabLabel,
-                        tab.active && [
-                          styles.tabLabelActive,
-                          { color: colors.primaryOnPrimary },
-                        ],
-                      ]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.75}
-                    >
-                      {tab.label}
+              <View style={styles.body}>
+                <View style={styles.headerBlock}>
+                  <View style={styles.chip}>
+                    <Ionicons name={FILL_IN_ICON.outline} size={14} color={colors.secondary} />
+                    <Text style={styles.chipText}>New fill-in nearby</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.title}>Cover today?</Text>
+                    <Text style={styles.subtitle}>
+                      A clinic needs a hygienist — request to cover in one tap.
                     </Text>
                   </View>
-                ))}
+                </View>
+
+                <View style={styles.cardStack}>
+                  <FillInListingCard
+                    shift={preview.shift}
+                    distanceLabel={preview.fillInDistanceLabel}
+                    accent="secondary"
+                    embedded
+                  />
+                  <OnboardingButton
+                    label="Request to cover"
+                    accent="secondary"
+                    onPress={() => {}}
+                  />
+                </View>
               </View>
+
+              <View style={styles.homeIndicator} />
             </View>
-            <View style={styles.homeIndicator} />
           </View>
-        </View>
         </View>
       </View>
     </View>

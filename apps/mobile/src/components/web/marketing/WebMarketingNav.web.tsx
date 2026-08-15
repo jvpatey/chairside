@@ -22,7 +22,6 @@ type WebMarketingNavProps = {
 
 const NAV_ANCHORS = [
   { id: 'features', label: 'Features' },
-  { id: 'how-it-works', label: 'How it works' },
   { id: 'pricing', label: 'Pricing' },
 ] as const;
 

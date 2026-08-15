@@ -60,4 +60,9 @@ describe('getWelcomeHeroPreview', () => {
       { name: 'Riley', status: 'applied', isNew: false, education: 'diploma', yearsOfExperience: 3 },
     ]);
   });
+
+  it('includes a cover message for the clinic request card', () => {
+    expect(preview.coverMessage.length).toBeGreaterThan(0);
+    expect(preview.shift.compensation).toBe('To be discussed');
+  });
 });

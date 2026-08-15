@@ -4,12 +4,11 @@ import { Text, View } from 'react-native';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
-import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
 
 export function WebLandingCta() {
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     section: {
       paddingHorizontal: spacing.lg,
       marginTop: spacing.lg,
@@ -27,11 +26,7 @@ export function WebLandingCta() {
       width: '100%' as const,
       borderWidth: 1,
       borderColor: colors.separator,
-      ...webOnlyStyle({
-        backgroundImage: isDark
-          ? 'linear-gradient(135deg, rgba(74, 154, 255, 0.18) 0%, rgba(152, 150, 255, 0.12) 50%, rgba(28, 28, 30, 0.9) 100%)'
-          : 'linear-gradient(135deg, rgba(26, 111, 212, 0.12) 0%, rgba(88, 86, 214, 0.08) 50%, rgba(255, 255, 255, 0.95) 100%)',
-      } as object),
+      backgroundColor: colors.surface,
     },
     copy: {
       alignItems: 'center' as const,
@@ -61,9 +56,9 @@ export function WebLandingCta() {
       <WebPageEnter style={{ width: '100%' }} trigger="visible">
         <View style={styles.card}>
           <View style={styles.copy}>
-            <Text style={styles.title}>Post a role or find your next one</Text>
+            <Text style={styles.title}>Need coverage today?</Text>
             <Text style={styles.subtitle}>
-              Join free in minutes — set up as a clinic or a professional.
+              Post a fill-in or turn on availability — free to start.
             </Text>
           </View>
           <OnboardingButton

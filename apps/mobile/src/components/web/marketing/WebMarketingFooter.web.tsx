@@ -167,7 +167,7 @@ export function WebMarketingFooter() {
           <View style={styles.brandColumn}>
             <ChairsideWordmark variant="small" align="left" onPress={navigateToWelcome} />
             <Text style={styles.tagline}>
-              Permanent roles and same-day fill-ins for dental teams.
+              Same-day fill-ins and permanent roles for dental teams.
             </Text>
           </View>
 

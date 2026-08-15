@@ -6,15 +6,43 @@ import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebLandingHeroHeadline } from '@/components/web/marketing/WebLandingHeroHeadline.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { ONBOARDING_SUBTITLE } from '@/constants';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
-import { useTheme, useThemedStyles } from '@/theme';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
+import { fontSemibold, useThemedStyles } from '@/theme';
 import { webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
 /** Clear sticky marketing nav + breathing room above hero content. */
 const NAV_CLEARANCE = 72;
 const PREVIEW_VERTICAL_RESERVE = NAV_CLEARANCE + 96;
+
+function LandingHeroSubtitle() {
+  const styles = useThemedStyles(({ colors }) => ({
+    text: {
+      ...webTypography.subtitle,
+      color: colors.labelSecondary,
+      maxWidth: 480,
+    },
+    fillIn: {
+      color: colors.primary,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+    },
+    roles: {
+      color: colors.labelSecondary,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+    },
+  }));
+
+  return (
+    <Text style={styles.text}>
+      When someone calls out, post a <Text style={styles.fillIn}>fill-in</Text> and confirm
+      coverage fast. <Text style={styles.roles}>Permanent roles</Text> are here too — one place
+      for clinics and professionals.
+    </Text>
+  );
+}
 
 export function WebLandingHero() {
   const insets = useSafeAreaInsets();
@@ -37,10 +65,11 @@ export function WebLandingHero() {
       right: 0,
       bottom: 0,
       pointerEvents: 'none' as const,
-      // @ts-expect-error web gradient
-      backgroundImage: isDark
-        ? 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(74, 154, 255, 0.1) 0%, transparent 50%)'
-        : 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(26, 111, 212, 0.08) 0%, transparent 50%)',
+      ...webOnlyStyle({
+        backgroundImage: isDark
+          ? 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(74, 154, 255, 0.1) 0%, transparent 50%)'
+          : 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(26, 111, 212, 0.08) 0%, transparent 50%)',
+      } as object),
     },
     inner: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
@@ -59,11 +88,6 @@ export function WebLandingHero() {
     headline: {
       ...(isWide ? webTypography.displaySm : webTypography.headline),
       color: colors.labelPrimary,
-    },
-    subtitle: {
-      ...webTypography.subtitle,
-      color: colors.labelSecondary,
-      maxWidth: 480,
     },
     ctaRow: {
       flexDirection: 'row' as const,
@@ -91,9 +115,9 @@ export function WebLandingHero() {
       <View style={styles.atmosphere} />
       <View style={styles.inner}>
         <WebPageEnter style={styles.copy}>
-          <Text style={styles.eyebrow}>Dental staffing platform</Text>
+          <Text style={styles.eyebrow}>Same-day dental coverage</Text>
           <WebLandingHeroHeadline style={styles.headline} />
-          <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+          <LandingHeroSubtitle />
           <View style={styles.ctaRow}>
             <OnboardingButton
               label="Get started for free"

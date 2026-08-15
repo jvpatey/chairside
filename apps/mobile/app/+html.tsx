@@ -95,12 +95,22 @@ body,
   }
 }
 
-@keyframes chairside-headline-shimmer {
+@keyframes chairside-headline-pop {
   0% {
-    background-position: 120% 0;
+    transform: scale(0.97);
+    opacity: 0.88;
+  }
+  45% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.995);
+    opacity: 1;
   }
   100% {
-    background-position: -20% 0;
+    transform: scale(1);
+    opacity: 1;
   }
 }
 

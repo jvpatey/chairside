@@ -6,7 +6,6 @@ import { WelcomeHeroClinicCanvas } from '@/components/onboarding/WelcomeHeroClin
 import { WelcomeHeroPhonePreview } from '@/components/onboarding/WelcomeHeroPhonePreview.web';
 import { APP_STORE_URL } from '@/constants';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { usePrefersReducedMotion } from '@/lib/motion';
 import { getWelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import {
   webHover,
@@ -30,7 +29,6 @@ export function WelcomeHeroAppPanel({
   showPhone: showPhoneProp,
 }: WelcomeHeroAppPanelProps) {
   const { isWide } = useResponsiveLayout();
-  const reduceMotion = usePrefersReducedMotion();
   const preview = useMemo(() => getWelcomeHeroPreview(), []);
   const showPhone = showPhoneProp ?? (isWide && !compact);
   const appStoreUrl = APP_STORE_URL;
@@ -163,14 +161,9 @@ export function WelcomeHeroAppPanel({
     },
   }));
 
-  const browserTilt =
-    reduceMotion || compact
-      ? null
-      : {
-          transform: [{ rotateY: '-8deg' }, { rotateX: '4deg' }] as const,
-        };
-
-  const phoneTilt = reduceMotion ? null : { transform: [{ rotateZ: '-8deg' }] as const };
+  // Flat product shot — no 3D tilt so the fill-in story stays readable.
+  const browserTilt = null;
+  const phoneTilt = null;
 
   return (
     <View
