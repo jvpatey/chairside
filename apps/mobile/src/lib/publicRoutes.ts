@@ -12,11 +12,6 @@ export function navigateToPricing() {
 }
 
 export function navigateToWelcomeSection(sectionId: string) {
-  if (typeof document !== 'undefined' && document.getElementById(sectionId)) {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    return;
-  }
-
   router.push({
     pathname: WELCOME_ROUTE,
     params: { section: sectionId },

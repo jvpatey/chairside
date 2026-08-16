@@ -19,6 +19,8 @@ import { webGlassSurface, webTransition } from '@/theme/web';
 
 type WebMarketingNavProps = {
   scrollY: Animated.Value;
+  /** When set (welcome page), scrolls the in-page ScrollView to the section. */
+  onSectionPress?: (sectionId: string) => void;
 };
 
 const WELCOME_NAV_ITEMS = [
@@ -31,7 +33,7 @@ function isPricingPath(pathname: string) {
   return pathname === '/pricing' || pathname.endsWith('/pricing');
 }
 
-export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
+export function WebMarketingNav({ scrollY, onSectionPress }: WebMarketingNavProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { isDark, colors } = useTheme();
@@ -172,6 +174,10 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
                   onPress={() => {
                     if (item.kind === 'route') {
                       navigateToPricing();
+                      return;
+                    }
+                    if (onSectionPress) {
+                      onSectionPress(item.id);
                       return;
                     }
                     navigateToWelcomeSection(item.id);

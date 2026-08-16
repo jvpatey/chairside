@@ -2,11 +2,12 @@ import type { ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
+import {
+  MARKETING_SECTION_SCROLL_OFFSET,
+  useWebMarketingScroll,
+} from '@/components/web/marketing/WebMarketingScrollContext.web';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
-
-/** Offset sticky marketing nav when scrolling to section anchors. */
-const SECTION_SCROLL_MARGIN = 88;
 
 type WebMarketingSectionProps = {
   children: ReactNode;
@@ -33,13 +34,15 @@ export function WebMarketingSection({
   atmosphere,
   sectionId,
 }: WebMarketingSectionProps) {
+  const marketingScroll = useWebMarketingScroll();
+
   const styles = useThemedStyles(({ spacing }) => ({
     bleed: {
       width: '100%' as const,
       alignSelf: 'stretch' as const,
       position: 'relative' as const,
       ...(sectionId
-        ? webOnlyStyle({ scrollMarginTop: SECTION_SCROLL_MARGIN } as object)
+        ? webOnlyStyle({ scrollMarginTop: MARKETING_SECTION_SCROLL_OFFSET } as object)
         : {}),
     },
     content: {
@@ -53,7 +56,15 @@ export function WebMarketingSection({
   }));
 
   return (
-    <View nativeID={sectionId} style={[styles.bleed, style]}>
+    <View
+      collapsable={false}
+      nativeID={sectionId}
+      ref={(node) => {
+        if (!sectionId) return;
+        marketingScroll?.registerSection(sectionId, node);
+      }}
+      style={[styles.bleed, style]}
+    >
       {atmosphere}
       <View style={[styles.content, contentStyle]}>{children}</View>
     </View>

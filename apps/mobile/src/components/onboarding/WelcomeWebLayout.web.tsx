@@ -10,21 +10,26 @@ import { WebLandingHero } from '@/components/web/marketing/WebLandingHero.web';
 import { WebLandingStory } from '@/components/web/marketing/WebLandingStory.web';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
 import { WebMarketingNav } from '@/components/web/marketing/WebMarketingNav.web';
+import {
+  WebMarketingScrollProvider,
+  useWebMarketingScroll,
+} from '@/components/web/marketing/WebMarketingScrollContext.web';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useThemedStyles } from '@/theme';
 
-export function WelcomeWebLayout() {
+function WelcomeWebLayoutInner() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { section } = useLocalSearchParams<{ section?: string }>();
+  const marketingScroll = useWebMarketingScroll();
 
   useEffect(() => {
-    if (!section || typeof document === 'undefined') return;
+    if (!section || !marketingScroll) return;
     const timer = window.setTimeout(() => {
-      document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+      marketingScroll.scrollToSection(section);
+    }, 120);
     return () => window.clearTimeout(timer);
-  }, [section]);
+  }, [section, marketingScroll]);
 
   const styles = useThemedStyles(({ colors }) => ({
     page: {
@@ -41,8 +46,14 @@ export function WelcomeWebLayout() {
 
   return (
     <View style={styles.page}>
-      <WebMarketingNav scrollY={scrollY} />
+      <WebMarketingNav
+        scrollY={scrollY}
+        onSectionPress={marketingScroll?.scrollToSection}
+      />
       <Animated.ScrollView
+        ref={(node) => {
+          marketingScroll?.setScrollRef(node as never);
+        }}
         style={[styles.page, webScrollbarStyles()]}
         contentContainerStyle={styles.scrollContent}
         scrollEventThrottle={16}
@@ -51,13 +62,28 @@ export function WelcomeWebLayout() {
         })}
         showsVerticalScrollIndicator={false}
       >
-        <WebLandingHero />
-        <WebLandingStory />
-        <WebLandingFeatures />
-        <WebLandingFaq />
-        <WebLandingCtaStrip />
-        <WebMarketingFooter />
+        <View
+          collapsable={false}
+          ref={(node) => {
+            marketingScroll?.setContentRef(node);
+          }}
+        >
+          <WebLandingHero />
+          <WebLandingStory />
+          <WebLandingFeatures />
+          <WebLandingFaq />
+          <WebLandingCtaStrip />
+          <WebMarketingFooter />
+        </View>
       </Animated.ScrollView>
     </View>
+  );
+}
+
+export function WelcomeWebLayout() {
+  return (
+    <WebMarketingScrollProvider>
+      <WelcomeWebLayoutInner />
+    </WebMarketingScrollProvider>
   );
 }
