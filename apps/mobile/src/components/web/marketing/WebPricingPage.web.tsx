@@ -1,30 +1,17 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { Animated, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { WebLandingCtaStrip } from '@/components/web/marketing/WebLandingCtaStrip.web';
-import { WebLandingFaq } from '@/components/web/marketing/WebLandingFaq.web';
-import { WebLandingFeatures } from '@/components/web/marketing/WebLandingFeatures.web';
-import { WebLandingHero } from '@/components/web/marketing/WebLandingHero.web';
-import { WebLandingStory } from '@/components/web/marketing/WebLandingStory.web';
+import { WebLandingPricing } from '@/components/web/marketing/WebLandingPricing.web';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
 import { WebMarketingNav } from '@/components/web/marketing/WebMarketingNav.web';
+import { WebPublicHeroAtmosphere } from '@/components/web/marketing/WebPublicHeroAtmosphere.web';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useThemedStyles } from '@/theme';
 
-export function WelcomeWebLayout() {
+export function WebPricingPage() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const { section } = useLocalSearchParams<{ section?: string }>();
-
-  useEffect(() => {
-    if (!section || typeof document === 'undefined') return;
-    const timer = window.setTimeout(() => {
-      document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
-    return () => window.clearTimeout(timer);
-  }, [section]);
 
   const styles = useThemedStyles(({ colors }) => ({
     page: {
@@ -36,6 +23,11 @@ export function WelcomeWebLayout() {
       width: '100%' as const,
       alignSelf: 'stretch' as const,
       paddingBottom: insets.bottom,
+    },
+    pricing: {
+      position: 'relative' as const,
+      overflow: 'hidden' as const,
+      paddingTop: insets.top + 88,
     },
   }));
 
@@ -51,11 +43,10 @@ export function WelcomeWebLayout() {
         })}
         showsVerticalScrollIndicator={false}
       >
-        <WebLandingHero />
-        <WebLandingStory />
-        <WebLandingFeatures />
-        <WebLandingFaq />
-        <WebLandingCtaStrip />
+        <View style={styles.pricing}>
+          <WebPublicHeroAtmosphere />
+          <WebLandingPricing />
+        </View>
         <WebMarketingFooter />
       </Animated.ScrollView>
     </View>

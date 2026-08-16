@@ -236,7 +236,7 @@ export default function SignInScreen() {
 
   return (
     <OnboardingShell
-      authSplit
+      webLayout="centeredDecision"
       footer={
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>

@@ -6,6 +6,7 @@ import { useWebDocumentTitle } from '@/hooks/useWebDocumentTitle';
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Chairside',
   '/welcome': 'Chairside — Dental staffing, simplified',
+  '/pricing': 'Chairside — Pricing',
   '/privacy': 'Chairside — Privacy Policy',
   '/terms': 'Chairside — Terms of Service',
   '/support': 'Chairside — Support',

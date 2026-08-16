@@ -4,9 +4,10 @@ import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'rea
 
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
+import { WebMarketingSectionHeader } from '@/components/web/marketing/WebMarketingSnapshotShell.web';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
+import { getWebShadow } from '@/theme/web';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -35,7 +36,7 @@ const FAQ_ITEMS = [
     id: 'fill-ins',
     question: 'How do fill-in shifts work?',
     answer:
-      'Clinics post same-day or short-notice coverage needs. Professionals turn on fill-in availability, browse nearby openings, and apply in-app. Clinics review applicants and message candidates without leaving Chairside.',
+      'Clinics post a same-day or short-notice fill-in. Available professionals nearby get a push and SMS, then request to cover in-app. You accept the right person and message them in Chairside — no phone tree.',
   },
   {
     id: 'matching',
@@ -66,7 +67,7 @@ function FaqItem({
   onToggle: () => void;
   showDivider: boolean;
 }) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     row: {
@@ -145,30 +146,13 @@ export function WebLandingFaq() {
       borderTopWidth: 1,
       borderTopColor: colors.separator,
     },
-    header: {
-      gap: spacing.sm,
-      marginBottom: spacing.xl,
-      maxWidth: 520,
-    },
-    eyebrow: webSectionEyebrowStyle(colors),
-    title: {
-      ...webTypography.headline,
-      color: colors.labelPrimary,
-    },
-    subtitle: {
-      ...webTypography.subtitle,
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.labelSecondary,
-      marginTop: spacing.xs,
-    },
     card: {
       borderRadius: 20,
       borderWidth: 1,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
       overflow: 'hidden' as const,
-      ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'raised') } as object),
+      ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'subtle') } as object),
     },
   }));
 
@@ -185,13 +169,11 @@ export function WebLandingFaq() {
   return (
     <WebMarketingSection style={styles.bleed} sectionId="faq">
       <WebPageEnter trigger="visible">
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>FAQ</Text>
-          <Text style={styles.title}>Common questions</Text>
-          <Text style={styles.subtitle}>
-            Straight answers about pricing, coverage, and how Chairside works.
-          </Text>
-        </View>
+        <WebMarketingSectionHeader
+          eyebrow="FAQ"
+          title="Common questions"
+          subtitle="Straight answers about pricing, coverage, and how Chairside works."
+        />
 
         <View style={styles.card}>
           {FAQ_ITEMS.map((item, index) => (

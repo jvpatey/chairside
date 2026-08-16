@@ -1,4 +1,5 @@
-import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { router, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,7 +8,7 @@ import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
-import { navigateToWelcome } from '@/lib/publicRoutes';
+import { navigateToPricing, navigateToWelcome, navigateToWelcomeSection } from '@/lib/publicRoutes';
 import {
   webHover,
   webPointer,
@@ -20,27 +21,31 @@ type WebMarketingNavProps = {
   scrollY: Animated.Value;
 };
 
-const NAV_ANCHORS = [
-  { id: 'features', label: 'Features' },
-  { id: 'pricing', label: 'Pricing' },
-] as const;
+const WELCOME_NAV_ITEMS = [
+  { id: 'how-it-works', label: 'How it works', kind: 'section' as const },
+  { id: 'features', label: 'Features', kind: 'section' as const },
+  { id: 'pricing', label: 'Pricing', kind: 'route' as const },
+];
 
-function scrollToSection(sectionId: string) {
-  if (typeof document === 'undefined') return;
-  document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function isPricingPath(pathname: string) {
+  return pathname === '/pricing' || pathname.endsWith('/pricing');
 }
 
 export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
   const { isDark, colors } = useTheme();
   const { width } = useResponsiveLayout();
   const isNarrow = width < 480;
   const showAnchors = width >= 768;
-  const [condensed, setCondensed] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const onPricing = isPricingPath(pathname);
+  // Same scroll-glass behavior as welcome — no forced condensed state on pricing.
+  const condensed = scrolled;
 
   useEffect(() => {
     const id = scrollY.addListener(({ value }) => {
-      setCondensed(value > 48);
+      setScrolled(value > 48);
     });
     return () => scrollY.removeListener(id);
   }, [scrollY]);
@@ -73,6 +78,19 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
       gap: spacing.lg,
       flex: 1,
       minWidth: 0,
+    },
+    back: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+      ...webPointer(),
+    },
+    backText: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.labelSecondary,
     },
     anchors: {
       flexDirection: 'row' as const,
@@ -118,25 +136,57 @@ export function WebMarketingNav({ scrollY }: WebMarketingNavProps) {
     <View style={styles.outer}>
       <View style={styles.inner}>
         <View style={styles.leftCluster}>
+          {onPricing ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Back to welcome"
+              onPress={navigateToWelcome}
+              style={({ pressed }) => [styles.back, pressed && { opacity: 0.75 }]}
+            >
+              {({ hovered }) => (
+                <>
+                  <Ionicons
+                    name="chevron-back"
+                    size={18}
+                    color={hovered ? colors.labelPrimary : colors.labelSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.backText,
+                      hovered && { color: colors.labelPrimary },
+                    ]}
+                  >
+                    Back
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          ) : null}
           <ChairsideWordmark variant="small" onPress={navigateToWelcome} />
-          {showAnchors ? (
+          {!onPricing && showAnchors ? (
             <View style={styles.anchors}>
-              {NAV_ANCHORS.map((anchor) => (
+              {WELCOME_NAV_ITEMS.map((item) => (
                 <Pressable
-                  key={anchor.id}
+                  key={item.id}
                   accessibilityRole="link"
-                  onPress={() => scrollToSection(anchor.id)}
+                  onPress={() => {
+                    if (item.kind === 'route') {
+                      navigateToPricing();
+                      return;
+                    }
+                    navigateToWelcomeSection(item.id);
+                  }}
                   style={({ pressed }) => [styles.anchor, pressed && { opacity: 0.75 }]}
                 >
                   {({ hovered }) => (
                     <Text
                       style={
                         hovered
-                          ? [styles.anchorText, { color: colors.labelPrimary, textDecorationLine: 'underline' }]
+                          ? [styles.anchorText, { color: colors.labelPrimary }]
                           : styles.anchorText
                       }
                     >
-                      {anchor.label}
+                      {item.label}
                     </Text>
                   )}
                 </Pressable>

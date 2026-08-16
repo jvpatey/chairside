@@ -2,16 +2,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { type HeroDemoPhase } from '@/components/onboarding/welcomeHeroDemo';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { type WelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow } from '@/theme/web';
+import { getWebShadow, webMotion } from '@/theme/web';
 
 type WelcomeHeroPhonePreviewProps = {
   preview: WelcomeHeroPreview;
   compact?: boolean;
+  /** When provided, the push banner + request/confirm CTA are driven by the hero demo loop. */
+  demoPhase?: HeroDemoPhase;
 };
 
 const PHONE_WIDTH = 390;
@@ -23,14 +25,32 @@ function formatStatusTime(date = new Date()) {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
+function phaseStyle(visible: boolean, offsetY = 10, delayMs = 0) {
+  const delay = delayMs > 0 ? ` ${delayMs}ms` : '';
+  return webOnlyStyle({
+    opacity: visible ? 1 : 0,
+    transform: [{ translateY: visible ? 0 : offsetY }, { scale: visible ? 1 : 0.97 }],
+    transition: `opacity 520ms ${webMotion.easingOut}${delay}, transform 520ms ${webMotion.easingOut}${delay}`,
+    pointerEvents: visible ? 'auto' : 'none',
+  } as object);
+}
+
 export function WelcomeHeroPhonePreview({
   preview,
   compact = false,
+  demoPhase,
 }: WelcomeHeroPhonePreviewProps) {
   const { colors } = useTheme();
   const scale = compact ? COMPACT_SCALE : LANDING_SCALE;
   const frameWidth = PHONE_WIDTH * scale;
   const frameHeight = PHONE_HEIGHT * scale;
+
+  const showNewBanner = demoPhase === 'alert';
+  const showConfirmedBanner =
+    demoPhase == null || demoPhase === 'covered' || demoPhase === 'idle';
+  const showRequestCard = demoPhase === 'alert';
+  const showConfirmedCard =
+    demoPhase == null || demoPhase === 'covered' || demoPhase === 'idle';
 
   const styles = useThemedStyles(({ colors, spacing, isDark: dark }) => ({
     frame: {
@@ -109,45 +129,90 @@ export function WelcomeHeroPhonePreview({
     body: {
       flex: 1,
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.md,
-      gap: spacing.lg,
+      paddingTop: spacing.xl,
       minHeight: 0,
+      justifyContent: 'center' as const,
     },
-    chip: {
-      alignSelf: 'flex-start' as const,
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: spacing.xs,
-      paddingVertical: 6,
-      paddingHorizontal: spacing.sm,
-      borderRadius: 999,
-      backgroundColor: colors.secondarySubtle,
+    cardStage: {
+      position: 'relative' as const,
+      minHeight: 148,
+    },
+    cardLayer: {
+      width: '100%' as const,
+    },
+    cardLayerAbsolute: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+    },
+    fillInChip: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.sm,
+      ...webOnlyStyle({
+        boxShadow: getWebShadow(dark, 'subtle'),
+      } as object),
     },
-    chipText: {
-      fontSize: 13,
-      fontWeight: '600' as const,
-      color: colors.secondary,
+    confirmedChip: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.tertiary,
+      padding: spacing.md,
+      gap: spacing.sm,
+      ...webOnlyStyle({
+        boxShadow: getWebShadow(dark, 'subtle'),
+      } as object),
     },
-    title: {
-      fontSize: 22,
-      lineHeight: 28,
-      fontWeight: '700' as const,
-      letterSpacing: -0.4,
-      color: colors.labelPrimary,
-    },
-    subtitle: {
-      fontSize: 15,
-      lineHeight: 21,
-      color: colors.labelSecondary,
-      marginTop: 2,
-    },
-    headerBlock: {
+    chipHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
       gap: spacing.sm,
     },
-    cardStack: {
-      gap: spacing.md,
+    iconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.secondarySubtle,
+    },
+    confirmedIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.tertiary,
+    },
+    chipCopy: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    chipTitle: {
+      fontSize: 15,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    confirmedTitle: {
+      fontSize: 15,
+      fontWeight: '700' as const,
+      color: colors.tertiary,
+    },
+    chipMeta: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
+    distance: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.secondary,
     },
     homeIndicator: {
       alignSelf: 'center' as const,
@@ -158,6 +223,67 @@ export function WelcomeHeroPhonePreview({
       opacity: 0.4,
       marginBottom: 8,
       marginTop: spacing.sm,
+    },
+    banner: {
+      position: 'absolute' as const,
+      top: 58,
+      left: 10,
+      right: 10,
+      zIndex: 3,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+      paddingVertical: 10,
+      paddingHorizontal: spacing.sm + 2,
+      borderRadius: 18,
+      backgroundColor: dark ? 'rgba(44,44,48,0.94)' : 'rgba(250,250,252,0.96)',
+      borderWidth: 1,
+      borderColor: colors.separator,
+      ...webOnlyStyle({
+        boxShadow: getWebShadow(dark, 'raised'),
+        backdropFilter: 'blur(16px)',
+      } as object),
+    },
+    bannerIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.secondary,
+    },
+    bannerIconConfirmed: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.tertiary,
+    },
+    bannerBody: {
+      flex: 1,
+      minWidth: 0,
+      gap: 1,
+    },
+    bannerTitleRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      gap: spacing.xs,
+    },
+    bannerApp: {
+      fontSize: 13,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    bannerTime: {
+      fontSize: 11,
+      color: colors.labelTertiary,
+    },
+    bannerText: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.labelSecondary,
     },
   }));
 
@@ -185,6 +311,38 @@ export function WelcomeHeroPhonePreview({
               <View style={styles.islandWrap}>
                 <View style={styles.island} />
               </View>
+              {demoPhase != null ? (
+                <>
+                  <View style={[styles.banner, phaseStyle(showNewBanner, -72)]}>
+                    <View style={styles.bannerIcon}>
+                      <Ionicons name={FILL_IN_ICON.filled} size={18} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.bannerBody}>
+                      <View style={styles.bannerTitleRow}>
+                        <Text style={styles.bannerApp}>Chairside</Text>
+                        <Text style={styles.bannerTime}>now</Text>
+                      </View>
+                      <Text style={styles.bannerText} numberOfLines={2}>
+                        New fill-in nearby — Dental Hygienist · Today 9–5
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.banner, phaseStyle(showConfirmedBanner, -72)]}>
+                    <View style={styles.bannerIconConfirmed}>
+                      <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.bannerBody}>
+                      <View style={styles.bannerTitleRow}>
+                        <Text style={styles.bannerApp}>Chairside</Text>
+                        <Text style={styles.bannerTime}>now</Text>
+                      </View>
+                      <Text style={styles.bannerText} numberOfLines={2}>
+                        Fill-in confirmed — you’re covering Today · 9–5
+                      </Text>
+                    </View>
+                  </View>
+                </>
+              ) : null}
               <View style={styles.statusBar}>
                 <Text style={styles.statusTime}>{formatStatusTime()}</Text>
                 <View style={styles.statusIcons}>
@@ -195,31 +353,50 @@ export function WelcomeHeroPhonePreview({
               </View>
 
               <View style={styles.body}>
-                <View style={styles.headerBlock}>
-                  <View style={styles.chip}>
-                    <Ionicons name={FILL_IN_ICON.outline} size={14} color={colors.secondary} />
-                    <Text style={styles.chipText}>New fill-in nearby</Text>
+                <View style={styles.cardStage}>
+                  <View
+                    style={[
+                      styles.cardLayer,
+                      styles.cardLayerAbsolute,
+                      phaseStyle(showRequestCard, 16, 80),
+                    ]}
+                  >
+                    <View style={styles.fillInChip}>
+                      <View style={styles.chipHeader}>
+                        <View style={styles.iconWrap}>
+                          <Ionicons
+                            name={FILL_IN_ICON.outline}
+                            size={18}
+                            color={colors.secondary}
+                          />
+                        </View>
+                        <View style={styles.chipCopy}>
+                          <Text style={styles.chipTitle}>Dental Hygienist</Text>
+                          <Text style={styles.chipMeta}>Today · 9–5</Text>
+                        </View>
+                        <Text style={styles.distance}>{preview.fillInDistanceLabel}</Text>
+                      </View>
+                      <OnboardingButton
+                        label="Request to cover"
+                        accent="secondary"
+                        onPress={() => {}}
+                      />
+                    </View>
                   </View>
-                  <View>
-                    <Text style={styles.title}>Cover today?</Text>
-                    <Text style={styles.subtitle}>
-                      A clinic needs a hygienist — request to cover in one tap.
-                    </Text>
-                  </View>
-                </View>
 
-                <View style={styles.cardStack}>
-                  <FillInListingCard
-                    shift={preview.shift}
-                    distanceLabel={preview.fillInDistanceLabel}
-                    accent="secondary"
-                    embedded
-                  />
-                  <OnboardingButton
-                    label="Request to cover"
-                    accent="secondary"
-                    onPress={() => {}}
-                  />
+                  <View style={[styles.cardLayer, phaseStyle(showConfirmedCard, 12, 100)]}>
+                    <View style={styles.confirmedChip}>
+                      <View style={styles.chipHeader}>
+                        <View style={styles.confirmedIconWrap}>
+                          <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                        </View>
+                        <View style={styles.chipCopy}>
+                          <Text style={styles.confirmedTitle}>Fill-in confirmed</Text>
+                          <Text style={styles.chipMeta}>You’re covering Today · 9–5</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
                 </View>
               </View>
 

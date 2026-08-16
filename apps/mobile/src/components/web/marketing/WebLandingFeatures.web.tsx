@@ -1,24 +1,28 @@
 import { getClinicWorkerCrmTagLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import { PillBadge } from '@/components/ui/PillBadge';
-import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
+import {
+  WebMarketingCard,
+  WebMarketingCardTitle,
+  WebMarketingSectionHeader,
+  WebMarketingSnapshotShell,
+} from '@/components/web/marketing/WebMarketingSnapshotShell.web';
+import { WelcomeSmsPreview } from '@/components/web/marketing/WelcomeSmsPreview.web';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { FILL_IN_ICON } from '@/lib/fillInIcons';
+import { useInViewPhaseLoop } from '@/lib/webMarketingBeatLoop.web';
 import { getWelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import { useContentSwapAnimation } from '@/lib/webMotion.web';
-import { webCardLiftBase, webOnlyStyle, useWebCardLift } from '@/lib/webPressableStyles';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { colorWithAlpha, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
-import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
+import { webMotion } from '@/theme/web';
 
 type FeaturesAudience = 'clinic' | 'professional';
 
@@ -28,30 +32,28 @@ type FeatureDef = {
   highlight: string;
   body: string;
   accent: GradientAccent;
-  lead?: boolean;
 };
 
 const CLINIC_FEATURES: readonly FeatureDef[] = [
   {
-    id: 'confirm',
-    title: 'Confirm coverage fast',
-    highlight: 'fast',
-    body: 'Accept or decline cover requests the moment they come in.',
-    accent: 'secondary',
-    lead: true,
-  },
-  {
     id: 'match',
     title: 'Match, filter, and flag',
     highlight: 'flag',
-    body: 'Match scores plus tags so you keep the right people close.',
+    body: 'Match scores and tags at a glance.',
     accent: 'secondary',
   },
   {
-    id: 'message',
-    title: 'Message in Chairside',
-    highlight: 'Chairside',
-    body: 'Coordinate coverage without leaving the platform.',
+    id: 'outreach',
+    title: 'Reach professionals nearby',
+    highlight: 'nearby',
+    body: 'Notify available professionals for same-day cover.',
+    accent: 'secondary',
+  },
+  {
+    id: 'roles',
+    title: 'Post permanent roles',
+    highlight: 'permanent',
+    body: 'Permanent roles live alongside fill-ins.',
     accent: 'primary',
   },
 ] as const;
@@ -59,32 +61,43 @@ const CLINIC_FEATURES: readonly FeatureDef[] = [
 const PROFESSIONAL_FEATURES: readonly FeatureDef[] = [
   {
     id: 'availability',
-    title: "Show you're free",
-    highlight: "you're free",
-    body: 'Turn on availability — get push and SMS when a fill-in opens nearby.',
+    title: 'Alerts on your terms',
+    highlight: 'your terms',
+    body: 'Turn on when you want shifts. Mute anytime.',
     accent: 'secondary',
-    lead: true,
   },
   {
     id: 'alerts',
     title: 'Never miss a shift',
     highlight: 'shift',
-    body: 'Same-day openings land as push and text so you can respond immediately.',
+    body: 'Openings land as push and text.',
     accent: 'secondary',
   },
   {
     id: 'message',
     title: 'Message the clinic',
     highlight: 'clinic',
-    body: 'Ask about the shift and confirm details in-app.',
+    body: 'Confirm shift details in-app.',
     accent: 'primary',
   },
 ] as const;
 
 const AUDIENCE_SUBTITLE: Record<FeaturesAudience, string> = {
-  clinic: 'Fill short-notice chairs fast — confirm coverage, match candidates, and message in one place.',
-  professional: 'Get alerted when fill-ins open nearby, stay available, and message clinics in-app.',
+  clinic: 'Match candidates, reach available professionals, and post permanent roles — all in one place.',
+  professional: 'Stay available when you want shifts, get alerted for nearby fill-ins, and message clinics in-app.',
 };
+
+const SNAPSHOT_MIN_HEIGHT = 168;
+
+function phaseStyle(visible: boolean, offsetY = 10, delayMs = 0) {
+  const delay = delayMs > 0 ? ` ${delayMs}ms` : '';
+  return webOnlyStyle({
+    opacity: visible ? 1 : 0,
+    transform: [{ translateY: visible ? 0 : offsetY }],
+    transition: `opacity 420ms ${webMotion.easingOut}${delay}, transform 420ms ${webMotion.easingOut}${delay}`,
+    pointerEvents: visible ? 'auto' : 'none',
+  } as object);
+}
 
 function FeaturesAudienceToggle({
   value,
@@ -93,7 +106,7 @@ function FeaturesAudienceToggle({
   value: FeaturesAudience;
   onChange: (audience: FeaturesAudience) => void;
 }) {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     wrap: {
@@ -169,97 +182,41 @@ function FeaturesAudienceToggle({
   );
 }
 
-function SnapshotShell({ children }: { children: ReactNode }) {
-  const { colors } = useTheme();
-
+function SnapshotFrame({ children }: { children: React.ReactNode }) {
   return (
-    <View
-      style={{
-        borderRadius: 14,
-        padding: 12,
-        backgroundColor: colors.backgroundGrouped,
-        borderWidth: 1,
-        borderColor: colors.separator,
-        gap: 10,
-      }}
+    <WebMarketingSnapshotShell
+      style={{ flex: 1, minHeight: SNAPSHOT_MIN_HEIGHT, justifyContent: 'center' }}
     >
       {children}
-    </View>
+    </WebMarketingSnapshotShell>
   );
 }
 
-function ClinicConfirmVisual() {
+/** Match → filter tags → flag appears. */
+function ClinicMatchVisual() {
   const preview = useMemo(() => getWelcomeHeroPreview(), []);
   const applicant = preview.applicants[0];
+  const { colors } = useTheme();
+  const schedule = useMemo(() => [0, 1100, 2200] as const, []);
+  const { ref, phase } = useInViewPhaseLoop(schedule, 5600);
+  const showTags = phase >= 1;
+  const showFlag = phase >= 2;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
     row: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       gap: spacing.sm,
     },
-    body: { flex: 1, minWidth: 0, gap: 2 },
-    name: {
-      fontSize: 15,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-    },
-    detail: {
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.labelSecondary,
-    },
-    actions: {
-      flexDirection: 'row' as const,
-      gap: spacing.sm,
-    },
-    action: { flex: 1, minWidth: 0 },
-  }));
-
-  return (
-    <SnapshotShell>
-      <View style={styles.row}>
-        <WorkerProfileAvatar displayName={applicant.name} size={36} />
-        <View style={styles.body}>
-          <Text style={styles.name} numberOfLines={1}>
-            {applicant.name}
-          </Text>
-          <Text style={styles.detail} numberOfLines={1}>
-            Hygienist · Just now
-          </Text>
-        </View>
-        <ApplicationCardBadge label="New request" />
-      </View>
-      <View style={styles.actions}>
-        <OnboardingButton
-          style={styles.action}
-          label="Accept"
-          accent="secondary"
-          onPress={() => {}}
-        />
-        <OnboardingButton
-          style={styles.action}
-          label="Decline"
-          variant="destructive"
-          onPress={() => {}}
-        />
-      </View>
-    </SnapshotShell>
-  );
-}
-
-function ClinicMatchVisual() {
-  const preview = useMemo(() => getWelcomeHeroPreview(), []);
-  const applicant = preview.applicants[0];
-  const { colors } = useTheme();
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    row: {
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start' as const,
-      gap: spacing.sm,
-    },
-    body: { flex: 1, minWidth: 0, gap: spacing.xs },
+    body: { flex: 1, minWidth: 0, gap: 4 },
     nameRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -282,6 +239,7 @@ function ClinicMatchVisual() {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
       gap: 6,
+      minHeight: 24,
     },
     flaggedBadge: {
       alignSelf: 'flex-start' as const,
@@ -300,28 +258,34 @@ function ClinicMatchVisual() {
   }));
 
   return (
-    <SnapshotShell>
-      <View style={styles.row}>
-        <WorkerProfileAvatar displayName={applicant.name} size={36} />
-        <View style={styles.body}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name} numberOfLines={1}>
-              {applicant.name}
+    <SnapshotFrame>
+      <View ref={ref} style={styles.card}>
+        <View style={styles.row}>
+          <WorkerProfileAvatar displayName={applicant.name} size={36} />
+          <View style={styles.body}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {applicant.name}
+              </Text>
+              <MatchTierBadge
+                breakdown={applicant.match}
+                context={applicant.matchContext}
+                subtitle={preview.job.title}
+                audience="clinic"
+              />
+            </View>
+            <Text style={styles.detail} numberOfLines={1}>
+              {applicant.yearsOfExperience} years · Hygienist · Nearby
             </Text>
-            <MatchTierBadge
-              breakdown={applicant.match}
-              context={applicant.matchContext}
-              subtitle={preview.job.title}
-              audience="clinic"
-            />
           </View>
-          <Text style={styles.detail} numberOfLines={1}>
-            {applicant.yearsOfExperience} years · Hygienist · Nearby
-          </Text>
-          <View style={styles.tags}>
+        </View>
+        <View style={styles.tags}>
+          <View style={phaseStyle(showFlag, 6)}>
             <View style={styles.flaggedBadge}>
               <Text style={styles.flaggedText}>Flagged</Text>
             </View>
+          </View>
+          <View style={phaseStyle(showTags, 8)}>
             <PillBadge
               label={getClinicWorkerCrmTagLabel('follow_up_later')}
               size="sm"
@@ -332,28 +296,121 @@ function ClinicMatchVisual() {
           </View>
         </View>
       </View>
-    </SnapshotShell>
+    </SnapshotFrame>
   );
 }
 
-function MessagingVisual({
-  audience,
-}: {
-  audience: FeaturesAudience;
-}) {
-  const isClinic = audience === 'clinic';
-  const bubbles = isClinic
-    ? [
-        { from: 'them' as const, text: 'I can cover 9–5 today.' },
-        { from: 'me' as const, text: 'Perfect — you’re confirmed.' },
-      ]
-    : [
-        { from: 'them' as const, text: 'Still need coverage today?' },
-        { from: 'me' as const, text: 'Yes — I can be there by 9.' },
-      ];
+/** Available professionals appear, then notify / sent. */
+function ClinicOutreachVisual() {
+  const preview = useMemo(() => getWelcomeHeroPreview(), []);
+  const pros = preview.applicants.slice(0, 2);
+  const schedule = useMemo(() => [0, 1200, 2400] as const, []);
+  const { ref, phase } = useInViewPhaseLoop(schedule, 5600);
+  const showSecond = phase >= 1;
+  const notified = phase >= 2;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    stack: { gap: spacing.sm },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    heading: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase' as const,
+      color: colors.labelSecondary,
+    },
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+    },
+    body: { flex: 1, minWidth: 0, gap: 2 },
+    name: {
+      fontSize: 14,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    detail: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.labelSecondary,
+    },
+    available: {
+      fontSize: 11,
+      fontWeight: '700' as const,
+      color: colors.secondary,
+    },
+    ctaStage: {
+      position: 'relative' as const,
+      minHeight: 40,
+      marginTop: 2,
+    },
+  }));
+
+  return (
+    <SnapshotFrame>
+      <View ref={ref} style={styles.card}>
+        <Text style={styles.heading}>Available nearby</Text>
+        <View style={styles.row}>
+          <WorkerProfileAvatar displayName={pros[0].name} size={32} />
+          <View style={styles.body}>
+            <Text style={styles.name} numberOfLines={1}>
+              {pros[0].name}
+            </Text>
+            <Text style={styles.detail} numberOfLines={1}>
+              Available · Nearby
+            </Text>
+          </View>
+          <Text style={styles.available}>Free today</Text>
+        </View>
+        <View style={[styles.row, phaseStyle(showSecond, 8)]}>
+          <WorkerProfileAvatar displayName={pros[1]?.name ?? 'Sam'} size={32} />
+          <View style={styles.body}>
+            <Text style={styles.name} numberOfLines={1}>
+              {pros[1]?.name ?? 'Sam'}
+            </Text>
+            <Text style={styles.detail} numberOfLines={1}>
+              Available · Nearby
+            </Text>
+          </View>
+          <Text style={styles.available}>Free today</Text>
+        </View>
+        <View style={styles.ctaStage}>
+          <View
+            style={[
+              { position: 'absolute', left: 0, right: 0, top: 0 },
+              phaseStyle(!notified, 8),
+            ]}
+          >
+            <OnboardingButton label="Notify professionals" accent="secondary" onPress={() => {}} />
+          </View>
+          <View style={phaseStyle(notified, 8)}>
+            <OnboardingButton label="Notified · 2" accent="secondary" onPress={() => {}} />
+          </View>
+        </View>
+      </View>
+    </SnapshotFrame>
+  );
+}
+
+/** Incoming bubble, then reply — professionals only. */
+function MessagingVisual() {
+  const schedule = useMemo(() => [0, 1200] as const, []);
+  const { ref, phase } = useInViewPhaseLoop(schedule, 4800);
+  const showReply = phase >= 1;
+
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    stack: {
+      gap: spacing.sm,
+      minHeight: 88,
+      justifyContent: 'center' as const,
+    },
     bubble: {
       maxWidth: '88%' as const,
       paddingVertical: 8,
@@ -385,29 +442,153 @@ function MessagingVisual({
   }));
 
   return (
-    <SnapshotShell>
-      <View style={styles.stack}>
-        {bubbles.map((bubble) => (
-          <View
-            key={bubble.text}
-            style={[styles.bubble, bubble.from === 'me' ? styles.me : styles.them]}
-          >
-            <Text style={bubble.from === 'me' ? styles.meText : styles.themText}>{bubble.text}</Text>
-          </View>
-        ))}
+    <SnapshotFrame>
+      <View ref={ref} style={styles.stack}>
+        <View style={[styles.bubble, styles.them]}>
+          <Text style={styles.themText}>Still need coverage today?</Text>
+        </View>
+        <View style={[styles.bubble, styles.me, phaseStyle(showReply, 10)]}>
+          <Text style={styles.meText}>Yes — I can be there by 9.</Text>
+        </View>
       </View>
-    </SnapshotShell>
+    </SnapshotFrame>
   );
 }
 
-function ProfessionalAvailabilityVisual() {
-  const { colors, spacing } = useTheme();
+/** Compact permanent role card — no oversized RoleListingCard. */
+function ClinicRolesVisual() {
+  const schedule = useMemo(() => [0, 1600] as const, []);
+  const { ref, phase } = useInViewPhaseLoop(schedule, 5000);
+  const live = phase >= 1;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    row: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+    },
+    label: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.labelSecondary,
+    },
+    value: {
+      fontSize: 15,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    wage: {
+      fontSize: 15,
+      fontWeight: '700' as const,
+      color: colors.primary,
+    },
+    status: {
+      alignSelf: 'flex-start' as const,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      backgroundColor: colors.primarySubtle,
+      borderWidth: 1,
+      borderColor: colors.separator,
+    },
+    statusText: {
+      fontSize: 11,
+      fontWeight: '700' as const,
+      color: colors.primary,
+    },
+  }));
+
+  return (
+    <SnapshotFrame>
+      <View ref={ref} style={styles.card}>
+        <View style={styles.row}>
+          <Text style={styles.label}>Role</Text>
+          <Text style={styles.value}>Dental Hygienist</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Type</Text>
+          <Text style={styles.value}>Full-time</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Wage</Text>
+          <Text style={styles.wage}>$42–$48 / hr</Text>
+        </View>
+        <View style={[styles.status, phaseStyle(live, 8)]}>
+          <Text style={styles.statusText}>{live ? 'Live · Accepting applicants' : 'Draft'}</Text>
+        </View>
+      </View>
+    </SnapshotFrame>
+  );
+}
+
+/** Toggle off → on, then alert chips appear. */
+function ProfessionalAvailabilityVisual() {
+  const { colors } = useTheme();
+  const schedule = useMemo(() => [0, 900, 1800] as const, []);
+  const { ref, phase } = useInViewPhaseLoop(schedule, 5200);
+  const on = phase >= 1;
+  const showChips = phase >= 2;
+
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      gap: spacing.sm,
+    },
+    copy: { flex: 1, minWidth: 0, gap: 2 },
+    title: {
+      fontSize: 14,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    hint: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.labelSecondary,
+    },
+    track: {
+      width: 46,
+      height: 28,
+      borderRadius: 999,
+      padding: 3,
+      justifyContent: 'center' as const,
+      ...webOnlyStyle({
+        transition: `background-color 320ms ${webMotion.easingOut}`,
+      } as object),
+    },
+    thumb: {
+      width: 22,
+      height: 22,
+      borderRadius: 999,
+      backgroundColor: '#FFFFFF',
+      ...webOnlyStyle({
+        transition: `transform 320ms ${webMotion.easingOut}`,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+      } as object),
+    },
     chips: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
       gap: 6,
+      minHeight: 28,
     },
     chip: {
       flexDirection: 'row' as const,
@@ -416,7 +597,7 @@ function ProfessionalAvailabilityVisual() {
       paddingVertical: 5,
       paddingHorizontal: 8,
       borderRadius: 999,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.secondarySubtle,
       borderWidth: 1,
       borderColor: colors.separator,
     },
@@ -428,43 +609,62 @@ function ProfessionalAvailabilityVisual() {
   }));
 
   return (
-    <SnapshotShell>
-      <SurfaceCard variant="inner" padding="md">
-        <SettingsToggleRow
-          prominence="primary"
-          title="Available for fill-ins"
-          hint="Open to short-notice coverage nearby."
-          value
-          accentColor={colors.secondary}
-          bleedPadding={spacing.md}
-          onValueChange={() => {}}
-        />
-      </SurfaceCard>
-      <View style={styles.chips}>
-        <View style={styles.chip}>
-          <Ionicons name="notifications" size={12} color={colors.secondary} />
-          <Text style={styles.chipText}>Push on</Text>
+    <SnapshotFrame>
+      <View ref={ref} style={styles.card}>
+        <View style={styles.row}>
+          <View style={styles.copy}>
+            <Text style={styles.title}>Available for fill-ins</Text>
+            <Text style={styles.hint}>Alerts only while this is on.</Text>
+          </View>
+          <View
+            style={[
+              styles.track,
+              { backgroundColor: on ? colors.secondary : colors.fillSubtle },
+            ]}
+          >
+            <View
+              style={[
+                styles.thumb,
+                webOnlyStyle({
+                  transform: [{ translateX: on ? 18 : 0 }],
+                } as object),
+              ]}
+            />
+          </View>
         </View>
-        <View style={styles.chip}>
-          <Ionicons name="chatbubble-ellipses" size={12} color={colors.secondary} />
-          <Text style={styles.chipText}>SMS on</Text>
+        <View style={[styles.chips, phaseStyle(showChips, 8)]}>
+          <View style={styles.chip}>
+            <Ionicons name="notifications" size={12} color={colors.secondary} />
+            <Text style={styles.chipText}>Push on</Text>
+          </View>
+          <View style={styles.chip}>
+            <Ionicons name="chatbubble-ellipses" size={12} color={colors.secondary} />
+            <Text style={styles.chipText}>SMS on</Text>
+          </View>
         </View>
       </View>
-    </SnapshotShell>
+    </SnapshotFrame>
   );
 }
 
+/** Push, then SMS. */
 function ProfessionalAlertsVisual() {
   const { colors } = useTheme();
+  const schedule = useMemo(() => [0, 1000] as const, []);
+  const { ref, phase } = useInViewPhaseLoop(schedule, 4800);
+  const showSms = phase >= 1;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
+    stack: {
+      gap: 10,
+      justifyContent: 'center' as const,
+    },
     card: {
       backgroundColor: colors.surface,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.separator,
       padding: spacing.sm + 2,
-      gap: 4,
     },
     row: {
       flexDirection: 'row' as const,
@@ -492,34 +692,26 @@ function ProfessionalAlertsVisual() {
   }));
 
   return (
-    <SnapshotShell>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="notifications" size={14} color={colors.secondary} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.title}>New fill-in nearby</Text>
-            <Text style={styles.body} numberOfLines={2}>
-              Dental Hygienist · Today 9–5
-            </Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <View style={styles.iconWrap}>
-            <Ionicons name={FILL_IN_ICON.outline} size={14} color={colors.secondary} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.title}>SMS · Chairside</Text>
-            <Text style={styles.body} numberOfLines={2}>
-              Same-day hygienist fill-in opened near you.
-            </Text>
+    <SnapshotFrame>
+      <View ref={ref} style={styles.stack}>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.iconWrap}>
+              <Ionicons name="notifications" size={14} color={colors.secondary} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.title}>New fill-in nearby</Text>
+              <Text style={styles.body} numberOfLines={2}>
+                Dental Hygienist · Today 9–5
+              </Text>
+            </View>
           </View>
         </View>
+        <View style={[styles.card, phaseStyle(showSms, 12)]}>
+          <WelcomeSmsPreview />
+        </View>
       </View>
-    </SnapshotShell>
+    </SnapshotFrame>
   );
 }
 
@@ -531,47 +723,13 @@ function FeatureVisual({
   featureId: string;
 }) {
   if (audience === 'clinic') {
-    if (featureId === 'confirm') return <ClinicConfirmVisual />;
     if (featureId === 'match') return <ClinicMatchVisual />;
-    return <MessagingVisual audience="clinic" />;
+    if (featureId === 'outreach') return <ClinicOutreachVisual />;
+    return <ClinicRolesVisual />;
   }
   if (featureId === 'availability') return <ProfessionalAvailabilityVisual />;
   if (featureId === 'alerts') return <ProfessionalAlertsVisual />;
-  return <MessagingVisual audience="professional" />;
-}
-
-function HighlightTitle({
-  title,
-  highlight,
-  accent,
-  lead,
-}: {
-  title: string;
-  highlight: string;
-  accent: GradientAccent;
-  lead?: boolean;
-}) {
-  const { colors } = useTheme();
-  const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
-  const fontSize = lead ? 19 : 18;
-  const lineHeight = lead ? 25 : 24;
-
-  if (!title.includes(highlight)) {
-    return (
-      <Text style={{ fontSize, lineHeight, fontWeight: '700', color: colors.labelPrimary }}>
-        {title}
-      </Text>
-    );
-  }
-
-  const [before, after] = title.split(highlight);
-  return (
-    <Text style={{ fontSize, lineHeight, fontWeight: '700', color: colors.labelPrimary }}>
-      {before}
-      <Text style={{ color: accentColor }}>{highlight}</Text>
-      {after}
-    </Text>
-  );
+  return <MessagingVisual />;
 }
 
 function FeatureTile({
@@ -583,24 +741,13 @@ function FeatureTile({
   audience: FeaturesAudience;
   enterDelayMs?: number;
 }) {
-  const { isDark } = useTheme();
-  const { liftStyle, hoverHandlers } = useWebCardLift(isDark);
-
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors }) => ({
     card: {
-      flex: 1,
-      borderRadius: 20,
-      padding: spacing.lg,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      gap: spacing.md,
-      minHeight: feature.lead ? 248 : 220,
-      ...webCardLiftBase(),
-      ...webOnlyStyle({ boxShadow: getWebShadow(isDark, 'subtle') } as object),
+      minHeight: 292,
     },
     copy: {
       gap: 4,
+      minHeight: 52,
     },
     body: {
       fontSize: 14,
@@ -609,27 +756,25 @@ function FeatureTile({
     },
     visual: {
       flex: 1,
-      justifyContent: 'center' as const,
-      minHeight: feature.lead ? 112 : 96,
+      minHeight: SNAPSHOT_MIN_HEIGHT,
     },
   }));
 
   return (
-    <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1 }} trigger="visible">
-      <View style={[styles.card, liftStyle]} {...hoverHandlers}>
+    <WebPageEnter delayMs={enterDelayMs} style={{ flex: 1, minWidth: 0 }} trigger="visible">
+      <WebMarketingCard style={styles.card}>
         <View style={styles.copy}>
-          <HighlightTitle
+          <WebMarketingCardTitle
             title={feature.title}
             highlight={feature.highlight}
             accent={feature.accent}
-            lead={feature.lead}
           />
           <Text style={styles.body}>{feature.body}</Text>
         </View>
         <View style={styles.visual}>
           <FeatureVisual audience={audience} featureId={feature.id} />
         </View>
-      </View>
+      </WebMarketingCard>
     </WebPageEnter>
   );
 }
@@ -649,7 +794,7 @@ function FeaturesAudiencePanel({
   const styles = useThemedStyles(({ spacing }) => ({
     grid: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
-      gap: spacing.md,
+      gap: spacing.lg,
       alignItems: 'stretch' as const,
     },
   }));
@@ -693,25 +838,9 @@ export function WebLandingFeatures() {
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse 70% 55% at 12% 18%, rgba(152, 150, 255, 0.16) 0%, transparent 58%), radial-gradient(ellipse 55% 45% at 88% 8%, rgba(74, 154, 255, 0.12) 0%, transparent 55%)'
-          : 'radial-gradient(ellipse 70% 55% at 12% 18%, rgba(88, 86, 214, 0.1) 0%, transparent 58%), radial-gradient(ellipse 55% 45% at 88% 8%, rgba(26, 111, 212, 0.08) 0%, transparent 55%)',
+          ? 'radial-gradient(ellipse 70% 55% at 12% 18%, rgba(74, 154, 255, 0.1) 0%, transparent 58%)'
+          : 'radial-gradient(ellipse 70% 55% at 12% 18%, rgba(26, 111, 212, 0.06) 0%, transparent 58%)',
       } as object),
-    },
-    header: {
-      gap: spacing.sm,
-      marginBottom: spacing.lg,
-      maxWidth: 560,
-    },
-    eyebrow: webSectionEyebrowStyle(colors),
-    title: {
-      ...webTypography.headline,
-      color: colors.labelPrimary,
-    },
-    subtitle: {
-      ...webTypography.subtitle,
-      fontSize: 17,
-      color: colors.labelSecondary,
-      marginTop: spacing.xs,
     },
   }));
 
@@ -721,11 +850,11 @@ export function WebLandingFeatures() {
       sectionId="features"
       atmosphere={<View style={styles.atmosphere} />}
     >
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>Features</Text>
-        <Text style={styles.title}>Built for how dental teams actually work</Text>
-        <Text style={styles.subtitle}>{AUDIENCE_SUBTITLE[audience]}</Text>
-      </View>
+      <WebMarketingSectionHeader
+        eyebrow="Features"
+        title="Built for how dental teams actually work"
+        subtitle={AUDIENCE_SUBTITLE[audience]}
+      />
 
       <FeaturesAudienceToggle
         value={audience}
