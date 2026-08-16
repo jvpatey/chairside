@@ -8,6 +8,7 @@ import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
 import { PlanTierBadge } from '@/components/billing/PlanTierBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
@@ -238,7 +239,14 @@ export function ClinicProfileHero({
   isUploadingAvatar,
   hideClinicMeta = false,
 }: ClinicProfileHeroProps) {
-  const { logoUri, isUploading, pickLogo } = useClinicLogo();
+  const {
+    logoUri,
+    isUploading,
+    cropCandidate,
+    pickLogo,
+    cancelCrop,
+    confirmCrop,
+  } = useClinicLogo();
   const name =
     displayName?.trim() || profile?.clinic_name?.trim() || 'Your practice';
   const specialtyLabel = hideClinicMeta
@@ -255,31 +263,44 @@ export function ClinicProfileHero({
   const handleAvatarPress = onAvatarPress ?? (() => void pickLogo());
 
   return (
-    <ClinicIdentityHeroCard
-      clinicName={name}
-      logoUri={avatarUri}
-      personName={memberDisplayName || name}
-      avatarKind={usePersonAvatar ? 'person' : 'clinic'}
-      specialtyLabel={specialtyLabel}
-      locationLabel={locationLabel || null}
-      email={email}
-      identityLine={identityLine}
-      identityInline={identityInline}
-      editable={editable}
-      isUploading={isUploadingAvatar ?? isUploading}
-      onPickLogo={handleAvatarPress}
-      avatarAccessibilityLabel={
-        onAvatarPress
-          ? 'Edit your profile'
-          : usePersonAvatar
-            ? 'Change profile photo'
-            : 'Change clinic logo'
-      }
-      showAccountBadge
-      plan={plan}
-      emptyMetaFallback={
-        hideClinicMeta ? undefined : 'Complete your clinic profile to get started'
-      }
-    />
+    <>
+      <ClinicIdentityHeroCard
+        clinicName={name}
+        logoUri={avatarUri}
+        personName={memberDisplayName || name}
+        avatarKind={usePersonAvatar ? 'person' : 'clinic'}
+        specialtyLabel={specialtyLabel}
+        locationLabel={locationLabel || null}
+        email={email}
+        identityLine={identityLine}
+        identityInline={identityInline}
+        editable={editable}
+        isUploading={isUploadingAvatar ?? isUploading}
+        onPickLogo={handleAvatarPress}
+        avatarAccessibilityLabel={
+          onAvatarPress
+            ? 'Edit your profile'
+            : usePersonAvatar
+              ? 'Change profile photo'
+              : 'Change clinic logo'
+        }
+        showAccountBadge
+        plan={plan}
+        emptyMetaFallback={
+          hideClinicMeta ? undefined : 'Complete your clinic profile to get started'
+        }
+      />
+      {!usePersonAvatar && cropCandidate ? (
+        <ProfilePhotoCropEditor
+          visible
+          imageUri={cropCandidate.uri}
+          imageWidth={cropCandidate.width}
+          imageHeight={cropCandidate.height}
+          isSaving={isUploading}
+          onCancel={cancelCrop}
+          onConfirm={(transform) => void confirmCrop(transform)}
+        />
+      ) : null}
+    </>
   );
 }

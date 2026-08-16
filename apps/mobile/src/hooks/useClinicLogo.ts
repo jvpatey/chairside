@@ -1,13 +1,20 @@
 import { deleteClinicLogo, uploadClinicLogoFromBase64 } from '@chairside/api';
-import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { readFileAsBase64 } from '@/lib/readFileAsBase64';
+import { cropProfilePhotoToBase64 } from '@/lib/cropProfilePhoto';
+import {
+  pickSquareImageCropCandidate,
+  type SquareImageCropCandidate,
+} from '@/lib/pickSquareImageCropCandidate';
+import {
+  PROFILE_PHOTO_CROP_VIEWPORT,
+  type ProfilePhotoCropTransform,
+} from '@/lib/profilePhotoCrop';
 
 /** Survives React remounts (Strict Mode / screen refresh) during setup upload. */
 const logoPreviewByClinicId = new Map<string, string>();
@@ -39,6 +46,7 @@ export function useClinicLogo() {
     () => logoPathByClinicId.get(cacheKey) ?? null,
   );
   const [isUploading, setIsUploading] = useState(false);
+  const [cropCandidate, setCropCandidate] = useState<SquareImageCropCandidate | null>(null);
 
   const setPreviewUri = (uri: string | null) => {
     if (uri) logoPreviewByClinicId.set(cacheKey, uri);
@@ -66,38 +74,37 @@ export function useClinicLogo() {
   const pickLogo = async () => {
     if (!ownerClinicId) return;
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Permission needed',
-        'Allow photo library access to add a clinic logo.',
-      );
-      return;
-    }
+    const candidate = await pickSquareImageCropCandidate({
+      permissionMessage: 'Allow photo library access to add a clinic logo.',
+    });
+    if (!candidate) return;
 
+    setCropCandidate(candidate);
+  };
+
+  const cancelCrop = () => {
+    setCropCandidate(null);
+  };
+
+  const confirmCrop = async (transform: ProfilePhotoCropTransform) => {
+    if (!ownerClinicId || !cropCandidate) return;
+
+    setIsUploading(true);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.85,
-      });
-
-      if (result.canceled || !result.assets[0]) return;
-
-      const asset = result.assets[0];
-      const contentType = normalizeImageContentType(asset.mimeType);
-      setIsUploading(true);
-
-      const base64 = await readFileAsBase64(
-        asset.uri,
-        Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
+      const cropped = await cropProfilePhotoToBase64(
+        cropCandidate.uri,
+        cropCandidate.width,
+        cropCandidate.height,
+        PROFILE_PHOTO_CROP_VIEWPORT,
+        transform,
       );
-      setPreviewUri(toDataUri(base64, contentType));
+      const contentType = normalizeImageContentType(cropped.mimeType);
+      setPreviewUri(toDataUri(cropped.base64, contentType));
+      setCropCandidate(null);
 
       const { storagePath: uploadedPath } = await uploadClinicLogoFromBase64(
         ownerClinicId,
-        base64,
+        cropped.base64,
         contentType,
         savedPath ?? optimisticPath,
       );
@@ -109,7 +116,6 @@ export function useClinicLogo() {
         setOptimisticPath(refreshedPath);
       }
     } catch (error) {
-      // Keep any preview that already rendered unless upload never started.
       Alert.alert(
         'Upload failed',
         error instanceof Error ? error.message : 'Please try again.',
@@ -155,7 +161,10 @@ export function useClinicLogo() {
     logoUri,
     hasLogo: Boolean(storagePath) || Boolean(logoUri),
     isUploading,
+    cropCandidate,
     pickLogo,
+    cancelCrop,
+    confirmCrop,
     removeLogo,
   };
 }

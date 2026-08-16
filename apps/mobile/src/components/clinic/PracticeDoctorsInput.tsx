@@ -18,9 +18,18 @@ import { PracticeDoctorFormFields } from '@/components/clinic/PracticeDoctorForm
 import { PracticeDoctorAvatar } from '@/components/clinic/PracticeDoctorAvatar';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
+import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePracticeDoctorPhotoUri } from '@/hooks/usePracticeDoctorPhotoUri';
-import { pickDoctorPhotoFromLibrary } from '@/lib/pickDoctorPhotoFromLibrary';
+import { cropProfilePhotoToBase64 } from '@/lib/cropProfilePhoto';
+import {
+  pickDoctorPhotoFromLibrary,
+  type DoctorPhotoCropCandidate,
+} from '@/lib/pickDoctorPhotoFromLibrary';
+import {
+  PROFILE_PHOTO_CROP_VIEWPORT,
+  type ProfilePhotoCropTransform,
+} from '@/lib/profilePhotoCrop';
 import {
   webHover,
   webListRowHoverStyles,
@@ -165,6 +174,10 @@ export function PracticeDoctorsInput({
   const [draftPhotoPreviewUri, setDraftPhotoPreviewUri] = useState<string | null>(null);
   const [draftPhotoBase64, setDraftPhotoBase64] = useState<string | null>(null);
   const [draftPhotoContentType, setDraftPhotoContentType] = useState<string | null>(null);
+  const [draftCropCandidate, setDraftCropCandidate] = useState<DoctorPhotoCropCandidate | null>(
+    null,
+  );
+  const [isCroppingDraftPhoto, setIsCroppingDraftPhoto] = useState(false);
   const [isAddingDoctor, setIsAddingDoctor] = useState(false);
   const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null);
 
@@ -226,15 +239,39 @@ export function PracticeDoctorsInput({
     setDraftPhotoPreviewUri(null);
     setDraftPhotoBase64(null);
     setDraftPhotoContentType(null);
+    setDraftCropCandidate(null);
   };
 
   const handlePickDraftPhoto = async () => {
-    const picked = await pickDoctorPhotoFromLibrary();
-    if (!picked) return;
+    const candidate = await pickDoctorPhotoFromLibrary();
+    if (!candidate) return;
+    setDraftCropCandidate(candidate);
+  };
 
-    setDraftPhotoPreviewUri(picked.previewUri);
-    setDraftPhotoBase64(picked.base64);
-    setDraftPhotoContentType(picked.contentType);
+  const handleConfirmDraftCrop = async (transform: ProfilePhotoCropTransform) => {
+    if (!draftCropCandidate) return;
+
+    setIsCroppingDraftPhoto(true);
+    try {
+      const cropped = await cropProfilePhotoToBase64(
+        draftCropCandidate.uri,
+        draftCropCandidate.width,
+        draftCropCandidate.height,
+        PROFILE_PHOTO_CROP_VIEWPORT,
+        transform,
+      );
+      setDraftPhotoPreviewUri(`data:${cropped.mimeType};base64,${cropped.base64}`);
+      setDraftPhotoBase64(cropped.base64);
+      setDraftPhotoContentType(cropped.mimeType);
+      setDraftCropCandidate(null);
+    } catch (error) {
+      Alert.alert(
+        'Could not crop photo',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsCroppingDraftPhoto(false);
+    }
   };
 
   const addDoctor = async () => {
@@ -329,7 +366,7 @@ export function PracticeDoctorsInput({
           title={titleDraft}
           bio={bioDraft}
           photoUri={draftPhotoPreviewUri}
-          isPhotoLoading={isAddingDoctor}
+          isPhotoLoading={isAddingDoctor || isCroppingDraftPhoto}
           locationOptions={locationOptions}
           selectedLocationIds={locationIdsDraft}
           onLocationIdsChange={setLocationIdsDraft}
@@ -381,6 +418,18 @@ export function PracticeDoctorsInput({
         onSave={saveDoctor}
         onRemove={removeDoctor}
       />
+
+      {draftCropCandidate ? (
+        <ProfilePhotoCropEditor
+          visible
+          imageUri={draftCropCandidate.uri}
+          imageWidth={draftCropCandidate.width}
+          imageHeight={draftCropCandidate.height}
+          isSaving={isCroppingDraftPhoto}
+          onCancel={() => setDraftCropCandidate(null)}
+          onConfirm={(transform) => void handleConfirmDraftCrop(transform)}
+        />
+      ) : null}
     </View>
   );
 }
