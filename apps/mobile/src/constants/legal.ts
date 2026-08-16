@@ -1,5 +1,5 @@
 /** Shown on legal pages; update when policy copy changes materially. */
-export const LEGAL_LAST_UPDATED = 'July 1, 2026';
+export const LEGAL_LAST_UPDATED = 'August 16, 2026';
 
 /**
  * Production web origin for absolute legal URLs (App Store Connect).
@@ -20,6 +20,8 @@ export const PUBLIC_LEGAL_PATHS = {
   terms: '/terms',
 } as const;
 
-export function getPublicLegalUrl(path: keyof typeof PUBLIC_LEGAL_PATHS): string {
+export type LegalPathKey = keyof typeof PUBLIC_LEGAL_PATHS;
+
+export function getPublicLegalUrl(path: LegalPathKey): string {
   return `${getPublicWebBaseUrl()}${PUBLIC_LEGAL_PATHS[path]}`;
 }

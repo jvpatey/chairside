@@ -15,6 +15,7 @@ import {
   profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
 import { userHasEmailPasswordLogin } from '@/lib/authProviders';
+import { CLINIC_AUTH_LEGAL_PATHS, WORKER_AUTH_LEGAL_PATHS } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 type AccountScreenContentProps = {
@@ -100,7 +101,9 @@ export function AccountScreenContent({
         <Text style={styles.hint}>
           Review policies and reach out if you need help with your account.
         </Text>
-        <AccountLegalLinks />
+        <AccountLegalLinks
+          legalPaths={isClinic ? CLINIC_AUTH_LEGAL_PATHS : WORKER_AUTH_LEGAL_PATHS}
+        />
       </SectionPanel>
 
       <SectionPanel icon="log-out-outline" title="Sign out">

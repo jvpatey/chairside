@@ -7,7 +7,6 @@ import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup'
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { WorkerProfileHero } from '@/components/worker/WorkerProfileHero';
 import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton';
-import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -24,6 +23,7 @@ import {
   WORKER_PROFILE_APPLICATION_KIT,
   WORKER_PROFILE_NOTIFICATIONS,
   WORKER_PROFILE_PROFESSIONAL,
+  WORKER_PROFILE_SUPPORT,
 } from '@/lib/routing';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
@@ -90,7 +90,7 @@ export default function WorkerProfileScreen() {
               subtitle={getSupportSubtitle()}
               iconColor={colors.success}
               iconBackgroundColor={colorWithAlpha(colors.success, 0.094)}
-              onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
+              onPress={() => router.push(WORKER_PROFILE_SUPPORT)}
             />
           ) : null}
           <ProfileSettingsRow
