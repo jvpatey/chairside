@@ -4,7 +4,6 @@ import {
   MOBILE_TAB_ORDER,
   TABLET_SIDEBAR_SECTIONS,
   TABLET_SIDEBAR_TAB_ORDER,
-  isEmphasizedSidebarRoute,
 } from '@/components/navigation/tabOrder';
 
 describe('clinic tab order', () => {
@@ -37,11 +36,5 @@ describe('clinic tab order', () => {
     expect(TABLET_SIDEBAR_TAB_ORDER.worker.indexOf('fillins')).toBeLessThan(
       TABLET_SIDEBAR_TAB_ORDER.worker.indexOf('browse'),
     );
-  });
-
-  it('emphasizes fill-ins and roles in the sidebar', () => {
-    expect(isEmphasizedSidebarRoute('fill-ins')).toBe(true);
-    expect(isEmphasizedSidebarRoute('postings')).toBe(true);
-    expect(isEmphasizedSidebarRoute('applications')).toBe(false);
   });
 });

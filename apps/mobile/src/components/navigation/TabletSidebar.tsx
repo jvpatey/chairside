@@ -49,7 +49,7 @@ import {
   WORKER_PROFILE_ACCOUNT,
   WORKER_PROFILE_NOTIFICATIONS,
 } from '@/lib/routing';
-import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER, isEmphasizedSidebarRoute } from '@/components/navigation/tabOrder';
+import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
@@ -540,9 +540,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       fontWeight: '500',
       color: colors.labelPrimary,
     },
-    labelEmphasized: {
-      fontWeight: '700',
-    },
     labelActive: {
       fontWeight: '700',
     },
@@ -847,7 +844,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           <Text
             style={[
               styles.label,
-              isWeb && isEmphasizedSidebarRoute(route.name) && styles.labelEmphasized,
               isFocused && [styles.labelActive, { color: activeColor }],
               labelRevealStyle(isCollapsed),
             ]}

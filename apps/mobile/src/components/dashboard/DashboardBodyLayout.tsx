@@ -10,13 +10,18 @@ type DashboardBodyLayoutProps = {
   hero?: ReactNode;
   error?: ReactNode;
   needsAttention?: ReactNode;
+  /** Group locations glance — sits after needsAttention in the main path. */
+  alerts?: ReactNode;
   calendar?: ReactNode;
+  /** Unfilled fill-ins this week — after calendar. */
+  coverage?: ReactNode;
   quickActions?: ReactNode;
   workspace: ReactNode;
   insights?: ReactNode;
   checklist?: ReactNode;
   messages?: ReactNode;
-  alerts?: ReactNode;
+  /** Owner team pulse — after messages. */
+  teamPulse?: ReactNode;
   planUsage?: ReactNode;
 };
 
@@ -29,28 +34,31 @@ export function DashboardBodyLayout({
   hero,
   error,
   needsAttention,
+  alerts,
   calendar,
+  coverage,
   quickActions,
   workspace,
   insights,
   checklist,
   messages,
-  alerts,
+  teamPulse,
   planUsage,
 }: DashboardBodyLayoutProps) {
   const { isWide } = useResponsiveLayout();
   const useDesktopGrid = IS_WEB && isWide;
   const styles = useThemedStyles((theme) => getDashboardLayoutStyles(theme));
 
-  // Web aside: insights first (Pro perk), then messages/calendar, then plan usage.
+  // Web aside: insights first (Pro perk), then messages/team, calendar/coverage, plan usage.
   const asideColumn = (
     <View style={styles.asideStack}>
       {insights}
       {messages}
+      {teamPulse}
       {calendar}
+      {coverage}
       {planUsage}
       {checklist}
-      {alerts}
     </View>
   );
 
@@ -58,9 +66,10 @@ export function DashboardBodyLayout({
     hasRenderableContent(planUsage) ||
     hasRenderableContent(insights) ||
     hasRenderableContent(calendar) ||
+    hasRenderableContent(coverage) ||
     hasRenderableContent(messages) ||
-    hasRenderableContent(checklist) ||
-    hasRenderableContent(alerts);
+    hasRenderableContent(teamPulse) ||
+    hasRenderableContent(checklist);
 
   // Don't wrap on phone — an empty wrapper still consumes flex `gap` and doubles
   // the space above Calendar when Needs attention has nothing to show.
@@ -81,6 +90,7 @@ export function DashboardBodyLayout({
         {quickActions}
         {error}
         {attentionRow}
+        {alerts}
         <View style={hasAside ? styles.desktopGrid : undefined}>
           <View style={hasAside ? styles.desktopMain : styles.desktopMainFull}>
             {workspace}
@@ -97,14 +107,17 @@ export function DashboardBodyLayout({
       {quickActions}
       {error}
       {attentionRow}
+      {alerts}
       {IS_WEB ? calendar : null}
+      {IS_WEB ? coverage : null}
       {workspace}
       {!IS_WEB ? calendar : null}
+      {!IS_WEB ? coverage : null}
       {messages}
+      {teamPulse}
       {planUsage}
       {insights}
       {checklist}
-      {alerts}
     </View>
   );
 }

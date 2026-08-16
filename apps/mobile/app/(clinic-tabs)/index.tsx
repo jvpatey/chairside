@@ -6,6 +6,8 @@ import {
   getShiftPostPendingApplicationCountsMap,
   listClinicApplications,
   listClinicCalendarEvents,
+  listClinicInvitations,
+  listClinicMemberships,
   listConversationsForClinic,
   listJobPosts,
   listShiftPosts,
@@ -27,6 +29,11 @@ import {
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
 import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
+import { GroupLocationsGlanceWidget } from '@/components/clinic/GroupLocationsGlanceWidget';
+import { GroupTeamPulseWidget } from '@/components/clinic/GroupTeamPulseWidget';
+import { GroupWeekCoverageWidget } from '@/components/clinic/GroupWeekCoverageWidget';
+import { HiringInsightsPanel } from '@/components/clinic/HiringInsightsPanel';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
@@ -39,7 +46,6 @@ import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { DashboardMessagesWidget } from '@/components/messaging/DashboardMessagesWidget';
-import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -47,7 +53,6 @@ import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useDashboardWelcomeCelebration } from '@/hooks/useDashboardWelcomeCelebration';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
-import { HiringInsightsPanel } from '@/components/clinic/HiringInsightsPanel';
 import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -69,11 +74,18 @@ import {
 } from '@/lib/clinicPlanPresentation';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
+  buildLocationGlanceRows,
+  buildTeamPulseCounts,
+  buildWeekCoverageRows,
+  type TeamPulseCounts,
+} from '@/lib/groupDashboardMetrics';
+import {
   CLINIC_APPLICATIONS,
   CLINIC_FILL_INS,
   CLINIC_POSTINGS,
   CLINIC_POST_JOB,
   CLINIC_PROFILE,
+  CLINIC_PROFILE_TEAM,
   CLINIC_SETUP_BASICS,
   getClinicApplicationRoute,
   getClinicMessagesRoute,
@@ -98,11 +110,13 @@ export default function ClinicDashboardScreen() {
     clinicId,
     scopedLocationIds,
     isGroup,
+    isOwner,
     memberDisplayName,
     memberRoleLabel,
     groupDisplayName,
     locationScope,
     accessibleLocations,
+    setLocationScope,
   } = useClinicActingContext();
   const { isTablet } = useResponsiveLayout();
   const {
@@ -134,6 +148,10 @@ export default function ClinicDashboardScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
+  const [teamPulse, setTeamPulse] = useState<TeamPulseCounts>({
+    pendingInvites: 0,
+    unassignedManagers: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
@@ -184,6 +202,21 @@ export default function ClinicDashboardScreen() {
       setConversations(conversationRows);
       setApplications(clinicApplications);
       setCalendarEvents(calendarRows);
+
+      if (isGroup && isOwner) {
+        try {
+          const [invitations, memberships] = await Promise.all([
+            listClinicInvitations(clinicId),
+            listClinicMemberships(clinicId),
+          ]);
+          setTeamPulse(buildTeamPulseCounts({ invitations, memberships }));
+        } catch {
+          setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
+        }
+      } else {
+        setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
+      }
+
       await refreshUnread();
       await refreshBilling();
       hasLoadedOnce.current = true;
@@ -205,11 +238,12 @@ export default function ClinicDashboardScreen() {
         setShiftPendingCounts({});
         setShiftApplicationCounts({});
         setConversations([]);
+        setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
       }
     } finally {
       setIsLoading(false);
     }
-  }, [clinicId, refreshBilling, refreshUnread, scopedLocationIds]);
+  }, [clinicId, isGroup, isOwner, refreshBilling, refreshUnread, scopedLocationIds]);
 
   useRefreshOnFocus(loadDashboard);
 
@@ -402,6 +436,70 @@ export default function ClinicDashboardScreen() {
     router.push(CLINIC_APPLICATIONS);
   }, [selectedOverview]);
 
+  const locationGlanceRows = useMemo(() => {
+    if (!isGroup || locationScope !== 'all' || accessibleLocations.length < 2) {
+      return [];
+    }
+    return buildLocationGlanceRows({
+      locations: accessibleLocations,
+      jobs,
+      shifts,
+      applications,
+    });
+  }, [accessibleLocations, applications, isGroup, jobs, locationScope, shifts]);
+
+  const weekCoverageRows = useMemo(() => {
+    if (isGroup) {
+      return buildWeekCoverageRows({
+        locations: accessibleLocations,
+        shifts,
+        locationIdFilter: locationScope === 'all' ? null : locationScope,
+      });
+    }
+
+    if (!clinicId) return [];
+
+    const practiceLocations =
+      accessibleLocations.length > 0
+        ? accessibleLocations
+        : [
+            {
+              id: clinicId,
+              name: clinicProfile?.clinic_name?.trim() || 'Your practice',
+              city: clinicProfile?.city ?? null,
+              province: clinicProfile?.province ?? null,
+              logo_storage_path: clinicProfile?.logo_storage_path ?? null,
+            },
+          ];
+
+    return buildWeekCoverageRows({
+      locations: practiceLocations,
+      shifts,
+      fallbackLocationId: accessibleLocations.length === 0 ? clinicId : null,
+    });
+  }, [
+    accessibleLocations,
+    clinicId,
+    clinicProfile?.city,
+    clinicProfile?.clinic_name,
+    clinicProfile?.logo_storage_path,
+    clinicProfile?.province,
+    isGroup,
+    locationScope,
+    shifts,
+  ]);
+
+  const focusLocation = useCallback(
+    (locationId: string) => {
+      if (isGroup) {
+        setLocationScope(locationId);
+        return;
+      }
+      router.push(CLINIC_FILL_INS);
+    },
+    [isGroup, setLocationScope],
+  );
+
   const dashboardBody = (
     <DashboardBodyLayout
       hero={
@@ -449,12 +547,30 @@ export default function ClinicDashboardScreen() {
           <DashboardNeedsAttention items={attentionItems} />
         ) : null
       }
+      alerts={
+        locationGlanceRows.length > 0 ? (
+          <FadeInSection delayMs={40}>
+            <GroupLocationsGlanceWidget
+              rows={locationGlanceRows}
+              onSelectLocation={focusLocation}
+            />
+          </FadeInSection>
+        ) : null
+      }
       calendar={
         <FadeInSection delayMs={60}>
           <DashboardCalendarWidget
             events={upcomingCalendarEvents}
             onEventPress={handleCalendarEventPress}
             onViewAllPress={() => router.push('/(clinic-tabs)/calendar' as Href)}
+          />
+        </FadeInSection>
+      }
+      coverage={
+        <FadeInSection delayMs={80}>
+          <GroupWeekCoverageWidget
+            rows={weekCoverageRows}
+            onSelectLocation={focusLocation}
           />
         </FadeInSection>
       }
@@ -607,6 +723,16 @@ export default function ClinicDashboardScreen() {
             onViewAllPress={() => router.push(getClinicMessagesRoute())}
           />
         </FadeInSection>
+      }
+      teamPulse={
+        isGroup && isOwner ? (
+          <FadeInSection delayMs={220}>
+            <GroupTeamPulseWidget
+              counts={teamPulse}
+              onPress={() => router.push(CLINIC_PROFILE_TEAM)}
+            />
+          </FadeInSection>
+        ) : null
       }
     />
   );

@@ -23,13 +23,3 @@ export const TABLET_SIDEBAR_SECTIONS: Record<'worker' | 'clinic', SidebarSection
     { label: null, routes: ['discover', 'calendar', 'messages'] },
   ],
 };
-
-/** Hiring destinations that should read heavier in the expanded web sidebar. */
-export function isEmphasizedSidebarRoute(routeName: string): boolean {
-  return (
-    routeName === 'fill-ins' ||
-    routeName === 'fillins' ||
-    routeName === 'postings' ||
-    routeName === 'browse'
-  );
-}
