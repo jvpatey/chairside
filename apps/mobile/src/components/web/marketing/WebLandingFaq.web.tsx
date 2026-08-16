@@ -48,7 +48,7 @@ const FAQ_ITEMS = [
     id: 'groups',
     question: 'Can multi-location groups use Chairside?',
     answer:
-      'Yes. Group plans let you manage multiple locations, invite managers, and keep hiring centralized. Start free with up to two locations and one manager, plus one live role and one live fill-in across the group.',
+      'Yes. Group plans let you manage multiple locations, invite managers, and keep hiring centralized. Start free with up to two locations and one manager per location, plus one live role and one live fill-in across the group.',
   },
 ] as const;
 

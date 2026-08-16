@@ -101,6 +101,8 @@ export default function ClinicDashboardScreen() {
     memberDisplayName,
     memberRoleLabel,
     groupDisplayName,
+    locationScope,
+    accessibleLocations,
   } = useClinicActingContext();
   const { isTablet } = useResponsiveLayout();
   const {
@@ -285,10 +287,18 @@ export default function ClinicDashboardScreen() {
     : isGroup
       ? memberDisplayName || null
       : clinicName;
+  const scopedLocation =
+    isGroup && locationScope !== 'all'
+      ? accessibleLocations.find((location) => location.id === locationScope) ?? null
+      : null;
+  const scopedLocationHint =
+    scopedLocation?.city?.trim() || scopedLocation?.name?.trim() || null;
   const heroSubtitle = !isProfileComplete
     ? 'Finish your clinic setup'
     : isGroup
-      ? groupName
+      ? scopedLocationHint
+        ? `${groupName} · ${scopedLocationHint}`
+        : groupName
       : [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ') ||
         'Dental practice';
   const heroIdentityLine =

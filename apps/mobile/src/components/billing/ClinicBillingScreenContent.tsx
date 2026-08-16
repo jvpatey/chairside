@@ -178,7 +178,6 @@ export function ClinicBillingScreenContent({
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const plansSectionRef = useRef<View>(null);
   const groupPlansSectionRef = useRef<View>(null);
-  const clinicPlansSectionRef = useRef<View>(null);
   const profileScroll = useProfileDetailScroll();
   const emphasizeGroupCaps = scrollFocus === 'group';
 
@@ -232,15 +231,6 @@ export function ClinicBillingScreenContent({
         : null),
     },
     compareSection: { gap: isWebSheet ? spacing.md : spacing.md },
-    sectionLabel: {
-      ...typography.label,
-      fontSize: 12,
-      letterSpacing: 0.4,
-      textTransform: 'uppercase' as const,
-      color: colors.labelTertiary,
-      marginTop: spacing.xs,
-      ...(isWebSheet ? ({ gridColumn: '1 / -1' } as object) : null),
-    },
     cycleWrap: {
       ...(isWebSheet
         ? ({
@@ -356,7 +346,7 @@ export function ClinicBillingScreenContent({
       scrollFocus === 'group'
         ? groupPlansSectionRef
         : scrollFocus === 'clinic'
-          ? clinicPlansSectionRef
+          ? plansSectionRef
           : null;
     if (!targetRef) return;
 
@@ -542,12 +532,13 @@ export function ClinicBillingScreenContent({
         {isGroupFamily && !hasGroupPackages ? (
           <Text style={[styles.notice, emphasizeGroupCaps && styles.noticeEmphasis]}>
             {emphasizeGroupCaps
-              ? 'To add more locations or managers, you need Group Starter or Group Pro. Clinic Starter and Pro below unlock hiring tools only — not extra locations or managers.'
-              : 'Group Starter and Group Pro will appear here once configured in App Store Connect and RevenueCat. Until then, Clinic Starter or Pro can unlock hiring tools — location and manager limits stay on your Free group trial.'}
+              ? 'To add more locations or managers, upgrade to Group Starter or Group Pro.'
+              : 'Group Starter and Group Pro will appear here once configured in App Store Connect and RevenueCat.'}
           </Text>
         ) : null}
 
-        {isPurchaseBillingAvailable && (hasClinicPackages || hasGroupPackages) ? (
+        {isPurchaseBillingAvailable &&
+        (isGroupFamily ? hasGroupPackages : hasClinicPackages || hasGroupPackages) ? (
           <View style={styles.cycleWrap}>
             <BillingCycleToggle
               value={billingCycle}
@@ -559,26 +550,18 @@ export function ClinicBillingScreenContent({
           </View>
         ) : null}
 
-        <View style={styles.planList}>
-          <PlanComparisonCard
-            plan="free"
-            priceLabel={CLINIC_PLAN_MARKETING.free.fallbackPriceLabel}
-            billingCycleLabel={
-              isGroupFamily
-                ? 'Includes 2 locations, 1 manager, and 1+1 posts'
-                : 'Includes 1 active role and 1 active fill-in'
-            }
-            isCurrent={currentPlan === 'free'}
-            actionLabel={currentPlan === 'free' ? 'Current plan' : 'Included with your account'}
-            actionVariant="secondary"
-            disabled
-          />
-
+        <View ref={isGroupFamily ? groupPlansSectionRef : undefined} style={styles.planList}>
           {isGroupFamily ? (
             <>
-              <View ref={groupPlansSectionRef} collapsable={false}>
-                <Text style={styles.sectionLabel}>Group plans — locations & managers</Text>
-              </View>
+              <PlanComparisonCard
+                plan="free"
+                priceLabel={CLINIC_PLAN_MARKETING.free.fallbackPriceLabel}
+                billingCycleLabel="Includes 2 locations, 1 manager per location, and 1+1 posts"
+                isCurrent={currentPlan === 'free'}
+                actionLabel={currentPlan === 'free' ? 'Current plan' : 'Included with your account'}
+                actionVariant="secondary"
+                disabled
+              />
               <PlanComparisonCard
                 plan="group_starter"
                 priceLabel={groupStarterPrice}
@@ -619,7 +602,6 @@ export function ClinicBillingScreenContent({
                     : undefined
                 }
               />
-
               <PlanComparisonCard
                 plan="group_pro"
                 priceLabel={groupProPrice}
@@ -655,71 +637,81 @@ export function ClinicBillingScreenContent({
                     : undefined
                 }
               />
-
-              <View ref={clinicPlansSectionRef} collapsable={false}>
-                <Text style={styles.sectionLabel}>Clinic plans — hiring tools only</Text>
-              </View>
             </>
-          ) : null}
-
-          <PlanComparisonCard
-            plan="starter"
-            priceLabel={starterPrice}
-            billingCycleLabel={getBillingCycleLabel(billingCycle, starterMonthly, starterYearly)}
-            yearlySavings={billingCycle === 'yearly' ? starterYearlySavings : null}
-            isCurrent={currentPlan === 'starter'}
-            isRecommended={!isGroupFamily && currentPlan === 'free'}
-            actionLabel={
-              currentPlan === 'starter'
-                ? 'Current plan'
-                : currentPlan === 'pro' || isOnGroupPaidPlan
-                  ? 'Included in higher plan'
-                  : 'Upgrade to Starter'
-            }
-            actionVariant={!isGroupFamily && currentPlan === 'free' ? 'primary' : 'secondary'}
-            disabled={
-              !isPurchaseBillingAvailable ||
-              currentPlan === 'starter' ||
-              currentPlan === 'pro' ||
-              isOnGroupPaidPlan ||
-              isPurchasing
-            }
-            loading={isPurchasing}
-            onPress={
-              isPurchaseBillingAvailable && currentPlan === 'free'
-                ? () => void handlePurchase(starterPackage ?? starterMonthly ?? starterYearly)
-                : undefined
-            }
-          />
-
-          <PlanComparisonCard
-            plan="pro"
-            priceLabel={proPrice}
-            billingCycleLabel={getBillingCycleLabel(billingCycle, proMonthly, proYearly)}
-            yearlySavings={billingCycle === 'yearly' ? proYearlySavings : null}
-            isCurrent={currentPlan === 'pro'}
-            isRecommended={!isGroupFamily && currentPlan === 'starter'}
-            actionLabel={
-              currentPlan === 'pro'
-                ? 'Current plan'
-                : isOnGroupPaidPlan
-                  ? 'Included in higher plan'
-                  : 'Upgrade to Pro'
-            }
-            actionVariant="primary"
-            disabled={
-              !isPurchaseBillingAvailable ||
-              currentPlan === 'pro' ||
-              isOnGroupPaidPlan ||
-              isPurchasing
-            }
-            loading={isPurchasing}
-            onPress={
-              isPurchaseBillingAvailable && !isOnClinicPaidPlan && !isOnGroupPaidPlan
-                ? () => void handlePurchase(proPackage ?? proMonthly ?? proYearly)
-                : undefined
-            }
-          />
+          ) : (
+            <>
+              <PlanComparisonCard
+                plan="free"
+                priceLabel={CLINIC_PLAN_MARKETING.free.fallbackPriceLabel}
+                billingCycleLabel="Includes 1 active role and 1 active fill-in"
+                isCurrent={currentPlan === 'free'}
+                actionLabel={currentPlan === 'free' ? 'Current plan' : 'Included with your account'}
+                actionVariant="secondary"
+                disabled
+              />
+              <PlanComparisonCard
+                plan="starter"
+                priceLabel={starterPrice}
+                billingCycleLabel={getBillingCycleLabel(
+                  billingCycle,
+                  starterMonthly,
+                  starterYearly,
+                )}
+                yearlySavings={billingCycle === 'yearly' ? starterYearlySavings : null}
+                isCurrent={currentPlan === 'starter'}
+                isRecommended={currentPlan === 'free'}
+                actionLabel={
+                  currentPlan === 'starter'
+                    ? 'Current plan'
+                    : currentPlan === 'pro' || isOnGroupPaidPlan
+                      ? 'Included in higher plan'
+                      : 'Upgrade to Starter'
+                }
+                actionVariant={currentPlan === 'free' ? 'primary' : 'secondary'}
+                disabled={
+                  !isPurchaseBillingAvailable ||
+                  currentPlan === 'starter' ||
+                  currentPlan === 'pro' ||
+                  isOnGroupPaidPlan ||
+                  isPurchasing
+                }
+                loading={isPurchasing}
+                onPress={
+                  isPurchaseBillingAvailable && currentPlan === 'free'
+                    ? () => void handlePurchase(starterPackage ?? starterMonthly ?? starterYearly)
+                    : undefined
+                }
+              />
+              <PlanComparisonCard
+                plan="pro"
+                priceLabel={proPrice}
+                billingCycleLabel={getBillingCycleLabel(billingCycle, proMonthly, proYearly)}
+                yearlySavings={billingCycle === 'yearly' ? proYearlySavings : null}
+                isCurrent={currentPlan === 'pro'}
+                isRecommended={currentPlan === 'starter'}
+                actionLabel={
+                  currentPlan === 'pro'
+                    ? 'Current plan'
+                    : isOnGroupPaidPlan
+                      ? 'Included in higher plan'
+                      : 'Upgrade to Pro'
+                }
+                actionVariant="primary"
+                disabled={
+                  !isPurchaseBillingAvailable ||
+                  currentPlan === 'pro' ||
+                  isOnGroupPaidPlan ||
+                  isPurchasing
+                }
+                loading={isPurchasing}
+                onPress={
+                  isPurchaseBillingAvailable && !isOnClinicPaidPlan && !isOnGroupPaidPlan
+                    ? () => void handlePurchase(proPackage ?? proMonthly ?? proYearly)
+                    : undefined
+                }
+              />
+            </>
+          )}
         </View>
       </View>
 

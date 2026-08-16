@@ -30,7 +30,7 @@ const TRUST_POINTS = [
 
 const GROUP_FREE_TAGLINE = 'Try multi-location hiring at no cost';
 const GROUP_FREE_FEATURES = [
-  'Up to 2 locations and 1 manager',
+  'Up to 2 locations and 1 manager per location',
   '1 active role and 1 fill-in across your group',
   'Review applications and message candidates',
 ] as const;
@@ -69,7 +69,7 @@ function PricingCardPrice({
   if (plan === 'free') {
     const secondary =
       audience === 'group'
-        ? '2 locations and 1 manager · No subscription required'
+        ? '2 locations and 1 manager per location · No subscription required'
         : '1 role and 1 fill-in included · No subscription required';
     return (
       <View style={styles.priceBlock}>
@@ -441,7 +441,7 @@ export function WebLandingPricing() {
   const subtitle =
     audience === 'clinic'
       ? 'Post your first role and fill-in at no cost. Upgrade when you need more.'
-      : 'Try up to 2 locations and 1 manager free. Upgrade for more locations and hiring across your group.';
+      : 'Try up to 2 locations and 1 manager per location free. Upgrade for more locations and hiring across your group.';
 
   const handleAudienceChange = (next: PricingAudience) => {
     if (next === audience) return;

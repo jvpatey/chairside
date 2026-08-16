@@ -1,20 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState, type ReactNode } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWebEscapeKey } from '@/hooks/useWebEscapeKey';
 import {
   webHover,
@@ -55,8 +59,199 @@ export function getClinicLocationScopeLabel(
 type ScopeOption = {
   id: string;
   label: string;
+  meta: string | null;
+  logoStoragePath: string | null;
+  isAll: boolean;
 };
 
+const DROPDOWN_ENTER = FadeInDown.duration(160).easing(Easing.out(Easing.cubic));
+
+function AllLocationsGlyph({ size }: { size: number }) {
+  const styles = useThemedStyles(({ colors }) => ({
+    wrap: {
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      backgroundColor: colors.fillSubtle,
+    },
+  }));
+  const { colors } = useTheme();
+  return (
+    <View style={styles.wrap}>
+      <Ionicons
+        name="business-outline"
+        size={Math.round(size * 0.5)}
+        color={colors.labelSecondary}
+      />
+    </View>
+  );
+}
+
+function LocationScopeOptionRow({
+  option,
+  selected,
+  onPress,
+  density,
+}: {
+  option: ScopeOption;
+  selected: boolean;
+  onPress: () => void;
+  /** 'sheet' = roomy card rows with radio; 'menu' = compact dropdown rows. */
+  density: 'sheet' | 'menu';
+}) {
+  const { colors } = useTheme();
+  const logoUri = useClinicLogoUri(option.isAll ? null : option.logoStoragePath);
+  const isSheet = density === 'sheet';
+  const avatarSize = isSheet ? 40 : 34;
+
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm + 2,
+      paddingVertical: isSheet ? spacing.sm + 2 : spacing.xs + 4,
+      paddingHorizontal: isSheet ? spacing.md : spacing.sm,
+      borderRadius: isSheet ? 12 : 10,
+      ...(isSheet
+        ? {
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.separator,
+            backgroundColor: colors.surface,
+          }
+        : null),
+      ...webPointer(),
+    },
+    rowSelected: isSheet
+      ? {
+          borderColor: colors.primary,
+          backgroundColor: colors.primarySubtle,
+        }
+      : {
+          backgroundColor: colors.primarySubtle,
+        },
+    rowHovered: webListRowHoverStyles(colors),
+    rowPressed: {
+      opacity: 0.88,
+    },
+    textWrap: {
+      flex: 1,
+      minWidth: 0,
+      gap: 1,
+    },
+    label: {
+      fontSize: isSheet ? 15 : 14,
+      lineHeight: isSheet ? 20 : 19,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+    },
+    labelSelected: {
+      color: colors.primary,
+    },
+    meta: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.labelTertiary,
+    },
+  }));
+
+  const accessibilityLabel = option.meta
+    ? `${option.label}, ${option.meta}`
+    : option.label;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed, hovered }) => [
+        styles.row,
+        selected && styles.rowSelected,
+        webHover(hovered, pressed, styles.rowHovered, selected),
+        pressed && styles.rowPressed,
+      ]}>
+      {option.isAll ? (
+        <AllLocationsGlyph size={avatarSize} />
+      ) : (
+        <ClinicLogoAvatar clinicName={option.label} logoUri={logoUri} size={avatarSize} />
+      )}
+      <View style={styles.textWrap}>
+        <Text
+          style={[styles.label, selected && styles.labelSelected]}
+          numberOfLines={1}>
+          {option.label}
+        </Text>
+        {option.meta ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {option.meta}
+          </Text>
+        ) : null}
+      </View>
+      {selected ? (
+        <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+      ) : isSheet ? (
+        <Ionicons name="ellipse-outline" size={20} color={colors.labelTertiary} />
+      ) : null}
+    </Pressable>
+  );
+}
+
+function ScopeOptionList({
+  options,
+  selectedId,
+  onSelect,
+  density,
+}: {
+  options: ScopeOption[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  density: 'sheet' | 'menu';
+}) {
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    list: {
+      gap: density === 'sheet' ? spacing.xs : 2,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+      marginVertical: spacing.xs,
+      marginHorizontal: density === 'sheet' ? 0 : spacing.xs,
+    },
+  }));
+
+  const allOption = options.find((option) => option.isAll) ?? null;
+  const locationOptions = options.filter((option) => !option.isAll);
+
+  return (
+    <View style={styles.list}>
+      {allOption ? (
+        <LocationScopeOptionRow
+          option={allOption}
+          selected={allOption.id === selectedId}
+          onPress={() => onSelect(allOption.id)}
+          density={density}
+        />
+      ) : null}
+      {allOption && locationOptions.length > 0 ? <View style={styles.divider} /> : null}
+      {locationOptions.map((option) => (
+        <LocationScopeOptionRow
+          key={option.id}
+          option={option}
+          selected={option.id === selectedId}
+          onPress={() => onSelect(option.id)}
+          density={density}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** Native (and mobile-web fallback) bottom sheet picker. */
 function LocationScopePickerSheet({
   visible,
   options,
@@ -71,7 +266,6 @@ function LocationScopePickerSheet({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
   useWebEscapeKey(onClose, visible);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -87,7 +281,7 @@ function LocationScopePickerSheet({
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
       paddingBottom: Math.max(insets.bottom, spacing.lg),
-      gap: spacing.lg,
+      gap: spacing.md,
     },
     handle: {
       alignSelf: 'center',
@@ -111,44 +305,6 @@ function LocationScopePickerSheet({
       fontSize: 14,
       lineHeight: 20,
     },
-    list: {
-      gap: spacing.xs,
-    },
-    option: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: spacing.sm,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
-      borderRadius: 12,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      backgroundColor: colors.surface,
-      ...webPointer(),
-    },
-    optionSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primarySubtle,
-    },
-    optionHovered: webListRowHoverStyles(colors),
-    optionPressed: {
-      opacity: 0.88,
-    },
-    optionLabel: {
-      flex: 1,
-      minWidth: 0,
-      fontSize: 15,
-      lineHeight: 20,
-      fontFamily: fontSemibold,
-      fontWeight: '600' as const,
-      color: colors.labelPrimary,
-    },
-    optionLabelSelected: {
-      color: colors.primary,
-    },
-    footer: {
-      gap: spacing.sm,
-    },
   }));
 
   return (
@@ -166,47 +322,18 @@ function LocationScopePickerSheet({
                   </Text>
                 </View>
                 <ScrollView
-                  contentContainerStyle={styles.list}
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}>
-                  {options.map((option) => {
-                    const selected = option.id === selectedId;
-                    return (
-                      <Pressable
-                        key={option.id}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected }}
-                        onPress={() => {
-                          onSelect(option.id);
-                          onClose();
-                        }}
-                        style={({ pressed, hovered }) => [
-                          styles.option,
-                          selected && styles.optionSelected,
-                          webHover(hovered, pressed, styles.optionHovered),
-                          pressed && styles.optionPressed,
-                        ]}>
-                        <Text
-                          style={[styles.optionLabel, selected && styles.optionLabelSelected]}
-                          numberOfLines={2}>
-                          {option.label}
-                        </Text>
-                        {selected ? (
-                          <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
-                        ) : (
-                          <Ionicons
-                            name="ellipse-outline"
-                            size={22}
-                            color={colors.labelTertiary}
-                          />
-                        )}
-                      </Pressable>
-                    );
-                  })}
+                  <ScopeOptionList
+                    options={options}
+                    selectedId={selectedId}
+                    onSelect={(id) => {
+                      onSelect(id);
+                      onClose();
+                    }}
+                    density="sheet"
+                  />
                 </ScrollView>
-                <View style={styles.footer}>
-                  <OnboardingButton label="Done" onPress={onClose} />
-                </View>
               </LiquidGlassSurface>
             </Pressable>
           </Animated.View>
@@ -216,7 +343,87 @@ function LocationScopePickerSheet({
   );
 }
 
-/** Compact location-scope trigger with sheet picker for group clinics. */
+type AnchorRect = { x: number; y: number; width: number; height: number };
+
+/** Web: lightweight menu anchored to the trigger — no dimmed modal, no Done chrome. */
+function LocationScopeDropdown({
+  visible,
+  anchor,
+  placement,
+  options,
+  selectedId,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  anchor: AnchorRect | null;
+  /** 'below' anchors under the trigger; 'side' opens beside the collapsed rail. */
+  placement: 'below' | 'side';
+  options: ScopeOption[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  useWebEscapeKey(onClose, visible);
+
+  const styles = useThemedStyles(({ spacing }) => ({
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    panel: {
+      paddingVertical: spacing.xs + 2,
+      paddingHorizontal: spacing.xs + 2,
+    },
+  }));
+
+  if (!visible || !anchor) return null;
+
+  const MENU_MIN_WIDTH = 264;
+  const EDGE_GUTTER = 12;
+  const width = Math.min(Math.max(anchor.width, MENU_MIN_WIDTH), windowWidth - EDGE_GUTTER * 2);
+
+  let left = placement === 'side' ? anchor.x + anchor.width + 10 : anchor.x;
+  let top = placement === 'side' ? anchor.y : anchor.y + anchor.height + 6;
+  left = Math.max(EDGE_GUTTER, Math.min(left, windowWidth - width - EDGE_GUTTER));
+  top = Math.max(EDGE_GUTTER, top);
+  const maxHeight = Math.min(400, windowHeight - top - EDGE_GUTTER);
+
+  return (
+    <Modal visible transparent animationType="none" onRequestClose={onClose}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close location menu">
+        <Animated.View
+          entering={DROPDOWN_ENTER}
+          style={{ position: 'absolute', left, top, width }}>
+          <Pressable onPress={(event) => event.stopPropagation()}>
+            <LiquidGlassSurface borderRadius={14} style={styles.panel}>
+              <ScrollView
+                style={{ maxHeight }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}>
+                <ScopeOptionList
+                  options={options}
+                  selectedId={selectedId}
+                  onSelect={(id) => {
+                    onSelect(id);
+                    onClose();
+                  }}
+                  density="menu"
+                />
+              </ScrollView>
+            </LiquidGlassSurface>
+          </Pressable>
+        </Animated.View>
+      </Pressable>
+    </Modal>
+  );
+}
+
+/** Compact location-scope trigger with platform-native picker for group clinics. */
 export function ClinicLocationScopeSwitcher({
   variant = 'sidebar',
   collapsed = false,
@@ -231,6 +438,9 @@ export function ClinicLocationScopeSwitcher({
     isOwner,
   } = useClinicProfile();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [anchor, setAnchor] = useState<AnchorRect | null>(null);
+  const triggerRef = useRef<View>(null);
+  const isWeb = Platform.OS === 'web';
 
   const showAllOption = isOwner || accessibleLocations.length > 1;
   const allLocationsLabel = getClinicAllLocationsLabel(isOwner);
@@ -240,13 +450,34 @@ export function ClinicLocationScopeSwitcher({
     isOwner,
   );
 
+  const selectedLocation =
+    locationScope === 'all'
+      ? null
+      : accessibleLocations.find((location) => location.id === locationScope) ?? null;
+  const selectedLogoUri = useClinicLogoUri(selectedLocation?.logo_storage_path ?? null);
+
   const options = useMemo(() => {
     const next: ScopeOption[] = [];
     if (showAllOption) {
-      next.push({ id: 'all', label: allLocationsLabel });
+      next.push({
+        id: 'all',
+        label: allLocationsLabel,
+        meta:
+          accessibleLocations.length > 1
+            ? `${accessibleLocations.length} clinics`
+            : null,
+        logoStoragePath: null,
+        isAll: true,
+      });
     }
     for (const location of accessibleLocations) {
-      next.push({ id: location.id, label: location.name });
+      next.push({
+        id: location.id,
+        label: location.name,
+        meta: [location.city, location.province].filter(Boolean).join(', ') || null,
+        logoStoragePath: location.logo_storage_path,
+        isAll: false,
+      });
     }
     return next;
   }, [accessibleLocations, allLocationsLabel, showAllOption]);
@@ -274,7 +505,7 @@ export function ClinicLocationScopeSwitcher({
       flex: 1,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: spacing.xs,
+      gap: spacing.xs + 2,
       minWidth: 0,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
@@ -320,10 +551,10 @@ export function ClinicLocationScopeSwitcher({
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       alignSelf: 'flex-start' as const,
-      gap: 4,
+      gap: 6,
       maxWidth: '100%' as const,
       paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 6,
+      paddingVertical: 5,
       borderRadius: radii.pill,
       backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.16 : 0.72),
       borderWidth: StyleSheet.hairlineWidth,
@@ -345,21 +576,57 @@ export function ClinicLocationScopeSwitcher({
 
   if (!isGroup || accessibleLocations.length === 0) return null;
 
+  const openPicker = () => {
+    if (isWeb && triggerRef.current) {
+      triggerRef.current.measureInWindow((x, y, width, height) => {
+        setAnchor({ x, y, width, height });
+        setPickerOpen(true);
+      });
+      return;
+    }
+    setPickerOpen(true);
+  };
+
+  const handleSelect = (id: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setLocationScope(id === 'all' ? 'all' : id);
+  };
+
   const accessibilityLabel = `Viewing ${label}. Change location.`;
+
+  const triggerGlyph = selectedLocation ? (
+    <ClinicLogoAvatar
+      clinicName={selectedLocation.name}
+      logoUri={selectedLogoUri}
+      size={20}
+    />
+  ) : (
+    <Ionicons name="business-outline" size={15} color={colors.labelSecondary} />
+  );
 
   const trigger =
     variant === 'hero' ? (
       <Pressable
+        ref={triggerRef}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        onPress={() => setPickerOpen(true)}
+        onPress={openPicker}
         style={({ pressed, hovered }) => [
           styles.heroTrigger,
           webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
           pressed && styles.heroTriggerPressed,
         ]}>
+        {selectedLocation ? (
+          <ClinicLogoAvatar
+            clinicName={selectedLocation.name}
+            logoUri={selectedLogoUri}
+            size={16}
+          />
+        ) : (
+          <Ionicons name="business-outline" size={13} color={colors.labelSecondary} />
+        )}
         <Text style={styles.heroLabel} numberOfLines={1}>
-          Change location
+          {label}
         </Text>
         <Ionicons name="chevron-down" size={14} color={colors.labelSecondary} />
       </Pressable>
@@ -367,15 +634,24 @@ export function ClinicLocationScopeSwitcher({
       <View style={styles.collapsedWrap}>
         {startAccessory}
         <Pressable
+          ref={triggerRef}
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
-          onPress={() => setPickerOpen(true)}
+          onPress={openPicker}
           style={({ pressed, hovered }) => [
             styles.collapsedTrigger,
             webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
             pressed && styles.collapsedTriggerPressed,
           ]}>
-          <Ionicons name="business-outline" size={16} color={colors.labelPrimary} />
+          {selectedLocation ? (
+            <ClinicLogoAvatar
+              clinicName={selectedLocation.name}
+              logoUri={selectedLogoUri}
+              size={22}
+            />
+          ) : (
+            <Ionicons name="business-outline" size={16} color={colors.labelPrimary} />
+          )}
         </Pressable>
       </View>
     ) : (
@@ -384,14 +660,16 @@ export function ClinicLocationScopeSwitcher({
         <View style={styles.sidebarTriggerRow}>
           {startAccessory}
           <Pressable
+            ref={triggerRef}
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
-            onPress={() => setPickerOpen(true)}
+            onPress={openPicker}
             style={({ pressed, hovered }) => [
               styles.sidebarTrigger,
               webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
               pressed && styles.sidebarTriggerPressed,
             ]}>
+            {triggerGlyph}
             <Text style={styles.sidebarLabel} numberOfLines={1}>
               {label}
             </Text>
@@ -401,16 +679,30 @@ export function ClinicLocationScopeSwitcher({
       </View>
     );
 
+  const selectedId = locationScope === 'all' ? 'all' : locationScope;
+
   return (
     <>
       {trigger}
-      <LocationScopePickerSheet
-        visible={pickerOpen}
-        options={options}
-        selectedId={locationScope === 'all' ? 'all' : locationScope}
-        onSelect={(id) => setLocationScope(id === 'all' ? 'all' : id)}
-        onClose={() => setPickerOpen(false)}
-      />
+      {isWeb ? (
+        <LocationScopeDropdown
+          visible={pickerOpen}
+          anchor={anchor}
+          placement={variant === 'sidebar' && collapsed ? 'side' : 'below'}
+          options={options}
+          selectedId={selectedId}
+          onSelect={handleSelect}
+          onClose={() => setPickerOpen(false)}
+        />
+      ) : (
+        <LocationScopePickerSheet
+          visible={pickerOpen}
+          options={options}
+          selectedId={selectedId}
+          onSelect={handleSelect}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </>
   );
 }
