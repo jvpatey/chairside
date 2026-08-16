@@ -20,7 +20,7 @@ import {
   getRoleHistoryRoute,
 } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ClinicListingViewToggle } from '@/components/clinic/ClinicListingViewToggle';
@@ -75,8 +75,8 @@ const LIST_BODY_EXIT = FadeOut.duration(140);
 export default function ClinicPostingsScreen() {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
-  const { mode, setMode, isWide } = useClinicListingViewMode('roles');
-  const tableMode = isWide && Platform.OS === 'web';
+  const { mode, setMode, isWide, supportsListView } = useClinicListingViewMode('roles');
+  const tableMode = isWide && supportsListView;
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const { clinicProfile, isProfileComplete, accessibleLocations } = useClinicProfile();
@@ -336,7 +336,9 @@ export default function ClinicPostingsScreen() {
               />
             }
             trailing={
-              <ClinicListingViewToggle selected={mode} onChange={setMode} />
+              supportsListView ? (
+                <ClinicListingViewToggle selected={mode} onChange={setMode} />
+              ) : undefined
             }
           />
         ) : null}

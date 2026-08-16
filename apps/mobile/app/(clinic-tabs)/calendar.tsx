@@ -24,7 +24,8 @@ export default function ClinicCalendarScreen() {
       title="Calendar"
       subtitle="Interviews and confirmed fill-ins for your clinic."
       refreshing={refreshState?.refreshing}
-      onRefresh={refreshState?.onRefresh}>
+      onRefresh={refreshState?.onRefresh}
+    >
       <ScheduleCalendarScreenPanel
         role="clinic"
         userId={user?.id}

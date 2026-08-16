@@ -184,6 +184,16 @@ export const CLINIC_PROFILE_PRIVACY: Href = '/(clinic-tabs)/profile/privacy' as 
 export const CLINIC_PROFILE_TERMS: Href = '/(clinic-tabs)/profile/terms' as Href;
 export const WORKER_BROWSE: Href = '/(tabs)/browse' as Href;
 export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
+
+export function getWorkerApplicationsRoute(applicationId?: string): Href {
+  if (applicationId) {
+    return {
+      pathname: '/(tabs)/applications',
+      params: { applicationId },
+    } as Href;
+  }
+  return WORKER_APPLICATIONS;
+}
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_FILLIN_AVAILABILITY: Href = '/(tabs)/fill-in-availability' as Href;
 export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;

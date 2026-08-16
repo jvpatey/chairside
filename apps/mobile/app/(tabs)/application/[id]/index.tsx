@@ -1,33 +1,19 @@
-import { getWorkerApplication, getUnreadConversationMap, getWorkerAppliedShiftPost, type WorkerApplication, type WorkerAppliedShiftPost } from '@chairside/api';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Alert, Platform, View } from 'react-native';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { useCallback } from 'react';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
-import { FormScreen } from '@/components/ui/FormScreen';
-import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { MasterDetailLayout } from '@/components/ui/MasterDetailLayout';
-import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { WorkerApplicationDetailCard } from '@/components/worker/WorkerApplicationDetailCard';
-import { WorkerApplicationsInboxPanel } from '@/components/worker/WorkerApplicationsInboxPanel';
-import { WorkerConfirmedFillInDetail } from '@/components/worker/WorkerConfirmedFillInDetail';
+import { WorkerApplicationDetailPane } from '@/components/worker/WorkerApplicationDetailPane';
 import { WorkerFillInsInboxPanel } from '@/components/worker/WorkerFillInsInboxPanel';
-import { useAuth } from '@/contexts/AuthContext';
-import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
-import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
-import { resolveWorkerFillInsTabMode } from '@/lib/fillInFilters';
-import { toCelebrationCandidate } from '@/lib/hiringCelebrationCandidates';
+import type { FillInsTabMode } from '@/lib/fillInFilters';
 import {
-  getWorkerApplicationPostingReturnOptions,
-  getWorkerJobDetailRoute,
-  getWorkerShiftDetailRoute,
+  getWorkerApplicationsRoute,
   navigateAfterWorkerApplication,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
 
 function isFillInApplicationReturn(returnTo?: string) {
   return (
@@ -37,163 +23,59 @@ function isFillInApplicationReturn(returnTo?: string) {
   );
 }
 
+function fillInsTabModeFromReturnTo(returnTo?: string): FillInsTabMode {
+  if (returnTo === 'past-fill-ins') return 'history';
+  if (returnTo === 'open-fill-ins') return 'open';
+  return 'pending';
+}
+
 export default function WorkerApplicationDetailScreen() {
-  const { user } = useAuth();
   const { isTablet } = useResponsiveLayout();
   const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: string }>();
   const applicationId = typeof id === 'string' ? id : '';
   const resolvedReturnTo =
     typeof returnTo === 'string' ? (returnTo as WorkerApplicationReturnTarget) : undefined;
-  const [application, setApplication] = useState<WorkerApplication | null>(null);
-  const [confirmedShift, setConfirmedShift] = useState<WorkerAppliedShiftPost | null>(null);
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [formError, setFormError] = useState<string | null>(null);
   const {
     celebrationVisible,
     celebrationPayload,
     showCelebration,
     closeCelebration,
   } = useHiringCelebration();
-  const { checkApplications } = useWorkerHiringCelebration(showCelebration);
-  const { markApplicationSeen, refreshPending } = useApplicationTabBadge();
-
-  const styles = useThemedStyles(({ spacing }) => ({
-    content: { gap: spacing.lg },
-  }));
+  useWorkerHiringCelebration(showCelebration);
 
   const goBack = useCallback(() => {
     navigateAfterWorkerApplication(router, resolvedReturnTo);
   }, [resolvedReturnTo]);
 
-  const handleApplicationRemoved = useCallback(async () => {
-    setApplication(null);
-    setConfirmedShift(null);
-    setFormError(null);
-    goBack();
-    await refreshPending();
-  }, [goBack, refreshPending]);
-
-  const load = useCallback(async () => {
-    if (!user?.id || !applicationId) {
-      setApplication(null);
-      setConfirmedShift(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const [row, unreadMap] = await Promise.all([
-        getWorkerApplication(user.id, applicationId),
-        getUnreadConversationMap(user.id, 'worker'),
-      ]);
-      if (!row) {
-        const message = 'This application may have been removed.';
-        setFormError(message);
-        if (Platform.OS !== 'web') {
-          Alert.alert('Application not found', message);
-        }
-        goBack();
-        return;
-      }
-      setApplication(row);
-      setFormError(null);
-      await markApplicationSeen(row.id);
-      setHasUnreadMessages(Boolean(unreadMap[applicationId]));
-
-      if (row.post_type === 'shift' && row.status === 'hired' && row.shift_post_id) {
-        const shift = await getWorkerAppliedShiftPost(row.shift_post_id);
-        setConfirmedShift(shift);
-      } else {
-        setConfirmedShift(null);
-      }
-
-      await checkApplications([toCelebrationCandidate(row)]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Please try again.';
-      setFormError(message);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Could not load application', message);
-      }
-      goBack();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [applicationId, checkApplications, goBack, markApplicationSeen, user?.id]);
-
-  useRefreshOnFocus(load);
-
-  const handleViewPosting = () => {
-    if (!application) return;
-    const postingReturnOptions = getWorkerApplicationPostingReturnOptions(
-      application.id,
-      resolvedReturnTo ?? 'applications-tab',
-    );
-    if (application.post_type === 'job' && application.job_post_id) {
-      router.push(getWorkerJobDetailRoute(application.job_post_id, postingReturnOptions));
-      return;
-    }
-    if (application.post_type === 'shift' && application.shift_post_id) {
-      router.push(getWorkerShiftDetailRoute(application.shift_post_id, postingReturnOptions));
-    }
-  };
-
-  const isConfirmedFillIn =
-    application?.post_type === 'shift' && application.status === 'hired' && confirmedShift;
-
-  const headerTitle = isConfirmedFillIn ? 'Confirmed fill-in' : 'Your application';
-  const headerSubtitle = isConfirmedFillIn
-    ? application?.clinic_name
-    : undefined;
+  // Tablet Applications hub owns the persistent split (like Messages). Deep links
+  // into this route redirect there unless we came from Fill-ins context.
+  if (isTablet && applicationId && !isFillInApplicationReturn(resolvedReturnTo)) {
+    return <Redirect href={getWorkerApplicationsRoute(applicationId)} />;
+  }
 
   const detail = (
-    <FormScreen
-      title={headerTitle}
-      subtitle={headerSubtitle}
-      accent="tertiary"
-      onBack={goBack}
-      backLabel={isTablet ? 'Close' : undefined}
-      transparentBackground={Platform.OS === 'web' && isTablet}>
-      <View style={styles.content}>
-        <FormErrorBanner message={formError} />
-        {isLoading ? (
-          <PageLoadingDetail />
-        ) : isConfirmedFillIn && application ? (
-          <WorkerConfirmedFillInDetail
-            application={application}
-            shift={confirmedShift}
-            returnTo={resolvedReturnTo}
-            hasUnreadMessages={hasUnreadMessages}
-            onCancelled={() => void handleApplicationRemoved()}
-          />
-        ) : application ? (
-          <WorkerApplicationDetailCard
-            application={application}
-            returnTo={resolvedReturnTo}
-            hasUnreadMessages={hasUnreadMessages}
-            onViewPosting={handleViewPosting}
-            onUpdated={() => void load()}
-            onCancelled={() => void handleApplicationRemoved()}
-            onHidden={() => void handleApplicationRemoved()}
-          />
-        ) : null}
-      </View>
-    </FormScreen>
+    <WorkerApplicationDetailPane
+      applicationId={applicationId}
+      returnTo={resolvedReturnTo}
+      onClose={goBack}
+      embedded={isTablet}
+    />
   );
 
   if (isTablet) {
-    const fillInContext = isFillInApplicationReturn(resolvedReturnTo);
-    const fillInTabMode = resolveWorkerFillInsTabMode(application);
-    const master = fillInContext ? (
-      <WorkerFillInsInboxPanel compact initialMode={fillInTabMode} />
-    ) : (
-      <WorkerApplicationsInboxPanel compact />
-    );
-
     return (
       <>
-        <MasterDetailLayout roundedPanes master={master} detail={detail} showDetail />
+        <MasterDetailLayout
+          roundedPanes
+          showDetail
+          master={
+            <WorkerFillInsInboxPanel
+              compact
+              initialMode={fillInsTabModeFromReturnTo(resolvedReturnTo)}
+            />
+          }
+          detail={detail}
+        />
         <HiringCelebrationModal
           visible={celebrationVisible}
           payload={celebrationPayload}

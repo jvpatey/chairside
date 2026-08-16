@@ -10,17 +10,10 @@ import {
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  useWindowDimensions,
-  View,
-  type LayoutChangeEvent,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, View } from 'react-native';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { WorkerFillInBrowseFilters } from '@/components/clinic/PostingFilters';
-import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
@@ -67,7 +60,6 @@ import {
   groupWorkerMapItemsByClinic,
   toWorkerMapItemsFromShifts,
 } from '@/lib/workerMapItems';
-import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
 import { IS_WEB } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
@@ -104,10 +96,6 @@ export default function FillInsScreen() {
   const [applications, setApplications] = useState<WorkerApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [controlsHeight, setControlsHeight] = useState(132);
-  const { height: windowHeight } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const tabDockInset = useMobileTabDockInset();
   const { isWide } = useResponsiveLayout();
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
@@ -268,17 +256,13 @@ export default function FillInsScreen() {
   const showOpenMap = useMapLayout && !isLoading && filteredShifts.length > 0;
   const useWebSplitMap =
     IS_WEB && isWide && useMapLayout && !isLoading && filteredShifts.length > 0;
+  const fillMapViewport = showOpenMap && !useWebSplitMap;
 
   useEffect(() => {
     if (!canUseMap && viewMode === 'map') {
       setViewMode('list');
     }
   }, [canUseMap, viewMode]);
-
-  const mapPanelHeight = useMemo(
-    () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
-    [controlsHeight, insets.top, tabDockInset, windowHeight],
-  );
 
   const mapElement = (
     <WorkerBrowseMap
@@ -291,16 +275,11 @@ export default function FillInsScreen() {
     />
   );
 
-  const handleControlsLayout = (event: LayoutChangeEvent) => {
-    const { height } = event.nativeEvent.layout;
-    if (height > 0) {
-      setControlsHeight((current) => (current === height ? current : height));
-    }
-  };
-
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
+    contentFill: { flex: 1, minHeight: 0 },
     panel: { gap: spacing.lg },
+    panelFill: { flex: 1, minHeight: 0 },
     cardList: { gap: dashboardSectionGap(spacing) },
     browseControlsRow: {
       width: '100%',
@@ -323,6 +302,8 @@ export default function FillInsScreen() {
     mapPanel: {
       width: '100%',
       overflow: 'hidden',
+      flex: 1,
+      minHeight: 0,
     },
     applicationGroup: { gap: spacing.sm },
   }));
@@ -398,13 +379,14 @@ export default function FillInsScreen() {
       <Screen
         title="Fill-ins"
         subtitle="Temp shifts and your availability."
-        scroll
-        scrollEnabled={!showOpenMap}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
+        fillsContainer={fillMapViewport}
+        scroll={!fillMapViewport}
+        scrollEnabled={!fillMapViewport}
+        refreshing={fillMapViewport ? undefined : refreshing}
+        onRefresh={fillMapViewport ? undefined : onRefresh}
         refreshAccent="secondary"
       >
-        <View style={styles.content}>
+        <View style={[styles.content, fillMapViewport ? styles.contentFill : null]}>
           {loadError ? (
             <DashboardErrorBanner
               message="Could not load fill-ins."
@@ -413,7 +395,7 @@ export default function FillInsScreen() {
           ) : null}
           <FillInAvailabilitySummaryCard />
           {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
-            <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
+            <View style={styles.controlsBlock}>
               <View style={styles.browseControlsRow}>
                 <View style={styles.searchField}>
                   <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
@@ -439,14 +421,20 @@ export default function FillInsScreen() {
             </View>
           ) : null}
 
-          <FileTabWell tabs={fillInTabs} selected={selectedMode} onSelect={setSelectedMode}>
+          <View style={fillMapViewport ? styles.panelFill : undefined}>
+            <FileTabWell
+              tabs={fillInTabs}
+              selected={selectedMode}
+              onSelect={setSelectedMode}
+              fillHeight={fillMapViewport}
+            >
             {selectedMode === 'open' ? (
               useWebSplitMap ? (
                 <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
               ) : (
                 <WorkerBrowseViewTransition
                   mode={showOpenMap ? 'map' : 'list'}
-                  style={showOpenMap ? [styles.mapPanel, { height: mapPanelHeight }] : undefined}
+                  style={showOpenMap ? styles.mapPanel : undefined}
                 >
                   {showOpenMap ? mapElement : openListContent}
                 </WorkerBrowseViewTransition>
@@ -576,6 +564,7 @@ export default function FillInsScreen() {
               )
             ) : null}
           </FileTabWell>
+          </View>
         </View>
       </Screen>
       <HiringCelebrationModal

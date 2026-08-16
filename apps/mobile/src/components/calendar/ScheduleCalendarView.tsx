@@ -34,7 +34,8 @@ export function ScheduleCalendarView({
   emptyCtaLabel,
   onEmptyCtaPress,
 }: ScheduleCalendarViewProps) {
-  const { isWide } = useResponsiveLayout();
+  const { isTablet } = useResponsiveLayout();
+  const useSplit = isTablet;
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: {
       gap: spacing.lg,
@@ -45,13 +46,14 @@ export function ScheduleCalendarView({
       gap: spacing.lg,
     },
     calendarColumn: {
-      flex: isWide ? 1 : undefined,
-      width: isWide ? undefined : '100%',
+      flex: useSplit ? 1 : undefined,
+      width: useSplit ? undefined : '100%',
+      minWidth: 0,
     },
     agendaColumn: {
-      flex: isWide ? 1 : undefined,
-      width: isWide ? undefined : '100%',
-      minWidth: isWide ? 280 : undefined,
+      flex: useSplit ? 1 : undefined,
+      width: useSplit ? undefined : '100%',
+      minWidth: 0,
     },
   }));
 
@@ -101,7 +103,7 @@ export function ScheduleCalendarView({
     />
   );
 
-  if (isWide) {
+  if (useSplit) {
     return (
       <View style={[styles.wrap, styles.twoColumn]}>
         <View style={styles.calendarColumn}>{calendarPanel}</View>

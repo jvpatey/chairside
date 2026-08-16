@@ -9,16 +9,17 @@ const DAY_CELL_COUNT = 35;
 
 /** Calendar-shaped skeleton: month chrome + weekday row + day grid + agenda rows. */
 export function CalendarSkeleton() {
-  const { isWide } = useResponsiveLayout();
+  const { isTablet } = useResponsiveLayout();
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     wrap: {
       gap: spacing.lg,
-      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      flexDirection: isTablet ? ('row' as const) : ('column' as const),
       alignItems: 'flex-start' as const,
     },
     calendarColumn: {
-      flex: isWide ? 1 : undefined,
-      width: isWide ? undefined : ('100%' as const),
+      flex: isTablet ? 1 : undefined,
+      width: isTablet ? undefined : ('100%' as const),
+      minWidth: 0,
       gap: spacing.md,
       backgroundColor: colors.surface,
       borderRadius: radii.lg,
@@ -27,9 +28,9 @@ export function CalendarSkeleton() {
       padding: spacing.md,
     },
     agendaColumn: {
-      flex: isWide ? 1 : undefined,
-      width: isWide ? undefined : ('100%' as const),
-      minWidth: isWide ? 280 : undefined,
+      flex: isTablet ? 1 : undefined,
+      width: isTablet ? undefined : ('100%' as const),
+      minWidth: 0,
       gap: spacing.md,
     },
     headerRow: {

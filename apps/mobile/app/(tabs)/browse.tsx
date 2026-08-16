@@ -2,10 +2,8 @@ import { listLiveJobPosts, listWorkerJobApplicationStatuses, getWorkerSavedJobPo
 import { isActiveApplicationStatus } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, View } from 'react-native';
 
-import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
@@ -43,7 +41,6 @@ import {
   groupWorkerMapItemsByClinic,
   toWorkerMapItemsFromJobs,
 } from '@/lib/workerMapItems';
-import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
 import { useThemedStyles } from '@/theme';
 
 function renderRoleListingCards(
@@ -109,11 +106,7 @@ export default function BrowseScreen() {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [controlsHeight, setControlsHeight] = useState(132);
-  const { height: windowHeight } = useWindowDimensions();
   const { isWide } = useResponsiveLayout();
-  const insets = useSafeAreaInsets();
-  const tabDockInset = useMobileTabDockInset();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -269,22 +262,13 @@ export default function BrowseScreen() {
   );
 
   const useWebSplitMap = IS_WEB && isWide && canUseMap && viewMode === 'map' && tabJobs.length > 0;
-
-  const mapPanelHeight = useMemo(
-    () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
-    [controlsHeight, insets.top, tabDockInset, windowHeight],
-  );
-
-  const handleControlsLayout = (event: LayoutChangeEvent) => {
-    const { height } = event.nativeEvent.layout;
-    if (height > 0) {
-      setControlsHeight((current) => (current === height ? current : height));
-    }
-  };
+  const fillMapViewport = hasMapResults && !useWebSplitMap;
 
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: { gap: spacing.lg },
+    wrapFill: { flex: 1, minHeight: 0 },
     panel: { gap: spacing.lg },
+    panelFill: { flex: 1, minHeight: 0 },
     controlsBlock: {
       width: '100%',
       flexShrink: 0,
@@ -307,6 +291,8 @@ export default function BrowseScreen() {
     mapPanel: {
       width: '100%',
       overflow: 'hidden',
+      flex: 1,
+      minHeight: 0,
     },
   }));
 
@@ -340,7 +326,7 @@ export default function BrowseScreen() {
   );
 
   const browseControls = showBrowseControls ? (
-    <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
+    <View style={styles.controlsBlock}>
       <View style={styles.searchRow}>
         <View style={styles.searchField}>
           <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
@@ -432,12 +418,13 @@ export default function BrowseScreen() {
     <Screen
       title="Roles"
       subtitle="Open roles in your province."
-      scroll
-      scrollEnabled={!hasMapResults}
-      refreshing={refreshing}
-      onRefresh={onRefresh}
+      fillsContainer={fillMapViewport}
+      scroll={!fillMapViewport}
+      scrollEnabled={!fillMapViewport}
+      refreshing={fillMapViewport ? undefined : refreshing}
+      onRefresh={fillMapViewport ? undefined : onRefresh}
     >
-      <View style={styles.wrap}>
+      <View style={[styles.wrap, fillMapViewport ? styles.wrapFill : null]}>
         {loadError ? (
           <DashboardErrorBanner
             message="Could not load roles."
@@ -453,17 +440,20 @@ export default function BrowseScreen() {
             message="Check back soon for new opportunities in your province."
           />
         ) : (
-          <View style={styles.panel}>
+          <View style={[styles.panel, fillMapViewport ? styles.panelFill : null]}>
             {browseControls}
-            <FileTabWell tabs={browseTabs} selected={selectedMode} onSelect={setSelectedMode}>
+            <FileTabWell
+              tabs={browseTabs}
+              selected={selectedMode}
+              onSelect={setSelectedMode}
+              fillHeight={fillMapViewport}
+            >
               {useWebSplitMap ? (
                 <WorkerBrowseWebLayout showMap list={listContent} map={mapElement} />
               ) : (
                 <WorkerBrowseViewTransition
                   mode={hasMapResults ? 'map' : 'list'}
-                  style={
-                    hasMapResults ? [styles.mapPanel, { height: mapPanelHeight }] : undefined
-                  }
+                  style={hasMapResults ? styles.mapPanel : undefined}
                 >
                   {hasMapResults ? mapElement : listContent}
                 </WorkerBrowseViewTransition>

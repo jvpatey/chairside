@@ -69,8 +69,8 @@ type OnboardingShellProps = {
 };
 
 const FOOTER_SCROLL_CLEARANCE_FALLBACK = 88;
-const SCROLL_INTO_VIEW_DELAYS_MS = [50, 150, 300, 500];
-const SCROLL_INTO_VIEW_MARGIN = 32;
+const SCROLL_INTO_VIEW_DELAYS_MS = [50, 150, 300, 450, 650];
+const SCROLL_INTO_VIEW_MARGIN = 24;
 
 export function OnboardingShell({
   children,
@@ -160,39 +160,37 @@ export function OnboardingShell({
 
   const footerScrollClearance = footer ? footerHeight || FOOTER_SCROLL_CLEARANCE_FALLBACK : 0;
 
-  const performScroll = useCallback(
-    (wrapRef: View | null) => {
-      if (!wrapRef || !contentRef.current) return;
+  const performScroll = useCallback((wrapRef: View | null) => {
+    const scrollView = scrollRef.current;
+    if (!wrapRef || !scrollView) return;
 
-      const viewportHeight = viewportHeightRef.current;
-      if (viewportHeight <= 0) return;
+    // Use on-screen geometry so sticky headers/footers and keyboard padding are
+    // reflected correctly (layout-relative math under-counted with a fixed footer).
+    scrollView.measureInWindow((_sx, scrollY, _sw, scrollHeight) => {
+      if (scrollHeight <= 0) return;
 
-      wrapRef.measureLayout(
-        contentRef.current,
-        (_x, y, _width, height) => {
-          const footerBlock = footer
-            ? footerHeightRef.current || FOOTER_SCROLL_CLEARANCE_FALLBACK
-            : 0;
-          // Sticky footer screens use KeyboardAvoidingView, which already shrinks
-          // the scroll viewport. Other screens need an explicit keyboard allowance.
-          const keyboardBlock = footer ? 0 : keyboardHeightRef.current;
-          const visibleHeight =
-            viewportHeight - keyboardBlock - footerBlock - SCROLL_INTO_VIEW_MARGIN;
-          const fieldBottom = y + height;
-          const targetScrollY = fieldBottom - visibleHeight;
+      wrapRef.measureInWindow((_x, fieldY, _w, fieldHeight) => {
+        const visibleTop = scrollY + SCROLL_INTO_VIEW_MARGIN;
+        const visibleBottom = scrollY + scrollHeight - SCROLL_INTO_VIEW_MARGIN;
+        const fieldBottom = fieldY + fieldHeight;
 
-          if (targetScrollY > scrollYRef.current + 4) {
-            scrollRef.current?.scrollTo({
-              y: Math.max(0, targetScrollY),
-              animated: true,
-            });
-          }
-        },
-        () => {},
-      );
-    },
-    [footer],
-  );
+        if (fieldBottom > visibleBottom + 4) {
+          scrollView.scrollTo({
+            y: Math.max(0, scrollYRef.current + (fieldBottom - visibleBottom)),
+            animated: true,
+          });
+          return;
+        }
+
+        if (fieldY < visibleTop - 4) {
+          scrollView.scrollTo({
+            y: Math.max(0, scrollYRef.current - (visibleTop - fieldY)),
+            animated: true,
+          });
+        }
+      });
+    });
+  }, []);
 
   const clearScrollTimeouts = useCallback(() => {
     for (const id of scrollTimeoutIdsRef.current) {
@@ -257,7 +255,16 @@ export function OnboardingShell({
     scheduleDelayedRuns(() => performScroll(pendingScrollRef.current));
   }, [footerHeight, performScroll, scheduleDelayedRuns]);
 
-  const footerPaddingBottom = footer ? spacing.md + tabDockInset : insets.bottom + spacing.md;
+  useEffect(() => {
+    if (scrollViewportHeight <= 0 || !pendingScrollRef.current) return;
+    scheduleDelayedRuns(() => performScroll(pendingScrollRef.current));
+  }, [scrollViewportHeight, performScroll, scheduleDelayedRuns]);
+
+  // Lift the sticky footer above the keyboard. Prefer keyboard height over home /
+  // tab insets while open so Continue stays visible and the scroll viewport shrinks.
+  const footerPaddingBottom = footer
+    ? spacing.md + (keyboardHeight > 0 ? keyboardHeight : tabDockInset)
+    : insets.bottom + spacing.md;
 
   const scrollBottomInset = footer ? 0 : tabDockInset > 0 ? tabDockInset : insets.bottom;
 
@@ -284,8 +291,8 @@ export function OnboardingShell({
             spacing.lg +
             scrollBottomInset +
             (fillViewport ? 0 : footerScrollClearance) +
-            // iOS without a footer uses automaticallyAdjustKeyboardInsets; with a
-            // footer, KeyboardAvoidingView handles the inset — avoid double padding.
+            // No sticky footer: Android needs manual bottom inset; iOS uses
+            // automaticallyAdjustKeyboardInsets on the ScrollView.
             (Platform.OS === 'android' && !footer ? keyboardHeight : 0),
         },
       ]}
@@ -301,29 +308,32 @@ export function OnboardingShell({
     </ScrollView>
   );
 
-  const shell = footer ? (
-    <KeyboardAvoidingView
-      style={styles.shellInner}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  const stickyFooter = footer ? (
+    <View
+      style={[
+        styles.footer,
+        {
+          paddingBottom: footerPaddingBottom,
+          backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
+        },
+      ]}
+      onLayout={(event) => {
+        const height = event.nativeEvent.layout.height;
+        footerHeightRef.current = height;
+        setFooterHeight(height);
+      }}
     >
+      {footer}
+    </View>
+  ) : null;
+
+  // Sticky-footer forms lift the footer with keyboard padding instead of
+  // KeyboardAvoidingView (KAV + fixed header under-scrolled lower fields on iOS).
+  const shell = footer ? (
+    <View style={styles.shellInner}>
       {scrollView}
-      <View
-        style={[
-          styles.footer,
-          {
-            paddingBottom: footerPaddingBottom,
-            backgroundColor: passThroughAtmosphere ? 'transparent' : colors.backgroundGrouped,
-          },
-        ]}
-        onLayout={(event) => {
-          const height = event.nativeEvent.layout.height;
-          footerHeightRef.current = height;
-          setFooterHeight(height);
-        }}
-      >
-        {footer}
-      </View>
-    </KeyboardAvoidingView>
+      {stickyFooter}
+    </View>
   ) : Platform.OS === 'android' ? (
     <KeyboardAvoidingView style={styles.shellInner} behavior="height">
       {scrollView}
