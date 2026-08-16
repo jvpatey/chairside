@@ -159,7 +159,7 @@ export function DashboardPlanUsage({
             total={primaryLimit || 1}
             size={ringSize}
             strokeWidth={ringStroke}
-            color={colors.tertiary}
+            color={colors.secondary}
             accessibilityLabel={formatUsageAccessibility(label, used, limit)}
           />
           <View style={styles.textBlock}>
@@ -178,7 +178,7 @@ export function DashboardPlanUsage({
               total={secondaryLimit || 1}
               size={ringSize}
               strokeWidth={ringStroke}
-              color={colors.secondary}
+              color={colors.tertiary}
               accessibilityLabel={formatUsageAccessibility(secondaryLabel!, secondaryUsed!, secondaryLimit!)}
             />
             <View style={styles.textBlock}>

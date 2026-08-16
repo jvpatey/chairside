@@ -135,7 +135,7 @@ export default function ClinicFillInsScreen() {
   const [coveragePanelMode, setCoveragePanelMode] = useState<'requests' | 'confirmed'>('requests');
   const [shiftStatusFilter, setShiftStatusFilter] = useState<ShiftStatusFilter>('open');
   const [shiftRoleTypeFilter, setShiftRoleTypeFilter] = useState<RoleTypeFilter>('all');
-  const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('past');
+  const [shiftDateFilter, setShiftDateFilter] = useState<ShiftDateFilter>('all');
   const [shiftSort, setShiftSort] = useState<ClinicFillInSort>(DEFAULT_CLINIC_FILL_IN_SORT);
   const [coverSearchQuery, setCoverSearchQuery] = useState('');
   const [shiftSearchQuery, setShiftSearchQuery] = useState('');
@@ -258,7 +258,7 @@ export default function ClinicFillInsScreen() {
   const hasShiftSearch = hasActiveListSearch(shiftSearchQuery);
   const activeFillInCount = useMemo(() => countActiveFillIns(shifts), [shifts]);
   const historyFillInCount = useMemo(
-    () => filterShiftPostsForFillInsListMode(shifts, 'history', 'all', 'all', 'past').length,
+    () => filterShiftPostsForFillInsListMode(shifts, 'history', 'all', 'all', 'all').length,
     [shifts],
   );
   const fillInsListTabs = useMemo(
@@ -311,7 +311,7 @@ export default function ClinicFillInsScreen() {
     (fillInsListMode === 'history' &&
       (shiftStatusFilter !== 'all' ||
         shiftRoleTypeFilter !== 'all' ||
-        shiftDateFilter !== 'past')) ||
+        shiftDateFilter !== 'all')) ||
     (fillInsListMode === 'active' &&
       (shiftStatusFilter !== 'open' || shiftRoleTypeFilter !== 'all' || shiftDateFilter !== 'all'));
 
@@ -326,7 +326,7 @@ export default function ClinicFillInsScreen() {
       return;
     }
     setShiftStatusFilter('all');
-    setShiftDateFilter('past');
+    setShiftDateFilter('all');
   };
 
   const handleCoveragePanelModeChange = (value: 'requests' | 'confirmed') => {
@@ -554,7 +554,7 @@ export default function ClinicFillInsScreen() {
                             ? {
                                 statusFilter: 'all',
                                 roleTypeFilter: 'all',
-                                shiftDateFilter: 'past',
+                                shiftDateFilter: 'all',
                                 sort: DEFAULT_CLINIC_FILL_IN_SORT,
                               }
                             : {

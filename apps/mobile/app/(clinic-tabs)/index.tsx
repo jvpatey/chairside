@@ -123,7 +123,7 @@ export default function ClinicDashboardScreen() {
     fillInsWeekDelta: 0,
     applicationsWeekDelta: 0,
   });
-  const [selectedOverview, setSelectedOverview] = useState<OverviewStat>('roles');
+  const [selectedOverview, setSelectedOverview] = useState<OverviewStat>('fill-ins');
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
@@ -453,20 +453,20 @@ export default function ClinicDashboardScreen() {
           <DashboardQuickActionsRow
             actions={[
               {
-                label: 'Post a role',
-                description: 'Full-time or part-time hire',
-                icon: 'briefcase-outline',
-                variant: 'primary',
-                disabled: roleLimitReached,
-                onPress: () => guardPosting(CLINIC_POST_JOB),
-              },
-              {
                 label: 'Post fill-in',
                 description: 'Temp or urgent shift',
                 icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 disabled: fillInLimitReached,
                 onPress: () => guardPosting(getPostShiftRoute('fill-ins-tab')),
+              },
+              {
+                label: 'Post a role',
+                description: 'Full-time or part-time hire',
+                icon: 'briefcase-outline',
+                variant: 'primary',
+                disabled: roleLimitReached,
+                onPress: () => guardPosting(CLINIC_POST_JOB),
               },
             ]}
           />
@@ -480,19 +480,19 @@ export default function ClinicDashboardScreen() {
             onSelect={setSelectedOverview}
             tabs={[
               {
-                value: 'roles',
-                label: 'Roles',
-                count: counts.openRoles,
-                accent: 'primary',
-                icon: 'briefcase-outline',
-              },
-              {
                 value: 'fill-ins',
                 label: 'Fill-ins',
                 count: counts.fillInsPosted,
                 badgeCount: fillInUpdateCount,
                 accent: 'secondary',
                 icon: FILL_IN_ICON.outline,
+              },
+              {
+                value: 'roles',
+                label: 'Roles',
+                count: counts.openRoles,
+                accent: 'primary',
+                icon: 'briefcase-outline',
               },
               {
                 value: 'applications',
@@ -537,12 +537,12 @@ export default function ClinicDashboardScreen() {
         billing && isBillingReady && billing.activeRoleLimit != null ? (
           <FadeInSection delayMs={140}>
             <DashboardPlanUsage
-              label="Open roles"
-              used={billing.activeRoleCount}
-              limit={billing.activeRoleLimit}
-              secondaryLabel="Fill-ins"
-              secondaryUsed={billing.activeFillInCount}
-              secondaryLimit={billing.activeFillInLimit}
+              label="Fill-ins"
+              used={billing.activeFillInCount}
+              limit={billing.activeFillInLimit}
+              secondaryLabel="Open roles"
+              secondaryUsed={billing.activeRoleCount}
+              secondaryLimit={billing.activeRoleLimit}
               syncNotice={
                 isHealingSubscription ||
                 (revenueCatPlan != null &&

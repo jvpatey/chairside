@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { saveClinicInviteToken } from '@/lib/clinicInviteSession';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
+import { savePendingSignupRole } from '@/lib/pendingSignupRole';
 import {
   evaluatePassword,
   getPasswordPlaceholder,
@@ -69,6 +70,12 @@ export default function SignUpScreen() {
       void saveClinicInviteToken(pendingInviteToken);
     }
   }, [pendingInviteToken]);
+
+  useEffect(() => {
+    if (role) {
+      void savePendingSignupRole(role);
+    }
+  }, [role]);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -118,21 +125,26 @@ export default function SignUpScreen() {
 
   const runSocialSignIn = async (action: () => Promise<unknown>) => {
     if (isSubmitting) return;
+    if (!role) {
+      router.replace('/(onboarding)/role');
+      return;
+    }
 
     setIsSubmitting(true);
     setFormError(null);
     setFormSuccess(null);
     try {
+      await savePendingSignupRole(role);
       await action();
       const {
         data: { session },
       } = await getSupabaseClient().auth.getSession();
-      const profile = session?.user ? await getProfile(session.user.id) : null;
 
       if (!session?.user) return;
 
-      if (!profile?.role && role && profile?.id) {
-        await setProfileRole(profile.id, role);
+      const profile = await getProfile(session.user.id);
+      if (!profile?.role) {
+        await setProfileRole(session.user.id, role);
         await refreshProfile();
       }
 
@@ -210,11 +222,16 @@ export default function SignUpScreen() {
       const user = signUpData.user ?? session?.user ?? null;
 
       if (session && user) {
+        const profile = await getProfile(user.id);
+        if (!profile?.role) {
+          await setProfileRole(user.id, role);
+        }
         await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
         return;
       }
 
       if (user) {
+        await savePendingSignupRole(role);
         const message = 'We sent a confirmation link. Open it to finish setting up your account.';
         setFormSuccess(message);
         if (Platform.OS !== 'web') {
