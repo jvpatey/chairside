@@ -16,12 +16,17 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { ClinicMemberProfileFields } from '@/components/clinic/ClinicMemberProfileFields';
-import { pickLocationPhotoFile } from '@/components/clinic/ClinicLocationPhotoField';
+import {
+  cropLocationPhotoCandidate,
+  pickLocationPhotoCropCandidate,
+  type PendingLocationPhoto,
+} from '@/components/clinic/ClinicLocationPhotoField';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { FormScreen } from '@/components/ui/FormScreen';
+import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicMemberPhotoUri } from '@/hooks/useClinicMemberPhotoUri';
@@ -30,6 +35,8 @@ import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
+import type { SquareImageCropCandidate } from '@/lib/pickSquareImageCropCandidate';
+import type { ProfilePhotoCropTransform } from '@/lib/profilePhotoCrop';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { validateClinicBasicsStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
@@ -39,15 +46,19 @@ function seedMembershipDisplayName(
   authDisplayName: string | null | undefined,
 ): string {
   const membership = membershipName?.trim() ?? '';
+  // Bootstrap often stores the role label "Owner" as the display name — ignore it.
   if (membership && membership.toLowerCase() !== 'owner') return membership;
-  return authDisplayName?.trim() || membership;
+  return authDisplayName?.trim() || '';
 }
 
-type PendingMemberPhoto = {
-  uri: string;
-  base64: string;
-  contentType: string;
-};
+function seedMembershipTitle(title: string | null | undefined): string {
+  const trimmed = title?.trim() ?? '';
+  // Same bootstrap placeholder as display name.
+  if (!trimmed || trimmed.toLowerCase() === 'owner') return '';
+  return trimmed;
+}
+
+type PendingMemberPhoto = PendingLocationPhoto;
 
 export default function ClinicBasicsScreen() {
   const { user, profile: authProfile } = useAuth();
@@ -67,9 +78,10 @@ export default function ClinicBasicsScreen() {
   const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
   const [memberDisplayName, setMemberDisplayName] = useState('');
-  const [memberTitle, setMemberTitle] = useState('Owner');
+  const [memberTitle, setMemberTitle] = useState('');
   const [memberBio, setMemberBio] = useState('');
   const [pendingPhoto, setPendingPhoto] = useState<PendingMemberPhoto | null>(null);
+  const [cropCandidate, setCropCandidate] = useState<SquareImageCropCandidate | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -86,7 +98,12 @@ export default function ClinicBasicsScreen() {
   useClinicSetupStepGuard('basics', clinicProfile, isClinicProfileReady, isEditMode);
 
   const progress = useSetupStepProgress('basics', { role: 'clinic' });
-  const basicsValidation = validateClinicBasicsStep({ clinicName, contactName, phone });
+  const basicsValidation = validateClinicBasicsStep({
+    clinicName,
+    // Groups already collect the person's name in the profile section.
+    contactName: isGroup ? memberDisplayName : contactName,
+    phone,
+  });
   const membershipNameMissing = isGroup && !memberDisplayName.trim();
   const validationOk = basicsValidation.ok && !membershipNameMissing;
   const validationMessage = membershipNameMissing
@@ -116,18 +133,29 @@ export default function ClinicBasicsScreen() {
   useEffect(() => {
     if (!isGroup) return;
     setMemberDisplayName(seedMembershipDisplayName(membership?.display_name, authDisplayName));
-    setMemberTitle(membership?.title?.trim() || 'Owner');
+    setMemberTitle(seedMembershipTitle(membership?.title));
     setMemberBio(membership?.bio?.trim() || '');
   }, [authDisplayName, isGroup, membership?.bio, membership?.display_name, membership?.title]);
 
   const handlePickPhoto = async () => {
     try {
-      setIsUploadingPhoto(true);
-      const picked = await pickLocationPhotoFile();
-      if (!picked) return;
-      setPendingPhoto(picked);
+      const candidate = await pickLocationPhotoCropCandidate();
+      if (!candidate) return;
+      setCropCandidate(candidate);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not select photo.');
+    }
+  };
+
+  const handleConfirmCrop = async (transform: ProfilePhotoCropTransform) => {
+    if (!cropCandidate) return;
+    setIsUploadingPhoto(true);
+    try {
+      const pending = await cropLocationPhotoCandidate(cropCandidate, transform);
+      setPendingPhoto(pending);
+      setCropCandidate(null);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Could not crop photo.');
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -144,7 +172,9 @@ export default function ClinicBasicsScreen() {
     try {
       await save({
         clinic_name: clinicName.trim(),
-        contact_name: contactName.trim() || null,
+        contact_name: isGroup
+          ? memberDisplayName.trim() || contactName.trim() || null
+          : contactName.trim() || null,
         phone: phone.trim() || null,
         account_type: isGroup ? 'group' : clinicProfile?.account_type ?? 'individual',
       });
@@ -198,108 +228,128 @@ export default function ClinicBasicsScreen() {
   };
 
   return (
-    <FormScreen
-      {...setupFormProps}
-      title={isGroup ? 'Group basics' : 'Clinic basics'}
-      subtitle={
-        isGroup
-          ? 'Name your clinic group, your role, and primary contact.'
-          : 'Tell us about your practice.'
-      }
-      backLabel={isEditMode ? undefined : 'Back'}
-      onBack={handleBack}
-      footer={
-        <SetupStepFooter
-          canContinue={validationOk && !isUploadingPhoto}
-          validationMessage={validationMessage}
-          showValidation={showValidation}
-          submitError={submitError}
-          isSubmitting={isSubmitting}
-          continueLabel={isEditMode ? 'Save changes' : 'Continue'}
-          onContinue={handleContinue}
-        />
-      }>
-      {progress.visible ? (
-        <SetupStepProgress step={progress.step} total={progress.total} />
-      ) : null}
-      <View style={styles.form}>
-        <AuthField
-          label={isGroup ? 'Group name' : 'Clinic name'}
-          placeholder={isGroup ? 'Group or brand name' : 'Practice name'}
-          value={clinicName}
-          onChangeText={setClinicName}
-          autoCapitalize="words"
-          autoComplete="off"
-          icon="business-outline"
-          required
-          invalid={showValidation && !basicsValidation.ok && !clinicName.trim()}
-        />
-        {isGroup ? (
+    <>
+      <FormScreen
+        {...setupFormProps}
+        title={isGroup ? 'Group basics' : 'Clinic basics'}
+        subtitle={
+          isGroup
+            ? 'Name your clinic group and how you appear on the team.'
+            : 'Tell us about your practice.'
+        }
+        backLabel={isEditMode ? undefined : 'Back'}
+        onBack={handleBack}
+        footer={
+          <SetupStepFooter
+            canContinue={validationOk && !isUploadingPhoto}
+            validationMessage={validationMessage}
+            showValidation={showValidation}
+            submitError={submitError}
+            isSubmitting={isSubmitting}
+            continueLabel={isEditMode ? 'Save changes' : 'Continue'}
+            onContinue={handleContinue}
+          />
+        }>
+        {progress.visible ? (
+          <SetupStepProgress step={progress.step} total={progress.total} />
+        ) : null}
+        <View style={styles.form}>
+          <AuthField
+            label={isGroup ? 'Group name' : 'Clinic name'}
+            placeholder={isGroup ? 'Group or brand name' : 'Practice name'}
+            value={clinicName}
+            onChangeText={setClinicName}
+            autoCapitalize="words"
+            autoComplete="off"
+            icon="business-outline"
+            required
+            invalid={showValidation && !basicsValidation.ok && !clinicName.trim()}
+          />
+          {isGroup ? (
+            <View style={styles.section}>
+              <FormSectionHeader
+                icon="person-circle-outline"
+                label="Your profile"
+                hint="Shown as your name and title when you post and manage the group."
+              />
+              <ClinicMemberProfileFields
+                displayName={memberDisplayName}
+                title={memberTitle}
+                bio={memberBio}
+                onDisplayNameChange={setMemberDisplayName}
+                onTitleChange={setMemberTitle}
+                onBioChange={setMemberBio}
+                photoUri={memberPhotoDisplayUri}
+                isUploadingPhoto={isUploadingPhoto}
+                hasPhoto={hasMemberPhoto}
+                onPickPhoto={() => void handlePickPhoto()}
+                onRemovePhoto={
+                  pendingPhoto
+                    ? () => setPendingPhoto(null)
+                    : undefined
+                }
+                showValidation={showValidation}
+                nameInvalid={membershipNameMissing}
+                displayNameRequired
+              />
+            </View>
+          ) : null}
           <View style={styles.section}>
             <FormSectionHeader
-              icon="person-circle-outline"
-              label="Your profile"
-              hint="Shown as your name and title when you post and manage the group."
-            />
-            <ClinicMemberProfileFields
-              displayName={memberDisplayName}
-              title={memberTitle}
-              bio={memberBio}
-              onDisplayNameChange={setMemberDisplayName}
-              onTitleChange={setMemberTitle}
-              onBioChange={setMemberBio}
-              photoUri={memberPhotoDisplayUri}
-              isUploadingPhoto={isUploadingPhoto}
-              hasPhoto={hasMemberPhoto}
-              onPickPhoto={() => void handlePickPhoto()}
-              onRemovePhoto={
-                pendingPhoto
-                  ? () => setPendingPhoto(null)
-                  : undefined
+              icon="call-outline"
+              label="Contact"
+              required={!isGroup}
+              hint={
+                isGroup
+                  ? 'Optional phone for the group account.'
+                  : 'Provide at least a phone number or contact name.'
               }
-              showValidation={showValidation}
-              nameInvalid={membershipNameMissing}
-              displayNameRequired
+            />
+            {!isGroup ? (
+              <AuthField
+                label="Contact name"
+                placeholder="Office manager or owner"
+                value={contactName}
+                onChangeText={setContactName}
+                autoCapitalize="words"
+                icon="person-outline"
+                invalid={
+                  showValidation &&
+                  !basicsValidation.ok &&
+                  !contactName.trim() &&
+                  !phone.trim()
+                }
+              />
+            ) : null}
+            <AuthField
+              label="Phone"
+              placeholder={PHONE_NUMBER_PLACEHOLDER}
+              value={phone}
+              onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+              keyboardType="phone-pad"
+              icon="call-outline"
+              invalid={
+                !isGroup &&
+                showValidation &&
+                !basicsValidation.ok &&
+                !contactName.trim() &&
+                !phone.trim()
+              }
             />
           </View>
-        ) : null}
-        <View style={styles.section}>
-          <FormSectionHeader
-            icon="call-outline"
-            label="Contact"
-            required
-            hint="Provide at least a phone number or contact name."
-          />
-          <AuthField
-            label="Contact name"
-            placeholder="Office manager or owner"
-            value={contactName}
-            onChangeText={setContactName}
-            autoCapitalize="words"
-            icon="person-outline"
-            invalid={
-              showValidation &&
-              !basicsValidation.ok &&
-              !contactName.trim() &&
-              !phone.trim()
-            }
-          />
-          <AuthField
-            label="Phone"
-            placeholder={PHONE_NUMBER_PLACEHOLDER}
-            value={phone}
-            onChangeText={(text) => setPhone(formatPhoneNumber(text))}
-            keyboardType="phone-pad"
-            icon="call-outline"
-            invalid={
-              showValidation &&
-              !basicsValidation.ok &&
-              !contactName.trim() &&
-              !phone.trim()
-            }
-          />
         </View>
-      </View>
-    </FormScreen>
+      </FormScreen>
+      {cropCandidate ? (
+        <ProfilePhotoCropEditor
+          visible
+          imageUri={cropCandidate.uri}
+          imageWidth={cropCandidate.width}
+          imageHeight={cropCandidate.height}
+          isSaving={isUploadingPhoto}
+          onCancel={() => setCropCandidate(null)}
+          onConfirm={(transform) => void handleConfirmCrop(transform)}
+        />
+      ) : null}
+    </>
   );
 }

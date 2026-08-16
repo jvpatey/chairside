@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 import { ClinicMemberProfileFields } from '@/components/clinic/ClinicMemberProfileFields';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
+import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import {
@@ -25,7 +26,16 @@ export default function ClinicMemberProfileScreen() {
     clinicProfile,
     refreshClinicProfile,
   } = useClinicProfile();
-  const { photoUri, hasPhoto, isUploading, pickPhoto, removePhoto } = useClinicMemberPhoto();
+  const {
+    photoUri,
+    hasPhoto,
+    isUploading,
+    cropCandidate,
+    pickPhoto,
+    cancelCrop,
+    confirmCrop,
+    removePhoto,
+  } = useClinicMemberPhoto();
 
   const [displayName, setDisplayName] = useState('');
   const [title, setTitle] = useState('');
@@ -46,8 +56,11 @@ export default function ClinicMemberProfileScreen() {
 
   useEffect(() => {
     if (!membership) return;
-    setDisplayName(membership.display_name?.trim() || '');
-    setTitle(membership.title?.trim() || (isOwner ? 'Owner' : 'Manager'));
+    const savedName = membership.display_name?.trim() || '';
+    const savedTitle = membership.title?.trim() || '';
+    const bootstrapTitle = isOwner ? 'owner' : 'manager';
+    setDisplayName(savedName.toLowerCase() === 'owner' ? '' : savedName);
+    setTitle(savedTitle.toLowerCase() === bootstrapTitle ? '' : savedTitle);
     setBio(membership.bio?.trim() || '');
   }, [isOwner, membership]);
 
@@ -82,43 +95,56 @@ export default function ClinicMemberProfileScreen() {
   };
 
   return (
-    <ProfileDetailScreen
-      title="Your profile"
-      subtitle={`How you appear when posting and managing ${groupName}.`}
-      onBack={() => navigateToClinicProfileHub(router)}>
-      <View style={styles.form}>
-        <ClinicMemberProfileFields
-          displayName={displayName}
-          title={title}
-          bio={bio}
-          onDisplayNameChange={setDisplayName}
-          onTitleChange={setTitle}
-          onBioChange={setBio}
-          namePlaceholder={isOwner ? 'Alex Rivera' : 'Sarah Mitchell'}
-          titlePlaceholder={isOwner ? 'Owner' : 'Office Manager'}
-          photoUri={photoUri}
-          isUploadingPhoto={isUploading}
-          hasPhoto={hasPhoto}
-          onPickPhoto={() => void pickPhoto()}
-          onRemovePhoto={() => void removePhoto()}
-          showValidation={showValidation}
-          nameInvalid={!canSave}
+    <>
+      <ProfileDetailScreen
+        title="Your profile"
+        subtitle={`How you appear when posting and managing ${groupName}.`}
+        onBack={() => navigateToClinicProfileHub(router)}>
+        <View style={styles.form}>
+          <ClinicMemberProfileFields
+            displayName={displayName}
+            title={title}
+            bio={bio}
+            onDisplayNameChange={setDisplayName}
+            onTitleChange={setTitle}
+            onBioChange={setBio}
+            namePlaceholder="Your name"
+            titlePlaceholder={isOwner ? 'Owner' : 'Office Manager'}
+            photoUri={photoUri}
+            isUploadingPhoto={isUploading}
+            hasPhoto={hasPhoto}
+            onPickPhoto={() => void pickPhoto()}
+            onRemovePhoto={() => void removePhoto()}
+            showValidation={showValidation}
+            nameInvalid={!canSave}
+          />
+          <SetupStepFooter
+            canContinue={canSave && !isUploading}
+            validationMessage="Enter your name."
+            showValidation={showValidation}
+            submitError={submitError}
+            isSubmitting={isSubmitting}
+            continueLabel="Save changes"
+            onContinue={() => void handleSave()}
+          />
+          <Pressable
+            style={styles.cancel}
+            onPress={() => navigateToClinicProfileHub(router)}>
+            <Text style={styles.cancelLabel}>Cancel</Text>
+          </Pressable>
+        </View>
+      </ProfileDetailScreen>
+      {cropCandidate ? (
+        <ProfilePhotoCropEditor
+          visible
+          imageUri={cropCandidate.uri}
+          imageWidth={cropCandidate.width}
+          imageHeight={cropCandidate.height}
+          isSaving={isUploading}
+          onCancel={cancelCrop}
+          onConfirm={(transform) => void confirmCrop(transform)}
         />
-        <SetupStepFooter
-          canContinue={canSave && !isUploading}
-          validationMessage="Enter your name."
-          showValidation={showValidation}
-          submitError={submitError}
-          isSubmitting={isSubmitting}
-          continueLabel="Save changes"
-          onContinue={() => void handleSave()}
-        />
-        <Pressable
-          style={styles.cancel}
-          onPress={() => navigateToClinicProfileHub(router)}>
-          <Text style={styles.cancelLabel}>Cancel</Text>
-        </Pressable>
-      </View>
-    </ProfileDetailScreen>
+      ) : null}
+    </>
   );
 }

@@ -34,7 +34,7 @@ export function ClinicMemberProfileFields({
   onDisplayNameChange,
   onTitleChange,
   onBioChange,
-  namePlaceholder = 'Alex Rivera',
+  namePlaceholder = 'Your name',
   titlePlaceholder = 'Owner',
   photoUri,
   isUploadingPhoto = false,

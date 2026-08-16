@@ -26,6 +26,7 @@ import {
   type PendingLocationPhoto,
   uploadPendingLocationPhoto,
 } from '@/components/clinic/ClinicLocationPhotoField';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
@@ -34,6 +35,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { formatPhoneNumber } from '@/lib/phone';
 import { CLINIC_SETUP_PRACTICE, CLINIC_SETUP_TEAM } from '@/lib/routing';
@@ -44,6 +46,72 @@ import {
   validateClinicPracticeStep,
 } from '@/lib/setupStepValidation';
 import { useTheme, useThemedStyles } from '@/theme';
+
+function specialtyLabel(specialty: string): string {
+  return SPECIALTY_OPTIONS.find((item) => item.value === specialty)?.label ?? specialty;
+}
+
+function LocationListCard({
+  location,
+  canDelete,
+  onEdit,
+  onDelete,
+}: {
+  location: ClinicLocation;
+  canDelete: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { colors } = useTheme();
+  const logoUri = useClinicLogoUri(location.logo_storage_path);
+  const styles = useThemedStyles(({ spacing, typography }) => ({
+    cardHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+    },
+    cardText: { flex: 1, gap: 2 },
+    cardTitle: { ...typography.body, fontWeight: '600' as const },
+    cardMeta: typography.subtitle,
+    cardActions: {
+      flexDirection: 'row' as const,
+      gap: spacing.md,
+      marginTop: spacing.sm,
+      paddingLeft: 44 + spacing.md,
+    },
+    addLabel: { ...typography.body, color: colors.primary, fontWeight: '600' as const },
+    danger: { ...typography.body, color: colors.destructive, fontWeight: '600' as const },
+  }));
+
+  const meta = [
+    [location.city, location.province].filter(Boolean).join(', ') || 'Address pending',
+    location.specialty ? specialtyLabel(location.specialty) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <SurfaceCard>
+      <Pressable style={styles.cardHeader} onPress={onEdit}>
+        <ClinicLogoAvatar clinicName={location.name} logoUri={logoUri} size={44} />
+        <View style={styles.cardText}>
+          <Text style={styles.cardTitle}>{location.name}</Text>
+          <Text style={styles.cardMeta}>{meta}</Text>
+        </View>
+      </Pressable>
+      <View style={styles.cardActions}>
+        <Pressable onPress={onEdit}>
+          <Text style={styles.addLabel}>Edit</Text>
+        </Pressable>
+        {canDelete ? (
+          <Pressable onPress={onDelete}>
+            <Text style={styles.danger}>Delete</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </SurfaceCard>
+  );
+}
 
 function locationToAddress(location: ClinicLocation): AddressFormValue {
   return {
@@ -67,10 +135,6 @@ function locationToPractice(location: ClinicLocation): ClinicLocationPracticeFie
     teamSizeRange:
       (location.team_size_range as ClinicLocationPracticeFields['teamSizeRange']) ?? null,
   };
-}
-
-function specialtyLabel(specialty: string): string {
-  return SPECIALTY_OPTIONS.find((item) => item.value === specialty)?.label ?? specialty;
 }
 
 export default function ClinicLocationsSetupScreen() {
@@ -101,19 +165,12 @@ export default function ClinicLocationsSetupScreen() {
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.md },
     list: { gap: spacing.sm },
-    cardTitle: { ...typography.body, fontWeight: '600' as const },
     cardMeta: typography.subtitle,
-    cardActions: {
-      flexDirection: 'row' as const,
-      gap: spacing.md,
-      marginTop: spacing.sm,
-    },
     addButton: {
       paddingVertical: spacing.sm,
       alignItems: 'center' as const,
     },
     addLabel: { ...typography.body, color: colors.primary, fontWeight: '600' as const },
-    danger: { ...typography.body, color: colors.destructive, fontWeight: '600' as const },
   }));
 
   const activeLocations = useMemo(
@@ -315,30 +372,13 @@ export default function ClinicLocationsSetupScreen() {
         ) : (
           <View style={styles.list}>
             {activeLocations.map((location) => (
-              <SurfaceCard key={location.id}>
-                <Pressable onPress={() => startEdit(location)}>
-                  <Text style={styles.cardTitle}>
-                    {location.name}
-                  </Text>
-                  <Text style={styles.cardMeta}>
-                    {[location.city, location.province].filter(Boolean).join(', ') ||
-                      'Address pending'}
-                    {location.specialty
-                      ? ` · ${specialtyLabel(location.specialty)}`
-                      : ''}
-                  </Text>
-                </Pressable>
-                <View style={styles.cardActions}>
-                  <Pressable onPress={() => startEdit(location)}>
-                    <Text style={styles.addLabel}>Edit</Text>
-                  </Pressable>
-                  {activeLocations.length > 1 ? (
-                    <Pressable onPress={() => void handleDelete(location)}>
-                      <Text style={styles.danger}>Delete</Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-              </SurfaceCard>
+              <LocationListCard
+                key={location.id}
+                location={location}
+                canDelete={activeLocations.length > 1}
+                onEdit={() => startEdit(location)}
+                onDelete={() => void handleDelete(location)}
+              />
             ))}
           </View>
         )}

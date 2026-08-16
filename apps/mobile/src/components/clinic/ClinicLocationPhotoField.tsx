@@ -1,17 +1,25 @@
-import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
-import { Alert, Platform, Pressable, Text, View } from 'react-native';
-
-import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
-import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
-import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
-import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { readFileAsBase64 } from '@/lib/readFileAsBase64';
-import { useTheme, useThemedStyles } from '@/theme';
 import {
   deleteClinicLocationLogo,
   uploadClinicLocationLogoFromBase64,
 } from '@chairside/api';
+import { useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
+
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
+import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { cropProfilePhotoToBase64 } from '@/lib/cropProfilePhoto';
+import {
+  pickSquareImageCropCandidate,
+  type SquareImageCropCandidate,
+} from '@/lib/pickSquareImageCropCandidate';
+import {
+  PROFILE_PHOTO_CROP_VIEWPORT,
+  type ProfilePhotoCropTransform,
+} from '@/lib/profilePhotoCrop';
+import { useTheme, useThemedStyles } from '@/theme';
 
 export type PendingLocationPhoto = {
   uri: string;
@@ -29,33 +37,41 @@ type ClinicLocationPhotoFieldProps = {
   onUploaded?: () => Promise<void> | void;
 };
 
-export async function pickLocationPhotoFile(): Promise<PendingLocationPhoto | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
-    Alert.alert('Permission needed', 'Allow photo library access to add a clinic photo.');
-    return null;
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.85,
+/** Opens the library and returns a crop candidate for the shared square editor. */
+export async function pickLocationPhotoCropCandidate(): Promise<SquareImageCropCandidate | null> {
+  return pickSquareImageCropCandidate({
+    permissionMessage: 'Allow photo library access to add a clinic photo.',
   });
+}
 
-  if (result.canceled || !result.assets[0]) return null;
-
-  const asset = result.assets[0];
-  const base64 = await readFileAsBase64(
-    asset.uri,
-    Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
+export async function cropLocationPhotoCandidate(
+  candidate: SquareImageCropCandidate,
+  transform: ProfilePhotoCropTransform,
+): Promise<PendingLocationPhoto> {
+  const cropped = await cropProfilePhotoToBase64(
+    candidate.uri,
+    candidate.width,
+    candidate.height,
+    PROFILE_PHOTO_CROP_VIEWPORT,
+    transform,
   );
-
   return {
-    uri: asset.uri,
-    base64,
-    contentType: asset.mimeType ?? 'image/jpeg',
+    uri: `data:${cropped.mimeType};base64,${cropped.base64}`,
+    base64: cropped.base64,
+    contentType: cropped.mimeType,
   };
+}
+
+/** @deprecated Prefer pickLocationPhotoCropCandidate + cropLocationPhotoCandidate. */
+export async function pickLocationPhotoFile(): Promise<PendingLocationPhoto | null> {
+  const candidate = await pickLocationPhotoCropCandidate();
+  if (!candidate) return null;
+  // Legacy callers expect an immediate photo; keep a centered default crop.
+  return cropLocationPhotoCandidate(candidate, {
+    scale: 1,
+    translateX: 0,
+    translateY: 0,
+  });
 }
 
 export async function uploadPendingLocationPhoto(input: {
@@ -86,6 +102,7 @@ export function ClinicLocationPhotoField({
   const savedUri = useClinicLogoUri(logoStoragePath);
   const displayUri = pendingPhoto?.uri ?? savedUri;
   const [isUploading, setIsUploading] = useState(false);
+  const [cropCandidate, setCropCandidate] = useState<SquareImageCropCandidate | null>(null);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     section: { gap: spacing.sm, alignItems: 'center' as const },
@@ -101,22 +118,37 @@ export function ClinicLocationPhotoField({
 
   const handlePick = async () => {
     try {
-      const picked = await pickLocationPhotoFile();
-      if (!picked) return;
+      const candidate = await pickLocationPhotoCropCandidate();
+      if (!candidate) return;
+      setCropCandidate(candidate);
+    } catch (error) {
+      Alert.alert(
+        'Could not open photo',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
+  };
+
+  const handleConfirmCrop = async (transform: ProfilePhotoCropTransform) => {
+    if (!cropCandidate) return;
+
+    setIsUploading(true);
+    try {
+      const pending = await cropLocationPhotoCandidate(cropCandidate, transform);
+      setCropCandidate(null);
 
       if (organizationId && locationId) {
-        setIsUploading(true);
         await uploadClinicLocationLogoFromBase64(
           organizationId,
           locationId,
-          picked.base64,
-          picked.contentType,
+          pending.base64,
+          pending.contentType,
           logoStoragePath,
         );
         onPendingPhotoChange(null);
         await onUploaded?.();
       } else {
-        onPendingPhotoChange(picked);
+        onPendingPhotoChange(pending);
       }
     } catch (error) {
       Alert.alert(
@@ -165,38 +197,51 @@ export function ClinicLocationPhotoField({
   const hasPhoto = Boolean(displayUri);
 
   return (
-    <View style={styles.section}>
-      <View style={styles.labelRow}>
-        <FormSectionHeader
-          icon="camera-outline"
-          label="Clinic photo"
-          hint="Matches the photo candidates see for an individual clinic at this location."
-        />
-      </View>
-      <Pressable
-        onPress={() => void handlePick()}
-        disabled={isUploading}
-        accessibilityRole="button"
-        accessibilityLabel={hasPhoto ? 'Change clinic photo' : 'Add clinic photo'}>
-        <ClinicLogoAvatar
-          clinicName={locationName || 'Clinic'}
-          logoUri={displayUri}
-          size={88}
-          isLoading={isUploading}
-        />
-      </Pressable>
-      <View style={styles.actions}>
-        <Pressable disabled={isUploading} onPress={() => void handlePick()}>
-          <Text style={styles.action}>
-            {isUploading ? 'Uploading…' : hasPhoto ? 'Change photo' : 'Add photo'}
-          </Text>
+    <>
+      <View style={styles.section}>
+        <View style={styles.labelRow}>
+          <FormSectionHeader
+            icon="camera-outline"
+            label="Clinic photo"
+            hint="Matches the photo candidates see for an individual clinic at this location."
+          />
+        </View>
+        <Pressable
+          onPress={() => void handlePick()}
+          disabled={isUploading}
+          accessibilityRole="button"
+          accessibilityLabel={hasPhoto ? 'Change clinic photo' : 'Add clinic photo'}>
+          <ClinicLogoAvatar
+            clinicName={locationName || 'Clinic'}
+            logoUri={displayUri}
+            size={88}
+            isLoading={isUploading}
+          />
         </Pressable>
-        {hasPhoto ? (
-          <Pressable disabled={isUploading} onPress={handleRemove}>
-            <Text style={styles.secondary}>Remove</Text>
+        <View style={styles.actions}>
+          <Pressable disabled={isUploading} onPress={() => void handlePick()}>
+            <Text style={styles.action}>
+              {isUploading ? 'Uploading…' : hasPhoto ? 'Change photo' : 'Add photo'}
+            </Text>
           </Pressable>
-        ) : null}
+          {hasPhoto ? (
+            <Pressable disabled={isUploading} onPress={handleRemove}>
+              <Text style={styles.secondary}>Remove</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
-    </View>
+      {cropCandidate ? (
+        <ProfilePhotoCropEditor
+          visible
+          imageUri={cropCandidate.uri}
+          imageWidth={cropCandidate.width}
+          imageHeight={cropCandidate.height}
+          isSaving={isUploading}
+          onCancel={() => setCropCandidate(null)}
+          onConfirm={(transform) => void handleConfirmCrop(transform)}
+        />
+      ) : null}
+    </>
   );
 }

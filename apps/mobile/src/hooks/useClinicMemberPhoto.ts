@@ -2,20 +2,28 @@ import {
   deleteClinicMemberPhoto,
   uploadClinicMemberPhotoFromBase64,
 } from '@chairside/api';
-import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicMemberPhotoUri } from '@/hooks/useClinicMemberPhotoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { readFileAsBase64 } from '@/lib/readFileAsBase64';
+import { cropProfilePhotoToBase64 } from '@/lib/cropProfilePhoto';
+import {
+  pickSquareImageCropCandidate,
+  type SquareImageCropCandidate,
+} from '@/lib/pickSquareImageCropCandidate';
+import {
+  PROFILE_PHOTO_CROP_VIEWPORT,
+  type ProfilePhotoCropTransform,
+} from '@/lib/profilePhotoCrop';
 
 export function useClinicMemberPhoto() {
   const { membership, organization, refreshClinicProfile } = useClinicProfile();
   const storagePath = membership?.photo_storage_path;
   const photoUri = useClinicMemberPhotoUri(storagePath);
   const [isUploading, setIsUploading] = useState(false);
+  const [cropCandidate, setCropCandidate] = useState<SquareImageCropCandidate | null>(null);
 
   const organizationId = organization?.id ?? membership?.organization_id;
   const membershipId = membership?.id;
@@ -23,36 +31,36 @@ export function useClinicMemberPhoto() {
   const pickPhoto = async () => {
     if (!organizationId || !membershipId) return;
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Permission needed',
-        'Allow photo library access to add a profile photo.',
-      );
-      return;
-    }
+    const candidate = await pickSquareImageCropCandidate({
+      permissionMessage: 'Allow photo library access to add a profile photo.',
+    });
+    if (!candidate) return;
 
+    setCropCandidate(candidate);
+  };
+
+  const cancelCrop = () => {
+    setCropCandidate(null);
+  };
+
+  const confirmCrop = async (transform: ProfilePhotoCropTransform) => {
+    if (!organizationId || !membershipId || !cropCandidate) return;
+
+    setIsUploading(true);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.85,
-      });
-
-      if (result.canceled || !result.assets[0]) return;
-
-      const asset = result.assets[0];
-      setIsUploading(true);
-      const base64 = await readFileAsBase64(
-        asset.uri,
-        Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
+      const cropped = await cropProfilePhotoToBase64(
+        cropCandidate.uri,
+        cropCandidate.width,
+        cropCandidate.height,
+        PROFILE_PHOTO_CROP_VIEWPORT,
+        transform,
       );
+      setCropCandidate(null);
       await uploadClinicMemberPhotoFromBase64(
         organizationId,
         membershipId,
-        base64,
-        asset.mimeType ?? 'image/jpeg',
+        cropped.base64,
+        cropped.mimeType,
         membership?.photo_storage_path,
       );
       await refreshClinicProfile();
@@ -95,7 +103,10 @@ export function useClinicMemberPhoto() {
     photoUri,
     hasPhoto: Boolean(storagePath),
     isUploading,
+    cropCandidate,
     pickPhoto,
+    cancelCrop,
+    confirmCrop,
     removePhoto,
   };
 }
