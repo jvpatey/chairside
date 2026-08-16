@@ -8,7 +8,7 @@ Record build number, date, and tester name when signing off.
 
 - [ ] Build installed from TestFlight (`preview` or `production` profile)
 - [ ] Device notifications allowed for Chairside
-- [ ] Production Supabase + Pingram + APNs configured per [APP_STORE_RELEASE.md](./APP_STORE_RELEASE.md)
+- [ ] Production Supabase + Pingram (in-app/SMS/email) + EAS APNs configured per [APP_STORE_RELEASE.md](./APP_STORE_RELEASE.md)
 
 ## Authentication
 
@@ -45,7 +45,7 @@ Record build number, date, and tester name when signing off.
 ## Notifications
 
 - [ ] Permission prompt appears after onboarding
-- [ ] Pingram End Users shows device token for test user
+- [ ] `user_push_tokens` has an Expo push token for the test user
 - [ ] Push banner arrives for test event (e.g. worker applies → clinic user)
 - [ ] Tapping push opens correct in-app screen
 - [ ] In-app notification bell shows history

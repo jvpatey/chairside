@@ -51,7 +51,8 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
       bullets: [
         'Supabase — authentication, database, file storage, and server functions.',
         'Mapbox — address search and map display.',
-        'Pingram — in-app notifications, mobile push, optional SMS, and transactional email (including team invites and Support form delivery).',
+        'Pingram — in-app notifications, optional SMS, and transactional email (including team invites and Support form delivery).',
+        'Expo — native push notification delivery on iOS and Android.',
         'RevenueCat — subscription entitlements and billing sync for clinic plans.',
         'Apple — Sign in with Apple, and App Store in-app purchases on iOS.',
         'Google — Sign in with Google when you choose that option.',

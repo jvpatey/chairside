@@ -1,6 +1,6 @@
-# Notifications (Pingram)
+# Notifications (Pingram + Expo Push)
 
-Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app, mobile push, optional SMS for fill-ins).
+Chairside sends **in-app**, optional **SMS** (fill-ins), and **email** through [Pingram](https://www.pingram.io/). **Native mobile push** uses [Expo Push](https://docs.expo.dev/push-notifications/overview/) with tokens stored in Supabase (`user_push_tokens`).
 
 ## Pingram dashboard setup
 
@@ -28,9 +28,10 @@ Chairside sends notifications through [Pingram](https://www.pingram.io/) (in-app
    - `support_contact` (Support page form email — see [SUPPORT_CONTACT.md](./SUPPORT_CONTACT.md))
 3. Mobile env: set `EXPO_PUBLIC_PINGRAM_CLIENT_ID` to either the **environment client ID** (Environments page) or the **public key** (`pingram_pk_...`). The app resolves `pingram_pk_` JWTs to the environment ID automatically — the SDK must not use the raw public key as `clientId`.
 4. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
-5. Configure **APNs** (iOS) — often under a notification’s **Mobile Integration** tab (not Settings → Integrations). See [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) when you ship Android push.
+5. Configure **APNs** in **EAS credentials** (not Pingram) — see [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) via EAS when you ship Android push.
 6. Register SMS sender / campaign with Pingram support if using fill-in SMS.
 7. Verify SMS channel: `export PINGRAM_API_KEY='pingram_sk_...' && ./scripts/verify-pingram-sms.sh`
+8. Run migration [`supabase/migrations/121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) for Expo push token storage.
 
 After deploy, smoke-test fill-in dispatch:
 
@@ -54,6 +55,8 @@ supabase secrets set PINGRAM_API_KEY=pingram_sk_...
 supabase secrets set NOTIFY_WEBHOOK_SECRET=$(openssl rand -hex 32)
 # Optional override (defaults to https://api.ca.pingram.io):
 # PINGRAM_API_URL=https://api.ca.pingram.io
+# Optional Expo Push access token (higher rate limits):
+# EXPO_ACCESS_TOKEN=...
 
 supabase functions deploy notify --use-api
 ```
@@ -101,13 +104,15 @@ Idempotency key: `clinic_manager_invitation:{invitation_id}`. Invitation tokens 
 ## Mobile
 
 - In-app bell: works in Expo Go when `EXPO_PUBLIC_PINGRAM_CLIENT_ID` is set.
-- Push: requires an **EAS build** on a **physical device** (not Expo Go). See **[PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md)** for APNs + Pingram + `eas build --profile production`.
+- Push: requires an **EAS build** on a **physical device** (not Expo Go). See **[PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md)** for APNs in EAS + Expo Push + `eas build --profile production`.
 - SMS: worker opts in on the **Fill-ins** tab (or Profile → Alerts); enter mobile number inline when enabling "Text me for fill-ins".
 - Push preferences: candidates and clinics can mute push by category under **Profile → Notifications**. In-app notification history still records muted categories.
 - Tapping a push notification navigates to the deep link and marks matching Pingram in-app items read when possible.
 - Tab badges (Applications, Fill-ins, Messages) are separate from the notification bell and clear when the user visits the relevant screen.
 
 Run migration [`supabase/migrations/057_notification_preferences.sql`](../supabase/migrations/057_notification_preferences.sql) before relying on preference toggles in production.
+
+Run migration [`supabase/migrations/121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) before expecting native push delivery.
 
 After changing `notify`, redeploy:
 
@@ -124,14 +129,14 @@ eas build --profile production --platform ios
 
 | Event | Recipient | Pingram type | Channels | Push pref category |
 | ----- | --------- | ------------ | -------- | ------------------ |
-| Application submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app, push | `applications_interviews` |
-| Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app, push | `applications_interviews` |
-| Interview offered / scheduled / cancelled / reschedule | Worker, or clinic (applicant-driven events): same location-aware clinic fan-out as applications | matching `application_interview_*` | in-app, push | `applications_interviews` |
-| Fill-in post → live | Eligible workers | `fill_in_posted` | in-app, push; + SMS if opted in | `fill_in_alerts` |
-| Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app, push; + SMS if opted in | `fill_in_alerts` |
-| Job post → live | Eligible workers | `job_posted` | in-app, push | `job_alerts` |
-| New message | Worker ↔ clinic: clinic recipients are **owner + managers for the application post’s location** (general/outreach / null location → owner + all managers); each user’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app, push | `messages` |
-| Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
+| Application submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app + Expo push | `applications_interviews` |
+| Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app + Expo push | `applications_interviews` |
+| Interview offered / scheduled / cancelled / reschedule | Worker, or clinic (applicant-driven events): same location-aware clinic fan-out as applications | matching `application_interview_*` | in-app + Expo push | `applications_interviews` |
+| Fill-in post → live | Eligible workers | `fill_in_posted` | in-app + Expo push; + SMS if opted in | `fill_in_alerts` |
+| Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app + Expo push; + SMS if opted in | `fill_in_alerts` |
+| Job post → live | Eligible workers | `job_posted` | in-app + Expo push | `job_alerts` |
+| New message | Worker ↔ clinic: clinic recipients are **owner + managers for the application post’s location** (general/outreach / null location → owner + all managers); each user’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app + Expo push | `messages` |
+| Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/Expo push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
 | Auto shift-details message in outreach thread | — | — | suppressed (no Pingram send) | — |
 | Clinic manager invitation created | Invitee email | `clinic_manager_invitation` | email (`POST /email`) | — |
 

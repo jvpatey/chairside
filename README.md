@@ -22,7 +22,7 @@ Clinics post roles and shifts, review applications with explainable match scores
 - **App** — Expo SDK 54 · Expo Router · React Native / React Native Web
 - **Backend** — Supabase (Auth, Postgres + RLS, Storage, Edge Functions)
 - **Billing** — RevenueCat (App Store + Web Billing)
-- **Notifications** — Pingram (in-app, push, optional SMS)
+- **Notifications** — Pingram (in-app, optional SMS, email) + Expo Push (native)
 - **Maps** — Mapbox
 - **Monorepo** — pnpm workspaces (`apps/mobile`, `packages/*`)
 
@@ -78,7 +78,7 @@ Create `apps/mobile/.env` (template: [`apps/mobile/.env.example`](apps/mobile/.e
 | `EXPO_PUBLIC_REVENUECAT_WEB_API_KEY` | Billing | Web Billing public key (`rcb_…`) |
 | `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` | Optional | Android SDK key when enabled |
 
-\*Required for notification registration in builds that use Pingram.
+\*Required for in-app notification registration in builds that use Pingram.
 
 **Optional overrides**
 
@@ -126,7 +126,7 @@ Email confirmation and password-recovery links must use the Site URL / redirects
 These need an **EAS build** (not Expo Go):
 
 - Sign in with Apple
-- Push notifications (`expo-notifications` + Pingram)
+- Push notifications (`expo-notifications` + Expo Push API)
 - In-app PDF resume preview (`react-native-pdf`)
 
 ```bash
@@ -153,7 +153,7 @@ Deploy from the project root. Use `--use-api` if local Docker bundling isn’t a
 | Function | Purpose |
 | --- | --- |
 | `delete-account` | Profile → delete account; retains counterpart history, scrubs PII, clears storage |
-| `notify` | Pingram in-app / push / optional SMS |
+| `notify` | Pingram in-app / optional SMS + Expo native push |
 | `revenuecat-sync` | Pull entitlements into `clinic_subscriptions` after purchase |
 | `revenuecat-webhook` | RevenueCat → Supabase subscription source of truth |
 | `support-contact` | In-app support form delivery |
@@ -215,8 +215,8 @@ Host `apps/mobile/dist` on Vercel / Netlify / Cloudflare. Configure Supabase aut
 | [docs/APP_STORE_RELEASE.md](docs/APP_STORE_RELEASE.md) | End-to-end App Store release |
 | [docs/APP_STORE_CONNECT.md](docs/APP_STORE_CONNECT.md) | Listing copy, privacy, review notes |
 | [docs/TESTFLIGHT_CHECKLIST.md](docs/TESTFLIGHT_CHECKLIST.md) | Pre-submission smoke tests |
-| [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Pingram types, webhooks, `notify` |
-| [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md) | APNs, EAS env, push debugging |
+| [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Pingram + Expo Push, webhooks, `notify` |
+| [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md) | EAS APNs, Expo Push, push debugging |
 | [docs/WEB_DEPLOY.md](docs/WEB_DEPLOY.md) | Static export, redirects, hosting |
 | [docs/SUPPORT_CONTACT.md](docs/SUPPORT_CONTACT.md) | Support form + edge function |
 

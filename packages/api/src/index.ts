@@ -422,6 +422,12 @@ export {
   type NotificationPreferenceCategory,
   type NotificationPreferenceUpdate,
 } from './notificationPreferences';
+export {
+  deleteUserPushTokens,
+  upsertUserPushToken,
+  type PushTokenPlatform,
+  type UserPushToken,
+} from './pushTokens';
 export type { Database, Profile, UserRole } from './types';
 export {
   attachClinicCrmToApplications,

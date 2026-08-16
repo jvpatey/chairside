@@ -15,22 +15,25 @@ type WebhookPayload = {
 };
 
 /** Pingram API channel identifiers (see https://www.pingram.io/docs/reference/node) */
-type PingramForceChannel = 'INAPP_WEB' | 'PUSH' | 'SMS';
+type PingramForceChannel = 'INAPP_WEB' | 'SMS';
 
 type PingramSendBody = {
   type: string;
   to: { id: string; number?: string };
   inapp?: { title: string; url?: string };
-  mobile_push?: { title: string; message: string };
   sms?: { message: string };
   forceChannels: PingramForceChannel[];
   secondaryId?: string;
-  options?: {
-    push?: {
-      customData?: Record<string, string>;
-    };
-  };
 };
+
+type ExpoPushPayload = {
+  userId: string;
+  title: string;
+  body: string;
+  data: Record<string, string>;
+};
+
+const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 const PINGRAM_TYPES = {
   applicationReceived: 'application_received',
@@ -391,16 +394,10 @@ function buildSendBody(input: {
   message?: string;
   deepLink: string;
   secondaryId: string;
-  includePush?: boolean;
   includeSms?: boolean;
   smsMessage?: string;
-  pushCustomData?: Record<string, string>;
 }): PingramSendBody {
-  const sendPush = (input.includePush ?? true) && Boolean(input.message);
   const forceChannels: PingramForceChannel[] = ['INAPP_WEB'];
-  if (sendPush) {
-    forceChannels.push('PUSH');
-  }
   if (input.includeSms && input.smsMessage && input.phone) {
     forceChannels.push('SMS');
   }
@@ -413,28 +410,34 @@ function buildSendBody(input: {
     secondaryId: input.secondaryId,
   };
 
-  if (sendPush && input.message) {
-    body.mobile_push = { title: input.title, message: input.message };
-  }
-
   if (input.includeSms && input.smsMessage && input.phone) {
     body.to.number = input.phone;
     body.sms = { message: input.smsMessage };
   }
 
-  if (sendPush) {
-    body.options = {
-      push: {
-        customData: {
-          url: input.deepLink,
-          secondaryId: input.secondaryId,
-          ...(input.pushCustomData ?? {}),
-        },
-      },
-    };
-  }
-
   return body;
+}
+
+function buildExpoPushPayload(input: {
+  userId: string;
+  title: string;
+  message?: string;
+  deepLink: string;
+  secondaryId: string;
+  includePush?: boolean;
+  pushCustomData?: Record<string, string>;
+}): ExpoPushPayload | null {
+  if (!(input.includePush ?? true) || !input.message) return null;
+  return {
+    userId: input.userId,
+    title: input.title,
+    body: input.message,
+    data: {
+      url: input.deepLink,
+      secondaryId: input.secondaryId,
+      ...(input.pushCustomData ?? {}),
+    },
+  };
 }
 
 async function pingramSend(apiKey: string, apiBase: string, body: PingramSendBody) {
@@ -449,6 +452,95 @@ async function pingramSend(apiKey: string, apiBase: string, body: PingramSendBod
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Pingram send failed (${res.status}): ${text}`);
+  }
+}
+
+async function sendExpoPushToUser(
+  supabase: ReturnType<typeof createClient>,
+  payload: ExpoPushPayload,
+): Promise<void> {
+  const { data: rows, error } = await supabase
+    .from('user_push_tokens')
+    .select('expo_push_token')
+    .eq('user_id', payload.userId);
+
+  if (error) throw error;
+  const tokens = (rows ?? [])
+    .map((row) => row.expo_push_token as string)
+    .filter((token) => typeof token === 'string' && token.length > 0);
+
+  if (tokens.length === 0) return;
+
+  const messages = tokens.map((to) => ({
+    to,
+    title: payload.title,
+    body: payload.body,
+    data: payload.data,
+    sound: 'default',
+  }));
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Accept-Encoding': 'gzip, deflate',
+    'Content-Type': 'application/json',
+  };
+  const accessToken = Deno.env.get('EXPO_ACCESS_TOKEN')?.trim();
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  const res = await fetch(EXPO_PUSH_URL, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(messages),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Expo push failed (${res.status}): ${text}`);
+  }
+
+  const result = (await res.json().catch(() => null)) as
+    | { data?: Array<{ status?: string; message?: string }> }
+    | null;
+  const tickets = Array.isArray(result?.data) ? result.data : [];
+  for (const ticket of tickets) {
+    if (ticket?.status === 'error') {
+      console.error(
+        `[notify] expo push ticket error for ${payload.userId}: ${ticket.message ?? 'unknown'}`,
+      );
+    }
+  }
+}
+
+/** Pingram in-app/SMS, then Expo native push (push failures do not fail the dispatch). */
+async function sendUserAlert(
+  supabase: ReturnType<typeof createClient>,
+  apiKey: string,
+  apiBase: string,
+  input: {
+    type: string;
+    userId: string;
+    phone?: string | null;
+    title: string;
+    message?: string;
+    deepLink: string;
+    secondaryId: string;
+    includePush?: boolean;
+    includeSms?: boolean;
+    smsMessage?: string;
+    pushCustomData?: Record<string, string>;
+  },
+): Promise<void> {
+  await pingramSend(apiKey, apiBase, buildSendBody(input));
+
+  const expoPayload = buildExpoPushPayload(input);
+  if (!expoPayload) return;
+
+  try {
+    await sendExpoPushToUser(supabase, expoPayload);
+  } catch (error) {
+    console.error(`[notify] expo push failed for ${input.userId}`, error);
   }
 }
 
@@ -647,10 +739,11 @@ async function handleMessageInsert(
     );
 
     await withIdempotentDispatch(supabase, idempotencyKey, 'message_received', async () => {
-      await pingramSend(
+      await sendUserAlert(
+        supabase,
         pingramKey,
         pingramBase,
-        buildSendBody({
+        {
           type: PINGRAM_TYPES.messageReceived,
           userId: recipientId,
           title,
@@ -659,7 +752,7 @@ async function handleMessageInsert(
           secondaryId: idempotencyKey,
           includePush,
           pushCustomData: { senderId },
-        }),
+        },
       );
     });
   }
@@ -846,10 +939,11 @@ async function sendWorkerStatusNotification(
     idempotencyKey,
     `worker_status_${status}`,
     async () => {
-      await pingramSend(
+      await sendUserAlert(
+        supabase,
         pingramKey,
         pingramBase,
-        buildSendBody({
+        {
           type: notification.pingramType,
           userId: workerId,
           title: notification.title,
@@ -857,7 +951,7 @@ async function sendWorkerStatusNotification(
           deepLink,
           secondaryId: idempotencyKey,
           includePush,
-        }),
+        },
       );
     },
   );
@@ -899,10 +993,11 @@ async function sendClinicApplicationNotification(
       idempotencyKey,
       `clinic_application_${template.pingramType}`,
       async () => {
-        await pingramSend(
+        await sendUserAlert(
+          supabase,
           pingramKey,
           pingramBase,
-          buildSendBody({
+          {
             type: template.pingramType,
             userId: recipientId,
             title: template.title,
@@ -910,7 +1005,7 @@ async function sendClinicApplicationNotification(
             deepLink,
             secondaryId: idempotencyKey,
             includePush,
-          }),
+          },
         );
       },
     );
@@ -998,10 +1093,11 @@ async function handleApplicationInsert(
     );
 
     await withIdempotentDispatch(supabase, idempotencyKey, 'application_received', async () => {
-      await pingramSend(
+      await sendUserAlert(
+        supabase,
         pingramKey,
         pingramBase,
-        buildSendBody({
+        {
           type: PINGRAM_TYPES.applicationReceived,
           userId: recipientId,
           title,
@@ -1009,7 +1105,7 @@ async function handleApplicationInsert(
           deepLink,
           secondaryId: idempotencyKey,
           includePush,
-        }),
+        },
       );
     });
   }
@@ -1319,10 +1415,11 @@ async function handleShiftPostLive(
         idempotencyKey,
         'fill_in_posted',
         async () => {
-          await pingramSend(
+          await sendUserAlert(
+            supabase,
             pingramKey,
             pingramBase,
-            buildSendBody({
+            {
               type: PINGRAM_TYPES.fillInPosted,
               userId: worker.id,
               phone: e164 ?? undefined,
@@ -1333,7 +1430,7 @@ async function handleShiftPostLive(
               includePush: pushPreferences.get(worker.id) ?? true,
               includeSms: Boolean(smsOptIn && e164),
               smsMessage: fillInCopy.smsMessage,
-            }),
+            },
           );
         },
       );
@@ -1400,10 +1497,11 @@ async function handleJobPostLive(
         idempotencyKey,
         'job_posted',
         async () => {
-          await pingramSend(
+          await sendUserAlert(
+            supabase,
             pingramKey,
             pingramBase,
-            buildSendBody({
+            {
               type: PINGRAM_TYPES.jobPosted,
               userId: worker.id,
               title: notifTitle,
@@ -1411,7 +1509,7 @@ async function handleJobPostLive(
               deepLink,
               secondaryId: idempotencyKey,
               includePush: pushPreferences.get(worker.id) ?? true,
-            }),
+            },
           );
         },
       );
@@ -1587,10 +1685,11 @@ async function handleSavedJobPostUpdate(
         idempotencyKey,
         pingramType,
         async () => {
-          await pingramSend(
+          await sendUserAlert(
+            supabase,
             pingramKey,
             pingramBase,
-            buildSendBody({
+            {
               type: pingramType,
               userId: worker.id,
               title: notifTitle,
@@ -1598,7 +1697,7 @@ async function handleSavedJobPostUpdate(
               deepLink,
               secondaryId: idempotencyKey,
               includePush: pushPreferences.get(worker.id) ?? true,
-            }),
+            },
           );
         },
       );
@@ -1676,10 +1775,11 @@ async function handleSavedShiftPostUpdate(
         idempotencyKey,
         pingramType,
         async () => {
-          await pingramSend(
+          await sendUserAlert(
+            supabase,
             pingramKey,
             pingramBase,
-            buildSendBody({
+            {
               type: pingramType,
               userId: worker.id,
               title: notifTitle,
@@ -1687,7 +1787,7 @@ async function handleSavedShiftPostUpdate(
               deepLink,
               secondaryId: idempotencyKey,
               includePush: pushPreferences.get(worker.id) ?? true,
-            }),
+            },
           );
         },
       );

@@ -22,7 +22,7 @@ import {
   markPasswordRecoveryPending,
 } from '@/lib/authRecoveryState';
 import { applyAuthSessionFromStorage } from '@/lib/authSessionSync';
-import { unregisterPingramPushNotifications } from '@/lib/pingramPushRegistration';
+import { unregisterExpoPushNotifications } from '@/lib/expoPushRegistration';
 
 type AuthContextValue = {
   session: Session | null;
@@ -259,7 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       if (userId) {
-        await unregisterPingramPushNotifications(userId);
+        await unregisterExpoPushNotifications(userId);
       }
       await clearRecoveryPending();
       await apiSignOut();
