@@ -1,5 +1,6 @@
 import type { Conversation } from '@chairside/api';
 import {
+  DELETED_ACCOUNT_LABEL,
   formatApplicationStatus,
   formatClinicApplicationStatus,
   formatPostTitleDisplay,
@@ -74,7 +75,7 @@ function formatInboxShiftParts(conversation: Conversation): string[] {
 }
 
 function formatInboxContextLine(conversation: Conversation, role: 'worker' | 'clinic'): string {
-  const deletedNote = conversation.counterpart_account_deleted ? 'No longer on Chairside' : null;
+  const deletedNote = conversation.counterpart_account_deleted ? DELETED_ACCOUNT_LABEL : null;
 
   if (conversation.conversation_type === 'general') {
     const base =
@@ -109,7 +110,7 @@ function formatInboxContextLine(conversation: Conversation, role: 'worker' | 'cl
 }
 
 function formatCardMeta(conversation: Conversation, role: 'worker' | 'clinic'): string {
-  const deletedNote = conversation.counterpart_account_deleted ? 'No longer on Chairside' : null;
+  const deletedNote = conversation.counterpart_account_deleted ? DELETED_ACCOUNT_LABEL : null;
 
   if (conversation.conversation_type === 'general') {
     const base = role === 'worker' ? 'Reach out without applying' : null;

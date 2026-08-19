@@ -8,6 +8,7 @@ import {
   sendMessage,
   type Conversation,
 } from '@chairside/api';
+import { DELETED_ACCOUNT_LABEL } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -112,7 +113,7 @@ function getEmptyStateCopy(
 
 function getClosedBannerMessage(conversation: Conversation | null): string {
   if (conversation?.counterpart_account_deleted) {
-    return 'This person is no longer signed up for Chairside. You can still read past messages.';
+    return 'This person closed their Chairside account. You can still read past messages.';
   }
   if (conversation?.conversation_type === 'general') {
     return 'This open inquiry is no longer available. You can still read past messages.';

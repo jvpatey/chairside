@@ -14,6 +14,7 @@ import {
   navigateAfterWorkerApplication,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
+import { IS_WEB } from '@/lib/webPressableStyles';
 
 function isFillInApplicationReturn(returnTo?: string) {
   return (
@@ -47,9 +48,13 @@ export default function WorkerApplicationDetailScreen() {
     navigateAfterWorkerApplication(router, resolvedReturnTo);
   }, [resolvedReturnTo]);
 
-  // Tablet Applications hub owns the persistent split (like Messages). Deep links
-  // into this route redirect there unless we came from Fill-ins context.
-  if (isTablet && applicationId && !isFillInApplicationReturn(resolvedReturnTo)) {
+  const fromFillIns = isFillInApplicationReturn(resolvedReturnTo);
+  const useWebApplicationsSplit = IS_WEB && isTablet && !fromFillIns;
+  const useFillInSplit = isTablet && fromFillIns;
+
+  // Web Applications hub owns the persistent split. Deep links into this route
+  // redirect there unless we came from Fill-ins. iPad stays full-screen.
+  if (useWebApplicationsSplit && applicationId) {
     return <Redirect href={getWorkerApplicationsRoute(applicationId)} />;
   }
 
@@ -58,11 +63,11 @@ export default function WorkerApplicationDetailScreen() {
       applicationId={applicationId}
       returnTo={resolvedReturnTo}
       onClose={goBack}
-      embedded={isTablet}
+      embedded={useFillInSplit}
     />
   );
 
-  if (isTablet) {
+  if (useFillInSplit) {
     return (
       <>
         <MasterDetailLayout

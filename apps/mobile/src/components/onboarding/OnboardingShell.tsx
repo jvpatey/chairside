@@ -262,8 +262,11 @@ export function OnboardingShell({
 
   // Lift the sticky footer above the keyboard. Prefer keyboard height over home /
   // tab insets while open so Continue stays visible and the scroll viewport shrinks.
+  // Welcome / onboarding are outside the tab dock (`tabDockInset` is 0) — still
+  // clear the iOS home indicator (pull-up bar) via `insets.bottom`.
   const footerPaddingBottom = footer
-    ? spacing.md + (keyboardHeight > 0 ? keyboardHeight : tabDockInset)
+    ? spacing.md +
+      (keyboardHeight > 0 ? keyboardHeight : Math.max(tabDockInset, insets.bottom))
     : insets.bottom + spacing.md;
 
   const scrollBottomInset = footer ? 0 : tabDockInset > 0 ? tabDockInset : insets.bottom;

@@ -11,6 +11,7 @@ import {
   groupEventsByDate,
 } from '@/lib/calendarEvents';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { IS_WEB } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 type ScheduleCalendarViewProps = {
@@ -35,7 +36,7 @@ export function ScheduleCalendarView({
   onEmptyCtaPress,
 }: ScheduleCalendarViewProps) {
   const { isTablet } = useResponsiveLayout();
-  const useSplit = isTablet;
+  const useSplit = IS_WEB && isTablet;
   const styles = useThemedStyles(({ spacing }) => ({
     wrap: {
       gap: spacing.lg,

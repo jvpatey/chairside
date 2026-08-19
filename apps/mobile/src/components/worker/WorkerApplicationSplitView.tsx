@@ -40,7 +40,7 @@ function ApplicationDetailPlaceholder() {
   );
 }
 
-/** Tablet/web Applications hub: persistent list + detail split (Messages-style). */
+/** Web Applications hub: persistent list + detail split (Messages-style). iPad stays stacked. */
 export function WorkerApplicationSplitView({
   initialApplicationId,
 }: WorkerApplicationSplitViewProps) {

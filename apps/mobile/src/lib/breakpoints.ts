@@ -16,8 +16,14 @@ export const CONTENT_MAX_WIDTH = {
   xwide: 1320,
 } as const;
 
-/** Extra top inset below the safe area for aligned sidebar + dashboard content. */
-export const TABLET_TOP_INSET_EXTRA = 8;
+/**
+ * Extra top inset below the safe area for aligned sidebar + section headers.
+ * Kept generous enough that iPad chrome clears the status bar comfortably.
+ */
+export const TABLET_TOP_INSET_EXTRA = 16;
+
+/** Floor when safe-area top reports 0 on iOS (edge-to-edge / metrics lag). */
+export const TABLET_TOP_INSET_FALLBACK_IOS = 20;
 
 /** Web sidebar glass panel inset from viewport — matches `TabletSidebar` outerWeb padding. */
 export const WEB_SIDEBAR_OUTER_INSET = 8;

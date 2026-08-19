@@ -1,5 +1,8 @@
 import { FILL_IN_PENDING_STATUSES, type ApplicationStatus } from '@chairside/api';
 import {
+  DELETED_ACCOUNT_LABEL,
+  DELETED_CANDIDATE_STATUS_DESCRIPTION,
+  DELETED_CLINIC_STATUS_DESCRIPTION,
   hasPendingInterviewProposal,
   isAwaitingApplicationKit,
   isScreeningStageStatus,
@@ -158,16 +161,16 @@ export function getApplicationStatusSummary(
 
   if (audience === 'worker' && application.clinicAccountDeleted) {
     return {
-      headline: 'Clinic no longer on Chairside',
-      description: 'This clinic is no longer signed up for Chairside.',
+      headline: DELETED_ACCOUNT_LABEL,
+      description: DELETED_CLINIC_STATUS_DESCRIPTION,
       variant: 'default',
     };
   }
 
   if (audience === 'clinic' && application.workerAccountDeleted) {
     return {
-      headline: 'Candidate no longer on Chairside',
-      description: 'This candidate is no longer signed up for Chairside.',
+      headline: DELETED_ACCOUNT_LABEL,
+      description: DELETED_CANDIDATE_STATUS_DESCRIPTION,
       variant: 'default',
     };
   }

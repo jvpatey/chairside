@@ -11,6 +11,7 @@ import {
 } from '@chairside/api';
 import {
   canWorkerHideApplication,
+  DELETED_CLINIC_STATUS_DESCRIPTION,
   formatApplicationDate,
   formatApplicationEducation,
   formatApplicationResumeStatus,
@@ -1046,7 +1047,7 @@ export function WorkerApplicationDetailCard({
             {clinicDeleted ? (
               <CardInfoPanel variant="default">
                 <CardInfoPanelText>
-                  This clinic is no longer signed up for Chairside.
+                  {DELETED_CLINIC_STATUS_DESCRIPTION}
                 </CardInfoPanelText>
               </CardInfoPanel>
             ) : null}

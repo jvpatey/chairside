@@ -1,4 +1,5 @@
 import type { Conversation } from '@chairside/api';
+import { DELETED_ACCOUNT_LABEL } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
@@ -354,8 +355,8 @@ export function MessageContextPanel({
       ? {
           variant: 'default' as const,
           icon: 'person-remove-outline' as const,
-          title: 'Account inactive',
-          body: 'This person is no longer on Chairside. Past messages remain visible.',
+          title: DELETED_ACCOUNT_LABEL,
+          body: 'This person closed their Chairside account. Past messages remain visible.',
         }
       : {
           variant: 'default' as const,
