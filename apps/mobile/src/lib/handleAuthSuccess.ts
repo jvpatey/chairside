@@ -1,4 +1,4 @@
-import { resolveAuthProfile } from '@chairside/api';
+import { resolveAuthProfile, setProfileRole } from '@chairside/api';
 import { router } from 'expo-router';
 
 import { isPasswordRecoveryPending } from '@/lib/authRecoveryState';
@@ -6,6 +6,10 @@ import {
   buildClinicInviteAcceptHref,
   readClinicInviteToken,
 } from '@/lib/clinicInviteSession';
+import {
+  clearPendingSignupRole,
+  consumePendingSignupRole,
+} from '@/lib/pendingSignupRole';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import type { UserRole } from '@/types';
 
@@ -25,7 +29,17 @@ export async function handleAuthSuccess(
     return;
   }
 
-  const profile = await resolveAuthProfile(userId);
+  let profile = await resolveAuthProfile(userId);
+
+  if (!profile?.role) {
+    const pendingRole = await consumePendingSignupRole();
+    if (pendingRole) {
+      profile = await setProfileRole(userId, pendingRole);
+    }
+  } else {
+    await clearPendingSignupRole();
+  }
+
   const refreshed = await refreshProfile();
 
   const { href, role } = await resolveAuthenticatedRoute({

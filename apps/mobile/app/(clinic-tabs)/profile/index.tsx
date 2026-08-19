@@ -7,7 +7,6 @@ import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
-import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import {
@@ -36,6 +35,7 @@ import {
   CLINIC_PROFILE_MESSAGING,
   CLINIC_PROFILE_NOTIFICATIONS,
   CLINIC_PROFILE_PRACTICE,
+  CLINIC_PROFILE_SUPPORT,
   CLINIC_PROFILE_TEAM,
 } from '@/lib/routing';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
@@ -205,7 +205,7 @@ export default function ClinicAccountProfileScreen() {
               icon="help-circle-outline"
               title="Support"
               subtitle={getSupportSubtitle()}
-              onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
+              onPress={() => router.push(CLINIC_PROFILE_SUPPORT)}
             />
           ) : null}
           <ProfileSettingsRow

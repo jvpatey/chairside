@@ -7,7 +7,7 @@ import {
 } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Platform, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ClinicListingViewToggle } from '@/components/clinic/ClinicListingViewToggle';
@@ -180,8 +180,8 @@ function HistorySection({
 export default function RoleHistoryScreen() {
   const { user } = useAuth();
   const { accessibleLocations } = useClinicProfile();
-  const { mode, setMode, isWide } = useClinicListingViewMode('role-history');
-  const tableMode = isWide && Platform.OS === 'web';
+  const { mode, setMode, isWide, supportsListView } = useClinicListingViewMode('role-history');
+  const tableMode = isWide && supportsListView;
   const roleTableColumns = useMemo(
     () => getClinicRoleTableColumns(accessibleLocations.length > 1),
     [accessibleLocations.length],
@@ -307,7 +307,9 @@ export default function RoleHistoryScreen() {
               accessibilityLabel="Filter role history"
               sheetTitle="Filter role history"
             />
-            <ClinicListingViewToggle selected={mode} onChange={setMode} />
+            {supportsListView ? (
+              <ClinicListingViewToggle selected={mode} onChange={setMode} />
+            ) : null}
           </View>
         ) : undefined
       }>

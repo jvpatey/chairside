@@ -4,53 +4,41 @@ import { useReducedMotion } from 'react-native-reanimated';
 
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme } from '@/theme';
+import { webMotion } from '@/theme/web';
 
-const HEADLINE_PREFIX = 'Staffing for dental clinics, ';
-const HIGHLIGHT_WORD = 'simplified.';
+const HEADLINE_PREFIX = 'Fill the chair ';
+const HIGHLIGHT_WORD = 'today.';
+const POP_DURATION_MS = 780;
 
 type WebLandingHeroHeadlineProps = {
   style: StyleProp<TextStyle>;
 };
 
-function shimmerTextStyle(
-  baseColor: string,
-  highlightColor: string,
-  iterationCount: number | 'infinite',
-): TextStyle {
-  return webOnlyStyle({
-    backgroundImage: `linear-gradient(90deg, ${baseColor} 0%, ${baseColor} 36%, ${highlightColor} 50%, ${baseColor} 64%, ${baseColor} 100%)`,
-    backgroundSize: '200% 100%',
-    backgroundClip: 'text',
-    WebkitBackgroundClip: 'text',
-    color: 'transparent',
-    WebkitTextFillColor: 'transparent',
-    animationName: 'chairside-headline-shimmer',
-    animationDuration: '1.15s',
-    animationTimingFunction: 'ease-in-out',
-    animationIterationCount: iterationCount,
-  } as object) as TextStyle;
-}
+type IntroPhase = 'idle' | 'popping' | 'settled';
 
-/** Hero headline with a one-shot shimmer on load, then hover-only sweeps. */
+/** Hero headline: smooth one-shot pop-settle on load, soft lift on hover. */
 export function WebLandingHeroHeadline({ style }: WebLandingHeroHeadlineProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const reducedMotion = useReducedMotion();
-  const [introShimmer, setIntroShimmer] = useState(false);
-  const highlightColor = isDark ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.95)';
+  const [phase, setPhase] = useState<IntroPhase>('idle');
 
   useEffect(() => {
-    if (reducedMotion) return;
+    if (reducedMotion) {
+      setPhase('settled');
+      return;
+    }
 
-    const timer = setTimeout(() => setIntroShimmer(true), 800);
-    return () => clearTimeout(timer);
+    const start = setTimeout(() => setPhase('popping'), 280);
+    return () => clearTimeout(start);
   }, [reducedMotion]);
 
   useEffect(() => {
-    if (!introShimmer || reducedMotion) return;
+    if (phase !== 'popping') return;
 
-    const timer = setTimeout(() => setIntroShimmer(false), 1300);
-    return () => clearTimeout(timer);
-  }, [introShimmer, reducedMotion]);
+    // Match keyframe length so we hand off to settled styles without a mid-animation snap.
+    const done = setTimeout(() => setPhase('settled'), POP_DURATION_MS);
+    return () => clearTimeout(done);
+  }, [phase]);
 
   return (
     <View
@@ -66,24 +54,46 @@ export function WebLandingHeroHeadline({ style }: WebLandingHeroHeadlineProps) {
 
       <Pressable accessibilityRole="text" style={webPointer('default')}>
         {({ hovered }) => {
-          const showShimmer = !reducedMotion && (introShimmer || hovered);
+          const isHovering = !reducedMotion && hovered && phase === 'settled';
 
           return (
-            <Text
+            <View
               style={[
-                style,
-                { color: colors.primary },
-                showShimmer
-                  ? shimmerTextStyle(
-                      colors.primary,
-                      highlightColor,
-                      introShimmer ? 1 : 'infinite',
-                    )
-                  : null,
+                {
+                  alignSelf: 'flex-start',
+                },
+                webOnlyStyle({
+                  display: 'inline-block',
+                  transformOrigin: 'left bottom',
+                  willChange: 'transform, opacity',
+                  ...(phase === 'idle'
+                    ? {
+                        transform: [{ scale: 0.97 }],
+                        opacity: 0.88,
+                      }
+                    : null),
+                  ...(phase === 'popping'
+                    ? {
+                        animationName: 'chairside-headline-pop',
+                        animationDuration: `${POP_DURATION_MS}ms`,
+                        animationTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                        animationFillMode: 'forwards',
+                        animationIterationCount: 1,
+                      }
+                    : null),
+                  ...(phase === 'settled'
+                    ? {
+                        transform: [{ scale: isHovering ? 1.08 : 1 }],
+                        opacity: 1,
+                        transition: `transform ${webMotion.normal} ${webMotion.easingOut}, filter ${webMotion.normal} ${webMotion.easingOut}`,
+                        filter: isHovering ? 'brightness(1.06)' : 'brightness(1)',
+                      }
+                    : null),
+                } as object),
               ]}
             >
-              {HIGHLIGHT_WORD}
-            </Text>
+              <Text style={[style, { color: colors.primary }]}>{HIGHLIGHT_WORD}</Text>
+            </View>
           );
         }}
       </Pressable>

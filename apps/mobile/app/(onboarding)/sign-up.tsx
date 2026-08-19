@@ -20,11 +20,13 @@ import { AUTH_STAGGER, enterFadeUp } from '@/components/onboarding/onboardingAni
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { PasswordRequirements } from '@/components/onboarding/PasswordRequirements';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { saveClinicInviteToken } from '@/lib/clinicInviteSession';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
+import { savePendingSignupRole } from '@/lib/pendingSignupRole';
 import {
   evaluatePassword,
   getPasswordPlaceholder,
@@ -55,6 +57,7 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
   const passwordEvaluation = evaluatePassword(password, { email });
   const confirmHasInput = confirmPassword.length > 0;
@@ -67,6 +70,12 @@ export default function SignUpScreen() {
       void saveClinicInviteToken(pendingInviteToken);
     }
   }, [pendingInviteToken]);
+
+  useEffect(() => {
+    if (role) {
+      void savePendingSignupRole(role);
+    }
+  }, [role]);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -116,20 +125,26 @@ export default function SignUpScreen() {
 
   const runSocialSignIn = async (action: () => Promise<unknown>) => {
     if (isSubmitting) return;
+    if (!role) {
+      router.replace('/(onboarding)/role');
+      return;
+    }
 
     setIsSubmitting(true);
     setFormError(null);
+    setFormSuccess(null);
     try {
+      await savePendingSignupRole(role);
       await action();
       const {
         data: { session },
       } = await getSupabaseClient().auth.getSession();
-      const profile = session?.user ? await getProfile(session.user.id) : null;
 
       if (!session?.user) return;
 
-      if (!profile?.role && role && profile?.id) {
-        await setProfileRole(profile.id, role);
+      const profile = await getProfile(session.user.id);
+      if (!profile?.role) {
+        await setProfileRole(session.user.id, role);
         await refreshProfile();
       }
 
@@ -138,6 +153,7 @@ export default function SignUpScreen() {
       const message = getAuthErrorMessage(error);
       if (message !== 'Sign in was cancelled.') {
         setFormError(message);
+        setFormSuccess(null);
         if (Platform.OS !== 'web') {
           Alert.alert('Sign up failed', message);
         }
@@ -157,6 +173,7 @@ export default function SignUpScreen() {
 
     if (!email.trim() || !password || !confirmPassword) {
       setFormError('Fill in all fields to create your account.');
+      setFormSuccess(null);
       if (Platform.OS !== 'web') {
         Alert.alert('Missing information', 'Fill in all fields to create your account.');
       }
@@ -165,6 +182,7 @@ export default function SignUpScreen() {
 
     if (password !== confirmPassword) {
       setFormError('Make sure both password fields match.');
+      setFormSuccess(null);
       if (Platform.OS !== 'web') {
         Alert.alert('Passwords do not match', 'Make sure both password fields match.');
       }
@@ -173,6 +191,7 @@ export default function SignUpScreen() {
 
     if (passwordEvaluation.maxLengthError) {
       setFormError(passwordEvaluation.maxLengthError);
+      setFormSuccess(null);
       if (Platform.OS !== 'web') {
         Alert.alert('Password too long', passwordEvaluation.maxLengthError);
       }
@@ -187,6 +206,7 @@ export default function SignUpScreen() {
             .join(', ')}.`
         : getPasswordTooShortMessage();
       setFormError(message);
+      setFormSuccess(null);
       if (Platform.OS !== 'web') {
         Alert.alert('Password requirements not met', message);
       }
@@ -195,19 +215,25 @@ export default function SignUpScreen() {
 
     setIsSubmitting(true);
     setFormError(null);
+    setFormSuccess(null);
     try {
       const signUpData = await signUpWithEmail(email, password, role);
       const session = await establishSessionAfterSignUp(email, password, signUpData);
       const user = signUpData.user ?? session?.user ?? null;
 
       if (session && user) {
+        const profile = await getProfile(user.id);
+        if (!profile?.role) {
+          await setProfileRole(user.id, role);
+        }
         await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
         return;
       }
 
       if (user) {
+        await savePendingSignupRole(role);
         const message = 'We sent a confirmation link. Open it to finish setting up your account.';
-        setFormError(message);
+        setFormSuccess(message);
         if (Platform.OS !== 'web') {
           Alert.alert('Confirm your email', message);
         }
@@ -216,6 +242,7 @@ export default function SignUpScreen() {
     } catch (error) {
       const message = getAuthErrorMessage(error);
       setFormError(message);
+      setFormSuccess(null);
       if (Platform.OS !== 'web') {
         Alert.alert('Create account failed', message);
       }
@@ -230,7 +257,7 @@ export default function SignUpScreen() {
 
   return (
     <OnboardingShell
-      authSplit
+      webLayout="centeredDecision"
       footer={
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
@@ -283,6 +310,7 @@ export default function SignUpScreen() {
       </Animated.View>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
         <FormErrorBanner message={formError} />
+        <FormSuccessBanner message={formSuccess} />
         <AuthField
           label="Email"
           placeholder="you@example.com"

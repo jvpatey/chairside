@@ -3,6 +3,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native'
 
 import { DashboardStatGrid } from '@/components/dashboard/DashboardStatGrid';
 import { dashboardControlRadii } from '@/components/dashboard/dashboardLayout';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { ApplicantFilterCounts, ApplicantListFilter } from '@/lib/applicationPipeline';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
 import { fontBold, fontSemibold, useThemedStyles } from '@/theme';
@@ -41,6 +42,7 @@ export function ApplicantFilterBar({
   lockedFilters,
   onLockedFilterPress,
 }: ApplicantFilterBarProps) {
+  const { isTablet } = useResponsiveLayout();
   const tabs = visibleFilterTabs(hiddenFilters);
   const handleChange = (filter: ApplicantListFilter) => {
     if (lockedFilters?.includes(filter)) {
@@ -50,7 +52,7 @@ export function ApplicantFilterBar({
     onChange(filter);
   };
 
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || isTablet) {
     return (
       <DashboardStatGrid
         stats={tabs.map((tab) => ({

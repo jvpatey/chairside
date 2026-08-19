@@ -1,28 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
-import { formatApplicationDate, formatRoleTypesLabel } from '@chairside/config';
-import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
-import { DashboardHero } from '@/components/dashboard/DashboardHero';
-import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
-import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { FileTabWell } from '@/components/dashboard/FileTabWell';
-import type { DashboardOverviewStat } from '@/components/dashboard/DashboardStatGrid';
-import { WorkerApplicationStatusLabel } from '@/components/matching/ApplicationStatusBadge';
-import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
-import { FillInListingCard } from '@/components/worker/FillInListingCard';
-import { RoleListingCard } from '@/components/worker/RoleListingCard';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { type HeroDemoPhase } from '@/components/onboarding/welcomeHeroDemo';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
-import { WORKER_PROFILE } from '@/lib/routing';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { type WelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow } from '@/theme/web';
+import { getWebShadow, webMotion } from '@/theme/web';
 
 type WelcomeHeroPhonePreviewProps = {
   preview: WelcomeHeroPreview;
   compact?: boolean;
+  /** When provided, the push banner + request/confirm CTA are driven by the hero demo loop. */
+  demoPhase?: HeroDemoPhase;
 };
 
 const PHONE_WIDTH = 390;
@@ -34,68 +25,34 @@ function formatStatusTime(date = new Date()) {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-const WORKER_TABS = [
-  { icon: 'home' as const, outline: 'home-outline' as const, label: 'Home', active: true },
-  { icon: 'briefcase' as const, outline: 'briefcase-outline' as const, label: 'Roles', active: false },
-  { icon: 'document-text' as const, outline: 'document-text-outline' as const, label: 'Applications', active: false },
-  { icon: FILL_IN_ICON.filled, outline: FILL_IN_ICON.outline, label: 'Fill-ins', active: false },
-  { icon: 'today' as const, outline: 'today-outline' as const, label: 'Calendar', active: false },
-  { icon: 'chatbubbles' as const, outline: 'chatbubbles-outline' as const, label: 'Messages', active: false },
-] as const;
-
-function PreviewWorkerApplicationCard({ preview }: { preview: WelcomeHeroPreview }) {
-  const { colors } = useTheme();
-  const application = preview.applicants[0];
-  const appliedLabel = formatApplicationDate(application.appliedAt);
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    trailingRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'flex-end' as const,
-      gap: spacing.sm,
-    },
-  }));
-
-  return (
-    <SurfaceCard variant="inner" padding="md" gap>
-      <ClinicPostHeader
-        layout="split"
-        headerOnly
-        clinicName={preview.clinic.name}
-        logoStoragePath={null}
-        title={preview.job.title}
-        location={null}
-        statusLabel={
-          <WorkerApplicationStatusLabel
-            status={application.status}
-            postType="job"
-            showStatusPrefix
-          />
-        }
-        postedLabel={appliedLabel ? `Applied ${appliedLabel}` : null}
-        detail="The clinic is reviewing your application."
-        avatarSize={44}
-      />
-      <View style={styles.trailingRow}>
-        <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} />
-      </View>
-    </SurfaceCard>
-  );
+function phaseStyle(visible: boolean, offsetY = 10, delayMs = 0) {
+  const delay = delayMs > 0 ? ` ${delayMs}ms` : '';
+  return webOnlyStyle({
+    opacity: visible ? 1 : 0,
+    transform: [{ translateY: visible ? 0 : offsetY }, { scale: visible ? 1 : 0.97 }],
+    transition: `opacity 520ms ${webMotion.easingOut}${delay}, transform 520ms ${webMotion.easingOut}${delay}`,
+    pointerEvents: visible ? 'auto' : 'none',
+  } as object);
 }
 
 export function WelcomeHeroPhonePreview({
   preview,
   compact = false,
+  demoPhase,
 }: WelcomeHeroPhonePreviewProps) {
   const { colors } = useTheme();
   const scale = compact ? COMPACT_SCALE : LANDING_SCALE;
   const frameWidth = PHONE_WIDTH * scale;
   const frameHeight = PHONE_HEIGHT * scale;
-  const [selected, setSelected] = useState<DashboardOverviewStat>('roles');
-  const workerMatch = preview.applicants[0];
 
-  const styles = useThemedStyles(({ colors, spacing, radii, isDark: dark }) => ({
+  const showNewBanner = demoPhase === 'alert';
+  const showConfirmedBanner =
+    demoPhase == null || demoPhase === 'covered' || demoPhase === 'idle';
+  const showRequestCard = demoPhase === 'alert';
+  const showConfirmedCard =
+    demoPhase == null || demoPhase === 'covered' || demoPhase === 'idle';
+
+  const styles = useThemedStyles(({ colors, spacing, isDark: dark }) => ({
     frame: {
       overflow: 'visible' as const,
       borderRadius: 44 * scale,
@@ -172,70 +129,90 @@ export function WelcomeHeroPhonePreview({
     body: {
       flex: 1,
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.md,
-      gap: spacing.lg,
+      paddingTop: spacing.xl,
       minHeight: 0,
+      justifyContent: 'center' as const,
     },
-    panelStack: {
-      ...webOnlyStyle({
-        display: 'grid',
-        alignItems: 'start',
-      } as object),
+    cardStage: {
+      position: 'relative' as const,
+      minHeight: 148,
     },
-    panelLayer: {
-      ...webOnlyStyle({
-        gridArea: '1 / 1',
-      } as object),
-    },
-    panelHidden: {
-      ...webOnlyStyle({
-        visibility: 'hidden',
-      } as object),
-      pointerEvents: 'none' as const,
-      zIndex: 0,
-    },
-    group: {
-      gap: spacing.sm,
+    cardLayer: {
       width: '100%' as const,
     },
-    tabBarOuter: {
-      paddingHorizontal: spacing.sm,
-      paddingTop: spacing.sm,
-      paddingBottom: spacing.sm,
-      backgroundColor: 'transparent',
+    cardLayerAbsolute: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
     },
-    dock: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
-      gap: 4,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: spacing.xs,
+    fillInChip: {
       backgroundColor: colors.surface,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.separator,
-      borderRadius: radii.lg,
-      overflow: 'hidden' as const,
+      padding: spacing.md,
+      gap: spacing.sm,
+      ...webOnlyStyle({
+        boxShadow: getWebShadow(dark, 'subtle'),
+      } as object),
     },
-    tabItem: {
-      flex: 1,
-      minHeight: 54,
+    confirmedChip: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.tertiary,
+      padding: spacing.md,
+      gap: spacing.sm,
+      ...webOnlyStyle({
+        boxShadow: getWebShadow(dark, 'subtle'),
+      } as object),
+    },
+    chipHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+    },
+    iconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      borderRadius: radii.sm,
-      overflow: 'hidden' as const,
-      paddingHorizontal: 4,
-      paddingVertical: spacing.xs,
+      backgroundColor: colors.secondarySubtle,
+    },
+    confirmedIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.tertiary,
+    },
+    chipCopy: {
+      flex: 1,
+      minWidth: 0,
       gap: 2,
     },
-    tabLabel: {
-      fontSize: 10,
-      fontWeight: '500' as const,
-      color: colors.tabInactive,
-      textAlign: 'center' as const,
+    chipTitle: {
+      fontSize: 15,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
     },
-    tabLabelActive: {
+    confirmedTitle: {
+      fontSize: 15,
+      fontWeight: '700' as const,
+      color: colors.tertiary,
+    },
+    chipMeta: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
+    distance: {
+      fontSize: 12,
       fontWeight: '600' as const,
+      color: colors.secondary,
     },
     homeIndicator: {
       alignSelf: 'center' as const,
@@ -245,38 +222,70 @@ export function WelcomeHeroPhonePreview({
       backgroundColor: colors.labelTertiary,
       opacity: 0.4,
       marginBottom: 8,
+      marginTop: spacing.sm,
+    },
+    banner: {
+      position: 'absolute' as const,
+      top: 58,
+      left: 10,
+      right: 10,
+      zIndex: 3,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+      paddingVertical: 10,
+      paddingHorizontal: spacing.sm + 2,
+      borderRadius: 18,
+      backgroundColor: dark ? 'rgba(44,44,48,0.94)' : 'rgba(250,250,252,0.96)',
+      borderWidth: 1,
+      borderColor: colors.separator,
+      ...webOnlyStyle({
+        boxShadow: getWebShadow(dark, 'raised'),
+        backdropFilter: 'blur(16px)',
+      } as object),
+    },
+    bannerIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.secondary,
+    },
+    bannerIconConfirmed: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.tertiary,
+    },
+    bannerBody: {
+      flex: 1,
+      minWidth: 0,
+      gap: 1,
+    },
+    bannerTitleRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      gap: spacing.xs,
+    },
+    bannerApp: {
+      fontSize: 13,
+      fontWeight: '700' as const,
+      color: colors.labelPrimary,
+    },
+    bannerTime: {
+      fontSize: 11,
+      color: colors.labelTertiary,
+    },
+    bannerText: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.labelSecondary,
     },
   }));
-
-  const roleCard = (
-    <RoleListingCard
-      job={preview.job}
-      embedded
-      jobMatch={workerMatch.match}
-      matchContext={workerMatch.matchContext}
-      distanceLabel={preview.fillInDistanceLabel}
-    />
-  );
-
-  const fillInCard = (
-    <View style={styles.group}>
-      <DashboardSectionHeader title="Open" compact />
-      <FillInListingCard
-        shift={preview.shift}
-        distanceLabel={preview.fillInDistanceLabel}
-        accent="secondary"
-        embedded
-      />
-    </View>
-  );
-
-  const applicationCard = <PreviewWorkerApplicationCard preview={preview} />;
-
-  const panels: { value: DashboardOverviewStat; content: ReactNode }[] = [
-    { value: 'roles', content: roleCard },
-    { value: 'applications', content: applicationCard },
-    { value: 'fill-ins', content: fillInCard },
-  ];
 
   return (
     <View
@@ -298,134 +307,102 @@ export function WelcomeHeroPhonePreview({
           ]}
         >
           <View style={styles.device}>
-          <View style={styles.screen}>
-            <View style={styles.islandWrap}>
-              <View style={styles.island} />
-            </View>
-            <View style={styles.statusBar}>
-              <Text style={styles.statusTime}>{formatStatusTime()}</Text>
-              <View style={styles.statusIcons}>
-                <Ionicons name="cellular" size={15} color={colors.labelPrimary} />
-                <Ionicons name="wifi" size={15} color={colors.labelPrimary} />
-                <Ionicons name="battery-full" size={18} color={colors.labelPrimary} />
+            <View style={styles.screen}>
+              <View style={styles.islandWrap}>
+                <View style={styles.island} />
               </View>
-            </View>
-
-            <View style={styles.body}>
-              <DashboardHero
-                profileHref={WORKER_PROFILE}
-                avatarKind="worker"
-                displayName={preview.workerFirstName}
-                namePlaceholder="Your profile"
-                subtitle={
-                  formatRoleTypesLabel([preview.job.role_type]) || 'Dental professional'
-                }
-                greetingName={preview.workerFirstName}
-                showActions={false}
-                forcePhoneLayout
-              />
-              <DashboardQuickActionsRow
-                forcePhoneLayout
-                actions={[
-                  {
-                    label: 'Find jobs',
-                    description: 'Browse open roles nearby',
-                    icon: 'briefcase-outline',
-                    variant: 'primary',
-                    onPress: () => setSelected('roles'),
-                  },
-                  {
-                    label: 'Find fill-ins',
-                    description: 'Browse temp shifts nearby',
-                    icon: FILL_IN_ICON.outline,
-                    variant: 'secondary',
-                    onPress: () => setSelected('fill-ins'),
-                  },
-                ]}
-              />
-              <FileTabWell<DashboardOverviewStat>
-                variant="dashboard"
-                compactTabs
-                selected={selected}
-                onSelect={setSelected}
-                tabs={[
-                  {
-                    value: 'roles',
-                    label: 'Roles',
-                    count: preview.workerStats.openRoles,
-                    accent: 'primary',
-                    icon: 'briefcase-outline',
-                  },
-                  {
-                    value: 'applications',
-                    label: 'Applications',
-                    count: preview.workerStats.applications,
-                    accent: 'tertiary',
-                    icon: 'document-text-outline',
-                  },
-                  {
-                    value: 'fill-ins',
-                    label: 'Fill-ins',
-                    count: preview.workerStats.fillIns,
-                    accent: 'secondary',
-                    icon: FILL_IN_ICON.outline,
-                  },
-                ]}
-              >
-                <View style={styles.panelStack}>
-                  {panels.map((panel) => {
-                    const isSelected = selected === panel.value;
-                    return (
-                      <View
-                        key={panel.value}
-                        style={[styles.panelLayer, !isSelected && styles.panelHidden]}
-                        accessibilityElementsHidden={!isSelected}
-                        importantForAccessibility={isSelected ? 'auto' : 'no-hide-descendants'}
-                      >
-                        {panel.content}
+              {demoPhase != null ? (
+                <>
+                  <View style={[styles.banner, phaseStyle(showNewBanner, -72)]}>
+                    <View style={styles.bannerIcon}>
+                      <Ionicons name={FILL_IN_ICON.filled} size={18} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.bannerBody}>
+                      <View style={styles.bannerTitleRow}>
+                        <Text style={styles.bannerApp}>Chairside</Text>
+                        <Text style={styles.bannerTime}>now</Text>
                       </View>
-                    );
-                  })}
+                      <Text style={styles.bannerText} numberOfLines={2}>
+                        New fill-in nearby — Dental Hygienist · Today 9–5
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.banner, phaseStyle(showConfirmedBanner, -72)]}>
+                    <View style={styles.bannerIconConfirmed}>
+                      <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.bannerBody}>
+                      <View style={styles.bannerTitleRow}>
+                        <Text style={styles.bannerApp}>Chairside</Text>
+                        <Text style={styles.bannerTime}>now</Text>
+                      </View>
+                      <Text style={styles.bannerText} numberOfLines={2}>
+                        Fill-in confirmed — you’re covering Today · 9–5
+                      </Text>
+                    </View>
+                  </View>
+                </>
+              ) : null}
+              <View style={styles.statusBar}>
+                <Text style={styles.statusTime}>{formatStatusTime()}</Text>
+                <View style={styles.statusIcons}>
+                  <Ionicons name="cellular" size={15} color={colors.labelPrimary} />
+                  <Ionicons name="wifi" size={15} color={colors.labelPrimary} />
+                  <Ionicons name="battery-full" size={18} color={colors.labelPrimary} />
                 </View>
-              </FileTabWell>
-            </View>
+              </View>
 
-            <View style={styles.tabBarOuter}>
-              <View style={styles.dock}>
-                {WORKER_TABS.map((tab) => (
+              <View style={styles.body}>
+                <View style={styles.cardStage}>
                   <View
-                    key={tab.label}
                     style={[
-                      styles.tabItem,
-                      tab.active && { backgroundColor: colors.primary },
+                      styles.cardLayer,
+                      styles.cardLayerAbsolute,
+                      phaseStyle(showRequestCard, 16, 80),
                     ]}
                   >
-                    <Ionicons
-                      name={tab.active ? tab.icon : tab.outline}
-                      size={20}
-                      color={tab.active ? colors.primaryOnPrimary : colors.tabInactive}
-                    />
-                    <Text
-                      style={[
-                        styles.tabLabel,
-                        tab.active && [
-                          styles.tabLabelActive,
-                          { color: colors.primaryOnPrimary },
-                        ],
-                      ]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.75}
-                    >
-                      {tab.label}
-                    </Text>
+                    <View style={styles.fillInChip}>
+                      <View style={styles.chipHeader}>
+                        <View style={styles.iconWrap}>
+                          <Ionicons
+                            name={FILL_IN_ICON.outline}
+                            size={18}
+                            color={colors.secondary}
+                          />
+                        </View>
+                        <View style={styles.chipCopy}>
+                          <Text style={styles.chipTitle}>Dental Hygienist</Text>
+                          <Text style={styles.chipMeta}>Today · 9–5</Text>
+                        </View>
+                        <Text style={styles.distance}>{preview.fillInDistanceLabel}</Text>
+                      </View>
+                      <OnboardingButton
+                        label="Request to cover"
+                        accent="secondary"
+                        onPress={() => {}}
+                      />
+                    </View>
                   </View>
-                ))}
+
+                  <View style={[styles.cardLayer, phaseStyle(showConfirmedCard, 12, 100)]}>
+                    <View style={styles.confirmedChip}>
+                      <View style={styles.chipHeader}>
+                        <View style={styles.confirmedIconWrap}>
+                          <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                        </View>
+                        <View style={styles.chipCopy}>
+                          <Text style={styles.confirmedTitle}>Fill-in confirmed</Text>
+                          <Text style={styles.chipMeta}>You’re covering Today · 9–5</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
               </View>
+
+              <View style={styles.homeIndicator} />
             </View>
-            <View style={styles.homeIndicator} />
           </View>
-        </View>
         </View>
       </View>
     </View>

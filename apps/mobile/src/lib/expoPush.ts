@@ -8,3 +8,15 @@ export function isNativePushAvailable(): boolean {
   if (Constants.appOwnership === 'expo') return false;
   return true;
 }
+
+export function getExpoProjectId(): string | null {
+  const fromEas = Constants.expoConfig?.extra?.eas?.projectId;
+  if (typeof fromEas === 'string' && fromEas.trim()) return fromEas.trim();
+
+  const fromConstants = Constants.easConfig?.projectId;
+  if (typeof fromConstants === 'string' && fromConstants.trim()) {
+    return fromConstants.trim();
+  }
+
+  return null;
+}

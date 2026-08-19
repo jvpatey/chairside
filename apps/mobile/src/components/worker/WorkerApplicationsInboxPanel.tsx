@@ -2,7 +2,7 @@ import { getUnreadConversationMap, listWorkerJobApplications } from '@chairside/
 import { canWorkerHideApplication } from '@chairside/config';
 import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
@@ -27,6 +27,7 @@ import {
   partitionWorkerApplications,
   type ApplicationsTabMode,
 } from '@/lib/workerApplicationHide';
+import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import {
   webHover,
   webPointer,
@@ -40,10 +41,14 @@ function ApplicationList({
   applications,
   unreadMap,
   compact = false,
+  selectedApplicationId,
+  onApplicationSelect,
 }: {
   applications: ApplicationRow[];
   unreadMap: Record<string, boolean>;
   compact?: boolean;
+  selectedApplicationId?: string | null;
+  onApplicationSelect?: (applicationId: string) => void;
 }) {
   const styles = useThemedStyles(({ spacing }) => ({
     list: { gap: spacing.lg },
@@ -59,6 +64,8 @@ function ApplicationList({
             hasUnreadMessages={Boolean(unreadMap[application.id])}
             returnTo="applications-tab"
             compact={compact}
+            selected={selectedApplicationId === application.id}
+            onSelect={onApplicationSelect}
           />
         ))}
       </StaggeredList>
@@ -68,10 +75,14 @@ function ApplicationList({
 
 type WorkerApplicationsInboxPanelProps = {
   compact?: boolean;
+  selectedApplicationId?: string | null;
+  onApplicationSelect?: (applicationId: string) => void;
 };
 
 export function WorkerApplicationsInboxPanel({
   compact = false,
+  selectedApplicationId = null,
+  onApplicationSelect,
 }: WorkerApplicationsInboxPanelProps) {
   const { user } = useAuth();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
@@ -110,7 +121,22 @@ export function WorkerApplicationsInboxPanel({
   );
 
   const styles = useThemedStyles(({ spacing, colors, typography }) => ({
-    content: { gap: spacing.lg },
+    content: {
+      gap: spacing.lg,
+      flex: compact ? 1 : undefined,
+      minHeight: compact ? 0 : undefined,
+    },
+    chrome: {
+      gap: spacing.md,
+    },
+    listScroll: {
+      flex: 1,
+      minHeight: 0,
+    },
+    scrollContent: {
+      gap: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
     panel: { gap: spacing.md },
     interviewSection: { gap: spacing.sm },
     clearAllRow: {
@@ -207,7 +233,97 @@ export function WorkerApplicationsInboxPanel({
   );
 
   const hasAnyApplications = applications.length > 0;
-  const listProps = { unreadMap, compact };
+  const listProps = {
+    unreadMap,
+    compact,
+    selectedApplicationId,
+    onApplicationSelect,
+  };
+
+  const activeBody = !hasAnyApplications ? (
+    <EmptyState
+      embedded
+      icon="document-text-outline"
+      title="No applications yet"
+      message="Browse open roles and apply to track your progress here."
+      ctaLabel="Browse roles"
+      onCtaPress={() => router.push(WORKER_BROWSE)}
+    />
+  ) : (
+    <>
+      {upcomingInterviews.length > 0 ? (
+        <View style={styles.interviewSection}>
+          <DashboardSectionHeader
+            title={`Upcoming interviews (${upcomingInterviews.length})`}
+            actionLabel="View calendar"
+            onActionPress={() => {
+              router.push(
+                getWorkerCalendarRoute(upcomingInterviews[0]?.interview_at?.slice(0, 10)),
+              );
+            }}
+            compact
+          />
+          <ApplicationList applications={upcomingInterviews} {...listProps} />
+        </View>
+      ) : null}
+      {active.length === 0 ? (
+        <DashboardEmptyState
+          embedded
+          icon="document-text-outline"
+          title="No active applications"
+          message="Applications in progress will appear here."
+        />
+      ) : active.filter((application) => application.status !== 'interview_scheduled').length >
+        0 ? (
+        <ApplicationList
+          applications={active.filter(
+            (application) => application.status !== 'interview_scheduled',
+          )}
+          {...listProps}
+        />
+      ) : null}
+    </>
+  );
+
+  const pastBody = !hasAnyApplications ? (
+    <EmptyState
+      embedded
+      icon="time-outline"
+      title="No past applications"
+      message="Filled, closed, or decided roles will appear here."
+    />
+  ) : (
+    <>
+      {hideablePastCount > 0 ? (
+        <View style={styles.clearAllRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear all past applications"
+            style={({ pressed, hovered }) => [
+              styles.clearAllPressable,
+              webHover(hovered, pressed, styles.clearAllHovered),
+              pressed && { opacity: 0.75 },
+            ]}
+            onPress={() => confirmClearPastWorkerApplications(past, () => void load())}
+          >
+            <Text style={styles.clearAllLabel}>Clear all</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {past.length === 0 ? (
+        <DashboardEmptyState
+          embedded
+          icon="time-outline"
+          title="No past applications"
+          message="Filled, closed, or decided roles will appear here."
+        />
+      ) : (
+        <ApplicationList applications={past} {...listProps} />
+      )}
+    </>
+  );
+
+  const listBody = selectedMode === 'active' ? activeBody : pastBody;
 
   return (
     <>
@@ -224,114 +340,44 @@ export function WorkerApplicationsInboxPanel({
         transparentBackground={compact}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        refreshAccent="tertiary">
+        refreshAccent="tertiary"
+      >
         <FormErrorBanner message={formError} />
         {isLoading ? (
           <PageLoadingList rowCount={3} message="Loading applications…" />
+        ) : compact ? (
+          <View style={styles.content}>
+            <View style={styles.chrome}>
+              <FileTabWell
+                tabs={applicationTabs}
+                selected={selectedMode}
+                onSelect={setSelectedMode}
+                tabsOnly
+                fillHeight={false}
+              />
+            </View>
+            <ScrollView
+              style={[styles.listScroll, webScrollbarStyles()]}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator
+            >
+              {listBody}
+            </ScrollView>
+          </View>
         ) : (
           <View style={styles.content}>
             <FileTabWell
               tabs={applicationTabs}
               selected={selectedMode}
-              onSelect={setSelectedMode}>
-              {selectedMode === 'active' ? (
-                !hasAnyApplications ? (
-                  <EmptyState
-                    embedded
-                    icon="document-text-outline"
-                    title="No applications yet"
-                    message="Browse open roles and apply to track your progress here."
-                    ctaLabel="Browse roles"
-                    onCtaPress={() => router.push(WORKER_BROWSE)}
-                  />
-                ) : (
-                  <>
-                    {upcomingInterviews.length > 0 ? (
-                      <View style={styles.interviewSection}>
-                        <DashboardSectionHeader
-                          title={`Upcoming interviews (${upcomingInterviews.length})`}
-                          actionLabel="View calendar"
-                          onActionPress={() => {
-                            router.push(
-                              getWorkerCalendarRoute(
-                                upcomingInterviews[0]?.interview_at?.slice(0, 10),
-                              ),
-                            );
-                          }}
-                          compact
-                        />
-                        <ApplicationList applications={upcomingInterviews} {...listProps} />
-                      </View>
-                    ) : null}
-                    {active.length === 0 ? (
-                      <DashboardEmptyState
-                        embedded
-                        icon="document-text-outline"
-                        title="No active applications"
-                        message="Applications in progress will appear here."
-                      />
-                    ) : (
-                      <>
-                        {active.filter((application) => application.status !== 'interview_scheduled')
-                          .length > 0 ? (
-                          <ApplicationList
-                            applications={active.filter(
-                              (application) => application.status !== 'interview_scheduled',
-                            )}
-                            {...listProps}
-                          />
-                        ) : null}
-                      </>
-                    )}
-                  </>
-                )
-              ) : null}
-
-              {selectedMode === 'past' ? (
-                !hasAnyApplications ? (
-                  <EmptyState
-                    embedded
-                    icon="time-outline"
-                    title="No past applications"
-                    message="Filled, closed, or decided roles will appear here."
-                  />
-                ) : (
-                  <>
-                    {hideablePastCount > 0 ? (
-                      <View style={styles.clearAllRow}>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel="Clear all past applications"
-                          style={({ pressed, hovered }) => [
-                            styles.clearAllPressable,
-                            webHover(hovered, pressed, styles.clearAllHovered),
-                            pressed && { opacity: 0.75 },
-                          ]}
-                          onPress={() =>
-                            confirmClearPastWorkerApplications(past, () => void load())
-                          }>
-                          <Text style={styles.clearAllLabel}>Clear all</Text>
-                        </Pressable>
-                      </View>
-                    ) : null}
-                    {past.length === 0 ? (
-                      <DashboardEmptyState
-                        embedded
-                        icon="time-outline"
-                        title="No past applications"
-                        message="Filled, closed, or decided roles will appear here."
-                      />
-                    ) : (
-                      <ApplicationList applications={past} {...listProps} />
-                    )}
-                  </>
-                )
-              ) : null}
+              onSelect={setSelectedMode}
+            >
+              {listBody}
             </FileTabWell>
           </View>
         )}
       </Screen>
-      {!compact ? (
+      {!compact || celebrationVisible ? (
         <HiringCelebrationModal
           visible={celebrationVisible}
           payload={celebrationPayload}

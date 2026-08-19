@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import { ShimmerBlock } from '@/components/dashboard/ShimmerBlock';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { IS_WEB } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
 const WEEKDAY_COUNT = 7;
@@ -9,16 +10,18 @@ const DAY_CELL_COUNT = 35;
 
 /** Calendar-shaped skeleton: month chrome + weekday row + day grid + agenda rows. */
 export function CalendarSkeleton() {
-  const { isWide } = useResponsiveLayout();
+  const { isTablet } = useResponsiveLayout();
+  const useSplit = IS_WEB && isTablet;
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     wrap: {
       gap: spacing.lg,
-      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      flexDirection: useSplit ? ('row' as const) : ('column' as const),
       alignItems: 'flex-start' as const,
     },
     calendarColumn: {
-      flex: isWide ? 1 : undefined,
-      width: isWide ? undefined : ('100%' as const),
+      flex: useSplit ? 1 : undefined,
+      width: useSplit ? undefined : ('100%' as const),
+      minWidth: 0,
       gap: spacing.md,
       backgroundColor: colors.surface,
       borderRadius: radii.lg,
@@ -27,9 +30,9 @@ export function CalendarSkeleton() {
       padding: spacing.md,
     },
     agendaColumn: {
-      flex: isWide ? 1 : undefined,
-      width: isWide ? undefined : ('100%' as const),
-      minWidth: isWide ? 280 : undefined,
+      flex: useSplit ? 1 : undefined,
+      width: useSplit ? undefined : ('100%' as const),
+      minWidth: 0,
       gap: spacing.md,
     },
     headerRow: {

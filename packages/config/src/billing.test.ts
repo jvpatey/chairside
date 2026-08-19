@@ -91,7 +91,7 @@ describe('billing config', () => {
     expect(getClinicMaxLocations('group_pro')).toBeNull();
 
     expect(getClinicMaxManagers('free', 'individual')).toBe(0);
-    expect(getClinicMaxManagers('free', 'group')).toBe(1);
+    expect(getClinicMaxManagers('free', 'group')).toBe(2);
     expect(getClinicMaxManagers('group_starter')).toBe(3);
     expect(getClinicMaxManagers('group_pro')).toBeNull();
     expect(getClinicMaxManagers('pro', 'individual')).toBe(0);

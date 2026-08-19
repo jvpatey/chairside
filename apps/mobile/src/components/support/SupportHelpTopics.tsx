@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'react-native';
 
+import type { LegalPathKey } from '@/constants/legal';
 import { PUBLIC_LEGAL_PATHS, LEGAL_LAST_UPDATED } from '@/constants/legal';
 import type { LegalSection } from '@/content/legal/types';
 import { PublicPageCardHeader } from '@/components/legal/PublicPageCardHeader';
@@ -28,13 +29,21 @@ const TOPIC_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 type SupportHelpTopicsProps = {
   sections: LegalSection[];
   lastUpdated?: string;
+  /** Prefer authenticated profile routes when signed in. Defaults to public URLs. */
+  legalPaths?: Record<LegalPathKey, Href>;
 };
 
 function toggleLayoutAnimation() {
   LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 }
 
-function HelpTopicBody({ section }: { section: LegalSection }) {
+function HelpTopicBody({
+  section,
+  legalPaths,
+}: {
+  section: LegalSection;
+  legalPaths: Record<LegalPathKey, Href>;
+}) {
   const { isCompact } = useResponsiveLayout();
   const iconInset = isCompact ? 36 : 44;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -85,14 +94,14 @@ function HelpTopicBody({ section }: { section: LegalSection }) {
           <Text
             style={styles.link}
             accessibilityRole="link"
-            onPress={() => router.push(PUBLIC_LEGAL_PATHS.privacy)}>
+            onPress={() => router.push(legalPaths.privacy)}>
             Privacy Policy
           </Text>{' '}
           and{' '}
           <Text
             style={styles.link}
             accessibilityRole="link"
-            onPress={() => router.push(PUBLIC_LEGAL_PATHS.terms)}>
+            onPress={() => router.push(legalPaths.terms)}>
             Terms of Service
           </Text>{' '}
           for how we handle data and platform use.
@@ -123,11 +132,13 @@ function HelpTopicRow({
   expanded,
   onToggle,
   showDivider,
+  legalPaths,
 }: {
   section: LegalSection;
   expanded: boolean;
   onToggle: () => void;
   showDivider: boolean;
+  legalPaths: Record<LegalPathKey, Href>;
 }) {
   const { colors } = useTheme();
   const { isCompact } = useResponsiveLayout();
@@ -193,7 +204,7 @@ function HelpTopicRow({
           color={colors.labelTertiary}
         />
       </Pressable>
-      {expanded ? <HelpTopicBody section={section} /> : null}
+      {expanded ? <HelpTopicBody section={section} legalPaths={legalPaths} /> : null}
       {showDivider ? <View style={styles.divider} /> : null}
     </View>
   );
@@ -202,6 +213,7 @@ function HelpTopicRow({
 export function SupportHelpTopics({
   sections,
   lastUpdated = LEGAL_LAST_UPDATED,
+  legalPaths = PUBLIC_LEGAL_PATHS,
 }: SupportHelpTopicsProps) {
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(() => new Set());
   const { isCompact } = useResponsiveLayout();
@@ -282,6 +294,7 @@ export function SupportHelpTopics({
           expanded={expandedTitles.has(section.title)}
           onToggle={() => toggleSection(section.title)}
           showDivider={index < sections.length - 1}
+          legalPaths={legalPaths}
         />
       ))}
     </View>

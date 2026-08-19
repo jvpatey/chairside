@@ -2,11 +2,11 @@ import * as Linking from 'expo-linking';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { useHeroDemoLoop } from '@/components/onboarding/welcomeHeroDemo';
 import { WelcomeHeroClinicCanvas } from '@/components/onboarding/WelcomeHeroClinicCanvas.web';
 import { WelcomeHeroPhonePreview } from '@/components/onboarding/WelcomeHeroPhonePreview.web';
 import { APP_STORE_URL } from '@/constants';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { usePrefersReducedMotion } from '@/lib/motion';
 import { getWelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import {
   webHover,
@@ -30,9 +30,9 @@ export function WelcomeHeroAppPanel({
   showPhone: showPhoneProp,
 }: WelcomeHeroAppPanelProps) {
   const { isWide } = useResponsiveLayout();
-  const reduceMotion = usePrefersReducedMotion();
   const preview = useMemo(() => getWelcomeHeroPreview(), []);
   const showPhone = showPhoneProp ?? (isWide && !compact);
+  const demoPhase = useHeroDemoLoop(!compact);
   const appStoreUrl = APP_STORE_URL;
   const [naturalHeight, setNaturalHeight] = useState(0);
   const fitScale =
@@ -60,8 +60,8 @@ export function WelcomeHeroAppPanel({
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(74, 154, 255, 0.28) 0%, transparent 70%)'
-          : 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(26, 111, 212, 0.2) 0%, transparent 70%)',
+          ? 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(152, 150, 255, 0.32) 0%, transparent 70%)'
+          : 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(88, 86, 214, 0.22) 0%, transparent 70%)',
         filter: 'blur(28px)',
       } as object),
     },
@@ -81,7 +81,7 @@ export function WelcomeHeroAppPanel({
       ...webOnlyStyle({
         boxShadow: isDark
           ? '0 24px 48px rgba(0, 0, 0, 0.35)'
-          : '0 20px 40px rgba(26, 111, 212, 0.12)',
+          : '0 20px 40px rgba(88, 86, 214, 0.14)',
       } as object),
     },
     browser: {
@@ -163,14 +163,9 @@ export function WelcomeHeroAppPanel({
     },
   }));
 
-  const browserTilt =
-    reduceMotion || compact
-      ? null
-      : {
-          transform: [{ rotateY: '-8deg' }, { rotateX: '4deg' }] as const,
-        };
-
-  const phoneTilt = reduceMotion ? null : { transform: [{ rotateZ: '-8deg' }] as const };
+  // Flat product shot — no 3D tilt so the fill-in story stays readable.
+  const browserTilt = null;
+  const phoneTilt = null;
 
   return (
     <View
@@ -231,7 +226,11 @@ export function WelcomeHeroAppPanel({
                 </View>
               </View>
               <View style={styles.canvas}>
-                <WelcomeHeroClinicCanvas compact={compact} preview={preview} />
+                <WelcomeHeroClinicCanvas
+                  compact={compact}
+                  preview={preview}
+                  demoPhase={compact ? undefined : demoPhase}
+                />
               </View>
             </View>
           </View>
@@ -239,7 +238,11 @@ export function WelcomeHeroAppPanel({
         <View style={{ height: showPhone ? (compact ? 52 : 68) : 0 }} />
         {showPhone ? (
           <View style={[styles.phone, phoneTilt]}>
-            <WelcomeHeroPhonePreview preview={preview} compact={compact} />
+            <WelcomeHeroPhonePreview
+              preview={preview}
+              compact={compact}
+              demoPhase={compact ? undefined : demoPhase}
+            />
           </View>
         ) : null}
         {appStoreUrl && !compact ? (

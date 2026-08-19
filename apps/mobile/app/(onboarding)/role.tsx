@@ -22,6 +22,7 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useSignOut } from '@/hooks/useSignOut';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { getChangeRoleGateDecision } from '@/lib/changeRoleGate';
+import { savePendingSignupRole } from '@/lib/pendingSignupRole';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { useThemedStyles } from '@/theme';
 import type { UserRole } from '@/types';
@@ -129,6 +130,7 @@ export default function RoleScreen() {
       return;
     }
 
+    await savePendingSignupRole(selectedRole);
     router.push({
       pathname: '/(onboarding)/sign-up',
       params: { role: selectedRole },

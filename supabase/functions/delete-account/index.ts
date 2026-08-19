@@ -6,26 +6,56 @@ const corsHeaders = {
 };
 
 const WORKER_BUCKETS = ['worker-resumes', 'worker-photos'] as const;
-const CLINIC_BUCKETS = ['clinic-logos'] as const;
+const CLINIC_BUCKETS = ['clinic-logos', 'clinic-doctor-photos', 'clinic-member-photos'] as const;
 
-async function removeUserStorageObjects(
-  adminClient: ReturnType<typeof createClient>,
-  userId: string,
-  buckets: readonly string[],
+type AdminClient = ReturnType<typeof createClient>;
+
+/** Recursively remove all objects under a storage prefix via the Storage API. */
+async function removeStoragePrefix(
+  adminClient: AdminClient,
+  bucket: string,
+  prefix: string,
 ) {
-  for (const bucket of buckets) {
-    const { data: objects, error: listError } = await adminClient.storage.from(bucket).list(userId);
-    if (listError) {
-      console.warn(`Could not list ${bucket}/${userId}:`, listError.message);
+  const { data: entries, error: listError } = await adminClient.storage.from(bucket).list(prefix, {
+    limit: 1000,
+  });
+
+  if (listError) {
+    console.warn(`Could not list ${bucket}/${prefix}:`, listError.message);
+    return;
+  }
+
+  if (!entries?.length) return;
+
+  const filePaths: string[] = [];
+
+  for (const entry of entries) {
+    const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+    // Folders from the Storage API have a null id.
+    if (entry.id == null) {
+      await removeStoragePrefix(adminClient, bucket, path);
       continue;
     }
+    filePaths.push(path);
+  }
 
-    if (!objects?.length) continue;
+  if (filePaths.length === 0) return;
 
-    const paths = objects.map((object) => `${userId}/${object.name}`);
-    const { error: removeError } = await adminClient.storage.from(bucket).remove(paths);
-    if (removeError) {
-      console.warn(`Could not remove ${bucket} objects for ${userId}:`, removeError.message);
+  const { error: removeError } = await adminClient.storage.from(bucket).remove(filePaths);
+  if (removeError) {
+    console.warn(`Could not remove ${bucket} objects under ${prefix}:`, removeError.message);
+  }
+}
+
+async function removeStoragePrefixes(
+  adminClient: AdminClient,
+  buckets: readonly string[],
+  prefixes: string[],
+) {
+  const unique = [...new Set(prefixes.filter(Boolean))];
+  for (const bucket of buckets) {
+    for (const prefix of unique) {
+      await removeStoragePrefix(adminClient, bucket, prefix);
     }
   }
 }
@@ -91,6 +121,8 @@ Deno.serve(async (req) => {
     const role = profile?.role;
 
     if (role === 'worker') {
+      await removeStoragePrefixes(adminClient, WORKER_BUCKETS, [user.id]);
+
       const { error: deactivateError } = await adminClient.rpc('deactivate_worker_account', {
         p_user_id: user.id,
       });
@@ -100,8 +132,24 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      await removeUserStorageObjects(adminClient, user.id, WORKER_BUCKETS);
     } else if (role === 'clinic') {
+      const { data: membership } = await adminClient
+        .from('clinic_memberships')
+        .select('id, organization_id, role')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const storagePrefixes = [user.id];
+      if (membership?.organization_id) {
+        storagePrefixes.push(membership.organization_id);
+      }
+
+      // Clean storage via Storage API before DB teardown.
+      await removeStoragePrefixes(adminClient, CLINIC_BUCKETS, storagePrefixes);
+
       const { error: deactivateError } = await adminClient.rpc('deactivate_clinic_account', {
         p_user_id: user.id,
       });
@@ -111,7 +159,6 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      await removeUserStorageObjects(adminClient, user.id, CLINIC_BUCKETS);
     }
 
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);

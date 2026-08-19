@@ -7,10 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { getPingramClientId, resolveNotificationDeepLink } from '@/lib/pingram';
+import { resolveNotificationDeepLink } from '@/lib/pingram';
 import { navigateToNotificationDeepLink } from '@/lib/notificationRouting';
-import { registerPingramPushNotifications } from '@/lib/pingramPushRegistration';
-import { isNativePushAvailable } from '@/lib/pingramPush';
+import { registerExpoPushNotifications } from '@/lib/expoPushRegistration';
+import { getExpoProjectId, isNativePushAvailable } from '@/lib/expoPush';
 
 function getPushSenderId(data: Record<string, unknown> | undefined): string | null {
   const senderId = data?.senderId;
@@ -33,9 +33,8 @@ function getNotificationResponseKey(response: Notifications.NotificationResponse
 }
 
 /**
- * Registers the device push token with Pingram after onboarding.
- * Uses expo-notifications for APNs/FCM tokens (the NotificationAPI native module
- * expects an AppDelegate hook that Expo does not provide).
+ * Registers the Expo push token with Supabase after onboarding.
+ * Delivery uses Expo Push API from the notify edge function (not Pingram PUSH).
  */
 export function useRegisterPushNotifications() {
   const { user, profile, isAuthReady } = useAuth();
@@ -130,13 +129,11 @@ export function useRegisterPushNotifications() {
   }, [handleNotificationResponse]);
 
   const registerPush = useCallback(async () => {
-    const clientId = getPingramClientId();
     const userId = user?.id;
+    const projectId = getExpoProjectId();
 
-    if (!clientId) {
-      console.warn(
-        'Push registration skipped: EXPO_PUBLIC_PINGRAM_CLIENT_ID is not set in this build.',
-      );
+    if (!projectId) {
+      console.warn('Push registration skipped: EAS projectId is not set in this build.');
       return;
     }
 
@@ -149,7 +146,7 @@ export function useRegisterPushNotifications() {
     registerInFlightRef.current = true;
 
     try {
-      const registered = await registerPingramPushNotifications(userId);
+      const registered = await registerExpoPushNotifications(userId);
       if (registered) {
         registeredForUserRef.current = userId;
       }

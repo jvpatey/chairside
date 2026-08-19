@@ -1,12 +1,30 @@
-import type { WorkerApplication } from '@chairside/api';
+import type { ShiftPost, WorkerApplication } from '@chairside/api';
 import { describe, expect, it } from 'vitest';
 
 import {
+  filterShiftPostsForFillInsListMode,
   getWorkerOpenListExcludedShiftIds,
   isFillInsTabMode,
   partitionWorkerShiftApplications,
   resolveWorkerFillInsTabMode,
 } from '@/lib/fillInFilters';
+
+function makeShiftPost(overrides: Partial<ShiftPost> & Pick<ShiftPost, 'id' | 'status' | 'shift_date'>): ShiftPost {
+  return {
+    clinic_id: 'clinic-1',
+    title: 'Hygienist fill-in',
+    role_type: 'hygienist',
+    description: null,
+    location: null,
+    compensation: null,
+    start_time: '09:00',
+    end_time: '17:00',
+    timezone: 'America/Toronto',
+    created_at: '2026-08-09T12:00:00.000Z',
+    updated_at: '2026-08-09T12:00:00.000Z',
+    ...overrides,
+  } as ShiftPost;
+}
 
 function makeApplication(
   overrides: Partial<WorkerApplication> & Pick<WorkerApplication, 'id' | 'status' | 'shift_date'>,
@@ -82,6 +100,37 @@ describe('getWorkerOpenListExcludedShiftIds', () => {
     ]);
 
     expect([...excluded].sort()).toEqual(['shift-applied', 'shift-hired']);
+  });
+});
+
+describe('filterShiftPostsForFillInsListMode', () => {
+  it('keeps manually filled upcoming shifts in History when date filter is all', () => {
+    const filledUpcoming = makeShiftPost({
+      id: 'shift-filled',
+      status: 'filled',
+      shift_date: '2099-01-15',
+    });
+    const liveUpcoming = makeShiftPost({
+      id: 'shift-live',
+      status: 'live',
+      shift_date: '2099-01-16',
+    });
+
+    expect(
+      filterShiftPostsForFillInsListMode([filledUpcoming, liveUpcoming], 'active', 'open', 'all', 'all').map(
+        (shift) => shift.id,
+      ),
+    ).toEqual(['shift-live']);
+
+    expect(
+      filterShiftPostsForFillInsListMode([filledUpcoming, liveUpcoming], 'history', 'all', 'all', 'all').map(
+        (shift) => shift.id,
+      ),
+    ).toEqual(['shift-filled']);
+
+    expect(
+      filterShiftPostsForFillInsListMode([filledUpcoming], 'history', 'all', 'all', 'past'),
+    ).toEqual([]);
   });
 });
 

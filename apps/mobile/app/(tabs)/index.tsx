@@ -91,7 +91,7 @@ export default function WorkerDashboardScreen() {
     openFillInsInProvince: 0,
     pendingApplications: 0,
   });
-  const [selectedOverview, setSelectedOverview] = useState<WorkerOverviewStat>('roles');
+  const [selectedOverview, setSelectedOverview] = useState<WorkerOverviewStat>('fill-ins');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
   const [appliedJobPostIds, setAppliedJobPostIds] = useState<Set<string>>(new Set());
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
@@ -335,6 +335,14 @@ export default function WorkerDashboardScreen() {
   const workerTabs = useMemo((): FileTabOption<WorkerOverviewStat>[] => {
     const tabs: FileTabOption<WorkerOverviewStat>[] = [
       {
+        value: 'fill-ins' as const,
+        label: 'Fill-ins',
+        count: fillInOverviewCount,
+        badgeCount: fillInPendingCount,
+        accent: 'secondary' as const,
+        icon: FILL_IN_ICON.outline,
+      },
+      {
         value: 'roles' as const,
         label: 'Roles',
         count: openJobs.length,
@@ -348,14 +356,6 @@ export default function WorkerDashboardScreen() {
         badgeCount: applicationUpdateCount,
         accent: 'tertiary' as const,
         icon: 'document-text-outline' as const,
-      },
-      {
-        value: 'fill-ins' as const,
-        label: 'Fill-ins',
-        count: fillInOverviewCount,
-        badgeCount: fillInPendingCount,
-        accent: 'secondary' as const,
-        icon: FILL_IN_ICON.outline,
       },
     ];
     if (savedCount > 0) {
@@ -420,18 +420,18 @@ export default function WorkerDashboardScreen() {
           <DashboardQuickActionsRow
             actions={[
               {
-                label: 'Find jobs',
-                description: 'Browse open roles nearby',
-                icon: 'briefcase-outline',
-                variant: 'primary',
-                onPress: () => router.push(WORKER_BROWSE),
-              },
-              {
                 label: 'Find fill-ins',
                 description: 'Browse temp shifts nearby',
                 icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 onPress: () => router.push(WORKER_FILLINS),
+              },
+              {
+                label: 'Find jobs',
+                description: 'Browse open roles nearby',
+                icon: 'briefcase-outline',
+                variant: 'primary',
+                onPress: () => router.push(WORKER_BROWSE),
               },
             ]}
           />

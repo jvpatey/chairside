@@ -11,11 +11,12 @@ import { Animated, Pressable, Text, View } from 'react-native';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
+import { WebMarketingSectionHeader } from '@/components/web/marketing/WebMarketingSnapshotShell.web';
 import { CLINIC_PLAN_ICONS, getClinicPlanBrandAccentColor, getClinicPlanSubtleBackground } from '@/lib/clinicPlanPresentation';
 import { webCardLiftBase, webOnlyStyle, useWebCardLift } from '@/lib/webPressableStyles';
 import { useContentSwapAnimation } from '@/lib/webMotion.web';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
-import { getWebShadow, webSectionEyebrowStyle, webTypography } from '@/theme/web';
+import { getWebShadow } from '@/theme/web';
 
 type PricingAudience = 'clinic' | 'group';
 
@@ -29,7 +30,7 @@ const TRUST_POINTS = [
 
 const GROUP_FREE_TAGLINE = 'Try multi-location hiring at no cost';
 const GROUP_FREE_FEATURES = [
-  'Up to 2 locations and 1 manager',
+  'Up to 2 locations and 1 manager per location',
   '1 active role and 1 fill-in across your group',
   'Review applications and message candidates',
 ] as const;
@@ -68,12 +69,14 @@ function PricingCardPrice({
   if (plan === 'free') {
     const secondary =
       audience === 'group'
-        ? '2 locations and 1 manager · No subscription required'
+        ? '2 locations and 1 manager per location · No subscription required'
         : '1 role and 1 fill-in included · No subscription required';
     return (
       <View style={styles.priceBlock}>
         <View style={styles.priceRow}>
-          <Text style={styles.priceAmount}>Free</Text>
+          <Text style={styles.priceCurrency}>CA$</Text>
+          <Text style={styles.priceAmount}>0</Text>
+          <Text style={styles.pricePeriod}>/mo</Text>
         </View>
         <Text style={styles.priceSecondary}>{secondary}</Text>
       </View>
@@ -103,7 +106,7 @@ function PricingAudienceToggle({
   value: PricingAudience;
   onChange: (audience: PricingAudience) => void;
 }) {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     wrap: {
@@ -205,7 +208,7 @@ function PricingPlanCard({
     },
     card: {
       flex: 1,
-      borderRadius: radii.lg,
+      borderRadius: 20,
       padding: spacing.xl,
       backgroundColor: colors.surface,
       borderWidth: 1,
@@ -224,6 +227,7 @@ function PricingPlanCard({
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
       gap: spacing.md,
+      minHeight: 64,
     },
     iconWrap: {
       width: 44,
@@ -355,25 +359,18 @@ function PricingPlanCard({
 function PricingTrustStrip() {
   const { colors } = useTheme();
 
-  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     strip: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
       justifyContent: 'center' as const,
       gap: spacing.lg,
       marginTop: spacing.xl,
-      paddingVertical: spacing.lg,
-      paddingHorizontal: spacing.lg,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      // fillSubtle is already translucent — never force it opaque via colorWithAlpha(..., 1).
-      backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
     },
     item: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: spacing.sm,
+      gap: 6,
     },
     label: {
       fontSize: 14,
@@ -388,7 +385,7 @@ function PricingTrustStrip() {
       <View style={styles.strip}>
         {TRUST_POINTS.map((point) => (
           <View key={point.label} style={styles.item}>
-            <Ionicons name={point.icon} size={18} color={colors.primary} />
+            <Ionicons name="checkmark-circle" size={16} color={colors.tertiary} />
             <Text style={styles.label}>{point.label}</Text>
           </View>
         ))}
@@ -444,48 +441,29 @@ export function WebLandingPricing() {
   const subtitle =
     audience === 'clinic'
       ? 'Post your first role and fill-in at no cost. Upgrade when you need more.'
-      : 'Try up to 2 locations and 1 manager free. Upgrade for more locations and hiring across your group.';
+      : 'Try up to 2 locations and 1 manager per location free. Upgrade for more locations and hiring across your group.';
 
   const handleAudienceChange = (next: PricingAudience) => {
     if (next === audience) return;
     setAudience(next);
   };
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     bleed: {
-      paddingVertical: spacing.xl * 2.5,
+      paddingTop: spacing.xl * 1.25,
+      paddingBottom: spacing.xl * 2.5,
       overflow: 'hidden' as const,
-      borderTopWidth: 1,
-      borderTopColor: colors.separator,
-    },
-    header: {
-      gap: spacing.sm,
-      marginBottom: spacing.lg,
-      alignItems: 'center' as const,
-    },
-    eyebrow: webSectionEyebrowStyle(colors),
-    title: {
-      ...webTypography.headline,
-      color: colors.labelPrimary,
-      textAlign: 'center' as const,
-    },
-    subline: {
-      ...webTypography.subtitle,
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.labelSecondary,
-      textAlign: 'center' as const,
-      maxWidth: 720,
     },
   }));
 
   return (
     <WebMarketingSection style={styles.bleed} sectionId="pricing">
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>Pricing</Text>
-        <Text style={styles.title}>Clinic plans. Professionals always free.</Text>
-        <Text style={styles.subline}>{subtitle}</Text>
-      </View>
+      <WebMarketingSectionHeader
+        eyebrow="Pricing"
+        title="Clinic plans. Professionals always free."
+        subtitle={subtitle}
+        align="center"
+      />
 
       <PricingAudienceToggle value={audience} onChange={handleAudienceChange} />
 

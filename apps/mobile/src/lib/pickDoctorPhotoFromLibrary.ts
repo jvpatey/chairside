@@ -1,39 +1,13 @@
-import * as ImagePicker from 'expo-image-picker';
-import { Alert, Platform } from 'react-native';
+import {
+  pickSquareImageCropCandidate,
+  type SquareImageCropCandidate,
+} from '@/lib/pickSquareImageCropCandidate';
 
-import { readFileAsBase64 } from '@/lib/readFileAsBase64';
+export type DoctorPhotoCropCandidate = SquareImageCropCandidate;
 
-type PickedDoctorPhoto = {
-  previewUri: string;
-  base64: string;
-  contentType: string;
-};
-
-export async function pickDoctorPhotoFromLibrary(): Promise<PickedDoctorPhoto | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
-    Alert.alert('Permission needed', 'Allow photo library access to add a doctor photo.');
-    return null;
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.85,
+/** Opens the library and returns an image for the in-app square crop editor. */
+export async function pickDoctorPhotoFromLibrary(): Promise<DoctorPhotoCropCandidate | null> {
+  return pickSquareImageCropCandidate({
+    permissionMessage: 'Allow photo library access to add a doctor photo.',
   });
-
-  if (result.canceled || !result.assets[0]) return null;
-
-  const asset = result.assets[0];
-  const base64 = await readFileAsBase64(
-    asset.uri,
-    Platform.OS === 'web' ? (asset as { file?: File }).file : undefined,
-  );
-
-  return {
-    previewUri: asset.uri,
-    base64,
-    contentType: asset.mimeType ?? 'image/jpeg',
-  };
 }

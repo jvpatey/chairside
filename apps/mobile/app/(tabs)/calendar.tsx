@@ -24,7 +24,8 @@ export default function WorkerCalendarScreen() {
       title="Calendar"
       subtitle="Interviews and confirmed fill-ins on your schedule."
       refreshing={refreshState?.refreshing}
-      onRefresh={refreshState?.onRefresh}>
+      onRefresh={refreshState?.onRefresh}
+    >
       <ScheduleCalendarScreenPanel
         role="worker"
         userId={user?.id}

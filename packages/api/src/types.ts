@@ -207,6 +207,15 @@ export type NotificationPreferenceRow = {
   updated_at: string;
 };
 
+export type UserPushTokenRow = {
+  id: string;
+  user_id: string;
+  expo_push_token: string;
+  platform: 'ios' | 'android';
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -539,6 +548,19 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['notification_preferences']['Insert']>;
         Relationships: [];
       };
+      user_push_tokens: {
+        Row: UserPushTokenRow;
+        Insert: {
+          id?: string;
+          user_id: string;
+          expo_push_token: string;
+          platform: 'ios' | 'android';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_push_tokens']['Insert']>;
+        Relationships: [];
+      };
       clinic_subscriptions: {
         Row: {
           clinic_id: string;
@@ -659,6 +681,10 @@ export type Database = {
       mark_shift_posts_seen_by_worker: {
         Args: { shift_post_ids: string[] };
         Returns: undefined;
+      };
+      upsert_user_push_token: {
+        Args: { p_expo_push_token: string; p_platform: 'ios' | 'android' };
+        Returns: Database['public']['Tables']['user_push_tokens']['Row'];
       };
       save_job_post_for_worker: {
         Args: { p_job_post_id: string };

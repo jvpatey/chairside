@@ -42,7 +42,7 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
       '1 active role and 1 active fill-in',
       'Review applications and message candidates',
       'Post permanent roles and fill-in shifts',
-      'Groups: try up to 2 locations and 1 manager',
+      'Groups: try up to 2 locations and 1 manager per location',
     ],
   },
   starter: {
@@ -129,9 +129,12 @@ export const CLINIC_MAX_LOCATIONS: Record<ClinicPlan, number | null> = {
 
 export const CLINIC_FREE_GROUP_MAX_LOCATIONS = 2;
 
+/** Free groups: one manager seat per free location slot. */
+export const CLINIC_FREE_GROUP_MAX_MANAGERS = CLINIC_FREE_GROUP_MAX_LOCATIONS;
+
 /** Max managers (excluding owner). Clinic plans = 0. */
 export const CLINIC_MAX_MANAGERS: Record<ClinicPlan, number | null> = {
-  free: 1,
+  free: CLINIC_FREE_GROUP_MAX_MANAGERS,
   starter: 0,
   pro: 0,
   group_starter: 3,
@@ -329,7 +332,7 @@ export function getClinicMaxManagers(
 ): number | null {
   if (plan === 'group_pro') return null;
   if (plan === 'group_starter') return CLINIC_MAX_MANAGERS.group_starter;
-  if (plan === 'free' && accountType === 'group') return CLINIC_MAX_MANAGERS.free;
+  if (plan === 'free' && accountType === 'group') return CLINIC_FREE_GROUP_MAX_MANAGERS;
   if (accountType === 'individual') return 0;
   return CLINIC_MAX_MANAGERS[plan];
 }

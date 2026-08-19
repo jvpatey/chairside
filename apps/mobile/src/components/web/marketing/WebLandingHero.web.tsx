@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,15 +7,78 @@ import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebLandingHeroHeadline } from '@/components/web/marketing/WebLandingHeroHeadline.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
-import { ONBOARDING_SUBTITLE } from '@/constants';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
-import { useTheme, useThemedStyles } from '@/theme';
+import { webOnlyStyle } from '@/lib/webPressableStyles';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
 /** Clear sticky marketing nav + breathing room above hero content. */
 const NAV_CLEARANCE = 72;
 const PREVIEW_VERTICAL_RESERVE = NAV_CLEARANCE + 96;
+
+const HERO_CHECKS = [
+  'Free to start',
+  'Roles and fill-ins',
+  'Built for Canadian dental teams',
+] as const;
+
+function LandingHeroSubtitle() {
+  const styles = useThemedStyles(({ colors }) => ({
+    text: {
+      ...webTypography.subtitle,
+      color: colors.labelSecondary,
+      maxWidth: 480,
+    },
+    fillIn: {
+      color: colors.secondary,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+    },
+  }));
+
+  return (
+    <Text style={styles.text}>
+      Confirm coverage before the day starts — post a{' '}
+      <Text style={styles.fillIn}>fill-in</Text> and nearby professionals get notified.
+    </Text>
+  );
+}
+
+function LandingHeroCheckRow() {
+  const { colors } = useTheme();
+
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      flexWrap: 'wrap' as const,
+      gap: spacing.md,
+    },
+    item: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+    },
+    label: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '500' as const,
+      color: colors.labelSecondary,
+    },
+  }));
+
+  return (
+    <View style={styles.row}>
+      {HERO_CHECKS.map((label) => (
+        <View key={label} style={styles.item}>
+          <Ionicons name="checkmark-circle" size={16} color={colors.tertiary} />
+          <Text style={styles.label}>{label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export function WebLandingHero() {
   const insets = useSafeAreaInsets();
@@ -37,10 +101,11 @@ export function WebLandingHero() {
       right: 0,
       bottom: 0,
       pointerEvents: 'none' as const,
-      // @ts-expect-error web gradient
-      backgroundImage: isDark
-        ? 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 154, 255, 0.18) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(74, 154, 255, 0.1) 0%, transparent 50%)'
-        : 'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(26, 111, 212, 0.08) 0%, transparent 50%)',
+      ...webOnlyStyle({
+        backgroundImage: isDark
+          ? 'radial-gradient(ellipse 80% 60% at 18% 0%, rgba(152, 150, 255, 0.22) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 82% 18%, rgba(74, 154, 255, 0.14) 0%, transparent 50%)'
+          : 'radial-gradient(ellipse 80% 60% at 18% 0%, rgba(88, 86, 214, 0.16) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 82% 18%, rgba(26, 111, 212, 0.1) 0%, transparent 50%)',
+      } as object),
     },
     inner: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
@@ -59,11 +124,6 @@ export function WebLandingHero() {
     headline: {
       ...(isWide ? webTypography.displaySm : webTypography.headline),
       color: colors.labelPrimary,
-    },
-    subtitle: {
-      ...webTypography.subtitle,
-      color: colors.labelSecondary,
-      maxWidth: 480,
     },
     ctaRow: {
       flexDirection: 'row' as const,
@@ -91,9 +151,9 @@ export function WebLandingHero() {
       <View style={styles.atmosphere} />
       <View style={styles.inner}>
         <WebPageEnter style={styles.copy}>
-          <Text style={styles.eyebrow}>Dental staffing platform</Text>
+          <Text style={styles.eyebrow}>Same-day dental coverage</Text>
           <WebLandingHeroHeadline style={styles.headline} />
-          <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+          <LandingHeroSubtitle />
           <View style={styles.ctaRow}>
             <OnboardingButton
               label="Get started for free"
@@ -108,8 +168,9 @@ export function WebLandingHero() {
               style={styles.ctaButton}
             />
           </View>
+          <LandingHeroCheckRow />
         </WebPageEnter>
-        <WebPageEnter delayMs={120} style={styles.visual}>
+        <WebPageEnter delayMs={180} style={styles.visual}>
           <WelcomeHeroAppPanel
             maxHeight={
               isWide

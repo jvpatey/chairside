@@ -25,6 +25,8 @@ type WorkerApplicationListCardProps = {
   returnTo?: WorkerApplicationReturnTarget;
   compact?: boolean;
   embedded?: boolean;
+  selected?: boolean;
+  onSelect?: (applicationId: string) => void;
 };
 
 export function WorkerApplicationListCard({
@@ -33,6 +35,8 @@ export function WorkerApplicationListCard({
   returnTo = 'applications-tab',
   compact = false,
   embedded = false,
+  selected = false,
+  onSelect,
 }: WorkerApplicationListCardProps) {
   const { colors } = useTheme();
   const { isApplicationHighlighted, markApplicationSeen } = useApplicationTabBadge();
@@ -83,6 +87,10 @@ export function WorkerApplicationListCard({
     if (hasApplicationUpdate) {
       void markApplicationSeen(application.id);
     }
+    if (onSelect) {
+      onSelect(application.id);
+      return;
+    }
     router.push(getWorkerApplicationRoute(application.id, returnTo));
   };
 
@@ -112,6 +120,7 @@ export function WorkerApplicationListCard({
       }
       padding={compact ? 'sm' : 'md'}
       gap
+      style={selected ? { borderColor: colors.tertiary, borderWidth: 1.5 } : undefined}
       onPress={openDetail}
     >
       <ClinicPostHeader

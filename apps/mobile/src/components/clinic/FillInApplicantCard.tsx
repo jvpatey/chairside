@@ -5,7 +5,7 @@ import {
   type ClinicApplication,
   type FillInCoverRequest,
 } from '@chairside/api';
-import { getRoleTypeLabel, hasClinicWorkerCrmContent } from '@chairside/config';
+import { DELETED_CANDIDATE_STATUS_DESCRIPTION, getRoleTypeLabel, hasClinicWorkerCrmContent } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -234,7 +234,7 @@ export function FillInApplicantCard({
             newCoverRequestLabel,
           ]
             .filter(Boolean)
-            .join(' ∑ ')}
+            .join(' ù ')}
           avatarSize={44}
           accessory={
             <View style={{ alignItems: 'flex-end', gap: 8 }}>
@@ -266,7 +266,7 @@ export function FillInApplicantCard({
       {workerDeleted ? (
         <View style={styles.deletedBanner}>
           <Text style={styles.deletedText}>
-            This candidate is no longer signed up for Chairside.
+            {DELETED_CANDIDATE_STATUS_DESCRIPTION}
           </Text>
         </View>
       ) : null}
@@ -282,7 +282,7 @@ export function FillInApplicantCard({
           <View style={styles.row}>
             <OnboardingButton
               style={styles.action}
-              label={hasUnreadMessages ? 'Message ¬∑ New' : 'Message'}
+              label={hasUnreadMessages ? 'Message ∑ New' : 'Message'}
               variant="secondary"
               disabled={isSubmitting}
               onPress={() =>
@@ -300,7 +300,7 @@ export function FillInApplicantCard({
         </View>
       ) : application.status !== 'rejected' ? (
         <OnboardingButton
-          label={workerDeleted ? 'View messages' : hasUnreadMessages ? 'Message ¬∑ New' : 'Message'}
+          label={workerDeleted ? 'View messages' : hasUnreadMessages ? 'Message ∑ New' : 'Message'}
           variant="secondary"
           onPress={() =>
             router.push(getClinicApplicationMessagesRoute(application.id, messagesReturnTo))

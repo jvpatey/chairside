@@ -33,6 +33,8 @@ export type WelcomeHeroPreview = {
   job: LiveJobPost;
   shift: LiveShiftPost;
   applicants: WelcomeHeroApplicant[];
+  /** Cover note shown on the clinic fill-in request card. */
+  coverMessage: string;
   fillInDistanceLabel: string;
   stats: {
     openRoles: number;
@@ -132,7 +134,7 @@ export function getWelcomeHeroPreview(now = new Date()): WelcomeHeroPreview {
     shift_date: shiftDate,
     start_time: '09:00',
     end_time: '17:00',
-    compensation: null,
+    compensation: 'To be discussed',
     urgency: 'same_day',
     description: null,
     status: 'live',
@@ -212,6 +214,7 @@ export function getWelcomeHeroPreview(now = new Date()): WelcomeHeroPreview {
     job,
     shift,
     applicants,
+    coverMessage: 'Available today — 8 years as a hygienist, Dentrix ready.',
     fillInDistanceLabel: 'Nearby',
     stats: {
       openRoles: 1,

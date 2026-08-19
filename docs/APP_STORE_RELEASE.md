@@ -8,7 +8,8 @@ End-to-end checklist for shipping Chairside to the App Store. Run EAS commands f
 - App Store Connect access
 - Expo EAS CLI (`npm i -g eas-cli`)
 - Supabase CLI linked to production project
-- Pingram Canada environment with Mobile Push enabled
+- Pingram Canada environment (in-app / SMS / email)
+- APNs Auth Key configured in EAS credentials for Expo Push
 
 ## 1. Public legal URLs (web)
 
@@ -119,18 +120,13 @@ Point to `https://<project-ref>.supabase.co/functions/v1/notify` with header `x-
 
 Full details: [NOTIFICATIONS.md](./NOTIFICATIONS.md)
 
-## 5. Pingram (notifications + push)
+## 5. Notifications (Pingram + Expo Push)
 
-1. Create notification types per [NOTIFICATIONS.md](./NOTIFICATIONS.md).
-2. Configure APNs in Pingram — see [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md).
-3. Enable Mobile Push on each type that should send banners.
+1. Create Pingram notification types per [NOTIFICATIONS.md](./NOTIFICATIONS.md) (in-app / SMS / email).
+2. Configure APNs in **EAS credentials** — see [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). Do **not** configure Mobile Push in Pingram.
+3. Run migration `121_user_push_tokens.sql` and redeploy `notify`.
 4. Register SMS sender with Pingram support if using fill-in SMS.
-
-Verify APNs via API (optional):
-
-```bash
-./scripts/configure-pingram-apn.sh
-```
+5. Optional: `supabase secrets set EXPO_ACCESS_TOKEN=…` for Expo Push rate limits.
 
 ## 6. Build and submit
 

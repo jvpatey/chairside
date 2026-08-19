@@ -1,7 +1,7 @@
 import { deleteAccount } from '@chairside/api';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -10,6 +10,14 @@ import {
   ACCOUNT_DELETION_SUMMARY,
 } from '@/lib/accountDeletionCopy';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+
+function showDeleteAccountError(message: string) {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.alert(`Could not delete account\n\n${message}`);
+    return;
+  }
+  Alert.alert('Could not delete account', message);
+}
 
 export function useDeleteAccount() {
   const { signOut } = useAuth();
@@ -24,8 +32,7 @@ export function useDeleteAccount() {
     try {
       await deleteAccount();
     } catch (error) {
-      Alert.alert(
-        'Could not delete account',
+      showDeleteAccountError(
         error instanceof Error ? error.message : 'Please try again or contact support.',
       );
       setIsDeleting(false);
@@ -60,7 +67,9 @@ export function useDeleteAccount() {
           message: ACCOUNT_DELETION_FINAL_CONFIRM,
           confirmLabel: 'Delete account',
           destructive: true,
-          onConfirm: () => performDelete(),
+          onConfirm: () => {
+            void performDelete();
+          },
         });
       },
     });

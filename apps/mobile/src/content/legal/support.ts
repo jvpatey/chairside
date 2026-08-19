@@ -23,7 +23,16 @@ export const SUPPORT_PAGE_CONTENT: LegalPageContent = {
       title: 'Delete your account',
       paragraphs: [
         'You can permanently delete your account from Profile → Account → Delete account. You will be asked to confirm twice.',
-        'Deleting removes your login, profile, and uploaded files. Some historical applications and messages may remain visible to the other party as records marked no longer on Chairside, with personal details removed where possible.',
+        'Deleting removes your login, profile, and uploaded files. For clinic or group owners, the organization and live postings are closed. For invited managers, only your membership access is removed.',
+        'Some historical applications and messages may remain visible to the other party as records marked no longer on Chairside, with personal details removed where possible.',
+      ],
+    },
+    {
+      title: 'Billing',
+      bullets: [
+        'Worker accounts are free. Clinic and group paid plans are managed under Profile → Billing by the account owner.',
+        'iOS subscriptions are billed through the App Store. Web subscriptions are billed through Stripe.',
+        'Invited managers cannot purchase or restore plans.',
       ],
     },
     {

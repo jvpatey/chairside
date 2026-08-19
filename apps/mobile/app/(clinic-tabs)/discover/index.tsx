@@ -6,11 +6,9 @@ import {
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, Text, View } from 'react-native';
 
 import { ClinicDiscoverFilters } from '@/components/clinic/PostingFilters';
-import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -61,7 +59,6 @@ import {
   type ClinicDiscoverReturnTarget,
 } from '@/lib/routing';
 import { countUnmappablePosts } from '@/lib/workerMapItems';
-import { getWorkerMapPanelHeight } from '@/lib/workerMapRegion';
 import { IS_WEB } from '@/lib/webPressableStyles';
 import { fontRegular, useThemedStyles } from '@/theme';
 
@@ -70,9 +67,6 @@ export default function ClinicDiscoverScreen() {
   const { clinicProfile } = useClinicProfile();
   const { billing, upgradePrompt, showDiscoverUpgrade } = useClinicUpgradePrompt();
   const { isTablet, isWide } = useResponsiveLayout();
-  const { height: windowHeight } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const tabDockInset = useMobileTabDockInset();
   const { tab, returnTo } = useLocalSearchParams<{ tab?: string; returnTo?: string }>();
   const province = clinicProfile?.province?.trim() || null;
   const hasProvince = Boolean(province);
@@ -93,7 +87,6 @@ export default function ClinicDiscoverScreen() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [controlsHeight, setControlsHeight] = useState(0);
   const hasCachedData = jobs.length > 0 || shifts.length > 0;
 
   useEffect(() => {
@@ -125,8 +118,17 @@ export default function ClinicDiscoverScreen() {
     wrap: {
       gap: spacing.lg,
     },
+    wrapFill: {
+      flex: 1,
+      minHeight: 0,
+    },
+    panelFill: {
+      flex: 1,
+      minHeight: 0,
+    },
     controlsBlock: {
       width: '100%',
+      flexShrink: 0,
       gap: spacing.md,
     },
     searchRow: {
@@ -151,6 +153,8 @@ export default function ClinicDiscoverScreen() {
     mapPanel: {
       width: '100%',
       overflow: 'hidden',
+      flex: 1,
+      minHeight: 0,
     },
   }));
 
@@ -265,18 +269,7 @@ export default function ClinicDiscoverScreen() {
   // when clinics lack coordinates — pins may be empty with an unmappable notice).
   const hasMapResults = !isLoading && activeList.length > 0 && viewMode === 'map';
   const useWebSplitMap = IS_WEB && isWide && viewMode === 'map' && activeList.length > 0;
-
-  const mapPanelHeight = useMemo(
-    () => getWorkerMapPanelHeight(windowHeight, insets.top, tabDockInset, controlsHeight),
-    [controlsHeight, insets.top, tabDockInset, windowHeight],
-  );
-
-  const handleControlsLayout = (event: LayoutChangeEvent) => {
-    const { height } = event.nativeEvent.layout;
-    if (height > 0) {
-      setControlsHeight((current) => (current === height ? current : height));
-    }
-  };
+  const fillMapViewport = hasMapResults && !useWebSplitMap;
 
   const resultsMeta =
     !isLoading && sourceCount > 0 && activeList.length > 0
@@ -366,7 +359,7 @@ export default function ClinicDiscoverScreen() {
   ) : (
     <WorkerBrowseViewTransition
       mode={hasMapResults ? 'map' : 'list'}
-      style={hasMapResults ? [styles.mapPanel, { height: mapPanelHeight }] : undefined}>
+      style={hasMapResults ? styles.mapPanel : undefined}>
       {hasMapResults && mapElement ? mapElement : listContent}
     </WorkerBrowseViewTransition>
   );
@@ -377,9 +370,15 @@ export default function ClinicDiscoverScreen() {
       <Screen
         title="Discover"
         subtitle="Live roles and fill-ins posted by other clinics in your province."
-        refreshing={discoverLocked || !hasProvince ? undefined : refreshing}
-        onRefresh={discoverLocked || !hasProvince ? undefined : onRefresh}
-        scrollEnabled={!hasMapResults}
+        fillsContainer={fillMapViewport}
+        scroll={!fillMapViewport}
+        scrollEnabled={!fillMapViewport}
+        refreshing={
+          fillMapViewport || discoverLocked || !hasProvince ? undefined : refreshing
+        }
+        onRefresh={
+          fillMapViewport || discoverLocked || !hasProvince ? undefined : onRefresh
+        }
         onBack={
           isTablet
             ? undefined
@@ -395,10 +394,10 @@ export default function ClinicDiscoverScreen() {
             onCtaPress={showDiscoverUpgrade}
           />
         ) : (
-          <View style={styles.wrap}>
+          <View style={[styles.wrap, fillMapViewport ? styles.wrapFill : null]}>
             {loadError ? <DashboardErrorBanner onRetry={() => void load()} /> : null}
 
-            <View style={styles.controlsBlock} onLayout={handleControlsLayout}>
+            <View style={styles.controlsBlock}>
               <View style={styles.searchRow}>
                 <View style={styles.searchField}>
                   <WorkerBrowseSearchBar
@@ -431,9 +430,16 @@ export default function ClinicDiscoverScreen() {
               {resultsMeta ? <Text style={styles.resultsMeta}>{resultsMeta}</Text> : null}
             </View>
 
-            <FileTabWell tabs={discoverTabs} selected={selectedTab} onSelect={handleSelectTab}>
-              {discoverPanelContent}
-            </FileTabWell>
+            <View style={fillMapViewport ? styles.panelFill : undefined}>
+              <FileTabWell
+                tabs={discoverTabs}
+                selected={selectedTab}
+                onSelect={handleSelectTab}
+                fillHeight={fillMapViewport}
+              >
+                {discoverPanelContent}
+              </FileTabWell>
+            </View>
           </View>
         )}
       </Screen>

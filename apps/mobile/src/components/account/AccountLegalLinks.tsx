@@ -1,19 +1,25 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
+import type { LegalPathKey } from '@/constants/legal';
 import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useThemedStyles } from '@/theme';
 
-const PRIVACY_TERMS_LINKS: { path: keyof typeof PUBLIC_LEGAL_PATHS; label: string }[] = [
+const PRIVACY_TERMS_LINKS: { path: LegalPathKey; label: string }[] = [
   { path: 'privacy', label: 'Privacy Policy' },
   { path: 'terms', label: 'Terms of Service' },
 ];
 
 const SUPPORT_LINK = { path: 'support' as const, label: 'Support' };
 
-export function AccountLegalLinks() {
+type AccountLegalLinksProps = {
+  /** Prefer authenticated profile routes when signed in. Defaults to public URLs. */
+  legalPaths?: Record<LegalPathKey, Href>;
+};
+
+export function AccountLegalLinks({ legalPaths = PUBLIC_LEGAL_PATHS }: AccountLegalLinksProps) {
   const { isCompact } = useResponsiveLayout();
   const links = isCompact
     ? PRIVACY_TERMS_LINKS
@@ -61,7 +67,7 @@ export function AccountLegalLinks() {
           <Pressable
             key={link.path}
             accessibilityRole="link"
-            onPress={() => router.push(PUBLIC_LEGAL_PATHS[link.path])}
+            onPress={() => router.push(legalPaths[link.path])}
             style={({ pressed, hovered }) => [
               styles.row,
               webHover(hovered, pressed, styles.rowHovered),
@@ -76,7 +82,7 @@ export function AccountLegalLinks() {
           Questions? Use the{' '}
           <Text
             style={styles.hintLink}
-            onPress={() => router.push(PUBLIC_LEGAL_PATHS.support)}
+            onPress={() => router.push(legalPaths.support)}
             accessibilityRole="link">
             Support page
           </Text>{' '}

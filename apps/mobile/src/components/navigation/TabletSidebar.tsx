@@ -50,7 +50,7 @@ import {
   WORKER_PROFILE_NOTIFICATIONS,
 } from '@/lib/routing';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
-import { TABLET_TOP_INSET_EXTRA } from '@/lib/breakpoints';
+import { TABLET_TOP_INSET_EXTRA, TABLET_TOP_INSET_FALLBACK_IOS } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import {
@@ -541,7 +541,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       color: colors.labelPrimary,
     },
     labelActive: {
-      fontWeight: '600',
+      fontWeight: '700',
     },
     badge: {
       minWidth: 20,
@@ -739,7 +739,9 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const panelPadding = {
     paddingHorizontal: isCollapsed ? spacing.xs : spacing.md,
-    paddingTop: insets.top + TABLET_TOP_INSET_EXTRA,
+    paddingTop:
+      Math.max(insets.top, Platform.OS === 'ios' ? TABLET_TOP_INSET_FALLBACK_IOS : 0) +
+      TABLET_TOP_INSET_EXTRA,
     paddingBottom: Math.max(insets.bottom, spacing.md),
     ...(isWeb
       ? webOnlyStyle({

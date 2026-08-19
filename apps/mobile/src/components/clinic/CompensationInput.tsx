@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
+import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
 import {
   formFieldInputRowStyle,
@@ -8,18 +9,41 @@ import {
 } from '@/theme/formFieldTokens';
 import { useTheme, useThemedStyles } from '@/theme';
 
-function sanitizeHourlyRate(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 3);
+export type FillInPayType = 'hourly' | 'flat' | 'discuss';
+
+const PAY_TYPE_OPTIONS: { value: FillInPayType; label: string }[] = [
+  { value: 'hourly', label: 'Hourly' },
+  { value: 'flat', label: 'Flat rate' },
+  { value: 'discuss', label: 'To be discussed' },
+];
+
+function sanitizeRate(value: string): string {
+  return value.replace(/\D/g, '').slice(0, 4);
 }
 
-export function formatCompensation(rate: string): string {
+export function formatCompensation(rate: string, payType: FillInPayType = 'hourly'): string {
+  if (payType === 'discuss') return '';
   const trimmed = rate.trim();
-  return trimmed ? `$${trimmed}/hr` : '';
+  if (!trimmed) return '';
+  if (payType === 'flat') return `$${trimmed} flat`;
+  return `$${trimmed}/hr`;
 }
 
-export function parseCompensation(value: string): string {
-  const match = /^\$(\d+)\/hr$/.exec(value.trim());
-  return match?.[1] ?? '';
+export function parseCompensation(value: string): { rate: string; payType: FillInPayType } {
+  const trimmed = value.trim();
+  if (!trimmed) return { rate: '', payType: 'discuss' };
+
+  const hourlyMatch = /^\$(\d+)\/hr$/.exec(trimmed);
+  if (hourlyMatch) return { rate: hourlyMatch[1], payType: 'hourly' };
+
+  const flatMatch = /^\$(\d+)\s*flat$/i.exec(trimmed);
+  if (flatMatch) return { rate: flatMatch[1], payType: 'flat' };
+
+  // Legacy bare dollar amounts treated as flat.
+  const bareMatch = /^\$(\d+)$/.exec(trimmed);
+  if (bareMatch) return { rate: bareMatch[1], payType: 'flat' };
+
+  return { rate: '', payType: 'discuss' };
 }
 
 type CompensationInputProps = {
@@ -28,10 +52,16 @@ type CompensationInputProps = {
   embedded?: boolean;
 };
 
-export function CompensationInput({ onChange, initialValue, embedded = false }: CompensationInputProps) {
+export function CompensationInput({
+  onChange,
+  initialValue,
+  embedded = false,
+}: CompensationInputProps) {
   const { colors } = useTheme();
-  const [rate, setRate] = useState(() => parseCompensation(initialValue ?? ''));
-  const preview = formatCompensation(rate);
+  const parsedInitial = parseCompensation(initialValue ?? '');
+  const [payType, setPayType] = useState<FillInPayType>(parsedInitial.payType);
+  const [rate, setRate] = useState(parsedInitial.rate);
+  const preview = formatCompensation(rate, payType);
 
   const styles = useThemedStyles((theme) => ({
     wrap: {
@@ -52,6 +82,11 @@ export function CompensationInput({ onChange, initialValue, embedded = false }: 
       color: theme.colors.labelSecondary,
       paddingRight: theme.spacing.md,
     },
+    hint: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: theme.colors.labelSecondary,
+    },
     preview: {
       backgroundColor: theme.colors.fillSubtle,
       borderRadius: 12,
@@ -60,11 +95,19 @@ export function CompensationInput({ onChange, initialValue, embedded = false }: 
     },
     previewLabel: {
       fontSize: 13,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       color: theme.colors.labelSecondary,
     },
     previewText: theme.typography.body,
   }));
+
+  const handlePayTypeChange = (value: string) => {
+    const nextType = value as FillInPayType;
+    setPayType(nextType);
+    if (nextType === 'discuss') {
+      setRate('');
+    }
+  };
 
   useEffect(() => {
     onChange(preview);
@@ -74,19 +117,31 @@ export function CompensationInput({ onChange, initialValue, embedded = false }: 
     <View style={styles.wrap}>
       {!embedded ? <FormFieldLabel label="Compensation (optional)" /> : null}
 
-      <View style={styles.row}>
-        <Text style={styles.prefix}>$</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Rate"
-          placeholderTextColor={colors.labelTertiary}
-          value={rate}
-          onChangeText={(value) => setRate(sanitizeHourlyRate(value))}
-          keyboardType="number-pad"
-          accessibilityLabel="Hourly compensation"
-        />
-        <Text style={styles.suffix}>/hr</Text>
-      </View>
+      <ChipSelector
+        options={PAY_TYPE_OPTIONS}
+        selected={payType}
+        onChange={handlePayTypeChange}
+      />
+
+      {payType === 'hourly' || payType === 'flat' ? (
+        <View style={styles.row}>
+          <Text style={styles.prefix}>$</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Rate"
+            placeholderTextColor={colors.labelTertiary}
+            value={rate}
+            onChangeText={(value) => setRate(sanitizeRate(value))}
+            keyboardType="number-pad"
+            accessibilityLabel={payType === 'flat' ? 'Flat compensation' : 'Hourly compensation'}
+          />
+          <Text style={styles.suffix}>{payType === 'flat' ? 'flat' : '/hr'}</Text>
+        </View>
+      ) : null}
+
+      {payType === 'discuss' ? (
+        <Text style={styles.hint}>Pay won’t appear on the listing.</Text>
+      ) : null}
 
       {preview ? (
         <View style={styles.preview}>

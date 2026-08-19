@@ -36,6 +36,7 @@ import {
   type ClinicApplicationSummaryFilter,
 } from '@/lib/clinicListSearch';
 import { CLINIC_POST_JOB, getClinicRoleApplicationsRoute } from '@/lib/routing';
+import { IS_WEB } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function RoleSummaryAvatar() {
@@ -110,7 +111,8 @@ export default function ClinicApplicationsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
-  const useSplit = isWide;
+  // List+detail split is web-only — iPad with the sidebar is too cramped.
+  const useSplit = IS_WEB && isWide;
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: {

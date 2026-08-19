@@ -5,7 +5,7 @@ import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { PUBLIC_LEGAL_PATHS } from '@/constants/legal';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
-import { navigateToWelcome } from '@/lib/publicRoutes';
+import { PRICING_ROUTE, navigateToWelcome } from '@/lib/publicRoutes';
 import {
   webHover,
   webLinkUnderline,
@@ -23,6 +23,7 @@ const SIGN_IN_HREF = '/(onboarding)/sign-in' as Href;
 const PRODUCT_LINKS = [
   { label: 'For clinics', href: ONBOARDING_HREF },
   { label: 'For professionals', href: ONBOARDING_HREF },
+  { label: 'Pricing', href: PRICING_ROUTE },
   { label: 'Sign in', href: SIGN_IN_HREF },
 ] as const;
 
@@ -167,7 +168,7 @@ export function WebMarketingFooter() {
           <View style={styles.brandColumn}>
             <ChairsideWordmark variant="small" align="left" onPress={navigateToWelcome} />
             <Text style={styles.tagline}>
-              Permanent roles and same-day fill-ins for dental teams.
+              Same-day fill-ins and permanent roles for dental teams.
             </Text>
           </View>
 

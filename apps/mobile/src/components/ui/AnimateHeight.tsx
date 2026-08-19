@@ -106,6 +106,10 @@ export function AnimateHeight({
     syncHeight(event.nativeEvent.layout.height, hasMeasured.value);
   };
 
+  // When height is locked, measure content absolutely so Yoga does not clamp the
+  // child to the animated parent height (which prevented expand/collapse updates).
+  const measureUnconstrained = enabled && lockHeight;
+
   return (
     <Animated.View
       style={[
@@ -113,7 +117,15 @@ export function AnimateHeight({
         enabled && lockHeight ? animatedStyle : null,
       ]}
       onLayout={onOuterLayout}>
-      <View style={[style, !enabled ? { flex: 1 } : null]} onLayout={onContentLayout}>
+      <View
+        style={[
+          style,
+          !enabled ? { flex: 1 } : null,
+          measureUnconstrained
+            ? { position: 'absolute', left: 0, right: 0, top: 0 }
+            : null,
+        ]}
+        onLayout={onContentLayout}>
         {children}
       </View>
     </Animated.View>

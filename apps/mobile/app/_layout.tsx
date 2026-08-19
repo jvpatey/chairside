@@ -98,6 +98,7 @@ export default function RootLayout() {
                   <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
                   <Stack.Screen name="auth/reset-password" options={{ headerShown: false }} />
                   <Stack.Screen name="privacy" options={{ headerShown: false }} />
+                  <Stack.Screen name="pricing" options={{ headerShown: false }} />
                   <Stack.Screen name="support" options={{ headerShown: false }} />
                   <Stack.Screen name="terms" options={{ headerShown: false }} />
                   </Stack>

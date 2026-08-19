@@ -3,10 +3,14 @@ import { formatStoredEducation } from './clinicOptions';
 export type ApplicationPostType = 'job' | 'shift';
 
 /** Shown when a counterpart account has been deleted but history is retained. */
-export const DELETED_ACCOUNT_LABEL = 'No longer on Chairside';
-export const DELETED_CANDIDATE_LABEL = 'Candidate no longer on Chairside';
-export const DELETED_CLINIC_LABEL = 'Clinic no longer on Chairside';
+export const DELETED_ACCOUNT_LABEL = 'Account closed';
+export const DELETED_CANDIDATE_LABEL = 'Former applicant';
+export const DELETED_CLINIC_LABEL = 'Former clinic';
 export const DELETED_MESSAGE_BODY = '[Message removed]';
+export const DELETED_CANDIDATE_STATUS_DESCRIPTION =
+  'This applicant closed their Chairside account. You can still view this application and past messages.';
+export const DELETED_CLINIC_STATUS_DESCRIPTION =
+  'This clinic closed their Chairside account. You can still view this application and past messages.';
 
 const JOB_STATUS_LABELS: Record<string, string> = {
   screening_submitted: 'Screening submitted',

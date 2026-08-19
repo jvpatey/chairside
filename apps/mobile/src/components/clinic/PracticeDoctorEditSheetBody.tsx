@@ -23,8 +23,10 @@ import {
   type PracticeDoctorLocationOption,
 } from '@/components/clinic/PracticeDoctorFormFields';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
 import { usePracticeDoctorPhotoUri } from '@/hooks/usePracticeDoctorPhotoUri';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { cropProfilePhotoToBase64 } from '@/lib/cropProfilePhoto';
 import {
   adaptiveSheetFooter,
   adaptiveSheetHeader,
@@ -33,7 +35,14 @@ import {
   adaptiveSheetScrollContent,
   adaptiveSheetTitle,
 } from '@/lib/adaptiveSheetBodyStyles';
-import { pickDoctorPhotoFromLibrary } from '@/lib/pickDoctorPhotoFromLibrary';
+import {
+  pickDoctorPhotoFromLibrary,
+  type DoctorPhotoCropCandidate,
+} from '@/lib/pickDoctorPhotoFromLibrary';
+import {
+  PROFILE_PHOTO_CROP_VIEWPORT,
+  type ProfilePhotoCropTransform,
+} from '@/lib/profilePhotoCrop';
 import { useThemedStyles } from '@/theme';
 
 export type PracticeDoctorEditSheetProps = {
@@ -71,6 +80,8 @@ export function PracticeDoctorEditSheetBody({
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [photoContentType, setPhotoContentType] = useState<string | null>(null);
   const [photoStoragePath, setPhotoStoragePath] = useState<string | null>(null);
+  const [cropCandidate, setCropCandidate] = useState<DoctorPhotoCropCandidate | null>(null);
+  const [isCroppingPhoto, setIsCroppingPhoto] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const validLocationIds = useMemo(
@@ -91,6 +102,7 @@ export function PracticeDoctorEditSheetBody({
     setPhotoBase64(null);
     setPhotoContentType(null);
     setPhotoStoragePath(doctor.photo_storage_path);
+    setCropCandidate(null);
   }, [doctor, visible, validLocationIds, locationOptions.length]);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -124,12 +136,35 @@ export function PracticeDoctorEditSheetBody({
   };
 
   const handlePickPhoto = async () => {
-    const picked = await pickDoctorPhotoFromLibrary();
-    if (!picked) return;
+    const candidate = await pickDoctorPhotoFromLibrary();
+    if (!candidate) return;
+    setCropCandidate(candidate);
+  };
 
-    setPhotoPreviewUri(picked.previewUri);
-    setPhotoBase64(picked.base64);
-    setPhotoContentType(picked.contentType);
+  const handleConfirmCrop = async (transform: ProfilePhotoCropTransform) => {
+    if (!cropCandidate) return;
+
+    setIsCroppingPhoto(true);
+    try {
+      const cropped = await cropProfilePhotoToBase64(
+        cropCandidate.uri,
+        cropCandidate.width,
+        cropCandidate.height,
+        PROFILE_PHOTO_CROP_VIEWPORT,
+        transform,
+      );
+      setPhotoPreviewUri(`data:${cropped.mimeType};base64,${cropped.base64}`);
+      setPhotoBase64(cropped.base64);
+      setPhotoContentType(cropped.mimeType);
+      setCropCandidate(null);
+    } catch (error) {
+      Alert.alert(
+        'Could not crop photo',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsCroppingPhoto(false);
+    }
   };
 
   const handleSave = async () => {
@@ -217,48 +252,62 @@ export function PracticeDoctorEditSheetBody({
   if (!doctor) return null;
 
   return (
-    <Pressable style={styles.root} onPress={dismissKeyboard}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Edit doctor</Text>
-      </View>
+    <>
+      <Pressable style={styles.root} onPress={dismissKeyboard}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Edit doctor</Text>
+        </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator={false}
-        bounces={false}>
-        <PracticeDoctorFormFields
-          name={name}
-          title={title}
-          bio={bio}
-          photoUri={displayPhotoUri}
-          isPhotoLoading={isSaving}
-          locationOptions={locationOptions}
-          selectedLocationIds={locationIds}
-          onLocationIdsChange={setLocationIds}
-          onPickPhoto={() => void handlePickPhoto()}
-          onNameChange={setName}
-          onTitleChange={setTitle}
-          onBioChange={setBio}
-        />
-      </ScrollView>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          bounces={false}>
+          <PracticeDoctorFormFields
+            name={name}
+            title={title}
+            bio={bio}
+            photoUri={displayPhotoUri}
+            isPhotoLoading={isSaving || isCroppingPhoto}
+            locationOptions={locationOptions}
+            selectedLocationIds={locationIds}
+            onLocationIdsChange={setLocationIds}
+            onPickPhoto={() => void handlePickPhoto()}
+            onNameChange={setName}
+            onTitleChange={setTitle}
+            onBioChange={setBio}
+          />
+        </ScrollView>
 
-      <View style={styles.footer}>
-        <OnboardingButton
-          label={isSaving ? 'Saving…' : 'Save changes'}
-          disabled={!canSave}
-          onPress={() => void handleSave()}
+        <View style={styles.footer}>
+          <OnboardingButton
+            label={isSaving ? 'Saving…' : 'Save changes'}
+            disabled={!canSave}
+            onPress={() => void handleSave()}
+          />
+          <OnboardingButton
+            label="Remove doctor"
+            variant="destructive"
+            disabled={isSaving}
+            onPress={handleRemove}
+          />
+          <OnboardingButton label="Cancel" variant="ghost" onPress={handleClose} />
+        </View>
+      </Pressable>
+
+      {cropCandidate ? (
+        <ProfilePhotoCropEditor
+          visible
+          imageUri={cropCandidate.uri}
+          imageWidth={cropCandidate.width}
+          imageHeight={cropCandidate.height}
+          isSaving={isCroppingPhoto}
+          onCancel={() => setCropCandidate(null)}
+          onConfirm={(transform) => void handleConfirmCrop(transform)}
         />
-        <OnboardingButton
-          label="Remove doctor"
-          variant="destructive"
-          disabled={isSaving}
-          onPress={handleRemove}
-        />
-        <OnboardingButton label="Cancel" variant="ghost" onPress={handleClose} />
-      </View>
-    </Pressable>
+      ) : null}
+    </>
   );
 }

@@ -1,12 +1,16 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { ReactNode } from 'react';
 
+import { getPublicWebBaseUrl } from '@/constants/legal';
+
 const SITE_TITLE = 'Chairside — Dental staffing, simplified';
 const SITE_DESCRIPTION =
   'One platform for Canadian dental clinics hiring and professionals finding work.';
 const THEME_COLOR_LIGHT = '#F4F6FB';
 const THEME_COLOR_DARK = '#0B0D12';
 const PRIMARY_COLOR = '#1A6FD4';
+const SITE_ORIGIN = getPublicWebBaseUrl();
+const OG_IMAGE_URL = `${SITE_ORIGIN}/og-share.png`;
 
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
@@ -27,18 +31,20 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta property="og:site_name" content="Chairside" />
         <meta property="og:title" content={SITE_TITLE} />
         <meta property="og:description" content={SITE_DESCRIPTION} />
-        <meta property="og:url" content="https://chairside.app" />
-        <meta property="og:image" content="https://chairside.app/assets/images/og-share.png" />
+        <meta property="og:url" content={SITE_ORIGIN} />
+        <meta property="og:image" content={OG_IMAGE_URL} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/png" />
         <meta property="og:image:alt" content="Chairside — Dental staffing, simplified" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={SITE_TITLE} />
         <meta name="twitter:description" content={SITE_DESCRIPTION} />
-        <meta name="twitter:image" content="https://chairside.app/assets/images/og-share.png" />
+        <meta name="twitter:image" content={OG_IMAGE_URL} />
+        <meta name="twitter:image:alt" content="Chairside — Dental staffing, simplified" />
 
-        <link rel="icon" href="/assets/images/favicon.png" />
+        <link rel="icon" href="/favicon.png" />
 
         <ScrollViewStyleReset />
 
@@ -95,12 +101,22 @@ body,
   }
 }
 
-@keyframes chairside-headline-shimmer {
+@keyframes chairside-headline-pop {
   0% {
-    background-position: 120% 0;
+    transform: scale(0.97);
+    opacity: 0.88;
+  }
+  45% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.995);
+    opacity: 1;
   }
   100% {
-    background-position: -20% 0;
+    transform: scale(1);
+    opacity: 1;
   }
 }
 

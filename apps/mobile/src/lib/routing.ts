@@ -179,8 +179,21 @@ export const CLINIC_PROFILE_MESSAGING: Href = '/(clinic-tabs)/profile/messaging'
 export const CLINIC_PROFILE_NOTIFICATIONS: Href = '/(clinic-tabs)/profile/notifications' as Href;
 export const CLINIC_PROFILE_ACCOUNT: Href = '/(clinic-tabs)/profile/account' as Href;
 export const CLINIC_PROFILE_BILLING: Href = '/(clinic-tabs)/profile/billing' as Href;
+export const CLINIC_PROFILE_SUPPORT: Href = '/(clinic-tabs)/profile/support' as Href;
+export const CLINIC_PROFILE_PRIVACY: Href = '/(clinic-tabs)/profile/privacy' as Href;
+export const CLINIC_PROFILE_TERMS: Href = '/(clinic-tabs)/profile/terms' as Href;
 export const WORKER_BROWSE: Href = '/(tabs)/browse' as Href;
 export const WORKER_APPLICATIONS: Href = '/(tabs)/applications' as Href;
+
+export function getWorkerApplicationsRoute(applicationId?: string): Href {
+  if (applicationId) {
+    return {
+      pathname: '/(tabs)/applications',
+      params: { applicationId },
+    } as Href;
+  }
+  return WORKER_APPLICATIONS;
+}
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_FILLIN_AVAILABILITY: Href = '/(tabs)/fill-in-availability' as Href;
 export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;
@@ -191,6 +204,22 @@ export const WORKER_PROFILE_PROFESSIONAL: Href = '/(tabs)/profile/professional' 
 export const WORKER_PROFILE_APPLICATION_KIT: Href = '/(tabs)/profile/application-kit' as Href;
 export const WORKER_PROFILE_NOTIFICATIONS: Href = '/(tabs)/profile/notifications' as Href;
 export const WORKER_PROFILE_ACCOUNT: Href = '/(tabs)/profile/account' as Href;
+export const WORKER_PROFILE_SUPPORT: Href = '/(tabs)/profile/support' as Href;
+export const WORKER_PROFILE_PRIVACY: Href = '/(tabs)/profile/privacy' as Href;
+export const WORKER_PROFILE_TERMS: Href = '/(tabs)/profile/terms' as Href;
+
+/** In-app legal routes that keep the authenticated shell mounted. */
+export const CLINIC_AUTH_LEGAL_PATHS = {
+  privacy: CLINIC_PROFILE_PRIVACY,
+  support: CLINIC_PROFILE_SUPPORT,
+  terms: CLINIC_PROFILE_TERMS,
+} as const;
+
+export const WORKER_AUTH_LEGAL_PATHS = {
+  privacy: WORKER_PROFILE_PRIVACY,
+  support: WORKER_PROFILE_SUPPORT,
+  terms: WORKER_PROFILE_TERMS,
+} as const;
 
 type RouterReplace = { replace: (href: Href) => void };
 
