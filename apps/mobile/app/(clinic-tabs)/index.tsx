@@ -63,10 +63,10 @@ import {
   buildClinicAttentionItems,
   summarizeJobApplicantPreviews,
 } from '@/lib/dashboardAttention';
+import { getClinicDashboardHeroNaming } from '@/lib/clinicDashboardHeroNaming';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
 import { sortDashboardApplications } from '@/lib/applicationPipeline';
-import { getFirstName } from '@/lib/greeting';
 import { isDecidedApplicationStatus } from '@chairside/config';
 import {
   isFillInPostingLimitReached,
@@ -298,7 +298,9 @@ export default function ClinicDashboardScreen() {
       return;
     }
 
-    const missing = getMissingClinicProfileFields(clinicProfile);
+    const missing = getMissingClinicProfileFields(clinicProfile, {
+      locations: accessibleLocations,
+    });
     Alert.alert(
       'Complete your clinic profile',
       missing.length > 0
@@ -314,29 +316,25 @@ export default function ClinicDashboardScreen() {
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
   const groupName =
     groupDisplayName || organization?.name?.trim() || clinicName || 'Dental group';
-  // Groups: person-first title; location lives in the scope switcher.
-  // Individuals: clinic name as before.
-  const heroDisplayName = !isProfileComplete
-    ? null
-    : isGroup
-      ? memberDisplayName || null
-      : clinicName;
-  const scopedLocation =
-    isGroup && locationScope !== 'all'
-      ? accessibleLocations.find((location) => location.id === locationScope) ?? null
-      : null;
-  const scopedLocationHint =
-    scopedLocation?.city?.trim() || scopedLocation?.name?.trim() || null;
-  const heroSubtitle = !isProfileComplete
-    ? 'Finish your clinic setup'
-    : isGroup
-      ? scopedLocationHint
-        ? `${groupName} · ${scopedLocationHint}`
-        : groupName
-      : [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ') ||
-        'Dental practice';
-  const heroIdentityLine =
-    isGroup && isProfileComplete && memberRoleLabel ? memberRoleLabel : undefined;
+  const {
+    greetingName: heroGreetingName,
+    displayName: heroDisplayName,
+    namePlaceholder: heroNamePlaceholder,
+    subtitle: heroSubtitle,
+    identityLine: heroIdentityLine,
+  } = getClinicDashboardHeroNaming({
+    isGroup,
+    isProfileComplete,
+    clinicName,
+    groupName,
+    memberDisplayName,
+    memberRoleLabel,
+    contactName: clinicProfile?.contact_name,
+    locationScope,
+    accessibleLocations,
+    clinicCity: clinicProfile?.city,
+    clinicProvince: clinicProfile?.province,
+  });
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
   const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
 
@@ -420,9 +418,13 @@ export default function ClinicDashboardScreen() {
     [counts.newApplications, isProfileComplete],
   );
 
+  // Incomplete profiles need the checklist most — it owns the setup CTA.
+  // Once complete, keep it while early hiring steps are still open.
   const showChecklist =
-    isProfileComplete &&
-    (counts.openRoles === 0 || counts.fillInsPosted === 0 || counts.totalApplications === 0);
+    !isProfileComplete ||
+    counts.openRoles === 0 ||
+    counts.fillInsPosted === 0 ||
+    counts.totalApplications === 0;
 
   const overviewViewAll = useCallback(() => {
     if (selectedOverview === 'roles') {
@@ -515,16 +517,10 @@ export default function ClinicDashboardScreen() {
                   : logoUri
                 : null
             }
-            namePlaceholder={
-              isProfileComplete
-                ? isGroup
-                  ? 'Your profile'
-                  : 'Your practice'
-                : 'Welcome to Chairside'
-            }
+            namePlaceholder={heroNamePlaceholder}
             subtitle={heroSubtitle}
             identityLine={heroIdentityLine}
-            greetingName={isProfileComplete ? getFirstName(memberDisplayName) : null}
+            greetingName={heroGreetingName}
             pulse={heroPulse}
             hideProfileOnWebTablet
             contextSlot={
@@ -703,6 +699,7 @@ export default function ClinicDashboardScreen() {
           <FadeInSection delayMs={180}>
             <ClinicReadinessChecklist
               clinicProfile={clinicProfile}
+              locations={accessibleLocations}
               fillInsPosted={counts.fillInsPosted}
               openRoles={counts.openRoles}
               totalApplications={counts.totalApplications}
@@ -742,6 +739,7 @@ export default function ClinicDashboardScreen() {
       <DashboardWelcomeCelebration
         visible={welcomeVisible}
         role="clinic"
+        isGroup={isGroup}
         onDismiss={() => void dismissWelcome()}
       />
       {upgradePrompt}

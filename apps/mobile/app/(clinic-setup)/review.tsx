@@ -56,12 +56,16 @@ export default function ClinicReviewScreen() {
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'clinic' });
   const setupFormProps = useSetupFormScreenProps('clinic');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const progress = useSetupStepProgress('review', { role: 'clinic' });
+  const activeLocations = locations.filter((location) => location.is_active);
 
   useClinicSetupStepGuard('review', clinicProfile, isClinicProfileReady, isEditMode);
 
-  const missingFields = getMissingClinicProfileFields(clinicProfile);
+  const missingFields = getMissingClinicProfileFields(clinicProfile, {
+    locations: activeLocations,
+  });
 
   const styles = useThemedStyles(({ spacing }) => ({
     footer: { gap: spacing.md, marginTop: spacing.lg },
@@ -77,19 +81,23 @@ export default function ClinicReviewScreen() {
       return;
     }
 
-    const missing = getMissingClinicProfileFields(clinicProfile);
+    const missing = getMissingClinicProfileFields(clinicProfile, {
+      locations: activeLocations,
+    });
     if (missing.length > 0) {
       setSubmitError(`Still needed: ${missing.join(', ')}`);
       return;
     }
 
     setSubmitError(null);
+    setIsFinishing(true);
     setIsSubmitting(true);
     try {
       await completeClinicSetup(user.id);
-      await refreshClinicProfile();
       router.replace(CLINIC_HOME_WELCOME);
+      void refreshClinicProfile();
     } catch (error) {
+      setIsFinishing(false);
       setSubmitError(
         error instanceof Error ? error.message : 'Could not finish setup. Please try again.',
       );
@@ -100,15 +108,21 @@ export default function ClinicReviewScreen() {
 
   if (!isClinicProfileReady || !clinicProfile) return null;
 
-  if (isEditMode) {
+  // Finishing stamps setup_completed_at, which would otherwise look like
+  // edit-mode and bounce to Profile instead of the dashboard welcome.
+  if (isEditMode && !isFinishing) {
     return <Redirect href={exitHref} />;
   }
 
   return (
     <FormScreen
       {...setupFormProps}
-      title="Review your profile"
-      subtitle="Confirm everything looks right before posting."
+      title={isGroup ? 'Review your group' : 'Review your profile'}
+      subtitle={
+        isGroup
+          ? 'Confirm your locations look right before going live.'
+          : 'Confirm everything looks right before posting.'
+      }
       onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
@@ -131,30 +145,46 @@ export default function ClinicReviewScreen() {
         <SetupStepProgress step={progress.step} total={progress.total} />
       ) : null}
       <SurfaceCard padding="lg">
-        <ReviewRow label="Clinic name" value={clinicProfile.clinic_name} />
+        <ReviewRow
+          label={isGroup ? 'Group name' : 'Clinic name'}
+          value={clinicProfile.clinic_name}
+        />
         <ReviewRow label="Contact" value={clinicProfile.contact_name ?? ''} />
         <ReviewRow label="Phone" value={clinicProfile.phone ?? ''} />
-        <ReviewRow
-          label="Address"
-          value={[clinicProfile.address_line1, clinicProfile.city, clinicProfile.postal_code]
-            .filter(Boolean)
-            .join(', ')}
-        />
-        <ReviewRow label="Specialty" value={specialtyLabel} />
-        <ReviewRow
-          label="Operatories"
-          value={clinicProfile.operatories_count?.toString() ?? ''}
-        />
-        <ReviewRow
-          label="Team size"
-          value={getTeamSizeRangeLabel(clinicProfile.team_size_range) ?? ''}
-        />
-        <ReviewRow label="Software" value={clinicProfile.software_used.join(', ')} />
+        {isGroup ? (
+          <ReviewRow
+            label={activeLocations.length === 1 ? 'Location' : 'Locations'}
+            value={
+              activeLocations
+                .map((location) =>
+                  [location.name, location.city].filter(Boolean).join(' · '),
+                )
+                .join(', ') || ''
+            }
+          />
+        ) : (
+          <>
+            <ReviewRow
+              label="Address"
+              value={[clinicProfile.address_line1, clinicProfile.city, clinicProfile.postal_code]
+                .filter(Boolean)
+                .join(', ')}
+            />
+            <ReviewRow label="Specialty" value={specialtyLabel} />
+            <ReviewRow
+              label="Operatories"
+              value={clinicProfile.operatories_count?.toString() ?? ''}
+            />
+            <ReviewRow
+              label="Team size"
+              value={getTeamSizeRangeLabel(clinicProfile.team_size_range) ?? ''}
+            />
+            <ReviewRow label="Software" value={clinicProfile.software_used.join(', ')} />
+          </>
+        )}
         <PracticeDoctorReviewSection
           doctors={clinicProfile.practice_doctors ?? []}
-          locations={locations
-            .filter((location) => location.is_active)
-            .map((location) => ({ id: location.id, name: location.name }))}
+          locations={activeLocations.map((location) => ({ id: location.id, name: location.name }))}
         />
         <ReviewRow label="Description" value={clinicProfile.description ?? ''} />
       </SurfaceCard>

@@ -59,9 +59,12 @@ export {
   getClinicProfile,
   getClinicProfileByOrganizationId,
   getMissingClinicProfileFields,
+  isClinicLocationRecordComplete,
   isClinicProfileComplete,
   upsertClinicProfile,
   type ClinicProfile,
+  type ClinicProfileCompletenessLocation,
+  type ClinicProfileCompletenessOptions,
   type ClinicProfileUpdate,
 } from './clinicProfile';
 export {

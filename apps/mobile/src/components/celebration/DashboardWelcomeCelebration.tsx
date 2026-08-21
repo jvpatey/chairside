@@ -14,12 +14,14 @@ import { useThemedStyles } from '@/theme';
 type DashboardWelcomeCelebrationProps = {
   visible: boolean;
   role: DashboardWelcomeRole;
+  isGroup?: boolean;
   onDismiss: () => void;
 };
 
 export function DashboardWelcomeCelebration({
   visible,
   role,
+  isGroup,
   onDismiss,
 }: DashboardWelcomeCelebrationProps) {
   const insets = useSafeAreaInsets();
@@ -69,7 +71,11 @@ export function DashboardWelcomeCelebration({
             <Pressable onPress={(event) => event.stopPropagation()}>
               <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
                 <View style={styles.handle} />
-                <DashboardWelcomeCelebrationContent role={role} onDismiss={onDismiss} />
+                <DashboardWelcomeCelebrationContent
+                  role={role}
+                  isGroup={isGroup}
+                  onDismiss={onDismiss}
+                />
               </LiquidGlassSurface>
             </Pressable>
           </Animated.View>

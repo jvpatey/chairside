@@ -4,7 +4,10 @@ import { SetupWebShell } from '@/components/web/setup/SetupWebShell.web';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 
 export default function ClinicSetupLayout() {
-  const { isEditMode } = useSetupEditMode({ role: 'clinic' });
+  const { returnTo } = useSetupEditMode({ role: 'clinic' });
+  // Only profile-edit (returnTo) should drop the wizard shell. Completing
+  // setup stamps setup_completed_at and must not remount this layout.
+  const isEditMode = Boolean(returnTo);
 
   const stack = (
     <Stack screenOptions={{ headerShown: false }}>

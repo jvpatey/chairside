@@ -120,7 +120,7 @@ export default function ClinicFillInsScreen() {
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
-  const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
   const { refreshPending } = useFillInPending();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
@@ -404,7 +404,7 @@ export default function ClinicFillInsScreen() {
       return;
     }
 
-    const missing = getMissingClinicProfileFields(clinicProfile);
+    const missing = getMissingClinicProfileFields(clinicProfile, { locations });
     Alert.alert(
       'Complete your clinic profile',
       missing.length > 0

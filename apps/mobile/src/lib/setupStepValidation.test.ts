@@ -4,7 +4,7 @@ vi.mock('@chairside/api', () => ({
   getWorkerRoleTypes: () => [],
 }));
 
-import { validateWorkerBasicsStep } from './setupStepValidation';
+import { validateWorkerBasicsStep, getClinicSetupStepGuard } from './setupStepValidation';
 
 describe('validateWorkerBasicsStep', () => {
   it('requires both first and last name', () => {
@@ -46,5 +46,24 @@ describe('validateWorkerBasicsStep', () => {
         roleTypes: ['hygienist'],
       }),
     ).toEqual({ ok: true, message: null });
+  });
+});
+
+describe('getClinicSetupStepGuard', () => {
+  it('does not bounce group review to locations based on org profile address', () => {
+    const group = {
+      account_type: 'group' as const,
+      clinic_name: 'Harbour Group',
+      contact_name: 'Dr. Lee',
+      phone: '9025550100',
+      address_line1: '',
+      city: '',
+      postal_code: '',
+      software_used: [],
+    };
+
+    expect(getClinicSetupStepGuard(group as never, 'review')).toBeNull();
+    expect(getClinicSetupStepGuard(group as never, 'about')).toBeNull();
+    expect(getClinicSetupStepGuard(group as never, 'practice')).toEqual('/(clinic-setup)/about');
   });
 });

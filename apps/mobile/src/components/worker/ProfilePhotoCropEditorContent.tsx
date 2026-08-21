@@ -117,14 +117,16 @@ export function ProfilePhotoCropEditorContent({
 
   const handleWebMouseUp = useCallback(() => {
     webDragRef.current = null;
-    window.removeEventListener('mousemove', handleWebMouseMove);
-    window.removeEventListener('mouseup', handleWebMouseUp);
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.removeEventListener('mousemove', handleWebMouseMove);
+      window.removeEventListener('mouseup', handleWebMouseUp);
+    }
     updateTransform(transformRef.current);
   }, [handleWebMouseMove, updateTransform]);
 
   const handleWebMouseDown = useCallback(
     (event: { preventDefault?: () => void; nativeEvent: MouseEvent }) => {
-      if (isSaving) return;
+      if (isSaving || Platform.OS !== 'web') return;
 
       event.preventDefault?.();
       event.nativeEvent.preventDefault?.();
@@ -140,6 +142,8 @@ export function ProfilePhotoCropEditorContent({
   );
 
   useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
     return () => {
       window.removeEventListener('mousemove', handleWebMouseMove);
       window.removeEventListener('mouseup', handleWebMouseUp);

@@ -191,7 +191,9 @@ export default function ClinicPostingsScreen() {
       return;
     }
 
-    const missing = getMissingClinicProfileFields(clinicProfile);
+    const missing = getMissingClinicProfileFields(clinicProfile, {
+      locations: accessibleLocations,
+    });
     Alert.alert(
       'Complete your clinic profile',
       missing.length > 0

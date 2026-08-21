@@ -33,7 +33,7 @@ function renderGateDecision(
 
 export function ClinicSetupGate({ children }: { children: ReactNode }) {
   const { session, isAuthReady, isProfileReady, profile } = useAuth();
-  const { clinicProfile, isClinicProfileReady, membership, isOwner } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, membership, isOwner, locations } = useClinicProfile();
   const hasShownAppRef = useRef(false);
 
   const decision = getClinicSetupGateDecision({
@@ -46,7 +46,8 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
     membership,
     isOwner,
     isClinicGroupsEnabled: isClinicGroupsEnabled(),
-    isClinicSetupComplete,
+    isClinicSetupComplete: (nextProfile) =>
+      isClinicSetupComplete(nextProfile, { locations }),
   });
 
   if (decision.type === 'children') {
