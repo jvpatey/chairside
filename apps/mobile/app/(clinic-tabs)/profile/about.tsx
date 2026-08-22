@@ -7,7 +7,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { navigateToClinicProfileHub } from '@/lib/routing';
 
 export default function ClinicProfileAboutScreen() {
-  const { clinicProfile, isClinicProfileReady, isGroup, isOwner } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, isGroup, isOwner, locations } = useClinicProfile();
 
   if (!isClinicProfileReady) return null;
   if (isGroup && !isOwner) {
@@ -21,7 +21,7 @@ export default function ClinicProfileAboutScreen() {
       actionLabel="Edit"
       onActionPress={() => router.push(getSetupEditRoute('/(clinic-setup)/about', 'clinic-about'))}
       onBack={() => navigateToClinicProfileHub(router)}>
-      <ClinicAboutView profile={clinicProfile} />
+      <ClinicAboutView profile={clinicProfile} isGroup={isGroup} locations={locations} />
     </ProfileDetailScreen>
   );
 }

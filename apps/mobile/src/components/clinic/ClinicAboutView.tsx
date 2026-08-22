@@ -1,8 +1,9 @@
-import type { ClinicProfile } from '@chairside/api';
+import type { ClinicLocation, ClinicProfile } from '@chairside/api';
 import { SPECIALTY_OPTIONS, getProvinceLabel } from '@chairside/config';
-import { Alert, Linking, Pressable, Text } from 'react-native';
+import { Alert, Linking, Pressable, Text, View } from 'react-native';
 
 import { DetailProse } from '@/components/clinic/DetailCard';
+import { PracticeDoctorFieldValue } from '@/components/clinic/PracticeDoctorList';
 import { ClinicIdentityHeroCard } from '@/components/clinic/ClinicProfileHero';
 import {
   FieldBlock,
@@ -19,6 +20,8 @@ import { useThemedStyles } from '@/theme';
 
 type ClinicAboutViewProps = {
   profile: ClinicProfile | null;
+  isGroup?: boolean;
+  locations?: ClinicLocation[];
 };
 
 function normalizeWebsiteUrl(url: string): string {
@@ -72,10 +75,11 @@ function WebsiteField({ url }: { url: string | null | undefined }) {
   );
 }
 
-export function ClinicAboutView({ profile }: ClinicAboutViewProps) {
+export function ClinicAboutView({ profile, isGroup = false, locations = [] }: ClinicAboutViewProps) {
   const { logoUri } = useClinicLogo();
-  const styles = useThemedStyles(({ colors, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     hint: profileSettingsHintStyle({ typography, colors }),
+    doctorsBlock: { gap: spacing.sm },
   }));
 
   if (!profile) {
@@ -90,20 +94,35 @@ export function ClinicAboutView({ profile }: ClinicAboutViewProps) {
 
   const clinicName = profile.clinic_name?.trim() || 'Your practice';
   const description = profile.description?.trim() || null;
-  const specialtyLabel =
-    SPECIALTY_OPTIONS.find((item) => item.value === profile.specialty)?.label ?? null;
-  const locationLabel = [profile.city, profile.province ? getProvinceLabel(profile.province) : null]
-    .filter(Boolean)
-    .join(', ');
+  const practiceDoctors = profile.practice_doctors ?? [];
+  const doctorLocations = locations
+    .filter((location) => location.is_active)
+    .map((location) => ({ id: location.id, name: location.name }));
+  const activeLocationCount = locations.filter((location) => location.is_active).length;
+
+  const specialtyLabel = isGroup
+    ? null
+    : SPECIALTY_OPTIONS.find((item) => item.value === profile.specialty)?.label ?? null;
+  const locationLabel = isGroup
+    ? activeLocationCount > 0
+      ? `${activeLocationCount} location${activeLocationCount === 1 ? '' : 's'}`
+      : null
+    : [profile.city, profile.province ? getProvinceLabel(profile.province) : null]
+        .filter(Boolean)
+        .join(', ');
 
   return (
     <ProfileDetailStack>
       <ClinicIdentityHeroCard
         clinicName={clinicName}
-        logoUri={logoUri}
+        logoUri={isGroup ? null : logoUri}
         specialtyLabel={specialtyLabel}
         locationLabel={locationLabel || null}
-        emptyMetaFallback="Add a description and website so candidates can learn about your team."
+        emptyMetaFallback={
+          isGroup
+            ? 'Add a group description and website so candidates can learn about your team.'
+            : 'Add a description and website so candidates can learn about your team.'
+        }
       />
 
       <CardInfoPanel
@@ -118,7 +137,7 @@ export function ClinicAboutView({ profile }: ClinicAboutViewProps) {
 
       <SectionPanel icon="document-text-outline" title="Practice description">
         <Text style={styles.hint}>
-          The full practice story candidates can read on your public clinic profile.
+          The full story candidates can read on your public clinic profile.
         </Text>
         <FieldBlock label="Description">
           {description ? <DetailProse text={description} /> : <FieldValue value={null} />}
@@ -133,6 +152,20 @@ export function ClinicAboutView({ profile }: ClinicAboutViewProps) {
           <WebsiteField url={profile.website} />
         </FieldBlock>
       </SectionPanel>
+
+      {isGroup && practiceDoctors.length > 0 ? (
+        <SectionPanel icon="medkit-outline" title="Practice doctors">
+          <Text style={styles.hint}>Doctors assigned to your clinic locations.</Text>
+          <FieldBlock label="Doctors">
+            <View style={styles.doctorsBlock}>
+              <PracticeDoctorFieldValue
+                doctors={practiceDoctors}
+                locations={doctorLocations}
+              />
+            </View>
+          </FieldBlock>
+        </SectionPanel>
+      ) : null}
     </ProfileDetailStack>
   );
 }

@@ -49,11 +49,8 @@ function hasCompleteGroupLocation(
   return activeLocations(locations).some(isClinicLocationRecordComplete);
 }
 
-function shouldUseGroupLocations(
-  profile: ClinicProfileCompletenessProfile,
-  options?: ClinicProfileCompletenessOptions,
-): boolean {
-  return profile.account_type === 'group' && activeLocations(options?.locations).length > 0;
+function isGroupAccount(profile: ClinicProfileCompletenessProfile): boolean {
+  return profile.account_type === 'group';
 }
 
 export function isClinicProfileComplete(
@@ -66,7 +63,7 @@ export function isClinicProfileComplete(
   const hasName = Boolean(profile.clinic_name?.trim());
   if (!hasName || !hasContact) return false;
 
-  if (shouldUseGroupLocations(profile, options)) {
+  if (isGroupAccount(profile)) {
     return hasCompleteGroupLocation(options?.locations);
   }
 
@@ -97,8 +94,11 @@ export function getMissingClinicProfileFields(
   if (!profile.clinic_name?.trim()) missing.push('Clinic name');
   if (!hasClinicContact(profile)) missing.push('Phone or contact name');
 
-  if (shouldUseGroupLocations(profile, options)) {
-    if (!hasCompleteGroupLocation(options?.locations)) {
+  if (isGroupAccount(profile)) {
+    const active = activeLocations(options?.locations);
+    if (active.length === 0) {
+      missing.push('A clinic location');
+    } else if (!hasCompleteGroupLocation(options?.locations)) {
       missing.push('A location with address and software');
     }
     return missing;

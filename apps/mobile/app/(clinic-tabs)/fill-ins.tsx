@@ -1,5 +1,4 @@
 import {
-  getMissingClinicProfileFields,
   getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
   getUnreadConversationMap,
@@ -14,7 +13,6 @@ import type { Href } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   LayoutAnimation,
   Platform,
   StyleSheet,
@@ -57,7 +55,7 @@ import {
   filterShiftPostsForFillInsListMode,
   type FillInsListMode,
 } from '@/lib/fillInFilters';
-import { FILL_IN_ICON } from '@/lib/fillInIcons';
+import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import {
   DEFAULT_CLINIC_FILL_IN_SORT,
@@ -75,7 +73,6 @@ import {
   matchesShiftPostSearch,
 } from '@/lib/clinicListSearch';
 import {
-  CLINIC_SETUP_BASICS,
   getClinicDiscoverRoute,
   getFindAvailableWorkersRoute,
   getPostShiftRoute,
@@ -120,7 +117,7 @@ export default function ClinicFillInsScreen() {
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
-  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations, isGroup } = useClinicProfile();
   const { refreshPending } = useFillInPending();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
@@ -399,22 +396,14 @@ export default function ClinicFillInsScreen() {
   const { refreshing, onRefresh } = usePullToRefresh(load);
 
   const guardPosting = (target: Href) => {
-    if (isProfileComplete) {
-      router.push(target);
-      return;
-    }
-
-    const missing = getMissingClinicProfileFields(clinicProfile, { locations });
-    Alert.alert(
-      'Complete your clinic profile',
-      missing.length > 0
-        ? `Add the following before posting: ${missing.join(', ')}`
-        : 'Finish your clinic profile to start posting.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue setup', onPress: () => router.push(CLINIC_SETUP_BASICS) },
-      ],
-    );
+    guardClinicPosting({
+      isProfileComplete,
+      clinicProfile,
+      locations,
+      isGroup,
+      target,
+      onAllowed: (href) => router.push(href),
+    });
   };
 
   const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);

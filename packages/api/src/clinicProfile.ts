@@ -1,7 +1,7 @@
 import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
 import { normalizePracticeDoctors } from '@chairside/config';
 import { getSupabaseClient } from './client';
-import { listClinicLocations, syncPrimaryLocationToClinicProfile } from './clinicOrganization';
+import { listClinicLocations, syncPrimaryLocationToClinicProfile, updateClinicLocation } from './clinicOrganization';
 import { throwWithMessage } from './errors';
 import type { Database } from './types';
 import {
@@ -150,7 +150,14 @@ export async function completeClinicSetup(userId: string): Promise<ClinicProfile
   if (profile?.account_type === 'group') {
     const primary = locations.find((location) => location.is_primary) ?? locations[0];
     if (primary) {
-      await syncPrimaryLocationToClinicProfile(primary);
+      if (!primary.is_primary) {
+        await updateClinicLocation(primary.id, { is_primary: true });
+      }
+      await syncPrimaryLocationToClinicProfile({
+        ...primary,
+        is_primary: true,
+        is_active: true,
+      });
       profile = await getClinicProfile(userId);
     }
   }

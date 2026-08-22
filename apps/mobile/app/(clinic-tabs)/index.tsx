@@ -1,7 +1,6 @@
 import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
-  getMissingClinicProfileFields,
   getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
   listClinicApplications,
@@ -21,7 +20,7 @@ import {
 import type { Href } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { View } from 'react-native';
 
 import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
 import {
@@ -64,6 +63,7 @@ import {
   summarizeJobApplicantPreviews,
 } from '@/lib/dashboardAttention';
 import { getClinicDashboardHeroNaming } from '@/lib/clinicDashboardHeroNaming';
+import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
 import { sortDashboardApplications } from '@/lib/applicationPipeline';
@@ -86,7 +86,6 @@ import {
   CLINIC_POST_JOB,
   CLINIC_PROFILE,
   CLINIC_PROFILE_TEAM,
-  CLINIC_SETUP_BASICS,
   getClinicApplicationRoute,
   getClinicMessagesRoute,
   getClinicRoleApplicationsRoute,
@@ -105,7 +104,7 @@ export default function ClinicDashboardScreen() {
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount, isApplicationHighlighted } =
     useApplicationTabBadge();
-  const { clinicProfile, isProfileComplete, organization } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations, organization } = useClinicProfile();
   const {
     clinicId,
     scopedLocationIds,
@@ -293,24 +292,14 @@ export default function ClinicDashboardScreen() {
   }, [overview]);
 
   const guardPosting = (target: Href) => {
-    if (isProfileComplete) {
-      router.push(target);
-      return;
-    }
-
-    const missing = getMissingClinicProfileFields(clinicProfile, {
-      locations: accessibleLocations,
+    guardClinicPosting({
+      isProfileComplete,
+      clinicProfile,
+      locations,
+      isGroup,
+      target,
+      onAllowed: (href) => router.push(href),
     });
-    Alert.alert(
-      'Complete your clinic profile',
-      missing.length > 0
-        ? `Add the following before posting: ${missing.join(', ')}`
-        : 'Finish your clinic profile to start posting.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue setup', onPress: () => router.push(CLINIC_SETUP_BASICS) },
-      ],
-    );
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;

@@ -56,6 +56,7 @@ describe('isClinicProfileComplete', () => {
     });
 
     expect(isClinicProfileComplete(group)).toBe(false);
+    expect(getMissingClinicProfileFields(group)).toContain('A clinic location');
     expect(
       isClinicProfileComplete(group, {
         locations: [buildLocation()],
@@ -66,5 +67,26 @@ describe('isClinicProfileComplete', () => {
         locations: [buildLocation({ software_used: [] })],
       }),
     ).toContain('A location with address and software');
+  });
+
+  it('never requires org address or software for groups', () => {
+    const group = buildProfile({
+      account_type: 'group',
+      address_line1: '',
+      city: '',
+      postal_code: '',
+      software_used: [],
+    });
+
+    expect(
+      getMissingClinicProfileFields(group, {
+        locations: [buildLocation()],
+      }),
+    ).not.toContain('Street address');
+    expect(
+      getMissingClinicProfileFields(group, {
+        locations: [buildLocation()],
+      }),
+    ).not.toContain('Software used');
   });
 });

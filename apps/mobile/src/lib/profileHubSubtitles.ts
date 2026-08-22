@@ -1,6 +1,18 @@
-import type { ClinicProfile, UserRole, WorkerProfile } from '@chairside/api';
-import { getWorkerRoleTypes, isClinicProfileComplete, isWorkerProfileComplete } from '@chairside/api';
+import type {
+  ClinicProfile,
+  ClinicProfileCompletenessLocation,
+  UserRole,
+  WorkerProfile,
+} from '@chairside/api';
+import {
+  getWorkerRoleTypes,
+  isClinicLocationRecordComplete,
+  isClinicProfileComplete,
+  isWorkerProfileComplete,
+} from '@chairside/api';
 import { getProvinceLabel, formatRoleTypesLabel, getSpecialtyLabel } from '@chairside/config';
+
+import { formatPhoneNumber } from '@/lib/phone';
 
 export function getAccountTypeLabel(role: UserRole): string {
   return role === 'worker' ? 'Find work' : 'Clinic';
@@ -91,9 +103,51 @@ export function getClinicPracticeSubtitle(profile: ClinicProfile | null): string
   return specialty ?? location ?? 'Complete';
 }
 
-export function getClinicAboutSubtitle(profile: ClinicProfile | null): string {
+export function getClinicGroupDetailsSubtitle(profile: ClinicProfile | null): string {
+  const name = profile?.clinic_name?.trim();
+  const phone = profile?.phone?.trim();
+  if (name && phone) return `${name} · ${formatPhoneNumber(phone)}`;
+  if (name) return name;
+  if (phone) return formatPhoneNumber(phone);
+  return 'Add group name and phone';
+}
+
+export function getClinicLocationsSubtitle(input: {
+  locations: Array<ClinicProfileCompletenessLocation & { name?: string | null }>;
+  isOwner: boolean;
+  activeCount?: number;
+}): string {
+  const active = input.locations.filter((location) => location.is_active !== false);
+  const count = input.activeCount ?? active.length;
+
+  if (count === 0) {
+    return input.isOwner ? 'Add clinic locations' : 'Clinics you manage';
+  }
+
+  const incomplete = active.find((location) => !isClinicLocationRecordComplete(location));
+  if (incomplete) {
+    const label = incomplete.name?.trim() || 'a location';
+    if (!incomplete.software_used?.length) return `Add software to ${label}`;
+    return `Finish address for ${label}`;
+  }
+
+  return `${count} location${count === 1 ? '' : 's'}`;
+}
+
+export function getClinicAboutSubtitle(
+  profile: ClinicProfile | null,
+  options?: { isGroup?: boolean; doctorCount?: number },
+): string {
   const hasDescription = Boolean(profile?.description?.trim());
   const hasWebsite = Boolean(profile?.website?.trim());
+  const doctorCount = options?.doctorCount ?? profile?.practice_doctors?.length ?? 0;
+
+  if (options?.isGroup && doctorCount > 0) {
+    if (hasDescription && hasWebsite) {
+      return `Description, website, and ${doctorCount} doctor${doctorCount === 1 ? '' : 's'}`;
+    }
+    return `${doctorCount} doctor${doctorCount === 1 ? '' : 's'} added`;
+  }
 
   if (hasDescription && hasWebsite) return 'Description and website added';
   if (hasDescription) return 'Description added';

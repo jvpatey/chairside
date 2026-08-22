@@ -1,5 +1,4 @@
 import {
-  getMissingClinicProfileFields,
   listClinicApplications,
   listJobPosts,
   getJobPostApplicationCountsMap,
@@ -12,7 +11,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
-  CLINIC_SETUP_BASICS,
   getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
   getClinicApplicationRoute,
@@ -20,7 +18,7 @@ import {
   getRoleHistoryRoute,
 } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ClinicListingViewToggle } from '@/components/clinic/ClinicListingViewToggle';
@@ -50,7 +48,7 @@ import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getClinicRoleTableColumns } from '@/lib/clinicPostingListDisplay';
+import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import {
   countHistoryJobs,
   DEFAULT_CLINIC_ROLE_SORT,
@@ -79,7 +77,8 @@ export default function ClinicPostingsScreen() {
   const tableMode = isWide && supportsListView;
   const { user } = useAuth();
   const { clinicId, scopedLocationIds } = useClinicActingContext();
-  const { clinicProfile, isProfileComplete, accessibleLocations } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations, isGroup, accessibleLocations } =
+    useClinicProfile();
   const roleTableColumns = useMemo(
     () => getClinicRoleTableColumns(accessibleLocations.length > 1),
     [accessibleLocations.length],
@@ -186,24 +185,14 @@ export default function ClinicPostingsScreen() {
   }));
 
   const guardPosting = (target: Href) => {
-    if (isProfileComplete) {
-      router.push(target);
-      return;
-    }
-
-    const missing = getMissingClinicProfileFields(clinicProfile, {
-      locations: accessibleLocations,
+    guardClinicPosting({
+      isProfileComplete,
+      clinicProfile,
+      locations,
+      isGroup,
+      target,
+      onAllowed: (href) => router.push(href),
     });
-    Alert.alert(
-      'Complete your clinic profile',
-      missing.length > 0
-        ? `Add the following before posting: ${missing.join(', ')}`
-        : 'Finish your clinic profile to start posting.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue setup', onPress: () => router.push(CLINIC_SETUP_BASICS) },
-      ],
-    );
   };
 
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);

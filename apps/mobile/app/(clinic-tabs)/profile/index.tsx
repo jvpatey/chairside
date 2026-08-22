@@ -19,6 +19,8 @@ import {
   getAccountSubtitle,
   getClinicAboutSubtitle,
   getClinicBillingSubtitle,
+  getClinicGroupDetailsSubtitle,
+  getClinicLocationsSubtitle,
   getClinicMemberProfileSubtitle,
   getClinicMessagingSubtitle,
   getClinicNotificationsSubtitle,
@@ -30,6 +32,7 @@ import {
   CLINIC_PROFILE_ABOUT,
   CLINIC_PROFILE_ACCOUNT,
   CLINIC_PROFILE_BILLING,
+  CLINIC_PROFILE_GROUP,
   CLINIC_PROFILE_LOCATIONS,
   CLINIC_PROFILE_MEMBER,
   CLINIC_PROFILE_MESSAGING,
@@ -130,11 +133,24 @@ export default function ClinicAccountProfileScreen() {
               onPress={() => router.push(CLINIC_PROFILE_PRACTICE)}
             />
           ) : null}
+          {groupsEnabled && isGroup && isOwner ? (
+            <ProfileSettingsRow
+              icon="business-outline"
+              title="Group details"
+              subtitle={getClinicGroupDetailsSubtitle(clinicProfile)}
+              iconColor={colors.primary}
+              iconBackgroundColor={colors.primarySubtle}
+              onPress={() => router.push(CLINIC_PROFILE_GROUP)}
+            />
+          ) : null}
           {!isGroup || isOwner ? (
             <ProfileSettingsRow
               icon="document-text-outline"
               title="About"
-              subtitle={getClinicAboutSubtitle(clinicProfile)}
+              subtitle={getClinicAboutSubtitle(clinicProfile, {
+                isGroup,
+                doctorCount: clinicProfile?.practice_doctors?.length ?? 0,
+              })}
               iconColor={colors.secondary}
               iconBackgroundColor={colors.secondarySubtle}
               onPress={() => router.push(CLINIC_PROFILE_ABOUT)}
@@ -144,15 +160,11 @@ export default function ClinicAccountProfileScreen() {
             <ProfileSettingsRow
               icon="business-outline"
               title="Locations"
-              subtitle={
-                isOwner
-                  ? locations.filter((location) => location.is_active).length > 0
-                    ? `${locations.filter((location) => location.is_active).length} location${
-                        locations.filter((location) => location.is_active).length === 1 ? '' : 's'
-                      }`
-                    : 'Add clinic locations'
-                  : 'Clinics you manage'
-              }
+              subtitle={getClinicLocationsSubtitle({
+                locations,
+                isOwner,
+                activeCount: locations.filter((location) => location.is_active).length,
+              })}
               iconColor={colors.primary}
               iconBackgroundColor={colors.primarySubtle}
               onPress={() => router.push(CLINIC_PROFILE_LOCATIONS)}

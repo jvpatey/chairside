@@ -5,7 +5,7 @@ import {
   updateClinicLocation,
   type ClinicLocation,
 } from '@chairside/api';
-import { SPECIALTY_OPTIONS, getProvinceLabel } from '@chairside/config';
+import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel } from '@chairside/config';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
@@ -25,6 +25,7 @@ import {
   type PendingLocationPhoto,
   uploadPendingLocationPhoto,
 } from '@/components/clinic/ClinicLocationPhotoField';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import {
@@ -32,12 +33,14 @@ import {
   FieldDivider,
   FieldValue,
   ProfileDetailStack,
+  ProfileTagRow,
   SectionPanel,
 } from '@/components/profile/ProfileDetailBlocks';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { formatPhoneNumber } from '@/lib/phone';
 import { navigateToClinicProfileHub } from '@/lib/routing';
@@ -85,6 +88,108 @@ function formatLocationAddress(location: ClinicLocation): string {
   ]
     .filter(Boolean)
     .join(', ');
+}
+
+function LocationSettingsCard({
+  location,
+  isOwner,
+  canDelete,
+  onEdit,
+  onDelete,
+}: {
+  location: ClinicLocation;
+  isOwner: boolean;
+  canDelete: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { colors } = useTheme();
+  const logoUri = useClinicLogoUri(location.logo_storage_path);
+  const styles = useThemedStyles(({ spacing }) => ({
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    headerText: { flex: 1 },
+    actions: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      alignItems: 'center' as const,
+    },
+    danger: {
+      paddingVertical: spacing.xs + 2,
+      paddingHorizontal: spacing.sm,
+      minHeight: 36,
+      justifyContent: 'center' as const,
+    },
+    dangerLabel: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.destructive,
+    },
+  }));
+  const softwareUsed = location.software_used ?? [];
+  const teamSizeLabel = getTeamSizeRangeLabel(location.team_size_range ?? null);
+  const photoLabel = location.logo_storage_path ? 'Photo added' : null;
+
+  return (
+    <SectionPanel icon="business-outline" title={location.name}>
+      <View style={styles.header}>
+        <ClinicLogoAvatar clinicName={location.name} logoUri={logoUri} size={44} />
+        <View style={styles.headerText}>
+          <FieldBlock label="Photo">
+            <FieldValue value={photoLabel} />
+          </FieldBlock>
+        </View>
+      </View>
+      <FieldBlock label="Address">
+        <FieldValue value={formatLocationAddress(location) || null} />
+      </FieldBlock>
+      <FieldDivider />
+      <FieldBlock label="Phone">
+        <FieldValue
+          value={location.phone ? formatPhoneNumber(location.phone) : null}
+        />
+      </FieldBlock>
+      <FieldDivider />
+      <FieldBlock label="Specialty">
+        <FieldValue value={location.specialty ? specialtyLabel(location.specialty) : null} />
+      </FieldBlock>
+      <FieldDivider />
+      <FieldBlock label="Software">
+        <ProfileTagRow
+          tags={softwareUsed}
+          emptyText="Add the software systems this location uses."
+        />
+      </FieldBlock>
+      <FieldDivider />
+      <FieldBlock label="Operatories">
+        <FieldValue value={location.operatories_count?.toString() ?? null} />
+      </FieldBlock>
+      <FieldDivider />
+      <FieldBlock label="Team size">
+        <FieldValue value={teamSizeLabel} />
+      </FieldBlock>
+      {isOwner ? (
+        <View style={styles.actions}>
+          <EditPillButton label="Edit" onPress={onEdit} />
+          {canDelete ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${location.name}`}
+              style={styles.danger}
+              onPress={onDelete}>
+              <Text style={styles.dangerLabel}>Delete</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+    </SectionPanel>
+  );
 }
 
 async function confirmDeleteLocation(locationName: string): Promise<boolean> {
@@ -418,36 +523,15 @@ export default function ClinicLocationsSettingsScreen() {
           />
         ) : (
           <ProfileDetailStack>
-            {visibleLocations.map((location, index) => (
-              <SectionPanel
+            {visibleLocations.map((location) => (
+              <LocationSettingsCard
                 key={location.id}
-                icon="business-outline"
-                iconAccent={index % 2 === 0 ? 'primary' : 'secondary'}
-                title={location.name}>
-                <FieldBlock label="Address">
-                  <FieldValue value={formatLocationAddress(location) || null} />
-                </FieldBlock>
-                <FieldDivider />
-                <FieldBlock label="Specialty">
-                  <FieldValue
-                    value={location.specialty ? specialtyLabel(location.specialty) : null}
-                  />
-                </FieldBlock>
-                {isOwner ? (
-                  <View style={styles.actions}>
-                    <EditPillButton label="Edit" onPress={() => startEdit(location)} />
-                    {activeLocations.length > 1 ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Delete ${location.name}`}
-                        style={styles.danger}
-                        onPress={() => void handleDelete(location)}>
-                        <Text style={styles.dangerLabel}>Delete</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                ) : null}
-              </SectionPanel>
+                location={location}
+                isOwner={isOwner}
+                canDelete={activeLocations.length > 1}
+                onEdit={() => startEdit(location)}
+                onDelete={() => void handleDelete(location)}
+              />
             ))}
           </ProfileDetailStack>
         )}
