@@ -22,6 +22,21 @@ type ScheduleEventCardProps = {
   onPress: () => void;
 };
 
+function getOpenFillInPresentation(event: CalendarEvent) {
+  const timeLabel = formatCalendarEventTime(event);
+  const location = event.location?.trim() || null;
+  const roleLabel = event.roleType ? getRoleTypeLabel(event.roleType) : event.title;
+
+  return {
+    eyebrow: calendarEventKindLabel(event.kind),
+    title: roleLabel,
+    meta: event.subtitle,
+    detail: [timeLabel, location && location !== event.subtitle ? location : null]
+      .filter(Boolean)
+      .join(' · ') || timeLabel,
+  };
+}
+
 function getConfirmedFillInPresentation(event: CalendarEvent) {
   const date = parseISODate(event.dateKey);
   const dateLabel = date ? formatShiftDateLabel(date) : null;
@@ -44,11 +59,21 @@ function EventAvatar({ event }: { event: CalendarEvent }) {
   const iconName =
     event.kind === 'interview'
       ? 'videocam-outline'
-      : event.kind === 'confirmed_fill_in'
+      : event.kind === 'confirmed_fill_in' || event.kind === 'open_fill_in'
         ? FILL_IN_ICON.outline
         : 'calendar-outline';
-  const backgroundColor = accent === 'primary' ? colors.primarySubtle : colors.secondarySubtle;
-  const iconColor = accent === 'primary' ? colors.primary : colors.secondary;
+  const backgroundColor =
+    accent === 'primary'
+      ? colors.primarySubtle
+      : accent === 'warning'
+        ? `${colors.warning}18`
+        : colors.secondarySubtle;
+  const iconColor =
+    accent === 'primary'
+      ? colors.primary
+      : accent === 'warning'
+        ? colors.warning
+        : colors.secondary;
 
   const styles = useThemedStyles(({ radii }) => ({
     avatar: {
@@ -87,6 +112,23 @@ export function ScheduleEventCard({ event, onPress }: ScheduleEventCardProps) {
     );
   }
 
+  if (event.kind === 'open_fill_in') {
+    const presentation = getOpenFillInPresentation(event);
+
+    return (
+      <SurfaceCard padding="none" onPress={onPress}>
+        <BrowseListRow
+          avatar={<EventAvatar event={event} />}
+          eyebrow={presentation.eyebrow}
+          title={presentation.title}
+          meta={presentation.meta}
+          detail={presentation.detail}
+          onPress={onPress}
+        />
+      </SurfaceCard>
+    );
+  }
+
   const timeLabel = formatCalendarEventTime(event);
   const kindLabel = calendarEventKindLabel(event.kind);
   const location = event.location?.trim();
@@ -100,7 +142,9 @@ export function ScheduleEventCard({ event, onPress }: ScheduleEventCardProps) {
         meta={event.subtitle}
         detail={[timeLabel, location].filter(Boolean).join(' · ') || null}
         textFooter={
-          <ClinicApplicationStatusBadge status={event.status} postType={event.postType} />
+          event.status ? (
+            <ClinicApplicationStatusBadge status={event.status} postType={event.postType} />
+          ) : null
         }
         onPress={onPress}
       />

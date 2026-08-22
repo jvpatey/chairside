@@ -298,6 +298,7 @@ export default function WorkerDashboardScreen() {
   }, [calendarEvents]);
 
   const handleCalendarEventPress = useCallback((event: CalendarEvent) => {
+    if (!event.applicationId) return;
     router.push(getWorkerApplicationRoute(event.applicationId, 'dashboard-applications'));
   }, []);
 

@@ -1,8 +1,9 @@
-import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL } from '@chairside/config';
+import { DELETED_CANDIDATE_LABEL, DELETED_CLINIC_LABEL, getRoleTypeLabel } from '@chairside/config';
 
 import type { ApplicationStatus } from './applications';
+import type { ShiftPost } from './posts';
 
-export type CalendarEventKind = 'confirmed_fill_in' | 'interview';
+export type CalendarEventKind = 'confirmed_fill_in' | 'interview' | 'open_fill_in';
 
 export type CalendarEvent = {
   id: string;
@@ -11,8 +12,8 @@ export type CalendarEvent = {
   endsAt: string | null;
   title: string;
   subtitle: string;
-  status: ApplicationStatus;
-  applicationId: string;
+  status: ApplicationStatus | null;
+  applicationId: string | null;
   jobPostId: string | null;
   shiftPostId: string | null;
   postType: 'job' | 'shift';
@@ -255,6 +256,55 @@ export function clinicApplicationToCalendarEvents(
   }
 
   return events;
+}
+
+export type OpenShiftLocation = {
+  name: string;
+  city: string | null;
+  province: string;
+};
+
+function formatShiftLocationLabel(location?: OpenShiftLocation | null): string | null {
+  if (!location) return null;
+  const place = [location.city, location.province].filter(Boolean).join(', ');
+  return [location.name, place].filter(Boolean).join(' · ') || null;
+}
+
+export function openShiftPostToCalendarEvent(
+  shift: Pick<
+    ShiftPost,
+    'id' | 'role_type' | 'shift_date' | 'start_time' | 'end_time' | 'location_id'
+  >,
+  location?: OpenShiftLocation | null,
+  range?: CalendarEventRange,
+): CalendarEvent | null {
+  if (!isWithinRange(shift.shift_date, range)) return null;
+
+  const locationLabel = formatShiftLocationLabel(location);
+  const roleLabel = getRoleTypeLabel(shift.role_type);
+  const startsAt = combineDateAndTime(shift.shift_date, shift.start_time);
+  const endsAt = shift.end_time ? combineDateAndTime(shift.shift_date, shift.end_time) : null;
+
+  return {
+    id: `open-fill-in-${shift.id}`,
+    kind: 'open_fill_in',
+    startsAt,
+    endsAt,
+    title: roleLabel,
+    subtitle: locationLabel ?? 'Needs coverage',
+    status: null,
+    applicationId: null,
+    jobPostId: null,
+    shiftPostId: shift.id,
+    postType: 'shift',
+    dateKey: shift.shift_date,
+    location: locationLabel,
+    counterpartName: locationLabel ?? 'Open fill-in',
+    roleType: shift.role_type,
+    shiftStartTime: shift.start_time,
+    shiftEndTime: shift.end_time,
+    durationMinutes: null,
+  };
 }
 
 export function sortCalendarEvents(events: CalendarEvent[]): CalendarEvent[] {

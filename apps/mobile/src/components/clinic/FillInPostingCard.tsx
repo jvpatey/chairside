@@ -22,6 +22,7 @@ import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
 import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
+import { resolveClinicJobLocationLabel } from '@/lib/clinicPostingListDisplay';
 import { formatPostedDateLabel } from '@/lib/dates';
 import {
   formatShiftPostMeta,
@@ -69,17 +70,10 @@ export function FillInPostingCard({
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment(accent);
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
-  const { clinicProfile, locations } = useClinicProfile();
+  const { clinicProfile, locations, isGroup } = useClinicProfile();
   const logoStoragePath = useResolvedClinicLogoPath(shift.location_id);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const locationRecord = locations.find((item) => item.id === shift.location_id);
-  const location = [
-    locationRecord?.name,
-    locationRecord?.city ?? clinicProfile?.city,
-    locationRecord?.province ?? clinicProfile?.province,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const location = resolveClinicJobLocationLabel(shift, locations, clinicProfile);
   const postedLabel = buildPostedByLabel({
     postedAt: shift.created_at,
     postedByDisplayName: shift.posted_by_display_name,
@@ -167,7 +161,13 @@ export function FillInPostingCard({
       accent={accent}
       style={isFeatured ? featuredTreatment.cardStyle : undefined}
       accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
-      <ShiftPostDetailView shift={shift} variant="embedded" showStatusBadge={false} accent={accent} />
+      <ShiftPostDetailView
+        shift={shift}
+        variant="embedded"
+        showStatusBadge={false}
+        accent={accent}
+        locationLabel={isGroup ? location || null : null}
+      />
       <View style={styles.actions}>
         {applicationCount > 0 ? (
           <OnboardingButton

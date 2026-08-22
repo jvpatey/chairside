@@ -9,7 +9,9 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { resolveClinicJobLocationLabel } from '@/lib/clinicPostingListDisplay';
 import { getClinicShiftApplicantsRoute, getEditShiftRoute, navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -17,6 +19,7 @@ const FILL_IN_ACCENT: GradientAccent = 'secondary';
 
 export default function ShiftDetailScreen() {
   const { user } = useAuth();
+  const { locations, clinicProfile, isGroup } = useClinicProfile();
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: FillInReturnTarget }>();
   const shiftId = typeof id === 'string' ? id : '';
   const resolvedReturnTo = (typeof returnTo === 'string' ? returnTo : 'fill-ins-tab') as FillInReturnTarget;
@@ -93,6 +96,10 @@ export default function ShiftDetailScreen() {
     );
   }
 
+  const locationLabel = isGroup
+    ? resolveClinicJobLocationLabel(shift, locations, clinicProfile)
+    : null;
+
   return (
     <FormScreen
       onBack={handleBack}
@@ -132,7 +139,11 @@ export default function ShiftDetailScreen() {
         </View>
       }>
       <View style={styles.content}>
-        <ShiftPostDetailView shift={shift} accent={FILL_IN_ACCENT} />
+        <ShiftPostDetailView
+          shift={shift}
+          accent={FILL_IN_ACCENT}
+          locationLabel={locationLabel || null}
+        />
       </View>
     </FormScreen>
   );

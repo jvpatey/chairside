@@ -270,6 +270,7 @@ export default function WorkerShiftDetailScreen() {
           shift={shift}
           softwareUsed={shift.clinic.software_used}
           section="details"
+          locationLabel={shift.location ? location : null}
         />
       </View>
     </FormScreen>

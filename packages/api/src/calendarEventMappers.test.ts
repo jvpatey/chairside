@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { CalendarEventRange } from './calendarEventMappers';
 import {
   clinicApplicationToCalendarEvents,
+  openShiftPostToCalendarEvent,
   workerApplicationToCalendarEvents,
 } from './calendarEventMappers';
 
@@ -97,5 +98,25 @@ describe('calendarEventMappers', () => {
 
     expect(events).toHaveLength(1);
     expect(events[0]?.counterpartName).toBe('Jordan');
+  });
+
+  it('maps open live shift posts to calendar events', () => {
+    const event = openShiftPostToCalendarEvent(
+      {
+        id: 'shift-1',
+        role_type: 'dental_hygienist',
+        shift_date: '2026-07-10',
+        start_time: '08:00',
+        end_time: '17:00',
+        location_id: 'loc-1',
+      },
+      { name: 'Downtown', city: 'Halifax', province: 'NS' },
+    );
+
+    expect(event?.kind).toBe('open_fill_in');
+    expect(event?.title).toBe('Dental Hygienist');
+    expect(event?.subtitle).toBe('Downtown · Halifax, NS');
+    expect(event?.applicationId).toBeNull();
+    expect(event?.shiftPostId).toBe('shift-1');
   });
 });

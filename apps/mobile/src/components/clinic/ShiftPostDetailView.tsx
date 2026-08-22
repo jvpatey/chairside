@@ -30,6 +30,8 @@ type ShiftPostDetailViewProps = {
   section?: 'full' | 'hero' | 'details';
   /** Optional badges rendered below the hero row (e.g. urgency). */
   heroAccessory?: ReactNode;
+  /** Site location for group postings (Shift details section). */
+  locationLabel?: string | null;
 };
 
 export function ShiftPostDetailView({
@@ -40,6 +42,7 @@ export function ShiftPostDetailView({
   accent = 'secondary',
   section = 'full',
   heroAccessory,
+  locationLabel,
 }: ShiftPostDetailViewProps) {
   const { colors } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
@@ -105,6 +108,12 @@ export function ShiftPostDetailView({
 
   const detailRows = (
     <CardDetailSection title={variant === 'embedded' ? 'Details' : 'Shift details'}>
+      {locationLabel?.trim() ? (
+        <>
+          <DetailRow label="Location" value={locationLabel} />
+          <RowDivider />
+        </>
+      ) : null}
       <DetailRow label="Date" value={dateLabel} />
       <RowDivider />
       <DetailRow label="Hours" value={hoursLabel} />

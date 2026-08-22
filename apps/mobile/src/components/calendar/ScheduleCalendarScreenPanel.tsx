@@ -14,6 +14,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   getClinicApplicationRoute,
+  getShiftDetailRoute,
   getWorkerApplicationRoute,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
@@ -96,11 +97,18 @@ export function ScheduleCalendarScreenPanel({
   const handleEventPress = useCallback(
     (event: CalendarEvent) => {
       if (role === 'worker') {
-        router.push(getWorkerApplicationRoute(event.applicationId, applicationReturnTo));
+        router.push(getWorkerApplicationRoute(event.applicationId!, applicationReturnTo));
         return;
       }
 
-      router.push(getClinicApplicationRoute(event.applicationId, applicationReturnTo));
+      if (event.kind === 'open_fill_in' && event.shiftPostId) {
+        router.push(getShiftDetailRoute(event.shiftPostId, 'fill-ins-tab'));
+        return;
+      }
+
+      if (event.applicationId) {
+        router.push(getClinicApplicationRoute(event.applicationId, applicationReturnTo));
+      }
     },
     [applicationReturnTo, role],
   );

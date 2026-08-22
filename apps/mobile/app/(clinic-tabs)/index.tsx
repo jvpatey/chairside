@@ -93,6 +93,7 @@ import {
   getConversationMessagesRoute,
   getJobDetailRoute,
   getPostShiftRoute,
+  getShiftDetailRoute,
 } from '@/lib/routing';
 
 export default function ClinicDashboardScreen() {
@@ -395,7 +396,13 @@ export default function ClinicDashboardScreen() {
   }, [calendarEvents]);
 
   const handleCalendarEventPress = useCallback((event: CalendarEvent) => {
-    router.push(getClinicApplicationRoute(event.applicationId, 'dashboard-applications'));
+    if (event.kind === 'open_fill_in' && event.shiftPostId) {
+      router.push(getShiftDetailRoute(event.shiftPostId, 'fill-ins-tab'));
+      return;
+    }
+    if (event.applicationId) {
+      router.push(getClinicApplicationRoute(event.applicationId, 'dashboard-applications'));
+    }
   }, []);
 
   const heroPulse = useMemo(

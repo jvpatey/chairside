@@ -26,7 +26,7 @@ export default function ClinicCalendarScreen() {
   return (
     <Screen
       title="Calendar"
-      subtitle="Interviews and confirmed fill-ins for your clinic."
+      subtitle="Interviews, confirmed fill-ins, and open fill-ins for your clinic."
       refreshing={refreshState?.refreshing}
       onRefresh={refreshState?.onRefresh}
       headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>

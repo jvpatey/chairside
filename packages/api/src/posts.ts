@@ -673,6 +673,7 @@ export type WorkerAppliedShiftClinic = ClinicSummary & {
 
 export type WorkerAppliedShiftPost = ShiftPost & {
   clinic: WorkerAppliedShiftClinic;
+  location?: PostLocationSummary | null;
 };
 
 export type WorkerDashboardCounts = {
@@ -1043,8 +1044,11 @@ export async function getWorkerAppliedShiftPost(
   if (clinicError) throw clinicError;
   if (!clinic) return null;
 
+  const locationMap = await fetchPostLocationMap([(data as ShiftPost).location_id]);
+  const base = attachPostLocation(data as ShiftPost, locationMap);
+
   return {
-    ...(data as ShiftPost),
+    ...base,
     clinic: {
       clinic_id: clinic.id,
       clinic_name: clinic.clinic_name,

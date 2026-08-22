@@ -14,6 +14,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getClinicDiscoverClinicProfileRoute } from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
+import {
+  formatWorkerPostLocation,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicDiscoverShiftDetailScreen() {
@@ -73,7 +77,7 @@ export default function ClinicDiscoverShiftDetailScreen() {
     );
   }
 
-  const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
+  const location = formatWorkerPostLocation(shift);
 
   return (
     <FormScreen
@@ -87,7 +91,7 @@ export default function ClinicDiscoverShiftDetailScreen() {
           <ClinicPostHeader
             layout="split"
             clinicName={shift.clinic.clinic_name}
-            logoStoragePath={shift.clinic.logo_storage_path}
+            logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
             title={formatShiftPostRoleTitle(shift.role_type)}
             location={location || null}
             detail={formatShiftPostMeta(shift)}
@@ -100,7 +104,7 @@ export default function ClinicDiscoverShiftDetailScreen() {
             stackedAccessory
           />
         </SurfaceCard>
-        <ShiftPostDetailView shift={shift} />
+        <ShiftPostDetailView shift={shift} locationLabel={shift.location ? location : null} />
         <OnboardingButton
           label="View clinic profile"
           accent="secondary"
