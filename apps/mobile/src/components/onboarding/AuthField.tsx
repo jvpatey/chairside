@@ -34,7 +34,7 @@ type AuthFieldProps = {
   hint?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  autoComplete?: 'email' | 'password' | 'username' | 'current-password' | 'new-password' | 'off';
+  autoComplete?: 'email' | 'password' | 'username' | 'current-password' | 'new-password' | 'name' | 'off';
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'number-pad' | 'url';
   editable?: boolean;
   multiline?: boolean;
@@ -209,7 +209,9 @@ export function AuthField({
           keyboardType={keyboardType}
           editable={editable}
           multiline={multiline}
-          onFocus={handleFocus}
+          onFocus={(event) =>
+            handleFocus(event as NativeSyntheticEvent<TextInputFocusEventData>)
+          }
           onBlur={handleBlur}
           accessibilityLabel={label}
         />

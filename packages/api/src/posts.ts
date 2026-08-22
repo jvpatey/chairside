@@ -1,4 +1,4 @@
-import type { ClinicPlan } from '@chairside/config';
+import type { ClinicPlan, RoleType } from '@chairside/config';
 import {
   isDecidedApplicationStatus,
   isWorkerJobApplicationPipelineActive,
@@ -732,7 +732,7 @@ async function getClinicListingSummary(clinicId: string): Promise<ClinicSummary 
   });
 
   if (error) throw error;
-  const row = ((data ?? []) as ClinicListingSummaryRow[])[0];
+  const row = data as ClinicListingSummaryRow | null;
   if (!row) return null;
   return mapClinicListingSummaryRow(row);
 }

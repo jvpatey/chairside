@@ -14,10 +14,8 @@ import { radii } from '@/theme/tokens';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
 
-import {
-  ActionMenuSheetBottom,
-  type ActionMenuSheetProps,
-} from './ActionMenuSheet.tsx';
+// @ts-expect-error TS5097 — explicit extension required to avoid web circular import
+import { ActionMenuSheetBottom, type ActionMenuSheetProps } from './ActionMenuSheet.tsx';
 
 function ActionMenuDialog({
   visible,

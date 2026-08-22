@@ -333,8 +333,6 @@ function matchesShiftDate(shift: ShiftPost, dateFilter: ShiftDateFilter): boolea
       return shiftTime > todayTime;
     case 'past':
       return shiftTime < todayTime;
-    case 'all':
-      return true;
   }
 }
 

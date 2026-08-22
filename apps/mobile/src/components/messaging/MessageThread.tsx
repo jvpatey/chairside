@@ -728,7 +728,17 @@ export function MessageThread({
     const showDeliveryStatus = isOwn && message.id === lastOwnMessageId;
     const deliveryStatus =
       conversation && showDeliveryStatus
-        ? getMessageDeliveryStatus(message, role, conversation)
+        ? getMessageDeliveryStatus(
+            {
+              created_at: message.created_at,
+              clientStatus:
+                message.clientStatus === 'pending' || message.clientStatus === 'failed'
+                  ? message.clientStatus
+                  : undefined,
+            },
+            role,
+            conversation,
+          )
         : null;
     const bubble = (
       <MessageBubble

@@ -1,9 +1,7 @@
 import { AdaptiveWebSheet } from '@/components/ui/AdaptiveWebSheet.web';
 import { CustomScreeningQuestionSheetBody } from '@/components/clinic/CustomScreeningQuestionSheetBody';
-import {
-  CustomScreeningQuestionSheetBottom,
-  type CustomScreeningQuestionSheetProps,
-} from '@/components/clinic/CustomScreeningQuestionSheet.tsx';
+// @ts-expect-error TS5097 — explicit extension required to avoid web circular import
+import { CustomScreeningQuestionSheetBottom, type CustomScreeningQuestionSheetProps } from '@/components/clinic/CustomScreeningQuestionSheet.tsx';
 
 export function CustomScreeningQuestionSheet(props: CustomScreeningQuestionSheetProps) {
   const { visible, onClose } = props;

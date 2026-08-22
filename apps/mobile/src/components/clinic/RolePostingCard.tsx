@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Pressable, Text, View } from 'react-native';
 
-import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
+import { showJobPostManageMenu } from '@/components/clinic/showJobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { RoleApplicantPreviewList } from '@/components/clinic/RoleApplicantPreviewList';

@@ -25,6 +25,8 @@ import {
   getWorkerSeenShiftPostIds,
   markShiftPostsSeenByWorker,
   type Application,
+  type ClinicAttentionApplication,
+  type WorkerApplication,
 } from '@chairside/api';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,6 +60,7 @@ type ApplicationTabBadgeContextValue = {
       | 'clinic_last_seen_at'
       | 'interview_proposed_at'
       | 'interview_proposed_by'
+      | 'shift_date'
     >,
   ) => boolean;
   getApplicationHighlightLabel: (
@@ -75,6 +78,7 @@ type ApplicationTabBadgeContextValue = {
       | 'clinic_last_seen_at'
       | 'interview_proposed_at'
       | 'interview_proposed_by'
+      | 'shift_date'
     >,
   ) => string | null;
 };
@@ -208,6 +212,7 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
         | 'clinic_last_seen_at'
         | 'interview_proposed_at'
         | 'interview_proposed_by'
+        | 'shift_date'
       >,
     ) => {
       if (locallySeenApplicationIds.has(application.id)) {
@@ -215,10 +220,10 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
       }
 
       if (role === 'clinic') {
-        return isClinicApplicationHighlighted(application);
+        return isClinicApplicationHighlighted(application as ClinicAttentionApplication);
       }
       if (application.post_type === 'shift') {
-        return isWorkerFillInApplicationUpdateCountable(application);
+        return isWorkerFillInApplicationUpdateCountable(application as WorkerApplication);
       }
       return isWorkerApplicationUpdateUnseen(application);
     },
@@ -241,12 +246,13 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
         | 'clinic_last_seen_at'
         | 'interview_proposed_at'
         | 'interview_proposed_by'
+        | 'shift_date'
       >,
     ) => {
       if (!isApplicationHighlighted(application)) return null;
       if (role !== 'clinic') return 'Update';
-      if (isClinicInterviewProposalUnseen(application)) return 'Update';
-      if (isClinicNewApplication(application)) return 'New applicant';
+      if (isClinicInterviewProposalUnseen(application as ClinicAttentionApplication)) return 'Update';
+      if (isClinicNewApplication(application as ClinicAttentionApplication)) return 'New applicant';
       return 'Update';
     },
     [isApplicationHighlighted, role],

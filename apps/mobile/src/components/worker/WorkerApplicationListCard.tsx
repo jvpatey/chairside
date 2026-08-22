@@ -118,7 +118,7 @@ export function WorkerApplicationListCard({
               ? 'default'
               : 'default'
       }
-      padding={compact ? 'sm' : 'md'}
+      padding={compact ? 'none' : 'md'}
       gap
       style={selected ? { borderColor: colors.tertiary, borderWidth: 1.5 } : undefined}
       onPress={openDetail}

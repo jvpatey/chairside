@@ -2,9 +2,9 @@ import type { JobPost } from '@chairside/api';
 import { formatJobPostRoleMeta } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
-import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
+import { showJobPostManageMenu } from '@/components/clinic/showJobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
@@ -146,7 +146,7 @@ export function ClinicRoleListRow({
     numericCell: {
       minWidth: 0,
       width: '100%',
-      ...webOnlyStyle({ justifySelf: 'end' } as const),
+      ...webOnlyStyle({ justifySelf: 'end' } as ViewStyle),
     },
     numericText: {
       fontSize: 13,
@@ -323,7 +323,7 @@ export function ClinicRoleListRow({
         );
       case 'posted':
         return (
-          <Text key={column.key} style={[styles.numericText, styles.numericCell]} numberOfLines={1}>
+          <Text key={column.key} style={[styles.numericText, styles.numericCell as TextStyle]} numberOfLines={1}>
             {postedDate}
           </Text>
         );
@@ -331,7 +331,7 @@ export function ClinicRoleListRow({
         return (
           <Text
             key={column.key}
-            style={[job.wage_range ? styles.pay : styles.muted, styles.numericCell]}
+            style={[job.wage_range ? styles.pay : styles.muted, styles.numericCell as TextStyle]}
             numberOfLines={1}
           >
             {job.wage_range || '—'}

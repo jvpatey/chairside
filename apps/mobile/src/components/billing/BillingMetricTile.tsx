@@ -50,7 +50,6 @@ export function BillingMetricTile({
           ...(inset
             ? {}
             : {
-                // @ts-expect-error web shadow
                 boxShadow: getWebShadow(isDark, 'subtle'),
               }),
         }

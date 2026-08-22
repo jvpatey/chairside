@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import { WorkerMapClinicSheet } from '@/components/worker/WorkerMapClinicSheet';
@@ -197,7 +197,7 @@ export function WorkerBrowseMap({
         >
           {mapBounds ? (
             <Camera
-              ref={cameraRef}
+              ref={cameraRef as RefObject<ComponentRef<typeof Camera>>}
               bounds={{
                 ne: [mapBounds.ne.longitude, mapBounds.ne.latitude],
                 sw: [mapBounds.sw.longitude, mapBounds.sw.latitude],
@@ -212,7 +212,7 @@ export function WorkerBrowseMap({
             />
           ) : (
             <Camera
-              ref={cameraRef}
+              ref={cameraRef as RefObject<ComponentRef<typeof Camera>>}
               centerCoordinate={[mapCenter.longitude, mapCenter.latitude]}
               zoomLevel={getDefaultMapZoom()}
               animationDuration={0}

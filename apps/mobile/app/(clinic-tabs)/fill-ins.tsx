@@ -24,6 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
+import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
@@ -56,6 +57,7 @@ import {
   type FillInsListMode,
 } from '@/lib/fillInFilters';
 import { guardClinicPosting } from '@/lib/clinicPostingGuard';
+import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { redirectEmbeddedCalendarDeepLink } from '@/lib/calendarNavigation';
 import {
   DEFAULT_CLINIC_FILL_IN_SORT,
@@ -117,7 +119,7 @@ export default function ClinicFillInsScreen() {
   const { user } = useAuth();
   const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
-  const { clinicProfile, isProfileComplete, locations, isGroup } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
   const { refreshPending } = useFillInPending();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();

@@ -57,9 +57,9 @@ export function ChipScrollTrack({
       ...(disabled
         ? {}
         : webOnlyStyle({
-            cursor: 'grab',
+            cursor: 'grab' as ViewStyle['cursor'],
             userSelect: 'none',
-          } as ViewStyle)),
+          })),
     },
     horizontalContent: {
       flexDirection: 'row' as const,

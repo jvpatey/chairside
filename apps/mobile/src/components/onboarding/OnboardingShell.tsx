@@ -166,7 +166,7 @@ export function OnboardingShell({
 
     // Use on-screen geometry so sticky headers/footers and keyboard padding are
     // reflected correctly (layout-relative math under-counted with a fixed footer).
-    scrollView.measureInWindow((_sx, scrollY, _sw, scrollHeight) => {
+    scrollView.measureInWindow((_sx: number, scrollY: number, _sw: number, scrollHeight: number) => {
       if (scrollHeight <= 0) return;
 
       wrapRef.measureInWindow((_x, fieldY, _w, fieldHeight) => {

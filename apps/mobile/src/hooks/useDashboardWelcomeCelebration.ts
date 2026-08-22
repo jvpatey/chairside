@@ -29,11 +29,13 @@ export function useDashboardWelcomeCelebration({
       return;
     }
 
+    const activeUserId = userId;
+
     let cancelled = false;
 
     async function hydrate() {
       try {
-        const shown = await hasDashboardWelcomeBeenShown(role, userId);
+        const shown = await hasDashboardWelcomeBeenShown(role, activeUserId);
         if (!cancelled) {
           setHasShown(shown);
         }

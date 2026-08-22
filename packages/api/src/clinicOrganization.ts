@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './client';
+import type { Database } from './types';
 import type {
   ClinicAccountType,
   ClinicInvitation,
@@ -351,7 +352,7 @@ export async function syncPrimaryLocationToClinicProfile(
 
   const { error } = await supabase
     .from('clinic_profiles')
-    .update(payload)
+    .update(payload as Database['public']['Tables']['clinic_profiles']['Update'])
     .eq('id', location.organization_id);
 
   if (error) throw error;

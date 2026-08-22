@@ -7,6 +7,7 @@ import {
   Text,
   View,
   type LayoutChangeEvent,
+  type ViewStyle,
 } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -204,7 +205,7 @@ export function ProfilePhotoCropEditorContent({
     },
     cropSurface: {
       ...webOnlyStyle({
-        cursor: isSaving ? 'default' : 'grab',
+        cursor: (isSaving ? 'default' : 'grab') as ViewStyle['cursor'],
         userSelect: 'none',
         touchAction: 'none',
       } as const),
@@ -294,7 +295,6 @@ export function ProfilePhotoCropEditorContent({
             style={[styles.image, imageStyle]}
             accessibilityLabel="Photo preview"
             pointerEvents="none"
-            // @ts-expect-error web-only prop to prevent browser image drag
             draggable={false}
           />
         </View>

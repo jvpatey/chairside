@@ -1,9 +1,7 @@
 import { AdaptiveWebSheet } from '@/components/ui/AdaptiveWebSheet.web';
 import { JobPostManageSheetBody } from '@/components/clinic/JobPostManageSheetBody';
-import {
-  JobPostManageSheetBottom,
-  type JobPostManageSheetProps,
-} from '@/components/clinic/JobPostManageSheet.tsx';
+// @ts-expect-error TS5097 — explicit extension required to avoid web circular import
+import { JobPostManageSheetBottom, type JobPostManageSheetProps } from '@/components/clinic/JobPostManageSheet.tsx';
 
 export function JobPostManageSheet(props: JobPostManageSheetProps) {
   const { visible, onClose } = props;

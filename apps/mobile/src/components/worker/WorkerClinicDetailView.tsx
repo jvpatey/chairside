@@ -1,5 +1,5 @@
 import type { WorkerAppliedShiftClinic } from '@chairside/api';
-import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel } from '@chairside/config';
+import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel, type TeamSizeRange } from '@chairside/config';
 import { Text, View } from 'react-native';
 
 import {
@@ -30,7 +30,9 @@ export function WorkerClinicDetailView({ clinic }: WorkerClinicDetailViewProps) 
   const specialtyLabel =
     SPECIALTY_OPTIONS.find((item) => item.value === clinic.specialty)?.label ??
     'General dentistry';
-  const teamSizeLabel = getTeamSizeRangeLabel(clinic.team_size_range ?? null);
+  const teamSizeLabel = getTeamSizeRangeLabel(
+    (clinic.team_size_range as TeamSizeRange | null) ?? null,
+  );
   const softwareLabel =
     clinic.software_used.length > 0 ? clinic.software_used.join(' · ') : null;
   const address = [

@@ -50,6 +50,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { guardClinicPosting } from '@/lib/clinicPostingGuard';
+import { getClinicRoleTableColumns } from '@/lib/clinicPostingListDisplay';
 import {
   countHistoryJobs,
   DEFAULT_CLINIC_ROLE_SORT,
@@ -78,8 +79,7 @@ export default function ClinicPostingsScreen() {
   const tableMode = isWide && supportsListView;
   const { user } = useAuth();
   const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
-  const { clinicProfile, isProfileComplete, locations, isGroup, accessibleLocations } =
-    useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
   const roleTableColumns = useMemo(
     () => getClinicRoleTableColumns(accessibleLocations.length > 1),
     [accessibleLocations.length],

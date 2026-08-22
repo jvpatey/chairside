@@ -261,17 +261,16 @@ export function NotificationsFeedBody({
       overflow: 'hidden',
       borderWidth: isDialog ? StyleSheet.hairlineWidth : 0,
       borderColor: colors.separator,
-      ...Platform.select({
-        ios: isDialog
-          ? {}
-          : {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.06,
-              shadowRadius: 4,
-            },
-        android: isDialog ? {} : { elevation: 1 },
-      }),
+      ...(Platform.OS === 'ios' && !isDialog
+        ? {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 4,
+          }
+        : Platform.OS === 'android' && !isDialog
+          ? { elevation: 1 }
+          : {}),
     },
     separator: {
       height: StyleSheet.hairlineWidth,

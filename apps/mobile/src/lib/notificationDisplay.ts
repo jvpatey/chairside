@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import type { Ionicons } from '@expo/vector-icons';
 
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
+import type { Colors } from '@/theme';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 

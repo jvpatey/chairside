@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { JobPostManageSheet } from '@/components/clinic/JobPostManageSheet';
-import type { ShowJobPostManageMenuParams } from '@/components/clinic/jobPostManageMenu';
+import type { ShowJobPostManageMenuParams } from '@/components/clinic/showJobPostManageMenu';
 
 type OpenMenu = (params: ShowJobPostManageMenuParams) => void;
 

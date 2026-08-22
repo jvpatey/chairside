@@ -163,7 +163,7 @@ export function WorkerStatGrid({
     <DashboardStatGrid
       selected={selected}
       onSelect={onSelect}
-      accent={getDashboardOverviewAccent(selected)}
+      accent={getDashboardOverviewAccent(selected === 'saved' ? 'roles' : selected)}
       segmentAccents={DASHBOARD_OVERVIEW_SEGMENT_ACCENTS}
       stats={[
         { key: 'roles', label: 'Open roles', value: openRoles, badgeCount: 0 },

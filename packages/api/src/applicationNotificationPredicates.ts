@@ -32,7 +32,7 @@ type WorkerAttentionApplication = {
   worker_last_seen_at: string | null;
 };
 
-type ClinicAttentionApplication = {
+export type ClinicAttentionApplication = {
   post_type: 'job' | 'shift';
   status: ApplicationNotificationStatus | string;
   clinic_hidden_at: string | null;

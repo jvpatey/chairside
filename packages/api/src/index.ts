@@ -13,6 +13,7 @@ export {
   type ClinicSubscriptionSyncResult,
 } from './billing';
 export { createSupabaseClient, getSupabaseClient } from './client';
+export type { ClinicAttentionApplication } from './applicationNotificationPredicates';
 export { getAuthStorage, isWebAuth } from './authStorage';
 export {
   getWebAuthCallbackHref,
@@ -360,6 +361,7 @@ export {
   searchMessagesInConversations,
   sendMessage,
   type Conversation,
+  type ConversationRow,
   type ConversationType,
   type Message,
   type MessageDeliveryStatus,

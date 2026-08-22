@@ -10,8 +10,6 @@ type RoleListingPostedMetaProps = {
 
 export function RoleListingPostedMeta({ postedAt, hasApplied }: RoleListingPostedMetaProps) {
   const posted = formatPostedDateLabel(postedAt);
-  if (!posted && !hasApplied) return null;
-
   const styles = useThemedStyles(({ colors }) => ({
     posted: {
       fontSize: 13,
@@ -25,6 +23,8 @@ export function RoleListingPostedMeta({ postedAt, hasApplied }: RoleListingPoste
       color: colors.primary,
     },
   }));
+
+  if (!posted && !hasApplied) return null;
 
   return (
     <Text style={styles.posted} numberOfLines={1}>

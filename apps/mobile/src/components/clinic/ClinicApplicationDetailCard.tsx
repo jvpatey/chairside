@@ -197,7 +197,7 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
     },
   }));
 
-  const items = Children.toArray(children).filter((child) => child != null && child !== false);
+  const items = Children.toArray(children).filter((child) => child != null);
   if (items.length === 0) return null;
 
   return (
@@ -206,7 +206,10 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
         <View key={index} style={styles.cell}>
           {isValidElement(child)
             ? cloneElement(child as ReactElement<{ style?: ViewStyle }>, {
-                style: [(child as ReactElement<{ style?: ViewStyle }>).props.style, { flex: 1 }],
+                style: StyleSheet.flatten([
+                  (child as ReactElement<{ style?: ViewStyle }>).props.style,
+                  { flex: 1 },
+                ]),
               })
             : child}
         </View>
@@ -1239,12 +1242,12 @@ export function ClinicApplicationDetailCard({
               workerProposedChange &&
               application.interview_proposed_details ? (
                 <CardInfoPanelText>
-                  {applicantFirstName}'s message: {application.interview_proposed_details}
+                  {applicantFirstName}&apos;s message: {application.interview_proposed_details}
                 </CardInfoPanelText>
               ) : null}
               {application.status === 'interview_scheduled' && clinicProposedChange ? (
                 <CardInfoPanelText>
-                  Awaiting {applicantFirstName}'s response to new time
+                  Awaiting {applicantFirstName}&apos;s response to new time
                   {proposedSummary ? ` · ${proposedSummary}` : ''}
                 </CardInfoPanelText>
               ) : null}

@@ -86,7 +86,7 @@ export function isWorkerGetStartedComplete(params: {
     isWorkerFillInsStepComplete({
       shiftApplicationCount: params.shiftApplicationCount,
       visitedFillIns: params.visitedFillIns,
-      workerProfile: params.workerProfile,
+      workerProfile: params.workerProfile as WorkerFillInEngagementProfile | undefined,
       availabilityBlockCount: params.availabilityBlockCount,
       savedShiftCount: params.savedShiftCount,
     })

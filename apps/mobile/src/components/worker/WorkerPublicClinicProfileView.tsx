@@ -1,5 +1,5 @@
 import type { LiveJobPost, LiveShiftPost, PublicClinicProfile } from '@chairside/api';
-import { formatJobPostCardMeta, getProvinceLabel, getSpecialtyLabel, getTeamSizeRangeLabel } from '@chairside/config';
+import { formatJobPostCardMeta, getProvinceLabel, getSpecialtyLabel, getTeamSizeRangeLabel, type TeamSizeRange } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 
@@ -239,7 +239,9 @@ export function WorkerPublicClinicProfileView({
   const logoUri = useClinicLogoUri(profile.logo_storage_path);
   const locationLabel = [profile.city, getProvinceLabel(profile.province)].filter(Boolean).join(', ');
   const specialtyLabel = getSpecialtyLabel(profile.specialty);
-  const teamSizeLabel = getTeamSizeRangeLabel(profile.team_size_range);
+  const teamSizeLabel = getTeamSizeRangeLabel(
+    (profile.team_size_range as TeamSizeRange | null) ?? null,
+  );
   const softwareUsed = profile.software_used ?? [];
   const description = profile.description?.trim() || null;
   const hasAbout = Boolean(description || profile.website?.trim());

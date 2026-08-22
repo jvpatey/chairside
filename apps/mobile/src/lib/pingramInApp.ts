@@ -17,8 +17,9 @@ export function parseInAppNotificationsResponse(
 
 type PingramInAppClient = {
   getInAppNotifications?: (params: {
-    before?: string;
+    before: string;
     maxCountNeeded?: number;
+    oldestNeeded?: string;
   }) => Promise<{ items?: InAppNotification[] }>;
   rest: {
     getNotifications: (before: string, count: number) => Promise<PingramNotificationsResponse>;

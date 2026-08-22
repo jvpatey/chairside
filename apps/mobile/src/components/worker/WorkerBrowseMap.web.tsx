@@ -125,7 +125,7 @@ export function WorkerBrowseMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const clinicMarkersRef = useRef<MarkerEntry[]>([]);
   const workerMarkerRef = useRef<MarkerEntry | null>(null);
-  const styleRef = useRef(MAP_STYLE.light);
+  const styleRef = useRef<(typeof MAP_STYLE)[keyof typeof MAP_STYLE]>(MAP_STYLE.light);
 
   const mapCenter = useMemo(
     () => getWorkerMapCenter(workerCoords, province),

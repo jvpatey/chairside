@@ -15,6 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...base,
+    orientation: (base.orientation ?? 'portrait') as ExpoConfig['orientation'],
     ios: {
       ...base.ios,
       bundleIdentifier: base.ios?.bundleIdentifier ?? 'com.chairside.app',
@@ -29,11 +30,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
     },
     android: {
-      ...base.android,
-      package: base.android?.package ?? 'com.chairside.app',
+      ...(base.android as ExpoConfig['android']),
+      package: (base.android as { package?: string } | undefined)?.package ?? 'com.chairside.app',
       softwareKeyboardLayoutMode: 'resize',
       intentFilters: [
-        ...(Array.isArray(base.android?.intentFilters) ? base.android.intentFilters : []),
+        ...(Array.isArray((base.android as { intentFilters?: unknown[] } | undefined)?.intentFilters)
+          ? (base.android as { intentFilters: unknown[] }).intentFilters
+          : []),
         {
           action: 'VIEW',
           autoVerify: true,

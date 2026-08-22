@@ -91,7 +91,6 @@ export function MessageComposeBar({
       borderColor: colors.primary,
       ...(Platform.OS === 'web'
         ? ({
-            // @ts-expect-error — boxShadow is web-only
             boxShadow: `0 0 0 3px ${colors.primarySubtle}`,
           } as const)
         : {}),

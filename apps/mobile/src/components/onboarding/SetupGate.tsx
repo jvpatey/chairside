@@ -14,7 +14,7 @@ import {
   getWorkerSetupGateDecision,
   type SetupGateDecision,
 } from '@/lib/setupGateDecision';
-import { isClinicGroupsEnabled } from '@chairside/api';
+import { isClinicGroupsEnabled, type WorkerProfile } from '@chairside/api';
 
 function renderGateDecision(
   decision: SetupGateDecision,
@@ -72,7 +72,7 @@ export function WorkerSetupGate({ children }: { children: ReactNode }) {
     isProfileReady,
     isWorkerProfileReady,
     workerProfile,
-    isWorkerSetupComplete,
+    isWorkerSetupComplete: (profile) => isWorkerSetupComplete(profile as WorkerProfile),
   });
 
   if (decision.type === 'children') {

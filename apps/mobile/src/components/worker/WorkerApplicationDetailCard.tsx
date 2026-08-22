@@ -172,7 +172,7 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
     },
   }));
 
-  const items = Children.toArray(children).filter((child) => child != null && child !== false);
+  const items = Children.toArray(children).filter((child) => child != null);
   if (items.length === 0) return null;
 
   return (
@@ -181,10 +181,10 @@ function ApplicationActionRow({ children }: { children: ReactNode }) {
         <View key={index} style={styles.cell}>
           {isValidElement(child)
             ? cloneElement(child as ReactElement<{ style?: ViewStyle }>, {
-                style: [
+                style: StyleSheet.flatten([
                   (child as ReactElement<{ style?: ViewStyle }>).props.style,
                   { flex: 1 },
-                ],
+                ]),
               })
             : child}
         </View>

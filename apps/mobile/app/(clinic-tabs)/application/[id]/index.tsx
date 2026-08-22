@@ -10,6 +10,7 @@ import { Alert, Platform, View } from 'react-native';
 
 import { ClinicApplicationDetailCard } from '@/components/clinic/ClinicApplicationDetailCard';
 import { InterviewScheduleSheet } from '@/components/clinic/InterviewScheduleSheet';
+import type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheet';
 import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrationModal';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
@@ -63,9 +64,7 @@ export default function ClinicApplicationDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
   const [scheduleTarget, setScheduleTarget] = useState<ClinicApplication | null>(null);
-  const [scheduleMode, setScheduleMode] = useState<
-    'offer' | 'edit_offer' | 'propose_reschedule'
-  >('offer');
+  const [scheduleMode, setScheduleMode] = useState<InterviewScheduleSheetMode>('offer');
   const {
     celebrationVisible,
     celebrationPayload,

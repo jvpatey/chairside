@@ -966,6 +966,8 @@ export function navigateAfterWorkerApplication(
   router.replace(WORKER_APPLICATIONS);
 }
 
+export type ApplyPostType = 'job' | 'shift';
+
 export function getApplyRoute(postType: ApplyPostType, postId: string): Href {
   return { pathname: '/(tabs)/apply', params: { postType, postId } } as unknown as Href;
 }

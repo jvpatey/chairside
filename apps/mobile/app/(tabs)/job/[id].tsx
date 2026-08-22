@@ -42,6 +42,8 @@ import {
   computeJobMatchBreakdown,
 } from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
+
+export default function WorkerJobDetailScreen() {
   const { user } = useAuth();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { id, returnTo, applicationId, applicationReturnTo } = useLocalSearchParams<{

@@ -33,7 +33,6 @@ export function MessageContextPanelSheet({
     backdrop: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.32)',
-      // @ts-expect-error web backdrop blur
       backdropFilter: 'blur(4px)',
       WebkitBackdropFilter: 'blur(4px)',
       ...webTransition(['background-color']),

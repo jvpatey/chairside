@@ -102,7 +102,7 @@ export function ApplicationPackagePreview({
       ? profile.practice_types.map(getSpecialtyLabel).join(', ')
       : null;
   const profileCoverNote = profile.default_cover_message?.trim();
-  const applicationCoverNote = coverNote !== undefined ? coverNote.trim() : undefined;
+  const applicationCoverNote = coverNote != null ? coverNote.trim() : undefined;
   const displayedCoverNote = applicationCoverNote ?? profileCoverNote ?? '';
   const showCoverNoteSection =
     showDefaultNote &&

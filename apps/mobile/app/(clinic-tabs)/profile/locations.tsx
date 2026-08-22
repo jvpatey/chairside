@@ -5,7 +5,7 @@ import {
   updateClinicLocation,
   type ClinicLocation,
 } from '@chairside/api';
-import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel } from '@chairside/config';
+import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel, type TeamSizeRange } from '@chairside/config';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
@@ -133,7 +133,9 @@ function LocationSettingsCard({
     },
   }));
   const softwareUsed = location.software_used ?? [];
-  const teamSizeLabel = getTeamSizeRangeLabel(location.team_size_range ?? null);
+  const teamSizeLabel = getTeamSizeRangeLabel(
+    (location.team_size_range as TeamSizeRange | null) ?? null,
+  );
   const photoLabel = location.logo_storage_path ? 'Photo added' : null;
 
   return (
@@ -469,7 +471,9 @@ export default function ClinicLocationsSettingsScreen() {
             }
             pendingPhoto={pendingPhoto}
             onPendingPhotoChange={setPendingPhoto}
-            onUploaded={() => refreshClinicProfile()}
+            onUploaded={() => {
+              void refreshClinicProfile();
+            }}
           />
           <AddressAutocomplete value={address} onChange={setAddress} />
           <ClinicLocationFormFields

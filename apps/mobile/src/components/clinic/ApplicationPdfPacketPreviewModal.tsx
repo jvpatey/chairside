@@ -360,7 +360,7 @@ export function ApplicationPdfPacketPreviewModal({
               <View style={styles.tipText}>
                 <Text style={styles.tipTitle}>What this PDF includes</Text>
                 <Text style={styles.tipBody}>
-                  A one-page summary of this candidate's application details and screening answers.
+                  A one-page summary of this candidate&apos;s application details and screening answers.
                   When a resume is on file, it is attached on the following pages so you can
                   download, share, or print everything together.
                 </Text>

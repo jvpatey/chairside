@@ -1,4 +1,4 @@
-import { Redirect, useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect } from 'react';
 
 import { saveClinicInviteToken } from '@/lib/clinicInviteSession';
@@ -22,5 +22,5 @@ export default function PublicAcceptInviteScreen() {
     ? (`${String(CLINIC_ACCEPT_INVITE)}?token=${encodeURIComponent(token)}` as const)
     : CLINIC_ACCEPT_INVITE;
 
-  return <Redirect href={href} />;
+  return <Redirect href={href as Href} />;
 }

@@ -89,7 +89,6 @@ export function BillingHero({
       backgroundColor: colors.surface,
       overflow: 'hidden' as const,
       position: 'relative' as const,
-      // @ts-expect-error web shadow
       boxShadow: getWebShadow(isDark, 'raised'),
     },
     accentRail: {

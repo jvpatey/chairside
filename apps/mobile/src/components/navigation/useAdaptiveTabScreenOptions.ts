@@ -43,9 +43,6 @@ export function useAdaptiveTabScreenOptions(): (
         backgroundColor: sceneBackground,
         ...webInactiveSceneStyle(isFocused),
       },
-      sceneContainerStyle: {
-        backgroundColor: sceneBackground,
-      },
       ...(isWeb ? { detachInactiveScreens: true, lazy: true } : {}),
     };
 

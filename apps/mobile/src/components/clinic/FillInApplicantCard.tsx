@@ -53,11 +53,11 @@ function isPending(application: FillInApplicantApplication): boolean {
 }
 
 function getShiftMeta(application: FillInApplicantApplication): string {
-  if ('shift_date' in application) {
+  if (application.shift_date) {
     return formatShiftPostMeta({
       shift_date: application.shift_date,
-      start_time: application.shift_start_time,
-      end_time: application.shift_end_time,
+      start_time: application.shift_start_time ?? '',
+      end_time: application.shift_end_time ?? '',
     });
   }
   return application.post_title;
@@ -234,7 +234,7 @@ export function FillInApplicantCard({
             newCoverRequestLabel,
           ]
             .filter(Boolean)
-            .join(' ù ')}
+            .join(' ? ')}
           avatarSize={44}
           accessory={
             <View style={{ alignItems: 'flex-end', gap: 8 }}>
@@ -282,7 +282,7 @@ export function FillInApplicantCard({
           <View style={styles.row}>
             <OnboardingButton
               style={styles.action}
-              label={hasUnreadMessages ? 'Message ∑ New' : 'Message'}
+              label={hasUnreadMessages ? 'Message ? New' : 'Message'}
               variant="secondary"
               disabled={isSubmitting}
               onPress={() =>
@@ -300,7 +300,7 @@ export function FillInApplicantCard({
         </View>
       ) : application.status !== 'rejected' ? (
         <OnboardingButton
-          label={workerDeleted ? 'View messages' : hasUnreadMessages ? 'Message ∑ New' : 'Message'}
+          label={workerDeleted ? 'View messages' : hasUnreadMessages ? 'Message ? New' : 'Message'}
           variant="secondary"
           onPress={() =>
             router.push(getClinicApplicationMessagesRoute(application.id, messagesReturnTo))
