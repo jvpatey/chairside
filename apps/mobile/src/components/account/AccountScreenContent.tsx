@@ -75,6 +75,7 @@ export function AccountScreenContent({
           savedFirstName={firstName}
           savedLastName={lastName}
           savedDisplayName={displayName}
+          audience={isClinic ? 'clinic' : 'worker'}
           onSaved={onProfileRefresh}
         />
       </SectionPanel>

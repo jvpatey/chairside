@@ -9,6 +9,7 @@ import {
   formatClinicPostingTableLocation,
   formatClinicRoleCompactMeta,
   getClinicRoleTableColumns,
+  resolveClinicJobLocationLabel,
 } from './clinicPostingListDisplay';
 
 describe('clinicPostingListDisplay', () => {
@@ -49,6 +50,19 @@ describe('clinicPostingListDisplay', () => {
     expect(formatClinicPostingPostedDate('2026-01-15T15:00:00.000Z')).toMatch(/Jan 15/);
     expect(formatClinicPostingPostedDate('2026-01-15T15:00:00.000Z')).not.toMatch(/2026/);
     expect(formatClinicPostingPostedDate(null)).toBe('—');
+  });
+
+  it('resolves clinic job location labels from location_id', () => {
+    expect(
+      resolveClinicJobLocationLabel(
+        { location_id: 'loc-1' },
+        [{ id: 'loc-1', name: 'Downtown', city: 'Halifax', province: 'NS' }],
+        { city: 'Bedford', province: 'NS' },
+      ),
+    ).toBe('Downtown · Halifax, NS');
+    expect(
+      resolveClinicJobLocationLabel({ location_id: null }, [], { city: 'Halifax', province: 'NS' }),
+    ).toBe('Halifax, NS');
   });
 
   it('formats compact role meta lines', () => {

@@ -24,6 +24,7 @@ import {
   formatClinicPostingPostedDate,
   formatClinicRoleCompactMeta,
   getClinicRoleTableColumns,
+  resolveClinicJobLocationLabel,
   type ClinicPostingTableColumn,
 } from '@/lib/clinicPostingListDisplay';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
@@ -57,7 +58,7 @@ export function ClinicRoleListRow({
   manage,
 }: ClinicRoleListRowProps) {
   const { colors } = useTheme();
-  const { clinicProfile, locations, accessibleLocations } = useClinicProfile();
+  const { clinicProfile, locations, isGroup } = useClinicProfile();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment();
   const logoStoragePath = useResolvedClinicLogoPath(job.location_id);
@@ -68,10 +69,11 @@ export function ClinicRoleListRow({
     locationRecord?.name,
     locationRecord?.city ?? clinicProfile?.city,
   );
+  const locationEyebrow = resolveClinicJobLocationLabel(job, locations, clinicProfile);
   const roleMeta = formatJobPostRoleMeta(job);
   const postedDate = formatClinicPostingPostedDate(job.created_at);
   const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
-  const columns = columnsProp ?? getClinicRoleTableColumns(accessibleLocations.length > 1);
+  const columns = columnsProp ?? getClinicRoleTableColumns(isGroup);
   const gridTemplate = clinicPostingTableGridTemplate(columns);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -375,6 +377,7 @@ export function ClinicRoleListRow({
       <BrowseListRow
         compact
         avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
+        eyebrow={isGroup && locationEyebrow ? locationEyebrow : undefined}
         title={job.title}
         meta={formatClinicRoleCompactMeta(job, applicantCount)}
         topTrailing={

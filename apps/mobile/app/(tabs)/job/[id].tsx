@@ -214,7 +214,11 @@ export default function WorkerJobDetailScreen() {
           />
           <ClinicProfileLinkFooter />
         </SurfaceCard>
-        <JobPostDetailView job={job} part="body" />
+        <JobPostDetailView
+          job={job}
+          part="body"
+          locationLabel={job.location ? location : null}
+        />
       </View>
     </FormScreen>
   );

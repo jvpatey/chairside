@@ -139,7 +139,11 @@ function LocationSettingsCard({
   const photoLabel = location.logo_storage_path ? 'Photo added' : null;
 
   return (
-    <SectionPanel icon="business-outline" title={location.name}>
+    <SectionPanel
+      icon="business-outline"
+      title={location.name}
+      collapsible
+      defaultExpanded={false}>
       <View style={styles.header}>
         <ClinicLogoAvatar clinicName={location.name} logoUri={logoUri} size={44} />
         <View style={styles.headerText}>

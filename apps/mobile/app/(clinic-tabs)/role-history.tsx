@@ -179,13 +179,10 @@ function HistorySection({
 
 export default function RoleHistoryScreen() {
   const { user } = useAuth();
-  const { accessibleLocations } = useClinicProfile();
+  const { isGroup } = useClinicProfile();
   const { mode, setMode, isWide, supportsListView } = useClinicListingViewMode('role-history');
   const tableMode = isWide && supportsListView;
-  const roleTableColumns = useMemo(
-    () => getClinicRoleTableColumns(accessibleLocations.length > 1),
-    [accessibleLocations.length],
-  );
+  const roleTableColumns = useMemo(() => getClinicRoleTableColumns(isGroup), [isGroup]);
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});

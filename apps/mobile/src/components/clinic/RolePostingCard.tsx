@@ -26,6 +26,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { JobApplicantPreview } from '@/lib/dashboardAttention';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
+import { resolveClinicJobLocationLabel } from '@/lib/clinicPostingListDisplay';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -66,14 +67,14 @@ export function RolePostingCard({
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const mobileEmbedded = embedded && !isTablet;
-  const { clinicProfile } = useClinicProfile();
+  const { clinicProfile, locations, isGroup } = useClinicProfile();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment();
   const logoStoragePath = useResolvedClinicLogoPath(job.location_id);
   const logoUri = useClinicLogoUri(logoStoragePath);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const locations = useClinicProfile().locations;
   const locationRecord = locations.find((location) => location.id === job.location_id);
+  const locationLabel = resolveClinicJobLocationLabel(job, locations, clinicProfile);
   const location =
     [locationRecord?.city ?? clinicProfile?.city, locationRecord?.province ?? clinicProfile?.province]
       .filter(Boolean)
@@ -204,10 +205,9 @@ export function RolePostingCard({
     <Text style={styles.wage}>{job.wage_range}</Text>
   ) : null;
 
-  const locationEyebrow =
-    [locationName, location].filter(Boolean).join(' · ') || clinicName;
-  const embeddedEyebrow =
-    [locationName, location].filter(Boolean).join(' · ') || null;
+  const locationEyebrow = locationLabel || clinicName;
+  const embeddedEyebrow = locationLabel || null;
+  const listEyebrow = isGroup ? locationEyebrow : clinicName;
   const clinicAvatar = (
     <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />
   );
@@ -234,7 +234,7 @@ export function RolePostingCard({
               ? embeddedEyebrow
               : embedded
                 ? locationEyebrow
-                : clinicName
+                : listEyebrow
           }
           title={job.title}
           meta={
@@ -274,7 +274,7 @@ export function RolePostingCard({
           clinicName={clinicName}
           logoStoragePath={logoStoragePath}
           title={job.title}
-          location={[locationName, location].filter(Boolean).join(' · ') || null}
+          location={isGroup ? locationLabel || null : [locationName, location].filter(Boolean).join(' · ') || null}
           detail={roleMeta}
           postedLabel={postedLabel || null}
           textFooter={showApplicantPill ? undefined : (wageLabel ?? undefined)}

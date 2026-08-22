@@ -59,6 +59,26 @@ export function formatClinicPostingLocation(
   return [locationName, place].filter(Boolean).join(' · ');
 }
 
+export type ClinicJobLocationRecord = {
+  id: string;
+  name?: string | null;
+  city?: string | null;
+  province?: string | null;
+};
+
+export function resolveClinicJobLocationLabel(
+  job: Pick<JobPost, 'location_id'>,
+  locations: readonly ClinicJobLocationRecord[],
+  clinicProfile?: { city?: string | null; province?: string | null } | null,
+): string {
+  const locationRecord = locations.find((location) => location.id === job.location_id);
+  return formatClinicPostingLocation(
+    locationRecord?.name,
+    locationRecord?.city ?? clinicProfile?.city,
+    locationRecord?.province ?? clinicProfile?.province,
+  );
+}
+
 export function formatClinicPostingTableLocation(
   locationName?: string | null,
   city?: string | null,

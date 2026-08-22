@@ -11,14 +11,23 @@ type AccountDisplayNameFieldProps = {
   savedFirstName?: string | null;
   savedLastName?: string | null;
   savedDisplayName?: string | null;
+  audience?: 'worker' | 'clinic';
   onSaved: () => Promise<unknown>;
 };
+
+const DISPLAY_NAME_HINTS = {
+  worker:
+    'Shown on your profile and new applications to clinics. Applications you already sent keep the name from when you applied.',
+  clinic:
+    'Shown on your profile and on new postings and messages. Existing conversations keep the name from when they started.',
+} as const;
 
 export function AccountDisplayNameField({
   userId,
   savedFirstName,
   savedLastName,
   savedDisplayName,
+  audience = 'worker',
   onSaved,
 }: AccountDisplayNameFieldProps) {
   const [firstName, setFirstName] = useState('');
@@ -100,10 +109,7 @@ export function AccountDisplayNameField({
           validated={isSaved}
         />
       </View>
-      <Text style={styles.hint}>
-        Shown on your profile and new applications to clinics. Applications you already sent keep
-        the name from when you applied.
-      </Text>
+      <Text style={styles.hint}>{DISPLAY_NAME_HINTS[audience]}</Text>
       {isDirty ? (
         <OnboardingButton
           label={isSaving ? 'Saving…' : 'Save name'}

@@ -80,10 +80,7 @@ export default function ClinicPostingsScreen() {
   const { user } = useAuth();
   const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
   const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
-  const roleTableColumns = useMemo(
-    () => getClinicRoleTableColumns(accessibleLocations.length > 1),
-    [accessibleLocations.length],
-  );
+  const roleTableColumns = useMemo(() => getClinicRoleTableColumns(isGroup), [isGroup]);
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
