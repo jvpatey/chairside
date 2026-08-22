@@ -7,6 +7,7 @@ import {
   type CalendarEventKind,
   type CalendarEventRange,
 } from './calendarEventMappers';
+import { isEmptyLocationScope, type ClinicLocationScopeOptions } from './posts';
 
 export {
   clinicApplicationToCalendarEvents,
@@ -32,9 +33,12 @@ export async function listWorkerCalendarEvents(
 export async function listClinicCalendarEvents(
   clinicId: string,
   range?: CalendarEventRange,
+  options?: ClinicLocationScopeOptions,
 ): Promise<CalendarEvent[]> {
+  if (isEmptyLocationScope(options?.locationIds)) return [];
+
   const supabase = getSupabaseClient();
-  const applications = await listClinicApplications(clinicId);
+  const applications = await listClinicApplications(clinicId, 'active', options);
 
   const shiftIds = applications
     .map((application) => application.shift_post_id)

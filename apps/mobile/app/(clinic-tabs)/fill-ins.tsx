@@ -23,7 +23,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
-import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
+import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { ConfirmedFillInCard } from '@/components/clinic/ConfirmedFillInCard';
@@ -115,7 +115,7 @@ export default function ClinicFillInsScreen() {
   const { colors } = useTheme();
   const { isTablet, isWide } = useResponsiveLayout();
   const { user } = useAuth();
-  const { clinicId, scopedLocationIds } = useClinicActingContext();
+  const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
   const { clinicProfile, isProfileComplete, locations, isGroup } = useClinicProfile();
   const { refreshPending } = useFillInPending();
@@ -416,6 +416,8 @@ export default function ClinicFillInsScreen() {
     guardPosting(getPostShiftRoute('fill-ins-tab'));
   };
 
+  const showScopeChip = isGroup && accessibleLocations.length > 1;
+
   if (isLoading && !hasLoadedOnce.current) {
     return (
       <Screen
@@ -423,7 +425,8 @@ export default function ClinicFillInsScreen() {
         subtitle="Review cover requests and manage your fill-in shifts."
         refreshing={refreshing}
         onRefresh={onRefresh}
-        refreshAccent="secondary">
+        refreshAccent="secondary"
+        headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
         <PageLoadingList message="Loading fill-ins…" />
       </Screen>
     );
@@ -437,7 +440,8 @@ export default function ClinicFillInsScreen() {
         subtitle="Review cover requests and manage your fill-in shifts."
         refreshing={refreshing}
         onRefresh={onRefresh}
-        refreshAccent="secondary">
+        refreshAccent="secondary"
+        headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
         <View style={styles.wrap}>
           {loadError ? (
             <DashboardErrorBanner

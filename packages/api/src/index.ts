@@ -167,6 +167,7 @@ export {
   type ClinicDashboardCounts,
   type ClinicLocationScopeOptions,
   type ClinicSummary,
+  type PostLocationSummary,
   type CreateJobPostInput,
   type CreateShiftPostInput,
   type EmploymentType,

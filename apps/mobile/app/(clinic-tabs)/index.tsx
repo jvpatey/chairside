@@ -28,6 +28,7 @@ import {
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
 import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { GroupLocationsGlanceWidget } from '@/components/clinic/GroupLocationsGlanceWidget';
 import { GroupTeamPulseWidget } from '@/components/clinic/GroupTeamPulseWidget';
 import { GroupWeekCoverageWidget } from '@/components/clinic/GroupWeekCoverageWidget';
@@ -182,7 +183,7 @@ export default function ClinicDashboardScreen() {
         }),
         listConversationsForClinic(clinicId, { locationIds: scopedLocationIds }),
         listClinicApplications(clinicId, 'active', { locationIds: scopedLocationIds }),
-        listClinicCalendarEvents(clinicId),
+        listClinicCalendarEvents(clinicId, undefined, { locationIds: scopedLocationIds }),
       ]);
 
       const shiftApplicationCountEntries = await Promise.all(
@@ -303,6 +304,7 @@ export default function ClinicDashboardScreen() {
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
+  const showManagerSetupBanner = isGroup && !isOwner && !isProfileComplete;
   const groupName =
     groupDisplayName || organization?.name?.trim() || clinicName || 'Dental group';
   const {
@@ -533,12 +535,23 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       alerts={
-        locationGlanceRows.length > 0 ? (
+        showManagerSetupBanner || locationGlanceRows.length > 0 ? (
           <FadeInSection delayMs={40}>
-            <GroupLocationsGlanceWidget
-              rows={locationGlanceRows}
-              onSelectLocation={focusLocation}
-            />
+            <View style={{ gap: 12 }}>
+              {showManagerSetupBanner ? (
+                <CardInfoPanel variant="info" icon="information-circle-outline" title="Setup in progress">
+                  <CardInfoPanelText>
+                    Your group owner needs to finish setup before you can post roles or fill-ins.
+                  </CardInfoPanelText>
+                </CardInfoPanel>
+              ) : null}
+              {locationGlanceRows.length > 0 ? (
+                <GroupLocationsGlanceWidget
+                  rows={locationGlanceRows}
+                  onSelectLocation={focusLocation}
+                />
+              ) : null}
+            </View>
           </FadeInSection>
         ) : null
       }

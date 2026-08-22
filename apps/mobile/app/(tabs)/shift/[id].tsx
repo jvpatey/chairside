@@ -37,7 +37,13 @@ import {
   parseWorkerPostingReturnParams,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
+import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
+import { formatPostedDateLabel } from '@/lib/dates';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
+import {
+  formatWorkerPostLocation,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
 import { guardApply } from '@/lib/workerGuard';
 import { useThemedStyles } from '@/theme';
 
@@ -212,7 +218,14 @@ export default function WorkerShiftDetailScreen() {
       <CancelledPillBadge />
     ) : null;
 
-  const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
+  const location = formatWorkerPostLocation(shift);
+  const postedLabel =
+    buildPostedByLabel({
+      postedAt: shift.created_at,
+      postedByDisplayName: shift.posted_by_display_name,
+      postedByTitle: shift.posted_by_title,
+      formatDateLabel: formatPostedDateLabel,
+    }) ?? null;
 
   return (
     <FormScreen
@@ -245,9 +258,10 @@ export default function WorkerShiftDetailScreen() {
           }>
           <ClinicPostHeader
             clinicName={shift.clinic.clinic_name}
-            logoStoragePath={shift.clinic.logo_storage_path}
+            logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
             location={location || null}
             detail={formatShiftPostMeta(shift)}
+            postedLabel={postedLabel}
             textFooter={statusFooter}
           />
           <ClinicProfileLinkFooter />

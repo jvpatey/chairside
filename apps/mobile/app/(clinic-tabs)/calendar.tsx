@@ -1,13 +1,15 @@
 import { ScheduleCalendarScreenPanel } from '@/components/calendar/ScheduleCalendarScreenPanel';
 import { Screen } from '@/components/ui/Screen';
-import { useAuth } from '@/contexts/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 
+import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
+import { useClinicActingContext } from '@/hooks/useClinicActingContext';
+
 export default function ClinicCalendarScreen() {
-  const { user } = useAuth();
   const params = useLocalSearchParams<{ date?: string }>();
+  const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
   const [refreshState, setRefreshState] = useState<{
     refreshing: boolean;
     onRefresh: () => void;
@@ -19,16 +21,19 @@ export default function ClinicCalendarScreen() {
     }, []),
   );
 
+  const showScopeChip = isGroup && accessibleLocations.length > 1;
+
   return (
     <Screen
       title="Calendar"
       subtitle="Interviews and confirmed fill-ins for your clinic."
       refreshing={refreshState?.refreshing}
       onRefresh={refreshState?.onRefresh}
-    >
+      headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
       <ScheduleCalendarScreenPanel
         role="clinic"
-        userId={user?.id}
+        clinicId={clinicId ?? undefined}
+        locationIds={scopedLocationIds}
         initialDate={typeof params.date === 'string' ? params.date : undefined}
         applicationReturnTo="calendar-tab"
         onRefreshStateChange={setRefreshState}

@@ -7,7 +7,13 @@ import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
+import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
+import { formatPostedDateLabel } from '@/lib/dates';
+import {
+  formatWorkerPostLocation,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -35,14 +41,16 @@ export function FillInListingCard({
   const resolvedAccent = accent ?? tabAccent;
   const featuredTreatment = useFeaturedListingTreatment(resolvedAccent);
   const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
-  const locationBase = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
-  const location = distanceLabel
-    ? locationBase
-      ? `${locationBase} • ${distanceLabel}`
-      : distanceLabel
-    : locationBase;
+  const location = formatWorkerPostLocation(shift, distanceLabel);
   const roleTitle = formatShiftPostRoleTitle(shift.role_type);
   const detail = formatShiftPostMeta(shift);
+  const postedLabel =
+    buildPostedByLabel({
+      postedAt: shift.created_at,
+      postedByDisplayName: shift.posted_by_display_name,
+      postedByTitle: shift.posted_by_title,
+      formatDateLabel: formatPostedDateLabel,
+    }) ?? null;
 
   const styles = useThemedStyles(({ spacing }) => ({
     cardContent: {
@@ -82,10 +90,11 @@ export function FillInListingCard({
         <ClinicPostHeader
           layout="split"
           clinicName={shift.clinic.clinic_name}
-          logoStoragePath={shift.clinic.logo_storage_path}
+          logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
           title={roleTitle}
           location={location || null}
           detail={detail || null}
+          postedLabel={postedLabel}
           textFooter={
             shift.compensation ? (
               <Text style={styles.compensation}>{shift.compensation}</Text>

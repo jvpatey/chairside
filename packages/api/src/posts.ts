@@ -638,8 +638,17 @@ export type ClinicSummary = {
   logo_storage_path: string | null;
 };
 
+export type PostLocationSummary = {
+  id: string;
+  name: string;
+  city: string | null;
+  province: string;
+  logo_storage_path: string | null;
+};
+
 export type LiveJobPost = JobPost & {
   clinic: ClinicSummary;
+  location?: PostLocationSummary | null;
   screening_questions: ScreeningQuestion[];
   /** Pro plan: surfaced first in worker browse lists. */
   has_priority_listing: boolean;
@@ -647,6 +656,7 @@ export type LiveJobPost = JobPost & {
 
 export type LiveShiftPost = ShiftPost & {
   clinic: ClinicSummary;
+  location?: PostLocationSummary | null;
   /** Pro plan: surfaced first in worker browse lists. */
   has_priority_listing: boolean;
 };
@@ -751,6 +761,46 @@ function attachPriorityListing<T extends { clinic_id: string }>(
   };
 }
 
+async function fetchPostLocationMap(
+  locationIds: Array<string | null | undefined>,
+): Promise<Map<string, PostLocationSummary>> {
+  const ids = [...new Set(locationIds.filter(Boolean) as string[])];
+  if (ids.length === 0) return new Map();
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('clinic_locations')
+    .select('id, name, city, province, logo_storage_path')
+    .in('id', ids)
+    .eq('is_active', true);
+
+  if (error) throw error;
+
+  return new Map(
+    (data ?? []).map((row) => [
+      row.id as string,
+      {
+        id: row.id as string,
+        name: row.name as string,
+        city: (row.city as string | null) ?? null,
+        province: row.province as string,
+        logo_storage_path: (row.logo_storage_path as string | null) ?? null,
+      },
+    ]),
+  );
+}
+
+function attachPostLocation<T extends { location_id?: string | null }>(
+  post: T,
+  locationMap: Map<string, PostLocationSummary>,
+): T & { location: PostLocationSummary | null } {
+  const locationId = post.location_id;
+  return {
+    ...post,
+    location: locationId ? (locationMap.get(locationId) ?? null) : null,
+  };
+}
+
 function sortPostsByClinicPlanPriority<T extends { clinic_id: string; created_at?: string }>(
   posts: T[],
   planMap: Map<string, ClinicPlan>,
@@ -783,12 +833,16 @@ export async function listLiveJobPosts(province: string): Promise<LiveJobPost[]>
 
   if (error) throw error;
   const posts = attachClinic((data ?? []) as JobPost[], clinicMap);
+  const locationMap = await fetchPostLocationMap(posts.map((post) => post.location_id));
   const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
   const sortedPosts = sortPostsByClinicPlanPriority(posts, planMap, (left, right) =>
     right.created_at.localeCompare(left.created_at),
   );
   return sortedPosts.map((post) =>
-    attachPriorityListing({ ...post, screening_questions: [] }, planMap),
+    attachPriorityListing(
+      attachPostLocation({ ...post, screening_questions: [] }, locationMap),
+      planMap,
+    ),
   );
 }
 
@@ -810,12 +864,13 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
 
   if (error) throw error;
   const posts = attachClinic((data ?? []) as ShiftPost[], clinicMap);
+  const locationMap = await fetchPostLocationMap(posts.map((post) => post.location_id));
   const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
   return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
     const dateCompare = left.shift_date.localeCompare(right.shift_date);
     if (dateCompare !== 0) return dateCompare;
     return left.created_at.localeCompare(right.created_at);
-  }).map((post) => attachPriorityListing(post, planMap));
+  }).map((post) => attachPriorityListing(attachPostLocation(post, locationMap), planMap));
 }
 
 function shiftWeekday(shiftDate: string): number {
@@ -889,11 +944,15 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
     : [];
 
   const planMap = await getClinicPlanMap([data.clinic_id as string]);
-  const base = {
-    ...(data as JobPost),
-    clinic,
-    screening_questions: screeningQuestions,
-  };
+  const locationMap = await fetchPostLocationMap([(data as JobPost).location_id]);
+  const base = attachPostLocation(
+    {
+      ...(data as JobPost),
+      clinic,
+      screening_questions: screeningQuestions,
+    },
+    locationMap,
+  );
   return attachPriorityListing(base, planMap);
 }
 
@@ -915,10 +974,14 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
   if (!clinic) return null;
 
   const planMap = await getClinicPlanMap([data.clinic_id as string]);
-  const base = {
-    ...(data as ShiftPost),
-    clinic,
-  };
+  const locationMap = await fetchPostLocationMap([(data as ShiftPost).location_id]);
+  const base = attachPostLocation(
+    {
+      ...(data as ShiftPost),
+      clinic,
+    },
+    locationMap,
+  );
   return attachPriorityListing(base, planMap);
 }
 

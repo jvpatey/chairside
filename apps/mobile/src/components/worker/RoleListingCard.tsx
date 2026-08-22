@@ -9,7 +9,12 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
+import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
 import { formatPostedDateLabel } from '@/lib/dates';
+import {
+  formatWorkerPostLocation,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
 import { fontSemibold, useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
@@ -37,14 +42,15 @@ export function RoleListingCard({
   embedded = false,
 }: RoleListingCardProps) {
   const featuredTreatment = useFeaturedListingTreatment();
-  const locationBase = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
-  const location = distanceLabel
-    ? locationBase
-      ? `${locationBase} • ${distanceLabel}`
-      : distanceLabel
-    : locationBase;
+  const location = formatWorkerPostLocation(job, distanceLabel);
   const detail = formatJobPostCardMeta(job);
-  const postedLabel = formatPostedDateLabel(job.created_at) || null;
+  const postedLabel =
+    buildPostedByLabel({
+      postedAt: job.created_at,
+      postedByDisplayName: job.posted_by_display_name,
+      postedByTitle: job.posted_by_title,
+      formatDateLabel: formatPostedDateLabel,
+    }) ?? formatPostedDateLabel(job.created_at) ?? null;
   const statusLabel = applicationStatus
     ? formatApplicationStatus(applicationStatus, 'job')
     : null;
@@ -121,7 +127,7 @@ export function RoleListingCard({
         <ClinicPostHeader
           layout="split"
           clinicName={job.clinic.clinic_name}
-          logoStoragePath={job.clinic.logo_storage_path}
+          logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
           title={job.title}
           location={location || null}
           detail={detail || null}

@@ -52,6 +52,7 @@ import {
   type WorkerDistanceFilter,
 } from '@/lib/postingFilters';
 import {
+  CLINIC_PROFILE_LOCATIONS,
   CLINIC_PROFILE_PRACTICE,
   getClinicDiscoverJobDetailRoute,
   getClinicDiscoverShiftDetailRoute,
@@ -64,7 +65,7 @@ import { fontRegular, useThemedStyles } from '@/theme';
 
 export default function ClinicDiscoverScreen() {
   const { user } = useAuth();
-  const { clinicProfile } = useClinicProfile();
+  const { clinicProfile, isGroup } = useClinicProfile();
   const { billing, upgradePrompt, showDiscoverUpgrade } = useClinicUpgradePrompt();
   const { isTablet, isWide } = useResponsiveLayout();
   const { tab, returnTo } = useLocalSearchParams<{ tab?: string; returnTo?: string }>();
@@ -328,9 +329,15 @@ export default function ClinicDiscoverScreen() {
       embedded
       icon="location-outline"
       title="Add your clinic province"
-      message="Discover shows live roles and fill-ins from other clinics in your province."
-      ctaLabel="Update practice profile"
-      onCtaPress={() => router.push(CLINIC_PROFILE_PRACTICE)}
+      message={
+        isGroup
+          ? 'Discover shows live roles and fill-ins from other clinics in your province. Add a complete location address first.'
+          : 'Discover shows live roles and fill-ins from other clinics in your province.'
+      }
+      ctaLabel={isGroup ? 'Update locations' : 'Update practice profile'}
+      onCtaPress={() =>
+        router.push(isGroup ? CLINIC_PROFILE_LOCATIONS : CLINIC_PROFILE_PRACTICE)
+      }
     />
   ) : isLoading && !hasCachedData ? (
     <PageLoadingList message="Loading discover…" />

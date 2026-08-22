@@ -42,6 +42,7 @@ import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicListingViewMode } from '@/hooks/useClinicListingViewMode';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
@@ -76,7 +77,7 @@ export default function ClinicPostingsScreen() {
   const { mode, setMode, isWide, supportsListView } = useClinicListingViewMode('roles');
   const tableMode = isWide && supportsListView;
   const { user } = useAuth();
-  const { clinicId, scopedLocationIds } = useClinicActingContext();
+  const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
   const { clinicProfile, isProfileComplete, locations, isGroup, accessibleLocations } =
     useClinicProfile();
   const roleTableColumns = useMemo(
@@ -264,6 +265,8 @@ export default function ClinicPostingsScreen() {
   const historyDetail =
     historyCounts.archived === 1 ? '1 archived role' : `${historyCounts.archived} archived roles`;
 
+  const showScopeChip = isGroup && accessibleLocations.length > 1;
+
   return (
     <>
       {upgradePrompt}
@@ -271,7 +274,8 @@ export default function ClinicPostingsScreen() {
         title="Roles"
         subtitle="Open roles at your clinic."
         refreshing={refreshing}
-        onRefresh={onRefresh}>
+        onRefresh={onRefresh}
+        headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
         <View style={styles.wrap}>
           <DashboardQuickActionTile
             label="Post role"

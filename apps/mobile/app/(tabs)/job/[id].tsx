@@ -31,13 +31,17 @@ import {
   parseWorkerPostingReturnParams,
 } from '@/lib/routing';
 import { guardApply } from '@/lib/workerGuard';
+import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
+import { formatPostedDateLabel } from '@/lib/dates';
+import {
+  formatWorkerPostLocation,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
 import {
   buildLiveJobMatchDisplayContext,
   computeJobMatchBreakdown,
 } from '@/lib/workerMatch';
 import { useThemedStyles } from '@/theme';
-
-export default function WorkerJobDetailScreen() {
   const { user } = useAuth();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { id, returnTo, applicationId, applicationReturnTo } = useLocalSearchParams<{
@@ -142,7 +146,14 @@ export default function WorkerJobDetailScreen() {
     );
   }
 
-  const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+  const location = formatWorkerPostLocation(job);
+  const postedLabel =
+    buildPostedByLabel({
+      postedAt: job.created_at,
+      postedByDisplayName: job.posted_by_display_name,
+      postedByTitle: job.posted_by_title,
+      formatDateLabel: formatPostedDateLabel,
+    }) ?? null;
   const jobMatch = workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
   const matchContext = workerProfile
     ? buildLiveJobMatchDisplayContext(workerProfile, job)
@@ -194,9 +205,10 @@ export default function WorkerJobDetailScreen() {
           }>
           <ClinicPostHeader
             clinicName={job.clinic.clinic_name}
-            logoStoragePath={job.clinic.logo_storage_path}
+            logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
             location={location || null}
             detail={getSpecialtyLabel(job.clinic.specialty)}
+            postedLabel={postedLabel}
           />
           <ClinicProfileLinkFooter />
         </SurfaceCard>

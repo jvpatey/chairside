@@ -39,7 +39,7 @@ export function ClinicMessagingPreferences({
   variant = 'default',
 }: ClinicMessagingPreferencesProps) {
   const { colors } = useTheme();
-  const { clinicProfile, refreshClinicProfile } = useClinicProfile();
+  const { clinicProfile, refreshClinicProfile, isOwner } = useClinicProfile();
   const { save } = useClinicSetupSave();
   const { billing, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
     useClinicUpgradePrompt();
@@ -154,6 +154,7 @@ export function ClinicMessagingPreferences({
   };
 
   const handleToggle = (value: boolean) => {
+    if (!isOwner) return;
     if (messagingLocked && value) {
       showGeneralMessagingUpgrade();
       return;
@@ -171,9 +172,11 @@ export function ClinicMessagingPreferences({
   };
 
   const title = 'Let candidates message you without applying';
-  const hint = messagingLocked
-    ? 'Upgrade to Pro for open inquiries. You can already message applicants.'
-    : 'Candidates in your province can message your clinic even when they are not applying. You can also browse candidates who opted in.';
+  const hint = !isOwner
+    ? 'Only the group owner can change open inquiries for the organization.'
+    : messagingLocked
+      ? 'Upgrade to Pro for open inquiries. You can already message applicants.'
+      : 'Candidates in your province can message your clinic even when they are not applying. You can also browse candidates who opted in.';
 
   if (!compact) {
     return (
@@ -183,7 +186,7 @@ export function ClinicMessagingPreferences({
           title={title}
           hint={hint}
           value={acceptsGeneralMessages}
-          disabled={isSaving}
+          disabled={isSaving || !isOwner}
           onValueChange={handleToggle}
         />
       </>
@@ -226,7 +229,7 @@ export function ClinicMessagingPreferences({
           <View style={styles.switchWrap}>
             <ThemedSwitch
               value={acceptsGeneralMessages}
-              disabled={isSaving}
+              disabled={isSaving || !isOwner}
               onValueChange={handleToggle}
             />
           </View>
