@@ -10,6 +10,7 @@ import {
   formatClinicRoleCompactMeta,
   getClinicRoleTableColumns,
   resolveClinicJobLocationLabel,
+  resolveClinicJobLocationParts,
 } from './clinicPostingListDisplay';
 
 describe('clinicPostingListDisplay', () => {
@@ -63,6 +64,16 @@ describe('clinicPostingListDisplay', () => {
     expect(
       resolveClinicJobLocationLabel({ location_id: null }, [], { city: 'Halifax', province: 'NS' }),
     ).toBe('Halifax, NS');
+    expect(
+      resolveClinicJobLocationParts(
+        { location_id: 'loc-1' },
+        [{ id: 'loc-1', name: 'Downtown', city: 'Halifax', province: 'NS' }],
+        { city: 'Bedford', province: 'NS' },
+      ),
+    ).toEqual({
+      siteName: 'Downtown',
+      placeLabel: 'Halifax, NS',
+    });
   });
 
   it('formats compact role meta lines', () => {

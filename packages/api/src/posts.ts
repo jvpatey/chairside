@@ -14,6 +14,7 @@ import {
   type ScreeningQuestion,
   type ScreeningQuestionInput,
 } from './screening';
+import type { ClinicAccountType } from './types';
 
 export type { RoleType } from '@chairside/config';
 export type JobPostStatus = 'live' | 'paused' | 'filled' | 'closed';
@@ -636,7 +637,15 @@ export type ClinicSummary = {
   latitude: number | null;
   longitude: number | null;
   logo_storage_path: string | null;
+  /** Present on marketplace listing summaries; omit/undefined treated as individual. */
+  account_type?: ClinicAccountType;
 };
+
+export function isClinicSummaryGroup(
+  clinic: Pick<ClinicSummary, 'account_type'> | null | undefined,
+): boolean {
+  return clinic?.account_type === 'group';
+}
 
 export type PostLocationSummary = {
   id: string;
@@ -692,7 +701,12 @@ type ClinicListingSummaryRow = {
   latitude: number | null;
   longitude: number | null;
   logo_storage_path: string | null;
+  account_type?: string | null;
 };
+
+function mapClinicAccountType(value: string | null | undefined): ClinicAccountType {
+  return value === 'group' ? 'group' : 'individual';
+}
 
 function mapClinicListingSummaryRow(row: ClinicListingSummaryRow): ClinicSummary {
   return {
@@ -700,11 +714,12 @@ function mapClinicListingSummaryRow(row: ClinicListingSummaryRow): ClinicSummary
     clinic_name: row.clinic_name,
     city: row.city,
     province: row.province,
-    specialty: row.specialty,
+    specialty: row.specialty ?? 'general',
     software_used: row.software_used ?? [],
     latitude: row.latitude,
     longitude: row.longitude,
     logo_storage_path: row.logo_storage_path ?? null,
+    account_type: mapClinicAccountType(row.account_type),
   };
 }
 

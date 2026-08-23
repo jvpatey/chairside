@@ -10,7 +10,7 @@ export const cardShellRadii = {
 
 /** Minimum heights by card family — keeps sections visually cohesive. */
 export const cardMinHeights = {
-  listingTile: 116,
+  listingTile: 100,
   applicationTile: 132,
   dashboardTile: 108,
 } as const;

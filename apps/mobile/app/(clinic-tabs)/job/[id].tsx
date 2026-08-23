@@ -12,6 +12,7 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
 import { resolveClinicJobLocationLabel } from '@/lib/clinicPostingListDisplay';
 import { getEditJobRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
@@ -80,6 +81,11 @@ export default function JobDetailScreen() {
   const locationLabel = isGroup
     ? resolveClinicJobLocationLabel(job, locations, clinicProfile)
     : null;
+  const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
+    postedAt: job.created_at,
+    postedByDisplayName: job.posted_by_display_name,
+    postedByTitle: job.posted_by_title,
+  });
 
   return (
     <FormScreen
@@ -106,7 +112,12 @@ export default function JobDetailScreen() {
         </View>
       }>
       <View style={styles.content}>
-        <JobPostDetailView job={job} locationLabel={locationLabel || null} />
+        <JobPostDetailView
+          job={job}
+          locationLabel={locationLabel || null}
+          postedByLabel={postedByLabel}
+          postedOnLabel={postedOnLabel}
+        />
       </View>
     </FormScreen>
   );

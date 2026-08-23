@@ -32,6 +32,8 @@ type ShiftPostDetailViewProps = {
   heroAccessory?: ReactNode;
   /** Site location for group postings (Shift details section). */
   locationLabel?: string | null;
+  postedByLabel?: string | null;
+  postedOnLabel?: string | null;
 };
 
 export function ShiftPostDetailView({
@@ -43,6 +45,8 @@ export function ShiftPostDetailView({
   section = 'full',
   heroAccessory,
   locationLabel,
+  postedByLabel,
+  postedOnLabel,
 }: ShiftPostDetailViewProps) {
   const { colors } = useTheme();
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
@@ -178,6 +182,16 @@ export function ShiftPostDetailView({
         {description ? (
           <CardDetailSection title="Notes" divided>
             <DetailProse text={description} />
+          </CardDetailSection>
+        ) : null}
+        {postedByLabel?.trim() ? (
+          <CardDetailSection title="Posted by" divided>
+            <DetailProse text={postedByLabel} />
+          </CardDetailSection>
+        ) : null}
+        {postedOnLabel?.trim() ? (
+          <CardDetailSection title="Posted on" divided>
+            <DetailProse text={postedOnLabel} />
           </CardDetailSection>
         ) : null}
       </SurfaceCard>

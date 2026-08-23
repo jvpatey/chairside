@@ -1,11 +1,15 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import type { TextStyle } from 'react-native';
+import type { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { ListingMetaIconRow } from '@/components/ui/ListingMetaIconRow';
 import { CardContentSection, CardSectionDivider } from '@/components/ui/CardTitleSection';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 function renderPostedLabel(
   label: string | ReactNode,
@@ -31,6 +35,8 @@ type ClinicPostHeaderProps = {
   /** Pipeline status between location and detail (application list cards). */
   statusLabel?: ReactNode;
   detail?: string | null;
+  /** Icon for the detail meta row when `metaIcons` is on. Default briefcase. */
+  detailIcon?: IoniconName;
   postedLabel?: string | ReactNode | null;
   /** Split content: first line in tinted band (e.g. status label). */
   contentHeader?: ReactNode;
@@ -60,6 +66,8 @@ type ClinicPostHeaderProps = {
   layout?: 'stacked' | 'split';
   /** Split layout: row between identity and divider (e.g. status + save). */
   preDividerRow?: ReactNode;
+  /** Show location/detail as icon meta rows on detail clinic cards. */
+  metaIcons?: boolean;
 };
 
 export function ClinicPostHeader({
@@ -69,6 +77,7 @@ export function ClinicPostHeader({
   location,
   statusLabel,
   detail,
+  detailIcon = 'briefcase-outline',
   postedLabel,
   contentHeader,
   locationTrailing,
@@ -83,6 +92,7 @@ export function ClinicPostHeader({
   stackedAccessory = false,
   layout = 'stacked',
   preDividerRow,
+  metaIcons = false,
 }: ClinicPostHeaderProps) {
   const logoUri = useClinicLogoUri(logoStoragePath);
   const { spacing } = useTheme();
@@ -130,6 +140,7 @@ export function ClinicPostHeader({
       fontWeight: '700',
       letterSpacing: -0.3,
       color: colors.labelPrimary,
+      flexShrink: 1,
     },
     location: {
       fontSize: 15,
@@ -208,6 +219,30 @@ export function ClinicPostHeader({
     },
   }));
 
+  const clinicTitle = (
+    <Text style={styles.title} numberOfLines={2}>
+      {clinicName}
+    </Text>
+  );
+
+  const locationNode =
+    location && metaIcons ? (
+      <ListingMetaIconRow icon="location-outline" label={location} numberOfLines={2} />
+    ) : location ? (
+      <Text style={styles.location} numberOfLines={2}>
+        {location}
+      </Text>
+    ) : null;
+
+  const detailNode =
+    detail && metaIcons ? (
+      <ListingMetaIconRow icon={detailIcon} label={detail} numberOfLines={2} />
+    ) : detail ? (
+      <Text style={styles.meta} numberOfLines={2}>
+        {detail}
+      </Text>
+    ) : null;
+
   const identityBlock = (
     <View style={styles.mainRow}>
       <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={avatarSize} />
@@ -215,9 +250,7 @@ export function ClinicPostHeader({
         <View style={styles.titleRow}>
           <View style={styles.textColumn}>
             {showClinicAsTitle ? (
-              <Text style={styles.title} numberOfLines={2}>
-                {clinicName}
-              </Text>
+              clinicTitle
             ) : (
               <>
                 <Text style={styles.eyebrow} numberOfLines={headerOnlySplit ? 3 : 2}>
@@ -228,27 +261,11 @@ export function ClinicPostHeader({
                 </Text>
               </>
             )}
-            {!isSplit && location ? (
-              <Text style={styles.location} numberOfLines={2}>
-                {location}
-              </Text>
-            ) : null}
-            {headerOnlySplit && location ? (
-              <Text style={styles.location} numberOfLines={2}>
-                {location}
-              </Text>
-            ) : null}
+            {!isSplit && locationNode}
+            {headerOnlySplit && locationNode}
             {headerOnlySplit && statusLabel ? <View>{statusLabel}</View> : null}
-            {!isSplit && detail ? (
-              <Text style={styles.meta} numberOfLines={2}>
-                {detail}
-              </Text>
-            ) : null}
-            {headerOnlySplit && detail ? (
-              <Text style={styles.meta} numberOfLines={2}>
-                {detail}
-              </Text>
-            ) : null}
+            {!isSplit && detailNode}
+            {headerOnlySplit && detailNode}
             {!isSplit && postedLabel ? renderPostedLabel(postedLabel, styles.posted) : null}
             {headerOnlySplit && postedLabel ? renderPostedLabel(postedLabel, styles.posted, 2) : null}
             {headerOnlySplit && footer ? <View style={styles.footer}>{footer}</View> : null}
@@ -270,9 +287,15 @@ export function ClinicPostHeader({
       {!headerOnlySplit && (location || locationTrailing) ? (
         <View style={styles.metaFooterRow}>
           {location ? (
-            <Text style={[styles.location, styles.metaFooterLabel]} numberOfLines={1}>
-              {location}
-            </Text>
+            metaIcons ? (
+              <View style={styles.metaFooterLabel}>
+                <ListingMetaIconRow icon="location-outline" label={location} />
+              </View>
+            ) : (
+              <Text style={[styles.location, styles.metaFooterLabel]} numberOfLines={1}>
+                {location}
+              </Text>
+            )
           ) : (
             <View style={styles.metaFooterLabel} />
           )}
@@ -282,11 +305,7 @@ export function ClinicPostHeader({
         </View>
       ) : null}
       {!headerOnlySplit && statusLabel ? <View>{statusLabel}</View> : null}
-      {!headerOnlySplit && detail ? (
-        <Text style={styles.meta} numberOfLines={2}>
-          {detail}
-        </Text>
-      ) : null}
+      {!headerOnlySplit && detailNode}
       {!headerOnlySplit && postedLabel && textFooter && !detailAccessory ? (
         <View style={styles.metaFooterRow}>
           {renderPostedLabel(postedLabel, [styles.posted, styles.metaFooterLabel])}

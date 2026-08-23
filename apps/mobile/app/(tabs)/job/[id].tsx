@@ -31,10 +31,10 @@ import {
   parseWorkerPostingReturnParams,
 } from '@/lib/routing';
 import { guardApply } from '@/lib/workerGuard';
-import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
-import { formatPostedDateLabel } from '@/lib/dates';
+import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
 import {
   formatWorkerPostLocation,
+  resolveWorkerPostLocationParts,
   resolveWorkerPostLogoStoragePath,
 } from '@/lib/workerPostLocation';
 import {
@@ -149,13 +149,12 @@ export default function WorkerJobDetailScreen() {
   }
 
   const location = formatWorkerPostLocation(job);
-  const postedLabel =
-    buildPostedByLabel({
-      postedAt: job.created_at,
-      postedByDisplayName: job.posted_by_display_name,
-      postedByTitle: job.posted_by_title,
-      formatDateLabel: formatPostedDateLabel,
-    }) ?? null;
+  const { displayName, placeLabel } = resolveWorkerPostLocationParts(job);
+  const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
+    postedAt: job.created_at,
+    postedByDisplayName: job.posted_by_display_name,
+    postedByTitle: job.posted_by_title,
+  });
   const jobMatch = workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
   const matchContext = workerProfile
     ? buildLiveJobMatchDisplayContext(workerProfile, job)
@@ -206,11 +205,12 @@ export default function WorkerJobDetailScreen() {
             )
           }>
           <ClinicPostHeader
-            clinicName={job.clinic.clinic_name}
+            clinicName={displayName}
             logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
-            location={location || null}
+            location={placeLabel}
             detail={getSpecialtyLabel(job.clinic.specialty)}
-            postedLabel={postedLabel}
+            detailIcon="medkit-outline"
+            metaIcons
           />
           <ClinicProfileLinkFooter />
         </SurfaceCard>
@@ -218,6 +218,8 @@ export default function WorkerJobDetailScreen() {
           job={job}
           part="body"
           locationLabel={job.location ? location : null}
+          postedByLabel={postedByLabel}
+          postedOnLabel={postedOnLabel}
         />
       </View>
     </FormScreen>

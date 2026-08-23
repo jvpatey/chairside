@@ -28,6 +28,7 @@ export type PublicClinicProfile = {
   team_size_range: string | null;
   practice_doctors: PracticeDoctor[];
   accepts_general_candidate_messages: boolean;
+  account_type: 'individual' | 'group';
   /** Set when the org is on Clinic Pro or Group Pro — shown on worker-facing public profiles. */
   is_pro_clinic: boolean;
   pro_badge_plan: PublicClinicProBadgePlan | null;
@@ -40,7 +41,7 @@ export type PublicClinicPostings = {
 };
 
 const PUBLIC_CLINIC_SELECT =
-  'id, clinic_name, city, province, address_line1, address_line2, postal_code, latitude, longitude, specialty, software_used, logo_storage_path, description, website, team_size_range, practice_doctors, accepts_general_candidate_messages, setup_completed_at' as const;
+  'id, clinic_name, city, province, address_line1, address_line2, postal_code, latitude, longitude, specialty, software_used, logo_storage_path, description, website, team_size_range, practice_doctors, accepts_general_candidate_messages, account_type, setup_completed_at' as const;
 
 function mapPublicClinicProfile(
   row: {
@@ -61,6 +62,7 @@ function mapPublicClinicProfile(
     team_size_range: string | null;
     practice_doctors: unknown;
     accepts_general_candidate_messages: boolean;
+    account_type?: string | null;
   },
   proBadgePlan: PublicClinicProBadgePlan | null = null,
 ): PublicClinicProfile {
@@ -82,6 +84,7 @@ function mapPublicClinicProfile(
     team_size_range: row.team_size_range,
     practice_doctors: normalizePracticeDoctors(row.practice_doctors),
     accepts_general_candidate_messages: row.accepts_general_candidate_messages,
+    account_type: row.account_type === 'group' ? 'group' : 'individual',
     is_pro_clinic: proBadgePlan != null,
     pro_badge_plan: proBadgePlan,
   };
@@ -98,6 +101,7 @@ function toClinicSummary(profile: PublicClinicProfile): ClinicSummary {
     latitude: profile.latitude,
     longitude: profile.longitude,
     logo_storage_path: profile.logo_storage_path,
+    account_type: profile.account_type,
   };
 }
 

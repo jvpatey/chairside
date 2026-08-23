@@ -29,6 +29,8 @@ type JobPostDetailViewProps = {
   heroAccessory?: ReactNode;
   /** Site location for group postings (Practice section). */
   locationLabel?: string | null;
+  postedByLabel?: string | null;
+  postedOnLabel?: string | null;
 };
 
 export function JobPostDetailView({
@@ -36,6 +38,8 @@ export function JobPostDetailView({
   part = 'all',
   heroAccessory,
   locationLabel,
+  postedByLabel,
+  postedOnLabel,
 }: JobPostDetailViewProps) {
   const { colors } = useTheme();
   const metaLine = formatJobPostRoleMeta(job);
@@ -154,6 +158,18 @@ export function JobPostDetailView({
             {description ? (
               <CardDetailSection title="About" divided>
                 <DetailProse text={description} />
+              </CardDetailSection>
+            ) : null}
+
+            {postedByLabel?.trim() ? (
+              <CardDetailSection title="Posted by" divided>
+                <DetailProse text={postedByLabel} />
+              </CardDetailSection>
+            ) : null}
+
+            {postedOnLabel?.trim() ? (
+              <CardDetailSection title="Posted on" divided>
+                <DetailProse text={postedOnLabel} />
               </CardDetailSection>
             ) : null}
           </SurfaceCard>

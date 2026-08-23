@@ -1,29 +1,25 @@
 import type { ShiftPost } from '@chairside/api';
 import { router } from 'expo-router';
-import {
-  LayoutAnimation,
-  Platform,
-  Text,
-  UIManager,
-  View,
-} from 'react-native';
+import { LayoutAnimation, Platform, UIManager, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
 import { ShiftPostManageMenu } from '@/components/clinic/ShiftPostManageMenu';
 import { ShiftPostStatusBadge } from '@/components/clinic/ShiftPostStatusBadge';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { CountBadge, formatRequestCountLabel } from '@/components/ui/CountBadge';
 import { BadgeRow } from '@/components/ui/BadgeRow';
+import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ExpandableSurfaceCard } from '@/components/ui/ExpandableSurfaceCard';
-import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
+import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
-import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
-import { resolveClinicJobLocationLabel } from '@/lib/clinicPostingListDisplay';
-import { formatPostedDateLabel } from '@/lib/dates';
+import { resolveClinicJobLocationLabel, resolveClinicJobLocationParts } from '@/lib/clinicPostingListDisplay';
+import { buildFillInListingMetaRows } from '@/lib/listingCardDisplay';
 import {
   formatShiftPostMeta,
   formatShiftPostRoleTitle,
@@ -33,7 +29,7 @@ import {
   getEditShiftRoute,
   type FillInReturnTarget,
 } from '@/lib/routing';
-import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { useThemedStyles, type GradientAccent } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -66,33 +62,23 @@ export function FillInPostingCard({
   accent = 'secondary',
   embedded = false,
 }: FillInPostingCardProps) {
-  const { colors } = useTheme();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment(accent);
-  const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const { clinicProfile, locations, isGroup } = useClinicProfile();
   const logoStoragePath = useResolvedClinicLogoPath(shift.location_id);
+  const logoUri = useClinicLogoUri(logoStoragePath);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
+  const { siteName, placeLabel } = resolveClinicJobLocationParts(shift, locations, clinicProfile);
   const location = resolveClinicJobLocationLabel(shift, locations, clinicProfile);
-  const postedLabel = buildPostedByLabel({
+  const subtitleName = isGroup ? siteName || clinicName : clinicName;
+  const shiftMeta = formatShiftPostMeta(shift);
+  const metaRows = buildFillInListingMetaRows({
+    location: placeLabel,
+    shiftMeta,
     postedAt: shift.created_at,
-    postedByDisplayName: shift.posted_by_display_name,
-    postedByTitle: shift.posted_by_title,
-    formatDateLabel: formatPostedDateLabel,
   });
 
   const styles = useThemedStyles(({ spacing }) => ({
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    compensation: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: brandColor,
-    },
     actions: {
       gap: spacing.sm,
     },
@@ -100,10 +86,6 @@ export function FillInPostingCard({
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-    },
-    headerActions: {
-      alignItems: 'flex-end',
-      gap: spacing.xs,
     },
     actionButton: {
       flex: 1,
@@ -120,35 +102,24 @@ export function FillInPostingCard({
   const isFeatured = shift.status === 'live' && Boolean(billing?.hasPriorityListing);
 
   const header = (
-    <ClinicPostHeader
-      layout="split"
-      clinicName={clinicName}
-      logoStoragePath={logoStoragePath}
+    <BrowseListRow
+      paddingless
+      avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={44} />}
       title={formatShiftPostRoleTitle(shift.role_type)}
-      location={location || null}
-      detail={formatShiftPostMeta(shift)}
-      postedLabel={postedLabel}
-      avatarSize={44}
-      accessory={
-        <View style={styles.headerActions}>
-          <BadgeRow>
-            {isFeatured ? <FeaturedListingBadge accent={accent} /> : null}
-            <ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />
-          </BadgeRow>
-        </View>
+      subtitle={<ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />}
+      metaRows={metaRows}
+      topTrailing={
+        <BadgeRow>
+          {isFeatured ? <FeaturedListingBadge accent={accent} /> : null}
+          <ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />
+        </BadgeRow>
       }
-      textFooter={
+      contentAccessory={
         pendingRequestCount > 0 ? (
           <CountBadge label={formatRequestCountLabel(pendingRequestCount)} />
         ) : null
       }
-      footer={
-        shift.compensation ? (
-          <View style={styles.footer}>
-            <Text style={styles.compensation}>{shift.compensation}</Text>
-          </View>
-        ) : null
-      }
+      showChevron={false}
     />
   );
 

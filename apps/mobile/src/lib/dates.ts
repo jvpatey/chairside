@@ -69,6 +69,13 @@ export function formatPostedDateLabel(isoTimestamp: string | null | undefined): 
   })}`;
 }
 
+/** Date-only label for detail rows (no "Posted" prefix). */
+export function formatPostedOnLabel(isoTimestamp: string | null | undefined): string | null {
+  const label = formatPostedDateLabel(isoTimestamp);
+  if (!label) return null;
+  return label.replace(/^Posted\s+/i, '') || null;
+}
+
 /** Compact relative age for list surfaces, e.g. "today", "2 days ago", "Jul 4, 2026". */
 export function formatRelativeApplicationAge(isoTimestamp: string | null | undefined): string | null {
   if (!isoTimestamp) return null;

@@ -184,8 +184,16 @@ export function DashboardCalendarWidget({
                 </Text>
                 <Text style={styles.eventMeta} numberOfLines={2}>
                   {formatEventTime(event.startsAt, event.endsAt)}
-                  {event.subtitle ? ` · ${event.subtitle}` : ''}
                 </Text>
+                {event.location ? (
+                  <Text style={styles.eventMeta} numberOfLines={1}>
+                    {event.location}
+                  </Text>
+                ) : event.subtitle ? (
+                  <Text style={styles.eventMeta} numberOfLines={1}>
+                    {event.subtitle}
+                  </Text>
+                ) : null}
               </View>
               {IS_WEB ? (
                 <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />

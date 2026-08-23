@@ -10,6 +10,7 @@ import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
@@ -22,11 +23,11 @@ import {
   formatClinicApplicantCount,
   formatClinicPostingTableLocation,
   formatClinicPostingPostedDate,
-  formatClinicRoleCompactMeta,
   getClinicRoleTableColumns,
-  resolveClinicJobLocationLabel,
+  resolveClinicJobLocationParts,
   type ClinicPostingTableColumn,
 } from '@/lib/clinicPostingListDisplay';
+import { buildRoleListingMetaRows } from '@/lib/listingCardDisplay';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { webTransition } from '@/theme/web';
@@ -65,12 +66,19 @@ export function ClinicRoleListRow({
   const logoUri = useClinicLogoUri(logoStoragePath);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const locationRecord = locations.find((location) => location.id === job.location_id);
+  const { siteName, placeLabel } = resolveClinicJobLocationParts(job, locations, clinicProfile);
   const locationLabel = formatClinicPostingTableLocation(
     locationRecord?.name,
     locationRecord?.city ?? clinicProfile?.city,
   );
-  const locationEyebrow = resolveClinicJobLocationLabel(job, locations, clinicProfile);
+  const groupSiteEyebrow = siteName || clinicName;
   const roleMeta = formatJobPostRoleMeta(job);
+  const subtitleName = isGroup ? groupSiteEyebrow : clinicName;
+  const metaRows = buildRoleListingMetaRows({
+    location: placeLabel,
+    roleMeta,
+    postedAt: job.created_at,
+  });
   const postedDate = formatClinicPostingPostedDate(job.created_at);
   const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
   const columns = columnsProp ?? getClinicRoleTableColumns(isGroup);
@@ -377,9 +385,9 @@ export function ClinicRoleListRow({
       <BrowseListRow
         compact
         avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
-        eyebrow={isGroup && locationEyebrow ? locationEyebrow : undefined}
         title={job.title}
-        meta={formatClinicRoleCompactMeta(job, applicantCount)}
+        subtitle={<ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />}
+        metaRows={metaRows}
         topTrailing={
           <BadgeRow>
             {isFeatured ? <FeaturedListingBadge /> : null}

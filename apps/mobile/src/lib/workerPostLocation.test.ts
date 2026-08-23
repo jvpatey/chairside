@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatWorkerListingCardLocation,
   formatWorkerPostLocation,
+  resolveWorkerPostLocationParts,
   resolveWorkerPostLogoStoragePath,
 } from '@/lib/workerPostLocation';
 
@@ -16,6 +18,33 @@ const clinic = {
   longitude: null,
   logo_storage_path: 'org-logo',
 };
+
+describe('resolveWorkerPostLocationParts', () => {
+  it('splits site name and geographic place for detail headers', () => {
+    expect(
+      resolveWorkerPostLocationParts({
+        clinic,
+        location: {
+          id: 'loc-1',
+          name: 'Downtown',
+          city: 'Halifax',
+          province: 'NS',
+          logo_storage_path: null,
+        },
+      }),
+    ).toEqual({
+      displayName: 'Downtown',
+      placeLabel: 'Halifax, NS',
+    });
+  });
+
+  it('falls back to clinic name and city when no location is attached', () => {
+    expect(resolveWorkerPostLocationParts({ clinic })).toEqual({
+      displayName: 'Smile Group',
+      placeLabel: 'Halifax, NS',
+    });
+  });
+});
 
 describe('formatWorkerPostLocation', () => {
   it('uses site name when a location is attached', () => {
@@ -39,6 +68,27 @@ describe('formatWorkerPostLocation', () => {
 
   it('appends distance when provided', () => {
     expect(formatWorkerPostLocation({ clinic }, '2 km')).toBe('Halifax, NS • 2 km');
+  });
+});
+
+describe('formatWorkerListingCardLocation', () => {
+  it('shows geographic place only, not site or clinic name', () => {
+    expect(
+      formatWorkerListingCardLocation({
+        clinic,
+        location: {
+          id: 'loc-1',
+          name: 'Downtown',
+          city: 'Halifax',
+          province: 'NS',
+          logo_storage_path: null,
+        },
+      }),
+    ).toBe('Halifax, NS');
+  });
+
+  it('appends distance when provided', () => {
+    expect(formatWorkerListingCardLocation({ clinic }, '2 km')).toBe('Halifax, NS • 2 km');
   });
 });
 
