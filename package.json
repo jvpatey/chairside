@@ -14,6 +14,7 @@
     "build:ios:preview": "pnpm --filter mobile exec eas build --platform ios --profile preview",
     "submit:ios": "pnpm --filter mobile exec eas submit --platform ios --profile production",
     "release:check": "bash scripts/verify-release-readiness.sh",
+    "verify": "bash scripts/verify.sh",
     "generate:reset-link": "bash scripts/generate-password-reset-link.sh"
   },
   "devDependencies": {

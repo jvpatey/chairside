@@ -1,5 +1,4 @@
 import {
-  getMissingClinicProfileFields,
   listClinicApplications,
   listJobPosts,
   getJobPostApplicationCountsMap,
@@ -12,7 +11,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
-  CLINIC_SETUP_BASICS,
   getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
   getClinicApplicationRoute,
@@ -20,7 +18,7 @@ import {
   getRoleHistoryRoute,
 } from '@/lib/routing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ClinicListingViewToggle } from '@/components/clinic/ClinicListingViewToggle';
@@ -44,12 +42,14 @@ import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicListingViewMode } from '@/hooks/useClinicListingViewMode';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { getClinicRoleTableColumns } from '@/lib/clinicPostingListDisplay';
 import {
   countHistoryJobs,
@@ -78,12 +78,9 @@ export default function ClinicPostingsScreen() {
   const { mode, setMode, isWide, supportsListView } = useClinicListingViewMode('roles');
   const tableMode = isWide && supportsListView;
   const { user } = useAuth();
-  const { clinicId, scopedLocationIds } = useClinicActingContext();
-  const { clinicProfile, isProfileComplete, accessibleLocations } = useClinicProfile();
-  const roleTableColumns = useMemo(
-    () => getClinicRoleTableColumns(accessibleLocations.length > 1),
-    [accessibleLocations.length],
-  );
+  const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
+  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
+  const roleTableColumns = useMemo(() => getClinicRoleTableColumns(isGroup), [isGroup]);
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
@@ -186,22 +183,14 @@ export default function ClinicPostingsScreen() {
   }));
 
   const guardPosting = (target: Href) => {
-    if (isProfileComplete) {
-      router.push(target);
-      return;
-    }
-
-    const missing = getMissingClinicProfileFields(clinicProfile);
-    Alert.alert(
-      'Complete your clinic profile',
-      missing.length > 0
-        ? `Add the following before posting: ${missing.join(', ')}`
-        : 'Finish your clinic profile to start posting.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue setup', onPress: () => router.push(CLINIC_SETUP_BASICS) },
-      ],
-    );
+    guardClinicPosting({
+      isProfileComplete,
+      clinicProfile,
+      locations,
+      isGroup,
+      target,
+      onAllowed: (href) => router.push(href),
+    });
   };
 
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
@@ -273,6 +262,8 @@ export default function ClinicPostingsScreen() {
   const historyDetail =
     historyCounts.archived === 1 ? '1 archived role' : `${historyCounts.archived} archived roles`;
 
+  const showScopeChip = isGroup && accessibleLocations.length > 1;
+
   return (
     <>
       {upgradePrompt}
@@ -280,7 +271,8 @@ export default function ClinicPostingsScreen() {
         title="Roles"
         subtitle="Open roles at your clinic."
         refreshing={refreshing}
-        onRefresh={onRefresh}>
+        onRefresh={onRefresh}
+        headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
         <View style={styles.wrap}>
           <DashboardQuickActionTile
             label="Post role"

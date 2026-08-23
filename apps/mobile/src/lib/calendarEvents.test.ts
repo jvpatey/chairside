@@ -86,6 +86,38 @@ describe('calendarEvents', () => {
     expect(getDayIndicators(sampleEvents, date)).toEqual({
       hasInterview: true,
       hasConfirmedFillIn: true,
+      hasOpenFillIn: false,
+    });
+  });
+
+  it('tracks open fill-in day indicators', () => {
+    const events: CalendarEvent[] = [
+      {
+        id: 'open-fill-in-1',
+        kind: 'open_fill_in',
+        startsAt: '2026-07-10T08:00:00',
+        endsAt: '2026-07-10T17:00:00',
+        title: 'Dental Hygienist',
+        subtitle: 'Downtown · Halifax, NS',
+        status: null,
+        applicationId: null,
+        jobPostId: null,
+        shiftPostId: 'shift-open',
+        postType: 'shift',
+        dateKey: '2026-07-10',
+        location: 'Downtown · Halifax, NS',
+        counterpartName: 'Downtown · Halifax, NS',
+        roleType: 'dental_hygienist',
+        shiftStartTime: '08:00',
+        shiftEndTime: '17:00',
+        durationMinutes: null,
+      },
+    ];
+    const date = parseISODate('2026-07-10')!;
+    expect(getDayIndicators(events, date)).toEqual({
+      hasInterview: false,
+      hasConfirmedFillIn: false,
+      hasOpenFillIn: true,
     });
   });
 

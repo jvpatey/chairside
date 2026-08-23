@@ -116,7 +116,7 @@ export async function purchaseBillingPackage(billingPackage: BillingPackage): Pr
 }
 
 export async function restoreRevenueCatPurchases(): Promise<ClinicPlan> {
-  return getCurrentClinicPlan() ?? 'free';
+  return (await getCurrentClinicPlan()) ?? 'free';
 }
 
 export function getClinicPlanFromCustomerInfo(customerInfo: CustomerInfo): ClinicPlan {

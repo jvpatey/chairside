@@ -56,7 +56,6 @@ export function buildMatchDisplayContext(
     ...context,
     postRoleLabel: context.postRoleType ? getRoleTypeLabel(context.postRoleType) : undefined,
     workerRoleLabel: workerRoles.length ? formatRoleTypesLabel(workerRoles) : undefined,
-    workerRoleLabels: workerRoles.map(getRoleTypeLabel),
     postEmploymentLabel: context.postEmploymentType
       ? getEmploymentTypeLabel(context.postEmploymentType)
       : undefined,

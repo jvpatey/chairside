@@ -88,7 +88,7 @@ export function normalizeWebBillingPriceAmount(price: {
   amount: number;
   amountMicros?: number;
 }): number | null {
-  if (Number.isFinite(price.amountMicros) && price.amountMicros > 0) {
+  if (price.amountMicros != null && Number.isFinite(price.amountMicros) && price.amountMicros > 0) {
     return price.amountMicros / 1_000_000;
   }
 

@@ -2,7 +2,7 @@ import type { JobPost } from '@chairside/api';
 import type { StyleProp, ViewStyle } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
+import { showJobPostManageMenu } from '@/components/clinic/showJobPostManageMenu';
 
 type JobPostManageMenuProps = {
   clinicId: string;

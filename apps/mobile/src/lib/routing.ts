@@ -173,6 +173,7 @@ export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const CLINIC_PROFILE_PRACTICE: Href = '/(clinic-tabs)/profile/practice' as Href;
 export const CLINIC_PROFILE_ABOUT: Href = '/(clinic-tabs)/profile/about' as Href;
 export const CLINIC_PROFILE_MEMBER: Href = '/(clinic-tabs)/profile/member' as Href;
+export const CLINIC_PROFILE_GROUP: Href = '/(clinic-tabs)/profile/group' as Href;
 export const CLINIC_PROFILE_LOCATIONS: Href = '/(clinic-tabs)/profile/locations' as Href;
 export const CLINIC_PROFILE_TEAM: Href = '/(clinic-tabs)/profile/team' as Href;
 export const CLINIC_PROFILE_MESSAGING: Href = '/(clinic-tabs)/profile/messaging' as Href;
@@ -964,6 +965,8 @@ export function navigateAfterWorkerApplication(
   }
   router.replace(WORKER_APPLICATIONS);
 }
+
+export type ApplyPostType = 'job' | 'shift';
 
 export function getApplyRoute(postType: ApplyPostType, postId: string): Href {
   return { pathname: '/(tabs)/apply', params: { postType, postId } } as unknown as Href;

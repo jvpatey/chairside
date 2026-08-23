@@ -266,33 +266,26 @@ export default function ClinicBasicsScreen() {
             invalid={showValidation && !basicsValidation.ok && !clinicName.trim()}
           />
           {isGroup ? (
-            <View style={styles.section}>
-              <FormSectionHeader
-                icon="person-circle-outline"
-                label="Your profile"
-                hint="Shown as your name and title when you post and manage the group."
-              />
-              <ClinicMemberProfileFields
-                displayName={memberDisplayName}
-                title={memberTitle}
-                bio={memberBio}
-                onDisplayNameChange={setMemberDisplayName}
-                onTitleChange={setMemberTitle}
-                onBioChange={setMemberBio}
-                photoUri={memberPhotoDisplayUri}
-                isUploadingPhoto={isUploadingPhoto}
-                hasPhoto={hasMemberPhoto}
-                onPickPhoto={() => void handlePickPhoto()}
-                onRemovePhoto={
-                  pendingPhoto
-                    ? () => setPendingPhoto(null)
-                    : undefined
-                }
-                showValidation={showValidation}
-                nameInvalid={membershipNameMissing}
-                displayNameRequired
-              />
-            </View>
+            <ClinicMemberProfileFields
+              displayName={memberDisplayName}
+              title={memberTitle}
+              bio={memberBio}
+              onDisplayNameChange={setMemberDisplayName}
+              onTitleChange={setMemberTitle}
+              onBioChange={setMemberBio}
+              photoUri={memberPhotoDisplayUri}
+              isUploadingPhoto={isUploadingPhoto}
+              hasPhoto={hasMemberPhoto}
+              onPickPhoto={() => void handlePickPhoto()}
+              onRemovePhoto={
+                pendingPhoto
+                  ? () => setPendingPhoto(null)
+                  : undefined
+              }
+              showValidation={showValidation}
+              nameInvalid={membershipNameMissing}
+              displayNameRequired
+            />
           ) : null}
           <View style={styles.section}>
             <FormSectionHeader

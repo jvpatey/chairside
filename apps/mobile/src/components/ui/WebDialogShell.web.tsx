@@ -45,7 +45,6 @@ export function WebDialogShell({
     backdrop: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.32)',
-      // @ts-expect-error web backdrop blur
       backdropFilter: 'blur(6px)',
       WebkitBackdropFilter: 'blur(6px)',
       ...webTransition(['background-color']),

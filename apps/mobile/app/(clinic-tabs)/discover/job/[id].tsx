@@ -13,6 +13,7 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getClinicDiscoverClinicProfileRoute } from '@/lib/routing';
+import { formatWorkerPostLocation, resolveWorkerPostLogoStoragePath } from '@/lib/workerPostLocation';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicDiscoverJobDetailScreen() {
@@ -68,7 +69,7 @@ export default function ClinicDiscoverJobDetailScreen() {
     );
   }
 
-  const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+  const location = formatWorkerPostLocation(job);
 
   return (
     <FormScreen
@@ -81,14 +82,14 @@ export default function ClinicDiscoverJobDetailScreen() {
           <ClinicPostHeader
             layout="split"
             clinicName={job.clinic.clinic_name}
-            logoStoragePath={job.clinic.logo_storage_path}
+            logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
             title={job.title}
             location={location || null}
             detail={formatJobPostRoleMeta(job)}
             avatarSize={44}
           />
         </SurfaceCard>
-        <JobPostDetailView job={job} />
+        <JobPostDetailView job={job} locationLabel={location || null} />
         <OnboardingButton
           label="View clinic profile"
           onPress={() =>

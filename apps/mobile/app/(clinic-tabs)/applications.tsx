@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
+import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ClinicRoleApplicantsPanel } from '@/components/clinic/ClinicRoleApplicantsPanel';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
@@ -100,7 +101,7 @@ function RoleApplicationSummaryRow({
 export default function ClinicApplicationsScreen() {
   const params = useLocalSearchParams<{ mode?: string; date?: string; jobId?: string }>();
   const { isProfileComplete } = useClinicProfile();
-  const { clinicId, scopedLocationIds } = useClinicActingContext();
+  const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
   const { isWide } = useResponsiveLayout();
   const [summaries, setSummaries] = useState<JobApplicationSummary[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -351,6 +352,8 @@ export default function ClinicApplicationsScreen() {
     </>
   );
 
+  const showScopeChip = isGroup && accessibleLocations.length > 1;
+
   return (
     <Screen
       title="Applications"
@@ -360,6 +363,7 @@ export default function ClinicApplicationsScreen() {
       scroll={!useSplit}
       fillsContainer={useSplit}
       constrainWidth={!useSplit}
+      headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}
       contentContainerStyle={
         useSplit
           ? { paddingHorizontal: 0, paddingBottom: 0, flex: 1, minHeight: 0 }

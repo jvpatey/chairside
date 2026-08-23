@@ -55,8 +55,55 @@ export function formatClinicPostingLocation(
   city?: string | null,
   province?: string | null,
 ): string {
-  const place = [city, province].filter(Boolean).join(', ');
+  const place = formatClinicPostingPlace(city, province);
   return [locationName, place].filter(Boolean).join(' · ');
+}
+
+export function formatClinicPostingPlace(
+  city?: string | null,
+  province?: string | null,
+): string {
+  return [city, province].filter(Boolean).join(', ');
+}
+
+export type ClinicJobLocationParts = {
+  siteName: string | null;
+  placeLabel: string;
+};
+
+export function resolveClinicJobLocationParts(
+  job: Pick<JobPost, 'location_id'>,
+  locations: readonly ClinicJobLocationRecord[],
+  clinicProfile?: { city?: string | null; province?: string | null } | null,
+): ClinicJobLocationParts {
+  const locationRecord = locations.find((location) => location.id === job.location_id);
+  return {
+    siteName: locationRecord?.name?.trim() || null,
+    placeLabel: formatClinicPostingPlace(
+      locationRecord?.city ?? clinicProfile?.city,
+      locationRecord?.province ?? clinicProfile?.province,
+    ),
+  };
+}
+
+export type ClinicJobLocationRecord = {
+  id: string;
+  name?: string | null;
+  city?: string | null;
+  province?: string | null;
+};
+
+export function resolveClinicJobLocationLabel(
+  job: Pick<JobPost, 'location_id'>,
+  locations: readonly ClinicJobLocationRecord[],
+  clinicProfile?: { city?: string | null; province?: string | null } | null,
+): string {
+  const locationRecord = locations.find((location) => location.id === job.location_id);
+  return formatClinicPostingLocation(
+    locationRecord?.name,
+    locationRecord?.city ?? clinicProfile?.city,
+    locationRecord?.province ?? clinicProfile?.province,
+  );
 }
 
 export function formatClinicPostingTableLocation(

@@ -14,7 +14,7 @@ import {
   getWorkerSetupGateDecision,
   type SetupGateDecision,
 } from '@/lib/setupGateDecision';
-import { isClinicGroupsEnabled } from '@chairside/api';
+import { isClinicGroupsEnabled, type WorkerProfile } from '@chairside/api';
 
 function renderGateDecision(
   decision: SetupGateDecision,
@@ -33,7 +33,7 @@ function renderGateDecision(
 
 export function ClinicSetupGate({ children }: { children: ReactNode }) {
   const { session, isAuthReady, isProfileReady, profile } = useAuth();
-  const { clinicProfile, isClinicProfileReady, membership, isOwner } = useClinicProfile();
+  const { clinicProfile, isClinicProfileReady, membership, isOwner, locations } = useClinicProfile();
   const hasShownAppRef = useRef(false);
 
   const decision = getClinicSetupGateDecision({
@@ -46,7 +46,8 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
     membership,
     isOwner,
     isClinicGroupsEnabled: isClinicGroupsEnabled(),
-    isClinicSetupComplete,
+    isClinicSetupComplete: (nextProfile) =>
+      isClinicSetupComplete(nextProfile, { locations }),
   });
 
   if (decision.type === 'children') {
@@ -71,7 +72,7 @@ export function WorkerSetupGate({ children }: { children: ReactNode }) {
     isProfileReady,
     isWorkerProfileReady,
     workerProfile,
-    isWorkerSetupComplete,
+    isWorkerSetupComplete: (profile) => isWorkerSetupComplete(profile as WorkerProfile),
   });
 
   if (decision.type === 'children') {

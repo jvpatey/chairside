@@ -20,11 +20,11 @@ export function WebPageEnter({
   animate = true,
   trigger = 'mount',
 }: WebPageEnterProps) {
+  const { opacity, translateY, ref } = useEnterAnimation(delayMs, { trigger });
+
   if (!animate) {
     return <View style={style}>{children}</View>;
   }
-
-  const { opacity, translateY, ref } = useEnterAnimation(delayMs, { trigger });
 
   return (
     <Animated.View ref={ref} style={[style, { opacity, transform: [{ translateY }] }]}>

@@ -1,15 +1,19 @@
-import type { LiveShiftPost } from '@chairside/api';
-import { Text, View } from 'react-native';
+import { isClinicSummaryGroup, type LiveShiftPost } from '@chairside/api';
 
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
-import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
-import { SavePostButton } from '@/components/worker/SavePostButton';
-import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
-import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
-import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import { buildFillInListingMetaRows } from '@/lib/listingCardDisplay';
+import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
+import {
+  formatWorkerListingCardLocation,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
+import { useThemedStyles, type GradientAccent } from '@/theme';
 
 type FillInListingCardProps = {
   shift: LiveShiftPost;
@@ -24,50 +28,31 @@ type FillInListingCardProps = {
 export function FillInListingCard({
   shift,
   distanceLabel,
-  isSaved = false,
-  onToggleSaved,
+  isSaved: _isSaved = false,
+  onToggleSaved: _onToggleSaved,
   onPress,
   accent,
   embedded = false,
 }: FillInListingCardProps) {
-  const { colors } = useTheme();
   const tabAccent = useTabAtmosphereAccent();
   const resolvedAccent = accent ?? tabAccent;
   const featuredTreatment = useFeaturedListingTreatment(resolvedAccent);
-  const brandColor = resolvedAccent === 'secondary' ? colors.secondary : colors.primary;
-  const locationBase = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
-  const location = distanceLabel
-    ? locationBase
-      ? `${locationBase} • ${distanceLabel}`
-      : distanceLabel
-    : locationBase;
+  const logoStoragePath = resolveWorkerPostLogoStoragePath(shift);
+  const logoUri = useClinicLogoUri(logoStoragePath);
+  const location = formatWorkerListingCardLocation(shift, distanceLabel);
   const roleTitle = formatShiftPostRoleTitle(shift.role_type);
-  const detail = formatShiftPostMeta(shift);
+  const shiftMeta = formatShiftPostMeta(shift);
+  const metaRows = buildFillInListingMetaRows({
+    location,
+    shiftMeta,
+    postedAt: shift.created_at,
+  });
 
-  const styles = useThemedStyles(({ spacing }) => ({
-    cardContent: {
-      padding: spacing.md,
-    },
-    accessoryColumn: {
-      alignItems: 'flex-end',
-      gap: spacing.xs,
-    },
-    compensation: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: brandColor,
+  const styles = useThemedStyles(() => ({
+    stretchCard: {
+      overflow: 'hidden',
     },
   }));
-
-  const accessory = (
-    <View style={styles.accessoryColumn}>
-      {shift.has_priority_listing ? <FeaturedListingBadge accent={resolvedAccent} /> : null}
-      <ShiftUrgencyBadge urgency={shift.urgency} />
-      {onToggleSaved ? (
-        <SavePostButton isSaved={isSaved} onToggle={onToggleSaved} size={20} />
-      ) : null}
-    </View>
-  );
 
   const isFeatured = shift.has_priority_listing;
 
@@ -76,26 +61,23 @@ export function FillInListingCard({
       variant={embedded ? 'inner' : 'default'}
       onPress={onPress}
       padding="none"
-      style={isFeatured ? featuredTreatment.cardStyle : undefined}
+      style={[styles.stretchCard, isFeatured ? featuredTreatment.cardStyle : null]}
       accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
-      <View style={styles.cardContent}>
-        <ClinicPostHeader
-          layout="split"
-          clinicName={shift.clinic.clinic_name}
-          logoStoragePath={shift.clinic.logo_storage_path}
-          title={roleTitle}
-          location={location || null}
-          detail={detail || null}
-          textFooter={
-            shift.compensation ? (
-              <Text style={styles.compensation}>{shift.compensation}</Text>
-            ) : undefined
-          }
-          avatarSize={44}
-          accessory={accessory}
-          stackedAccessory
-        />
-      </View>
+      <BrowseListRow
+        avatar={
+          <ClinicLogoAvatar clinicName={shift.clinic.clinic_name} logoUri={logoUri} size={44} />
+        }
+        title={roleTitle}
+        subtitle={
+          <ListingClinicSubtitle
+            name={shift.clinic.clinic_name}
+            isGroup={isClinicSummaryGroup(shift.clinic)}
+          />
+        }
+        metaRows={metaRows}
+        onPress={onPress}
+        showChevron={Boolean(onPress)}
+      />
     </SurfaceCard>
   );
 }

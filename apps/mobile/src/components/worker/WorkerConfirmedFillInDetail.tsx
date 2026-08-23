@@ -16,6 +16,10 @@ import {
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
+import {
+  formatWorkerPostLocation,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
 import { useThemedStyles } from '@/theme';
 
 type WorkerConfirmedFillInDetailProps = {
@@ -50,7 +54,8 @@ export function WorkerConfirmedFillInDetail({
     },
   }));
 
-  const location = [
+  const siteLocation = formatWorkerPostLocation(shift);
+  const addressLocation = [
     shift.clinic.address_line1,
     shift.clinic.city,
     shift.clinic.province,
@@ -58,6 +63,7 @@ export function WorkerConfirmedFillInDetail({
   ]
     .filter(Boolean)
     .join(' · ');
+  const location = shift.location ? siteLocation : addressLocation || siteLocation;
 
   const handleMessage = () => {
     router.push(getWorkerApplicationMessagesRoute(application.id, returnTo));
@@ -103,7 +109,7 @@ export function WorkerConfirmedFillInDetail({
       <View style={styles.heroCard}>
         <ClinicPostHeader
           clinicName={shift.clinic.clinic_name}
-          logoStoragePath={shift.clinic.logo_storage_path}
+          logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
           location={location || null}
           detail={formatShiftPostMeta(shift)}
           avatarSize={48}
@@ -123,6 +129,7 @@ export function WorkerConfirmedFillInDetail({
         softwareUsed={shift.clinic.software_used}
         showStatusBadge={false}
         section="details"
+        locationLabel={shift.location ? siteLocation : null}
       />
 
       <WorkerClinicDetailView clinic={shift.clinic} />

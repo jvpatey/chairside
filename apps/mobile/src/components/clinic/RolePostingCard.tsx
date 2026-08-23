@@ -2,30 +2,28 @@ import type { JobPost } from '@chairside/api';
 import { formatJobPostRoleMeta } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
+import { showJobPostManageMenu } from '@/components/clinic/showJobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { RoleApplicantPreviewList } from '@/components/clinic/RoleApplicantPreviewList';
-import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
 import { ApplicantCountButton } from '@/components/ui/ApplicantCountButton';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { formatApplicantCountLabel } from '@/components/ui/CountBadge';
+import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useResolvedClinicLogoPath } from '@/hooks/useResolvedClinicLogoPath';
-import type { ListingLayout } from '@/components/ui/BrowseListRow';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { JobApplicantPreview } from '@/lib/dashboardAttention';
-import { formatPostedDateLabel } from '@/lib/dates';
-import { buildPostedByLabel } from '@/hooks/useClinicActingContext';
+import { resolveClinicJobLocationParts } from '@/lib/clinicPostingListDisplay';
+import { buildRoleListingMetaRows } from '@/lib/listingCardDisplay';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -40,7 +38,6 @@ type RolePostingCardProps = {
   applicantCount?: number;
   /** Dashboard: applicant rows shown below the role header. */
   applicants?: JobApplicantPreview[];
-  layout?: ListingLayout;
   /** Inner surface for dashboard file-tab panels. */
   embedded?: boolean;
   onPress?: () => void;
@@ -54,7 +51,6 @@ type RolePostingCardProps = {
 export function RolePostingCard({
   job,
   applicantCount = 0,
-  layout = 'list',
   embedded = false,
   onPress,
   onApplicantsPress,
@@ -66,36 +62,27 @@ export function RolePostingCard({
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const mobileEmbedded = embedded && !isTablet;
-  const { clinicProfile } = useClinicProfile();
+  const { clinicProfile, locations, isGroup } = useClinicProfile();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment();
   const logoStoragePath = useResolvedClinicLogoPath(job.location_id);
   const logoUri = useClinicLogoUri(logoStoragePath);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const locations = useClinicProfile().locations;
-  const locationRecord = locations.find((location) => location.id === job.location_id);
-  const location =
-    [locationRecord?.city ?? clinicProfile?.city, locationRecord?.province ?? clinicProfile?.province]
-      .filter(Boolean)
-      .join(', ') || null;
-  const locationName = locationRecord?.name;
-  const postedLabel =
-    buildPostedByLabel({
-      postedAt: job.created_at,
-      postedByDisplayName: job.posted_by_display_name,
-      postedByTitle: job.posted_by_title,
-      formatDateLabel: formatPostedDateLabel,
-    }) ?? formatPostedDateLabel(job.created_at);
+  const { siteName, placeLabel } = resolveClinicJobLocationParts(job, locations, clinicProfile);
   const roleMeta = formatJobPostRoleMeta(job);
   const hasApplicants = applicantCount > 0;
   const showApplicantList = !hideActions && Boolean(onApplicantPress);
   const showApplicantPill =
     !showApplicantList && !hideActions && hasApplicants && Boolean(onApplicantsPress);
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    card: {
-      overflow: 'hidden',
-    },
+  const subtitleName = isGroup ? siteName || clinicName : clinicName;
+  const metaRows = buildRoleListingMetaRows({
+    location: placeLabel,
+    roleMeta,
+    postedAt: job.created_at,
+  });
+
+  const styles = useThemedStyles(({ spacing }) => ({
     stretchCard: {
       flex: 1,
       alignSelf: 'stretch',
@@ -113,9 +100,6 @@ export function RolePostingCard({
         height: '100%',
       } as const),
     },
-    cardContent: {
-      padding: spacing.md,
-    },
     menuButton: {
       width: 28,
       height: 28,
@@ -129,11 +113,6 @@ export function RolePostingCard({
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
-    },
-    wage: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.primary,
     },
     applicantSectionGrow: {
       flex: 1,
@@ -186,113 +165,47 @@ export function RolePostingCard({
 
   const headerActions = (
     <View style={styles.headerActions}>
-      {!mobileEmbedded ? statusBadges : null}
-      {!mobileEmbedded ? manageButton : null}
+      {statusBadges}
+      {manageButton}
     </View>
   );
 
-  const applicantLead =
-    !embedded && applicants.length > 0 ? (
-      <ApplicantAvatarStack
-        names={applicants.map((applicant) => applicant.name)}
-        photoPaths={applicants.map((applicant) => applicant.photoPath)}
-        size={32}
-      />
-    ) : null;
-
-  const wageLabel = job.wage_range ? (
-    <Text style={styles.wage}>{job.wage_range}</Text>
-  ) : null;
-
-  const locationEyebrow =
-    [locationName, location].filter(Boolean).join(' · ') || clinicName;
-  const embeddedEyebrow =
-    [locationName, location].filter(Boolean).join(' · ') || null;
   const clinicAvatar = (
     <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />
   );
 
-  const useListLayout = layout === 'list' || embedded;
   const surfaceVariant = embedded ? 'inner' : 'default';
-
-  if (useListLayout) {
-    return (
-      <SurfaceCard
-        variant={surfaceVariant}
-        padding="none"
-        onPress={showApplicantList ? undefined : onPress}
-        style={[styles.stretchCard, isFeatured ? featuredTreatment.cardStyle : null]}
-        contentStyle={styles.stretchCardContent}
-        accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
-        <BrowseListRow
-          layout={mobileEmbedded ? 'stacked' : 'split'}
-          compact={mobileEmbedded}
-          detailsDivider={embedded}
-          avatar={clinicAvatar}
-          eyebrow={
-            mobileEmbedded
-              ? embeddedEyebrow
-              : embedded
-                ? locationEyebrow
-                : clinicName
-          }
-          title={job.title}
-          meta={
-            mobileEmbedded && job.wage_range ? `${roleMeta} · ${job.wage_range}` : roleMeta
-          }
-          detail={mobileEmbedded ? postedLabel || null : undefined}
-          postedLabel={mobileEmbedded ? null : postedLabel || null}
-          postedLabelPlacement="header"
-          headerDetail={null}
-          headerAccent={mobileEmbedded ? null : job.wage_range || null}
-          topTrailing={mobileEmbedded ? statusBadges : headerActions}
-          onPress={onPress}
-          pressScope={showApplicantList ? 'header' : 'row'}
-          showChevron={Boolean(onPress)}
-        />
-        {showApplicantList && onApplicantPress ? (
-          <View style={styles.applicantSectionGrow}>
-            <RoleApplicantPreviewList
-              applicants={applicants}
-              onApplicantPress={onApplicantPress}
-            />
-          </View>
-        ) : null}
-      </SurfaceCard>
-    );
-  }
 
   return (
     <SurfaceCard
+      variant={surfaceVariant}
       padding="none"
-      style={[styles.card, isFeatured ? featuredTreatment.cardStyle : null]}
-      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}
-      onPress={onPress}>
-      <View style={styles.cardContent}>
-        <ClinicPostHeader
-          layout="split"
-          clinicName={clinicName}
-          logoStoragePath={logoStoragePath}
-          title={job.title}
-          location={[locationName, location].filter(Boolean).join(' · ') || null}
-          detail={roleMeta}
-          postedLabel={postedLabel || null}
-          textFooter={showApplicantPill ? undefined : (wageLabel ?? undefined)}
-          footer={showApplicantPill ? (wageLabel ?? undefined) : undefined}
-          avatarSize={44}
-          accessory={headerActions}
-          detailAccessory={
-            applicantLead ? (
-              <View style={{ gap: 8 }}>
-                {applicantLead}
-                {applicantControl}
-              </View>
-            ) : (
-              applicantControl
-            )
-          }
-        />
-      </View>
+      onPress={showApplicantList ? undefined : onPress}
+      style={[styles.stretchCard, isFeatured ? featuredTreatment.cardStyle : null]}
+      contentStyle={styles.stretchCardContent}
+      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
+      <BrowseListRow
+        layout={mobileEmbedded ? 'stacked' : 'split'}
+        compact={mobileEmbedded}
+        detailsDivider={embedded}
+        avatar={clinicAvatar}
+        title={job.title}
+        subtitle={<ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />}
+        metaRows={metaRows}
+        topTrailing={headerActions}
+        contentAccessory={applicantControl}
+        onPress={onPress}
+        pressScope={showApplicantList ? 'header' : 'row'}
+        showChevron={Boolean(onPress)}
+      />
+      {showApplicantList && onApplicantPress ? (
+        <View style={styles.applicantSectionGrow}>
+          <RoleApplicantPreviewList
+            applicants={applicants}
+            onApplicantPress={onApplicantPress}
+          />
+        </View>
+      ) : null}
     </SurfaceCard>
   );
 }

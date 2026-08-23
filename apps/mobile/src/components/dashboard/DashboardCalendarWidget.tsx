@@ -39,7 +39,8 @@ function formatEventTime(startsAt: string, endsAt: string | null): string {
 }
 
 function eventIcon(kind: CalendarEvent['kind']): keyof typeof Ionicons.glyphMap {
-  return kind === 'confirmed_fill_in' ? FILL_IN_ICON.outline : 'videocam-outline';
+  if (kind === 'confirmed_fill_in' || kind === 'open_fill_in') return FILL_IN_ICON.outline;
+  return 'videocam-outline';
 }
 
 /** Always-visible dashboard calendar glance — flat surface with upcoming previews or empty state. */
@@ -153,7 +154,7 @@ export function DashboardCalendarWidget({
 
       {upcomingCount === 0 ? (
         <View style={styles.emptyBody}>
-          <Text style={styles.emptyTitle}>No upcoming interviews or confirmed shifts</Text>
+          <Text style={styles.emptyTitle}>No upcoming interviews, shifts, or open fill-ins</Text>
           <Text style={styles.emptyHint}>
             {IS_WEB
               ? 'Nothing scheduled'
@@ -183,8 +184,16 @@ export function DashboardCalendarWidget({
                 </Text>
                 <Text style={styles.eventMeta} numberOfLines={2}>
                   {formatEventTime(event.startsAt, event.endsAt)}
-                  {event.subtitle ? ` · ${event.subtitle}` : ''}
                 </Text>
+                {event.location ? (
+                  <Text style={styles.eventMeta} numberOfLines={1}>
+                    {event.location}
+                  </Text>
+                ) : event.subtitle ? (
+                  <Text style={styles.eventMeta} numberOfLines={1}>
+                    {event.subtitle}
+                  </Text>
+                ) : null}
               </View>
               {IS_WEB ? (
                 <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />

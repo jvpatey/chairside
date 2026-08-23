@@ -415,7 +415,12 @@ export default function ClinicTeamSettingsScreen() {
         onActionPress={startEditProfile}
         onBack={() => navigateToClinicProfileHub(router)}>
         <ProfileDetailStack>
-          <SectionPanel icon="person-outline" title={membership?.display_name || 'Manager'}>
+          <SectionPanel
+            icon="person-outline"
+            title={membership?.display_name || 'Manager'}
+            subtitle="Manager"
+            collapsible
+            defaultExpanded={false}>
             <Text style={styles.hint}>
               Ask the owner to update your location access if something looks wrong.
             </Text>
@@ -570,7 +575,10 @@ export default function ClinicTeamSettingsScreen() {
                 key={member.id}
                 icon="shield-checkmark-outline"
                 iconAccent="primary"
-                title={member.display_name || 'Owner'}>
+                title={member.display_name || 'Owner'}
+                subtitle={roleLabel(member.role)}
+                collapsible
+                defaultExpanded={false}>
                 <FieldBlock label="Role">
                   <FieldValue value={roleLabel(member.role)} />
                 </FieldBlock>
@@ -599,7 +607,10 @@ export default function ClinicTeamSettingsScreen() {
                 key={member.id}
                 icon="people-outline"
                 iconAccent={index % 2 === 0 ? 'secondary' : 'primary'}
-                title={member.display_name || 'Manager'}>
+                title={member.display_name || 'Manager'}
+                subtitle="Manager"
+                collapsible
+                defaultExpanded={false}>
                 <FieldBlock label="Role">
                   <FieldValue value="Manager" />
                 </FieldBlock>
@@ -651,7 +662,10 @@ export default function ClinicTeamSettingsScreen() {
                   key={invite.id}
                   icon="mail-outline"
                   iconAccent="secondary"
-                  title={invite.display_name || invite.email}>
+                  title={invite.display_name || invite.email}
+                  subtitle="Manager · Invitation pending"
+                  collapsible
+                  defaultExpanded={false}>
                   <Text style={styles.hint}>
                     Manager waiting to accept invitation — they don’t have access yet.
                   </Text>

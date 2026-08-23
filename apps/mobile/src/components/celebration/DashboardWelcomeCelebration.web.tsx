@@ -10,12 +10,14 @@ import type { DashboardWelcomeRole } from '@/lib/dashboardWelcomeCopy';
 type DashboardWelcomeCelebrationProps = {
   visible: boolean;
   role: DashboardWelcomeRole;
+  isGroup?: boolean;
   onDismiss: () => void;
 };
 
 export function DashboardWelcomeCelebration({
   visible,
   role,
+  isGroup,
   onDismiss,
 }: DashboardWelcomeCelebrationProps) {
   useEffect(() => {
@@ -33,7 +35,11 @@ export function DashboardWelcomeCelebration({
     >
       <View style={{ position: 'relative' }}>
         <ConfettiBurst active={visible} />
-        <DashboardWelcomeCelebrationContent role={role} onDismiss={onDismiss} />
+        <DashboardWelcomeCelebrationContent
+          role={role}
+          isGroup={isGroup}
+          onDismiss={onDismiss}
+        />
       </View>
     </WebDialogShell>
   );

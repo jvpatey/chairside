@@ -1,5 +1,9 @@
 import type { WorkerProfile } from '@chairside/api';
-import { isClinicProfileComplete, isWorkerProfileComplete } from '@chairside/api';
+import {
+  isClinicProfileComplete,
+  isWorkerProfileComplete,
+  type ClinicProfileCompletenessLocation,
+} from '@chairside/api';
 
 import {
   isWorkerFillInsStepComplete,
@@ -82,7 +86,7 @@ export function isWorkerGetStartedComplete(params: {
     isWorkerFillInsStepComplete({
       shiftApplicationCount: params.shiftApplicationCount,
       visitedFillIns: params.visitedFillIns,
-      workerProfile: params.workerProfile,
+      workerProfile: params.workerProfile as WorkerFillInEngagementProfile | undefined,
       availabilityBlockCount: params.availabilityBlockCount,
       savedShiftCount: params.savedShiftCount,
     })
@@ -91,13 +95,14 @@ export function isWorkerGetStartedComplete(params: {
 
 export function isClinicGetStartedComplete(params: {
   clinicProfile: Parameters<typeof isClinicProfileComplete>[0];
+  locations?: ClinicProfileCompletenessLocation[];
   fillInsPosted: number;
   openRoles: number;
   totalApplications: number;
   conversationCount: number;
 }): boolean {
   return (
-    isClinicProfileComplete(params.clinicProfile) &&
+    isClinicProfileComplete(params.clinicProfile, { locations: params.locations }) &&
     isClinicPostingStepComplete({
       fillInsPosted: params.fillInsPosted,
       openRoles: params.openRoles,

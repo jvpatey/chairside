@@ -138,6 +138,10 @@ export type ApplicationRow = {
   interview_proposed_duration_minutes: number | null;
   interview_proposed_details: string | null;
   interview_proposed_by: string | null;
+  shift_date: string | null;
+  shift_start_time: string | null;
+  shift_end_time: string | null;
+  shift_role_type: string | null;
   worker_attention_at: string;
   worker_last_seen_at: string | null;
   clinic_attention_at: string;
@@ -389,6 +393,28 @@ export type Database = {
         Row: ApplicationRow;
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      clinic_worker_crm: {
+        Row: {
+          clinic_id: string;
+          worker_id: string;
+          note: string | null;
+          tags: string[];
+          follow_up_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          clinic_id: string;
+          worker_id: string;
+          note?: string | null;
+          tags?: string[];
+          follow_up_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['clinic_worker_crm']['Insert']>;
         Relationships: [];
       };
       worker_profiles: {
@@ -823,6 +849,89 @@ export type Database = {
           p_new_owner_membership_id: string;
         };
         Returns: undefined;
+      };
+      request_application_kit: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      submit_requested_application_kit: {
+        Args: { application_id: string; cover_message?: string | null };
+        Returns: ApplicationRow;
+      };
+      mark_job_applicant_hired: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      propose_application_interview_update: {
+        Args: {
+          application_id: string;
+          proposed_at: string;
+          proposed_duration_minutes: number;
+          proposed_details?: string | null;
+        };
+        Returns: ApplicationRow;
+      };
+      accept_application_interview_update: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      decline_application_interview_update: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      cancel_scheduled_application_interview: {
+        Args: { application_id: string };
+        Returns: ApplicationRow;
+      };
+      start_clinic_fill_in_outreach_bulk: {
+        Args: {
+          p_worker_ids: string[];
+          p_message: string;
+          p_role_type?: string | null;
+          p_shift_date?: string | null;
+          p_start_time?: string | null;
+          p_end_time?: string | null;
+        };
+        Returns: {
+          successes: Array<{ worker_id: string; conversation_id: string }> | null;
+          failures: Array<{ worker_id: string; error: string }> | null;
+        };
+      };
+      get_clinic_hiring_insights: {
+        Args: { p_clinic_id?: string; p_location_ids?: string[] | null };
+        Returns: Record<string, unknown>;
+      };
+      delete_own_message: {
+        Args: { p_message_id: string };
+        Returns: Database['public']['Tables']['messages']['Row'];
+      };
+      list_clinic_listing_summaries: {
+        Args: { p_province: string };
+        Returns: {
+          id: string;
+          clinic_name: string;
+          city: string | null;
+          province: string;
+          specialty: string;
+          software_used: string[] | null;
+          latitude: number | null;
+          longitude: number | null;
+          logo_storage_path: string | null;
+        }[];
+      };
+      get_clinic_listing_summary: {
+        Args: { p_clinic_id: string };
+        Returns: {
+          id: string;
+          clinic_name: string;
+          city: string | null;
+          province: string;
+          specialty: string;
+          software_used: string[] | null;
+          latitude: number | null;
+          longitude: number | null;
+          logo_storage_path: string | null;
+        } | null;
       };
     };
     Enums: Record<string, never>;

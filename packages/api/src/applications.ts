@@ -122,6 +122,7 @@ export type Application = {
   shift_start_time: string | null;
   shift_end_time: string | null;
   shift_role_type: string | null;
+  post_type?: 'job' | 'shift';
   worker_hidden_at: string | null;
   clinic_hidden_at: string | null;
   clinic_name: string | null;
@@ -923,7 +924,7 @@ function todayISO(): string {
 
 /** Past or decided fill-in applications should not contribute to Fill-ins tab badges. */
 export function isPastWorkerFillInApplication(
-  application: Pick<Application, 'post_type' | 'status'> & { shift_date?: string | null },
+  application: Pick<WorkerApplication, 'post_type' | 'status' | 'shift_date'>,
 ): boolean {
   if (application.post_type !== 'shift') return false;
   if (application.status === 'rejected' || application.status === 'selected') return true;
@@ -933,14 +934,15 @@ export function isPastWorkerFillInApplication(
 /** Unseen clinic updates on upcoming fill-in applications only. */
 export function isWorkerFillInApplicationUpdateCountable(
   application: Pick<
-    Application,
+    WorkerApplication,
     | 'post_type'
     | 'status'
     | 'created_at'
     | 'worker_hidden_at'
     | 'worker_attention_at'
     | 'worker_last_seen_at'
-  > & { shift_date?: string | null },
+    | 'shift_date'
+  >,
 ): boolean {
   if (application.post_type !== 'shift') return false;
   if (isPastWorkerFillInApplication(application)) return false;

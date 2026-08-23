@@ -29,6 +29,21 @@ const CLINIC_COPY: DashboardWelcomeCopy = {
   ctaLabel: 'Go to dashboard',
 };
 
-export function getDashboardWelcomeCopy(role: DashboardWelcomeRole): DashboardWelcomeCopy {
+const GROUP_COPY: DashboardWelcomeCopy = {
+  title: 'Welcome to Chairside',
+  subtitle: 'Your clinic group is live — start hiring across your locations.',
+  bullets: [
+    'Post a fill-in or role at any of your clinics',
+    'Invite managers and keep coverage visible',
+    'Review applications and message candidates',
+  ],
+  ctaLabel: 'Go to dashboard',
+};
+
+export function getDashboardWelcomeCopy(
+  role: DashboardWelcomeRole,
+  options?: { isGroup?: boolean },
+): DashboardWelcomeCopy {
+  if (role === 'clinic' && options?.isGroup) return GROUP_COPY;
   return role === 'clinic' ? CLINIC_COPY : WORKER_COPY;
 }

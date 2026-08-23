@@ -1,4 +1,4 @@
-import { getFillInPendingCount, isClinicNewFillInRequest, type Application } from '@chairside/api';
+import { getFillInPendingCount, isClinicNewFillInRequest, type Application, type ClinicAttentionApplication } from '@chairside/api';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
@@ -40,13 +40,13 @@ export function FillInPendingProvider({ children }: { children: ReactNode }) {
 
   const isCoverRequestHighlighted = useCallback(
     (application: Pick<Application, 'post_type' | 'status' | 'clinic_hidden_at'>) =>
-      isClinicNewFillInRequest(application),
+      isClinicNewFillInRequest(application as ClinicAttentionApplication),
     [],
   );
 
   const getCoverRequestHighlightLabel = useCallback(
     (application: Pick<Application, 'post_type' | 'status' | 'clinic_hidden_at'>) => {
-      if (!isClinicNewFillInRequest(application)) return null;
+      if (!isClinicNewFillInRequest(application as ClinicAttentionApplication)) return null;
       return 'New cover request';
     },
     [],

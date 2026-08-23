@@ -7,6 +7,8 @@ import {
   CLINIC_SETUP_LOCATION,
   CLINIC_SETUP_PRACTICE,
   CLINIC_SETUP_REVIEW,
+} from '@/lib/routing';
+import {
   getClinicSetupStepIndexFromPath,
   getClinicSetupStepNumber,
   getClinicSetupSteps,

@@ -31,6 +31,12 @@ import {
   parseWorkerPostingReturnParams,
 } from '@/lib/routing';
 import { guardApply } from '@/lib/workerGuard';
+import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
+import {
+  formatWorkerPostLocation,
+  resolveWorkerPostLocationParts,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
 import {
   buildLiveJobMatchDisplayContext,
   computeJobMatchBreakdown,
@@ -142,7 +148,13 @@ export default function WorkerJobDetailScreen() {
     );
   }
 
-  const location = [job.clinic.city, job.clinic.province].filter(Boolean).join(', ');
+  const location = formatWorkerPostLocation(job);
+  const { displayName, placeLabel } = resolveWorkerPostLocationParts(job);
+  const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
+    postedAt: job.created_at,
+    postedByDisplayName: job.posted_by_display_name,
+    postedByTitle: job.posted_by_title,
+  });
   const jobMatch = workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
   const matchContext = workerProfile
     ? buildLiveJobMatchDisplayContext(workerProfile, job)
@@ -193,14 +205,22 @@ export default function WorkerJobDetailScreen() {
             )
           }>
           <ClinicPostHeader
-            clinicName={job.clinic.clinic_name}
-            logoStoragePath={job.clinic.logo_storage_path}
-            location={location || null}
+            clinicName={displayName}
+            logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
+            location={placeLabel}
             detail={getSpecialtyLabel(job.clinic.specialty)}
+            detailIcon="medkit-outline"
+            metaIcons
           />
           <ClinicProfileLinkFooter />
         </SurfaceCard>
-        <JobPostDetailView job={job} part="body" />
+        <JobPostDetailView
+          job={job}
+          part="body"
+          locationLabel={job.location ? location : null}
+          postedByLabel={postedByLabel}
+          postedOnLabel={postedOnLabel}
+        />
       </View>
     </FormScreen>
   );

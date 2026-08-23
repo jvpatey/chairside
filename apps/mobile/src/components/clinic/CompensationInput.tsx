@@ -101,8 +101,8 @@ export function CompensationInput({
     previewText: theme.typography.body,
   }));
 
-  const handlePayTypeChange = (value: string) => {
-    const nextType = value as FillInPayType;
+  const handlePayTypeChange = (value: FillInPayType | FillInPayType[]) => {
+    const nextType = (Array.isArray(value) ? value[0] : value) as FillInPayType;
     setPayType(nextType);
     if (nextType === 'discuss') {
       setRate('');

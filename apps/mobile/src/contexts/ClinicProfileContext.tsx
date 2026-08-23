@@ -238,7 +238,7 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       setLocationScope,
       scopedLocationIds,
       isClinicProfileReady,
-      isProfileComplete: isClinicProfileComplete(clinicProfile),
+      isProfileComplete: isClinicProfileComplete(clinicProfile, { locations: workspace?.locations ?? [] }),
       refreshClinicProfile,
     }),
     [

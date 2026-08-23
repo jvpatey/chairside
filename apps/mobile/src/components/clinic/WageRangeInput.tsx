@@ -169,8 +169,8 @@ export function WageRangeInput({
     previewText: typography.body,
   }));
 
-  const handlePayTypeChange = (value: string) => {
-    const nextType = value as RolePayType;
+  const handlePayTypeChange = (value: RolePayType | RolePayType[]) => {
+    const nextType = (Array.isArray(value) ? value[0] : value) as RolePayType;
     setPayType(nextType);
     if (nextType === 'commission' || nextType === 'discuss') {
       setMin('');

@@ -16,21 +16,6 @@ type GroupTeamPulseWidgetProps = {
 export function GroupTeamPulseWidget({ counts, onPress }: GroupTeamPulseWidgetProps) {
   const { colors } = useTheme();
   const { pendingInvites, unassignedManagers } = counts;
-
-  if (pendingInvites === 0 && unassignedManagers === 0) return null;
-
-  const lines: string[] = [];
-  if (pendingInvites > 0) {
-    lines.push(
-      `${pendingInvites} pending invite${pendingInvites === 1 ? '' : 's'}`,
-    );
-  }
-  if (unassignedManagers > 0) {
-    lines.push(
-      `${unassignedManagers} manager${unassignedManagers === 1 ? '' : 's'} need a location`,
-    );
-  }
-
   const styles = useThemedStyles(({ colors, spacing, radii, typography }) => ({
     card: {
       borderRadius: radii.lg,
@@ -63,6 +48,20 @@ export function GroupTeamPulseWidget({ counts, onPress }: GroupTeamPulseWidgetPr
       color: colors.labelTertiary,
     },
   }));
+
+  if (pendingInvites === 0 && unassignedManagers === 0) return null;
+
+  const lines: string[] = [];
+  if (pendingInvites > 0) {
+    lines.push(
+      `${pendingInvites} pending invite${pendingInvites === 1 ? '' : 's'}`,
+    );
+  }
+  if (unassignedManagers > 0) {
+    lines.push(
+      `${unassignedManagers} manager${unassignedManagers === 1 ? '' : 's'} need a location`,
+    );
+  }
 
   return (
     <View style={styles.card}>

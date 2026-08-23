@@ -15,6 +15,7 @@ import {
   isWorkerRolesStepComplete,
   type GetStartedChecklistItem,
 } from '@/lib/getStartedChecklist';
+import { type WorkerFillInEngagementProfile } from '@/lib/workerFillInGetStarted';
 import {
   WORKER_BROWSE,
   WORKER_FILLINS,
@@ -50,7 +51,7 @@ export function WorkerReadinessChecklist({
   const fillInsComplete = isWorkerFillInsStepComplete({
     shiftApplicationCount,
     visitedFillIns,
-    workerProfile,
+    workerProfile: workerProfile as WorkerFillInEngagementProfile | undefined,
     availabilityBlockCount: availabilityBlocks.length,
     savedShiftCount,
   });

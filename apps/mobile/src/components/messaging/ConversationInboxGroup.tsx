@@ -82,7 +82,7 @@ type ThreadRowProps = {
   searchQuery: string;
   messageSearchPreview?: string | null;
   onPress: () => void;
-  onDelete: () => Promise<void>;
+  onDelete?: () => Promise<void>;
 };
 
 function ConversationInboxThreadRow({

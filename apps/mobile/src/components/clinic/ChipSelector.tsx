@@ -7,7 +7,7 @@ import { webChipHoverStyles, webHover, webPointer } from '@/lib/webPressableStyl
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 type ChipSelectorProps<T extends string> = {
-  options: { value: T; label: string }[];
+  options: readonly { value: T; label: string }[];
   selected: T | T[] | null;
   multiple?: boolean;
   horizontal?: boolean;

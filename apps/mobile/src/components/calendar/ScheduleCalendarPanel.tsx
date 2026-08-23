@@ -105,7 +105,7 @@ type ScheduleCalendarPanelProps = {
   eventDateKeys: ReadonlySet<string>;
   eventIndicatorsByDate?: ReadonlyMap<
     string,
-    { hasInterview: boolean; hasConfirmedFillIn: boolean }
+    { hasInterview: boolean; hasConfirmedFillIn: boolean; hasOpenFillIn: boolean }
   >;
 };
 
@@ -247,6 +247,9 @@ export function ScheduleCalendarPanel({
     dotFillIn: {
       backgroundColor: colors.secondary,
     },
+    dotOpenFillIn: {
+      backgroundColor: colors.warning,
+    },
     legendRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -274,6 +277,7 @@ export function ScheduleCalendarPanel({
     const dateKey = toISODate(date);
     const dotOnSelected = colors.primaryOnPrimary;
     const fillInOnSelected = isDark ? colors.secondaryOnSecondary : colors.secondarySubtle;
+    const openFillInOnSelected = colors.warning;
 
     if (!eventDateKeys.has(dateKey)) {
       return <View style={styles.dotRow} />;
@@ -281,7 +285,7 @@ export function ScheduleCalendarPanel({
 
     const indicators = eventIndicatorsByDate?.get(dateKey);
 
-    if (!indicators?.hasInterview && !indicators?.hasConfirmedFillIn) {
+    if (!indicators?.hasInterview && !indicators?.hasConfirmedFillIn && !indicators?.hasOpenFillIn) {
       return (
         <View style={styles.dotRow}>
           <View
@@ -309,6 +313,14 @@ export function ScheduleCalendarPanel({
             style={[
               styles.dot,
               selected ? { backgroundColor: fillInOnSelected } : styles.dotFillIn,
+            ]}
+          />
+        ) : null}
+        {indicators?.hasOpenFillIn ? (
+          <View
+            style={[
+              styles.dot,
+              selected ? { backgroundColor: openFillInOnSelected } : styles.dotOpenFillIn,
             ]}
           />
         ) : null}
@@ -404,6 +416,10 @@ export function ScheduleCalendarPanel({
         <View style={styles.legendItem}>
           <View style={[styles.dot, styles.dotFillIn]} />
           <Text style={styles.legendLabel}>Confirmed fill-in</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.dot, styles.dotOpenFillIn]} />
+          <Text style={styles.legendLabel}>Open fill-in</Text>
         </View>
       </View>
     </View>

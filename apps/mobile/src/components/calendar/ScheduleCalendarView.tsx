@@ -62,7 +62,7 @@ export function ScheduleCalendarView({
 
   const eventIndicatorsByDate = useMemo(() => {
     const grouped = groupEventsByDate(events);
-    const map = new Map<string, { hasInterview: boolean; hasConfirmedFillIn: boolean }>();
+    const map = new Map<string, { hasInterview: boolean; hasConfirmedFillIn: boolean; hasOpenFillIn: boolean }>();
     for (const [dateKey, dayEvents] of grouped) {
       const parsed = new Date(`${dateKey}T12:00:00`);
       map.set(dateKey, getDayIndicators(dayEvents, parsed));
@@ -97,7 +97,7 @@ export function ScheduleCalendarView({
       emptyMessage={
         role === 'worker'
           ? 'Confirmed fill-ins and scheduled interviews will appear here.'
-          : 'Confirmed fill-ins and scheduled interviews for your clinic will appear here.'
+          : 'Confirmed fill-ins, open fill-ins, and scheduled interviews for your clinic will appear here.'
       }
       emptyCtaLabel={emptyCtaLabel}
       onEmptyCtaPress={onEmptyCtaPress}

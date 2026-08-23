@@ -15,6 +15,7 @@ export type ProfileSettingsCardVariant = 'default' | 'danger';
 
 export type ProfileSettingsCardProps = {
   title: string;
+  subtitle?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   iconAccent?: DashboardWidgetAccent;
   children: ReactNode;
@@ -27,6 +28,7 @@ export type ProfileSettingsCardProps = {
 
 export function ProfileSettingsCard({
   title,
+  subtitle,
   icon,
   iconAccent = 'primary',
   children,
@@ -85,7 +87,17 @@ export function ProfileSettingsCard({
       fontSize: 16,
       fontWeight: '600',
       color: isDanger ? colors.destructive : colors.labelPrimary,
+    },
+    headerText: {
       flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    subtitle: {
+      ...typography.subtitle,
+      fontSize: 14,
+      lineHeight: 18,
+      color: colors.labelSecondary,
     },
     accessory: {
       flexShrink: 0,
@@ -107,7 +119,18 @@ export function ProfileSettingsCard({
     )
   ) : null;
 
-  const headerTitle = <Text style={styles.title}>{title}</Text>;
+  const headerText = (
+    <View style={styles.headerText}>
+      <Text style={styles.title} numberOfLines={1}>
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text style={styles.subtitle} numberOfLines={1}>
+          {subtitle}
+        </Text>
+      ) : null}
+    </View>
+  );
 
   const header = collapsible ? (
     <View style={styles.header}>
@@ -122,7 +145,7 @@ export function ProfileSettingsCard({
           pressed && styles.headerPressed,
         ]}>
         {headerIcon}
-        {headerTitle}
+        {headerText}
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={18}
@@ -134,7 +157,7 @@ export function ProfileSettingsCard({
   ) : (
     <View style={styles.header}>
       {headerIcon}
-      {headerTitle}
+      {headerText}
       {headerAccessory ? <View style={styles.accessory}>{headerAccessory}</View> : null}
     </View>
   );

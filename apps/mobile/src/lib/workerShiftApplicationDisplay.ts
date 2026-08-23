@@ -22,8 +22,8 @@ export function getWorkerShiftApplicationCardDisplay(application: WorkerApplicat
     application.shift_date != null
       ? formatShiftPostMeta({
           shift_date: application.shift_date,
-          start_time: application.shift_start_time ?? null,
-          end_time: application.shift_end_time ?? null,
+          start_time: application.shift_start_time ?? '',
+          end_time: application.shift_end_time ?? '',
         })
       : formatPostTitleDisplay(application.post_title).replace(/^Fill-in · /, '') || null;
 

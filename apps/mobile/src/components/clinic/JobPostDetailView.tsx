@@ -27,9 +27,20 @@ type JobPostDetailViewProps = {
   part?: JobPostDetailPart;
   /** Optional badges rendered below the hero row (e.g. match tier). */
   heroAccessory?: ReactNode;
+  /** Site location for group postings (Practice section). */
+  locationLabel?: string | null;
+  postedByLabel?: string | null;
+  postedOnLabel?: string | null;
 };
 
-export function JobPostDetailView({ job, part = 'all', heroAccessory }: JobPostDetailViewProps) {
+export function JobPostDetailView({
+  job,
+  part = 'all',
+  heroAccessory,
+  locationLabel,
+  postedByLabel,
+  postedOnLabel,
+}: JobPostDetailViewProps) {
   const { colors } = useTheme();
   const metaLine = formatJobPostRoleMeta(job);
   const matchableSoftware = job.software_used.filter(isMatchableSoftware);
@@ -127,6 +138,12 @@ export function JobPostDetailView({ job, part = 'all', heroAccessory }: JobPostD
             </CardDetailSection>
 
             <CardDetailSection title="Practice" divided>
+              {locationLabel?.trim() ? (
+                <>
+                  <DetailRow label="Location" value={locationLabel} />
+                  <RowDivider />
+                </>
+              ) : null}
               <DetailRow label="Specialty" value={getSpecialtyLabel(job.specialty)} />
               <RowDivider />
               <DetailRow label="Software" value={softwareLabel} />
@@ -141,6 +158,18 @@ export function JobPostDetailView({ job, part = 'all', heroAccessory }: JobPostD
             {description ? (
               <CardDetailSection title="About" divided>
                 <DetailProse text={description} />
+              </CardDetailSection>
+            ) : null}
+
+            {postedByLabel?.trim() ? (
+              <CardDetailSection title="Posted by" divided>
+                <DetailProse text={postedByLabel} />
+              </CardDetailSection>
+            ) : null}
+
+            {postedOnLabel?.trim() ? (
+              <CardDetailSection title="Posted on" divided>
+                <DetailProse text={postedOnLabel} />
               </CardDetailSection>
             ) : null}
           </SurfaceCard>

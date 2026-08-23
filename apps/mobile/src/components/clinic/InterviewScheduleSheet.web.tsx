@@ -1,9 +1,7 @@
 import { AdaptiveWebSheet } from '@/components/ui/AdaptiveWebSheet.web';
 import { InterviewScheduleSheetBody } from '@/components/clinic/InterviewScheduleSheetBody';
-import {
-  InterviewScheduleSheetBottom,
-  type InterviewScheduleSheetProps,
-} from '@/components/clinic/InterviewScheduleSheet.tsx';
+// @ts-expect-error TS5097 — explicit extension required to avoid web circular import
+import { InterviewScheduleSheetBottom, type InterviewScheduleSheetProps } from '@/components/clinic/InterviewScheduleSheet.tsx';
 
 export type { InterviewScheduleSheetMode } from '@/components/clinic/InterviewScheduleSheetBody';
 

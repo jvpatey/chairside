@@ -100,7 +100,7 @@ export function ClinicRoleApplicantsPanel({
     content: {
       gap: spacing.md,
       paddingTop: spacing.xs,
-      paddingBottom: spacing.xxl,
+      paddingBottom: spacing.xl + spacing.md,
     },
     contentFill: {
       flexGrow: 1,

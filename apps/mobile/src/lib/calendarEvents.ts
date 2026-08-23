@@ -6,6 +6,7 @@ import { formatTime12h, formatTimeRangePreview } from '@/lib/time';
 export type CalendarDayIndicators = {
   hasInterview: boolean;
   hasConfirmedFillIn: boolean;
+  hasOpenFillIn: boolean;
 };
 
 export function monthStart(date: Date): Date {
@@ -58,11 +59,12 @@ export function getDayIndicators(
   return {
     hasInterview: dayEvents.some((event) => event.kind === 'interview'),
     hasConfirmedFillIn: dayEvents.some((event) => event.kind === 'confirmed_fill_in'),
+    hasOpenFillIn: dayEvents.some((event) => event.kind === 'open_fill_in'),
   };
 }
 
 export function formatCalendarEventTime(event: CalendarEvent): string {
-  if (event.kind === 'confirmed_fill_in') {
+  if (event.kind === 'confirmed_fill_in' || event.kind === 'open_fill_in') {
     if (event.shiftStartTime && event.shiftEndTime) {
       return formatTimeRangePreview(event.shiftStartTime, event.shiftEndTime) ?? 'All day';
     }
@@ -88,11 +90,15 @@ export function formatCalendarEventTime(event: CalendarEvent): string {
 }
 
 export function calendarEventKindLabel(kind: CalendarEventKind): string {
-  return kind === 'interview' ? 'Interview' : 'Confirmed fill-in';
+  if (kind === 'interview') return 'Interview';
+  if (kind === 'open_fill_in') return 'Open fill-in';
+  return 'Confirmed fill-in';
 }
 
-export function calendarEventAccent(kind: CalendarEventKind): 'primary' | 'secondary' {
-  return kind === 'interview' ? 'primary' : 'secondary';
+export function calendarEventAccent(kind: CalendarEventKind): 'primary' | 'secondary' | 'warning' {
+  if (kind === 'interview') return 'primary';
+  if (kind === 'open_fill_in') return 'warning';
+  return 'secondary';
 }
 
 export function parseInitialCalendarDate(value?: string | null): Date {

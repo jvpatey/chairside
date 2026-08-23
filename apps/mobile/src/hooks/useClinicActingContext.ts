@@ -1,4 +1,5 @@
 import { formatPosterAttribution, type ClinicMembershipRole } from '@chairside/api';
+import { formatPostedDateLabel } from '@/lib/dates';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -124,4 +125,20 @@ export function buildPostedByLabel(input: {
   if (attribution && dateLabel) return `Posted by ${attribution} · ${dateLabel.replace(/^Posted\s+/i, '')}`;
   if (attribution) return `Posted by ${attribution}`;
   return dateLabel;
+}
+
+export function resolvePostingAttributionLabels(input: {
+  postedAt?: string | null;
+  postedByDisplayName?: string | null;
+  postedByTitle?: string | null;
+}): { postedByLabel: string | null; postedOnLabel: string | null } {
+  const postedByLabel =
+    formatPosterAttribution({
+      displayName: input.postedByDisplayName,
+      title: input.postedByTitle,
+    }) ?? null;
+  const postedOnLabel = input.postedAt
+    ? formatPostedDateLabel(input.postedAt).replace(/^Posted\s+/i, '') || null
+    : null;
+  return { postedByLabel, postedOnLabel };
 }

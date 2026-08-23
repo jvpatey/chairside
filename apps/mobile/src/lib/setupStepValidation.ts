@@ -8,7 +8,6 @@ import {
   CLINIC_SETUP_ABOUT,
   CLINIC_SETUP_BASICS,
   CLINIC_SETUP_LOCATION,
-  CLINIC_SETUP_LOCATIONS,
   CLINIC_SETUP_PRACTICE,
   WORKER_SETUP_BASICS,
   WORKER_SETUP_LOCATION,
@@ -113,15 +112,10 @@ export function getClinicSetupStepGuard(
   if (step === 'basics') return null;
   if (!isClinicBasicsComplete(profile)) return CLINIC_SETUP_BASICS;
 
-  // Groups collect practice fields per location and skip the Practice step.
-  // Primary location syncs specialty/software onto clinic_profiles before About.
+  // Groups collect address and software per location. Don't bounce About/Review
+  // back to Locations based on org-profile fields — those live on clinic_locations.
   if (profile?.account_type === 'group') {
     if (step === 'location' || step === 'practice') return CLINIC_SETUP_ABOUT;
-    if (step === 'about' || step === 'review') {
-      if (!isClinicLocationComplete(profile) || !isClinicPracticeComplete(profile)) {
-        return CLINIC_SETUP_LOCATIONS;
-      }
-    }
     return null;
   }
 

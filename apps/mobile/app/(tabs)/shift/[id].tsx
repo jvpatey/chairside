@@ -8,6 +8,7 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
+import { getSpecialtyLabel } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -37,7 +38,12 @@ import {
   parseWorkerPostingReturnParams,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
-import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
+import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
+import {
+  formatWorkerPostLocation,
+  resolveWorkerPostLocationParts,
+  resolveWorkerPostLogoStoragePath,
+} from '@/lib/workerPostLocation';
 import { guardApply } from '@/lib/workerGuard';
 import { useThemedStyles } from '@/theme';
 
@@ -212,7 +218,13 @@ export default function WorkerShiftDetailScreen() {
       <CancelledPillBadge />
     ) : null;
 
-  const location = [shift.clinic.city, shift.clinic.province].filter(Boolean).join(', ');
+  const location = formatWorkerPostLocation(shift);
+  const { displayName, placeLabel } = resolveWorkerPostLocationParts(shift);
+  const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
+    postedAt: shift.created_at,
+    postedByDisplayName: shift.posted_by_display_name,
+    postedByTitle: shift.posted_by_title,
+  });
 
   return (
     <FormScreen
@@ -244,10 +256,12 @@ export default function WorkerShiftDetailScreen() {
             )
           }>
           <ClinicPostHeader
-            clinicName={shift.clinic.clinic_name}
-            logoStoragePath={shift.clinic.logo_storage_path}
-            location={location || null}
-            detail={formatShiftPostMeta(shift)}
+            clinicName={displayName}
+            logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
+            location={placeLabel}
+            detail={getSpecialtyLabel(shift.clinic.specialty)}
+            detailIcon="medkit-outline"
+            metaIcons
             textFooter={statusFooter}
           />
           <ClinicProfileLinkFooter />
@@ -256,6 +270,9 @@ export default function WorkerShiftDetailScreen() {
           shift={shift}
           softwareUsed={shift.clinic.software_used}
           section="details"
+          locationLabel={shift.location ? location : null}
+          postedByLabel={postedByLabel}
+          postedOnLabel={postedOnLabel}
         />
       </View>
     </FormScreen>

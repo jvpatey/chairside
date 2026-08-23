@@ -14,13 +14,16 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
   getClinicApplicationRoute,
+  getShiftDetailRoute,
   getWorkerApplicationRoute,
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 type ScheduleCalendarScreenPanelProps = {
   role: 'worker' | 'clinic';
-  userId: string | undefined;
+  userId?: string | undefined;
+  clinicId?: string | undefined;
+  locationIds?: string[] | 'all';
   initialDate?: string | null;
   emptyCtaLabel?: string;
   onEmptyCtaPress?: () => void;
@@ -31,6 +34,8 @@ type ScheduleCalendarScreenPanelProps = {
 export function ScheduleCalendarScreenPanel({
   role,
   userId,
+  clinicId,
+  locationIds,
   initialDate,
   emptyCtaLabel,
   onEmptyCtaPress,
@@ -52,7 +57,8 @@ export function ScheduleCalendarScreenPanel({
   }, [initialDate]);
 
   const load = useCallback(async () => {
-    if (!userId) {
+    const clinicLoadId = clinicId ?? userId;
+    if (role === 'worker' ? !userId : !clinicLoadId) {
       setEvents([]);
       setLoadError(false);
       setIsLoading(false);
@@ -64,8 +70,10 @@ export function ScheduleCalendarScreenPanel({
     try {
       const rows =
         role === 'worker'
-          ? await listWorkerCalendarEvents(userId)
-          : await listClinicCalendarEvents(userId);
+          ? await listWorkerCalendarEvents(userId!)
+          : await listClinicCalendarEvents(clinicLoadId!, undefined, {
+              locationIds,
+            });
       setEvents(rows);
     } catch {
       setEvents([]);
@@ -73,7 +81,7 @@ export function ScheduleCalendarScreenPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [role, userId]);
+  }, [clinicId, locationIds, role, userId]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);
@@ -89,11 +97,18 @@ export function ScheduleCalendarScreenPanel({
   const handleEventPress = useCallback(
     (event: CalendarEvent) => {
       if (role === 'worker') {
-        router.push(getWorkerApplicationRoute(event.applicationId, applicationReturnTo));
+        router.push(getWorkerApplicationRoute(event.applicationId!, applicationReturnTo));
         return;
       }
 
-      router.push(getClinicApplicationRoute(event.applicationId, applicationReturnTo));
+      if (event.kind === 'open_fill_in' && event.shiftPostId) {
+        router.push(getShiftDetailRoute(event.shiftPostId, 'fill-ins-tab'));
+        return;
+      }
+
+      if (event.applicationId) {
+        router.push(getClinicApplicationRoute(event.applicationId, applicationReturnTo));
+      }
     },
     [applicationReturnTo, role],
   );

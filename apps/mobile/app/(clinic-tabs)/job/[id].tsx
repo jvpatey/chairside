@@ -10,12 +10,16 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
+import { resolveClinicJobLocationLabel } from '@/lib/clinicPostingListDisplay';
 import { getEditJobRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function JobDetailScreen() {
   const { user } = useAuth();
+  const { locations, clinicProfile, isGroup } = useClinicProfile();
   const { id } = useLocalSearchParams<{ id: string }>();
   const jobId = typeof id === 'string' ? id : '';
   const [job, setJob] = useState<JobPost | null>(null);
@@ -74,6 +78,15 @@ export default function JobDetailScreen() {
     );
   }
 
+  const locationLabel = isGroup
+    ? resolveClinicJobLocationLabel(job, locations, clinicProfile)
+    : null;
+  const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
+    postedAt: job.created_at,
+    postedByDisplayName: job.posted_by_display_name,
+    postedByTitle: job.posted_by_title,
+  });
+
   return (
     <FormScreen
       eyebrow="Role details"
@@ -99,7 +112,12 @@ export default function JobDetailScreen() {
         </View>
       }>
       <View style={styles.content}>
-        <JobPostDetailView job={job} />
+        <JobPostDetailView
+          job={job}
+          locationLabel={locationLabel || null}
+          postedByLabel={postedByLabel}
+          postedOnLabel={postedOnLabel}
+        />
       </View>
     </FormScreen>
   );

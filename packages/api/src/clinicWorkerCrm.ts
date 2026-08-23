@@ -96,7 +96,12 @@ type ApplicationWithWorkerId = {
 export async function attachClinicCrmToApplications<
   T extends ApplicationWithWorkerId,
 >(clinicId: string, applications: T[]): Promise<(T & { clinic_crm: ClinicWorkerCrmRecord | null })[]> {
-  if (applications.length === 0) return applications;
+  if (applications.length === 0) {
+    return applications.map((application) => ({
+      ...application,
+      clinic_crm: null,
+    }));
+  }
 
   const crmMap = await listClinicWorkerCrmRecordsMap(
     clinicId,

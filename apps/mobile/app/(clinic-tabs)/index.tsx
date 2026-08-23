@@ -1,7 +1,6 @@
 import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
-  getMissingClinicProfileFields,
   getShiftPostApplicationCount,
   getShiftPostPendingApplicationCountsMap,
   listClinicApplications,
@@ -21,7 +20,7 @@ import {
 import type { Href } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { View } from 'react-native';
 
 import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
 import {
@@ -29,6 +28,7 @@ import {
   type OverviewStat,
 } from '@/components/clinic/ClinicCards';
 import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { GroupLocationsGlanceWidget } from '@/components/clinic/GroupLocationsGlanceWidget';
 import { GroupTeamPulseWidget } from '@/components/clinic/GroupTeamPulseWidget';
 import { GroupWeekCoverageWidget } from '@/components/clinic/GroupWeekCoverageWidget';
@@ -63,10 +63,11 @@ import {
   buildClinicAttentionItems,
   summarizeJobApplicantPreviews,
 } from '@/lib/dashboardAttention';
+import { getClinicDashboardHeroNaming } from '@/lib/clinicDashboardHeroNaming';
+import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
 import { sortDashboardApplications } from '@/lib/applicationPipeline';
-import { getFirstName } from '@/lib/greeting';
 import { isDecidedApplicationStatus } from '@chairside/config';
 import {
   isFillInPostingLimitReached,
@@ -86,13 +87,13 @@ import {
   CLINIC_POST_JOB,
   CLINIC_PROFILE,
   CLINIC_PROFILE_TEAM,
-  CLINIC_SETUP_BASICS,
   getClinicApplicationRoute,
   getClinicMessagesRoute,
   getClinicRoleApplicationsRoute,
   getConversationMessagesRoute,
   getJobDetailRoute,
   getPostShiftRoute,
+  getShiftDetailRoute,
 } from '@/lib/routing';
 
 export default function ClinicDashboardScreen() {
@@ -105,7 +106,7 @@ export default function ClinicDashboardScreen() {
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount, isApplicationHighlighted } =
     useApplicationTabBadge();
-  const { clinicProfile, isProfileComplete, organization } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations, organization } = useClinicProfile();
   const {
     clinicId,
     scopedLocationIds,
@@ -183,7 +184,7 @@ export default function ClinicDashboardScreen() {
         }),
         listConversationsForClinic(clinicId, { locationIds: scopedLocationIds }),
         listClinicApplications(clinicId, 'active', { locationIds: scopedLocationIds }),
-        listClinicCalendarEvents(clinicId),
+        listClinicCalendarEvents(clinicId, undefined, { locationIds: scopedLocationIds }),
       ]);
 
       const shiftApplicationCountEntries = await Promise.all(
@@ -293,50 +294,39 @@ export default function ClinicDashboardScreen() {
   }, [overview]);
 
   const guardPosting = (target: Href) => {
-    if (isProfileComplete) {
-      router.push(target);
-      return;
-    }
-
-    const missing = getMissingClinicProfileFields(clinicProfile);
-    Alert.alert(
-      'Complete your clinic profile',
-      missing.length > 0
-        ? `Add the following before posting: ${missing.join(', ')}`
-        : 'Finish your clinic profile to start posting.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue setup', onPress: () => router.push(CLINIC_SETUP_BASICS) },
-      ],
-    );
+    guardClinicPosting({
+      isProfileComplete,
+      clinicProfile,
+      locations,
+      isGroup,
+      target,
+      onAllowed: (href) => router.push(href),
+    });
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
+  const showManagerSetupBanner = isGroup && !isOwner && !isProfileComplete;
   const groupName =
     groupDisplayName || organization?.name?.trim() || clinicName || 'Dental group';
-  // Groups: person-first title; location lives in the scope switcher.
-  // Individuals: clinic name as before.
-  const heroDisplayName = !isProfileComplete
-    ? null
-    : isGroup
-      ? memberDisplayName || null
-      : clinicName;
-  const scopedLocation =
-    isGroup && locationScope !== 'all'
-      ? accessibleLocations.find((location) => location.id === locationScope) ?? null
-      : null;
-  const scopedLocationHint =
-    scopedLocation?.city?.trim() || scopedLocation?.name?.trim() || null;
-  const heroSubtitle = !isProfileComplete
-    ? 'Finish your clinic setup'
-    : isGroup
-      ? scopedLocationHint
-        ? `${groupName} · ${scopedLocationHint}`
-        : groupName
-      : [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ') ||
-        'Dental practice';
-  const heroIdentityLine =
-    isGroup && isProfileComplete && memberRoleLabel ? memberRoleLabel : undefined;
+  const {
+    greetingName: heroGreetingName,
+    displayName: heroDisplayName,
+    namePlaceholder: heroNamePlaceholder,
+    subtitle: heroSubtitle,
+    identityLine: heroIdentityLine,
+  } = getClinicDashboardHeroNaming({
+    isGroup,
+    isProfileComplete,
+    clinicName,
+    groupName,
+    memberDisplayName,
+    memberRoleLabel,
+    contactName: clinicProfile?.contact_name,
+    locationScope,
+    accessibleLocations,
+    clinicCity: clinicProfile?.city,
+    clinicProvince: clinicProfile?.province,
+  });
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
   const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
 
@@ -406,7 +396,13 @@ export default function ClinicDashboardScreen() {
   }, [calendarEvents]);
 
   const handleCalendarEventPress = useCallback((event: CalendarEvent) => {
-    router.push(getClinicApplicationRoute(event.applicationId, 'dashboard-applications'));
+    if (event.kind === 'open_fill_in' && event.shiftPostId) {
+      router.push(getShiftDetailRoute(event.shiftPostId, 'fill-ins-tab'));
+      return;
+    }
+    if (event.applicationId) {
+      router.push(getClinicApplicationRoute(event.applicationId, 'dashboard-applications'));
+    }
   }, []);
 
   const heroPulse = useMemo(
@@ -420,9 +416,13 @@ export default function ClinicDashboardScreen() {
     [counts.newApplications, isProfileComplete],
   );
 
+  // Incomplete profiles need the checklist most — it owns the setup CTA.
+  // Once complete, keep it while early hiring steps are still open.
   const showChecklist =
-    isProfileComplete &&
-    (counts.openRoles === 0 || counts.fillInsPosted === 0 || counts.totalApplications === 0);
+    !isProfileComplete ||
+    counts.openRoles === 0 ||
+    counts.fillInsPosted === 0 ||
+    counts.totalApplications === 0;
 
   const overviewViewAll = useCallback(() => {
     if (selectedOverview === 'roles') {
@@ -515,16 +515,10 @@ export default function ClinicDashboardScreen() {
                   : logoUri
                 : null
             }
-            namePlaceholder={
-              isProfileComplete
-                ? isGroup
-                  ? 'Your profile'
-                  : 'Your practice'
-                : 'Welcome to Chairside'
-            }
+            namePlaceholder={heroNamePlaceholder}
             subtitle={heroSubtitle}
             identityLine={heroIdentityLine}
-            greetingName={isProfileComplete ? getFirstName(memberDisplayName) : null}
+            greetingName={heroGreetingName}
             pulse={heroPulse}
             hideProfileOnWebTablet
             contextSlot={
@@ -548,12 +542,23 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       alerts={
-        locationGlanceRows.length > 0 ? (
+        showManagerSetupBanner || locationGlanceRows.length > 0 ? (
           <FadeInSection delayMs={40}>
-            <GroupLocationsGlanceWidget
-              rows={locationGlanceRows}
-              onSelectLocation={focusLocation}
-            />
+            <View style={{ gap: 12 }}>
+              {showManagerSetupBanner ? (
+                <CardInfoPanel variant="info" icon="information-circle-outline" title="Setup in progress">
+                  <CardInfoPanelText>
+                    Your group owner needs to finish setup before you can post roles or fill-ins.
+                  </CardInfoPanelText>
+                </CardInfoPanel>
+              ) : null}
+              {locationGlanceRows.length > 0 ? (
+                <GroupLocationsGlanceWidget
+                  rows={locationGlanceRows}
+                  onSelectLocation={focusLocation}
+                />
+              ) : null}
+            </View>
           </FadeInSection>
         ) : null
       }
@@ -703,6 +708,7 @@ export default function ClinicDashboardScreen() {
           <FadeInSection delayMs={180}>
             <ClinicReadinessChecklist
               clinicProfile={clinicProfile}
+              locations={accessibleLocations}
               fillInsPosted={counts.fillInsPosted}
               openRoles={counts.openRoles}
               totalApplications={counts.totalApplications}
@@ -742,6 +748,7 @@ export default function ClinicDashboardScreen() {
       <DashboardWelcomeCelebration
         visible={welcomeVisible}
         role="clinic"
+        isGroup={isGroup}
         onDismiss={() => void dismissWelcome()}
       />
       {upgradePrompt}

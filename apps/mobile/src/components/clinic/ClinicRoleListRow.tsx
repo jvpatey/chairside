@@ -2,14 +2,15 @@ import type { JobPost } from '@chairside/api';
 import { formatJobPostRoleMeta } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
-import { showJobPostManageMenu } from '@/components/clinic/jobPostManageMenu';
+import { showJobPostManageMenu } from '@/components/clinic/showJobPostManageMenu';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ApplicantAvatarStack } from '@/components/ui/ApplicantAvatarStack';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
+import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
@@ -22,10 +23,11 @@ import {
   formatClinicApplicantCount,
   formatClinicPostingTableLocation,
   formatClinicPostingPostedDate,
-  formatClinicRoleCompactMeta,
   getClinicRoleTableColumns,
+  resolveClinicJobLocationParts,
   type ClinicPostingTableColumn,
 } from '@/lib/clinicPostingListDisplay';
+import { buildRoleListingMetaRows } from '@/lib/listingCardDisplay';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { webTransition } from '@/theme/web';
@@ -57,21 +59,29 @@ export function ClinicRoleListRow({
   manage,
 }: ClinicRoleListRowProps) {
   const { colors } = useTheme();
-  const { clinicProfile, locations, accessibleLocations } = useClinicProfile();
+  const { clinicProfile, locations, isGroup } = useClinicProfile();
   const { billing } = useClinicBilling();
   const featuredTreatment = useFeaturedListingTreatment();
   const logoStoragePath = useResolvedClinicLogoPath(job.location_id);
   const logoUri = useClinicLogoUri(logoStoragePath);
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
   const locationRecord = locations.find((location) => location.id === job.location_id);
+  const { siteName, placeLabel } = resolveClinicJobLocationParts(job, locations, clinicProfile);
   const locationLabel = formatClinicPostingTableLocation(
     locationRecord?.name,
     locationRecord?.city ?? clinicProfile?.city,
   );
+  const groupSiteEyebrow = siteName || clinicName;
   const roleMeta = formatJobPostRoleMeta(job);
+  const subtitleName = isGroup ? groupSiteEyebrow : clinicName;
+  const metaRows = buildRoleListingMetaRows({
+    location: placeLabel,
+    roleMeta,
+    postedAt: job.created_at,
+  });
   const postedDate = formatClinicPostingPostedDate(job.created_at);
   const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
-  const columns = columnsProp ?? getClinicRoleTableColumns(accessibleLocations.length > 1);
+  const columns = columnsProp ?? getClinicRoleTableColumns(isGroup);
   const gridTemplate = clinicPostingTableGridTemplate(columns);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
@@ -146,7 +156,7 @@ export function ClinicRoleListRow({
     numericCell: {
       minWidth: 0,
       width: '100%',
-      ...webOnlyStyle({ justifySelf: 'end' } as const),
+      ...webOnlyStyle({ justifySelf: 'end' } as ViewStyle),
     },
     numericText: {
       fontSize: 13,
@@ -323,7 +333,7 @@ export function ClinicRoleListRow({
         );
       case 'posted':
         return (
-          <Text key={column.key} style={[styles.numericText, styles.numericCell]} numberOfLines={1}>
+          <Text key={column.key} style={[styles.numericText, styles.numericCell as TextStyle]} numberOfLines={1}>
             {postedDate}
           </Text>
         );
@@ -331,7 +341,7 @@ export function ClinicRoleListRow({
         return (
           <Text
             key={column.key}
-            style={[job.wage_range ? styles.pay : styles.muted, styles.numericCell]}
+            style={[job.wage_range ? styles.pay : styles.muted, styles.numericCell as TextStyle]}
             numberOfLines={1}
           >
             {job.wage_range || '—'}
@@ -376,7 +386,8 @@ export function ClinicRoleListRow({
         compact
         avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
         title={job.title}
-        meta={formatClinicRoleCompactMeta(job, applicantCount)}
+        subtitle={<ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />}
+        metaRows={metaRows}
         topTrailing={
           <BadgeRow>
             {isFeatured ? <FeaturedListingBadge /> : null}

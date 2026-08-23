@@ -370,9 +370,10 @@ export function getJobPostStatusBadgeVariant(status: JobPostStatus): JobPostStat
 }
 
 /** Title-case fallback for raw stored values (e.g. `part-time` → `Part Time`). */
-export function formatDisplayLabel(value: string): string {
-  return value
-    .trim()
+export function formatDisplayLabel(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return '';
+  return trimmed
     .replace(/[_-]/g, ' ')
     .split(/\s+/)
     .filter(Boolean)
@@ -380,8 +381,10 @@ export function formatDisplayLabel(value: string): string {
     .join(' ');
 }
 
-export function getRoleTypeLabel(value: string): string {
-  return ROLE_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? formatDisplayLabel(value);
+export function getRoleTypeLabel(value: string | null | undefined): string {
+  const normalized = value?.trim();
+  if (!normalized) return '';
+  return ROLE_TYPE_OPTIONS.find((option) => option.value === normalized)?.label ?? formatDisplayLabel(normalized);
 }
 
 export function formatRoleTypesLabel(
@@ -423,23 +426,33 @@ export function workerMatchesPostRole(
   return roles.includes(postRoleType as RoleType);
 }
 
-export function getEmploymentTypeLabel(value: string): string {
+export function getEmploymentTypeLabel(value: string | null | undefined): string {
+  const normalized = value?.trim();
+  if (!normalized) return '';
   return (
-    EMPLOYMENT_TYPE_OPTIONS.find((option) => option.value === value)?.label ??
-    formatDisplayLabel(value)
+    EMPLOYMENT_TYPE_OPTIONS.find((option) => option.value === normalized)?.label ??
+    formatDisplayLabel(normalized)
   );
 }
 
-export function getSpecialtyLabel(value: string): string {
-  return SPECIALTY_OPTIONS.find((option) => option.value === value)?.label ?? formatDisplayLabel(value);
+export function getSpecialtyLabel(value: string | null | undefined): string {
+  const normalized = value?.trim() || 'general';
+  return (
+    SPECIALTY_OPTIONS.find((option) => option.value === normalized)?.label ??
+    formatDisplayLabel(normalized)
+  );
 }
 
-export function getUrgencyLabel(value: string): string {
-  return URGENCY_OPTIONS.find((option) => option.value === value)?.label ?? formatDisplayLabel(value);
+export function getUrgencyLabel(value: string | null | undefined): string {
+  const normalized = value?.trim();
+  if (!normalized) return '';
+  return URGENCY_OPTIONS.find((option) => option.value === normalized)?.label ?? formatDisplayLabel(normalized);
 }
 
-export function formatOfferingLabel(value: string): string {
-  const normalized = value.trim().toLowerCase();
+export function formatOfferingLabel(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return '';
+  const normalized = trimmed.toLowerCase();
   const preset = OFFERING_PRESET_OPTIONS.find(
     (option) =>
       option.value === value ||
@@ -447,7 +460,7 @@ export function formatOfferingLabel(value: string): string {
       formatDisplayLabel(option.label).toLowerCase() === normalized,
   );
   if (preset) return preset.label;
-  return formatDisplayLabel(value);
+  return formatDisplayLabel(trimmed);
 }
 
 export function formatJobPostRoleMeta(job: {

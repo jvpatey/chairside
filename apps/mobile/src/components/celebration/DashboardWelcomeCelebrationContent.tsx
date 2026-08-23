@@ -10,15 +10,17 @@ import { useTheme, useThemedStyles } from '@/theme';
 
 type DashboardWelcomeCelebrationContentProps = {
   role: DashboardWelcomeRole;
+  isGroup?: boolean;
   onDismiss: () => void;
 };
 
 export function DashboardWelcomeCelebrationContent({
   role,
+  isGroup,
   onDismiss,
 }: DashboardWelcomeCelebrationContentProps) {
   const { colors } = useTheme();
-  const copy = getDashboardWelcomeCopy(role);
+  const copy = getDashboardWelcomeCopy(role, { isGroup });
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: {

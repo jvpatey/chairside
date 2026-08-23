@@ -1,5 +1,5 @@
 import type { ClinicProfile } from '@chairside/api';
-import { isClinicProfileComplete } from '@chairside/api';
+import { isClinicProfileComplete, type ClinicProfileCompletenessLocation } from '@chairside/api';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
@@ -20,6 +20,7 @@ import {
 
 type ClinicReadinessChecklistProps = {
   clinicProfile: ClinicProfile | null;
+  locations?: ClinicProfileCompletenessLocation[];
   fillInsPosted: number;
   openRoles: number;
   totalApplications: number;
@@ -30,6 +31,7 @@ type ClinicReadinessChecklistProps = {
 
 export function ClinicReadinessChecklist({
   clinicProfile,
+  locations,
   fillInsPosted,
   openRoles,
   totalApplications,
@@ -39,7 +41,7 @@ export function ClinicReadinessChecklist({
 }: ClinicReadinessChecklistProps) {
   const { isHydrated, isDismissed, dismiss } = useDismissedGetStartedChecklist('clinic');
 
-  const profileComplete = isClinicProfileComplete(clinicProfile);
+  const profileComplete = isClinicProfileComplete(clinicProfile, { locations });
   const hasPosted = isClinicPostingStepComplete({ fillInsPosted, openRoles });
   const hasPostedFillIn = fillInsPosted > 0;
   const hasPostedRole = openRoles > 0;

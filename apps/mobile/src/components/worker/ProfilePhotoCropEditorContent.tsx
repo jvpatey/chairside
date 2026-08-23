@@ -7,6 +7,7 @@ import {
   Text,
   View,
   type LayoutChangeEvent,
+  type ViewStyle,
 } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -117,14 +118,16 @@ export function ProfilePhotoCropEditorContent({
 
   const handleWebMouseUp = useCallback(() => {
     webDragRef.current = null;
-    window.removeEventListener('mousemove', handleWebMouseMove);
-    window.removeEventListener('mouseup', handleWebMouseUp);
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.removeEventListener('mousemove', handleWebMouseMove);
+      window.removeEventListener('mouseup', handleWebMouseUp);
+    }
     updateTransform(transformRef.current);
   }, [handleWebMouseMove, updateTransform]);
 
   const handleWebMouseDown = useCallback(
     (event: { preventDefault?: () => void; nativeEvent: MouseEvent }) => {
-      if (isSaving) return;
+      if (isSaving || Platform.OS !== 'web') return;
 
       event.preventDefault?.();
       event.nativeEvent.preventDefault?.();
@@ -140,6 +143,8 @@ export function ProfilePhotoCropEditorContent({
   );
 
   useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
     return () => {
       window.removeEventListener('mousemove', handleWebMouseMove);
       window.removeEventListener('mouseup', handleWebMouseUp);
@@ -200,7 +205,7 @@ export function ProfilePhotoCropEditorContent({
     },
     cropSurface: {
       ...webOnlyStyle({
-        cursor: isSaving ? 'default' : 'grab',
+        cursor: (isSaving ? 'default' : 'grab') as ViewStyle['cursor'],
         userSelect: 'none',
         touchAction: 'none',
       } as const),
@@ -290,7 +295,6 @@ export function ProfilePhotoCropEditorContent({
             style={[styles.image, imageStyle]}
             accessibilityLabel="Photo preview"
             pointerEvents="none"
-            // @ts-expect-error web-only prop to prevent browser image drag
             draggable={false}
           />
         </View>

@@ -3,7 +3,7 @@ import {
   isValidElement,
   type ReactNode,
 } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
 import { ListGroupItemSeparator } from '@/components/ui/ListGroupItemSeparator';
 import { cardShellRadii } from '@/components/ui/cardLayout';
@@ -60,8 +60,8 @@ export function ClinicPostingTable({
       color: colors.labelTertiary,
       minWidth: 0,
     },
-    headerStart: webOnlyStyle({ justifySelf: 'start', textAlign: 'left' } as const),
-    headerEnd: webOnlyStyle({ justifySelf: 'end', textAlign: 'right' } as const),
+    headerStart: webOnlyStyle({ justifySelf: 'start', textAlign: 'left' } as ViewStyle),
+    headerEnd: webOnlyStyle({ justifySelf: 'end', textAlign: 'right' } as ViewStyle),
     item: {
       alignSelf: 'stretch',
     },
@@ -77,7 +77,7 @@ export function ClinicPostingTable({
                 key={column.key}
                 style={[
                   styles.headerLabel,
-                  column.align === 'end' ? styles.headerEnd : styles.headerStart,
+                  (column.align === 'end' ? styles.headerEnd : styles.headerStart) as TextStyle,
                 ]}
                 numberOfLines={1}
               >

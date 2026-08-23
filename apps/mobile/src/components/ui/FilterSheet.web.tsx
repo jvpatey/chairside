@@ -10,6 +10,7 @@ import { radii } from '@/theme/tokens';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 import { webTypography } from '@/theme/web';
 
+// @ts-expect-error TS5097 — explicit extension required to avoid web circular import
 import { FilterSheet as FilterSheetBottom, FilterSheetSection } from './FilterSheet.tsx';
 
 export { FilterSheetSection };

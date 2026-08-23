@@ -6,6 +6,8 @@ import { Pressable, Text, View } from 'react-native';
 
 import { cardShellRadii } from '@/components/ui/cardLayout';
 import { CardSectionDivider } from '@/components/ui/CardTitleSection';
+import { ListingMetaIconRow } from '@/components/ui/ListingMetaIconRow';
+import type { ListingMetaRow } from '@/lib/listingCardDisplay';
 import { webHover, webListRowHoverStyles, webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { radii } from '@/theme/tokens';
@@ -30,10 +32,16 @@ function renderPostedLabel(
 type BrowseListRowProps = {
   avatar: ReactNode;
   eyebrow?: string | null;
+  /** Geographic place line (city, province) shown below the eyebrow. */
+  location?: string | null;
   title: string;
+  /** Renders below title (e.g. clinic name with icon). */
+  subtitle?: ReactNode;
   meta?: string | null;
   detail?: string | null;
   postedLabel?: string | ReactNode | null;
+  /** Icon meta lines in the split content band (replaces detail/posted/meta when set). */
+  metaRows?: ListingMetaRow[];
   /** Where `postedLabel` appears in split layout. Default `content` (tinted band). */
   postedLabelPlacement?: 'header' | 'content';
   /** Split header: secondary line below location (e.g. role type). */
@@ -64,15 +72,20 @@ type BrowseListRowProps = {
   layout?: 'stacked' | 'split';
   /** When `header`, only the header block is pressable with inset hover (for rows with external footers). */
   pressScope?: 'row' | 'header';
+  /** Skip outer row padding when the parent shell already provides inset. */
+  paddingless?: boolean;
 };
 
 export function BrowseListRow({
   avatar,
   eyebrow,
+  location,
   title,
+  subtitle,
   meta,
   detail,
   postedLabel,
+  metaRows,
   postedLabelPlacement = 'content',
   headerDetail,
   headerAccent,
@@ -90,14 +103,17 @@ export function BrowseListRow({
   detailsDivider = false,
   layout = 'split',
   pressScope = 'row',
+  paddingless = false,
 }: BrowseListRowProps) {
   const { colors } = useTheme();
   const isSplit = layout === 'split';
-  const postedInHeader = isSplit && postedLabelPlacement === 'header' && postedLabel;
-  const postedInContent = postedLabel && !postedInHeader;
+  const usesMetaRows = Boolean(metaRows?.length);
+  const postedInHeader = isSplit && postedLabelPlacement === 'header' && postedLabel && !usesMetaRows;
+  const postedInContent = postedLabel && !postedInHeader && !usesMetaRows;
   const hasContentSection =
     isSplit &&
     Boolean(
+      usesMetaRows ||
       detail ||
       postedInContent ||
       textFooter ||
@@ -113,6 +129,10 @@ export function BrowseListRow({
       gap: spacing.xs,
       position: 'relative',
       overflow: 'hidden',
+    },
+    containerPaddingless: {
+      paddingVertical: 0,
+      paddingHorizontal: 0,
     },
     rowHovered: webListRowHoverStyles(colors),
     rowPressed: {
@@ -146,6 +166,9 @@ export function BrowseListRow({
       flex: 1,
       minWidth: 0,
       gap: spacing.xs,
+    },
+    headerBodyCornerInset: {
+      paddingRight: 92,
     },
     headerContentRow: {
       flexDirection: 'row',
@@ -304,64 +327,103 @@ export function BrowseListRow({
 
   const stackedTextBlock = (
     <View style={styles.textColumn}>
-      {eyebrow ? (
-        <Text style={styles.eyebrow} numberOfLines={1}>
-          {eyebrow}
-        </Text>
-      ) : null}
-      <Text style={styles.title} numberOfLines={2}>
-        {title}
-      </Text>
-      {detailsDivider && (meta || detail || postedLabel || footer || textFooter) ? (
+      {subtitle ? (
+        <>
+          <Text style={styles.title} numberOfLines={2}>
+            {title}
+          </Text>
+          {subtitle}
+        </>
+      ) : (
+        <>
+          {eyebrow ? (
+            <Text style={styles.eyebrow} numberOfLines={1}>
+              {eyebrow}
+            </Text>
+          ) : null}
+          {location ? (
+            <Text style={styles.location} numberOfLines={1}>
+              {location}
+            </Text>
+          ) : null}
+          <Text style={styles.title} numberOfLines={2}>
+            {title}
+          </Text>
+        </>
+      )}
+      {detailsDivider && (usesMetaRows || meta || detail || postedLabel || footer || textFooter) ? (
         <View style={styles.detailsDivider}>
           <CardSectionDivider insetEnd={24} />
         </View>
       ) : null}
-      {meta ? (
+      {usesMetaRows
+        ? metaRows?.map((row) => (
+            <ListingMetaIconRow key={`${row.icon}-${row.label}`} icon={row.icon} label={row.label} />
+          ))
+        : null}
+      {!usesMetaRows && meta ? (
         <Text style={styles.meta} numberOfLines={1}>
           {meta}
         </Text>
       ) : null}
-      {detail ? (
+      {!usesMetaRows && detail ? (
         <Text style={styles.meta} numberOfLines={1}>
           {detail}
         </Text>
       ) : null}
-      {postedLabel ? renderPostedLabel(postedLabel, styles.meta) : null}
+      {!usesMetaRows && postedLabel ? renderPostedLabel(postedLabel, styles.meta) : null}
       {footer ? <View style={styles.footer}>{footer}</View> : null}
       {textFooter ? <View style={styles.textFooter}>{textFooter}</View> : null}
     </View>
   );
 
   const splitHeaderPrimary = (
-    <View style={styles.headerContentRow}>
-      <View style={styles.textColumn}>
-        {eyebrow ? (
-          <Text style={styles.eyebrow} numberOfLines={1}>
-            {eyebrow}
-          </Text>
-        ) : null}
-        <Text style={styles.title} numberOfLines={2}>
-          {title}
-        </Text>
-        {detailsDivider && (meta || headerDetail) ? (
-          <View style={styles.detailsDivider}>
-            <CardSectionDivider insetEnd={24} />
-          </View>
-        ) : null}
-        {meta ? (
-          <Text style={styles.location} numberOfLines={2}>
-            {meta}
-          </Text>
-        ) : null}
-        {headerDetail ? (
-          <Text style={styles.meta} numberOfLines={2}>
-            {headerDetail}
-          </Text>
-        ) : null}
+    <>
+      <View style={styles.headerContentRow}>
+        <View style={styles.textColumn}>
+          {subtitle ? (
+            <>
+              <Text style={styles.title} numberOfLines={2}>
+                {title}
+              </Text>
+              {subtitle}
+            </>
+          ) : (
+            <>
+              {eyebrow ? (
+                <Text style={styles.eyebrow} numberOfLines={1}>
+                  {eyebrow}
+                </Text>
+              ) : null}
+              {location ? (
+                <Text style={styles.location} numberOfLines={1}>
+                  {location}
+                </Text>
+              ) : null}
+              <Text style={styles.title} numberOfLines={2}>
+                {title}
+              </Text>
+            </>
+          )}
+          {detailsDivider && (meta || headerDetail) ? (
+            <View style={styles.detailsDivider}>
+              <CardSectionDivider insetEnd={24} />
+            </View>
+          ) : null}
+          {meta ? (
+            <Text style={styles.location} numberOfLines={2}>
+              {meta}
+            </Text>
+          ) : null}
+          {headerDetail ? (
+            <Text style={styles.meta} numberOfLines={2}>
+              {headerDetail}
+            </Text>
+          ) : null}
+        </View>
+        {topTrailing ? <View style={styles.headerTrailing}>{topTrailing}</View> : null}
       </View>
-      {topTrailing ? <View style={styles.headerTrailing}>{topTrailing}</View> : null}
-    </View>
+    </>
   );
 
   const splitHeaderFooter =
@@ -387,7 +449,18 @@ export function BrowseListRow({
       </View>
     ) : null;
 
-  const splitDetails = (
+  const splitDetails = usesMetaRows ? (
+    <>
+      {metaRows?.map((row) => (
+        <ListingMetaIconRow key={`${row.icon}-${row.label}`} icon={row.icon} label={row.label} />
+      ))}
+      {textFooter ? <View style={styles.textFooter}>{textFooter}</View> : null}
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
+      {trailing && !contentAccessory ? (
+        <View style={styles.metaFooterAccessory}>{trailing}</View>
+      ) : null}
+    </>
+  ) : (
     <>
       {detail ? (
         <Text style={styles.meta} numberOfLines={2}>
@@ -444,7 +517,9 @@ export function BrowseListRow({
   const stackedMainRow = (
     <View style={[styles.headerRow, useStackedCornerLayout && showChevron && styles.stackedChevronInset]}>
       {avatar}
-      <View style={styles.headerBody}>{stackedTextBlock}</View>
+      <View style={[styles.headerBody, useStackedCornerLayout && styles.headerBodyCornerInset]}>
+        {stackedTextBlock}
+      </View>
       {stackedTrailingColumn}
     </View>
   );
@@ -452,7 +527,9 @@ export function BrowseListRow({
   const stackedLayout = useStackedCornerLayout ? stackedMainRow : (
     <View style={styles.headerRow}>
       {avatar}
-      <View style={styles.headerBody}>{stackedTextBlock}</View>
+      <View style={[styles.headerBody, useStackedCornerLayout && styles.headerBodyCornerInset]}>
+        {stackedTextBlock}
+      </View>
       {topTrailing || trailing || showChevron ? (
         <View style={styles.trailingCol}>
           {topTrailing ?? null}
@@ -551,7 +628,7 @@ export function BrowseListRow({
   const rowBody = content;
 
   if (!onPress || useHeaderPress) {
-    return <View style={styles.container}>{rowBody}</View>;
+    return <View style={[styles.container, paddingless && styles.containerPaddingless]}>{rowBody}</View>;
   }
 
   return (
@@ -563,6 +640,7 @@ export function BrowseListRow({
       }}
       style={({ pressed, hovered }) => [
         styles.container,
+        paddingless && styles.containerPaddingless,
         webHover(hovered, pressed, styles.rowHovered),
         pressed && styles.rowPressed,
       ]}

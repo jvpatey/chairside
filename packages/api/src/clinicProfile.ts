@@ -1,8 +1,20 @@
 import type { ClinicSpecialty, TeamSizeRange } from '@chairside/config';
 import { normalizePracticeDoctors } from '@chairside/config';
 import { getSupabaseClient } from './client';
+import { listClinicLocations, syncPrimaryLocationToClinicProfile, updateClinicLocation } from './clinicOrganization';
 import { throwWithMessage } from './errors';
 import type { Database } from './types';
+import {
+  isClinicProfileComplete,
+} from './clinicProfileValidation';
+
+export {
+  getMissingClinicProfileFields,
+  isClinicLocationRecordComplete,
+  isClinicProfileComplete,
+  type ClinicProfileCompletenessLocation,
+  type ClinicProfileCompletenessOptions,
+} from './clinicProfileValidation';
 
 export type ClinicProfile = Database['public']['Tables']['clinic_profiles']['Row'];
 
@@ -42,45 +54,6 @@ function normalizeSpecialty(value: string | null | undefined): ClinicSpecialty {
     return value as ClinicSpecialty;
   }
   return 'general';
-}
-
-export function isClinicProfileComplete(profile: ClinicProfile | null): boolean {
-  if (!profile) return false;
-
-  const hasContact = Boolean(profile.phone?.trim() || profile.contact_name?.trim());
-
-  return (
-    Boolean(profile.clinic_name?.trim()) &&
-    Boolean(profile.address_line1?.trim()) &&
-    Boolean(profile.city?.trim()) &&
-    Boolean(profile.postal_code?.trim()) &&
-    profile.software_used.length > 0 &&
-    hasContact
-  );
-}
-
-export function getMissingClinicProfileFields(profile: ClinicProfile | null): string[] {
-  if (!profile) {
-    return [
-      'Clinic name',
-      'Street address',
-      'City',
-      'Postal code',
-      'Software used',
-      'Phone or contact name',
-    ];
-  }
-
-  const missing: string[] = [];
-  if (!profile.clinic_name?.trim()) missing.push('Clinic name');
-  if (!profile.address_line1?.trim()) missing.push('Street address');
-  if (!profile.city?.trim()) missing.push('City');
-  if (!profile.postal_code?.trim()) missing.push('Postal code');
-  if (profile.software_used.length === 0) missing.push('Software used');
-  if (!profile.phone?.trim() && !profile.contact_name?.trim()) {
-    missing.push('Phone or contact name');
-  }
-  return missing;
 }
 
 export async function getClinicProfile(userId: string): Promise<ClinicProfile | null> {
@@ -167,8 +140,29 @@ export async function upsertClinicProfile(
 }
 
 export async function completeClinicSetup(userId: string): Promise<ClinicProfile> {
-  const profile = await getClinicProfile(userId);
-  if (!isClinicProfileComplete(profile)) {
+  let profile = await getClinicProfile(userId);
+  const organizationId = profile?.organization_id ?? userId;
+  const locations =
+    profile?.account_type === 'group'
+      ? await listClinicLocations(organizationId, { activeOnly: true })
+      : [];
+
+  if (profile?.account_type === 'group') {
+    const primary = locations.find((location) => location.is_primary) ?? locations[0];
+    if (primary) {
+      if (!primary.is_primary) {
+        await updateClinicLocation(primary.id, { is_primary: true });
+      }
+      await syncPrimaryLocationToClinicProfile({
+        ...primary,
+        is_primary: true,
+        is_active: true,
+      });
+      profile = await getClinicProfile(userId);
+    }
+  }
+
+  if (!isClinicProfileComplete(profile, { locations })) {
     throw new Error('Clinic profile is incomplete');
   }
 

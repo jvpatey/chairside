@@ -152,6 +152,7 @@ export function SectionPanel({
   icon,
   iconAccent,
   title,
+  subtitle,
   headerAccessory,
   children,
   collapsible = false,
@@ -162,6 +163,7 @@ export function SectionPanel({
   | 'icon'
   | 'iconAccent'
   | 'title'
+  | 'subtitle'
   | 'headerAccessory'
   | 'collapsible'
   | 'defaultExpanded'
@@ -176,6 +178,7 @@ export function SectionPanel({
   return (
     <ProfileSettingsCard
       title={title}
+      subtitle={subtitle}
       icon={icon}
       iconAccent={iconAccent}
       headerAccessory={headerAccessory}

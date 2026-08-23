@@ -128,7 +128,7 @@ function createHtmlPreviewUri(html: string): string {
 }
 
 async function writePdfBytes(bytes: Uint8Array): Promise<string> {
-  return URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  return URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }));
 }
 
 async function mergePdfBytes(

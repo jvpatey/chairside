@@ -67,9 +67,13 @@ function formatInboxShiftParts(conversation: Conversation): string[] {
     parts.push(formatInboxShortShiftDate(conversation.shift_date));
   }
   if (conversation.shift_start_time && conversation.shift_end_time) {
-    parts.push(
-      formatTimeRangePreview(conversation.shift_start_time, conversation.shift_end_time),
+    const timeRange = formatTimeRangePreview(
+      conversation.shift_start_time,
+      conversation.shift_end_time,
     );
+    if (timeRange) {
+      parts.push(timeRange);
+    }
   }
   return parts;
 }

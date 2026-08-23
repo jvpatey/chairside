@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router, type Href } from 'expo-router';
-import { Platform, Pressable, Text, View, type ViewStyle, type ReactNode } from 'react-native';
+import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import type { ReactNode } from 'react';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';

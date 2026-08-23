@@ -32,6 +32,7 @@ describe('dashboardWelcomeCopy', () => {
   it('returns role-specific welcome copy', () => {
     const workerCopy = getDashboardWelcomeCopy('worker');
     const clinicCopy = getDashboardWelcomeCopy('clinic');
+    const groupCopy = getDashboardWelcomeCopy('clinic', { isGroup: true });
 
     expect(workerCopy.title).toBe('Welcome to Chairside');
     expect(workerCopy.subtitle).toContain('before you apply');
@@ -42,6 +43,10 @@ describe('dashboardWelcomeCopy', () => {
     expect(clinicCopy.subtitle).toContain('clinic profile is live');
     expect(clinicCopy.bullets).toHaveLength(3);
     expect(clinicCopy.ctaLabel).toBe('Go to dashboard');
+
+    expect(groupCopy.subtitle).toContain('clinic group is live');
+    expect(groupCopy.subtitle).toContain('locations');
+    expect(groupCopy.bullets).toHaveLength(3);
   });
 });
 
