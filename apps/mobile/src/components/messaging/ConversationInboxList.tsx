@@ -1,12 +1,14 @@
 import type { Conversation, MessageSearchHit } from '@chairside/api';
 import { searchMessagesInConversations } from '@chairside/api';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { ConversationInboxGroup } from '@/components/messaging/ConversationInboxGroup';
 import { MessagingEmptyState } from '@/components/messaging/MessagingEmptyState';
 import { ConversationListItem } from '@/components/messaging/ConversationListItem';
+import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
@@ -20,6 +22,7 @@ import {
 } from '@/lib/conversationInbox';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { formatMessageSearchPreview, matchesConversationSearch } from '@/lib/messageThreadDisplay';
+import { webPointer, webTextLinkHoverStyles } from '@/lib/webPressableStyles';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import type { MessageThreadFocus } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
@@ -74,8 +77,12 @@ export function ConversationInboxList({
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [messageSearchHits, setMessageSearchHits] = useState<Record<string, MessageSearchHit>>({});
   const [isSearchingMessages, setIsSearchingMessages] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedConversationIds, setSelectedConversationIds] = useState<string[]>([]);
+  const [removeConfirmVisible, setRemoveConfirmVisible] = useState(false);
+  const [isRemovingSelected, setIsRemovingSelected] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, colors }) => ({
+  const styles = useThemedStyles(({ spacing, colors, typography, radii }) => ({
     content: {
       flex: compact ? 1 : undefined,
       minHeight: compact ? 0 : undefined,
@@ -116,6 +123,86 @@ export function ConversationInboxList({
       flex: 1,
       minHeight: 0,
     },
+    filterAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: Platform.OS === 'web' ? 34 : 44,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radii.pill,
+      backgroundColor: colors.fillSubtle,
+      flexShrink: 0,
+      ...webPointer(),
+    },
+    filterActionPressed: {
+      opacity: 0.82,
+      transform: [{ scale: 0.98 }],
+    },
+    filterActionLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    selectionToolbar: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      minHeight: Platform.OS === 'web' ? 34 : 44,
+    },
+    selectionToolbarButton: {
+      minHeight: Platform.OS === 'web' ? 34 : 44,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.sm,
+      borderRadius: radii.sm,
+      ...webPointer(),
+    },
+    selectionToolbarButtonPressed: {
+      opacity: 0.75,
+    },
+    selectionLabel: {
+      ...typography.body,
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.labelSecondary,
+      flex: 1,
+      textAlign: 'center',
+    },
+    cancelLink: {
+      ...typography.body,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    removeLink: {
+      ...typography.body,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.destructive,
+    },
+    removeLinkDisabled: {
+      opacity: 0.45,
+    },
+    selectAllLink: {
+      ...typography.body,
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    selectAllButton: {
+      alignSelf: 'flex-start',
+      minHeight: Platform.OS === 'web' ? 32 : 44,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.sm,
+      borderRadius: radii.sm,
+      ...webPointer(),
+    },
+    selectAllButtonPressed: {
+      opacity: 0.75,
+    },
+    linkHovered: webTextLinkHoverStyles(colors),
   }));
 
   useEffect(() => {
@@ -254,6 +341,68 @@ export function ConversationInboxList({
       : getConversationInboxEmptyMessage(filter, role);
 
   const isFilteredEmpty = conversations.length > 0 && filteredConversations.length === 0;
+  const selectedCount = selectedConversationIds.length;
+  const visibleConversationIds = useMemo(
+    () => filteredConversations.map((conversation) => conversation.id),
+    [filteredConversations],
+  );
+  const canSelectAllVisible =
+    selectionMode &&
+    visibleConversationIds.length > 0 &&
+    selectedCount < visibleConversationIds.length;
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedConversationIds([]);
+    setRemoveConfirmVisible(false);
+  };
+
+  const enterSelectionMode = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectionMode(true);
+    setSelectedConversationIds([]);
+  };
+
+  const toggleConversationSelection = (conversationId: string) => {
+    setSelectedConversationIds((current) =>
+      current.includes(conversationId)
+        ? current.filter((id) => id !== conversationId)
+        : [...current, conversationId],
+    );
+  };
+
+  const selectAllVisibleConversations = () => {
+    setSelectedConversationIds(visibleConversationIds);
+  };
+
+  const handleRemoveSelected = async () => {
+    if (selectedConversationIds.length === 0 || isRemovingSelected) return;
+
+    setIsRemovingSelected(true);
+    try {
+      await Promise.all(
+        selectedConversationIds.map(async (conversationId) => {
+          const conversation = conversations.find((row) => row.id === conversationId);
+          if (!conversation) return;
+          await hideConversation(conversation, role, userId);
+        }),
+      );
+      exitSelectionMode();
+      onConversationHidden();
+    } catch (error) {
+      Alert.alert(
+        'Could not remove conversations',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsRemovingSelected(false);
+      setRemoveConfirmVisible(false);
+    }
+  };
+
+  useEffect(() => {
+    exitSelectionMode();
+  }, [filter, debouncedQuery]);
 
   useEffect(() => {
     // Defer so we never update MessageSplitView during this list's render.
@@ -283,10 +432,13 @@ export function ConversationInboxList({
                   role={role}
                   compact={compact}
                   selectedConversationId={selectedConversationId}
+                  selectionMode={selectionMode}
+                  selectedConversationIds={selectedConversationIds}
                   searchQuery={searchQuery}
                   messageSearchHits={messageSearchHits}
                   debouncedQuery={debouncedQuery}
                   onConversationPress={onConversationPress}
+                  onToggleConversationSelected={toggleConversationSelection}
                   getConversationFocus={getConversationFocus}
                   onDelete={async (conversation) => {
                     await hideConversation(conversation, role, userId);
@@ -311,11 +463,14 @@ export function ConversationInboxList({
                   viewerId={userId}
                   compact={compact}
                   selected={conversation.id === selectedConversationId}
+                  selectionMode={selectionMode}
+                  bulkSelected={selectedConversationIds.includes(conversation.id)}
                   messageSearchPreview={preview}
                   searchQuery={searchQuery}
                   onPress={() =>
                     onConversationPress(conversation, getConversationFocus(conversation))
                   }
+                  onToggleBulkSelected={() => toggleConversationSelection(conversation.id)}
                   onDelete={async () => {
                     await hideConversation(conversation, role, userId);
                     onConversationHidden();
@@ -343,52 +498,164 @@ export function ConversationInboxList({
       </Text>
     ) : null;
 
-  const searchRow =
-    conversations.length > 0 ? (
-      <View style={styles.searchBlock}>
-        <ListSearchFilterRow
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search name or messages"
-          accessibilityLabel="Search conversations and messages"
-        />
-        {searchMeta}
-      </View>
-    ) : null;
-
-  const filterTabs =
+  const filterTabsControl =
     conversations.length > 0 ? (
       <FileTabWell
         variant="inline"
-        tabsOnly={compact}
-        fillHeight={compact ? false : undefined}
+        tabsOnly
         tabs={inboxTabs}
         selected={filter}
         onSelect={setFilter}
       />
     ) : null;
 
+  const selectButton = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Select conversations"
+      hitSlop={8}
+      onPress={enterSelectionMode}
+      style={({ pressed, hovered }) => [
+        styles.filterAction,
+        hovered && styles.linkHovered,
+        pressed && styles.filterActionPressed,
+      ]}
+    >
+      <Text style={styles.filterActionLabel}>Select</Text>
+    </Pressable>
+  );
+
+  const selectionToolbar = (
+    <View style={styles.selectionToolbar}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Cancel selection"
+        hitSlop={8}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          exitSelectionMode();
+        }}
+        style={({ pressed, hovered }) => [
+          styles.selectionToolbarButton,
+          hovered && styles.linkHovered,
+          pressed && styles.selectionToolbarButtonPressed,
+        ]}
+      >
+        <Text style={styles.cancelLink}>Cancel</Text>
+      </Pressable>
+      <Text style={styles.selectionLabel} numberOfLines={1}>
+        {selectedCount > 0 ? `${selectedCount} selected` : 'Select conversations'}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${selectedCount} selected conversation${selectedCount === 1 ? '' : 's'}`}
+        disabled={selectedCount === 0}
+        hitSlop={8}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setRemoveConfirmVisible(true);
+        }}
+        style={({ pressed }) => [
+          styles.selectionToolbarButton,
+          pressed && selectedCount > 0 && styles.selectionToolbarButtonPressed,
+        ]}
+      >
+        <Text
+          style={[styles.removeLink, selectedCount === 0 && styles.removeLinkDisabled]}
+        >
+          Remove{selectedCount > 0 ? ` (${selectedCount})` : ''}
+        </Text>
+      </Pressable>
+    </View>
+  );
+
+  const filterRow =
+    conversations.length > 0 && !selectionMode ? filterTabsControl : null;
+
+  const selectAllRow =
+    selectionMode && canSelectAllVisible ? (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Select all visible conversations"
+        hitSlop={8}
+        onPress={() => {
+          void Haptics.selectionAsync();
+          selectAllVisibleConversations();
+        }}
+        style={({ pressed, hovered }) => [
+          styles.selectAllButton,
+          hovered && styles.linkHovered,
+          pressed && styles.selectAllButtonPressed,
+        ]}
+      >
+        <Text style={styles.selectAllLink}>Select all</Text>
+      </Pressable>
+    ) : null;
+
+  const searchRow =
+    conversations.length > 0 ? (
+      <View style={styles.searchBlock}>
+        {selectionMode ? (
+          selectionToolbar
+        ) : (
+          <ListSearchFilterRow
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search name or messages"
+            accessibilityLabel="Search conversations and messages"
+            trailing={selectButton}
+          />
+        )}
+        {!selectionMode ? searchMeta : null}
+      </View>
+    ) : null;
+
   if (compact) {
     return (
-      <View style={styles.content}>
-        <View style={styles.chrome}>
-          {headerContent}
-          {searchRow}
-          {filterTabs}
+      <>
+        <View style={styles.content}>
+          <View style={styles.chrome}>
+            {headerContent}
+            {searchRow}
+            {filterRow}
+            {selectAllRow}
+          </View>
+          {conversations.length > 0 ? (
+            <ScrollView
+              style={[styles.listScroll, webScrollbarStyles()]}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator
+            >
+              {listBody}
+            </ScrollView>
+          ) : (
+            listBody
+          )}
         </View>
-        {conversations.length > 0 ? (
-          <ScrollView
-            style={[styles.listScroll, webScrollbarStyles()]}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator
-          >
-            {listBody}
-          </ScrollView>
-        ) : (
-          listBody
-        )}
-      </View>
+
+        <ActionMenuSheet
+          visible={removeConfirmVisible}
+          title={
+            selectedCount === 1
+              ? 'Remove conversation?'
+              : `Remove ${selectedCount} conversations?`
+          }
+          message="These conversations will be removed from your inbox. You can still open them from applications, and new messages will bring them back."
+          actions={[
+            {
+              label: isRemovingSelected ? 'Removing…' : 'Remove',
+              destructive: true,
+              onPress: () => {
+                void handleRemoveSelected();
+              },
+            },
+          ]}
+          onClose={() => {
+            if (!isRemovingSelected) setRemoveConfirmVisible(false);
+          }}
+        />
+      </>
     );
   }
 
@@ -396,18 +663,42 @@ export function ConversationInboxList({
     conversations.length > 0 ? (
       <>
         {searchRow}
-        <FileTabWell variant="inline" tabs={inboxTabs} selected={filter} onSelect={setFilter}>
-          {listBody}
-        </FileTabWell>
+        {filterRow}
+        {selectAllRow}
+        {listBody}
       </>
     ) : (
       listBody
     );
 
   return (
-    <View style={styles.content}>
-      {headerContent}
-      <View style={styles.inboxStack}>{inboxWell}</View>
-    </View>
+    <>
+      <View style={styles.content}>
+        {headerContent}
+        <View style={styles.inboxStack}>{inboxWell}</View>
+      </View>
+
+      <ActionMenuSheet
+        visible={removeConfirmVisible}
+        title={
+          selectedCount === 1
+            ? 'Remove conversation?'
+            : `Remove ${selectedCount} conversations?`
+        }
+        message="These conversations will be removed from your inbox. You can still open them from applications, and new messages will bring them back."
+        actions={[
+          {
+            label: isRemovingSelected ? 'Removing…' : 'Remove',
+            destructive: true,
+            onPress: () => {
+              void handleRemoveSelected();
+            },
+          },
+        ]}
+        onClose={() => {
+          if (!isRemovingSelected) setRemoveConfirmVisible(false);
+        }}
+      />
+    </>
   );
 }

@@ -65,7 +65,7 @@ export function MessageBubble({
   const [rowHovered, setRowHovered] = useState(false);
   const isWeb = Platform.OS === 'web';
   const isRemoved = body === DELETED_MESSAGE_BODY;
-  const canDelete = Boolean(onDelete && isOwn && status === 'sent' && !isRemoved);
+  const canDelete = Boolean(onDelete && status === 'sent' && !isRemoved);
   const canCopy = !isRemoved && body.trim().length > 0;
   const hasMenuActions = canDelete || canCopy;
   const showMenuButton = hasMenuActions;
@@ -76,7 +76,9 @@ export function MessageBubble({
     row: {
       width: '100%',
       flexDirection: 'row',
+      alignItems: 'flex-start',
       justifyContent: isOwn ? 'flex-end' : 'flex-start',
+      gap: spacing.sm,
       marginTop: groupedWithPrevious ? 3 : spacing.sm,
     },
     column: {
@@ -219,14 +221,18 @@ export function MessageBubble({
   const bubbleStyle = [styles.bubble, highlighted && styles.bubbleHighlighted];
 
   const bubble = (
-    <Pressable onLongPress={handleLongPress} delayLongPress={350} style={bubbleStyle}>
+    <Pressable
+      onLongPress={handleLongPress}
+      delayLongPress={350}
+      style={bubbleStyle}
+    >
       {bubbleBody}
     </Pressable>
   );
 
   const content = (
     <>
-      <View
+      <Pressable
         style={styles.row}
         accessibilityRole="text"
         accessibilityLabel={accessibilityLabel}
@@ -272,7 +278,7 @@ export function MessageBubble({
             </View>
           ) : null}
         </View>
-      </View>
+      </Pressable>
 
       <ActionMenuSheet
         visible={menuVisible}

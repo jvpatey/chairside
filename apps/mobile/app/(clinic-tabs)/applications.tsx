@@ -74,15 +74,11 @@ function RoleApplicationSummaryRow({
   const row = (
     <SurfaceCard
       padding="none"
+      hoverStyle="subtle"
+      borderless
+      cardStyle={selected ? { backgroundColor: colors.fillSubtle } : undefined}
       onPress={onViewPress}
-      style={
-        selected
-          ? {
-              borderColor: colors.tertiary,
-              borderWidth: 1.5,
-            }
-          : undefined
-      }>
+    >
       <BrowseListRow
         avatar={<RoleSummaryAvatar />}
         title={summary.post_title}

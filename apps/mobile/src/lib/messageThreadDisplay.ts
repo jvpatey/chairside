@@ -1,4 +1,5 @@
 import type { Conversation, Message, MessageDeliveryStatus } from '@chairside/api';
+import { DELETED_MESSAGE_BODY } from '@chairside/config';
 
 export type ThreadMessageStatus = 'sent' | 'pending' | 'failed';
 
@@ -86,6 +87,14 @@ export type ThreadSideOptions = {
   /** Candidate id — required for clinic shared-inbox side detection. */
   workerId?: string | null;
 };
+
+/** Whether the viewer sent this message and it can be removed from the thread. */
+export function canDeleteThreadMessage(message: ThreadMessage, userId: string): boolean {
+  if (message.sender_id !== userId) return false;
+  if (message.body === DELETED_MESSAGE_BODY) return false;
+  if (message.clientStatus === 'pending' || message.clientStatus === 'failed') return false;
+  return true;
+}
 
 /** Whether this sender is on the viewer's side of a shared clinic inbox thread. */
 export function isOwnSideMessage(

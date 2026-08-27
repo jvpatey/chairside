@@ -7,6 +7,7 @@ import type { ThreadMessage } from '@/lib/messageThreadDisplay';
 const {
   areThreadMessagesGrouped,
   buildThreadListItems,
+  canDeleteThreadMessage,
   findLatestMatchingMessageId,
   findThreadListIndexForMessage,
   formatInboxPreviewText,
@@ -300,5 +301,43 @@ describe('getLastOwnMessageDeliveryStatus', () => {
       'worker-1',
     );
     expect(status).toBe('delivered');
+  });
+});
+
+describe('canDeleteThreadMessage', () => {
+  it('allows deleting own sent messages', () => {
+    expect(
+      canDeleteThreadMessage(
+        makeMessage({ sender_id: 'worker-1', body: 'Hello' }),
+        'worker-1',
+      ),
+    ).toBe(true);
+  });
+
+  it('blocks deleting counterpart, pending, failed, or removed messages', () => {
+    expect(
+      canDeleteThreadMessage(
+        makeMessage({ sender_id: 'clinic-1', body: 'Hello' }),
+        'worker-1',
+      ),
+    ).toBe(false);
+    expect(
+      canDeleteThreadMessage(
+        makeMessage({ sender_id: 'worker-1', clientStatus: 'pending' }),
+        'worker-1',
+      ),
+    ).toBe(false);
+    expect(
+      canDeleteThreadMessage(
+        makeMessage({ sender_id: 'worker-1', clientStatus: 'failed' }),
+        'worker-1',
+      ),
+    ).toBe(false);
+    expect(
+      canDeleteThreadMessage(
+        makeMessage({ sender_id: 'worker-1', body: '[Message removed]' }),
+        'worker-1',
+      ),
+    ).toBe(false);
   });
 });
