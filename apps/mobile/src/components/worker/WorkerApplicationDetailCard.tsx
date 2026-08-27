@@ -968,6 +968,7 @@ export function WorkerApplicationDetailCard({
             statusNote: application.status_note,
             statusClosedBy: application.status_closed_by,
             clinicAccountDeleted: clinicDeleted,
+            shiftDate: application.shift_date,
           }}
         />
 

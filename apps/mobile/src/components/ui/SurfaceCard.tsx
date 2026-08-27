@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -14,6 +15,8 @@ import {
   webPointer,
   webTileHoverStyles,
   webCardLiftBase,
+  webListRowHoverStyles,
+  IS_WEB,
 } from '@/lib/webPressableStyles';
 import {
   colorWithAlpha,
@@ -40,6 +43,12 @@ type SurfaceCardProps = {
   contentStyle?: StyleProp<ViewStyle>;
   /** Left accent rail color (e.g. featured listing mark). */
   accentRailColor?: string;
+  /** Lift + shadow on web hover, or a flat highlight for narrow split-view lists. */
+  hoverStyle?: 'lift' | 'subtle';
+  /** Omit the default hairline border (e.g. split-view list rows). */
+  borderless?: boolean;
+  /** Styles applied to the inner card shell (border, background). */
+  cardStyle?: StyleProp<ViewStyle>;
 };
 
 function SurfaceCardContent({
@@ -68,9 +77,13 @@ export function SurfaceCard({
   onPress,
   style,
   contentStyle,
+  cardStyle,
   accentRailColor,
+  hoverStyle = 'lift',
+  borderless = false,
 }: SurfaceCardProps) {
   const { colors, isDark } = useTheme();
+  const [isHovered, setIsHovered] = useState(false);
   const surfaceGradient = getSurfaceGradient(colors, isDark);
   const isInner = variant === 'inner';
   const showGradient = isDark && variant === 'default' && !isInner && !accentRailColor;
@@ -88,7 +101,7 @@ export function SurfaceCard({
     card: {
       borderRadius: radius,
       overflow: 'hidden' as const,
-      borderWidth: isInner ? 1 : StyleSheet.hairlineWidth,
+      borderWidth: borderless ? 0 : isInner ? 1 : StyleSheet.hairlineWidth,
       borderColor:
         variant === 'success'
           ? `${colors.success}40`
@@ -111,6 +124,7 @@ export function SurfaceCard({
       zIndex: 0,
     },
     cardHovered: webTileHoverStyles(colors, isDark),
+    cardHoveredSubtle: webListRowHoverStyles(colors),
     cardPressed: {
       opacity: 0.92,
     },
@@ -132,8 +146,20 @@ export function SurfaceCard({
   };
   });
 
-  const cardStyle = [styles.card, styles.cardDefault];
+  const cardStyleResolved = [
+    styles.card,
+    styles.cardDefault,
+    cardStyle,
+    hoverStyle === 'subtle' && isHovered && onPress ? styles.cardHoveredSubtle : null,
+  ];
   const liftStyle = [styles.lift, style, { overflow: 'visible' as const }];
+  const webHoverHandlers =
+    onPress && IS_WEB && hoverStyle === 'subtle'
+      ? {
+          onHoverIn: () => setIsHovered(true),
+          onHoverOut: () => setIsHovered(false),
+        }
+      : undefined;
 
   const inner = (
     <>
@@ -157,7 +183,7 @@ export function SurfaceCard({
   if (!onPress) {
     return (
       <View style={liftStyle}>
-        <View style={cardStyle}>{inner}</View>
+        <View style={cardStyleResolved}>{inner}</View>
       </View>
     );
   }
@@ -165,16 +191,17 @@ export function SurfaceCard({
   return (
     <Pressable
       accessibilityRole="button"
+      {...webHoverHandlers}
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
       style={({ pressed, hovered }) => [
         liftStyle,
-        webHover(hovered, pressed, styles.cardHovered),
+        hoverStyle === 'lift' ? webHover(hovered, pressed, styles.cardHovered) : false,
         pressed && styles.cardPressed,
       ]}>
-      <View style={cardStyle}>{inner}</View>
+      <View style={cardStyleResolved}>{inner}</View>
     </Pressable>
   );
 }

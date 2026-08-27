@@ -9,6 +9,12 @@ import {
   type ApplicationPostType,
 } from '@chairside/config';
 
+import { isPastShiftDate } from '@/lib/fillInFilters';
+import {
+  formatConfirmedFillInDescription,
+  formatConfirmedFillInHeadline,
+} from '@/lib/fillInHistoryDisplay';
+
 export type ApplicationStatusSummaryAudience = 'worker' | 'clinic';
 
 export type ApplicationStatusSummaryInput = {
@@ -24,6 +30,8 @@ export type ApplicationStatusSummaryInput = {
   statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
   workerAccountDeleted?: boolean;
   clinicAccountDeleted?: boolean;
+  /** YYYY-MM-DD fill-in date — used to switch confirmed copy to past tense. */
+  shiftDate?: string | null;
 };
 
 export type ApplicationStatusSummary = {
@@ -210,12 +218,14 @@ export function getApplicationStatusSummary(
     }
 
     if (status === 'hired' || status === 'selected') {
+      const isPast = isPastShiftDate(application.shiftDate);
       return {
-        headline: 'Fill-in confirmed',
-        description:
-          audience === 'worker'
-            ? 'This fill-in was confirmed.'
-            : 'This candidate was confirmed for the fill-in.',
+        headline: formatConfirmedFillInHeadline(isPast),
+        description: formatConfirmedFillInDescription(
+          audience,
+          isPast,
+          application.counterpartFirstName,
+        ),
         variant: 'success',
       };
     }

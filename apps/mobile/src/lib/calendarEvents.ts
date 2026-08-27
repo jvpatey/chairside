@@ -1,6 +1,7 @@
 import type { CalendarEvent, CalendarEventKind } from '@chairside/api';
 
 import { isSameDay, parseISODate, startOfDay, toISODate } from '@/lib/dates';
+import { formatConfirmedFillInKindLabel } from '@/lib/fillInHistoryDisplay';
 import { formatTime12h, formatTimeRangePreview } from '@/lib/time';
 
 export type CalendarDayIndicators = {
@@ -89,10 +90,13 @@ export function formatCalendarEventTime(event: CalendarEvent): string {
   return `${start} – ${end}`;
 }
 
-export function calendarEventKindLabel(kind: CalendarEventKind): string {
+export function calendarEventKindLabel(
+  kind: CalendarEventKind,
+  options?: { isPast?: boolean },
+): string {
   if (kind === 'interview') return 'Interview';
   if (kind === 'open_fill_in') return 'Open fill-in';
-  return 'Confirmed fill-in';
+  return formatConfirmedFillInKindLabel(Boolean(options?.isPast));
 }
 
 export function calendarEventAccent(kind: CalendarEventKind): 'primary' | 'secondary' | 'warning' {

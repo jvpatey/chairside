@@ -20,6 +20,8 @@ import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatRelativeApplicationAge } from '@/lib/dates';
+import { isPastShiftDate } from '@/lib/fillInFilters';
+import { formatConfirmedFillInStatusLabel } from '@/lib/fillInHistoryDisplay';
 import { getFirstName } from '@/lib/greeting';
 import { getApplicationMatchDisplayContext, parseApplicationJobMatch } from '@/lib/matchDisplay';
 import { getClinicApplicationRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
@@ -112,6 +114,12 @@ function getClinicApplicationStatusLabel(application: ClinicApplication): string
     });
   }
   if (application.post_type === 'shift') {
+    if (
+      (application.status === 'hired' || application.status === 'selected') &&
+      isPastShiftDate(application.shift_date)
+    ) {
+      return formatConfirmedFillInStatusLabel(true);
+    }
     return formatClinicShiftApplicationStatus({
       status: application.status,
       status_closed_by: application.status_closed_by,

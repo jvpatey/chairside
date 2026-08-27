@@ -202,14 +202,18 @@ function ThreadHeaderActions({
           conversation ? formatConversationDisplay(conversation, role).cardName : 'Conversation'
         }
         actions={[
-          {
-            label: 'Remove from inbox',
-            destructive: true,
-            onPress: () => {
-              setMenuVisible(false);
-              setConfirmVisible(true);
-            },
-          },
+          ...(showRemoveMenu
+            ? [
+                {
+                  label: 'Remove from inbox',
+                  destructive: true,
+                  onPress: () => {
+                    setMenuVisible(false);
+                    setConfirmVisible(true);
+                  },
+                },
+              ]
+            : []),
         ]}
         onClose={() => setMenuVisible(false)}
       />

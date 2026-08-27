@@ -63,6 +63,29 @@ function buildPostingReturnParams(options?: WorkerClinicProfileRouteOptions) {
   };
 }
 
+/**
+ * Bake dynamic segments into the path string. Object hrefs that reuse `[id]`
+ * while leaving a job/shift detail drop the id on web, producing `/clinic`.
+ */
+function buildDynamicHref(
+  pathname: string,
+  params: Record<string, string | undefined>,
+): Href {
+  const search = new URLSearchParams();
+  let path = pathname;
+  for (const [key, value] of Object.entries(params)) {
+    if (!value) continue;
+    const token = `[${key}]`;
+    if (path.includes(token)) {
+      path = path.replace(token, encodeURIComponent(value));
+    } else {
+      search.set(key, value);
+    }
+  }
+  const query = search.toString();
+  return (query ? `${path}?${query}` : path) as Href;
+}
+
 export function getWorkerApplicationPostingReturnOptions(
   applicationId: string,
   applicationReturnTo: WorkerApplicationReturnTarget = 'applications-tab',
@@ -288,13 +311,11 @@ export function getClinicDiscoverClinicProfileRoute(
   clinicId: string,
   options?: { fromJobId?: string; fromShiftId?: string },
 ): Href {
-  const params: Record<string, string> = { id: clinicId };
-  if (options?.fromJobId) params.fromJobId = options.fromJobId;
-  if (options?.fromShiftId) params.fromShiftId = options.fromShiftId;
-  return {
-    pathname: '/(clinic-tabs)/discover/clinic/[id]',
-    params,
-  } as Href;
+  return buildDynamicHref('/(clinic-tabs)/clinic/[clinicId]', {
+    clinicId,
+    fromJobId: options?.fromJobId,
+    fromShiftId: options?.fromShiftId,
+  });
 }
 
 export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
@@ -501,10 +522,10 @@ export function getWorkerClinicProfileRoute(
   clinicId: string,
   options?: WorkerClinicProfileRouteOptions,
 ): Href {
-  return {
-    pathname: '/(tabs)/clinic/[id]',
-    params: { id: clinicId, ...buildPostingReturnParams(options) },
-  } as unknown as Href;
+  return buildDynamicHref('/(tabs)/clinic/[clinicId]', {
+    clinicId,
+    ...buildPostingReturnParams(options),
+  });
 }
 
 export function navigateAfterWorkerPostingDetail(

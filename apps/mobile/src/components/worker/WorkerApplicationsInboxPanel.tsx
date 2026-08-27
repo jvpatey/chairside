@@ -136,6 +136,12 @@ export function WorkerApplicationsInboxPanel({
     scrollContent: {
       gap: spacing.lg,
       paddingBottom: spacing.lg,
+      ...(compact
+        ? {
+            paddingHorizontal: spacing.xs,
+            paddingTop: spacing.xs,
+          }
+        : null),
     },
     panel: { gap: spacing.md },
     interviewSection: { gap: spacing.sm },

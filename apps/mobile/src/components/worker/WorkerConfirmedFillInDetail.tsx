@@ -119,6 +119,7 @@ export function WorkerConfirmedFillInDetail({
               postType="shift"
               statusNote={application.status_note}
               statusClosedBy={application.status_closed_by}
+              shiftDate={application.shift_date ?? shift.shift_date}
             />
           }
         />

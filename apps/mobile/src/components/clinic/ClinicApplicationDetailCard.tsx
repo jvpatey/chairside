@@ -1173,6 +1173,7 @@ export function ClinicApplicationDetailCard({
             statusClosedBy: application.status_closed_by,
             workerAccountDeleted: workerDeleted,
             isHighlighted: hasNewApplication,
+            shiftDate: application.shift_date,
           }}
         />
 

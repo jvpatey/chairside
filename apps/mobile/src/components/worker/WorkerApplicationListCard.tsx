@@ -68,6 +68,9 @@ export function WorkerApplicationListCard({
       alignItems: 'flex-end',
       gap: spacing.xs,
     },
+    compactContent: {
+      padding: spacing.md,
+    },
   }));
 
   const location = formatWorkerApplicationCardLocation(application);
@@ -100,6 +103,7 @@ export function WorkerApplicationListCard({
       postType={application.post_type}
       statusNote={application.status_note}
       statusClosedBy={application.status_closed_by}
+      shiftDate={application.shift_date}
       label={getWorkerApplicationCardStatusLabel(application, {
         isHighlighted: hasApplicationUpdate,
       })}
@@ -120,7 +124,12 @@ export function WorkerApplicationListCard({
       }
       padding={compact ? 'none' : 'md'}
       gap
-      style={selected ? { borderColor: colors.tertiary, borderWidth: 1.5 } : undefined}
+      hoverStyle={compact ? 'subtle' : 'lift'}
+      borderless={compact}
+      contentStyle={compact ? styles.compactContent : undefined}
+      cardStyle={
+        selected ? { backgroundColor: colors.fillSubtle } : undefined
+      }
       onPress={openDetail}
     >
       <ClinicPostHeader

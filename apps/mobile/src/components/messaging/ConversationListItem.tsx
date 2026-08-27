@@ -8,6 +8,7 @@ import { SearchMatchText } from '@/components/messaging/SearchMatchText';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
+import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import {
@@ -37,6 +38,9 @@ type ConversationListItemProps = {
   onPress: () => void;
   onDelete?: () => void;
   selected?: boolean;
+  selectionMode?: boolean;
+  bulkSelected?: boolean;
+  onToggleBulkSelected?: () => void;
   messageSearchPreview?: string | null;
   searchQuery?: string;
   compact?: boolean;
@@ -100,6 +104,9 @@ export function ConversationListItem({
   onPress,
   onDelete,
   selected = false,
+  selectionMode = false,
+  bulkSelected = false,
+  onToggleBulkSelected,
   compact = false,
   messageSearchPreview,
   searchQuery = '',
@@ -141,9 +148,13 @@ export function ConversationListItem({
       position: 'relative' as const,
       backgroundColor: 'transparent',
       borderRadius: compact ? 14 : 0,
+      gap: spacing.sm,
     },
     rowSelected: {
       backgroundColor: colors.fillSubtle,
+    },
+    rowBulkSelected: {
+      backgroundColor: colors.primarySubtle,
     },
     rowHovered: webListRowHoverStyles(colors),
     mainPressable: {
@@ -269,6 +280,10 @@ export function ConversationListItem({
       alignSelf: 'center',
       marginLeft: spacing.xs,
     },
+    checkboxHit: {
+      paddingTop: compact ? spacing.sm + 2 : spacing.sm + 4,
+      flexShrink: 0,
+    },
   }));
 
   const openMenu = () => {
@@ -298,13 +313,22 @@ export function ConversationListItem({
     .filter(Boolean)
     .join('. ');
 
+  const handleRowPress = () => {
+    if (selectionMode) {
+      onToggleBulkSelected?.();
+      return;
+    }
+    onPress();
+  };
+
   return (
     <>
       <View
         style={[
           styles.row,
-          selected && styles.rowSelected,
-          isWeb && rowHovered && !selected && styles.rowHovered,
+          selected && !selectionMode && styles.rowSelected,
+          selectionMode && bulkSelected && styles.rowBulkSelected,
+          isWeb && rowHovered && !selected && !bulkSelected && styles.rowHovered,
         ]}
         {...(isWeb
           ? {
@@ -312,7 +336,15 @@ export function ConversationListItem({
               onMouseLeave: () => setRowHovered(false),
             }
           : {})}>
-        {onDelete ? (
+        {selectionMode ? (
+          <View style={styles.checkboxHit} pointerEvents="none">
+            <SelectionCheckbox
+              selected={bulkSelected}
+              accessibilityLabel={bulkSelected ? 'Selected' : 'Not selected'}
+            />
+          </View>
+        ) : null}
+        {onDelete && !selectionMode ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Conversation options"
@@ -330,14 +362,16 @@ export function ConversationListItem({
           </Pressable>
         ) : null}
         <Pressable
-          accessibilityRole="button"
+          accessibilityRole={selectionMode ? 'checkbox' : 'button'}
           accessibilityLabel={accessibilityLabel}
-          accessibilityState={{ selected }}
-          onPress={onPress}
+          accessibilityState={{
+            selected: selectionMode ? bulkSelected : selected,
+          }}
+          onPress={handleRowPress}
           style={({ pressed }) => [styles.mainPressable, pressed && styles.mainPressed]}>
           <ConversationAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
           <View style={styles.textWrap}>
-            <View style={[styles.titleRow, onDelete ? styles.titleRowWithMenu : null]}>
+            <View style={[styles.titleRow, onDelete && !selectionMode ? styles.titleRowWithMenu : null]}>
               <View style={{ flex: 1, gap: compact ? 4 : 0, minWidth: 0 }}>
                 {activeSearchQuery ? (
                   <SearchMatchText

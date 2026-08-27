@@ -45,6 +45,7 @@ import { formatConversationDisplay } from '@/lib/conversationDisplay';
 import { hideConversation } from '@/lib/conversationHide';
 import {
   buildThreadListItems,
+  canDeleteThreadMessage,
   createPendingMessage,
   findLatestMatchingMessageId,
   findThreadListIndexForMessage,
@@ -726,6 +727,7 @@ export function MessageThread({
     const status = message.clientStatus ?? 'sent';
     const isHighlighted = highlightedMessageId === message.id;
     const showDeliveryStatus = isOwn && message.id === lastOwnMessageId;
+    const deletable = canDeleteThreadMessage(message, userId);
     const deliveryStatus =
       conversation && showDeliveryStatus
         ? getMessageDeliveryStatus(
@@ -756,11 +758,7 @@ export function MessageThread({
         animateEntry={
           entryAnimateMessageIds.current.has(message.id) && message.clientStatus !== 'pending'
         }
-        onDelete={
-          isOwn && message.clientStatus !== 'pending' && message.clientStatus !== 'failed'
-            ? () => handleDeleteMessage(message.id)
-            : undefined
-        }
+        onDelete={deletable ? () => handleDeleteMessage(message.id) : undefined}
       />
     );
 

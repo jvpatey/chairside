@@ -2,7 +2,7 @@ import type { ShiftPostStatus } from '@chairside/api';
 import type { ViewStyle } from 'react-native';
 
 import { PillBadge } from '@/components/ui/PillBadge';
-import { isExpiredLiveShift } from '@/lib/fillInFilters';
+import { isExpiredLiveShift, isPastShiftDate } from '@/lib/fillInFilters';
 import { colorWithAlpha, useTheme } from '@/theme';
 
 type ShiftPostStatusBadgeProps = {
@@ -43,7 +43,7 @@ function getShiftPostStatusLabel(status: ShiftPostStatus, shiftDate?: string | n
     case 'live':
       return 'Open';
     case 'filled':
-      return 'Filled';
+      return isPastShiftDate(shiftDate) ? 'Filled in' : 'Filled';
     case 'draft':
       return 'Draft';
     case 'closed':

@@ -10,6 +10,7 @@ import {
   getApplicationStatusSummary,
   type ApplicationStatusSummaryInput,
 } from '@/lib/applicationStatusSummary';
+import { resolveConfirmedFillInStatusLabel } from '@/lib/fillInHistoryDisplay';
 import { getWorkerShiftApplicationCardDisplay } from '@/lib/workerShiftApplicationDisplay';
 
 type WorkerApplicationCardDetailInput = Pick<
@@ -51,6 +52,7 @@ function toStatusSummaryInput(
     statusNote: application.status_note,
     statusClosedBy: application.status_closed_by,
     clinicAccountDeleted: application.clinic_account_deleted,
+    shiftDate: application.shift_date,
   };
 }
 
@@ -135,11 +137,17 @@ export function getWorkerApplicationCardStatusLabel(
   if (summary?.headline) return summary.headline;
 
   if (application.post_type === 'shift') {
-    return formatWorkerShiftApplicationStatus({
-      status: application.status,
-      status_note: application.status_note,
-      status_closed_by: application.status_closed_by,
-    });
+    return (
+      resolveConfirmedFillInStatusLabel({
+        status: application.status,
+        shiftDate: application.shift_date,
+      }) ??
+      formatWorkerShiftApplicationStatus({
+        status: application.status,
+        status_note: application.status_note,
+        status_closed_by: application.status_closed_by,
+      })
+    );
   }
 
   return formatApplicationStatus(application.status, application.post_type);

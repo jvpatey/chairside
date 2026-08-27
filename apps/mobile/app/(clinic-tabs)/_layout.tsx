@@ -112,6 +112,7 @@ function ClinicTabNavigator() {
         <Tabs.Screen name="outreach-compose" options={{ href: null }} />
         <Tabs.Screen name="job/[id]" options={{ href: null }} />
         <Tabs.Screen name="shift/[id]" options={{ href: null }} />
+        <Tabs.Screen name="clinic/[clinicId]" options={{ href: null }} />
         <Tabs.Screen name="role-applicants/[jobId]" options={{ href: null }} />
         <Tabs.Screen name="shift-applicants/[shiftId]" options={{ href: null }} />
         <Tabs.Screen name="role-history" options={{ href: null }} />

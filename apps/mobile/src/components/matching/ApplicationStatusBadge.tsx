@@ -11,6 +11,7 @@ import {
 import { Text } from 'react-native';
 
 import { PillBadge } from '@/components/ui/PillBadge';
+import { resolveConfirmedFillInStatusLabel } from '@/lib/fillInHistoryDisplay';
 import { useTheme } from '@/theme';
 
 export type ApplicationStatusVariant =
@@ -122,6 +123,7 @@ type WorkerApplicationStatusBadgeProps = {
   postType: ApplicationPostType;
   statusNote?: string | null;
   statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
+  shiftDate?: string | null;
   /** Override the default short pipeline label (e.g. list-card headline). */
   label?: string;
   /** Prefix with "Status: " for list-card clarity. */
@@ -133,15 +135,19 @@ export function WorkerApplicationStatusBadge({
   postType,
   statusNote,
   statusClosedBy,
+  shiftDate,
+  label: labelOverride,
 }: WorkerApplicationStatusBadgeProps) {
   const label =
-    postType === 'shift'
+    labelOverride ??
+    resolveConfirmedFillInStatusLabel({ status, shiftDate }) ??
+    (postType === 'shift'
       ? formatWorkerShiftApplicationStatus({
           status,
           status_note: statusNote,
           status_closed_by: statusClosedBy,
         })
-      : formatApplicationStatus(status, postType);
+      : formatApplicationStatus(status, postType));
 
   const variant = getWorkerApplicationStatusVariant(status, postType);
   const palette = useWorkerStatusVariantPalette(variant);
@@ -161,6 +167,7 @@ export function WorkerApplicationStatusLabel({
   postType,
   statusNote,
   statusClosedBy,
+  shiftDate,
   label: labelOverride,
   showStatusPrefix = false,
 }: WorkerApplicationStatusBadgeProps) {
@@ -169,6 +176,7 @@ export function WorkerApplicationStatusLabel({
   const palette = useWorkerStatusVariantPalette(variant);
   const label =
     labelOverride ??
+    resolveConfirmedFillInStatusLabel({ status, shiftDate }) ??
     (postType === 'shift'
       ? formatWorkerShiftApplicationStatus({
           status,
@@ -207,6 +215,8 @@ type ClinicApplicationStatusBadgeProps = {
   applicationKitRequestedAt?: string | null;
   applicationKitSubmittedAt?: string | null;
   statusClosedBy?: 'clinic' | 'worker' | 'clinic_deleted' | null;
+  shiftDate?: string | null;
+  label?: string;
 };
 
 export function ClinicApplicationStatusBadge({
@@ -215,10 +225,14 @@ export function ClinicApplicationStatusBadge({
   applicationKitRequestedAt,
   applicationKitSubmittedAt,
   statusClosedBy,
+  shiftDate,
+  label: labelOverride,
 }: ClinicApplicationStatusBadgeProps) {
   const { colors } = useTheme();
   const label =
-    status === 'screening_submitted'
+    labelOverride ??
+    resolveConfirmedFillInStatusLabel({ status, shiftDate }) ??
+    (status === 'screening_submitted'
       ? formatClinicScreeningStatus({
           status,
           post_type: postType,
@@ -230,7 +244,7 @@ export function ClinicApplicationStatusBadge({
             status,
             status_closed_by: statusClosedBy,
           })
-        : formatClinicApplicationStatus(status, postType);
+        : formatClinicApplicationStatus(status, postType));
 
   const variant = getClinicApplicationStatusVariant(status, postType);
   const palette = useStatusVariantPalette(variant);

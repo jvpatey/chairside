@@ -8,6 +8,7 @@ import { SearchMatchText } from '@/components/messaging/SearchMatchText';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
+import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatConversationDisplay } from '@/lib/conversationDisplay';
@@ -29,10 +30,13 @@ type ConversationInboxGroupProps = {
   role: 'worker' | 'clinic';
   compact?: boolean;
   selectedConversationId?: string | null;
+  selectionMode?: boolean;
+  selectedConversationIds?: string[];
   searchQuery?: string;
   messageSearchHits: Record<string, { id: string; body: string } | undefined>;
   debouncedQuery: string;
   onConversationPress: (conversation: Conversation, focus?: MessageThreadFocus) => void;
+  onToggleConversationSelected?: (conversationId: string) => void;
   onDelete: (conversation: Conversation) => Promise<void>;
   getConversationFocus: (conversation: Conversation) => MessageThreadFocus | undefined;
 };
@@ -78,10 +82,13 @@ type ThreadRowProps = {
   role: 'worker' | 'clinic';
   compact?: boolean;
   selected?: boolean;
+  selectionMode?: boolean;
+  bulkSelected?: boolean;
   isFirst?: boolean;
   searchQuery: string;
   messageSearchPreview?: string | null;
   onPress: () => void;
+  onToggleBulkSelected?: () => void;
   onDelete?: () => Promise<void>;
 };
 
@@ -91,10 +98,13 @@ function ConversationInboxThreadRow({
   role,
   compact = false,
   selected = false,
+  selectionMode = false,
+  bulkSelected = false,
   isFirst = false,
   searchQuery,
   messageSearchPreview,
   onPress,
+  onToggleBulkSelected,
   onDelete,
 }: ThreadRowProps) {
   const { colors } = useTheme();
@@ -118,6 +128,9 @@ function ConversationInboxThreadRow({
     },
     rowSelected: {
       backgroundColor: colors.fillSubtle,
+    },
+    rowBulkSelected: {
+      backgroundColor: colors.primarySubtle,
     },
     rowHovered: webListRowHoverStyles(colors),
     pressable: {
@@ -212,7 +225,19 @@ function ConversationInboxThreadRow({
     menuButtonPressed: {
       opacity: 0.75,
     },
+    checkboxHit: {
+      paddingTop: spacing.sm,
+      flexShrink: 0,
+    },
   }));
+
+  const handleRowPress = () => {
+    if (selectionMode) {
+      onToggleBulkSelected?.();
+      return;
+    }
+    onPress();
+  };
 
   const openMenu = () => {
     if (!onDelete) return;
@@ -237,8 +262,9 @@ function ConversationInboxThreadRow({
         style={[
           styles.row,
           { borderTopWidth: isFirst ? 0 : StyleSheet.hairlineWidth },
-          selected && styles.rowSelected,
-          isWeb && rowHovered && !selected && styles.rowHovered,
+          selected && !selectionMode && styles.rowSelected,
+          selectionMode && bulkSelected && styles.rowBulkSelected,
+          isWeb && rowHovered && !selected && !bulkSelected && styles.rowHovered,
         ]}
         {...(isWeb
           ? {
@@ -246,7 +272,15 @@ function ConversationInboxThreadRow({
               onMouseLeave: () => setRowHovered(false),
             }
           : {})}>
-        {onDelete ? (
+        {selectionMode ? (
+          <View style={styles.checkboxHit} pointerEvents="none">
+            <SelectionCheckbox
+              selected={bulkSelected}
+              accessibilityLabel={bulkSelected ? 'Selected' : 'Not selected'}
+            />
+          </View>
+        ) : null}
+        {onDelete && !selectionMode ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Conversation options"
@@ -264,12 +298,12 @@ function ConversationInboxThreadRow({
           </Pressable>
         ) : null}
         <Pressable
-          accessibilityRole="button"
+          accessibilityRole={selectionMode ? 'checkbox' : 'button'}
           accessibilityLabel={[display.cardName, display.inboxContextLine, previewText]
             .filter(Boolean)
             .join('. ')}
-          accessibilityState={{ selected }}
-          onPress={onPress}
+          accessibilityState={{ selected: selectionMode ? bulkSelected : selected }}
+          onPress={handleRowPress}
           style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]}>
           <GroupAvatar conversation={conversation} avatarKind={avatarKind} size={avatarSize} />
           <View style={styles.content}>
@@ -342,10 +376,13 @@ export function ConversationInboxGroup({
   role,
   compact = false,
   selectedConversationId,
+  selectionMode = false,
+  selectedConversationIds = [],
   searchQuery = '',
   messageSearchHits,
   debouncedQuery,
   onConversationPress,
+  onToggleConversationSelected,
   onDelete,
   getConversationFocus,
 }: ConversationInboxGroupProps) {
@@ -360,6 +397,12 @@ export function ConversationInboxGroup({
       setExpanded(true);
     }
   }, [selectedConversationId, threads]);
+
+  useEffect(() => {
+    if (selectionMode) {
+      setExpanded(true);
+    }
+  }, [selectionMode]);
 
   const leadPreview = lead?.last_message_preview ?? 'No messages yet';
   const isEmptyLeadPreview = leadPreview === 'No messages yet';
@@ -504,7 +547,8 @@ export function ConversationInboxGroup({
         accessibilityRole="button"
         accessibilityLabel={headerAccessibilityLabel}
         accessibilityState={{ expanded }}
-        onPress={toggleExpanded}
+        disabled={selectionMode}
+        onPress={selectionMode ? undefined : toggleExpanded}
         style={({ pressed }) => [
           styles.header,
           expanded && styles.headerExpanded,
@@ -558,7 +602,7 @@ export function ConversationInboxGroup({
           />
         </View>
       </Pressable>
-      {expanded ? (
+      {expanded || selectionMode ? (
         <View style={styles.threads}>
           {threads.map((conversation, index) => {
             const hit = messageSearchHits[conversation.id];
@@ -575,9 +619,12 @@ export function ConversationInboxGroup({
                 compact={compact}
                 isFirst={index === 0}
                 selected={conversation.id === selectedConversationId}
+                selectionMode={selectionMode}
+                bulkSelected={selectedConversationIds.includes(conversation.id)}
                 searchQuery={searchQuery}
                 messageSearchPreview={preview}
                 onPress={() => onConversationPress(conversation, getConversationFocus(conversation))}
+                onToggleBulkSelected={() => onToggleConversationSelected?.(conversation.id)}
                 onDelete={() => onDelete(conversation)}
               />
             );

@@ -748,7 +748,7 @@ async function getClinicListingSummary(clinicId: string): Promise<ClinicSummary 
   });
 
   if (error) throw error;
-  const row = data as ClinicListingSummaryRow | null;
+  const row = (Array.isArray(data) ? data[0] : data) as ClinicListingSummaryRow | null | undefined;
   if (!row) return null;
   return mapClinicListingSummaryRow(row);
 }
