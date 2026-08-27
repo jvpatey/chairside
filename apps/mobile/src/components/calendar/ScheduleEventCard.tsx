@@ -15,11 +15,14 @@ import {
 } from '@/lib/calendarEvents';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { formatShiftDateLabel, parseISODate } from '@/lib/dates';
+import { getConfirmedFillInCardCopy } from '@/lib/fillInHistoryDisplay';
+import { isPastShiftDate } from '@/lib/fillInFilters';
 import { useTheme, useThemedStyles } from '@/theme';
 
 type ScheduleEventCardProps = {
   event: CalendarEvent;
   onPress: () => void;
+  audience: 'worker' | 'clinic';
 };
 
 function getOpenFillInPresentation(event: CalendarEvent) {
@@ -37,16 +40,24 @@ function getOpenFillInPresentation(event: CalendarEvent) {
   };
 }
 
-function getConfirmedFillInPresentation(event: CalendarEvent) {
+function getConfirmedFillInPresentation(
+  event: CalendarEvent,
+  audience: 'worker' | 'clinic',
+) {
   const date = parseISODate(event.dateKey);
   const dateLabel = date ? formatShiftDateLabel(date) : null;
   const timeLabel = formatCalendarEventTime(event);
   const location = event.location?.trim() || null;
   const roleLabel = event.roleType ? getRoleTypeLabel(event.roleType) : null;
+  const copy = getConfirmedFillInCardCopy({
+    counterpartName: event.subtitle || event.counterpartName,
+    audience,
+    isPast: isPastShiftDate(event.dateKey),
+  });
 
   return {
-    eyebrow: calendarEventKindLabel(event.kind),
-    title: event.subtitle,
+    eyebrow: copy.eyebrow,
+    title: copy.title,
     meta: roleLabel,
     headerDetail: dateLabel,
     detail: [timeLabel, location].filter(Boolean).join(' · ') || null,
@@ -93,9 +104,9 @@ function EventAvatar({ event }: { event: CalendarEvent }) {
   );
 }
 
-export function ScheduleEventCard({ event, onPress }: ScheduleEventCardProps) {
+export function ScheduleEventCard({ event, onPress, audience }: ScheduleEventCardProps) {
   if (event.kind === 'confirmed_fill_in') {
-    const presentation = getConfirmedFillInPresentation(event);
+    const presentation = getConfirmedFillInPresentation(event, audience);
 
     return (
       <SurfaceCard padding="none" onPress={onPress}>
@@ -156,6 +167,7 @@ type ScheduleAgendaListProps = {
   events: CalendarEvent[];
   selectedDate: Date;
   onEventPress: (event: CalendarEvent) => void;
+  audience: 'worker' | 'clinic';
   emptyTitle?: string;
   emptyMessage?: string;
   emptyCtaLabel?: string;
@@ -166,6 +178,7 @@ export function ScheduleAgendaList({
   events,
   selectedDate,
   onEventPress,
+  audience,
   emptyTitle = 'Nothing scheduled',
   emptyMessage = 'No interviews or confirmed fill-ins on this day.',
   emptyCtaLabel,
@@ -213,7 +226,12 @@ export function ScheduleAgendaList({
         <View style={styles.list}>
           <StaggeredList>
             {events.map((event) => (
-              <ScheduleEventCard key={event.id} event={event} onPress={() => onEventPress(event)} />
+              <ScheduleEventCard
+                key={event.id}
+                event={event}
+                audience={audience}
+                onPress={() => onEventPress(event)}
+              />
             ))}
           </StaggeredList>
         </View>

@@ -244,6 +244,7 @@ export function FillInApplicantCard({
                   status={application.status}
                   postType="shift"
                   statusClosedBy={application.status_closed_by}
+                  shiftDate={application.shift_date}
                 />
               ) : null}
               <View style={styles.chevronRow}>

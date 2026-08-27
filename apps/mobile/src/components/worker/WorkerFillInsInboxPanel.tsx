@@ -209,7 +209,7 @@ export function WorkerFillInsInboxPanel({
                 <>
                   {renderApplicationGroup('Cancelled', cancelledApplications)}
                   {renderApplicationGroup('Declined', declinedApplications)}
-                  {renderApplicationGroup('Past confirmed', pastConfirmed)}
+                  {renderApplicationGroup('Filled in', pastConfirmed)}
                   {renderApplicationGroup('Expired requests', pastInProgress)}
                 </>
               )

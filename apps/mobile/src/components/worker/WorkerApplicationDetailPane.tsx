@@ -23,6 +23,8 @@ import {
   getWorkerShiftDetailRoute,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
+import { isPastShiftDate } from '@/lib/fillInFilters';
+import { formatConfirmedFillInHeadline } from '@/lib/fillInHistoryDisplay';
 import { useThemedStyles } from '@/theme';
 
 type WorkerApplicationDetailPaneProps = {
@@ -125,7 +127,9 @@ export function WorkerApplicationDetailPane({
   const isConfirmedFillIn =
     application?.post_type === 'shift' && application.status === 'hired' && confirmedShift;
 
-  const headerTitle = isConfirmedFillIn ? 'Confirmed fill-in' : 'Your application';
+  const headerTitle = isConfirmedFillIn
+    ? formatConfirmedFillInHeadline(isPastShiftDate(application?.shift_date))
+    : 'Your application';
   const headerSubtitle = isConfirmedFillIn ? application?.clinic_name : undefined;
 
   return (

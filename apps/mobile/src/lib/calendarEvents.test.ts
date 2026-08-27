@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildCalendarCells,
+  calendarEventKindLabel,
   getDayIndicators,
   getEventsForDate,
   groupEventsByDate,
@@ -139,5 +140,11 @@ describe('calendarEvents', () => {
     expect(isSelectedCalendarDay(selected, same)).toBe(true);
     expect(isSelectedCalendarDay(selected, different)).toBe(false);
     expect(toISODate(selected)).toBe('2026-07-10');
+  });
+
+  it('uses past-tense labels for completed confirmed fill-ins', () => {
+    expect(calendarEventKindLabel('confirmed_fill_in')).toBe('Confirmed fill-in');
+    expect(calendarEventKindLabel('confirmed_fill_in', { isPast: true })).toBe('Filled in');
+    expect(calendarEventKindLabel('open_fill_in', { isPast: true })).toBe('Open fill-in');
   });
 });

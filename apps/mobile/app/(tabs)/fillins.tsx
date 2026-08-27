@@ -534,7 +534,7 @@ export default function FillInsScreen() {
                   ) : null}
                   {pastConfirmed.length > 0 ? (
                     <View style={styles.applicationGroup}>
-                      <DashboardSectionHeader title="Past confirmed" compact />
+                      <DashboardSectionHeader title="Filled in" compact />
                       <StaggeredList>
                         {pastConfirmed.map((application) => (
                           <WorkerApplicationListCard

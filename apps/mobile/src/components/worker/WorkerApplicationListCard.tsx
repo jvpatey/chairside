@@ -100,6 +100,7 @@ export function WorkerApplicationListCard({
       postType={application.post_type}
       statusNote={application.status_note}
       statusClosedBy={application.status_closed_by}
+      shiftDate={application.shift_date}
       label={getWorkerApplicationCardStatusLabel(application, {
         isHighlighted: hasApplicationUpdate,
       })}

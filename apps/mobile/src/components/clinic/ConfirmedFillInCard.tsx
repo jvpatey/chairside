@@ -22,6 +22,8 @@ import {
   formatShiftPostMeta,
   formatShiftPostTimeDetail,
 } from '@/lib/shiftPostDisplay';
+import { formatConfirmedFillInStatusLabel, formatFilledInTitle } from '@/lib/fillInHistoryDisplay';
+import { isPastShiftDate } from '@/lib/fillInFilters';
 import { getClinicApplicationMessagesRoute, type ClinicApplicationReturnTarget } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -65,6 +67,8 @@ export function ConfirmedFillInCard({
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState<'cancel' | 'delete' | null>(null);
   const roleLabel = formatFillInRoleLabel(shiftDate);
+  const isPastFillIn = isPastShiftDate(shiftDate);
+  const statusLabel = formatConfirmedFillInStatusLabel(isPastFillIn);
   const shiftTimes = {
     shift_date: shiftDate,
     start_time: startTime ?? '',
@@ -122,7 +126,7 @@ export function ConfirmedFillInCard({
       layout="split"
       displayName={workerName}
       photoStoragePath={workerPhotoStoragePath}
-      eyebrow={roleLabel}
+      eyebrow={isPastFillIn ? formatFilledInTitle(workerName, 'clinic') : roleLabel}
       title={workerName}
       detail={scheduleDetail}
       avatarSize={44}
@@ -131,7 +135,7 @@ export function ConfirmedFillInCard({
           <Ionicons name="checkmark-circle" size={22} color={colors.success} />
         </View>
       }
-      textFooter={<ClinicApplicationStatusBadge status="hired" postType="shift" />}
+      textFooter={<ClinicApplicationStatusBadge status="hired" postType="shift" shiftDate={shiftDate} />}
     />
   );
 
@@ -151,7 +155,7 @@ export function ConfirmedFillInCard({
             <RowDivider />
             <DetailRow label="Schedule" value={scheduleDetail ?? shiftMeta} />
             <RowDivider />
-            <DetailRow label="Status" value="Confirmed" />
+            <DetailRow label="Status" value={statusLabel} />
           </View>
         </CardDetailSection>
         <View style={styles.actions}>

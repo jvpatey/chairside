@@ -65,3 +65,44 @@ describe('getApplicationStatusSummary interview counter-offer', () => {
     expect(summary?.headline).toBe('Interview invitation');
   });
 });
+
+describe('getApplicationStatusSummary confirmed fill-ins', () => {
+  it('keeps upcoming hired fill-ins in the present tense', () => {
+    const summary = getApplicationStatusSummary(
+      {
+        status: 'hired',
+        postType: 'shift',
+        shiftDate: '2099-01-01',
+      },
+      'worker',
+    );
+
+    expect(summary?.headline).toBe('Fill-in confirmed');
+    expect(summary?.description).toBe('This fill-in was confirmed.');
+  });
+
+  it('switches past hired fill-ins to filled-in copy', () => {
+    const workerSummary = getApplicationStatusSummary(
+      {
+        status: 'hired',
+        postType: 'shift',
+        shiftDate: '2020-01-01',
+      },
+      'worker',
+    );
+    const clinicSummary = getApplicationStatusSummary(
+      {
+        status: 'hired',
+        postType: 'shift',
+        shiftDate: '2020-01-01',
+        counterpartFirstName: 'Alex',
+      },
+      'clinic',
+    );
+
+    expect(workerSummary?.headline).toBe('Filled in');
+    expect(workerSummary?.description).toBe('You filled in on this day.');
+    expect(clinicSummary?.headline).toBe('Filled in');
+    expect(clinicSummary?.description).toBe('Alex filled in on this day.');
+  });
+});

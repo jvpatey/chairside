@@ -93,6 +93,7 @@ export function ScheduleCalendarView({
       events={selectedDayEvents}
       selectedDate={selectedDate}
       onEventPress={onEventPress}
+      audience={role}
       emptyTitle="Nothing scheduled for this day"
       emptyMessage={
         role === 'worker'
