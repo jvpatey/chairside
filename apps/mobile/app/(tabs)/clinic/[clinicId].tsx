@@ -21,11 +21,26 @@ import {
 } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
+function firstParam(value: string | string[] | undefined): string {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
+  return '';
+}
+
 export default function WorkerClinicProfileScreen() {
   const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
-  const { id, returnTo, conversationId, jobId, shiftId, applicationId, applicationReturnTo } =
-    useLocalSearchParams<{
+  const {
+    clinicId: clinicIdParam,
+    id,
+    returnTo,
+    conversationId,
+    jobId,
+    shiftId,
+    applicationId,
+    applicationReturnTo,
+  } = useLocalSearchParams<{
+    clinicId?: string;
     id?: string;
     returnTo?: string;
     conversationId?: string;
@@ -34,7 +49,7 @@ export default function WorkerClinicProfileScreen() {
     applicationId?: string;
     applicationReturnTo?: string;
   }>();
-  const clinicId = typeof id === 'string' ? id : '';
+  const clinicId = firstParam(clinicIdParam) || firstParam(id);
   const returnContext = useMemo(
     () =>
       parseWorkerClinicProfileReturnParams({
@@ -166,8 +181,8 @@ export default function WorkerClinicProfileScreen() {
           profile={postings.profile}
           jobs={postings.jobs}
           shifts={postings.shifts}
-          onJobPress={(jobId) => router.push(getWorkerJobDetailRoute(jobId))}
-          onShiftPress={(shiftId) => router.push(getWorkerShiftDetailRoute(shiftId))}
+          onJobPress={(nextJobId) => router.push(getWorkerJobDetailRoute(nextJobId))}
+          onShiftPress={(nextShiftId) => router.push(getWorkerShiftDetailRoute(nextShiftId))}
         />
       </View>
     </FormScreen>

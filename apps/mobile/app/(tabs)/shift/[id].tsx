@@ -248,7 +248,7 @@ export default function WorkerShiftDetailScreen() {
           onPress={() =>
             router.push(
               getWorkerClinicProfileRoute(
-                shift.clinic.clinic_id,
+                shift.clinic_id,
                 returnContext?.returnTo === 'application-detail'
                   ? returnContext
                   : { returnTo: 'shift-detail', shiftId: shift.id },

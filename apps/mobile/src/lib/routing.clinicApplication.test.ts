@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   getClinicApplicationRoute,
   getClinicApplicationsRoute,
+  getClinicDiscoverClinicProfileRoute,
   getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
+  getWorkerClinicProfileRoute,
   navigateAfterClinicApplication,
   navigateAfterClinicDiscover,
   navigateAfterRoleApplicants,
@@ -20,6 +22,24 @@ describe('getClinicDiscoverRoute', () => {
       pathname: '/(clinic-tabs)/discover',
       params: { tab: 'fill-ins', returnTo: 'fill-ins-tab' },
     });
+  });
+});
+
+describe('clinic profile routes', () => {
+  it('puts the clinic id in the worker path so it is not dropped from job detail', () => {
+    expect(getWorkerClinicProfileRoute('clinic-1')).toBe('/(tabs)/clinic/clinic-1');
+    expect(
+      getWorkerClinicProfileRoute('clinic-1', { returnTo: 'job-detail', jobId: 'job-1' }),
+    ).toBe('/(tabs)/clinic/clinic-1?returnTo=job-detail&jobId=job-1');
+  });
+
+  it('puts the clinic id in the clinic-side path', () => {
+    expect(getClinicDiscoverClinicProfileRoute('clinic-1', { fromJobId: 'job-1' })).toBe(
+      '/(clinic-tabs)/clinic/clinic-1?fromJobId=job-1',
+    );
+    expect(getClinicDiscoverClinicProfileRoute('clinic-1', { fromShiftId: 'shift-1' })).toBe(
+      '/(clinic-tabs)/clinic/clinic-1?fromShiftId=shift-1',
+    );
   });
 });
 

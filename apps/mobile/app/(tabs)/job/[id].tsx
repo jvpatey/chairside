@@ -197,7 +197,7 @@ export default function WorkerJobDetailScreen() {
           onPress={() =>
             router.push(
               getWorkerClinicProfileRoute(
-                job.clinic.clinic_id,
+                job.clinic_id,
                 returnContext?.returnTo === 'application-detail'
                   ? returnContext
                   : { returnTo: 'job-detail', jobId: job.id },
