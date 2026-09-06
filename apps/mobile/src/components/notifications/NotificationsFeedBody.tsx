@@ -186,13 +186,24 @@ export function NotificationsFeedBody({
   scrollStyle,
 }: NotificationsFeedBodyProps) {
   const { colors } = useTheme();
-  const { notifications, unreadCount, isReady, markRead, markAllRead, refreshNotifications } =
-    useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    isReady,
+    loadError,
+    markRead,
+    markAllRead,
+    refreshNotifications,
+  } = useNotifications();
   const [refreshing, setRefreshing] = useState(false);
   const isDialog = variant === 'dialog';
 
   const isDialogEmpty = isDialog && isReady && notifications.length === 0;
-  const isDialogLoading = isDialog && !isReady;
+  const isDialogLoading = isDialog && !isReady && !loadError;
+  const emptyTitle = loadError ? 'Notifications unavailable' : "You're all caught up";
+  const emptyText = loadError
+    ? loadError
+    : 'When clinics or workers interact with your posts and applications, updates will show up here.';
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     root: {
@@ -410,13 +421,14 @@ export function NotificationsFeedBody({
       ) : isDialogEmpty ? (
         <View style={styles.dialogEmptyBody}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="notifications-outline" size={28} color={colors.labelSecondary} />
+            <Ionicons
+              name={loadError ? 'warning-outline' : 'notifications-outline'}
+              size={28}
+              color={colors.labelSecondary}
+            />
           </View>
-          <Text style={styles.emptyTitle}>You&apos;re all caught up</Text>
-          <Text style={styles.emptyText}>
-            When clinics or workers interact with your posts and applications, updates will show up
-            here.
-          </Text>
+          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+          <Text style={styles.emptyText}>{emptyText}</Text>
         </View>
       ) : (
         <ScrollView
@@ -431,20 +443,21 @@ export function NotificationsFeedBody({
               tintColor={colors.labelSecondary}
             />
           }>
-          {!isReady ? (
+          {!isReady && !loadError ? (
             <View style={styles.loading}>
               <ActivityIndicator color={colors.primary} />
             </View>
           ) : notifications.length === 0 ? (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="notifications-outline" size={28} color={colors.labelSecondary} />
+                <Ionicons
+                  name={loadError ? 'warning-outline' : 'notifications-outline'}
+                  size={28}
+                  color={colors.labelSecondary}
+                />
               </View>
-              <Text style={styles.emptyTitle}>You&apos;re all caught up</Text>
-              <Text style={styles.emptyText}>
-                When clinics or workers interact with your posts and applications, updates will show
-                up here.
-              </Text>
+              <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+              <Text style={styles.emptyText}>{emptyText}</Text>
             </View>
           ) : (
             <View style={styles.listCard}>

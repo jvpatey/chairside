@@ -37,6 +37,7 @@ type NotificationContextValue = {
   notifications: InAppNotification[];
   unreadCount: number;
   isReady: boolean;
+  loadError: string | null;
   refreshNotifications: () => Promise<void>;
   markAllRead: () => Promise<void>;
   markRead: (ids: string[]) => Promise<void>;
@@ -65,10 +66,20 @@ function sortNotifications(items: InAppNotification[]): InAppNotification[] {
   });
 }
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === 'object' && error && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+  return 'Could not load notifications.';
+}
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, session, isAuthReady } = useAuth();
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const userIdRef = useRef<string | null>(null);
   userIdRef.current = user?.id ?? null;
 
@@ -78,8 +89,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       const rows = await listUserNotifications(userId, { limit: 50 });
       setNotifications(sortNotifications(rows.map(toInAppNotification)));
+      setLoadError(null);
     } catch (error) {
       console.warn('Could not load in-app notifications', error);
+      setLoadError(errorMessage(error));
     }
   }, []);
 
@@ -195,22 +208,43 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const userId = user?.id;
+    if (!isAuthReady) return;
 
-    if (!userId) {
-      setIsReady(false);
+    const userId = user?.id;
+    const hasSession = Boolean(session?.access_token);
+
+    if (!userId || !hasSession) {
+      setIsReady(true);
       setNotifications([]);
+      setLoadError(null);
       return;
     }
 
+    setIsReady(false);
+    setLoadError(null);
+
     let cancelled = false;
     let channel: ReturnType<ReturnType<typeof getSupabaseClient>['channel']> | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function setup() {
       try {
         await refreshNotifications();
+        // Session can finish hydrating a beat after auth ready; retry once if empty.
+        if (!cancelled) {
+          retryTimer = setTimeout(() => {
+            if (!cancelled) void refreshNotifications();
+          }, 750);
+        }
+      } catch (error) {
+        console.warn('Notification provider load failed', error);
+        if (!cancelled) setLoadError(errorMessage(error));
+      } finally {
+        // Never leave the bell disabled because realtime setup failed.
         if (!cancelled) setIsReady(true);
+      }
 
+      try {
         const supabase = getSupabaseClient();
         channel = supabase
           .channel(`user_notifications:${userId}`)
@@ -226,10 +260,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
               if (!cancelled) void refreshNotifications();
             },
           )
-          .subscribe();
+          .subscribe((status, err) => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.warn('user_notifications realtime subscribe failed', status, err);
+            }
+          });
       } catch (error) {
-        console.warn('Notification provider setup failed', error);
-        if (!cancelled) setIsReady(false);
+        console.warn('Notification realtime setup failed', error);
       }
     }
 
@@ -237,12 +274,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
-      setIsReady(false);
+      if (retryTimer) clearTimeout(retryTimer);
       if (channel) {
         void getSupabaseClient().removeChannel(channel);
       }
     };
-  }, [user?.id, refreshNotifications]);
+  }, [isAuthReady, refreshNotifications, session?.access_token, user?.id]);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.seen).length,
@@ -254,12 +291,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       notifications,
       unreadCount,
       isReady,
+      loadError,
       refreshNotifications,
       markAllRead,
       markRead,
       markReadByDeepLink,
     }),
-    [notifications, unreadCount, isReady, refreshNotifications, markAllRead, markRead, markReadByDeepLink],
+    [
+      notifications,
+      unreadCount,
+      isReady,
+      loadError,
+      refreshNotifications,
+      markAllRead,
+      markRead,
+      markReadByDeepLink,
+    ],
   );
 
   return (

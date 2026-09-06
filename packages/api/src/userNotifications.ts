@@ -10,6 +10,8 @@ export async function listUserNotifications(
   const supabase = getSupabaseClient();
   const limit = options?.limit ?? 50;
 
+  // Prefer RLS (auth.uid()) as source of truth; userId filter is a belt-and-suspenders
+  // guard for the authenticated session.
   const { data, error } = await supabase
     .from('user_notifications')
     .select('*')
@@ -18,7 +20,7 @@ export async function listUserNotifications(
     .limit(limit);
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as UserNotification[];
 }
 
 export async function markUserNotificationsRead(

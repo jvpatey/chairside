@@ -26,7 +26,8 @@ export function NotificationBell({
   size = 40,
 }: NotificationBellProps) {
   const { colors } = useTheme();
-  const { unreadCount, isReady } = useNotifications();
+  const { unreadCount, isReady, loadError } = useNotifications();
+  const canOpen = isReady || Boolean(loadError);
   const [open, setOpen] = useState(false);
   const inHero = placement === 'hero';
   const isCompact = size <= 32;
@@ -101,7 +102,7 @@ export function NotificationBell({
         <Pressable
           style={({ pressed, hovered }) => [
             styles.button,
-            webHover(hovered, pressed, styles.buttonHovered, !isReady),
+            webHover(hovered, pressed, styles.buttonHovered, !canOpen),
             pressed && styles.buttonPressed,
           ]}
           accessibilityRole="button"
@@ -112,7 +113,7 @@ export function NotificationBell({
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setOpen(true);
           }}
-          disabled={!isReady}>
+          disabled={!canOpen}>
           <Ionicons
             name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
             size={iconSize}
