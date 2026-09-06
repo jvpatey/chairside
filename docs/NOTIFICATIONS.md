@@ -6,7 +6,7 @@ Chairside notification channels:
 | ------- | -------- |
 | In-app bell / history | Supabase `user_notifications` |
 | Native mobile push | [Expo Push](https://docs.expo.dev/push-notifications/overview/) via `user_push_tokens` |
-| SMS (fill-ins / outreach) | [Pingram](https://www.pingram.io/) |
+| SMS (fill-ins / outreach) | [Pingram](https://www.pingram.io/) `POST /sms` |
 | Email (manager invites, support) | Pingram |
 
 Pingram is **not** used for in-app or mobile push.
@@ -26,6 +26,8 @@ Pingram is **not** used for in-app or mobile push.
 7. Run migrations:
    - [`121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) — Expo push tokens
    - [`123_user_notifications.sql`](../supabase/migrations/123_user_notifications.sql) — in-app inbox
+
+Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). The worker must have `fill_in_sms_opt_in=true`, a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift.
 
 Other event type ids (`application_received`, `message_received`, etc.) remain in `packages/config/src/notifications.ts` as Chairside type ids for the Supabase inbox + Expo push payloads. They do **not** need Pingram templates.
 

@@ -183,12 +183,16 @@ export function FillInModePanel({
       return;
     }
 
+    // SMS requires a confirmed number. When saving the phone this call, use the new
+    // digits; otherwise keep the already-saved profile phone (ignore dirty edits).
+    const phoneForSms = savePhone ? storedPhone : (workerProfile?.phone?.trim() || null);
+
     setIsSaving(true);
     try {
       await save({
         short_notice_available: available,
         fill_in_notification_mode: available ? mode : 'off',
-        fill_in_sms_opt_in: available && sms && Boolean(storedPhone) && !phoneNeedsSave,
+        fill_in_sms_opt_in: available && sms && Boolean(phoneForSms),
         accepts_clinic_fill_in_outreach: available && outreach,
         ...(savePhone ? { phone: storedPhone } : {}),
       });

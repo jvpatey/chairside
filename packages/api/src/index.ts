@@ -323,6 +323,7 @@ export {
   isWorkerApplicationUpdateUnseen,
   isWorkerApplicationUpdateHighlighted,
   isWorkerFillInApplicationUpdateCountable,
+  isWorkerJobApplicationUpdateCountable,
   isPastWorkerFillInApplication,
   hasWorkerApplicationClinicUpdate,
   APPLICATION_UPDATE_GRACE_MS,

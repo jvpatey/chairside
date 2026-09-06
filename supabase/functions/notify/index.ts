@@ -15,15 +15,6 @@ type WebhookPayload = {
 };
 
 /** Pingram is email + SMS only (no in-app / mobile push). */
-type PingramForceChannel = 'SMS';
-
-type PingramSendBody = {
-  type: string;
-  to: { id: string; number?: string };
-  sms?: { message: string };
-  forceChannels: PingramForceChannel[];
-  secondaryId?: string;
-};
 
 type ExpoPushPayload = {
   userId: string;
@@ -370,22 +361,6 @@ async function isActiveClinicSideSender(
   return Boolean(data);
 }
 
-function buildSmsOnlyBody(input: {
-  type: string;
-  userId: string;
-  phone: string;
-  smsMessage: string;
-  secondaryId: string;
-}): PingramSendBody {
-  return {
-    type: input.type,
-    to: { id: input.userId, number: input.phone },
-    sms: { message: input.smsMessage },
-    forceChannels: ['SMS'],
-    secondaryId: input.secondaryId,
-  };
-}
-
 function buildExpoPushPayload(input: {
   userId: string;
   title: string;
@@ -408,21 +383,30 @@ function buildExpoPushPayload(input: {
   };
 }
 
-async function pingramSend(apiKey: string, apiBase: string, body: PingramSendBody) {
+/** Dedicated SMS API — more reliable than /send + forceChannels for SMS-only alerts. */
+async function pingramSendSms(
+  apiKey: string,
+  apiBase: string,
+  input: { type: string; phone: string; message: string },
+) {
   if (!apiKey.trim()) {
     throw new Error('PINGRAM_API_KEY not configured');
   }
-  const res = await fetch(`${apiBase.replace(/\/$/, '')}/send`, {
+  const res = await fetch(`${apiBase.replace(/\/$/, '')}/sms`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      type: input.type,
+      to: input.phone,
+      message: input.message,
+    }),
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Pingram send failed (${res.status}): ${text}`);
+    throw new Error(`Pingram SMS failed (${res.status}): ${text}`);
   }
 }
 
@@ -590,24 +574,22 @@ async function sendUserAlert(
 
   if (input.includeSms && input.smsMessage && input.phone) {
     try {
-      await pingramSend(
-        apiKey,
-        apiBase,
-        buildSmsOnlyBody({
-          type: input.type,
-          userId: input.userId,
-          phone: input.phone,
-          smsMessage: input.smsMessage,
-          secondaryId: input.secondaryId,
-        }),
-      );
+      await pingramSendSms(apiKey, apiBase, {
+        type: input.type,
+        phone: input.phone,
+        message: input.smsMessage,
+      });
     } catch (error) {
       console.error(`[notify] pingram SMS failed for ${input.userId} type=${input.type}`, error);
       throw error;
     }
   }
 
-  if (inboxError) throw inboxError;
+  // Inbox failure is already logged. Do not rethrow after SMS — that would release
+  // idempotency and risk duplicate texts on webhook retry.
+  if (inboxError && !(input.includeSms && input.smsMessage && input.phone)) {
+    throw inboxError;
+  }
 }
 
 async function claimIdempotency(
@@ -856,17 +838,11 @@ async function handleMessageInsert(
     });
 
     await withIdempotentDispatch(supabase, smsKey, 'fill_in_outreach_sms', async () => {
-      await pingramSend(
-        pingramKey,
-        pingramBase,
-        buildSmsOnlyBody({
-          type: PINGRAM_TYPES.fillInOutreachSms,
-          userId: conversation.worker_id,
-          phone: e164,
-          smsMessage,
-          secondaryId: smsKey,
-        }),
-      );
+      await pingramSendSms(pingramKey, pingramBase, {
+        type: PINGRAM_TYPES.fillInOutreachSms,
+        phone: e164,
+        message: smsMessage,
+      });
     });
   }
 }
@@ -1463,6 +1439,13 @@ async function handleShiftPostLive(
     clinicId,
   );
 
+  const smsEligibleCount = recipients.filter(
+    (w) => w.fill_in_sms_opt_in === true && normalizeE164(w.phone as string | null),
+  ).length;
+  console.log(
+    `[notify] fill_in_posted: shift=${shiftId} role=${roleType} recipients=${recipients.length} smsEligible=${smsEligibleCount}`,
+  );
+
   const pushPreferences = await loadPushPreferenceMap(
     supabase,
     recipients.map((worker) => worker.id),
@@ -1478,6 +1461,11 @@ async function handleShiftPostLive(
     const deepLink = 'chairside:///(tabs)/fillins';
     const smsOptIn = worker.fill_in_sms_opt_in === true;
     const e164 = smsOptIn ? normalizeE164(worker.phone as string | null) : null;
+    if (smsOptIn && !e164) {
+      console.warn(
+        `[notify] fill_in_posted: SMS opted in but phone invalid/missing (workerId=${worker.id})`,
+      );
+    }
 
     try {
       const result = await withIdempotentDispatch(

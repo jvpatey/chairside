@@ -17,8 +17,8 @@ import {
   isClinicApplicationHighlighted,
   isClinicInterviewProposalUnseen,
   isClinicNewApplication,
-  isWorkerApplicationUpdateUnseen,
   isWorkerFillInApplicationUpdateCountable,
+  isWorkerJobApplicationUpdateCountable,
   markApplicationSeenByClinic,
   markApplicationSeenByWorker,
   markApplicationsSeenByWorker,
@@ -225,7 +225,7 @@ export function ApplicationTabBadgeProvider({ role, children }: ApplicationTabBa
       if (application.post_type === 'shift') {
         return isWorkerFillInApplicationUpdateCountable(application as WorkerApplication);
       }
-      return isWorkerApplicationUpdateUnseen(application);
+      return isWorkerJobApplicationUpdateCountable(application as WorkerApplication);
     },
     [locallySeenApplicationIds, role],
   );
