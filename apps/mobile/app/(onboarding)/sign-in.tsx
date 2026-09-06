@@ -34,7 +34,8 @@ import { useThemedStyles } from '@/theme';
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'reset-link-expired':
     'That reset link is invalid or expired. Enter your email below and request a new one.',
-  'sign-in-failed': 'We could not finish signing you in. Please try again.',
+  'sign-in-failed':
+    'We could not finish signing you in. If you used an email link, it may be invalid or expired. Request a new one.',
 };
 
 export default function SignInScreen() {

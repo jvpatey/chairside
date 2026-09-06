@@ -19,6 +19,7 @@ export {
   getWebAuthCallbackHref,
   hasAuthCallbackParams,
   isAuthCallbackPath,
+  isAuthEmailLink,
   isPasswordRecoveryRedirect,
   isPasswordRecoveryUrl,
   parseAuthRedirectUrl,
@@ -37,9 +38,15 @@ export {
   type StartClinicFillInOutreachInput,
 } from './fillInOutreach';
 export {
+  ACCOUNT_ALREADY_EXISTS_MESSAGE,
+  SIGNUP_CONFIRMATION_REQUIRED_MESSAGE,
+  completeEmailSignUp,
   createSessionFromUrl,
   establishSessionAfterSignUp,
   getAuthErrorMessage,
+  getSignupEmailRedirectUrl,
+  hasRealAuthIdentities,
+  resendSignupConfirmation,
   resetPasswordForEmail,
   updatePassword,
   signInWithApple,
@@ -48,6 +55,7 @@ export {
   signOut,
   signUpWithEmail,
   deleteAccount,
+  type SignUpSessionResult,
 } from './auth';
 export {
   SUPPORT_CONTACT_SUBJECTS,

@@ -13,6 +13,14 @@
           {
             "/": "/accept-invite/*",
             "comment": "Clinic manager invitation accept links"
+          },
+          {
+            "/": "/auth/callback",
+            "comment": "Auth confirmation, OAuth, and password recovery"
+          },
+          {
+            "/": "/auth/callback/*",
+            "comment": "Auth confirmation, OAuth, and password recovery"
           }
         ]
       }

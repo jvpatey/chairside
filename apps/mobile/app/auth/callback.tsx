@@ -1,13 +1,17 @@
 import { hasAuthCallbackParams, isAuthCallbackPath } from '@chairside/api';
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Animated, Platform, Text, View } from 'react-native';
 
-import { PageLoadingSpinner } from '@/components/ui/PageLoadingState';
+import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
+import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
+import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { usePulseOpacity } from '@/lib/motion';
 import { processAuthCallbackLink } from '@/lib/processAuthCallbackLink';
 import { hasWebAuthLinkBeenHandled } from '@/lib/webAuthCallbackGate';
+import { useThemedStyles } from '@/theme';
 
 function resolveWebCallbackUrl(): string | null {
   if (typeof window === 'undefined') return null;
@@ -45,6 +49,28 @@ export default function AuthCallbackScreen() {
   const { refreshProfile, markPasswordRecoveryPending } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const [isClientReady, setIsClientReady] = useState(Platform.OS !== 'web');
+  const pulse = usePulseOpacity();
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    body: {
+      alignItems: 'center' as const,
+      gap: spacing.lg,
+      paddingVertical: spacing.xl,
+    },
+    message: {
+      ...typography.subtitle,
+      textAlign: 'center' as const,
+    },
+    dots: {
+      flexDirection: 'row' as const,
+      gap: spacing.xs,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.primary,
+    },
+  }));
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -81,5 +107,38 @@ export default function AuthCallbackScreen() {
     };
   }, [completeOnboarding, isClientReady, markPasswordRecoveryPending, refreshProfile]);
 
-  return <PageLoadingSpinner message="Opening secure link…" />;
+  return (
+    <OnboardingShell webLayout="centeredDecision" atmosphere="form">
+      <AuthScreenHeader
+        title="Opening your link"
+        subtitle="This only takes a moment. We’ll put you in the right place."
+      />
+      <View
+        style={styles.body}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Opening secure link"
+      >
+        <Animated.View style={{ opacity: pulse }}>
+          <ChairsideWordmark variant="compact" />
+        </Animated.View>
+        <View style={styles.dots}>
+          {[0, 1, 2].map((index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.dot,
+                {
+                  opacity: pulse.interpolate({
+                    inputRange: [0.45, 1],
+                    outputRange: [0.35 + index * 0.15, 1 - index * 0.1],
+                  }),
+                },
+              ]}
+            />
+          ))}
+        </View>
+        <Text style={styles.message}>Opening secure link…</Text>
+      </View>
+    </OnboardingShell>
+  );
 }

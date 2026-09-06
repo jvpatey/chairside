@@ -154,6 +154,7 @@ export default function ResetPasswordScreen() {
   if (linkExpired && !user) {
     return (
       <OnboardingShell
+        webLayout="centeredDecision"
         atmosphere="form"
         footer={
           <View style={styles.footer}>
@@ -173,6 +174,7 @@ export default function ResetPasswordScreen() {
 
   return (
     <OnboardingShell
+      webLayout="centeredDecision"
       atmosphere="form"
       footer={
         <View style={styles.footer}>

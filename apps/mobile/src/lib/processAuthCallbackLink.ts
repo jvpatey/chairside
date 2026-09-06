@@ -1,6 +1,7 @@
 import {
   createSessionFromUrl,
   getSupabaseClient,
+  isAuthEmailLink,
   isPasswordRecoveryUrl,
 } from '@chairside/api';
 import { router } from 'expo-router';
@@ -31,6 +32,7 @@ export async function processAuthCallbackLink(
   markWebAuthLinkHandled();
 
   let isRecoveryAttempt = false;
+  let isEmailLink = false;
   let recoveryRouted = false;
 
   const routeToPasswordReset = () => {
@@ -60,6 +62,7 @@ export async function processAuthCallbackLink(
 
   try {
     isRecoveryAttempt = isPasswordRecoveryUrl(url);
+    isEmailLink = isRecoveryAttempt || isAuthEmailLink(url);
     const { session, isPasswordRecovery } = await createSessionFromUrl(url);
     stripAuthParamsFromBrowserUrl();
 
@@ -82,7 +85,9 @@ export async function processAuthCallbackLink(
 
     await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
   } catch {
-    routeToSignInWithError(isRecoveryAttempt ? 'reset-link-expired' : 'sign-in-failed');
+    routeToSignInWithError(
+      isRecoveryAttempt || isEmailLink ? 'reset-link-expired' : 'sign-in-failed',
+    );
   } finally {
     subscription.unsubscribe();
   }

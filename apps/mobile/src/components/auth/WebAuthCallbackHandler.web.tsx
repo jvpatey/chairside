@@ -40,7 +40,7 @@ export function WebAuthCallbackHandler() {
       }
     }
 
-    void processAuthCallbackLink(window.location.href, {
+    void processAuthCallbackLink(href, {
       refreshProfile,
       completeOnboarding,
       markRecoveryInContext: markPasswordRecoveryPending,
