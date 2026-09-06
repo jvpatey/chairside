@@ -10,14 +10,16 @@ import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
-import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getClinicDiscoverClinicProfileRoute } from '@/lib/routing';
 import { formatWorkerPostLocation, resolveWorkerPostLogoStoragePath } from '@/lib/workerPostLocation';
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicDiscoverJobDetailScreen() {
-  const { user } = useAuth();
+  const { clinicId } = useClinicProfile();
+  const { upgradePrompt, handleBillingError } = useClinicUpgradePrompt();
   const { id } = useLocalSearchParams<{ id: string }>();
   const jobId = typeof id === 'string' ? id : '';
   const [job, setJob] = useState<LiveJobPost | null>(null);
@@ -30,7 +32,7 @@ export default function ClinicDiscoverJobDetailScreen() {
   }));
 
   const loadJob = useCallback(async () => {
-    if (!jobId || !user?.id) {
+    if (!jobId || !clinicId) {
       setJob(null);
       setIsLoading(false);
       return;
@@ -38,7 +40,7 @@ export default function ClinicDiscoverJobDetailScreen() {
 
     setIsLoading(true);
     try {
-      const nextJob = await getClinicDiscoverJobPost(jobId, user.id);
+      const nextJob = await getClinicDiscoverJobPost(jobId, clinicId);
       if (!nextJob) {
         Alert.alert('Role not found', 'This posting may no longer be available.');
         router.back();
@@ -46,6 +48,10 @@ export default function ClinicDiscoverJobDetailScreen() {
       }
       setJob(nextJob);
     } catch (error) {
+      if (handleBillingError(error)) {
+        router.back();
+        return;
+      }
       Alert.alert(
         'Could not load role',
         error instanceof Error ? error.message : 'Please try again.',
@@ -54,7 +60,7 @@ export default function ClinicDiscoverJobDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [jobId, user?.id]);
+  }, [clinicId, handleBillingError, jobId]);
 
   useRefreshOnFocus(loadJob);
 
@@ -77,6 +83,7 @@ export default function ClinicDiscoverJobDetailScreen() {
       title="Role details"
       subtitle={job.clinic.clinic_name}
       onBack={() => router.back()}>
+      {upgradePrompt}
       <View style={styles.content}>
         <SurfaceCard>
           <ClinicPostHeader

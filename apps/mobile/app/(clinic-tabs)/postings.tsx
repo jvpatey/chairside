@@ -65,6 +65,7 @@ import { summarizeJobApplicantPreviews } from '@/lib/dashboardAttention';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
+  isClinicBillingFeatureLocked,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -287,7 +288,7 @@ export default function ClinicPostingsScreen() {
             <ClinicDiscoverBrowseLink
               title="Roles from other clinics"
               onPress={() => {
-                if (billing != null && !billing.canUseClinicDiscover) {
+                if (isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseClinicDiscover')) {
                   showDiscoverUpgrade();
                   return;
                 }

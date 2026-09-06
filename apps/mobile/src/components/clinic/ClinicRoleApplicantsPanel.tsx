@@ -31,6 +31,7 @@ import {
 } from '@/lib/applicationPipeline';
 import { getClinicCalendarRoute } from '@/lib/calendarNavigation';
 import { hasActiveListSearch, matchesClinicApplicationSearch } from '@/lib/clinicListSearch';
+import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
 import { formatPostedDateLabel } from '@/lib/dates';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import type { ClinicApplicationReturnTarget } from '@/lib/routing';
@@ -62,8 +63,8 @@ export function ClinicRoleApplicantsPanel({
   onLoadError,
 }: ClinicRoleApplicantsPanelProps) {
   const { user } = useAuth();
-  const { billing, upgradePrompt, showCrmUpgrade } = useClinicUpgradePrompt();
-  const crmLocked = billing != null && !billing.canUseCrmFollowups;
+  const { billing, isBillingReady, upgradePrompt, showCrmUpgrade } = useClinicUpgradePrompt();
+  const crmLocked = isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseCrmFollowups');
 
   const [postTitle, setPostTitle] = useState('');
   const [postPostedLabel, setPostPostedLabel] = useState('');

@@ -8,6 +8,7 @@ import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
 import { CLINIC_OPEN_INQUIRY_CANDIDATES } from '@/lib/routing';
 import {
   IS_WEB,
@@ -41,13 +42,17 @@ export function ClinicMessagingPreferences({
   const { colors } = useTheme();
   const { clinicProfile, refreshClinicProfile, isOwner } = useClinicProfile();
   const { save } = useClinicSetupSave();
-  const { billing, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
+  const { billing, isBillingReady, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
     useClinicUpgradePrompt();
   const [acceptsGeneralMessages, setAcceptsGeneralMessages] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
   const compact = variant === 'compact';
-  const messagingLocked = billing != null && !billing.canUseGeneralCandidateMessaging;
+  const messagingLocked = isClinicBillingFeatureLocked(
+    billing,
+    isBillingReady,
+    'canUseGeneralCandidateMessaging',
+  );
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     stack: {

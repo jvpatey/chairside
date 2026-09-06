@@ -37,6 +37,7 @@ import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellL
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
 import { formatPhoneNumber } from '@/lib/phone';
 import { CLINIC_SETUP_PRACTICE, CLINIC_SETUP_TEAM } from '@/lib/routing';
 import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
@@ -142,13 +143,18 @@ export default function ClinicLocationsSetupScreen() {
   const { colors } = useTheme();
   const {
     billing,
+    isBillingReady,
     upgradePrompt,
     showAddLocationUpgrade,
     handleBillingError,
   } = useClinicUpgradePrompt();
   const progress = useSetupStepProgress('locations', { role: 'clinic', isGroupOverride: true });
   const setupFormProps = useSetupFormScreenProps('clinic');
-  const canAddLocation = billing == null || billing.canAddLocation;
+  const canAddLocation = isClinicBillingFeatureUnlocked(
+    billing,
+    isBillingReady,
+    'canAddLocation',
+  );
   const [locations, setLocations] = useState<ClinicLocation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');

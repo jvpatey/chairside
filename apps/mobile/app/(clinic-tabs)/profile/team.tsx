@@ -31,6 +31,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
 import { buildClinicManagerInviteUrl, formatInviteExpiry } from '@/lib/clinicInviteLinks';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import {
@@ -78,12 +79,17 @@ export default function ClinicTeamSettingsScreen() {
   const { colors } = useTheme();
   const {
     billing,
+    isBillingReady,
     upgradePrompt,
     showAddManagerUpgrade,
     handleBillingError,
   } = useClinicUpgradePrompt();
   const groupsEnabled = isClinicGroupsEnabled();
-  const canAddManager = billing == null || billing.canAddManager;
+  const canAddManager = isClinicBillingFeatureUnlocked(
+    billing,
+    isBillingReady,
+    'canAddManager',
+  );
 
   useEffect(() => {
     if (!isClinicProfileReady) return;

@@ -34,6 +34,10 @@ import {
   type FillInReturnTarget,
 } from '@/lib/routing';
 import { hasActiveListSearch, matchesFillInOutreachWorkerSearch } from '@/lib/clinicListSearch';
+import {
+  isClinicBillingFeatureLocked,
+  isClinicBillingFeatureUnlocked,
+} from '@/lib/clinicPlanPresentation';
 import { useThemedStyles, type GradientAccent } from '@/theme';
 
 const FILL_IN_ACCENT: GradientAccent = 'secondary';
@@ -51,7 +55,7 @@ const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
 export default function FindAvailableWorkersScreen() {
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
-  const { billing, upgradePrompt, showOutreachUpgrade, showBulkOutreachUpgrade } =
+  const { billing, isBillingReady, upgradePrompt, showOutreachUpgrade, showBulkOutreachUpgrade } =
     useClinicUpgradePrompt();
   const { returnTo } = useLocalSearchParams<{ returnTo?: FillInReturnTarget }>();
   const resolvedReturnTo = returnTo ?? 'fill-ins-tab';
@@ -116,8 +120,16 @@ export default function FindAvailableWorkersScreen() {
   );
 
   const hasSearch = hasActiveListSearch(searchQuery);
-  const isOutreachLocked = Boolean(billing && !billing.canUseFillInOutreach);
-  const canUseBulkOutreach = Boolean(billing?.canUseBulkOutreach);
+  const isOutreachLocked = isClinicBillingFeatureLocked(
+    billing,
+    isBillingReady,
+    'canUseFillInOutreach',
+  );
+  const canUseBulkOutreach = isClinicBillingFeatureUnlocked(
+    billing,
+    isBillingReady,
+    'canUseBulkOutreach',
+  );
   const bulkSelectionEnabled = canUseBulkOutreach && !isOutreachLocked;
 
   const loadWorkers = useCallback(async () => {
@@ -190,7 +202,7 @@ export default function FindAvailableWorkersScreen() {
       return;
     }
 
-    if (billing && !billing.canUseFillInOutreach) {
+    if (isOutreachLocked) {
       showOutreachUpgrade();
       return;
     }
@@ -249,7 +261,7 @@ export default function FindAvailableWorkersScreen() {
   };
 
   const handleBulkCompose = () => {
-    if (!billing?.canUseBulkOutreach) {
+    if (!canUseBulkOutreach) {
       showBulkOutreachUpgrade();
       return;
     }

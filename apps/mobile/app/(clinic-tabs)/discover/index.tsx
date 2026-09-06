@@ -23,7 +23,6 @@ import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseView
 import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
-import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -38,6 +37,7 @@ import {
   getDefaultClinicDiscoverSort,
   type ClinicDiscoverSort,
 } from '@/lib/clinicDiscoverFilters';
+import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
 import {
   groupDiscoverMapItemsByClinic,
   toDiscoverMapItemsFromJobs,
@@ -64,14 +64,18 @@ import { IS_WEB } from '@/lib/webPressableStyles';
 import { fontRegular, useThemedStyles } from '@/theme';
 
 export default function ClinicDiscoverScreen() {
-  const { user } = useAuth();
-  const { clinicProfile, isGroup } = useClinicProfile();
-  const { billing, upgradePrompt, showDiscoverUpgrade } = useClinicUpgradePrompt();
+  const { clinicId, clinicProfile, isGroup } = useClinicProfile();
+  const { billing, isBillingReady, upgradePrompt, showDiscoverUpgrade, handleBillingError } =
+    useClinicUpgradePrompt();
   const { isTablet, isWide } = useResponsiveLayout();
   const { tab, returnTo } = useLocalSearchParams<{ tab?: string; returnTo?: string }>();
   const province = clinicProfile?.province?.trim() || null;
   const hasProvince = Boolean(province);
-  const discoverLocked = billing != null && !billing.canUseClinicDiscover;
+  const discoverLocked = isClinicBillingFeatureLocked(
+    billing,
+    isBillingReady,
+    'canUseClinicDiscover',
+  );
   const [selectedTab, setSelectedTab] = useState<ClinicDiscoverTab>('roles');
   const [viewMode, setViewMode] = useState<WorkerBrowseViewMode>('list');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
@@ -160,7 +164,7 @@ export default function ClinicDiscoverScreen() {
   }));
 
   const load = useCallback(async () => {
-    if (!user?.id || discoverLocked || !province) {
+    if (!clinicId || discoverLocked || !province) {
       setJobs([]);
       setShifts([]);
       setIsLoading(false);
@@ -173,8 +177,8 @@ export default function ClinicDiscoverScreen() {
 
     try {
       const [jobRows, shiftRows] = await Promise.all([
-        listClinicDiscoverJobPosts(province, user.id),
-        listClinicDiscoverShiftPosts(province, user.id),
+        listClinicDiscoverJobPosts(province, clinicId),
+        listClinicDiscoverShiftPosts(province, clinicId),
       ]);
       setJobs(jobRows);
       setShifts(shiftRows);
@@ -184,6 +188,7 @@ export default function ClinicDiscoverScreen() {
         setJobs([]);
         setShifts([]);
       }
+      if (handleBillingError(error)) return;
       Alert.alert(
         'Could not load discover',
         error instanceof Error ? error.message : 'Please try again.',
@@ -191,7 +196,7 @@ export default function ClinicDiscoverScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [discoverLocked, hasCachedData, province, user?.id]);
+  }, [clinicId, discoverLocked, handleBillingError, hasCachedData, province]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);

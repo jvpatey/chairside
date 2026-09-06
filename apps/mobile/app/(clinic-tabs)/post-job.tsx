@@ -42,6 +42,7 @@ import { usePostingFormScreenProps } from '@/hooks/usePostingFormScreenProps';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
+  isClinicBillingFeatureLocked,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
 import { showFormError } from '@/lib/formErrors';
@@ -105,8 +106,15 @@ export default function PostJobScreen() {
     attribution,
     attributionLabel,
   } = useClinicActingContext();
-  const { billing, upgradePrompt, showPublishUpgrade, showScreeningUpgrade, showScreeningCapUpgrade, handleBillingError } =
-    useClinicUpgradePrompt();
+  const {
+    billing,
+    isBillingReady,
+    upgradePrompt,
+    showPublishUpgrade,
+    showScreeningUpgrade,
+    showScreeningCapUpgrade,
+    handleBillingError,
+  } = useClinicUpgradePrompt();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const jobId = typeof id === 'string' ? id : undefined;
   const isEditing = Boolean(jobId);
@@ -361,7 +369,11 @@ export default function PostJobScreen() {
                 onSelectedCatalogSlugsChange={setSelectedCatalogSlugs}
                 onCustomQuestionsChange={setCustomQuestions}
                 onKnockoutsChange={setKnockouts}
-                locked={billing != null && !billing.canUseScreeningQuestions}
+                locked={isClinicBillingFeatureLocked(
+                  billing,
+                  isBillingReady,
+                  'canUseScreeningQuestions',
+                )}
                 onLockedPress={showScreeningUpgrade}
                 customScreeningLimit={
                   billing?.customScreeningLimit != null && billing.customScreeningLimit > 0

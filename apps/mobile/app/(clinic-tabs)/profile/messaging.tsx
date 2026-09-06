@@ -5,13 +5,19 @@ import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
 import { CLINIC_OPEN_INQUIRY_CANDIDATES, navigateToClinicProfileHub } from '@/lib/routing';
 import { useTheme } from '@/theme';
 
 export default function ClinicProfileMessagingScreen() {
   const { colors } = useTheme();
-  const { billing, upgradePrompt, showGeneralMessagingUpgrade } = useClinicUpgradePrompt();
-  const messagingLocked = billing != null && !billing.canUseGeneralCandidateMessaging;
+  const { billing, isBillingReady, upgradePrompt, showGeneralMessagingUpgrade } =
+    useClinicUpgradePrompt();
+  const messagingLocked = isClinicBillingFeatureLocked(
+    billing,
+    isBillingReady,
+    'canUseGeneralCandidateMessaging',
+  );
 
   return (
     <ProfileDetailScreen

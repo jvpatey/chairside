@@ -961,6 +961,26 @@ export type Database = {
           logo_storage_path: string | null;
         } | null;
       };
+      assert_clinic_can_use_feature: {
+        Args: { p_clinic_id: string; p_feature: string };
+        Returns: undefined;
+      };
+      list_clinic_discover_job_posts: {
+        Args: { p_province: string };
+        Returns: JobPostRow[];
+      };
+      list_clinic_discover_shift_posts: {
+        Args: { p_province: string };
+        Returns: ShiftPostRow[];
+      };
+      get_clinic_discover_job_post: {
+        Args: { p_job_id: string };
+        Returns: JobPostRow | null;
+      };
+      get_clinic_discover_shift_post: {
+        Args: { p_shift_id: string };
+        Returns: ShiftPostRow | null;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

@@ -45,7 +45,7 @@ function formatClinicAddress(profile: {
 
 export default function ClinicApplicationDetailScreen() {
   const { user } = useAuth();
-  const { clinicProfile } = useClinicProfile();
+  const { clinicId, clinicProfile } = useClinicProfile();
   const { markApplicationSeen } = useApplicationTabBadge();
   const { id, returnTo, roleJobId, selectJobId } = useLocalSearchParams<{
     id?: string;
@@ -86,7 +86,7 @@ export default function ClinicApplicationDetailScreen() {
   }, [resolvedReturnTo, resolvedRoleJobId, resolvedSelectJobId]);
 
   const load = useCallback(async () => {
-    if (!user?.id || !applicationId) {
+    if (!clinicId || !applicationId) {
       setApplication(null);
       setIsLoading(false);
       return;
@@ -95,8 +95,8 @@ export default function ClinicApplicationDetailScreen() {
     setIsLoading(true);
     try {
       const [row, unreadMap] = await Promise.all([
-        getClinicApplication(user.id, applicationId),
-        getUnreadConversationMap(user.id, 'clinic'),
+        getClinicApplication(clinicId, applicationId),
+        getUnreadConversationMap(user?.id ?? clinicId, 'clinic'),
       ]);
 
       if (!row) {
@@ -123,7 +123,7 @@ export default function ClinicApplicationDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [applicationId, goBack, markApplicationSeen, user?.id]);
+  }, [applicationId, clinicId, goBack, markApplicationSeen, user?.id]);
 
   useRefreshOnFocus(load);
 
@@ -144,10 +144,10 @@ export default function ClinicApplicationDetailScreen() {
           <FormErrorBanner message={formError} />
           {isLoading ? (
             <PageLoadingDetail />
-          ) : application && user?.id ? (
+          ) : application && clinicId ? (
             <ClinicApplicationDetailCard
               application={application}
-              clinicId={user.id}
+              clinicId={clinicId}
               returnTo={resolvedReturnTo}
               hasUnreadMessages={hasUnreadMessages}
               onUpdated={() => void load()}

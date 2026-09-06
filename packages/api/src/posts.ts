@@ -940,6 +940,62 @@ export async function markShiftPostsSeenByWorker(shiftPostIds: string[]): Promis
   if (error) throw error;
 }
 
+function isViewerOwnClinicPost(
+  post: { clinic_id: string; organization_id?: string | null },
+  viewerClinicId: string,
+): boolean {
+  return post.clinic_id === viewerClinicId || post.organization_id === viewerClinicId;
+}
+
+async function hydrateLiveJobPost(data: JobPost): Promise<LiveJobPost | null> {
+  const clinic = await getClinicListingSummary(data.clinic_id);
+  if (!clinic) return null;
+
+  let screeningQuestions: ScreeningQuestion[] = [];
+  if (data.screening_enabled) {
+    try {
+      screeningQuestions = await getJobPostScreeningQuestions(data.id, {
+        province: clinic.province,
+      });
+    } catch {
+      screeningQuestions = [];
+    }
+  }
+
+  const planMap = await getClinicPlanMap([data.clinic_id]);
+  const locationMap = await fetchPostLocationMap([data.location_id]);
+  const base = attachPostLocation(
+    {
+      ...data,
+      clinic,
+      screening_questions: screeningQuestions,
+    },
+    locationMap,
+  );
+  return attachPriorityListing(base, planMap);
+}
+
+async function hydrateLiveShiftPost(data: ShiftPost): Promise<LiveShiftPost | null> {
+  const clinic = await getClinicListingSummary(data.clinic_id);
+  if (!clinic) return null;
+
+  const planMap = await getClinicPlanMap([data.clinic_id]);
+  const locationMap = await fetchPostLocationMap([data.location_id]);
+  const base = attachPostLocation(
+    {
+      ...data,
+      clinic,
+    },
+    locationMap,
+  );
+  return attachPriorityListing(base, planMap);
+}
+
+function firstRpcRow<T>(data: T | T[] | null | undefined): T | null {
+  if (data == null) return null;
+  return (Array.isArray(data) ? data[0] : data) ?? null;
+}
+
 export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -951,25 +1007,7 @@ export async function getLiveJobPost(jobId: string): Promise<LiveJobPost | null>
 
   if (error) throw error;
   if (!data) return null;
-
-  const clinic = await getClinicListingSummary(data.clinic_id as string);
-  if (!clinic) return null;
-
-  const screeningQuestions = (data as JobPost).screening_enabled
-    ? await getJobPostScreeningQuestions(jobId, { province: clinic.province })
-    : [];
-
-  const planMap = await getClinicPlanMap([data.clinic_id as string]);
-  const locationMap = await fetchPostLocationMap([(data as JobPost).location_id]);
-  const base = attachPostLocation(
-    {
-      ...(data as JobPost),
-      clinic,
-      screening_questions: screeningQuestions,
-    },
-    locationMap,
-  );
-  return attachPriorityListing(base, planMap);
+  return hydrateLiveJobPost(data as JobPost);
 }
 
 export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost | null> {
@@ -985,54 +1023,87 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
 
   if (error) throw error;
   if (!data) return null;
-
-  const clinic = await getClinicListingSummary(data.clinic_id as string);
-  if (!clinic) return null;
-
-  const planMap = await getClinicPlanMap([data.clinic_id as string]);
-  const locationMap = await fetchPostLocationMap([(data as ShiftPost).location_id]);
-  const base = attachPostLocation(
-    {
-      ...(data as ShiftPost),
-      clinic,
-    },
-    locationMap,
-  );
-  return attachPriorityListing(base, planMap);
+  return hydrateLiveShiftPost(data as ShiftPost);
 }
 
 export async function listClinicDiscoverJobPosts(
   province: string,
   viewerClinicId: string,
 ): Promise<LiveJobPost[]> {
-  const jobs = await listLiveJobPosts(province);
-  return jobs.filter((job) => job.clinic_id !== viewerClinicId);
+  const supabase = getSupabaseClient();
+  const clinicMap = await listClinicSummariesInProvince(province);
+  const { data, error } = await supabase.rpc('list_clinic_discover_job_posts', {
+    p_province: province,
+  });
+
+  if (error) throwWithMessage(error, 'Could not load discover.');
+  const posts = attachClinic((data ?? []) as JobPost[], clinicMap).filter(
+    (job) => !isViewerOwnClinicPost(job, viewerClinicId),
+  );
+  const locationMap = await fetchPostLocationMap(posts.map((post) => post.location_id));
+  const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
+  const sortedPosts = sortPostsByClinicPlanPriority(posts, planMap, (left, right) =>
+    right.created_at.localeCompare(left.created_at),
+  );
+  return sortedPosts.map((post) =>
+    attachPriorityListing(
+      attachPostLocation({ ...post, screening_questions: [] }, locationMap),
+      planMap,
+    ),
+  );
 }
 
 export async function listClinicDiscoverShiftPosts(
   province: string,
   viewerClinicId: string,
 ): Promise<LiveShiftPost[]> {
-  const shifts = await listLiveShiftPosts(province);
-  return shifts.filter((shift) => shift.clinic_id !== viewerClinicId);
+  const supabase = getSupabaseClient();
+  const clinicMap = await listClinicSummariesInProvince(province);
+  const { data, error } = await supabase.rpc('list_clinic_discover_shift_posts', {
+    p_province: province,
+  });
+
+  if (error) throwWithMessage(error, 'Could not load discover.');
+  const posts = attachClinic((data ?? []) as ShiftPost[], clinicMap).filter(
+    (shift) => !isViewerOwnClinicPost(shift, viewerClinicId),
+  );
+  const locationMap = await fetchPostLocationMap(posts.map((post) => post.location_id));
+  const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
+  return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
+    const dateCompare = left.shift_date.localeCompare(right.shift_date);
+    if (dateCompare !== 0) return dateCompare;
+    return left.created_at.localeCompare(right.created_at);
+  }).map((post) => attachPriorityListing(attachPostLocation(post, locationMap), planMap));
 }
 
 export async function getClinicDiscoverJobPost(
   jobId: string,
   viewerClinicId: string,
 ): Promise<LiveJobPost | null> {
-  const job = await getLiveJobPost(jobId);
-  if (!job || job.clinic_id === viewerClinicId) return null;
-  return job;
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_clinic_discover_job_post', {
+    p_job_id: jobId,
+  });
+
+  if (error) throwWithMessage(error, 'Could not load role.');
+  const row = firstRpcRow(data as JobPost | JobPost[] | null);
+  if (!row || isViewerOwnClinicPost(row, viewerClinicId)) return null;
+  return hydrateLiveJobPost(row);
 }
 
 export async function getClinicDiscoverShiftPost(
   shiftId: string,
   viewerClinicId: string,
 ): Promise<LiveShiftPost | null> {
-  const shift = await getLiveShiftPost(shiftId);
-  if (!shift || shift.clinic_id === viewerClinicId) return null;
-  return shift;
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_clinic_discover_shift_post', {
+    p_shift_id: shiftId,
+  });
+
+  if (error) throwWithMessage(error, 'Could not load fill-in.');
+  const row = firstRpcRow(data as ShiftPost | ShiftPost[] | null);
+  if (!row || isViewerOwnClinicPost(row, viewerClinicId)) return null;
+  return hydrateLiveShiftPost(row);
 }
 
 export async function getWorkerAppliedShiftPost(

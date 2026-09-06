@@ -1,5 +1,6 @@
 export {
   CLINIC_BILLING_SESSION_EXPIRED_MESSAGE,
+  assertClinicCanUseFeature,
   ensureClinicBillingSession,
   getClinicBillingState,
   getClinicPlanMap,

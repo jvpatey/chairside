@@ -70,6 +70,7 @@ import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
 import { sortDashboardApplications } from '@/lib/applicationPipeline';
 import { isDecidedApplicationStatus } from '@chairside/config';
 import {
+  isClinicBillingFeatureUnlocked,
   isFillInPostingLimitReached,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
@@ -374,7 +375,11 @@ export default function ClinicDashboardScreen() {
         applicationUpdateCount,
         fillInUpdateCount,
         applications,
-        canUseCrmFollowups: Boolean(billing?.canUseCrmFollowups),
+        canUseCrmFollowups: isClinicBillingFeatureUnlocked(
+          billing,
+          isBillingReady,
+          'canUseCrmFollowups',
+        ),
         onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
         onOpenFillIns: () => router.push(CLINIC_FILL_INS),
         onOpenFollowUp: (application) => {
@@ -384,7 +389,8 @@ export default function ClinicDashboardScreen() {
     [
       applicationUpdateCount,
       applications,
-      billing?.canUseCrmFollowups,
+      billing,
+      isBillingReady,
       counts.newApplications,
       fillInUpdateCount,
     ],
@@ -692,13 +698,14 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       insights={
-        clinicId && billing?.canUseHiringInsights ? (
+        clinicId &&
+        isClinicBillingFeatureUnlocked(billing, isBillingReady, 'canUseHiringInsights') ? (
           <FadeInSection delayMs={160}>
             <HiringInsightsPanel
               clinicId={clinicId}
               locationIds={Array.isArray(scopedLocationIds) ? scopedLocationIds : undefined}
               canUseHiringInsights
-              showLocationBreakdown={billing.plan === 'group_pro'}
+              showLocationBreakdown={billing?.plan === 'group_pro'}
             />
           </FadeInSection>
         ) : null

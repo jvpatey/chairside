@@ -42,6 +42,7 @@ import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
 import { formatPhoneNumber } from '@/lib/phone';
 import { navigateToClinicProfileHub } from '@/lib/routing';
 import {
@@ -229,12 +230,17 @@ export default function ClinicLocationsSettingsScreen() {
   const { colors } = useTheme();
   const {
     billing,
+    isBillingReady,
     upgradePrompt,
     showAddLocationUpgrade,
     handleBillingError,
   } = useClinicUpgradePrompt();
   const groupsEnabled = isClinicGroupsEnabled();
-  const canAddLocation = billing == null || billing.canAddLocation;
+  const canAddLocation = isClinicBillingFeatureUnlocked(
+    billing,
+    isBillingReady,
+    'canAddLocation',
+  );
 
   useEffect(() => {
     if (!isClinicProfileReady) return;

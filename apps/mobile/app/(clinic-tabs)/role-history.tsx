@@ -20,7 +20,6 @@ import { FormScreen } from '@/components/ui/FormScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { StaggeredList } from '@/components/ui/StaggeredList';
-import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicListingViewMode } from '@/hooks/useClinicListingViewMode';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -178,8 +177,7 @@ function HistorySection({
 }
 
 export default function RoleHistoryScreen() {
-  const { user } = useAuth();
-  const { isGroup } = useClinicProfile();
+  const { clinicId, isGroup } = useClinicProfile();
   const { mode, setMode, isWide, supportsListView } = useClinicListingViewMode('role-history');
   const tableMode = isWide && supportsListView;
   const roleTableColumns = useMemo(() => getClinicRoleTableColumns(isGroup), [isGroup]);
@@ -241,7 +239,7 @@ export default function RoleHistoryScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!user?.id) {
+    if (!clinicId) {
       setJobs([]);
       setApplications([]);
       setApplicantCounts({});
@@ -253,9 +251,9 @@ export default function RoleHistoryScreen() {
     setIsLoading(true);
     try {
       const [jobPosts, counts, applicationRows] = await Promise.all([
-        listJobPosts(user.id),
-        getJobPostApplicationCountsMap(user.id),
-        listClinicApplications(user.id, 'active'),
+        listJobPosts(clinicId),
+        getJobPostApplicationCountsMap(clinicId),
+        listClinicApplications(clinicId, 'active'),
       ]);
       setJobs(jobPosts);
       setApplicantCounts(counts);
@@ -271,7 +269,7 @@ export default function RoleHistoryScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [clinicId]);
 
   useRefreshOnFocus(load);
 
@@ -323,7 +321,7 @@ export default function RoleHistoryScreen() {
               applicantPreviewByJobId={applicantPreviewByJobId}
               emptyTitle="No archived roles"
               emptyBody="Archived roles appear here when you remove them from your active list."
-              clinicId={user?.id}
+              clinicId={clinicId ?? undefined}
               viewMode={mode}
               tableMode={tableMode}
               columns={roleTableColumns}
@@ -339,7 +337,7 @@ export default function RoleHistoryScreen() {
               applicantPreviewByJobId={applicantPreviewByJobId}
               emptyTitle="No filled roles"
               emptyBody="When you mark a role as filled, it will appear here for your records."
-              clinicId={user?.id}
+              clinicId={clinicId ?? undefined}
               viewMode={mode}
               tableMode={tableMode}
               columns={roleTableColumns}
