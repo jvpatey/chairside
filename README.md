@@ -22,7 +22,7 @@ Clinics post roles and shifts, review applications with explainable match scores
 - **App** — Expo SDK 54 · Expo Router · React Native / React Native Web
 - **Backend** — Supabase (Auth, Postgres + RLS, Storage, Edge Functions)
 - **Billing** — RevenueCat (App Store + Web Billing)
-- **Notifications** — Pingram (in-app, optional SMS, email) + Expo Push (native)
+- **Notifications** — Supabase in-app inbox + Expo Push (native) + Pingram (SMS / email)
 - **Maps** — Mapbox
 - **Monorepo** — pnpm workspaces (`apps/mobile`, `packages/*`)
 
@@ -72,19 +72,13 @@ Create `apps/mobile/.env` (template: [`apps/mobile/.env.example`](apps/mobile/.e
 | `EXPO_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Yes | Anon / publishable key |
 | `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Yes | Address autocomplete / maps |
-| `EXPO_PUBLIC_PINGRAM_CLIENT_ID` | Yes* | Pingram env ID or `pingram_pk_…` — [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) |
 | `EXPO_PUBLIC_WEB_BASE_URL` | Prod | Legal / invite links (e.g. `https://chairside.app`) |
 | `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` | Billing | iOS SDK key |
 | `EXPO_PUBLIC_REVENUECAT_WEB_API_KEY` | Billing | Web Billing public key (`rcb_…`) |
 | `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` | Optional | Android SDK key when enabled |
 
-\*Required for in-app notification registration in builds that use Pingram.
-
 **Optional overrides**
 
-- `EXPO_PUBLIC_PINGRAM_API_HOST` — default `api.ca.pingram.io`
-- `EXPO_PUBLIC_PINGRAM_WS_HOST` — default `ws.ca.pingram.io`
-- `EXPO_PUBLIC_PINGRAM_ENVIRONMENT_ID` — if not embedded in `PINGRAM_CLIENT_ID`
 - `EXPO_PUBLIC_CLINIC_GROUPS_ENABLED` — `0` / `false` to disable groups ([docs/CLINIC_GROUPS.md](docs/CLINIC_GROUPS.md))
 
 Local `.env` is **not** uploaded to EAS — set the same `EXPO_PUBLIC_*` keys for **production** / **preview** via `eas env:create` from `apps/mobile`.
@@ -153,14 +147,14 @@ Deploy from the project root. Use `--use-api` if local Docker bundling isn’t a
 | Function | Purpose |
 | --- | --- |
 | `delete-account` | Profile → delete account; retains counterpart history, scrubs PII, clears storage |
-| `notify` | Pingram in-app / optional SMS + Expo native push |
+| `notify` | In-app (`user_notifications`) + Expo push + Pingram SMS/email |
 | `revenuecat-sync` | Pull entitlements into `clinic_subscriptions` after purchase |
 | `revenuecat-webhook` | RevenueCat → Supabase subscription source of truth |
 | `support-contact` | In-app support form delivery |
 
 ```bash
 supabase functions deploy delete-account --use-api
-supabase functions deploy notify --use-api
+supabase functions deploy notify --no-verify-jwt --use-api
 supabase functions deploy revenuecat-sync --use-api
 supabase functions deploy revenuecat-webhook --use-api
 supabase functions deploy support-contact --use-api
@@ -215,7 +209,7 @@ Host `apps/mobile/dist` on Vercel / Netlify / Cloudflare. Configure Supabase aut
 | [docs/APP_STORE_RELEASE.md](docs/APP_STORE_RELEASE.md) | End-to-end App Store release |
 | [docs/APP_STORE_CONNECT.md](docs/APP_STORE_CONNECT.md) | Listing copy, privacy, review notes |
 | [docs/TESTFLIGHT_CHECKLIST.md](docs/TESTFLIGHT_CHECKLIST.md) | Pre-submission smoke tests |
-| [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Pingram + Expo Push, webhooks, `notify` |
+| [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | In-app + Expo Push + Pingram SMS/email, webhooks, `notify` |
 | [docs/PUSH_IOS_PRODUCTION.md](docs/PUSH_IOS_PRODUCTION.md) | EAS APNs, Expo Push, push debugging |
 | [docs/WEB_DEPLOY.md](docs/WEB_DEPLOY.md) | Static export, redirects, hosting |
 | [docs/SUPPORT_CONTACT.md](docs/SUPPORT_CONTACT.md) | Support form + edge function |
@@ -226,7 +220,7 @@ Host `apps/mobile/dist` on Vercel / Netlify / Cloudflare. Configure Supabase aut
 
 | Feature | Expo Go | EAS build |
 | --- | --- | --- |
-| In-app notifications (Pingram) | Yes | Yes |
+| In-app notifications | Yes | Yes |
 | Push banners | No | Yes |
 | View resume in-app | Share only | PDF viewer |
 | Sign in with Apple | No | Yes |

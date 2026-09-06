@@ -8,7 +8,7 @@ Record build number, date, and tester name when signing off.
 
 - [ ] Build installed from TestFlight (`preview` or `production` profile)
 - [ ] Device notifications allowed for Chairside
-- [ ] Production Supabase + Pingram (in-app/SMS/email) + EAS APNs configured per [APP_STORE_RELEASE.md](./APP_STORE_RELEASE.md)
+- [ ] Production Supabase + Pingram (SMS/email) + EAS APNs configured per [APP_STORE_RELEASE.md](./APP_STORE_RELEASE.md)
 
 ## Authentication
 

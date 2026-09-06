@@ -1,4 +1,3 @@
-import type { InAppNotification } from '@notificationapi/core/dist/interfaces';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useState } from 'react';
@@ -18,6 +17,7 @@ import {
 import {
   openNotificationTarget,
   useNotifications,
+  type InAppNotification,
 } from '@/contexts/NotificationContext';
 import {
   formatNotificationTime,

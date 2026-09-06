@@ -1,6 +1,6 @@
 # iOS push notifications (production)
 
-Chairside delivers **native push** via [Expo Push Notification Service](https://docs.expo.dev/push-notifications/overview/). The app registers an Expo push token in Supabase (`user_push_tokens`); the `notify` edge function sends banners through Expo. **Pingram** still handles in-app, SMS, and email — not Mobile Push.
+Chairside delivers **native push** via [Expo Push Notification Service](https://docs.expo.dev/push-notifications/overview/). The app registers an Expo push token in Supabase (`user_push_tokens`); the `notify` edge function sends banners through Expo. **In-app history** is stored in `user_notifications`. **Pingram** handles SMS and email only — not Mobile Push or in-app.
 
 ## 1. Apple Developer
 
@@ -34,13 +34,12 @@ Configure FCM in EAS credentials (`eas credentials --platform android`). The app
 
 ### EAS environment variables
 
-Local `.env` files are not uploaded to EAS. For TestFlight builds, set Supabase (and Pingram for in-app) vars on EAS so they are baked into the binary:
+Local `.env` files are not uploaded to EAS. For TestFlight builds, set Supabase vars on EAS so they are baked into the binary:
 
 ```bash
 cd apps/mobile
 eas env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value 'https://…'
 eas env:create --environment preview --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value '…'
-eas env:create --environment preview --name EXPO_PUBLIC_PINGRAM_CLIENT_ID --value 'your_environment_id_or_pingram_pk_...'
 ```
 
 Repeat for production. The EAS `projectId` in `app.json` (`extra.eas.projectId`) is required for `getExpoPushTokenAsync` — it is already set for this app.
@@ -48,10 +47,10 @@ Repeat for production. The EAS `projectId` in `app.json` (`extra.eas.projectId`)
 ## 3. Database + notify
 
 1. Run migration [`supabase/migrations/121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql).
-2. Redeploy notify:
+2. Redeploy notify **without JWT verification** (database webhooks do not send a user JWT):
 
 ```bash
-supabase functions deploy notify --use-api
+supabase functions deploy notify --no-verify-jwt --use-api
 ```
 
 Optional: set `EXPO_ACCESS_TOKEN` (Expo account access token) as a Supabase Edge Function secret for higher Expo Push rate limits.
@@ -76,6 +75,8 @@ Push does **not** work on the iOS Simulator or Expo Go.
 | ----- | ----- |
 | No permission prompt | EAS build (not Expo Go); onboarding complete |
 | No row in `user_push_tokens` | Physical device; notification permission granted; `extra.eas.projectId` present; migration applied |
-| In-app works, no banner | APNs key in EAS credentials; `notify` deployed; user push prefs enabled for that category |
+| Nothing fires (in-app and push) | `notify` deployed with `--no-verify-jwt`; Database Webhooks include `applications` **UPDATE**; function logs are not 401 |
+| In-app works, no banner | Row in `user_push_tokens` for the recipient; APNs key in EAS credentials; user push prefs enabled for that category |
+| Shortlist, no banner | Function logs for `applied -> in_progress`; `expo push skipped: no tokens`; Pingram type `application_in_progress` |
 | TestFlight, no push | Rebuild with **preview** or **production** profile (`aps-environment: production`); confirm EAS has the production APNs key |
 | Expo ticket errors in notify logs | Invalid/expired token (re-open app to re-register); APNs misconfigured in EAS |

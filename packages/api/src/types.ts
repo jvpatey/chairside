@@ -220,6 +220,18 @@ export type UserPushTokenRow = {
   updated_at: string;
 };
 
+export type UserNotificationRow = {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  deep_link: string | null;
+  secondary_id: string;
+  seen_at: string | null;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -585,6 +597,22 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['user_push_tokens']['Insert']>;
+        Relationships: [];
+      };
+      user_notifications: {
+        Row: UserNotificationRow;
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body?: string | null;
+          deep_link?: string | null;
+          secondary_id: string;
+          seen_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_notifications']['Insert']>;
         Relationships: [];
       };
       clinic_subscriptions: {

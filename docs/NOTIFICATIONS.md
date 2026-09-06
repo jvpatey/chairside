@@ -1,37 +1,33 @@
-# Notifications (Pingram + Expo Push)
+# Notifications (Supabase in-app + Expo Push + Pingram email/SMS)
 
-Chairside sends **in-app**, optional **SMS** (fill-ins), and **email** through [Pingram](https://www.pingram.io/). **Native mobile push** uses [Expo Push](https://docs.expo.dev/push-notifications/overview/) with tokens stored in Supabase (`user_push_tokens`).
+Chairside notification channels:
 
-## Pingram dashboard setup
+| Channel | Provider |
+| ------- | -------- |
+| In-app bell / history | Supabase `user_notifications` |
+| Native mobile push | [Expo Push](https://docs.expo.dev/push-notifications/overview/) via `user_push_tokens` |
+| SMS (fill-ins / outreach) | [Pingram](https://www.pingram.io/) |
+| Email (manager invites, support) | Pingram |
+
+Pingram is **not** used for in-app or mobile push.
+
+## Pingram dashboard setup (email + SMS only)
 
 1. Create a Pingram environment (Canada region recommended).
-2. Create notification types matching `packages/config/src/notifications.ts`:
-   - `application_received`
-   - `application_reviewed`
-   - `application_in_progress`
-   - `application_interview_offered`
-   - `application_interview_scheduled`
-   - `application_interview_accepted`
-   - `application_interview_declined`
-   - `application_interview_cancelled`
-   - `application_interview_reschedule_proposed`
-   - `application_interview_reschedule_accepted`
-   - `application_interview_reschedule_declined`
-   - `application_interview_scheduled_cancelled`
-   - `application_selected`
-   - `application_rejected`
-   - `application_hired`
-   - `fill_in_posted` (configure SMS template + opt-out text)
-   - `fill_in_outreach_sms` (SMS-only; clinic-initiated fill-in text alerts)
-   - `job_posted`
-   - `message_received`
-   - `support_contact` (Support page form email — see [SUPPORT_CONTACT.md](./SUPPORT_CONTACT.md))
-3. Mobile env: set `EXPO_PUBLIC_PINGRAM_CLIENT_ID` to either the **environment client ID** (Environments page) or the **public key** (`pingram_pk_...`). The app resolves `pingram_pk_` JWTs to the environment ID automatically — the SDK must not use the raw public key as `clientId`.
-4. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
-5. Configure **APNs** in **EAS credentials** (not Pingram) — see [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) via EAS when you ship Android push.
-6. Register SMS sender / campaign with Pingram support if using fill-in SMS.
-7. Verify SMS channel: `export PINGRAM_API_KEY='pingram_sk_...' && ./scripts/verify-pingram-sms.sh`
-8. Run migration [`supabase/migrations/121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) for Expo push token storage.
+2. Create notification types used for **SMS / email**:
+   - `fill_in_posted` (SMS template + opt-out text)
+   - `fill_in_outreach_sms` (SMS-only outreach text alerts)
+   - `clinic_manager_invitation` (email)
+   - `support_contact` (Support form email — see [SUPPORT_CONTACT.md](./SUPPORT_CONTACT.md))
+3. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
+4. Configure **APNs** in **EAS credentials** (not Pingram) — see [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) via EAS when you ship Android push.
+5. Register SMS sender / campaign with Pingram support if using fill-in SMS.
+6. Verify SMS channel: `export PINGRAM_API_KEY='pingram_sk_...' && ./scripts/verify-pingram-sms.sh`
+7. Run migrations:
+   - [`121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) — Expo push tokens
+   - [`123_user_notifications.sql`](../supabase/migrations/123_user_notifications.sql) — in-app inbox
+
+Other event type ids (`application_received`, `message_received`, etc.) remain in `packages/config/src/notifications.ts` as Chairside type ids for the Supabase inbox + Expo push payloads. They do **not** need Pingram templates.
 
 After deploy, smoke-test fill-in dispatch:
 
@@ -48,6 +44,8 @@ Run [`supabase/migrations/033_worker_notification_prefs.sql`](../supabase/migrat
 
 Run [`supabase/migrations/070_outreach_message_notification_cleanup.sql`](../supabase/migrations/070_outreach_message_notification_cleanup.sql) for outreach message notification suppression.
 
+Run [`supabase/migrations/123_user_notifications.sql`](../supabase/migrations/123_user_notifications.sql) before expecting the in-app bell to populate.
+
 ### Edge Function
 
 ```bash
@@ -58,8 +56,10 @@ supabase secrets set NOTIFY_WEBHOOK_SECRET=$(openssl rand -hex 32)
 # Optional Expo Push access token (higher rate limits):
 # EXPO_ACCESS_TOKEN=...
 
-supabase functions deploy notify --use-api
+supabase functions deploy notify --no-verify-jwt --use-api
 ```
+
+`notify` must be deployed with JWT verification off (`supabase/config.toml` sets `verify_jwt = false`). Database webhooks authenticate with `x-supabase-webhook-secret`, not a user JWT. A JWT-gated deploy returns 401 and drops every notification, including shortlists.
 
 Secrets (auto-set when linked): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
 
@@ -69,19 +69,24 @@ In Supabase → Database → Webhooks, create HTTP webhooks pointing to:
 
 `https://<project-ref>.supabase.co/functions/v1/notify`
 
-| Table           | Events              | Header |
-| --------------- | ------------------- | ------ |
-| `applications`  | INSERT, UPDATE      | `x-supabase-webhook-secret: <NOTIFY_WEBHOOK_SECRET>` |
-| `shift_posts`   | INSERT, UPDATE      | same |
-| `job_posts`     | INSERT, UPDATE      | same |
-| `messages`      | INSERT              | same |
-| `clinic_invitations` | INSERT         | same |
+HTTP headers:
 
-Use `application/json` body (default Supabase webhook payload).
+- `x-supabase-webhook-secret: <NOTIFY_WEBHOOK_SECRET>`
+- `Content-Type: application/json`
+
+| Table           | Events              |
+| --------------- | ------------------- |
+| `applications`  | INSERT, UPDATE      |
+| `shift_posts`   | INSERT, UPDATE      |
+| `job_posts`     | INSERT, UPDATE      |
+| `messages`      | INSERT              |
+| `clinic_invitations` | INSERT         |
+
+Use `application/json` body (default Supabase webhook payload). Shortlisting is an `applications` **UPDATE** (`applied`/`reviewed` → `in_progress`). If that webhook is INSERT-only, candidates never get a shortlist notification.
 
 #### Manager invitation emails
 
-`clinic_invitations` INSERT (pending only) sends a Pingram **email** (`POST /email`) with type `clinic_manager_invitation`. Invitees may not have Chairside/Pingram users yet, so this path is email-only (not in-app/push).
+`clinic_invitations` INSERT (pending only) sends a Pingram **email** (`POST /email`) with type `clinic_manager_invitation`. Invitees may not have a Chairside account yet, so this path is email-only.
 
 Required ops steps:
 
@@ -103,21 +108,26 @@ Idempotency key: `clinic_manager_invitation:{invitation_id}`. Invitation tokens 
 
 ## Mobile
 
-- In-app bell: works in Expo Go when `EXPO_PUBLIC_PINGRAM_CLIENT_ID` is set.
+- In-app bell: reads `user_notifications` (works in Expo Go when signed in against production/staging Supabase).
 - Push: requires an **EAS build** on a **physical device** (not Expo Go). See **[PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md)** for APNs in EAS + Expo Push + `eas build --profile production`.
 - SMS: worker opts in on the **Fill-ins** tab (or Profile → Alerts); enter mobile number inline when enabling "Text me for fill-ins".
 - Push preferences: candidates and clinics can mute push by category under **Profile → Notifications**. In-app notification history still records muted categories.
-- Tapping a push notification navigates to the deep link and marks matching Pingram in-app items read when possible.
+- Tapping a push notification navigates to the deep link and marks matching in-app items read when possible.
 - Tab badges (Applications, Fill-ins, Messages) are separate from the notification bell and clear when the user visits the relevant screen.
 
 Run migration [`supabase/migrations/057_notification_preferences.sql`](../supabase/migrations/057_notification_preferences.sql) before relying on preference toggles in production.
 
-Run migration [`supabase/migrations/121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) before expecting native push delivery.
-
 After changing `notify`, redeploy:
 
 ```bash
-supabase functions deploy notify --use-api
+supabase functions deploy notify --no-verify-jwt --use-api
+```
+
+Shortlist smoke test (uses real `application_id` + `worker_id` from your project):
+
+```bash
+export NOTIFY_WEBHOOK_SECRET='...'
+./scripts/test-application-notify.sh [application_id] [worker_id]
 ```
 
 ```bash
@@ -127,7 +137,7 @@ eas build --profile production --platform ios
 
 ## Event summary
 
-| Event | Recipient | Pingram type | Channels | Push pref category |
+| Event | Recipient | Type id | Channels | Push pref category |
 | ----- | --------- | ------------ | -------- | ------------------ |
 | Application submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app + Expo push | `applications_interviews` |
 | Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app + Expo push | `applications_interviews` |
@@ -137,7 +147,7 @@ eas build --profile production --platform ios
 | Job post → live | Eligible workers | `job_posted` | in-app + Expo push | `job_alerts` |
 | New message | Worker ↔ clinic: clinic recipients are **owner + managers for the application post’s location** (general/outreach / null location → owner + all managers); each user’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app + Expo push | `messages` |
 | Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/Expo push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
-| Auto shift-details message in outreach thread | — | — | suppressed (no Pingram send) | — |
+| Auto shift-details message in outreach thread | — | — | suppressed (no send) | — |
 | Clinic manager invitation created | Invitee email | `clinic_manager_invitation` | email (`POST /email`) | — |
 
 ### Deep links

@@ -7,10 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { resolveNotificationDeepLink } from '@/lib/pingram';
-import { navigateToNotificationDeepLink } from '@/lib/notificationRouting';
+import { navigateToNotificationDeepLink, resolveNotificationDeepLink } from '@/lib/notificationRouting';
 import { registerExpoPushNotifications } from '@/lib/expoPushRegistration';
 import { getExpoProjectId, isNativePushAvailable } from '@/lib/expoPush';
+import { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupCompletion';
 
 function getPushSenderId(data: Record<string, unknown> | undefined): string | null {
   const senderId = data?.senderId;
@@ -39,8 +39,8 @@ function getNotificationResponseKey(response: Notifications.NotificationResponse
 export function useRegisterPushNotifications() {
   const { user, profile, isAuthReady } = useAuth();
   const { markReadByDeepLink } = useNotifications();
-  const { workerProfile, isProfileComplete: workerComplete } = useWorkerProfile();
-  const { clinicProfile, isProfileComplete: clinicComplete } = useClinicProfile();
+  const { workerProfile } = useWorkerProfile();
+  const { clinicProfile, locations } = useClinicProfile();
   const registeredForUserRef = useRef<string | null>(null);
   const registerInFlightRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
@@ -50,9 +50,9 @@ export function useRegisterPushNotifications() {
 
   const setupComplete =
     profile?.role === 'worker'
-      ? Boolean(workerProfile?.setup_completed_at && workerComplete)
+      ? isWorkerSetupComplete(workerProfile)
       : profile?.role === 'clinic'
-        ? Boolean(clinicProfile?.setup_completed_at && clinicComplete)
+        ? isClinicSetupComplete(clinicProfile, { locations })
         : false;
 
   const canNavigate = isAuthReady && Boolean(user?.id) && setupComplete;
@@ -93,6 +93,7 @@ export function useRegisterPushNotifications() {
 
         if (senderId && currentUserId && senderId === currentUserId) {
           return {
+            shouldShowAlert: false,
             shouldShowBanner: false,
             shouldShowList: false,
             shouldPlaySound: false,
@@ -101,6 +102,7 @@ export function useRegisterPushNotifications() {
         }
 
         return {
+          shouldShowAlert: true,
           shouldShowBanner: true,
           shouldShowList: true,
           shouldPlaySound: true,

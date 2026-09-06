@@ -5,6 +5,19 @@ import { Platform } from 'react-native';
 
 import { getExpoProjectId, isNativePushAvailable } from '@/lib/expoPush';
 
+export const ANDROID_NOTIFICATION_CHANNEL_ID = 'default';
+
+async function ensureAndroidNotificationChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync(ANDROID_NOTIFICATION_CHANNEL_ID, {
+    name: 'Chairside',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    sound: 'default',
+  });
+}
+
 export async function unregisterExpoPushNotifications(userId: string): Promise<void> {
   if (!Device.isDevice) return;
 
@@ -33,13 +46,21 @@ export async function registerExpoPushNotifications(userId: string): Promise<boo
   let finalStatus = existingStatus;
 
   if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: true,
+        allowSound: true,
+      },
+    });
     finalStatus = status;
   }
 
   if (finalStatus !== 'granted') {
     return false;
   }
+
+  await ensureAndroidNotificationChannel();
 
   const pushToken = await Notifications.getExpoPushTokenAsync({ projectId });
   if (!pushToken.data) {

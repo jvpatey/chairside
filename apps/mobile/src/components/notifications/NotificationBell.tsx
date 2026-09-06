@@ -5,13 +5,12 @@ import { Pressable, Text, View } from 'react-native';
 
 import { NotificationsFeedModal } from '@/components/notifications/NotificationsFeedModal';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { getPingramClientId } from '@/lib/pingram';
 import {
   webHover,
   webIconButtonHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type NotificationBellProps = {
   /** `hero` — top-right inside dashboard hero card; `header` — screen title row */
@@ -26,8 +25,7 @@ export function NotificationBell({
   embedded = false,
   size = 40,
 }: NotificationBellProps) {
-  const { colors, isDark } = useTheme();
-  const clientId = getPingramClientId();
+  const { colors } = useTheme();
   const { unreadCount, isReady } = useNotifications();
   const [open, setOpen] = useState(false);
   const inHero = placement === 'hero';
@@ -96,8 +94,6 @@ export function NotificationBell({
       lineHeight: isCompact ? 11 : 13,
     },
   }));
-
-  if (!clientId) return null;
 
   return (
     <>

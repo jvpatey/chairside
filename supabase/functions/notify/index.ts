@@ -14,13 +14,12 @@ type WebhookPayload = {
   old_record: Record<string, unknown> | null;
 };
 
-/** Pingram API channel identifiers (see https://www.pingram.io/docs/reference/node) */
-type PingramForceChannel = 'INAPP_WEB' | 'SMS';
+/** Pingram is email + SMS only (no in-app / mobile push). */
+type PingramForceChannel = 'SMS';
 
 type PingramSendBody = {
   type: string;
   to: { id: string; number?: string };
-  inapp?: { title: string; url?: string };
   sms?: { message: string };
   forceChannels: PingramForceChannel[];
   secondaryId?: string;
@@ -34,6 +33,7 @@ type ExpoPushPayload = {
 };
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+const ANDROID_NOTIFICATION_CHANNEL_ID = 'default';
 
 const PINGRAM_TYPES = {
   applicationReceived: 'application_received',
@@ -386,38 +386,6 @@ function buildSmsOnlyBody(input: {
   };
 }
 
-function buildSendBody(input: {
-  type: string;
-  userId: string;
-  phone?: string | null;
-  title: string;
-  message?: string;
-  deepLink: string;
-  secondaryId: string;
-  includeSms?: boolean;
-  smsMessage?: string;
-}): PingramSendBody {
-  const forceChannels: PingramForceChannel[] = ['INAPP_WEB'];
-  if (input.includeSms && input.smsMessage && input.phone) {
-    forceChannels.push('SMS');
-  }
-
-  const body: PingramSendBody = {
-    type: input.type,
-    to: { id: input.userId },
-    inapp: { title: input.title, url: input.deepLink },
-    forceChannels,
-    secondaryId: input.secondaryId,
-  };
-
-  if (input.includeSms && input.smsMessage && input.phone) {
-    body.to.number = input.phone;
-    body.sms = { message: input.smsMessage };
-  }
-
-  return body;
-}
-
 function buildExpoPushPayload(input: {
   userId: string;
   title: string;
@@ -441,6 +409,9 @@ function buildExpoPushPayload(input: {
 }
 
 async function pingramSend(apiKey: string, apiBase: string, body: PingramSendBody) {
+  if (!apiKey.trim()) {
+    throw new Error('PINGRAM_API_KEY not configured');
+  }
   const res = await fetch(`${apiBase.replace(/\/$/, '')}/send`, {
     method: 'POST',
     headers: {
@@ -452,6 +423,48 @@ async function pingramSend(apiKey: string, apiBase: string, body: PingramSendBod
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Pingram send failed (${res.status}): ${text}`);
+  }
+}
+
+async function insertUserNotification(
+  supabase: ReturnType<typeof createClient>,
+  input: {
+    userId: string;
+    type: string;
+    title: string;
+    body?: string;
+    deepLink: string;
+    secondaryId: string;
+  },
+): Promise<void> {
+  const { error } = await supabase.from('user_notifications').upsert(
+    {
+      user_id: input.userId,
+      type: input.type,
+      title: input.title,
+      body: input.body ?? null,
+      deep_link: input.deepLink,
+      secondary_id: input.secondaryId,
+    },
+    { onConflict: 'user_id,secondary_id', ignoreDuplicates: true },
+  );
+  if (error) throw error;
+}
+
+type ExpoPushTicket = {
+  status?: string;
+  message?: string;
+  details?: { error?: string };
+};
+
+async function deleteInvalidPushTokens(
+  supabase: ReturnType<typeof createClient>,
+  tokens: string[],
+): Promise<void> {
+  if (tokens.length === 0) return;
+  const { error } = await supabase.from('user_push_tokens').delete().in('expo_push_token', tokens);
+  if (error) {
+    console.error('[notify] failed to prune invalid expo push tokens', error);
   }
 }
 
@@ -469,14 +482,20 @@ async function sendExpoPushToUser(
     .map((row) => row.expo_push_token as string)
     .filter((token) => typeof token === 'string' && token.length > 0);
 
-  if (tokens.length === 0) return;
+  if (tokens.length === 0) {
+    console.warn(`[notify] expo push skipped: no tokens for ${payload.userId}`);
+    return;
+  }
 
   const messages = tokens.map((to) => ({
     to,
     title: payload.title,
     body: payload.body,
     data: payload.data,
-    sound: 'default',
+    sound: 'default' as const,
+    priority: 'high' as const,
+    channelId: ANDROID_NOTIFICATION_CHANNEL_ID,
+    interruptionLevel: 'active' as const,
   }));
 
   const headers: Record<string, string> = {
@@ -500,20 +519,29 @@ async function sendExpoPushToUser(
     throw new Error(`Expo push failed (${res.status}): ${text}`);
   }
 
-  const result = (await res.json().catch(() => null)) as
-    | { data?: Array<{ status?: string; message?: string }> }
-    | null;
+  const result = (await res.json().catch(() => null)) as { data?: ExpoPushTicket[] } | null;
   const tickets = Array.isArray(result?.data) ? result.data : [];
-  for (const ticket of tickets) {
-    if (ticket?.status === 'error') {
-      console.error(
-        `[notify] expo push ticket error for ${payload.userId}: ${ticket.message ?? 'unknown'}`,
-      );
+  const staleTokens: string[] = [];
+  for (let index = 0; index < tickets.length; index += 1) {
+    const ticket = tickets[index];
+    if (ticket?.status !== 'error') continue;
+    const ticketError = ticket.details?.error ?? ticket.message ?? 'unknown';
+    console.error(
+      `[notify] expo push ticket error for ${payload.userId}: ${ticketError}`,
+    );
+    if (ticket.details?.error === 'DeviceNotRegistered') {
+      const token = tokens[index];
+      if (token) staleTokens.push(token);
     }
   }
+
+  await deleteInvalidPushTokens(supabase, staleTokens);
 }
 
-/** Pingram in-app/SMS, then Expo native push (push failures do not fail the dispatch). */
+/**
+ * In-app (Supabase) + Expo push. Pingram is only used for optional SMS.
+ * Channel failures are independent so one cannot drop the others.
+ */
 async function sendUserAlert(
   supabase: ReturnType<typeof createClient>,
   apiKey: string,
@@ -532,16 +560,54 @@ async function sendUserAlert(
     pushCustomData?: Record<string, string>;
   },
 ): Promise<void> {
-  await pingramSend(apiKey, apiBase, buildSendBody(input));
-
-  const expoPayload = buildExpoPushPayload(input);
-  if (!expoPayload) return;
+  let inboxError: unknown;
 
   try {
-    await sendExpoPushToUser(supabase, expoPayload);
+    await insertUserNotification(supabase, {
+      userId: input.userId,
+      type: input.type,
+      title: input.title,
+      body: input.message,
+      deepLink: input.deepLink,
+      secondaryId: input.secondaryId,
+    });
   } catch (error) {
-    console.error(`[notify] expo push failed for ${input.userId}`, error);
+    inboxError = error;
+    console.error(
+      `[notify] user_notifications insert failed for ${input.userId} type=${input.type}`,
+      error,
+    );
   }
+
+  const expoPayload = buildExpoPushPayload(input);
+  if (expoPayload) {
+    try {
+      await sendExpoPushToUser(supabase, expoPayload);
+    } catch (error) {
+      console.error(`[notify] expo push failed for ${input.userId}`, error);
+    }
+  }
+
+  if (input.includeSms && input.smsMessage && input.phone) {
+    try {
+      await pingramSend(
+        apiKey,
+        apiBase,
+        buildSmsOnlyBody({
+          type: input.type,
+          userId: input.userId,
+          phone: input.phone,
+          smsMessage: input.smsMessage,
+          secondaryId: input.secondaryId,
+        }),
+      );
+    } catch (error) {
+      console.error(`[notify] pingram SMS failed for ${input.userId} type=${input.type}`, error);
+      throw error;
+    }
+  }
+
+  if (inboxError) throw inboxError;
 }
 
 async function claimIdempotency(
@@ -580,18 +646,18 @@ async function withIdempotentDispatch(
 
   try {
     await dispatch();
-    console.log(`[notify] ${label}: pingram sent (${key})`);
+    console.log(`[notify] ${label}: dispatched (${key})`);
     return 'sent';
   } catch (error) {
     try {
       await releaseIdempotency(supabase, key);
-      console.error(`[notify] ${label}: pingram failed, released idempotency (${key})`, error);
+      console.error(`[notify] ${label}: send failed, released idempotency (${key})`, error);
     } catch (releaseError) {
       console.error(
-        `[notify] ${label}: pingram failed and could not release idempotency (${key})`,
+        `[notify] ${label}: send failed and could not release idempotency (${key})`,
         releaseError,
       );
-      console.error(`[notify] ${label}: original pingram failure (${key})`, error);
+      console.error(`[notify] ${label}: original send failure (${key})`, error);
     }
     throw error;
   }
@@ -1188,6 +1254,10 @@ async function handleApplicationUpdate(
   const oldStatus = oldRecord?.status as string | undefined;
   const newStatus = record.status as string;
   if (!newStatus) return;
+
+  console.log(
+    `[notify] application UPDATE: ${oldStatus ?? 'unknown'} -> ${newStatus} (applicationId=${record.id as string})`,
+  );
 
   if (newStatus === 'interview_scheduled' && oldStatus === 'interview_scheduled') {
     await handleInterviewProposalChange(supabase, pingramKey, pingramBase, record, oldRecord);
@@ -1841,6 +1911,9 @@ async function pingramSendEmail(
     fromAddress: string;
   },
 ): Promise<void> {
+  if (!apiKey.trim()) {
+    throw new Error('PINGRAM_API_KEY not configured');
+  }
   const res = await fetch(`${apiBase.replace(/\/$/, '')}/email`, {
     method: 'POST',
     headers: {
@@ -2020,16 +2093,18 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Unauthorized' }, 401);
     }
 
-    const pingramKey = Deno.env.get('PINGRAM_API_KEY');
+    const pingramKey = Deno.env.get('PINGRAM_API_KEY') ?? '';
     const pingramBase = Deno.env.get('PINGRAM_API_URL') ?? DEFAULT_PINGRAM_API_URL;
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!pingramKey) {
-      return jsonResponse({ error: 'PINGRAM_API_KEY not configured' }, 500);
-    }
     if (!supabaseUrl || !serviceRoleKey) {
       return jsonResponse({ error: 'Supabase service configuration missing' }, 500);
+    }
+    if (!pingramKey) {
+      console.warn(
+        '[notify] PINGRAM_API_KEY not set — email/SMS channels disabled; in-app + Expo push still run',
+      );
     }
 
     const payload = (await req.json()) as WebhookPayload;

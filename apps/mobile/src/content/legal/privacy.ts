@@ -49,9 +49,9 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
         'We use trusted processors to operate Chairside. They process data on our behalf under contractual safeguards:',
       ],
       bullets: [
-        'Supabase — authentication, database, file storage, and server functions.',
+        'Supabase — authentication, database (including in-app notification history), file storage, and server functions.',
         'Mapbox — address search and map display.',
-        'Pingram — in-app notifications, optional SMS, and transactional email (including team invites and Support form delivery).',
+        'Pingram — optional SMS and transactional email (including team invites and Support form delivery).',
         'Expo — native push notification delivery on iOS and Android.',
         'RevenueCat — subscription entitlements and billing sync for clinic plans.',
         'Apple — Sign in with Apple, and App Store in-app purchases on iOS.',

@@ -443,6 +443,12 @@ export {
   type PushTokenPlatform,
   type UserPushToken,
 } from './pushTokens';
+export {
+  listUserNotifications,
+  markAllUserNotificationsRead,
+  markUserNotificationsRead,
+  type UserNotification,
+} from './userNotifications';
 export type { Database, Profile, UserRole } from './types';
 export {
   attachClinicCrmToApplications,
