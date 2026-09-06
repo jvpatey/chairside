@@ -26,6 +26,7 @@ const BRAND = {
   primaryEnd: '#3B8AE8',
   secondaryLight: '#5856D6',
   secondaryDark: '#9896FF',
+  tertiary: '#0F9F8A',
   textLight: '#1C1C1E',
   textDark: '#FFFFFF',
   bgLight: '#FFFFFF',
@@ -36,6 +37,36 @@ const BRAND = {
   labelSecondary: 'rgba(60, 72, 92, 0.76)',
   backgroundGrouped: '#F4F6FB',
 };
+
+/** Degrees of blue→purple blend at each C tip (longer = more purple). */
+const MARK_PURPLE_FALLOFF_DEG = 90;
+/** "chair" row width as a fraction of icon size (SeatGeek-style stacked wordmark). */
+const ICON_WORDMARK_WIDTH_RATIO = 0.72;
+/** Android adaptive icons are masked to a ~66% safe circle — keep the stack smaller. */
+const ANDROID_WORDMARK_WIDTH_RATIO = 0.5;
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+function lerpColor(aHex, bHex, t) {
+  const a = hexToRgb(aHex);
+  const b = hexToRgb(bHex);
+  const r = Math.round(a.r + (b.r - a.r) * t);
+  const g = Math.round(a.g + (b.g - a.g) * t);
+  const bl = Math.round(a.b + (b.b - a.b) * t);
+  return `rgb(${r}, ${g}, ${bl})`;
+}
+
+function smoothstep(t) {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+}
 
 function drawWordmark(
   ctx,
@@ -124,37 +155,44 @@ function createIcon({
 }
 
 function fillIconBackground(ctx, size, variant = 'light') {
-  if (variant === 'dark') {
-    ctx.fillStyle = BRAND.iconDark;
-    ctx.fillRect(0, 0, size, size);
-    return;
-  }
-
-  if (variant === 'tinted') {
+  if (variant === 'dark' || variant === 'tinted') {
     ctx.fillStyle = BRAND.bgDark;
     ctx.fillRect(0, 0, size, size);
     return;
   }
 
-  const gradient = ctx.createLinearGradient(0, 0, size, size);
-  gradient.addColorStop(0, BRAND.primaryEnd);
-  gradient.addColorStop(0.42, BRAND.primaryLight);
-  gradient.addColorStop(1, BRAND.primaryPressed);
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = BRAND.bgLight;
   ctx.fillRect(0, 0, size, size);
+}
 
-  const wash = ctx.createRadialGradient(
-    size * 0.22,
-    size * 0.16,
-    0,
-    size * 0.22,
-    size * 0.16,
-    size * 0.78,
-  );
-  wash.addColorStop(0, 'rgba(74, 154, 255, 0.42)');
-  wash.addColorStop(1, 'rgba(26, 111, 212, 0)');
-  ctx.fillStyle = wash;
-  ctx.fillRect(0, 0, size, size);
+/**
+ * Two-row stacked lowercase wordmark: "chair" over "side", centered.
+ * Each row is sized independently so both span the same width (justified stack).
+ */
+function drawStackedWordmark(ctx, size, { chairColor, sideColor, widthRatio }) {
+  const probe = 100;
+  const targetWidth = size * widthRatio;
+  ctx.font = `700 ${probe}px PlusJakartaSans`;
+  const chairFontSize = (targetWidth / ctx.measureText('chair').width) * probe;
+  const sideFontSize = (targetWidth / ctx.measureText('side').width) * probe;
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  // Neither row has descenders; ascenders ≈ 0.74em.
+  const ascentRatio = 0.74;
+  const rowGap = chairFontSize * 0.24;
+  const blockHeight = chairFontSize * ascentRatio + rowGap + sideFontSize * ascentRatio;
+  const row1Y = size / 2 - blockHeight / 2 + chairFontSize * ascentRatio;
+  const row2Y = row1Y + rowGap + sideFontSize * ascentRatio;
+
+  ctx.font = `700 ${chairFontSize}px PlusJakartaSans`;
+  ctx.fillStyle = chairColor;
+  ctx.fillText('chair', size / 2, row1Y);
+
+  ctx.font = `700 ${sideFontSize}px PlusJakartaSans`;
+  ctx.fillStyle = sideColor;
+  ctx.fillText('side', size / 2, row2Y);
 }
 
 function roundRectPath(ctx, x, y, w, h, radius) {
@@ -168,12 +206,24 @@ function roundRectPath(ctx, x, y, w, h, radius) {
   ctx.closePath();
 }
 
+/** Mark geometry — circle centered on canvas; caller may bbox-center + optically nudge. */
+function markGeometry(size) {
+  return {
+    cx: size / 2,
+    cy: size / 2,
+    r: size * 0.27,
+    lineWidth: size * 0.124,
+    startDeg: 50,
+    endDeg: 310,
+    sq: size * 0.112,
+    sqRadius: size * 0.024,
+    sqOffset: size * 0.27 * 0.58,
+  };
+}
+
 /** Rounded C + square tittle (matches Plus Jakarta i-dots; reads as “someone at the side”). */
 function drawChairsideMarkRaw(ctx, size, color) {
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = size * 0.27;
-  const lineWidth = size * 0.124;
+  const { cx, cy, r, lineWidth, startDeg, endDeg, sq, sqRadius, sqOffset } = markGeometry(size);
 
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
@@ -181,12 +231,63 @@ function drawChairsideMarkRaw(ctx, size, color) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  ctx.arc(cx, cy, r, (50 * Math.PI) / 180, (310 * Math.PI) / 180, false);
+  ctx.arc(cx, cy, r, (startDeg * Math.PI) / 180, (endDeg * Math.PI) / 180, false);
   ctx.stroke();
 
-  const sq = size * 0.112;
-  const sqRadius = size * 0.024;
-  const sqX = cx + r * 0.58 - sq / 2;
+  const sqX = cx + sqOffset - sq / 2;
+  const sqY = cy - sq / 2;
+  roundRectPath(ctx, sqX, sqY, sq, sq, sqRadius);
+  ctx.fill();
+}
+
+/** Brand-colored mark: blue C with purple tip fade + mint square. */
+function drawChairsideMarkBrand(ctx, size) {
+  const { cx, cy, r, lineWidth, startDeg, endDeg, sq, sqRadius, sqOffset } = markGeometry(size);
+  const step = 0.5;
+  const toRad = (deg) => (deg * Math.PI) / 180;
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = lineWidth;
+
+  // Full blue stroke first so tip fades can paint cleanly on top.
+  ctx.strokeStyle = BRAND.primaryLight;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, toRad(startDeg), toRad(endDeg), false);
+  ctx.stroke();
+
+  const paintTip = (tipDeg, towardDeg) => {
+    const dir = towardDeg >= tipDeg ? 1 : -1;
+    const span = Math.abs(towardDeg - tipDeg);
+    for (let d = 0; d < span; d += step) {
+      const a0 = tipDeg + dir * d;
+      const a1 = a0 + dir * step * 1.1;
+      // Bias toward purple so the fade reads further along the arms.
+      const t = Math.pow(smoothstep(1 - d / MARK_PURPLE_FALLOFF_DEG), 0.55);
+      if (t <= 0.001) continue;
+      const lo = Math.min(a0, a1);
+      const hi = Math.max(a0, a1);
+      ctx.strokeStyle = lerpColor(BRAND.primaryLight, BRAND.secondaryLight, t);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, toRad(lo), toRad(hi), false);
+      ctx.stroke();
+    }
+  };
+
+  // Tips → inward so purple terminals stay dominant.
+  paintTip(startDeg, startDeg + MARK_PURPLE_FALLOFF_DEG);
+  paintTip(endDeg, endDeg - MARK_PURPLE_FALLOFF_DEG);
+
+  // Re-cap both tips with solid purple so round terminals stay fully violet.
+  ctx.strokeStyle = BRAND.secondaryLight;
+  for (const tipDeg of [startDeg, endDeg]) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, toRad(tipDeg - 0.35), toRad(tipDeg + 0.35), false);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = BRAND.tertiary;
+  const sqX = cx + sqOffset - sq / 2;
   const sqY = cy - sq / 2;
   roundRectPath(ctx, sqX, sqY, sq, sq, sqRadius);
   ctx.fill();
@@ -218,10 +319,11 @@ function opaqueBounds(canvas, alphaMin = 24) {
   return { minX, minY, maxX, maxY };
 }
 
-function drawAppMark(ctx, { size, color }) {
+/** Draw fn output bbox-centered onto ctx (text blocks and marks center exactly). */
+function drawCentered(ctx, size, draw) {
   const scratch = createCanvas(size, size);
   const sctx = scratch.getContext('2d');
-  drawChairsideMarkRaw(sctx, size, color);
+  draw(sctx);
 
   const { minX, minY, maxX, maxY } = opaqueBounds(scratch);
   const dx = (size - (minX + maxX)) / 2;
@@ -229,31 +331,61 @@ function drawAppMark(ctx, { size, color }) {
   ctx.drawImage(scratch, dx, dy);
 }
 
+function appIconWordmarkColors(variant) {
+  if (variant === 'dark') {
+    return { chairColor: BRAND.textDark, sideColor: BRAND.primaryDark };
+  }
+  if (variant === 'tinted') {
+    // Grayscale two-tone — iOS applies the user's tint over it.
+    return { chairColor: '#FFFFFF', sideColor: '#B3B3B3' };
+  }
+  return { chairColor: BRAND.textLight, sideColor: BRAND.primaryLight };
+}
+
+/** App icon: stacked "chair"/"side" wordmark on solid background. */
 function createAppIcon(size, variant = 'light') {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
   fillIconBackground(ctx, size, variant);
-  drawAppMark(ctx, {
-    size,
-    color: BRAND.textDark,
-  });
+  const { chairColor, sideColor } = appIconWordmarkColors(variant);
+  drawCentered(ctx, size, (sctx) =>
+    drawStackedWordmark(sctx, size, {
+      chairColor,
+      sideColor,
+      widthRatio: ICON_WORDMARK_WIDTH_RATIO,
+    }),
+  );
+  return canvas;
+}
+
+/** C + square mark — used on the OG share card icon tile. */
+function createMarkIcon(size) {
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+  fillIconBackground(ctx, size, 'light');
+  drawCentered(ctx, size, (sctx) => drawChairsideMarkBrand(sctx, size));
   return canvas;
 }
 
 function createIconBackground(size, filename) {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
-  fillIconBackground(ctx, size);
+  fillIconBackground(ctx, size, 'light');
   writeCanvas(canvas, filename);
 }
 
-function createIconForeground(size) {
+function createIconForeground(size, { monochrome = false } = {}) {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
-  drawAppMark(ctx, {
-    size,
-    color: BRAND.textDark,
-  });
+  const colors = monochrome
+    ? { chairColor: BRAND.textDark, sideColor: BRAND.textDark }
+    : { chairColor: BRAND.textLight, sideColor: BRAND.primaryLight };
+  drawCentered(ctx, size, (sctx) =>
+    drawStackedWordmark(sctx, size, {
+      ...colors,
+      widthRatio: ANDROID_WORDMARK_WIDTH_RATIO,
+    }),
+  );
   return canvas;
 }
 
@@ -355,12 +487,12 @@ writeCanvas(createIconForeground(1024), 'android-icon-foreground.png');
 
 createIconBackground(1024, 'android-icon-background.png');
 
-writeCanvas(createIconForeground(1024), 'android-icon-monochrome.png');
+writeCanvas(createIconForeground(1024, { monochrome: true }), 'android-icon-monochrome.png');
 
 const faviconPath = writeCanvas(createAppIcon(48, 'light'), 'favicon.png');
 copyToPublic(faviconPath, 'favicon.png');
 
-const ogPath = writeCanvas(createOgShareCard(appIcon), 'og-share.png');
+const ogPath = writeCanvas(createOgShareCard(createAppIcon(1024, 'light')), 'og-share.png');
 copyToPublic(ogPath, 'og-share.png');
 
 console.log('Brand assets generated.');
