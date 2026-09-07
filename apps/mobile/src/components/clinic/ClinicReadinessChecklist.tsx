@@ -1,5 +1,5 @@
 import type { ClinicProfile } from '@chairside/api';
-import { isClinicProfileComplete, type ClinicProfileCompletenessLocation } from '@chairside/api';
+import { type ClinicProfileCompletenessLocation } from '@chairside/api';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
@@ -12,8 +12,10 @@ import {
   isClinicPostingStepComplete,
   type GetStartedChecklistItem,
 } from '@/lib/getStartedChecklist';
+import { isClinicMemberReadyToPost } from '@/lib/clinicManagerAccess';
 import {
   CLINIC_APPLICATIONS,
+  CLINIC_PROFILE_TEAM,
   CLINIC_SETUP_BASICS,
   getClinicMessagesRoute,
 } from '@/lib/routing';
@@ -21,6 +23,9 @@ import {
 type ClinicReadinessChecklistProps = {
   clinicProfile: ClinicProfile | null;
   locations?: ClinicProfileCompletenessLocation[];
+  isGroup?: boolean;
+  isOwner?: boolean;
+  assignedLocationIds?: string[];
   fillInsPosted: number;
   openRoles: number;
   totalApplications: number;
@@ -31,7 +36,10 @@ type ClinicReadinessChecklistProps = {
 
 export function ClinicReadinessChecklist({
   clinicProfile,
-  locations,
+  locations = [],
+  isGroup = false,
+  isOwner = true,
+  assignedLocationIds = [],
   fillInsPosted,
   openRoles,
   totalApplications,
@@ -41,7 +49,14 @@ export function ClinicReadinessChecklist({
 }: ClinicReadinessChecklistProps) {
   const { isHydrated, isDismissed, dismiss } = useDismissedGetStartedChecklist('clinic');
 
-  const profileComplete = isClinicProfileComplete(clinicProfile, { locations });
+  const profileComplete = isClinicMemberReadyToPost({
+    isGroup,
+    isOwner,
+    clinicProfile,
+    locations,
+    assignedLocationIds,
+  });
+  const managerNeedsAccess = isGroup && !isOwner && !profileComplete;
   const hasPosted = isClinicPostingStepComplete({ fillInsPosted, openRoles });
   const hasPostedFillIn = fillInsPosted > 0;
   const hasPostedRole = openRoles > 0;
@@ -67,13 +82,20 @@ export function ClinicReadinessChecklist({
     () => [
       {
         id: 'profile',
-        title: profileComplete ? 'Clinic profile complete' : 'Complete your clinic profile to post',
-        body: profileComplete
-          ? 'Your practice details are ready for workers.'
-          : 'Add your practice details so workers know who they are applying to.',
+        title: managerNeedsAccess
+          ? 'Waiting for clinic access'
+          : profileComplete
+            ? 'Clinic profile complete'
+            : 'Complete your clinic profile to post',
+        body: managerNeedsAccess
+          ? 'Ask your group owner to assign you a clinic in Team & access.'
+          : profileComplete
+            ? 'Your practice details are ready for workers.'
+            : 'Add your practice details so workers know who they are applying to.',
         complete: profileComplete,
         primary: !profileComplete,
-        onPress: () => router.push(CLINIC_SETUP_BASICS),
+        onPress: () =>
+          router.push(managerNeedsAccess ? CLINIC_PROFILE_TEAM : CLINIC_SETUP_BASICS),
       },
       {
         id: 'posting',
@@ -109,6 +131,7 @@ export function ClinicReadinessChecklist({
       hasPosted,
       hasPostedFillIn,
       hasPostedRole,
+      managerNeedsAccess,
       onPostFillIn,
       onPostRole,
       postingBody,

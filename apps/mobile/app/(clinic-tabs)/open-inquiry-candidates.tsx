@@ -25,13 +25,13 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  CLINIC_SETUP_BASICS,
   getClinicConversationRoute,
   getClinicMessagesRoute,
 } from '@/lib/routing';
 import { hasActiveListSearch, matchesOpenInquiryWorkerSearch } from '@/lib/clinicListSearch';
 import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
-import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { getManagerAccessBannerCopy, getManagerAccessBlockReason } from '@/lib/clinicManagerAccess';
+import { guardClinicMemberAccess } from '@/lib/clinicPostingGuard';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 const ACCENT: GradientAccent = 'primary';
@@ -49,7 +49,18 @@ const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
 export default function OpenInquiryCandidatesScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const {
+    clinicProfile,
+    isProfileComplete,
+    locations,
+    isGroup,
+    isOwner,
+    membership,
+  } = useClinicProfile();
+  const assignedLocationIds =
+    membership?.location_ids?.length
+      ? membership.location_ids
+      : locations.map((location) => location.id).filter(Boolean);
   const { billing, isBillingReady, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
     useClinicUpgradePrompt();
 
@@ -138,18 +149,37 @@ export default function OpenInquiryCandidatesScreen() {
     router.replace(getClinicMessagesRoute());
   };
 
-  const guardProfile = () => {
-    showConfirmActionSheet({
-      title: 'Complete your clinic profile',
-      message: 'Finish your clinic profile before messaging candidates.',
-      confirmLabel: 'Continue setup',
-      onConfirm: () => router.push(CLINIC_SETUP_BASICS),
+  const incompleteAccessCopy = (() => {
+    const managerReason = getManagerAccessBlockReason({
+      isGroup,
+      isOwner,
+      clinicProfile,
+      locations,
+      assignedLocationIds,
     });
-  };
+    if (managerReason || (isGroup && !isOwner)) {
+      return getManagerAccessBannerCopy(managerReason ?? 'no_clinic_assigned');
+    }
+    return {
+      title: 'Complete your profile',
+      message: 'Finish your clinic profile to browse candidates.',
+    };
+  })();
 
   const handleMessage = async (worker: OpenInquiryWorker) => {
-    if (!isProfileComplete) {
-      guardProfile();
+    if (
+      !guardClinicMemberAccess({
+        isProfileComplete,
+        clinicProfile,
+        locations,
+        isGroup,
+        isOwner,
+        assignedLocationIds,
+        ownerTitle: 'Complete your clinic profile',
+        ownerMessage: 'Finish your clinic profile before messaging candidates.',
+        onNavigate: (href) => router.push(href),
+      })
+    ) {
       return;
     }
 
@@ -230,8 +260,8 @@ export default function OpenInquiryCandidatesScreen() {
           {!isProfileComplete ? (
             <EmptyState
               icon="person-outline"
-              title="Complete your profile"
-              message="Finish your clinic profile to browse candidates."
+              title={incompleteAccessCopy.title}
+              message={incompleteAccessCopy.message}
               accent={ACCENT}
             />
           ) : isLocked ? null : isLoading ? (

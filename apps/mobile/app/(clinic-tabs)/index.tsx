@@ -688,7 +688,7 @@ export default function ClinicDashboardScreen() {
               applicantCounts={applicantCounts}
               shiftPendingCounts={shiftPendingCounts}
               shiftApplicationCounts={shiftApplicationCounts}
-              clinicId={user?.id}
+              clinicId={clinicId ?? undefined}
               fillInReturnTo="dashboard-fill-ins"
               onJobUpdated={handleJobUpdated}
               onJobDeleted={handleJobDeleted}
@@ -754,6 +754,9 @@ export default function ClinicDashboardScreen() {
             <ClinicReadinessChecklist
               clinicProfile={clinicProfile}
               locations={accessibleLocations}
+              isGroup={isGroup}
+              isOwner={isOwner}
+              assignedLocationIds={assignedLocationIds}
               fillInsPosted={counts.fillInsPosted}
               openRoles={counts.openRoles}
               totalApplications={counts.totalApplications}

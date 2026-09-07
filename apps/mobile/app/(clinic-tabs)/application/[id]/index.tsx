@@ -96,7 +96,7 @@ export default function ClinicApplicationDetailScreen() {
     try {
       const [row, unreadMap] = await Promise.all([
         getClinicApplication(clinicId, applicationId),
-        getUnreadConversationMap(user?.id ?? clinicId, 'clinic'),
+        getUnreadConversationMap(clinicId, 'clinic'),
       ]);
 
       if (!row) {

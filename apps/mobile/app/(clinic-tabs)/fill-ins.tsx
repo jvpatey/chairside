@@ -620,7 +620,7 @@ export default function ClinicFillInsScreen() {
                                 shift={shift}
                                 pendingRequestCount={pendingCounts[shift.id] ?? 0}
                                 applicationCount={applicationCounts[shift.id] ?? 0}
-                                clinicId={user?.id}
+                                clinicId={clinicId ?? undefined}
                                 returnTo="fill-ins-tab"
                                 expanded={expandedShiftId === shift.id}
                                 onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
@@ -713,7 +713,7 @@ export default function ClinicFillInsScreen() {
                               <FillInApplicantCard
                                 key={request.id}
                                 application={request}
-                                clinicId={user?.id ?? ''}
+                                clinicId={clinicId ?? ''}
                                 returnTo="fill-ins-tab"
                                 hasUnreadMessages={Boolean(unreadMap[request.id])}
                                 onUpdated={() => void load()}
@@ -773,7 +773,7 @@ export default function ClinicFillInsScreen() {
                           {filteredConfirmedRows.map((row) => (
                             <ConfirmedFillInCard
                               key={row.applicationId}
-                              clinicId={user?.id ?? ''}
+                              clinicId={clinicId ?? ''}
                               workerName={row.workerName}
                               workerPhotoStoragePath={row.workerPhotoStoragePath}
                               shiftDate={row.shiftDate}

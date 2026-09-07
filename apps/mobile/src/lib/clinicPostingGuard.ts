@@ -10,13 +10,20 @@ import { getClinicPostingSetupHref } from '@/lib/clinicPostingSetupRouting';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { CLINIC_PROFILE_TEAM } from '@/lib/routing';
 
-type GuardClinicPostingInput = {
+type GuardClinicMemberAccessInput = {
   isProfileComplete: boolean;
   clinicProfile: ClinicProfile | null;
   locations: ClinicProfileCompletenessLocation[];
   isGroup: boolean;
   isOwner?: boolean;
   assignedLocationIds?: string[];
+  /** Owner-facing incomplete-profile copy. Managers never see this. */
+  ownerTitle?: string;
+  ownerMessage?: string;
+  onNavigate: (href: Href) => void;
+};
+
+type GuardClinicPostingInput = Omit<GuardClinicMemberAccessInput, 'onNavigate' | 'ownerTitle' | 'ownerMessage'> & {
   onAllowed: (target: Href) => void;
   target: Href;
 };
@@ -36,23 +43,25 @@ function showPostingBlockedAlert(
   });
 }
 
-export function guardClinicPosting({
+/**
+ * Shared incomplete-access sheet for posting, outreach, and open inquiries.
+ * Group managers never get the owner "Continue setup" path.
+ */
+export function guardClinicMemberAccess({
   isProfileComplete,
   clinicProfile,
   locations,
   isGroup,
   isOwner,
   assignedLocationIds = [],
-  onAllowed,
-  target,
-}: GuardClinicPostingInput): void {
+  ownerTitle = 'Complete your clinic profile',
+  ownerMessage = 'Finish your clinic profile to continue.',
+  onNavigate,
+}: GuardClinicMemberAccessInput): boolean {
+  if (isProfileComplete) return true;
+
   // Group managers must never fall through to the owner "Continue setup" sheet.
   const treatAsOwner = isGroup ? isOwner === true : true;
-
-  if (isProfileComplete) {
-    onAllowed(target);
-    return;
-  }
 
   const managerReason = getManagerAccessBlockReason({
     isGroup,
@@ -69,23 +78,42 @@ export function guardClinicPosting({
       copy.message,
       'View Team & access',
       CLINIC_PROFILE_TEAM,
-      onAllowed,
+      onNavigate,
     );
-    return;
+    return false;
   }
 
   const missing = getMissingClinicProfileFields(clinicProfile, { locations });
   const message =
     missing.length > 0
-      ? `Add the following before posting: ${missing.join(', ')}`
-      : 'Finish your clinic profile to start posting.';
+      ? `Add the following before continuing: ${missing.join(', ')}`
+      : ownerMessage;
   const setupHref = getClinicPostingSetupHref(missing, isGroup);
 
-  showPostingBlockedAlert(
-    'Complete your clinic profile',
-    message,
-    'Continue setup',
-    setupHref,
-    onAllowed,
-  );
+  showPostingBlockedAlert(ownerTitle, message, 'Continue setup', setupHref, onNavigate);
+  return false;
+}
+
+export function guardClinicPosting({
+  isProfileComplete,
+  clinicProfile,
+  locations,
+  isGroup,
+  isOwner,
+  assignedLocationIds = [],
+  onAllowed,
+  target,
+}: GuardClinicPostingInput): void {
+  const allowed = guardClinicMemberAccess({
+    isProfileComplete,
+    clinicProfile,
+    locations,
+    isGroup,
+    isOwner,
+    assignedLocationIds,
+    ownerTitle: 'Complete your clinic profile',
+    ownerMessage: 'Finish your clinic profile to start posting.',
+    onNavigate: onAllowed,
+  });
+  if (allowed) onAllowed(target);
 }

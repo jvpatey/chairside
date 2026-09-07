@@ -27,7 +27,6 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  CLINIC_SETUP_BASICS,
   getClinicBulkOutreachComposeRoute,
   getClinicConversationRoute,
   getClinicOutreachComposeRoute,
@@ -39,7 +38,8 @@ import {
   isClinicBillingFeatureLocked,
   isClinicBillingFeatureUnlocked,
 } from '@/lib/clinicPlanPresentation';
-import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { getManagerAccessBannerCopy, getManagerAccessBlockReason } from '@/lib/clinicManagerAccess';
+import { guardClinicMemberAccess } from '@/lib/clinicPostingGuard';
 import { useThemedStyles, type GradientAccent } from '@/theme';
 
 const FILL_IN_ACCENT: GradientAccent = 'secondary';
@@ -56,7 +56,18 @@ const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
 
 export default function FindAvailableWorkersScreen() {
   const { user } = useAuth();
-  const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const {
+    clinicProfile,
+    isProfileComplete,
+    locations,
+    isGroup,
+    isOwner,
+    membership,
+  } = useClinicProfile();
+  const assignedLocationIds =
+    membership?.location_ids?.length
+      ? membership.location_ids
+      : locations.map((location) => location.id).filter(Boolean);
   const { billing, isBillingReady, upgradePrompt, showOutreachUpgrade, showBulkOutreachUpgrade } =
     useClinicUpgradePrompt();
   const { returnTo } = useLocalSearchParams<{ returnTo?: FillInReturnTarget }>();
@@ -194,18 +205,37 @@ export default function FindAvailableWorkersScreen() {
     navigateAfterFillInSave(router, resolvedReturnTo);
   };
 
-  const guardProfile = () => {
-    showConfirmActionSheet({
-      title: 'Complete your clinic profile',
-      message: 'Finish your clinic profile before messaging available workers.',
-      confirmLabel: 'Continue setup',
-      onConfirm: () => router.push(CLINIC_SETUP_BASICS),
+  const incompleteAccessCopy = (() => {
+    const managerReason = getManagerAccessBlockReason({
+      isGroup,
+      isOwner,
+      clinicProfile,
+      locations,
+      assignedLocationIds,
     });
-  };
+    if (managerReason || (isGroup && !isOwner)) {
+      return getManagerAccessBannerCopy(managerReason ?? 'no_clinic_assigned');
+    }
+    return {
+      title: 'Complete your profile',
+      message: 'Finish your clinic profile to browse available workers.',
+    };
+  })();
 
   const handleMessage = (worker: FillInOutreachWorker) => {
-    if (!isProfileComplete) {
-      guardProfile();
+    if (
+      !guardClinicMemberAccess({
+        isProfileComplete,
+        clinicProfile,
+        locations,
+        isGroup,
+        isOwner,
+        assignedLocationIds,
+        ownerTitle: 'Complete your clinic profile',
+        ownerMessage: 'Finish your clinic profile before messaging available workers.',
+        onNavigate: (href) => router.push(href),
+      })
+    ) {
       return;
     }
 
@@ -378,8 +408,8 @@ export default function FindAvailableWorkersScreen() {
         {!isProfileComplete ? (
           <EmptyState
             icon="person-outline"
-            title="Complete your profile"
-            message="Finish your clinic profile to browse available workers."
+            title={incompleteAccessCopy.title}
+            message={incompleteAccessCopy.message}
             accent={FILL_IN_ACCENT}
           />
         ) : isOutreachLocked ? null : isLoading ? (

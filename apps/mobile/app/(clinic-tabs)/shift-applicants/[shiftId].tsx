@@ -66,7 +66,7 @@ export default function ClinicShiftApplicationsScreen() {
       const [shift, rows, unread] = await Promise.all([
         getShiftPost(clinicId, resolvedShiftId),
         listClinicApplicationsForShift(clinicId, resolvedShiftId),
-        getUnreadConversationMap(user.id, 'clinic'),
+        getUnreadConversationMap(clinicId, 'clinic'),
       ]);
       setPostTitle(shift ? formatFillInPostTitle(shift.shift_date) : 'Fill-in applicants');
       setApplications(rows);
@@ -140,7 +140,7 @@ export default function ClinicShiftApplicationsScreen() {
                     <FillInApplicantCard
                       key={application.id}
                       application={application}
-                      clinicId={user?.id ?? ''}
+                      clinicId={clinicId ?? ''}
                       returnTo={resolvedReturnTo}
                       hasUnreadMessages={Boolean(unreadMap[application.id])}
                       onUpdated={() => void load()}
