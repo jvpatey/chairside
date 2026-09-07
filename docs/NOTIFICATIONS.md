@@ -143,6 +143,7 @@ eas build --profile production --platform ios
 | ----- | --------- | ------------ | -------- | ------------------ |
 | Application submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app + Expo push | `applications_interviews` |
 | Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app + Expo push | `applications_interviews` |
+| Clinic requests full application kit | Worker | `application_kit_requested` | in-app + Expo push | `applications_interviews` |
 | Interview offered / scheduled / cancelled / reschedule | Worker, or clinic (applicant-driven events): same location-aware clinic fan-out as applications | matching `application_interview_*` | in-app + Expo push | `applications_interviews` |
 | Fill-in post → live | Eligible workers | `fill_in_posted` | in-app + Expo push; + SMS if opted in | `fill_in_alerts` |
 | Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app + Expo push; + SMS if opted in | `fill_in_alerts` |
@@ -171,6 +172,7 @@ Edge dispatch dedupes via `notification_dispatch_log.idempotency_key`. Common pa
 - `fill_in_outreach_sms:{messageId}` (SMS-only outreach text alert)
 - `fill_in_posted:{shiftId}:{workerId}:{updatedAt}`
 - `application_{status}:{applicationId}:{status}` (worker status updates)
+- `application_kit_requested:{applicationId}:kit_requested` (clinic requested full application)
 - `application_received:{applicationId}:{recipientUserId}` (clinic new applicant / cover request)
 - `application_interview_*:{applicationId}:{recipientUserId}` (clinic-side interview alerts)
 - `clinic_manager_invitation:{invitationId}` (manager invite email)

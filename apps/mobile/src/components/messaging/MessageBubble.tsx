@@ -82,10 +82,16 @@ export function MessageBubble({
       marginTop: groupedWithPrevious ? 3 : spacing.sm,
     },
     column: {
+      // Cap bubble width against the full-width row. On web, a definite `width`
+      // (not only maxWidth) is required so Text wraps instead of overflowing
+      // and getting clipped by overflow:hidden ancestors.
       maxWidth: '78%',
+      flexShrink: 1,
       alignItems: isOwn ? 'flex-end' : 'flex-start',
+      ...(isWeb ? { width: '78%' as const } : null),
     },
     bubble: {
+      maxWidth: '100%',
       paddingHorizontal: spacing.md,
       paddingTop: groupedWithPrevious ? 6 : spacing.sm,
       paddingBottom: groupedWithNext ? 6 : spacing.sm,
@@ -107,6 +113,13 @@ export function MessageBubble({
       ...typography.body,
       color: isOwn ? colors.primaryOnPrimary : colors.labelPrimary,
       fontStyle: isRemoved ? 'italic' : 'normal',
+      ...(isWeb
+        ? ({
+            // Ensure long tokens wrap inside the capped bubble on RN Web.
+            wordBreak: 'break-word',
+            overflowWrap: 'anywhere',
+          } as const)
+        : null),
     },
     bodyHighlight: {
       fontWeight: '700',
@@ -137,6 +150,7 @@ export function MessageBubble({
       alignItems: 'flex-start',
       gap: 4,
       maxWidth: '100%',
+      flexShrink: 1,
     },
     bubbleWrapOwn: {
       flexDirection: 'row-reverse',

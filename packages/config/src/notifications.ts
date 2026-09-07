@@ -7,6 +7,7 @@ export const PINGRAM_NOTIFICATION_TYPES = {
   applicationReceived: 'application_received',
   applicationReviewed: 'application_reviewed',
   applicationInProgress: 'application_in_progress',
+  applicationKitRequested: 'application_kit_requested',
   applicationInterviewOffered: 'application_interview_offered',
   applicationInterviewScheduled: 'application_interview_scheduled',
   applicationInterviewAccepted: 'application_interview_accepted',

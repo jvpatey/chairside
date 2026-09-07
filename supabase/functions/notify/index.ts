@@ -30,6 +30,7 @@ const PINGRAM_TYPES = {
   applicationReceived: 'application_received',
   applicationReviewed: 'application_reviewed',
   applicationInProgress: 'application_in_progress',
+  applicationKitRequested: 'application_kit_requested',
   applicationInterviewOffered: 'application_interview_offered',
   applicationInterviewScheduled: 'application_interview_scheduled',
   applicationInterviewAccepted: 'application_interview_accepted',
@@ -926,6 +927,11 @@ async function sendWorkerStatusNotification(
       title: 'Shift confirmed',
       message: 'A clinic has confirmed you for this fill-in shift.',
     },
+    kit_requested: {
+      pingramType: PINGRAM_TYPES.applicationKitRequested,
+      title: 'Full application requested',
+      message: 'A clinic asked you to complete your full application for this role.',
+    },
   };
   const template = typeMap[status];
   if (!template) return;
@@ -1234,6 +1240,18 @@ async function handleApplicationUpdate(
   console.log(
     `[notify] application UPDATE: ${oldStatus ?? 'unknown'} -> ${newStatus} (applicationId=${record.id as string})`,
   );
+
+  const oldKitRequested = oldRecord?.application_kit_requested_at as string | null | undefined;
+  const newKitRequested = record.application_kit_requested_at as string | null | undefined;
+  if (!oldKitRequested && newKitRequested) {
+    await sendWorkerStatusNotification(
+      supabase,
+      pingramKey,
+      pingramBase,
+      record,
+      'kit_requested',
+    );
+  }
 
   if (newStatus === 'interview_scheduled' && oldStatus === 'interview_scheduled') {
     await handleInterviewProposalChange(supabase, pingramKey, pingramBase, record, oldRecord);
