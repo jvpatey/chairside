@@ -41,11 +41,14 @@ export function guardClinicPosting({
   clinicProfile,
   locations,
   isGroup,
-  isOwner = true,
+  isOwner,
   assignedLocationIds = [],
   onAllowed,
   target,
 }: GuardClinicPostingInput): void {
+  // Group managers must never fall through to the owner "Continue setup" sheet.
+  const treatAsOwner = isGroup ? isOwner === true : true;
+
   if (isProfileComplete) {
     onAllowed(target);
     return;
@@ -53,30 +56,21 @@ export function guardClinicPosting({
 
   const managerReason = getManagerAccessBlockReason({
     isGroup,
-    isOwner,
+    isOwner: treatAsOwner,
     clinicProfile,
     locations,
     assignedLocationIds,
   });
 
-  if (managerReason) {
-    const copy = getManagerAccessBannerCopy(managerReason);
-    if (managerReason === 'no_clinic_assigned') {
-      showPostingBlockedAlert(
-        copy.title,
-        copy.message,
-        'View Team & access',
-        CLINIC_PROFILE_TEAM,
-        onAllowed,
-      );
-      return;
-    }
-    showConfirmActionSheet({
-      title: copy.title,
-      message: copy.message,
-      confirmLabel: 'Got it',
-      onConfirm: () => undefined,
-    });
+  if (managerReason || (isGroup && !treatAsOwner)) {
+    const copy = getManagerAccessBannerCopy(managerReason ?? 'no_clinic_assigned');
+    showPostingBlockedAlert(
+      copy.title,
+      copy.message,
+      'View Team & access',
+      CLINIC_PROFILE_TEAM,
+      onAllowed,
+    );
     return;
   }
 

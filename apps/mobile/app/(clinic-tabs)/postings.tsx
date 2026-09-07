@@ -191,7 +191,10 @@ export default function ClinicPostingsScreen() {
       locations,
       isGroup,
       isOwner,
-      assignedLocationIds: membership?.location_ids ?? [],
+      assignedLocationIds:
+        membership?.location_ids?.length
+          ? membership.location_ids
+          : locations.map((location) => location.id).filter(Boolean),
       target,
       onAllowed: (href) => router.push(href),
     });

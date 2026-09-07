@@ -222,42 +222,51 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
     return scopedLocationIdsKey.split(',');
   }, [scopedLocationIdsKey]);
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const isGroup = Boolean(workspace?.isGroup ?? clinicProfile?.account_type === 'group');
+    const membershipRole = workspace?.membership?.role;
+    // Never default group members to owner — that sends managers down the owner setup path.
+    const isOwner = isGroup ? membershipRole === 'owner' : true;
+    const locations = workspace?.locations ?? [];
+    const assignedLocationIds =
+      workspace?.membership?.location_ids?.length
+        ? workspace.membership.location_ids
+        : locations.map((location) => location.id).filter(Boolean);
+
+    return {
       clinicProfile,
       organization: workspace?.organization ?? null,
       membership: workspace?.membership ?? null,
-      locations: workspace?.locations ?? [],
+      locations,
       accessibleLocations,
       workspace,
       organizationId: workspace?.organization.id ?? clinicProfile?.organization_id ?? clinicProfile?.id ?? null,
       clinicId: workspace?.organization.id ?? clinicProfile?.id ?? null,
-      isOwner: workspace?.isOwner ?? true,
-      isGroup: workspace?.isGroup ?? clinicProfile?.account_type === 'group',
+      isOwner,
+      isGroup,
       locationScope,
       setLocationScope,
       scopedLocationIds,
       isClinicProfileReady,
       isProfileComplete: isClinicMemberReadyToPost({
-        isGroup: workspace?.isGroup ?? clinicProfile?.account_type === 'group',
-        isOwner: workspace?.isOwner ?? true,
+        isGroup,
+        isOwner,
         clinicProfile,
-        locations: workspace?.locations ?? [],
-        assignedLocationIds: workspace?.membership?.location_ids ?? [],
+        locations,
+        assignedLocationIds,
       }),
       refreshClinicProfile,
-    }),
-    [
-      accessibleLocations,
-      clinicProfile,
-      isClinicProfileReady,
-      locationScope,
-      refreshClinicProfile,
-      scopedLocationIds,
-      setLocationScope,
-      workspace,
-    ],
-  );
+    };
+  }, [
+    accessibleLocations,
+    clinicProfile,
+    isClinicProfileReady,
+    locationScope,
+    refreshClinicProfile,
+    scopedLocationIds,
+    setLocationScope,
+    workspace,
+  ]);
 
   return (
     <ClinicProfileContext.Provider value={value}>{children}</ClinicProfileContext.Provider>

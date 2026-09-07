@@ -300,6 +300,11 @@ export default function ClinicDashboardScreen() {
     }
   }, [overview]);
 
+  const assignedLocationIds =
+    membership?.location_ids?.length
+      ? membership.location_ids
+      : locations.map((location) => location.id).filter(Boolean);
+
   const guardPosting = (target: Href) => {
     guardClinicPosting({
       isProfileComplete,
@@ -307,7 +312,7 @@ export default function ClinicDashboardScreen() {
       locations,
       isGroup,
       isOwner,
-      assignedLocationIds: membership?.location_ids ?? [],
+      assignedLocationIds,
       target,
       onAllowed: (href) => router.push(href),
     });
@@ -319,7 +324,7 @@ export default function ClinicDashboardScreen() {
     isOwner,
     clinicProfile,
     locations,
-    assignedLocationIds: membership?.location_ids ?? [],
+    assignedLocationIds,
   });
   const managerAccessCopy = managerAccessReason
     ? getManagerAccessBannerCopy(managerAccessReason)

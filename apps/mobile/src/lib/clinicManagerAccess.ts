@@ -1,7 +1,7 @@
 import type { ClinicProfile, ClinicProfileCompletenessLocation } from '@chairside/api';
 import { isClinicProfileComplete } from '@chairside/api';
 
-export type ManagerAccessBlockReason = 'no_clinic_assigned' | 'owner_setup_incomplete';
+export type ManagerAccessBlockReason = 'no_clinic_assigned';
 
 type ManagerAccessInput = {
   isGroup: boolean;
@@ -13,29 +13,23 @@ type ManagerAccessInput = {
   assignedLocationIds: string[];
 };
 
-function isOwnerSetupComplete(
-  clinicProfile: ClinicProfile | null,
-  locations: ClinicProfileCompletenessLocation[],
-): boolean {
-  if (!clinicProfile) return false;
-  if (clinicProfile.setup_completed_at) return true;
-  return isClinicProfileComplete(clinicProfile, { locations });
+function managerHasClinicAccess(input: ManagerAccessInput): boolean {
+  if (input.assignedLocationIds.length > 0) return true;
+  return input.locations.some((location) => location.is_active !== false);
 }
 
 /**
- * Managers are ready when they have ≥1 assigned clinic and the org is set up.
- * Uses setup_completed_at so a finished owner org is not blocked by field quirks
- * on the manager's filtered location list.
+ * Managers are ready once they have clinic access from their invite.
+ * Location address/software is an owner concern — not a manager posting gate.
  */
 export function isClinicMemberReadyToPost(input: ManagerAccessInput): boolean {
-  const { isGroup, isOwner, clinicProfile, locations, assignedLocationIds } = input;
+  const { isGroup, isOwner, clinicProfile, locations } = input;
 
   if (!isGroup || isOwner) {
     return isClinicProfileComplete(clinicProfile, { locations });
   }
 
-  if (assignedLocationIds.length === 0) return false;
-  return isOwnerSetupComplete(clinicProfile, locations);
+  return managerHasClinicAccess(input);
 }
 
 export function getManagerAccessBlockReason(
@@ -43,8 +37,7 @@ export function getManagerAccessBlockReason(
 ): ManagerAccessBlockReason | null {
   if (!input.isGroup || input.isOwner) return null;
   if (isClinicMemberReadyToPost(input)) return null;
-  if (input.assignedLocationIds.length === 0) return 'no_clinic_assigned';
-  return 'owner_setup_incomplete';
+  return 'no_clinic_assigned';
 }
 
 export function getManagerAccessBannerCopy(reason: ManagerAccessBlockReason): {
@@ -59,9 +52,9 @@ export function getManagerAccessBannerCopy(reason: ManagerAccessBlockReason): {
     };
   }
   return {
-    title: 'Setup in progress',
+    title: 'Waiting for clinic access',
     message:
-      'Your group owner still needs to finish clinic setup. You will be able to post once that is done.',
+      'Ask your group owner to assign you a clinic in Team & access. Then you can post roles and fill-ins.',
   };
 }
 
