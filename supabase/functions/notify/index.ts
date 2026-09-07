@@ -1415,6 +1415,28 @@ async function listFillInRecipients(
   });
 }
 
+/** Paid plans only: starter / pro / group_starter / group_pro (via clinic_can_use_feature). */
+async function clinicCanSendFillInSms(
+  supabase: ReturnType<typeof createClient>,
+  clinicId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('clinic_can_use_feature', {
+    p_clinic_id: clinicId,
+    p_feature: 'fill_in_sms',
+  });
+
+  if (error) {
+    console.error(
+      `[notify] clinic_can_use_feature(fill_in_sms) failed (clinicId=${clinicId})`,
+      error,
+    );
+    // Fail closed: never bill SMS when plan resolution is unknown.
+    return false;
+  }
+
+  return data === true;
+}
+
 async function handleShiftPostLive(
   supabase: ReturnType<typeof createClient>,
   pingramKey: string,
@@ -1457,11 +1479,14 @@ async function handleShiftPostLive(
     clinicId,
   );
 
-  const smsEligibleCount = recipients.filter(
-    (w) => w.fill_in_sms_opt_in === true && normalizeE164(w.phone as string | null),
-  ).length;
+  const clinicSmsAllowed = await clinicCanSendFillInSms(supabase, clinicId);
+  const smsEligibleCount = clinicSmsAllowed
+    ? recipients.filter(
+        (w) => w.fill_in_sms_opt_in === true && normalizeE164(w.phone as string | null),
+      ).length
+    : 0;
   console.log(
-    `[notify] fill_in_posted: shift=${shiftId} role=${roleType} recipients=${recipients.length} smsEligible=${smsEligibleCount}`,
+    `[notify] fill_in_posted: shift=${shiftId} role=${roleType} recipients=${recipients.length} clinicSmsAllowed=${clinicSmsAllowed} smsEligible=${smsEligibleCount}`,
   );
 
   const pushPreferences = await loadPushPreferenceMap(
@@ -1477,7 +1502,7 @@ async function handleShiftPostLive(
     const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}:${updatedAt}`;
 
     const deepLink = 'chairside:///(tabs)/fillins';
-    const smsOptIn = worker.fill_in_sms_opt_in === true;
+    const smsOptIn = clinicSmsAllowed && worker.fill_in_sms_opt_in === true;
     const e164 = smsOptIn ? normalizeE164(worker.phone as string | null) : null;
     if (smsOptIn && !e164) {
       console.warn(

@@ -12,6 +12,7 @@ import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWo
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import {
+  getClinicBulkOutreachUpgradeMessage,
   getClinicOutreachUpgradeMessage,
 } from '@/components/billing/ClinicUpgradePrompt';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -74,6 +75,7 @@ export default function FindAvailableWorkersScreen() {
     section: { gap: spacing.sm },
     label: { ...typography.body, fontWeight: '600' },
     list: { gap: spacing.sm },
+    listHeader: { gap: spacing.xs },
     lockedLabel: {
       ...typography.body,
       fontSize: 13,
@@ -86,6 +88,12 @@ export default function FindAvailableWorkersScreen() {
       fontSize: 13,
       lineHeight: 18,
       color: colors.labelSecondary,
+    },
+    selectionToolbar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
     },
     footer: {
       gap: spacing.sm,
@@ -285,7 +293,10 @@ export default function FindAvailableWorkersScreen() {
 
   const countLabel = useMemo(() => {
     const base = `${filteredWorkers.length} worker${filteredWorkers.length === 1 ? '' : 's'} available`;
-    if (!bulkSelectionEnabled || selectedWorkerIds.length === 0) return base;
+    if (!bulkSelectionEnabled) return base;
+    if (selectedWorkerIds.length === 0) {
+      return `${base} · Select multiple (up to ${FILL_IN_BULK_OUTREACH_MAX})`;
+    }
     return `${base} · ${selectedWorkerIds.length} selected (${FILL_IN_BULK_OUTREACH_MAX} max)`;
   }, [bulkSelectionEnabled, filteredWorkers.length, selectedWorkerIds.length]);
 
@@ -294,34 +305,12 @@ export default function FindAvailableWorkersScreen() {
     filteredWorkers.some((worker) => !selectedWorkerIds.includes(worker.workerId)) &&
     selectedWorkerIds.length < FILL_IN_BULK_OUTREACH_MAX;
 
+  const showBulkUpgradeCallout =
+    isProfileComplete && !isOutreachLocked && isBillingReady && !canUseBulkOutreach;
+
   const stickyFooter =
     bulkSelectionEnabled && selectedWorkerIds.length > 0 ? (
       <View style={styles.footer}>
-        <View style={styles.footerActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Select all visible workers"
-            disabled={!canSelectMoreVisible}
-            onPress={handleSelectAllVisible}
-            style={({ pressed }) => [
-              pressed && canSelectMoreVisible && styles.footerLinkPressed,
-            ]}>
-            <Text
-              style={[
-                styles.footerLink,
-                !canSelectMoreVisible && styles.footerLinkDisabled,
-              ]}>
-              Select all
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Clear selection"
-            onPress={handleClearSelection}
-            style={({ pressed }) => [pressed && styles.footerLinkPressed]}>
-            <Text style={styles.footerLink}>Clear</Text>
-          </Pressable>
-        </View>
         <OnboardingButton
           label={`Message ${selectedWorkerIds.length} selected`}
           accent={FILL_IN_ACCENT}
@@ -335,7 +324,11 @@ export default function FindAvailableWorkersScreen() {
       {upgradePrompt}
       <FormScreen
         title="Find available workers"
-        subtitle="Browse candidates who opted into fill-in outreach and message them directly. Phone numbers stay private."
+        subtitle={
+          bulkSelectionEnabled
+            ? 'Browse candidates who opted into fill-in outreach. Select multiple to message them together, or open one conversation. Phone numbers stay private.'
+            : 'Browse candidates who opted into fill-in outreach and message them directly. Phone numbers stay private.'
+        }
         accent={FILL_IN_ACCENT}
         onBack={handleBack}
         footer={stickyFooter}
@@ -345,6 +338,15 @@ export default function FindAvailableWorkersScreen() {
             title="Upgrade to message workers"
             message={getClinicOutreachUpgradeMessage(billing?.planFamily ?? 'clinic')}
             accent={FILL_IN_ACCENT}
+          />
+        ) : null}
+
+        {showBulkUpgradeCallout ? (
+          <PlanUpgradeCallout
+            title="Message several workers at once"
+            message={getClinicBulkOutreachUpgradeMessage(billing?.planFamily ?? 'clinic')}
+            accent={FILL_IN_ACCENT}
+            onUpgrade={showBulkOutreachUpgrade}
           />
         ) : null}
 
@@ -402,8 +404,58 @@ export default function FindAvailableWorkersScreen() {
           />
         ) : (
           <>
-            <Text style={styles.count}>{countLabel}</Text>
-            {selectionHint ? <Text style={styles.selectionHint}>{selectionHint}</Text> : null}
+            <View style={styles.listHeader}>
+              <Text style={styles.count}>{countLabel}</Text>
+              {bulkSelectionEnabled ? (
+                <>
+                  <Text style={styles.selectionHint}>
+                    Tap a checkbox to select workers, then message them together. Use the
+                    chevron to message one person.
+                  </Text>
+                  {selectionHint ? (
+                    <Text style={styles.selectionHint}>{selectionHint}</Text>
+                  ) : null}
+                  <View style={styles.selectionToolbar}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Select all visible workers"
+                      disabled={!canSelectMoreVisible}
+                      onPress={handleSelectAllVisible}
+                      style={({ pressed }) => [
+                        pressed && canSelectMoreVisible && styles.footerLinkPressed,
+                      ]}>
+                      <Text
+                        style={[
+                          styles.footerLink,
+                          !canSelectMoreVisible && styles.footerLinkDisabled,
+                        ]}>
+                        Select all
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear selection"
+                      disabled={selectedWorkerIds.length === 0}
+                      onPress={handleClearSelection}
+                      style={({ pressed }) => [
+                        pressed &&
+                          selectedWorkerIds.length > 0 &&
+                          styles.footerLinkPressed,
+                      ]}>
+                      <Text
+                        style={[
+                          styles.footerLink,
+                          selectedWorkerIds.length === 0 && styles.footerLinkDisabled,
+                        ]}>
+                        Clear
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
+              ) : selectionHint ? (
+                <Text style={styles.selectionHint}>{selectionHint}</Text>
+              ) : null}
+            </View>
             <View style={styles.list}>
               <StaggeredList>
                 {filteredWorkers.map((worker) => (

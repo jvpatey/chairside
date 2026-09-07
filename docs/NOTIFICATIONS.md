@@ -27,7 +27,7 @@ Pingram is **not** used for in-app or mobile push.
    - [`121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) — Expo push tokens
    - [`123_user_notifications.sql`](../supabase/migrations/123_user_notifications.sql) — in-app inbox
 
-Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). The worker must have `fill_in_sms_opt_in=true`, a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift.
+Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). The posting clinic must be on a paid plan (`starter`, `pro`, `group_starter`, or `group_pro` — `clinic_can_use_feature(..., 'fill_in_sms')`). The worker must have `fill_in_sms_opt_in=true`, a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift. Free clinics still get in-app + push alerts; SMS is skipped.
 
 Other event type ids (`application_received`, `message_received`, etc.) remain in `packages/config/src/notifications.ts` as Chairside type ids for the Supabase inbox + Expo push payloads. They do **not** need Pingram templates.
 
@@ -145,8 +145,8 @@ eas build --profile production --platform ios
 | Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app + Expo push | `applications_interviews` |
 | Clinic requests full application kit | Worker | `application_kit_requested` | in-app + Expo push | `applications_interviews` |
 | Interview offered / scheduled / cancelled / reschedule | Worker, or clinic (applicant-driven events): same location-aware clinic fan-out as applications | matching `application_interview_*` | in-app + Expo push | `applications_interviews` |
-| Fill-in post → live | Eligible workers | `fill_in_posted` | in-app + Expo push; + SMS if opted in | `fill_in_alerts` |
-| Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app + Expo push; + SMS if opted in | `fill_in_alerts` |
+| Fill-in post → live | Eligible workers | `fill_in_posted` | in-app + Expo push; + SMS if clinic has `fill_in_sms` and worker opted in | `fill_in_alerts` |
+| Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app + Expo push; + SMS if clinic has `fill_in_sms` and worker opted in | `fill_in_alerts` |
 | Job post → live | Eligible workers | `job_posted` | in-app + Expo push | `job_alerts` |
 | New message | Worker ↔ clinic: clinic recipients are **owner + managers for the application post’s location** (general/outreach / null location → owner + all managers); each user’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app + Expo push | `messages` |
 | Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/Expo push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
