@@ -19,7 +19,7 @@ import {
   getAccountSubtitle,
   getClinicAboutSubtitle,
   getClinicBillingSubtitle,
-  getClinicGroupDetailsSubtitle,
+  getClinicGroupProfileSubtitle,
   getClinicLocationsSubtitle,
   getClinicMemberProfileSubtitle,
   getClinicMessagingSubtitle,
@@ -137,19 +137,21 @@ export default function ClinicAccountProfileScreen() {
           {groupsEnabled && isGroup && isOwner ? (
             <ProfileSettingsRow
               icon="business-outline"
-              title="Group details"
-              subtitle={getClinicGroupDetailsSubtitle(clinicProfile)}
+              title="Group profile"
+              subtitle={getClinicGroupProfileSubtitle(clinicProfile, {
+                doctorCount: clinicProfile?.practice_doctors?.length ?? 0,
+              })}
               iconColor={colors.primary}
               iconBackgroundColor={colors.primarySubtle}
               onPress={() => router.push(CLINIC_PROFILE_GROUP)}
             />
           ) : null}
-          {!isGroup || isOwner ? (
+          {!isGroup ? (
             <ProfileSettingsRow
               icon="document-text-outline"
               title="About"
               subtitle={getClinicAboutSubtitle(clinicProfile, {
-                isGroup,
+                isGroup: false,
                 doctorCount: clinicProfile?.practice_doctors?.length ?? 0,
               })}
               iconColor={colors.secondary}

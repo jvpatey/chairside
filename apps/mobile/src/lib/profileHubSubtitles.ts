@@ -112,6 +112,29 @@ export function getClinicGroupDetailsSubtitle(profile: ClinicProfile | null): st
   return 'Add group name and phone';
 }
 
+/** Combined group identity + about subtitle for the Group profile settings row. */
+export function getClinicGroupProfileSubtitle(
+  profile: ClinicProfile | null,
+  options?: { doctorCount?: number },
+): string {
+  const name = profile?.clinic_name?.trim();
+  const hasDescription = Boolean(profile?.description?.trim());
+  const hasWebsite = Boolean(profile?.website?.trim());
+  const doctorCount = options?.doctorCount ?? profile?.practice_doctors?.length ?? 0;
+
+  if (!name) return 'Add group name, story, and doctors';
+
+  const extras: string[] = [];
+  if (hasDescription) extras.push('description');
+  if (hasWebsite) extras.push('website');
+  if (doctorCount > 0) {
+    extras.push(`${doctorCount} doctor${doctorCount === 1 ? '' : 's'}`);
+  }
+
+  if (extras.length === 0) return `${name} · Add story and doctors`;
+  return `${name} · ${extras.join(', ')}`;
+}
+
 export function getClinicLocationsSubtitle(input: {
   locations: Array<ClinicProfileCompletenessLocation & { name?: string | null }>;
   isOwner: boolean;

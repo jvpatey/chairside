@@ -9,7 +9,7 @@ import {
 import { SPECIALTY_OPTIONS } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import {
   AddressAutocomplete,
@@ -38,6 +38,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { formatPhoneNumber } from '@/lib/phone';
 import { CLINIC_SETUP_PRACTICE, CLINIC_SETUP_TEAM } from '@/lib/routing';
 import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
@@ -297,33 +298,28 @@ export default function ClinicLocationsSetupScreen() {
     }
   };
 
-  const handleDelete = async (location: ClinicLocation) => {
+  const handleDelete = (location: ClinicLocation) => {
     if (activeLocations.length <= 1) {
       setSubmitError('Keep at least one location to continue.');
       return;
     }
 
-    const title = 'Delete location?';
-    const message = `${location.name} will stop accepting new posts. Existing posts stay in history.`;
-    const confirmed =
-      Platform.OS === 'web'
-        ? typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)
-        : await new Promise<boolean>((resolve) => {
-            Alert.alert(title, message, [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
-            ]);
-          });
-    if (!confirmed) return;
-
-    try {
-      await deactivateClinicLocation(location.id);
-      if (editingId === location.id) resetForm();
-      await reload();
-      await refreshClinicProfile();
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Could not delete location.');
-    }
+    showConfirmActionSheet({
+      title: 'Delete location?',
+      message: `${location.name} will stop accepting new posts. Existing posts stay in history.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deactivateClinicLocation(location.id);
+          if (editingId === location.id) resetForm();
+          await reload();
+          await refreshClinicProfile();
+        } catch (error) {
+          setSubmitError(error instanceof Error ? error.message : 'Could not delete location.');
+        }
+      },
+    });
   };
 
   const handleContinue = () => {

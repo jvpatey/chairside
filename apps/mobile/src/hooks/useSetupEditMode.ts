@@ -6,6 +6,7 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import {
   CLINIC_PROFILE,
   CLINIC_PROFILE_ABOUT,
+  CLINIC_PROFILE_GROUP,
   CLINIC_PROFILE_PRACTICE,
   getApplyRoute,
   WORKER_PROFILE,
@@ -21,7 +22,8 @@ export type SetupReturnTarget =
   | 'worker-apply'
   | 'clinic-profile'
   | 'clinic-practice'
-  | 'clinic-about';
+  | 'clinic-about'
+  | 'clinic-group';
 
 const SETUP_RETURN_ROUTES: Record<Exclude<SetupReturnTarget, 'worker-apply'>, Href> = {
   'worker-profile': WORKER_PROFILE,
@@ -30,6 +32,7 @@ const SETUP_RETURN_ROUTES: Record<Exclude<SetupReturnTarget, 'worker-apply'>, Hr
   'clinic-profile': CLINIC_PROFILE,
   'clinic-practice': CLINIC_PROFILE_PRACTICE,
   'clinic-about': CLINIC_PROFILE_ABOUT,
+  'clinic-group': CLINIC_PROFILE_GROUP,
 };
 
 const SETUP_RETURN_TARGETS = new Set<string>([

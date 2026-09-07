@@ -151,8 +151,10 @@ export function SummaryStat({
 export function SectionPanel({
   icon,
   iconAccent,
+  leading,
   title,
   subtitle,
+  subtitleNumberOfLines,
   headerAccessory,
   children,
   collapsible = false,
@@ -162,8 +164,10 @@ export function SectionPanel({
   ProfileSettingsCardProps,
   | 'icon'
   | 'iconAccent'
+  | 'leading'
   | 'title'
   | 'subtitle'
+  | 'subtitleNumberOfLines'
   | 'headerAccessory'
   | 'collapsible'
   | 'defaultExpanded'
@@ -179,8 +183,10 @@ export function SectionPanel({
     <ProfileSettingsCard
       title={title}
       subtitle={subtitle}
+      subtitleNumberOfLines={subtitleNumberOfLines}
       icon={icon}
       iconAccent={iconAccent}
+      leading={leading}
       headerAccessory={headerAccessory}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
