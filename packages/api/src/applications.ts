@@ -18,6 +18,7 @@ import {
   isClinicNewFillInRequest,
   isWorkerApplicationUpdateHighlighted,
   isWorkerApplicationUpdateUnseen,
+  isWorkerJobApplicationUpdateCountable,
 } from './applicationNotificationPredicates';
 
 export {
@@ -32,6 +33,7 @@ export {
   isClinicNewFillInRequest,
   isWorkerApplicationUpdateHighlighted,
   isWorkerApplicationUpdateUnseen,
+  isWorkerJobApplicationUpdateCountable,
 };
 import {
   evaluateScreeningSubmission,
@@ -952,7 +954,9 @@ export function isWorkerFillInApplicationUpdateCountable(
 /** Count job applications with clinic-side updates the worker has not opened since. */
 export async function getWorkerApplicationUpdateCount(workerId: string): Promise<number> {
   const applications = await listWorkerJobApplications(workerId, 'active');
-  return applications.filter((application) => isWorkerApplicationUpdateUnseen(application)).length;
+  return applications.filter((application) =>
+    isWorkerJobApplicationUpdateCountable(application),
+  ).length;
 }
 
 /** Count fill-in applications with clinic-side updates the worker has not opened since. */

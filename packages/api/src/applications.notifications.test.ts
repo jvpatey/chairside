@@ -11,6 +11,7 @@ import {
   isClinicNewFillInRequest,
   isWorkerApplicationUpdateHighlighted,
   isWorkerApplicationUpdateUnseen,
+  isWorkerJobApplicationUpdateCountable,
 } from './applicationNotificationPredicates';
 
 const baseCreatedAt = '2026-01-01T12:00:00.000Z';
@@ -18,6 +19,50 @@ const baseCreatedAt = '2026-01-01T12:00:00.000Z';
 function attentionAt(offsetMs: number): string {
   return new Date(new Date(baseCreatedAt).getTime() + offsetMs).toISOString();
 }
+
+describe('isWorkerJobApplicationUpdateCountable', () => {
+  it('counts unseen updates on live pipeline applications', () => {
+    expect(
+      isWorkerJobApplicationUpdateCountable({
+        post_type: 'job',
+        status: 'in_progress',
+        post_status: 'live',
+        created_at: baseCreatedAt,
+        worker_hidden_at: null,
+        worker_attention_at: attentionAt(20_000),
+        worker_last_seen_at: attentionAt(10_000),
+      }),
+    ).toBe(true);
+  });
+
+  it('does not count applications once the role is filled', () => {
+    expect(
+      isWorkerJobApplicationUpdateCountable({
+        post_type: 'job',
+        status: 'applied',
+        post_status: 'filled',
+        created_at: baseCreatedAt,
+        worker_hidden_at: null,
+        worker_attention_at: attentionAt(20_000),
+        worker_last_seen_at: null,
+      }),
+    ).toBe(false);
+  });
+
+  it('does not count terminal declined applications', () => {
+    expect(
+      isWorkerJobApplicationUpdateCountable({
+        post_type: 'job',
+        status: 'rejected',
+        post_status: 'live',
+        created_at: baseCreatedAt,
+        worker_hidden_at: null,
+        worker_attention_at: attentionAt(20_000),
+        worker_last_seen_at: null,
+      }),
+    ).toBe(false);
+  });
+});
 
 describe('hasWorkerApplicationClinicUpdate', () => {
   it('ignores initial apply within grace window', () => {

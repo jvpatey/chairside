@@ -82,6 +82,7 @@ import {
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
+  isClinicBillingFeatureLocked,
   isFillInPostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
@@ -475,7 +476,7 @@ export default function ClinicFillInsScreen() {
             <ClinicDiscoverBrowseLink
               title="Fill-ins from other clinics"
               onPress={() => {
-                if (billing != null && !billing.canUseClinicDiscover) {
+                if (isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseClinicDiscover')) {
                   showDiscoverUpgrade();
                   return;
                 }

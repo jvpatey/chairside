@@ -23,6 +23,10 @@ import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { todayISO } from '@/lib/dates';
+import {
+  isClinicBillingFeatureLocked,
+  isClinicBillingFeatureUnlocked,
+} from '@/lib/clinicPlanPresentation';
 import { getClinicConversationRoute, navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import { formatShiftPostDateLabel } from '@/lib/shiftPostDisplay';
@@ -31,8 +35,14 @@ import { useThemedStyles } from '@/theme';
 
 export default function OutreachComposeScreen() {
   const { user } = useAuth();
-  const { billing, upgradePrompt, showSmsUpgrade, showBulkOutreachUpgrade, handleBillingError } =
-    useClinicUpgradePrompt();
+  const {
+    billing,
+    isBillingReady,
+    upgradePrompt,
+    showSmsUpgrade,
+    showBulkOutreachUpgrade,
+    handleBillingError,
+  } = useClinicUpgradePrompt();
   const params = useLocalSearchParams<{
     workerId?: string;
     workerName?: string;
@@ -71,7 +81,10 @@ export default function OutreachComposeScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
 
-  const canOfferSms = !isBulk && workerSmsOptIn && (billing?.canUseFillInSms ?? false);
+  const canOfferSms =
+    !isBulk &&
+    workerSmsOptIn &&
+    isClinicBillingFeatureUnlocked(billing, isBillingReady, 'canUseFillInSms');
   const resolvedReturnTo = params.returnTo ?? 'fill-ins-tab';
   const composeTitle = isBulk
     ? `Message ${bulkWorkerIds.length} workers`
@@ -172,7 +185,7 @@ export default function OutreachComposeScreen() {
       return;
     }
 
-    if (isBulk && !billing?.canUseBulkOutreach) {
+    if (isBulk && isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseBulkOutreach')) {
       showBulkOutreachUpgrade();
       return;
     }
@@ -195,7 +208,7 @@ export default function OutreachComposeScreen() {
       outreachRoleType = roleType;
     }
 
-    if (sendSms && !billing?.canUseFillInSms) {
+    if (sendSms && isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseFillInSms')) {
       showSmsUpgrade();
       return;
     }
@@ -321,7 +334,8 @@ export default function OutreachComposeScreen() {
           </View>
         ) : null}
 
-        {workerSmsOptIn && billing && !billing.canUseFillInSms ? (
+        {workerSmsOptIn &&
+        isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseFillInSms') ? (
           <PlanUpgradeCallout
             compact
             title="SMS alerts need Starter or Pro"

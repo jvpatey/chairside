@@ -1,4 +1,8 @@
-/** Pingram notification type IDs — configure matching templates in the Pingram dashboard. */
+/**
+ * Chairside notification type IDs — used for in-app inbox rows + Expo push payloads.
+ * Pingram templates are only required for SMS/email types (`fill_in_posted`,
+ * `fill_in_outreach_sms`, `clinic_manager_invitation`, `support_contact`).
+ */
 export const PINGRAM_NOTIFICATION_TYPES = {
   applicationReceived: 'application_received',
   applicationReviewed: 'application_reviewed',

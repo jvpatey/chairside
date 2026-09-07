@@ -1,4 +1,4 @@
-import type { ClinicPlan, ClinicPlanFamily } from '@chairside/config';
+import type { ClinicBillingFeature, ClinicPlan, ClinicPlanFamily } from '@chairside/config';
 import { isPaidClinicPlan } from '@chairside/config';
 import { getSupabaseClient } from './client';
 import {
@@ -222,6 +222,18 @@ export function isAlreadySubscribedPurchaseError(error: unknown): boolean {
     message.includes('cannot purchase product') ||
     message.includes("can't subscribe to this product again")
   );
+}
+
+export async function assertClinicCanUseFeature(
+  clinicId: string,
+  feature: ClinicBillingFeature,
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc('assert_clinic_can_use_feature', {
+    p_clinic_id: clinicId,
+    p_feature: feature,
+  });
+  if (error) throwWithMessage(error, 'This feature requires a paid clinic plan.');
 }
 
 export async function getClinicBillingState(

@@ -220,6 +220,18 @@ export type UserPushTokenRow = {
   updated_at: string;
 };
 
+export type UserNotificationRow = {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  deep_link: string | null;
+  secondary_id: string;
+  seen_at: string | null;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -587,6 +599,22 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['user_push_tokens']['Insert']>;
         Relationships: [];
       };
+      user_notifications: {
+        Row: UserNotificationRow;
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body?: string | null;
+          deep_link?: string | null;
+          secondary_id: string;
+          seen_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_notifications']['Insert']>;
+        Relationships: [];
+      };
       clinic_subscriptions: {
         Row: {
           clinic_id: string;
@@ -932,6 +960,26 @@ export type Database = {
           longitude: number | null;
           logo_storage_path: string | null;
         } | null;
+      };
+      assert_clinic_can_use_feature: {
+        Args: { p_clinic_id: string; p_feature: string };
+        Returns: undefined;
+      };
+      list_clinic_discover_job_posts: {
+        Args: { p_province: string };
+        Returns: JobPostRow[];
+      };
+      list_clinic_discover_shift_posts: {
+        Args: { p_province: string };
+        Returns: ShiftPostRow[];
+      };
+      get_clinic_discover_job_post: {
+        Args: { p_job_id: string };
+        Returns: JobPostRow | null;
+      };
+      get_clinic_discover_shift_post: {
+        Args: { p_shift_id: string };
+        Returns: ShiftPostRow | null;
       };
     };
     Enums: Record<string, never>;

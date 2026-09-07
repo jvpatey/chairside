@@ -1,12 +1,13 @@
 import {
-  establishSessionAfterSignUp,
+  completeEmailSignUp,
   getAuthErrorMessage,
   getProfile,
   getSupabaseClient,
+  resendSignupConfirmation,
   setProfileRole,
   signInWithApple,
   signInWithGoogle,
-  signUpWithEmail,
+  SIGNUP_CONFIRMATION_REQUIRED_MESSAGE,
 } from '@chairside/api';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -58,6 +59,8 @@ export default function SignUpScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [confirmationRequired, setConfirmationRequired] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const passwordEvaluation = evaluatePassword(password, { email });
   const confirmHasInput = confirmPassword.length > 0;
@@ -216,28 +219,31 @@ export default function SignUpScreen() {
     setIsSubmitting(true);
     setFormError(null);
     setFormSuccess(null);
+    setConfirmationRequired(false);
     try {
-      const signUpData = await signUpWithEmail(email, password, role);
-      const session = await establishSessionAfterSignUp(email, password, signUpData);
-      const user = signUpData.user ?? session?.user ?? null;
+      const { session, confirmationRequired: needsConfirmation } = await completeEmailSignUp(
+        email,
+        password,
+        role,
+      );
 
-      if (session && user) {
-        const profile = await getProfile(user.id);
+      if (session?.user) {
+        const userId = session.user.id;
+        const profile = await getProfile(userId);
         if (!profile?.role) {
-          await setProfileRole(user.id, role);
+          await setProfileRole(userId, role);
         }
-        await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
+        await handleAuthSuccess(refreshProfile, completeOnboarding, userId);
         return;
       }
 
-      if (user) {
+      if (needsConfirmation) {
         await savePendingSignupRole(role);
-        const message = 'We sent a confirmation link. Open it to finish setting up your account.';
-        setFormSuccess(message);
+        setConfirmationRequired(true);
+        setFormSuccess(SIGNUP_CONFIRMATION_REQUIRED_MESSAGE);
         if (Platform.OS !== 'web') {
-          Alert.alert('Confirm your email', message);
+          Alert.alert('Confirm your email', SIGNUP_CONFIRMATION_REQUIRED_MESSAGE);
         }
-        return;
       }
     } catch (error) {
       const message = getAuthErrorMessage(error);
@@ -251,6 +257,25 @@ export default function SignUpScreen() {
     }
   };
 
+  const handleResendConfirmation = async () => {
+    if (isResending || isSubmitting || !email.trim()) return;
+    setIsResending(true);
+    setFormError(null);
+    try {
+      await resendSignupConfirmation(email);
+      setFormSuccess(SIGNUP_CONFIRMATION_REQUIRED_MESSAGE);
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      setFormSuccess(null);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not resend email', message);
+      }
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   if (!role) {
     return <Redirect href="/(onboarding)/role" />;
   }
@@ -261,11 +286,19 @@ export default function SignUpScreen() {
       footer={
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
-            <OnboardingButton
-              label={isSubmitting ? 'Creating account…' : 'Create account'}
-              disabled={isSubmitting || !canSubmit}
-              onPress={handleCreateAccount}
-            />
+            {confirmationRequired ? (
+              <OnboardingButton
+                label={isResending ? 'Sending…' : 'Resend confirmation email'}
+                disabled={isResending || isSubmitting || !email.trim()}
+                onPress={handleResendConfirmation}
+              />
+            ) : (
+              <OnboardingButton
+                label={isSubmitting ? 'Creating account…' : 'Create account'}
+                disabled={isSubmitting || !canSubmit}
+                onPress={handleCreateAccount}
+              />
+            )}
           </Animated.View>
           <View style={styles.switchRow}>
             <Text style={styles.switchMuted}>Already have an account?</Text>
@@ -290,68 +323,86 @@ export default function SignUpScreen() {
         </View>
       }
     >
-      <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
-        <AuthScreenHeader
-          title={pendingInviteToken ? 'Create your clinic account' : 'Create your account'}
-          subtitle={
-            pendingInviteToken
-              ? 'Use the email your invitation was sent to, then you’ll join the group.'
-              : 'A few details to get you into Chairside.'
-          }
-          onBack={() => router.back()}
-        />
-      </Animated.View>
-      <Animated.View entering={enterFadeUp(AUTH_STAGGER.social, reducedMotion)}>
-        <SocialAuthButtons
-          disabled={isSubmitting}
-          onApplePress={() => runSocialSignIn(signInWithApple)}
-          onGooglePress={() => runSocialSignIn(signInWithGoogle)}
-        />
-      </Animated.View>
-      <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
-        <FormErrorBanner message={formError} />
-        <FormSuccessBanner message={formSuccess} />
-        <AuthField
-          label="Email"
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          editable={!isSubmitting}
-        />
-        <AuthField
-          label="Password"
-          placeholder={getPasswordPlaceholder()}
-          secureTextEntry
-          enablePasswordVisibilityToggle
-          value={password}
-          onChangeText={setPassword}
-          editable={!isSubmitting}
-          validated={passwordEvaluation.isValid}
-        />
-        <PasswordRequirements password={password} email={email} evaluation={passwordEvaluation} />
-        <AuthField
-          label="Confirm password"
-          placeholder="Confirm your password"
-          secureTextEntry
-          enablePasswordVisibilityToggle
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          editable={!isSubmitting}
-          validated={canSubmit}
-          invalid={confirmHasInput && !passwordsDoMatch}
-        />
-        {confirmHasInput ? (
-          <Text
-            style={[
-              styles.matchHint,
-              passwordsDoMatch ? styles.matchHintSuccess : styles.matchHintError,
-            ]}
-          >
-            {passwordsDoMatch ? 'Passwords match' : 'Passwords do not match'}
-          </Text>
-        ) : null}
-      </Animated.View>
+      {confirmationRequired ? (
+        <>
+          <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
+            <AuthScreenHeader
+              title="Check your email"
+              subtitle={`We sent a confirmation link to ${email.trim()}. Open it to finish setting up your account.`}
+              onBack={() => setConfirmationRequired(false)}
+            />
+          </Animated.View>
+          <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
+            <FormErrorBanner message={formError} />
+            <FormSuccessBanner message={formSuccess} />
+          </Animated.View>
+        </>
+      ) : (
+        <>
+          <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
+            <AuthScreenHeader
+              title={pendingInviteToken ? 'Create your clinic account' : 'Create your account'}
+              subtitle={
+                pendingInviteToken
+                  ? 'Use the email your invitation was sent to, then you’ll join the group.'
+                  : 'A few details to get you into Chairside.'
+              }
+              onBack={() => router.back()}
+            />
+          </Animated.View>
+          <Animated.View entering={enterFadeUp(AUTH_STAGGER.social, reducedMotion)}>
+            <SocialAuthButtons
+              disabled={isSubmitting}
+              onApplePress={() => runSocialSignIn(signInWithApple)}
+              onGooglePress={() => runSocialSignIn(signInWithGoogle)}
+            />
+          </Animated.View>
+          <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
+            <FormErrorBanner message={formError} />
+            <FormSuccessBanner message={formSuccess} />
+            <AuthField
+              label="Email"
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              editable={!isSubmitting && !isResending}
+            />
+            <AuthField
+              label="Password"
+              placeholder={getPasswordPlaceholder()}
+              secureTextEntry
+              enablePasswordVisibilityToggle
+              value={password}
+              onChangeText={setPassword}
+              editable={!isSubmitting && !isResending}
+              validated={passwordEvaluation.isValid}
+            />
+            <PasswordRequirements password={password} email={email} evaluation={passwordEvaluation} />
+            <AuthField
+              label="Confirm password"
+              placeholder="Confirm your password"
+              secureTextEntry
+              enablePasswordVisibilityToggle
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              editable={!isSubmitting && !isResending}
+              validated={canSubmit}
+              invalid={confirmHasInput && !passwordsDoMatch}
+            />
+            {confirmHasInput ? (
+              <Text
+                style={[
+                  styles.matchHint,
+                  passwordsDoMatch ? styles.matchHintSuccess : styles.matchHintError,
+                ]}
+              >
+                {passwordsDoMatch ? 'Passwords match' : 'Passwords do not match'}
+              </Text>
+            ) : null}
+          </Animated.View>
+        </>
+      )}
     </OnboardingShell>
   );
 }

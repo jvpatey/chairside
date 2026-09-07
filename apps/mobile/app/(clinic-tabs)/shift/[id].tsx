@@ -8,7 +8,6 @@ import { ShiftPostManageMenu } from '@/components/clinic/ShiftPostManageMenu';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
@@ -19,8 +18,7 @@ import { useThemedStyles, type GradientAccent } from '@/theme';
 const FILL_IN_ACCENT: GradientAccent = 'secondary';
 
 export default function ShiftDetailScreen() {
-  const { user } = useAuth();
-  const { locations, clinicProfile, isGroup } = useClinicProfile();
+  const { clinicId, locations, clinicProfile, isGroup } = useClinicProfile();
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: FillInReturnTarget }>();
   const shiftId = typeof id === 'string' ? id : '';
   const resolvedReturnTo = (typeof returnTo === 'string' ? returnTo : 'fill-ins-tab') as FillInReturnTarget;
@@ -53,7 +51,7 @@ export default function ShiftDetailScreen() {
     applicationCount === 1 ? 'Review applicant' : `Review ${applicationCount} applicants`;
 
   const loadShift = useCallback(async () => {
-    if (!shiftId || !user?.id) {
+    if (!shiftId || !clinicId) {
       setShift(null);
       setIsLoading(false);
       return;
@@ -62,8 +60,8 @@ export default function ShiftDetailScreen() {
     setIsLoading(true);
     try {
       const [nextShift, count] = await Promise.all([
-        getShiftPost(user.id, shiftId),
-        getShiftPostApplicationCount(user.id, shiftId),
+        getShiftPost(clinicId, shiftId),
+        getShiftPostApplicationCount(clinicId, shiftId),
       ]);
       if (!nextShift) {
         Alert.alert('Fill-in not found', 'This shift may have been removed.');
@@ -81,7 +79,7 @@ export default function ShiftDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [handleBack, shiftId, user?.id]);
+  }, [clinicId, handleBack, shiftId]);
 
   useRefreshOnFocus(loadShift);
 
@@ -131,11 +129,11 @@ export default function ShiftDetailScreen() {
                 router.push(getEditShiftRoute(shift.id, returnTo ?? 'fill-ins-tab'))
               }
             />
-            {user?.id ? (
+            {clinicId ? (
               <ShiftPostManageMenu
                 trigger={applicationCount > 0 ? 'icon' : 'button'}
                 style={applicationCount > 0 ? undefined : styles.footerRowButton}
-                clinicId={user.id}
+                clinicId={clinicId}
                 shift={shift}
                 onUpdated={setShift}
                 onDeleted={() => navigateAfterFillInSave(router, resolvedReturnTo)}

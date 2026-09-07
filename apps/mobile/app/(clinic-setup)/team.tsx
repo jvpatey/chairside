@@ -22,6 +22,7 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
 import { buildClinicManagerInviteUrl, formatInviteExpiry } from '@/lib/clinicInviteLinks';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import { CLINIC_SETUP_ABOUT } from '@/lib/routing';
@@ -33,11 +34,16 @@ export default function ClinicTeamSetupScreen() {
   const { clinicId, isGroup } = useClinicProfile();
   const {
     billing,
+    isBillingReady,
     upgradePrompt,
     showAddManagerUpgrade,
     handleBillingError,
   } = useClinicUpgradePrompt();
-  const canAddManager = billing == null || billing.canAddManager;
+  const canAddManager = isClinicBillingFeatureUnlocked(
+    billing,
+    isBillingReady,
+    'canAddManager',
+  );
   const { colors } = useTheme();
   const progress = useSetupStepProgress('team', { role: 'clinic', isGroupOverride: true });
   const setupFormProps = useSetupFormScreenProps('clinic');

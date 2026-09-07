@@ -11,9 +11,36 @@ import {
   getClinicPostingLimitTitle,
   getSubscriptionFacts,
   getSubscriptionManagementHistoryHint,
+  isClinicBillingFeatureLocked,
+  isClinicBillingFeatureUnlocked,
   isFillInPostingLimitReached,
   isRolePostingLimitReached,
 } from './clinicPlanPresentation';
+
+const starterFlags = {
+  canUseFillInOutreach: true,
+  canUseFillInSms: true,
+  hasPriorityListing: false,
+  canUseScreeningQuestions: true,
+  canUseCrmFollowups: true,
+  canUseApplicationPdfExport: true,
+  canUseClinicDiscover: true,
+  canUseGeneralCandidateMessaging: false,
+  canUseBulkOutreach: false,
+  canUseHiringInsights: false,
+  canAddLocation: false,
+  canAddManager: false,
+} as const;
+
+const groupProFlags = {
+  ...starterFlags,
+  hasPriorityListing: true,
+  canUseGeneralCandidateMessaging: true,
+  canUseBulkOutreach: true,
+  canUseHiringInsights: true,
+  canAddLocation: true,
+  canAddManager: true,
+} as const;
 
 describe('clinicPlanPresentation posting limits', () => {
   it('detects role and fill-in posting limits', () => {
@@ -24,6 +51,24 @@ describe('clinicPlanPresentation posting limits', () => {
     expect(isFillInPostingLimitReached({ canPublishFillIn: false })).toBe(true);
     expect(isFillInPostingLimitReached({ canPublishFillIn: true })).toBe(false);
     expect(isFillInPostingLimitReached(undefined)).toBe(false);
+  });
+
+  it('fails closed until billing is ready', () => {
+    expect(isClinicBillingFeatureUnlocked(null, false, 'canUseClinicDiscover')).toBe(false);
+    expect(isClinicBillingFeatureUnlocked(starterFlags, false, 'canUseClinicDiscover')).toBe(
+      false,
+    );
+    expect(isClinicBillingFeatureLocked(null, true, 'canUseClinicDiscover')).toBe(true);
+    expect(isClinicBillingFeatureUnlocked(starterFlags, true, 'canUseClinicDiscover')).toBe(true);
+    expect(
+      isClinicBillingFeatureUnlocked(starterFlags, true, 'canUseGeneralCandidateMessaging'),
+    ).toBe(false);
+    expect(
+      isClinicBillingFeatureUnlocked(groupProFlags, true, 'canUseGeneralCandidateMessaging'),
+    ).toBe(true);
+    expect(isClinicBillingFeatureUnlocked(groupProFlags, true, 'canUseHiringInsights')).toBe(true);
+    expect(isClinicBillingFeatureUnlocked(starterFlags, true, 'canAddLocation')).toBe(false);
+    expect(isClinicBillingFeatureUnlocked(groupProFlags, true, 'canAddManager')).toBe(true);
   });
 
   it('formats limit titles', () => {

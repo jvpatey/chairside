@@ -1,5 +1,10 @@
-import { NotificationAPIClientSDK } from '@notificationapi/core';
-import type { InAppNotification } from '@notificationapi/core/dist/interfaces';
+import {
+  getSupabaseClient,
+  listUserNotifications,
+  markAllUserNotificationsRead,
+  markUserNotificationsRead,
+  type UserNotification,
+} from '@chairside/api';
 import { router } from 'expo-router';
 import {
   createContext,
@@ -15,19 +20,24 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
-import {
-  getPingramApiHost,
-  getPingramClientId,
-  getPingramWsHost,
-  resolveNotificationDeepLink,
-} from '@/lib/pingram';
-import { fetchInAppNotifications } from '@/lib/pingramInApp';
-import { navigateToNotificationDeepLink } from '@/lib/notificationRouting';
+import { navigateToNotificationDeepLink, resolveNotificationDeepLink } from '@/lib/notificationRouting';
+
+/** App-facing in-app notification shape (Supabase-backed; not Pingram). */
+export type InAppNotification = {
+  id: string;
+  title: string;
+  body: string | null;
+  seen: boolean;
+  date: string;
+  notificationId: string;
+  redirectURL: string | null;
+};
 
 type NotificationContextValue = {
   notifications: InAppNotification[];
   unreadCount: number;
   isReady: boolean;
+  loadError: string | null;
   refreshNotifications: () => Promise<void>;
   markAllRead: () => Promise<void>;
   markRead: (ids: string[]) => Promise<void>;
@@ -35,6 +45,18 @@ type NotificationContextValue = {
 };
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
+
+function toInAppNotification(row: UserNotification): InAppNotification {
+  return {
+    id: row.id,
+    title: row.title,
+    body: row.body,
+    seen: Boolean(row.seen_at),
+    date: row.created_at,
+    notificationId: row.type,
+    redirectURL: row.deep_link,
+  };
+}
 
 function sortNotifications(items: InAppNotification[]): InAppNotification[] {
   return [...items].sort((a, b) => {
@@ -44,38 +66,39 @@ function sortNotifications(items: InAppNotification[]): InAppNotification[] {
   });
 }
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === 'object' && error && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+  return 'Could not load notifications.';
+}
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, session, isAuthReady } = useAuth();
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [isReady, setIsReady] = useState(false);
-  const clientRef = useRef<ReturnType<typeof NotificationAPIClientSDK.init> | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  userIdRef.current = user?.id ?? null;
 
   const refreshNotifications = useCallback(async () => {
-    const client = clientRef.current;
-    if (!client) return;
+    const userId = userIdRef.current;
+    if (!userId) return;
     try {
-      const items = await fetchInAppNotifications(client, { maxCount: 50 });
-      setNotifications(sortNotifications(items));
+      const rows = await listUserNotifications(userId, { limit: 50 });
+      setNotifications(sortNotifications(rows.map(toInAppNotification)));
+      setLoadError(null);
     } catch (error) {
       console.warn('Could not load in-app notifications', error);
-    }
-  }, []);
-
-  const reconnectWebSocket = useCallback(() => {
-    const client = clientRef.current;
-    if (!client) return;
-    try {
-      client.websocket.disconnect();
-      client.openWebSocket();
-    } catch (error) {
-      console.warn('Could not reconnect notification websocket', error);
+      setLoadError(errorMessage(error));
     }
   }, []);
 
   const refreshOnForeground = useCallback(async () => {
-    reconnectWebSocket();
     await refreshNotifications();
-  }, [reconnectWebSocket, refreshNotifications]);
+  }, [refreshNotifications]);
 
   useRefreshOnForeground(refreshOnForeground);
 
@@ -118,10 +141,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [isReady, refreshNotifications, user?.id]);
 
   const markRead = useCallback(async (ids: string[]) => {
-    const client = clientRef.current;
-    if (!client || ids.length === 0) return;
+    const userId = userIdRef.current;
+    if (!userId || ids.length === 0) return;
     try {
-      await client.updateInAppNotifications({ ids, opened: true });
+      await markUserNotificationsRead(userId, ids);
       setNotifications((prev) =>
         prev.map((n) => (ids.includes(n.id) ? { ...n, seen: true } : n)),
       );
@@ -132,8 +155,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const markReadByDeepLink = useCallback(
     async (deepLink: string) => {
-      const client = clientRef.current;
-      if (!client) return;
+      const userId = userIdRef.current;
+      if (!userId) return;
 
       const resolvedPath = resolveNotificationDeepLink(deepLink) ?? deepLink;
       const normalizedPath = resolvedPath.startsWith('/') ? resolvedPath : `/${resolvedPath}`;
@@ -143,8 +166,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         items
           .filter((notification) => {
             if (notification.seen) return false;
-            const redirect =
-              notification.redirectURL ?? notification.template?.instant?.redirectURL ?? '';
+            const redirect = notification.redirectURL ?? '';
             if (!redirect) return false;
             const resolvedRedirect = resolveNotificationDeepLink(redirect) ?? redirect;
             return (
@@ -158,8 +180,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       let matchingIds = findMatchingIds(notifications);
       if (matchingIds.length === 0) {
         try {
-          const items = await fetchInAppNotifications(client, { maxCount: 50 });
-          setNotifications(sortNotifications(items));
+          const rows = await listUserNotifications(userId, { limit: 50 });
+          const items = sortNotifications(rows.map(toInAppNotification));
+          setNotifications(items);
           matchingIds = findMatchingIds(items);
         } catch (error) {
           console.warn('Could not refresh notifications for push read state', error);
@@ -174,56 +197,76 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   const markAllRead = useCallback(async () => {
-    const unreadIds = notifications.filter((n) => !n.seen).map((n) => n.id);
-    await markRead(unreadIds);
-  }, [markRead, notifications]);
+    const userId = userIdRef.current;
+    if (!userId) return;
+    try {
+      await markAllUserNotificationsRead(userId);
+      setNotifications((prev) => prev.map((n) => ({ ...n, seen: true })));
+    } catch (error) {
+      console.warn('Could not mark all notifications read', error);
+    }
+  }, []);
 
   useEffect(() => {
-    const clientId = getPingramClientId();
-    const userId = user?.id;
+    if (!isAuthReady) return;
 
-    if (!clientId || !userId) {
-      clientRef.current = null;
-      setIsReady(false);
+    const userId = user?.id;
+    const hasSession = Boolean(session?.access_token);
+
+    if (!userId || !hasSession) {
+      setIsReady(true);
       setNotifications([]);
+      setLoadError(null);
       return;
     }
 
+    setIsReady(false);
+    setLoadError(null);
+
     let cancelled = false;
+    let channel: ReturnType<ReturnType<typeof getSupabaseClient>['channel']> | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function setup() {
-      if (!clientId || !userId) return;
       try {
-        const client = NotificationAPIClientSDK.init({
-          clientId,
-          userId,
-          host: getPingramApiHost(),
-          websocketHost: getPingramWsHost(),
-          onNewInAppNotifications: (incoming) => {
-            if (cancelled) return;
-            const list = Array.isArray(incoming) ? incoming : [];
-            if (list.length === 0) return;
-            setNotifications((prev) => {
-              const byId = new Map(prev.map((n) => [n.id, n]));
-              for (const item of list) {
-                byId.set(item.id, item);
-              }
-              return sortNotifications([...byId.values()]);
-            });
-          },
-        });
-
-        clientRef.current = client;
-        client.openWebSocket();
-        await client.identify({ id: userId });
         await refreshNotifications();
-
-        if (!cancelled) setIsReady(true);
-      } catch (error) {
-        console.warn('Notification provider setup failed', error);
+        // Session can finish hydrating a beat after auth ready; retry once if empty.
         if (!cancelled) {
-          setIsReady(false);
+          retryTimer = setTimeout(() => {
+            if (!cancelled) void refreshNotifications();
+          }, 750);
         }
+      } catch (error) {
+        console.warn('Notification provider load failed', error);
+        if (!cancelled) setLoadError(errorMessage(error));
+      } finally {
+        // Never leave the bell disabled because realtime setup failed.
+        if (!cancelled) setIsReady(true);
+      }
+
+      try {
+        const supabase = getSupabaseClient();
+        channel = supabase
+          .channel(`user_notifications:${userId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'user_notifications',
+              filter: `user_id=eq.${userId}`,
+            },
+            () => {
+              if (!cancelled) void refreshNotifications();
+            },
+          )
+          .subscribe((status, err) => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.warn('user_notifications realtime subscribe failed', status, err);
+            }
+          });
+      } catch (error) {
+        console.warn('Notification realtime setup failed', error);
       }
     }
 
@@ -231,11 +274,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
-      clientRef.current?.websocket.disconnect();
-      clientRef.current = null;
-      setIsReady(false);
+      if (retryTimer) clearTimeout(retryTimer);
+      if (channel) {
+        void getSupabaseClient().removeChannel(channel);
+      }
     };
-  }, [user?.id, refreshNotifications]);
+  }, [isAuthReady, refreshNotifications, session?.access_token, user?.id]);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.seen).length,
@@ -247,12 +291,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       notifications,
       unreadCount,
       isReady,
+      loadError,
       refreshNotifications,
       markAllRead,
       markRead,
       markReadByDeepLink,
     }),
-    [notifications, unreadCount, isReady, refreshNotifications, markAllRead, markRead, markReadByDeepLink],
+    [
+      notifications,
+      unreadCount,
+      isReady,
+      loadError,
+      refreshNotifications,
+      markAllRead,
+      markRead,
+      markReadByDeepLink,
+    ],
   );
 
   return (
@@ -269,8 +323,5 @@ export function useNotifications() {
 }
 
 export function openNotificationTarget(notification: InAppNotification) {
-  navigateToNotificationDeepLink(
-    router,
-    notification.redirectURL ?? notification.template?.instant?.redirectURL,
-  );
+  navigateToNotificationDeepLink(router, notification.redirectURL);
 }

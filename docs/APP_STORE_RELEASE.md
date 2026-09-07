@@ -8,7 +8,7 @@ End-to-end checklist for shipping Chairside to the App Store. Run EAS commands f
 - App Store Connect access
 - Expo EAS CLI (`npm i -g eas-cli`)
 - Supabase CLI linked to production project
-- Pingram Canada environment (in-app / SMS / email)
+- Pingram Canada environment (SMS / email)
 - APNs Auth Key configured in EAS credentials for Expo Push
 
 ## 1. Public legal URLs (web)
@@ -38,7 +38,6 @@ cd apps/mobile
 eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value 'https://<ref>.supabase.co'
 eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value '<anon-key>'
 eas env:create --environment production --name EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN --value '<mapbox-token>'
-eas env:create --environment production --name EXPO_PUBLIC_PINGRAM_CLIENT_ID --value '<environment-id-or-pingram_pk_...>'
 eas env:create --environment production --name EXPO_PUBLIC_WEB_BASE_URL --value 'https://chairside.app'
 eas env:create --environment production --name EXPO_PUBLIC_REVENUECAT_IOS_API_KEY --value '<revenuecat-ios-public-key>'
 
@@ -77,7 +76,7 @@ Apply every file in `supabase/migrations/` in numeric order through the latest (
 ```bash
 # From repo root
 supabase functions deploy delete-account --use-api
-supabase functions deploy notify --use-api
+supabase functions deploy notify --no-verify-jwt --use-api
 supabase functions deploy support-contact --no-verify-jwt --use-api
 supabase functions deploy revenuecat-sync --use-api
 supabase functions deploy revenuecat-webhook --no-verify-jwt --use-api
@@ -104,12 +103,12 @@ supabase secrets set REVENUECAT_WEBHOOK_SECRET=$(openssl rand -hex 32)
 
 In Supabase → Authentication → URL Configuration:
 
-- **Site URL:** `chairside://auth/callback` (native) and `https://<web-domain>/auth/callback` (web)
-- **Redirect URLs:** `chairside://**`, `exp://**`, `https://<web-domain>/**`
+- **Site URL:** `https://chairside.app`
+- **Redirect URLs:** `https://chairside.app/**`, `chairside://**`, `exp://**`
 
 ### Database webhooks
 
-Point to `https://<project-ref>.supabase.co/functions/v1/notify` with header `x-supabase-webhook-secret`:
+Point to `https://<project-ref>.supabase.co/functions/v1/notify` with header `x-supabase-webhook-secret`. Deploy `notify` with `--no-verify-jwt` (`supabase/config.toml`). Include **UPDATE** on `applications` or shortlists will not notify.
 
 | Table | Events |
 | ----- | ------ |
@@ -120,11 +119,11 @@ Point to `https://<project-ref>.supabase.co/functions/v1/notify` with header `x-
 
 Full details: [NOTIFICATIONS.md](./NOTIFICATIONS.md)
 
-## 5. Notifications (Pingram + Expo Push)
+## 5. Notifications (Supabase in-app + Expo Push + Pingram SMS/email)
 
-1. Create Pingram notification types per [NOTIFICATIONS.md](./NOTIFICATIONS.md) (in-app / SMS / email).
+1. Create Pingram **SMS/email** notification types per [NOTIFICATIONS.md](./NOTIFICATIONS.md).
 2. Configure APNs in **EAS credentials** — see [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). Do **not** configure Mobile Push in Pingram.
-3. Run migration `121_user_push_tokens.sql` and redeploy `notify`.
+3. Run migrations `121_user_push_tokens.sql` and `123_user_notifications.sql`, then redeploy `notify`.
 4. Register SMS sender with Pingram support if using fill-in SMS.
 5. Optional: `supabase secrets set EXPO_ACCESS_TOKEN=…` for Expo Push rate limits.
 
@@ -184,13 +183,20 @@ See [CLINIC_GROUPS.md](./CLINIC_GROUPS.md) for group-specific billing rules.
 
 Before submitting for review, complete [TESTFLIGHT_CHECKLIST.md](./TESTFLIGHT_CHECKLIST.md) on a physical iPhone.
 
-## 9. Auth email via Pingram SMTP (pre-launch, separate)
+## 9. Auth email via Pingram SMTP
 
-Password reset and sign-up confirmation emails still use Supabase Auth. Before launch:
+Password reset and sign-up confirmation emails use **Supabase Auth** for tokens and **Pingram SMTP** for delivery. Do not use the built-in Supabase sender in production.
 
-1. Verify `chairside.app` in Pingram **Domains**.
-2. Pingram **Email Playground → SMTP & Supabase → Integrate with Supabase** (or manual SMTP: `smtp.ca.pingram.io`, port 465).
-3. Test from Supabase → Auth → Users → Send password recovery.
+1. Verify the from-domain in Pingram **Domains** (`chairsidedental.app` or `chairside.app`).
+2. Pingram **Email Playground → SMTP & Supabase → Integrate with Supabase** (or manual: `smtp.ca.pingram.io`, port 465, username `auth_emails`).
+3. In Supabase **Authentication → SMTP**, confirm **Custom SMTP** is enabled and the from-address matches the verified domain.
+4. Enable **Confirm email** only after a test message appears in Pingram logs (not only `confirmation_sent_at`).
+5. **URL Configuration:** Site URL `https://chairside.app`; Redirect URLs include `https://chairside.app/**` and `chairside://**`.
+6. Prove it: new signup confirmation and password reset both arrive; the confirm link opens `https://chairside.app/auth/callback` and finishes setup.
+7. Replace the default Auth email HTML (old green Supabase template) with the Chairside templates:
+   - [supabase/templates/confirm-signup.html](../supabase/templates/confirm-signup.html) → **Authentication → Emails → Confirm signup**
+   - [supabase/templates/reset-password.html](../supabase/templates/reset-password.html) → **Reset password**
+   Subjects: `Confirm your Chairside email` and `Reset your Chairside password`.
 
 ## Quick reference
 

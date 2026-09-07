@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getWebAuthCallbackHref,
   hasAuthCallbackParams,
+  isAuthEmailLink,
   isPasswordRecoveryRedirect,
   isPasswordRecoveryUrl,
   parseAuthRedirectUrl,
@@ -36,6 +37,12 @@ describe('isPasswordRecoveryRedirect', () => {
     const url =
       'chairside://auth/callback#access_token=abc&refresh_token=def&token_type=bearer';
     expect(isPasswordRecoveryUrl(url)).toBe(false);
+  });
+
+  it('treats token_hash recovery links as email auth', () => {
+    const url = 'https://chairside.app/auth/callback?token_hash=abc&type=recovery';
+    expect(isPasswordRecoveryUrl(url)).toBe(true);
+    expect(isAuthEmailLink(url)).toBe(true);
   });
 });
 

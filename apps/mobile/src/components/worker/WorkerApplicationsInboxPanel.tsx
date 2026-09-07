@@ -1,5 +1,5 @@
 import { getUnreadConversationMap, listWorkerJobApplications } from '@chairside/api';
-import { canWorkerHideApplication } from '@chairside/config';
+import { canWorkerHideApplication, isWorkerJobApplicationPipelineActive } from '@chairside/config';
 import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
@@ -14,6 +14,7 @@ import { Screen } from '@/components/ui/Screen';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
+import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -98,6 +99,7 @@ export function WorkerApplicationsInboxPanel({
     closeCelebration,
   } = useHiringCelebration();
   const { checkApplications } = useWorkerHiringCelebration(showCelebration);
+  const { markApplicationsSeen } = useApplicationTabBadge();
 
   const { active, past } = useMemo(
     () => partitionWorkerApplications(applications),
@@ -180,6 +182,13 @@ export function WorkerApplicationsInboxPanel({
       setApplications(rows);
       setUnreadMap(unread);
       setFormError(null);
+
+      // Past / filled-role apps should not keep the Applications tab badge sticky.
+      const pastRows = rows.filter((application) => !isWorkerJobApplicationPipelineActive(application));
+      if (pastRows.length > 0) {
+        await markApplicationsSeen(pastRows.map((application) => application.id));
+      }
+
       await checkApplications(toJobCelebrationCandidates(rows));
     } catch (error) {
       setApplications([]);
@@ -191,7 +200,7 @@ export function WorkerApplicationsInboxPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [checkApplications, user?.id]);
+  }, [checkApplications, markApplicationsSeen, user?.id]);
 
   useRefreshOnFocus(load);
   const { refreshing, onRefresh } = usePullToRefresh(load);

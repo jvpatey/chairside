@@ -1,5 +1,6 @@
 export {
   CLINIC_BILLING_SESSION_EXPIRED_MESSAGE,
+  assertClinicCanUseFeature,
   ensureClinicBillingSession,
   getClinicBillingState,
   getClinicPlanMap,
@@ -19,6 +20,7 @@ export {
   getWebAuthCallbackHref,
   hasAuthCallbackParams,
   isAuthCallbackPath,
+  isAuthEmailLink,
   isPasswordRecoveryRedirect,
   isPasswordRecoveryUrl,
   parseAuthRedirectUrl,
@@ -37,9 +39,15 @@ export {
   type StartClinicFillInOutreachInput,
 } from './fillInOutreach';
 export {
+  ACCOUNT_ALREADY_EXISTS_MESSAGE,
+  SIGNUP_CONFIRMATION_REQUIRED_MESSAGE,
+  completeEmailSignUp,
   createSessionFromUrl,
   establishSessionAfterSignUp,
   getAuthErrorMessage,
+  getSignupEmailRedirectUrl,
+  hasRealAuthIdentities,
+  resendSignupConfirmation,
   resetPasswordForEmail,
   updatePassword,
   signInWithApple,
@@ -48,6 +56,7 @@ export {
   signOut,
   signUpWithEmail,
   deleteAccount,
+  type SignUpSessionResult,
 } from './auth';
 export {
   SUPPORT_CONTACT_SUBJECTS,
@@ -315,6 +324,7 @@ export {
   isWorkerApplicationUpdateUnseen,
   isWorkerApplicationUpdateHighlighted,
   isWorkerFillInApplicationUpdateCountable,
+  isWorkerJobApplicationUpdateCountable,
   isPastWorkerFillInApplication,
   hasWorkerApplicationClinicUpdate,
   APPLICATION_UPDATE_GRACE_MS,
@@ -435,6 +445,12 @@ export {
   type PushTokenPlatform,
   type UserPushToken,
 } from './pushTokens';
+export {
+  listUserNotifications,
+  markAllUserNotificationsRead,
+  markUserNotificationsRead,
+  type UserNotification,
+} from './userNotifications';
 export type { Database, Profile, UserRole } from './types';
 export {
   attachClinicCrmToApplications,

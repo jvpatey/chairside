@@ -1,3 +1,5 @@
+import { isWorkerJobApplicationPipelineActive } from '@chairside/config';
+
 export const APPLICATION_UPDATE_GRACE_MS = 2_000;
 
 export type ApplicationNotificationStatus =
@@ -153,4 +155,24 @@ export function isWorkerApplicationUpdateHighlighted(application: WorkerAttentio
   return (
     new Date(application.worker_attention_at).getTime() > new Date(seenAt).getTime()
   );
+}
+
+/** Unseen clinic updates on active job applications only (filled/closed/terminal → Past). */
+export function isWorkerJobApplicationUpdateCountable(
+  application: WorkerAttentionApplication & {
+    post_type?: string | null;
+    status?: string | null;
+    post_status?: string | null;
+  },
+): boolean {
+  if (application.post_type != null && application.post_type !== 'job') return false;
+  if (
+    !isWorkerJobApplicationPipelineActive({
+      status: application.status,
+      post_status: application.post_status,
+    })
+  ) {
+    return false;
+  }
+  return isWorkerApplicationUpdateUnseen(application);
 }

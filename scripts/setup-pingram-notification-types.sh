@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create missing Chairside notification types in Pingram (Canada).
+# Create Pingram notification types used for email/SMS only.
 # Usage:
 #   export PINGRAM_API_KEY='pingram_sk_...'
 #   ./scripts/setup-pingram-notification-types.sh
@@ -13,19 +13,19 @@ if [[ -z "${PINGRAM_API_KEY:-}" ]]; then
   exit 1
 fi
 
-channel_options() {
+sms_channel_options() {
   jq -n '{
-    INAPP_WEB: {
-      defaultDeliveryOption: "instant",
-      off: { enabled: false },
-      instant: { enabled: true }
-    },
-    PUSH: {
-      defaultDeliveryOption: "instant",
-      off: { enabled: false },
-      instant: { enabled: true }
-    },
     SMS: {
+      defaultDeliveryOption: "instant",
+      off: { enabled: false },
+      instant: { enabled: true }
+    }
+  }'
+}
+
+email_channel_options() {
+  jq -n '{
+    EMAIL: {
       defaultDeliveryOption: "instant",
       off: { enabled: false },
       instant: { enabled: true }
@@ -36,15 +36,18 @@ channel_options() {
 create_type() {
   local notification_id="$1"
   local title="$2"
+  local channels_json="$3"
+  local options_json="$4"
   local body
   body="$(jq -n \
     --arg notificationId "$notification_id" \
     --arg title "$title" \
-    --argjson options "$(channel_options)" \
+    --argjson channels "$channels_json" \
+    --argjson options "$options_json" \
     '{
       notificationId: $notificationId,
       title: $title,
-      channels: ["INAPP_WEB", "PUSH", "SMS"],
+      channels: $channels,
       options: $options
     }')"
 
@@ -66,37 +69,16 @@ create_type() {
 }
 
 echo "Using ${API_BASE}"
+echo "Pingram is email + SMS only (in-app + push are handled by Chairside)."
 echo ""
 
-# Only create types Chairside uses that are commonly missing.
-for spec in \
-  "application_received|Application received" \
-  "fill_in_posted|Fill-in posted" \
-  "fill_in_outreach_sms|Fill-in outreach SMS" \
-  "application_rejected|Application rejected" \
-  "application_hired|Application hired" \
-  "application_in_progress|Application in progress" \
-  "application_interview_offered|Interview offered" \
-  "application_interview_scheduled|Interview scheduled" \
-  "application_interview_accepted|Interview accepted" \
-  "application_interview_declined|Interview declined" \
-  "application_interview_cancelled|Interview cancelled" \
-  "application_interview_reschedule_proposed|Interview reschedule proposed" \
-  "application_interview_reschedule_accepted|Interview reschedule accepted" \
-  "application_interview_reschedule_declined|Interview reschedule declined" \
-  "application_interview_scheduled_cancelled|Interview scheduled cancelled" \
-  "application_selected|Application selected" \
-  "job_posted|Job posted" \
-  "job_updated|Saved role updated" \
-  "fill_in_updated|Saved fill-in updated" \
-  "saved_post_unavailable|Saved posting unavailable" \
-  "message_received|Message received" \
-  "clinic_manager_invitation|Clinic manager invitation"; do
-  id="${spec%%|*}"
-  title="${spec#*|}"
-  create_type "$id" "$title" || true
-  echo ""
-done
+create_type "fill_in_posted" "Fill-in posted" '["SMS"]' "$(sms_channel_options)" || true
+echo ""
+create_type "fill_in_outreach_sms" "Fill-in outreach SMS" '["SMS"]' "$(sms_channel_options)" || true
+echo ""
+create_type "clinic_manager_invitation" "Clinic manager invitation" '["EMAIL"]' "$(email_channel_options)" || true
+echo ""
 
 echo "Done. Re-run ./scripts/verify-pingram-sms.sh to confirm fill_in_posted."
 echo "Manager invites use Pingram POST /email with type clinic_manager_invitation."
+echo "Support form email uses type support_contact (see docs/SUPPORT_CONTACT.md)."

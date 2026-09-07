@@ -8,11 +8,13 @@ Record build number, date, and tester name when signing off.
 
 - [ ] Build installed from TestFlight (`preview` or `production` profile)
 - [ ] Device notifications allowed for Chairside
-- [ ] Production Supabase + Pingram (in-app/SMS/email) + EAS APNs configured per [APP_STORE_RELEASE.md](./APP_STORE_RELEASE.md)
+- [ ] Production Supabase + Pingram (SMS/email) + EAS APNs configured per [APP_STORE_RELEASE.md](./APP_STORE_RELEASE.md)
 
 ## Authentication
 
-- [ ] Email sign-up sends confirmation (or sign-in if already confirmed)
+- [ ] Email sign-up sends a Pingram confirmation from the verified domain (not Supabase’s default sender)
+- [ ] Confirmation link opens `https://chairside.app/auth/callback` and finishes setup
+- [ ] Retrying Create account while unconfirmed shows check-email / Resend, not a profiles RLS error
 - [ ] Email sign-in works
 - [ ] Forgot password email opens app → reset password screen
 - [ ] Sign in with Apple works (iOS native; not Expo Go — needs TestFlight / EAS build)

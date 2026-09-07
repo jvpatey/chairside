@@ -9,7 +9,6 @@ import { JobPostManageMenu } from '@/components/clinic/JobPostManageMenu';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
@@ -18,8 +17,7 @@ import { getEditJobRoute } from '@/lib/routing';
 import { useThemedStyles } from '@/theme';
 
 export default function JobDetailScreen() {
-  const { user } = useAuth();
-  const { locations, clinicProfile, isGroup } = useClinicProfile();
+  const { clinicId, locations, clinicProfile, isGroup } = useClinicProfile();
   const { id } = useLocalSearchParams<{ id: string }>();
   const jobId = typeof id === 'string' ? id : '';
   const [job, setJob] = useState<JobPost | null>(null);
@@ -39,7 +37,7 @@ export default function JobDetailScreen() {
   }));
 
   const loadJob = useCallback(async () => {
-    if (!jobId || !user?.id) {
+    if (!jobId || !clinicId) {
       setJob(null);
       setIsLoading(false);
       return;
@@ -47,7 +45,7 @@ export default function JobDetailScreen() {
 
     setIsLoading(true);
     try {
-      const nextJob = await getJobPost(user.id, jobId);
+      const nextJob = await getJobPost(clinicId, jobId);
       if (!nextJob) {
         Alert.alert('Role not found', 'This posting may have been removed.');
         router.back();
@@ -63,7 +61,7 @@ export default function JobDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [jobId, user?.id]);
+  }, [clinicId, jobId]);
 
   useRefreshOnFocus(loadJob);
 
@@ -95,10 +93,10 @@ export default function JobDetailScreen() {
       onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
-          {user?.id ? (
+          {clinicId ? (
             <JobPostManageMenu
               style={styles.footerButton}
-              clinicId={user.id}
+              clinicId={clinicId}
               job={job}
               onUpdated={setJob}
               onDeleted={() => router.back()}

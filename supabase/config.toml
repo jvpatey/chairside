@@ -1,0 +1,11 @@
+# Function JWT settings for hosted + local deploys.
+# Database webhooks authenticate with x-supabase-webhook-secret, not a user JWT.
+
+[functions.notify]
+verify_jwt = false
+
+[functions.support-contact]
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+verify_jwt = false

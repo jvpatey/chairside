@@ -1,3 +1,12 @@
+const AUTH_EMAIL_TYPES = new Set([
+  'recovery',
+  'signup',
+  'magiclink',
+  'invite',
+  'email_change',
+  'email',
+]);
+
 export function isPasswordRecoveryRedirect(params: Record<string, string>): boolean {
   const type = params.type?.toLowerCase();
   if (type === 'recovery') return true;
@@ -6,6 +15,14 @@ export function isPasswordRecoveryRedirect(params: Record<string, string>): bool
   if (event === 'password_recovery') return true;
 
   return false;
+}
+
+/** Confirm / reset / magic-link emails (including token_hash verify links). */
+export function isAuthEmailLink(input: string): boolean {
+  const { params } = parseAuthRedirectUrl(input);
+  const type = params.type?.toLowerCase();
+  if (type && AUTH_EMAIL_TYPES.has(type)) return true;
+  return Boolean(params.token_hash);
 }
 
 export function parseAuthRedirectUrl(input: string): {

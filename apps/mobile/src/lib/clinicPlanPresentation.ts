@@ -159,6 +159,37 @@ export function isFillInPostingLimitReached(
   return billing != null && !billing.canPublishFillIn;
 }
 
+/** Paid-feature flags that must fail closed until billing is ready. */
+export type ClinicBillingEntitlementFlag =
+  | 'canUseFillInOutreach'
+  | 'canUseFillInSms'
+  | 'hasPriorityListing'
+  | 'canUseScreeningQuestions'
+  | 'canUseCrmFollowups'
+  | 'canUseApplicationPdfExport'
+  | 'canUseClinicDiscover'
+  | 'canUseGeneralCandidateMessaging'
+  | 'canUseBulkOutreach'
+  | 'canUseHiringInsights'
+  | 'canAddLocation'
+  | 'canAddManager';
+
+export function isClinicBillingFeatureUnlocked(
+  billing: Pick<ClinicBillingState, ClinicBillingEntitlementFlag> | null | undefined,
+  isBillingReady: boolean,
+  flag: ClinicBillingEntitlementFlag,
+): boolean {
+  return Boolean(isBillingReady && billing?.[flag]);
+}
+
+export function isClinicBillingFeatureLocked(
+  billing: Pick<ClinicBillingState, ClinicBillingEntitlementFlag> | null | undefined,
+  isBillingReady: boolean,
+  flag: ClinicBillingEntitlementFlag,
+): boolean {
+  return !isClinicBillingFeatureUnlocked(billing, isBillingReady, flag);
+}
+
 export function getClinicPostingLimitTitle(publishType: ClinicPostingPublishType): string {
   return publishType === 'fill-in' ? 'Fill-in limit reached' : 'Role limit reached';
 }

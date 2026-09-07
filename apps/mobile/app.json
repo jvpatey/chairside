@@ -57,7 +57,13 @@
         }
       ],
       "expo-font",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "default",
+          "enableBackgroundRemoteNotifications": true
+        }
+      ],
       "expo-apple-authentication",
       "expo-web-browser",
       "@react-native-community/datetimepicker",

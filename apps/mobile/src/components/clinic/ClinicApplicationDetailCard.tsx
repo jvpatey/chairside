@@ -1,4 +1,5 @@
 import {
+  assertClinicCanUseFeature,
   acceptApplicationInterviewUpdate,
   cancelApplicationInterviewOffer,
   cancelConfirmedFillIn,
@@ -86,6 +87,7 @@ import {
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { confirmHideClinicApplication } from '@/lib/clinicApplicationHide';
 import { getFirstName } from '@/lib/greeting';
+import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import type { HiringCelebrationPayload } from '@/lib/hiringCelebrationCopy';
 import { fontSemibold, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
@@ -533,8 +535,14 @@ export function ClinicApplicationDetailCard({
   } = useApplicationTabBadge();
   const { clinicProfile } = useClinicProfile();
   const clinicName = clinicProfile?.clinic_name?.trim() || 'Your clinic';
-  const { billing, upgradePrompt, showCrmUpgrade, showPdfExportUpgrade, handleBillingError } =
-    useClinicUpgradePrompt();
+  const {
+    billing,
+    isBillingReady,
+    upgradePrompt,
+    showCrmUpgrade,
+    showPdfExportUpgrade,
+    handleBillingError,
+  } = useClinicUpgradePrompt();
   const [crmSheetVisible, setCrmSheetVisible] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfPreviewVisible, setPdfPreviewVisible] = useState(false);
@@ -796,8 +804,16 @@ export function ClinicApplicationDetailCard({
 
   const canRemoveFromList = canClinicHideApplication(application);
   const canManageCrm = !workerDeleted;
-  const crmUnlocked = billing == null || billing.canUseCrmFollowups;
-  const pdfExportUnlocked = billing == null || billing.canUseApplicationPdfExport;
+  const crmUnlocked = isClinicBillingFeatureUnlocked(
+    billing,
+    isBillingReady,
+    'canUseCrmFollowups',
+  );
+  const pdfExportUnlocked = isClinicBillingFeatureUnlocked(
+    billing,
+    isBillingReady,
+    'canUseApplicationPdfExport',
+  );
   const crmRecord = application.clinic_crm;
 
   const handleMessage = () => {
@@ -822,6 +838,7 @@ export function ClinicApplicationDetailCard({
     setIsGeneratingPdf(true);
     setPdfPreviewError(null);
     try {
+      await assertClinicCanUseFeature(clinicId, 'application_pdf_export');
       const result = await generateApplicationPdfPacket({
         application,
         clinicName,

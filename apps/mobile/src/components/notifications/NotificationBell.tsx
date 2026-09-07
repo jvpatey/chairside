@@ -5,13 +5,12 @@ import { Pressable, Text, View } from 'react-native';
 
 import { NotificationsFeedModal } from '@/components/notifications/NotificationsFeedModal';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { getPingramClientId } from '@/lib/pingram';
 import {
   webHover,
   webIconButtonHoverStyles,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 type NotificationBellProps = {
   /** `hero` — top-right inside dashboard hero card; `header` — screen title row */
@@ -26,9 +25,9 @@ export function NotificationBell({
   embedded = false,
   size = 40,
 }: NotificationBellProps) {
-  const { colors, isDark } = useTheme();
-  const clientId = getPingramClientId();
-  const { unreadCount, isReady } = useNotifications();
+  const { colors } = useTheme();
+  const { unreadCount, isReady, loadError } = useNotifications();
+  const canOpen = isReady || Boolean(loadError);
   const [open, setOpen] = useState(false);
   const inHero = placement === 'hero';
   const isCompact = size <= 32;
@@ -97,15 +96,13 @@ export function NotificationBell({
     },
   }));
 
-  if (!clientId) return null;
-
   return (
     <>
       <View style={styles.hitArea}>
         <Pressable
           style={({ pressed, hovered }) => [
             styles.button,
-            webHover(hovered, pressed, styles.buttonHovered, !isReady),
+            webHover(hovered, pressed, styles.buttonHovered, !canOpen),
             pressed && styles.buttonPressed,
           ]}
           accessibilityRole="button"
@@ -116,7 +113,7 @@ export function NotificationBell({
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setOpen(true);
           }}
-          disabled={!isReady}>
+          disabled={!canOpen}>
           <Ionicons
             name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
             size={iconSize}

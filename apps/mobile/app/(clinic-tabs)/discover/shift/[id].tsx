@@ -10,7 +10,8 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
-import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getClinicDiscoverClinicProfileRoute } from '@/lib/routing';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
@@ -21,7 +22,8 @@ import {
 import { useThemedStyles } from '@/theme';
 
 export default function ClinicDiscoverShiftDetailScreen() {
-  const { user } = useAuth();
+  const { clinicId } = useClinicProfile();
+  const { upgradePrompt, handleBillingError } = useClinicUpgradePrompt();
   const { id } = useLocalSearchParams<{ id: string }>();
   const shiftId = typeof id === 'string' ? id : '';
   const [shift, setShift] = useState<LiveShiftPost | null>(null);
@@ -38,7 +40,7 @@ export default function ClinicDiscoverShiftDetailScreen() {
   }));
 
   const loadShift = useCallback(async () => {
-    if (!shiftId || !user?.id) {
+    if (!shiftId || !clinicId) {
       setShift(null);
       setIsLoading(false);
       return;
@@ -46,7 +48,7 @@ export default function ClinicDiscoverShiftDetailScreen() {
 
     setIsLoading(true);
     try {
-      const nextShift = await getClinicDiscoverShiftPost(shiftId, user.id);
+      const nextShift = await getClinicDiscoverShiftPost(shiftId, clinicId);
       if (!nextShift) {
         Alert.alert('Fill-in not found', 'This posting may no longer be available.');
         router.back();
@@ -54,6 +56,10 @@ export default function ClinicDiscoverShiftDetailScreen() {
       }
       setShift(nextShift);
     } catch (error) {
+      if (handleBillingError(error)) {
+        router.back();
+        return;
+      }
       Alert.alert(
         'Could not load fill-in',
         error instanceof Error ? error.message : 'Please try again.',
@@ -62,7 +68,7 @@ export default function ClinicDiscoverShiftDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [shiftId, user?.id]);
+  }, [clinicId, handleBillingError, shiftId]);
 
   useRefreshOnFocus(loadShift);
 
@@ -86,6 +92,7 @@ export default function ClinicDiscoverShiftDetailScreen() {
       subtitle={shift.clinic.clinic_name}
       onBack={() => router.back()}
       accent="secondary">
+      {upgradePrompt}
       <View style={styles.content}>
         <SurfaceCard>
           <ClinicPostHeader

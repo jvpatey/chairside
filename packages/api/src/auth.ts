@@ -15,7 +15,18 @@ import { getSupabaseClient, getSupabaseConfig } from './client';
 import { getErrorMessage, resolveFunctionErrorMessage } from './errors';
 import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
 import { ensureProfileName } from './profile';
-import type { UserRole } from './types';
+
+export {
+  ACCOUNT_ALREADY_EXISTS_MESSAGE,
+  SIGNUP_CONFIRMATION_REQUIRED_MESSAGE,
+  completeEmailSignUp,
+  establishSessionAfterSignUp,
+  getSignupEmailRedirectUrl,
+  hasRealAuthIdentities,
+  resendSignupConfirmation,
+  signUpWithEmail,
+  type SignUpSessionResult,
+} from './authSignup';
 
 export const PASSWORD_MIN_LENGTH = 8;
 
@@ -36,6 +47,31 @@ export async function createSessionFromUrl(url: string) {
 
   if (errorCode) {
     throw new Error(errorCode);
+  }
+
+  if (params.error) {
+    throw new Error(params.error_description || params.error);
+  }
+
+  if (params.token_hash) {
+    const otpType = params.type?.toLowerCase();
+    if (
+      otpType !== 'signup' &&
+      otpType !== 'invite' &&
+      otpType !== 'magiclink' &&
+      otpType !== 'recovery' &&
+      otpType !== 'email_change' &&
+      otpType !== 'email'
+    ) {
+      throw new Error('This email link is missing its confirmation type.');
+    }
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: params.token_hash,
+      type: otpType,
+    });
+    if (error) throw error;
+    return { session: data.session, isPasswordRecovery: otpType === 'recovery' };
   }
 
   if (params.code) {
@@ -68,60 +104,6 @@ export async function signInWithEmail(email: string, password: string) {
 
   if (error) throw error;
   return data;
-}
-
-export async function signUpWithEmail(email: string, password: string, role: UserRole) {
-  const supabase = getSupabaseClient();
-  const emailRedirectTo = getOAuthRedirectUrl();
-  const { data, error } = await supabase.auth.signUp({
-    email: email.trim(),
-    password,
-    options: {
-      data: { role },
-      emailRedirectTo,
-    },
-  });
-
-  if (error) throw error;
-  return data;
-}
-
-/**
- * signUp sometimes omits session even when the account is immediately usable
- * (e.g. confirm-email disabled). Fall back to storage, then password sign-in.
- * Returns null when the account exists but email confirmation is still required.
- */
-export async function establishSessionAfterSignUp(
-  email: string,
-  password: string,
-  signUpData: { session: Session | null; user: User | null },
-): Promise<Session | null> {
-  if (signUpData.session) {
-    return signUpData.session;
-  }
-
-  const supabase = getSupabaseClient();
-  const {
-    data: { session: storedSession },
-  } = await supabase.auth.getSession();
-  if (storedSession) {
-    return storedSession;
-  }
-
-  if (!signUpData.user) {
-    return null;
-  }
-
-  try {
-    const { session } = await signInWithEmail(email, password);
-    return session;
-  } catch (error) {
-    const message = getErrorMessage(error, '').toLowerCase();
-    if (message.includes('email not confirmed')) {
-      return null;
-    }
-    throw error;
-  }
 }
 
 /** Mirrors the supabase-js default: sb-<project-ref>-auth-token. */
@@ -183,7 +165,7 @@ export async function deleteAccount() {
 
 export async function resetPasswordForEmail(email: string) {
   const supabase = getSupabaseClient();
-  const redirectTo = getOAuthRedirectUrl();
+  const redirectTo = getSignupEmailRedirectUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo,
   });
@@ -376,6 +358,13 @@ export function getAuthErrorMessage(error: unknown): string {
 
   if (lower.includes('user already registered')) {
     return 'An account with this email already exists.';
+  }
+
+  if (
+    lower.includes('row-level security') ||
+    (lower.includes('violates') && lower.includes('profiles'))
+  ) {
+    return 'Could not finish creating your account. If you already signed up, check your email or try Sign in.';
   }
 
   if (lower.includes('email not confirmed')) {

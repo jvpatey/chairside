@@ -17,6 +17,7 @@ import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useHiringCelebration } from '@/hooks/useHiringCelebration';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { hasActiveListSearch, matchesClinicApplicationSearch } from '@/lib/clinicListSearch';
@@ -25,6 +26,7 @@ import { useThemedStyles } from '@/theme';
 
 export default function ClinicShiftApplicationsScreen() {
   const { user } = useAuth();
+  const { clinicId } = useClinicProfile();
   const { shiftId, returnTo } = useLocalSearchParams<{
     shiftId?: string;
     returnTo?: FillInReturnTarget;
@@ -53,7 +55,7 @@ export default function ClinicShiftApplicationsScreen() {
   }, [resolvedReturnTo]);
 
   const load = useCallback(async () => {
-    if (!user?.id || !resolvedShiftId) {
+    if (!user?.id || !clinicId || !resolvedShiftId) {
       setApplications([]);
       setIsLoading(false);
       return;
@@ -62,8 +64,8 @@ export default function ClinicShiftApplicationsScreen() {
     setIsLoading(true);
     try {
       const [shift, rows, unread] = await Promise.all([
-        getShiftPost(user.id, resolvedShiftId),
-        listClinicApplicationsForShift(user.id, resolvedShiftId),
+        getShiftPost(clinicId, resolvedShiftId),
+        listClinicApplicationsForShift(clinicId, resolvedShiftId),
         getUnreadConversationMap(user.id, 'clinic'),
       ]);
       setPostTitle(shift ? formatFillInPostTitle(shift.shift_date) : 'Fill-in applicants');
@@ -79,7 +81,7 @@ export default function ClinicShiftApplicationsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [goBack, resolvedShiftId, user?.id]);
+  }, [clinicId, goBack, resolvedShiftId, user?.id]);
 
   useRefreshOnFocus(load);
 

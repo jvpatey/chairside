@@ -54,13 +54,30 @@ export async function resolveAuthProfile(userId: string) {
 export async function setProfileRole(userId: string, role: UserRole) {
   const supabase = getSupabaseClient();
   const now = new Date().toISOString();
+  const existing = await getProfile(userId);
+  const payload = {
+    role,
+    onboarding_completed_at: now,
+    updated_at: now,
+  };
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', userId)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   const { data, error } = await supabase
     .from('profiles')
-    .upsert({
+    .insert({
       id: userId,
-      role,
-      onboarding_completed_at: now,
-      updated_at: now,
+      ...payload,
     })
     .select('*')
     .single();

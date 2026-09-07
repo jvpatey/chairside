@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
+const rpc = vi.hoisted(() => vi.fn());
+
 vi.mock('./client', () => ({
-  getSupabaseClient: () => ({ rpc: vi.fn() }),
+  getSupabaseClient: () => ({ rpc }),
 }));
 
-import { isClinicBillingLimitError } from './billing';
+import { assertClinicCanUseFeature, isClinicBillingLimitError } from './billing';
 
 describe('isClinicBillingLimitError', () => {
   it('detects Phase B feature and cap error strings', () => {
@@ -42,5 +44,30 @@ describe('isClinicBillingLimitError', () => {
 
   it('ignores unrelated errors', () => {
     expect(isClinicBillingLimitError('Could not save location.')).toBe(false);
+  });
+});
+
+describe('assertClinicCanUseFeature', () => {
+  it('surfaces the paid-plan exception from SQL', async () => {
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Clinic discover requires a paid clinic plan.' },
+    });
+
+    await expect(assertClinicCanUseFeature('clinic-1', 'clinic_discover')).rejects.toThrow(
+      'Clinic discover requires a paid clinic plan.',
+    );
+    expect(rpc).toHaveBeenCalledWith('assert_clinic_can_use_feature', {
+      p_clinic_id: 'clinic-1',
+      p_feature: 'clinic_discover',
+    });
+  });
+
+  it('resolves when the clinic can use the feature', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: null });
+
+    await expect(
+      assertClinicCanUseFeature('clinic-1', 'application_pdf_export'),
+    ).resolves.toBeUndefined();
   });
 });

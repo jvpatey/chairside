@@ -30,6 +30,7 @@ import {
   getClinicMessagesRoute,
 } from '@/lib/routing';
 import { hasActiveListSearch, matchesOpenInquiryWorkerSearch } from '@/lib/clinicListSearch';
+import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
 import { useThemedStyles, type GradientAccent } from '@/theme';
 
 const ACCENT: GradientAccent = 'primary';
@@ -47,7 +48,7 @@ const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
 export default function OpenInquiryCandidatesScreen() {
   const { user } = useAuth();
   const { clinicProfile, isProfileComplete } = useClinicProfile();
-  const { billing, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
+  const { billing, isBillingReady, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
     useClinicUpgradePrompt();
 
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
@@ -81,7 +82,11 @@ export default function OpenInquiryCandidatesScreen() {
   );
 
   const hasSearch = hasActiveListSearch(searchQuery);
-  const isLocked = Boolean(billing && !billing.canUseGeneralCandidateMessaging);
+  const isLocked = isClinicBillingFeatureLocked(
+    billing,
+    isBillingReady,
+    'canUseGeneralCandidateMessaging',
+  );
 
   const loadWorkers = useCallback(async () => {
     if (!user?.id) {
@@ -147,7 +152,7 @@ export default function OpenInquiryCandidatesScreen() {
       return;
     }
 
-    if (billing && !billing.canUseGeneralCandidateMessaging) {
+    if (isLocked) {
       showGeneralMessagingUpgrade();
       return;
     }
