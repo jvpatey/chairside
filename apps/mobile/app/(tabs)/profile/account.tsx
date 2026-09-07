@@ -27,6 +27,7 @@ export default function WorkerProfileAccountScreen() {
         firstName={profile?.first_name}
         lastName={profile?.last_name}
         accountTypeLabel={getAccountTypeLabel('worker')}
+        audience="worker"
         onProfileRefresh={refreshProfile}
         isSigningOut={isSigningOut}
         onSignOut={signOut}

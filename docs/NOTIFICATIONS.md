@@ -96,7 +96,7 @@ Required ops steps:
 2. Create Pingram notification type `clinic_manager_invitation` (`./scripts/setup-pingram-notification-types.sh`).
 3. Deploy `notify` and add the `clinic_invitations` INSERT webhook above.
 4. Set edge secrets as needed:
-   - `APP_WEB_BASE_URL` (defaults to `https://chairside.app`) for accept links
+   - `APP_WEB_BASE_URL` (defaults to `https://chairsidedental.app`) for accept links
    - optional `INVITE_SENDER_EMAIL` / `INVITE_SENDER_NAME`
 
 Smoke test (token redacted from script stdout):

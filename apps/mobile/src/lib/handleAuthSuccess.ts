@@ -1,9 +1,10 @@
-import { resolveAuthProfile, setProfileRole } from '@chairside/api';
+import { previewClinicManagerInvitation, resolveAuthProfile, setProfileRole } from '@chairside/api';
 import { router } from 'expo-router';
 
 import { isPasswordRecoveryPending } from '@/lib/authRecoveryState';
 import {
   buildClinicInviteAcceptHref,
+  clearClinicInviteToken,
   readClinicInviteToken,
 } from '@/lib/clinicInviteSession';
 import {
@@ -25,8 +26,19 @@ export async function handleAuthSuccess(
 
   const inviteToken = await readClinicInviteToken();
   if (inviteToken) {
-    router.replace(buildClinicInviteAcceptHref(inviteToken));
-    return;
+    try {
+      const preview = await previewClinicManagerInvitation(inviteToken);
+      if (preview.status === 'pending') {
+        router.replace(buildClinicInviteAcceptHref(inviteToken));
+        return;
+      }
+      // Revoked / expired / accepted / missing invites must not trap later sign-ins.
+      await clearClinicInviteToken();
+    } catch {
+      // Keep the token and resume the invite screen on transient preview failures.
+      router.replace(buildClinicInviteAcceptHref(inviteToken));
+      return;
+    }
   }
 
   let profile = await resolveAuthProfile(userId);

@@ -11,6 +11,7 @@ import {
   type ClinicInvitation,
   type ClinicMembership,
 } from '@chairside/api';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
@@ -29,10 +30,18 @@ import {
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EditPillButton } from '@/components/ui/EditPillButton';
+import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useClinicMemberPhotoUri } from '@/hooks/useClinicMemberPhotoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
 import { buildClinicManagerInviteUrl, formatInviteExpiry } from '@/lib/clinicInviteLinks';
+import {
+  formatTeamMemberSubtitle,
+  MANAGER_ACCESS_ITEMS,
+  OWNER_ACCESS_ITEMS,
+} from '@/lib/clinicTeamAccess';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import {
   CLINIC_ACCEPT_INVITE,
@@ -42,25 +51,54 @@ import {
 } from '@/lib/routing';
 import { useTheme, useThemedStyles } from '@/theme';
 
-async function confirmDestructiveAction(
-  title: string,
-  message: string,
-  confirmLabel: string,
-): Promise<boolean> {
-  if (Platform.OS === 'web') {
-    return typeof window !== 'undefined' ? window.confirm(`${title}\n\n${message}`) : false;
-  }
-
-  return new Promise((resolve) => {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-      { text: confirmLabel, style: 'destructive', onPress: () => resolve(true) },
-    ]);
-  });
-}
-
 function roleLabel(role: ClinicMembership['role']): string {
   return role === 'owner' ? 'Owner' : 'Manager';
+}
+
+function TeamMemberAvatar({
+  name,
+  photoStoragePath,
+}: {
+  name: string;
+  photoStoragePath?: string | null;
+}) {
+  const photoUri = useClinicMemberPhotoUri(photoStoragePath);
+  return <WorkerProfileAvatar displayName={name} photoUri={photoUri} size={36} />;
+}
+
+function AccessCapabilities({ items }: { items: readonly string[] }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ colors: themeColors, spacing, typography }) => ({
+    list: { gap: spacing.sm, paddingTop: spacing.xs },
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: spacing.sm,
+    },
+    text: {
+      ...typography.subtitle,
+      flex: 1,
+      fontSize: 14,
+      lineHeight: 20,
+      color: themeColors.labelSecondary,
+    },
+  }));
+
+  return (
+    <View style={styles.list}>
+      {items.map((item) => (
+        <View key={item} style={styles.row}>
+          <Ionicons
+            name="checkmark-circle"
+            size={16}
+            color={colors.primary}
+            style={{ marginTop: 2 }}
+          />
+          <Text style={styles.text}>{item}</Text>
+        </View>
+      ))}
+    </View>
+  );
 }
 
 export default function ClinicTeamSettingsScreen() {
@@ -354,57 +392,74 @@ export default function ClinicTeamSettingsScreen() {
     }
   };
 
-  const handleTransferOwnership = async (member: ClinicMembership) => {
+  const handleTransferOwnership = (member: ClinicMembership) => {
     if (!clinicId) return;
-    const confirmed = await confirmDestructiveAction(
-      'Transfer ownership?',
-      `${member.display_name || 'This manager'} will become the owner of ${groupName}.`,
-      'Transfer',
-    );
-    if (!confirmed) return;
-    try {
-      setError(null);
-      await transferClinicOrganizationOwnership(clinicId, member.id);
-      await refreshClinicProfile();
-      await reload();
-      setStatusMessage('Ownership transferred.');
-    } catch (transferError) {
-      setError(
-        transferError instanceof Error ? transferError.message : 'Could not transfer ownership.',
-      );
-    }
+    showConfirmActionSheet({
+      title: 'Transfer ownership?',
+      message: `${member.display_name || 'This manager'} will become the owner of ${groupName}. You will become a manager.`,
+      confirmLabel: 'Transfer ownership',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          setError(null);
+          await transferClinicOrganizationOwnership(clinicId, member.id);
+          await refreshClinicProfile();
+          await reload();
+          setStatusMessage('Ownership transferred.');
+          setLastInvite(null);
+        } catch (transferError) {
+          setError(
+            transferError instanceof Error
+              ? transferError.message
+              : 'Could not transfer ownership.',
+          );
+        }
+      },
+    });
   };
 
-  const handleRemoveManager = async (member: ClinicMembership) => {
-    const confirmed = await confirmDestructiveAction(
-      'Remove manager?',
-      `${member.display_name || 'This manager'} will lose access immediately.`,
-      'Remove',
-    );
-    if (!confirmed) return;
-    try {
-      setError(null);
-      await removeClinicManager(member.id);
-      await reload();
-    } catch (removeError) {
-      setError(removeError instanceof Error ? removeError.message : 'Could not remove manager.');
-    }
+  const handleRemoveManager = (member: ClinicMembership) => {
+    showConfirmActionSheet({
+      title: 'Remove manager?',
+      message: `${member.display_name || 'This manager'} will lose access to ${groupName} immediately.`,
+      confirmLabel: 'Remove manager',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          setError(null);
+          await removeClinicManager(member.id);
+          await reload();
+          setStatusMessage(`${member.display_name || 'Manager'} removed.`);
+          setLastInvite(null);
+        } catch (removeError) {
+          setError(
+            removeError instanceof Error ? removeError.message : 'Could not remove manager.',
+          );
+        }
+      },
+    });
   };
 
-  const handleRevokeInvite = async (invite: ClinicInvitation) => {
-    const confirmed = await confirmDestructiveAction(
-      'Revoke invitation?',
-      `The invite for ${invite.email} will no longer work.`,
-      'Revoke',
-    );
-    if (!confirmed) return;
-    try {
-      setError(null);
-      await revokeClinicManagerInvitation(invite.id);
-      await reload();
-    } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : 'Could not revoke invitation.');
-    }
+  const handleRevokeInvite = (invite: ClinicInvitation) => {
+    showConfirmActionSheet({
+      title: 'Revoke invitation?',
+      message: `The invite for ${invite.email} will no longer work.`,
+      confirmLabel: 'Revoke invitation',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          setError(null);
+          await revokeClinicManagerInvitation(invite.id);
+          setLastInvite((current) => (current?.id === invite.id ? null : current));
+          setStatusMessage(`Invitation for ${invite.email} revoked.`);
+          await reload();
+        } catch (revokeError) {
+          setError(
+            revokeError instanceof Error ? revokeError.message : 'Could not revoke invitation.',
+          );
+        }
+      },
+    });
   };
 
   if (!isClinicProfileReady || !groupsEnabled || !isGroup) {
@@ -413,6 +468,7 @@ export default function ClinicTeamSettingsScreen() {
 
   // Manager: view of their own access (+ edit profile).
   if (!isOwner) {
+    const managerName = membership?.display_name || 'Manager';
     return (
       <ProfileDetailScreen
         title="Team & access"
@@ -422,14 +478,21 @@ export default function ClinicTeamSettingsScreen() {
         onBack={() => navigateToClinicProfileHub(router)}>
         <ProfileDetailStack>
           <SectionPanel
-            icon="person-outline"
-            title={membership?.display_name || 'Manager'}
-            subtitle="Manager"
+            leading={
+              <TeamMemberAvatar
+                name={managerName}
+                photoStoragePath={membership?.photo_storage_path}
+              />
+            }
+            title={managerName}
+            subtitle={formatTeamMemberSubtitle({
+              role: 'manager',
+              title: membership?.title,
+              locationNames: assignedLocationNames,
+            })}
+            subtitleNumberOfLines={2}
             collapsible
-            defaultExpanded={false}>
-            <Text style={styles.hint}>
-              Ask the owner to update your location access if something looks wrong.
-            </Text>
+            defaultExpanded>
             <FieldBlock label="Role">
               <FieldValue value="Manager" />
             </FieldBlock>
@@ -447,6 +510,13 @@ export default function ClinicTeamSettingsScreen() {
                 }
               />
             </FieldBlock>
+            <FieldDivider />
+            <FieldBlock label="What you can do">
+              <AccessCapabilities items={MANAGER_ACCESS_ITEMS} />
+            </FieldBlock>
+            <Text style={[styles.hint, { marginTop: 8 }]}>
+              Ask the owner to update your location access if something looks wrong.
+            </Text>
             <View style={styles.actions}>
               <EditPillButton label="Edit profile" onPress={startEditProfile} />
             </View>
@@ -548,7 +618,9 @@ export default function ClinicTeamSettingsScreen() {
 
         {statusMessage || lastInvite ? (
           <View style={styles.statusBox}>
-            <Text style={styles.statusTitle}>Invitation update</Text>
+            <Text style={styles.statusTitle}>
+              {lastInvite ? 'Invitation update' : 'Team update'}
+            </Text>
             <Text style={styles.hint}>
               {statusMessage ??
                 `Invitation created for ${lastInvite?.email}. Copy the link if email is delayed.`}
@@ -574,23 +646,37 @@ export default function ClinicTeamSettingsScreen() {
         ) : null}
 
         <ProfileDetailStack>
-          {owners.map((member, index) => {
+          {owners.map((member) => {
             const isSelf = member.id === membership?.id;
+            const ownerName = member.display_name || 'Owner';
             return (
               <SectionPanel
                 key={member.id}
-                icon="shield-checkmark-outline"
-                iconAccent="primary"
-                title={member.display_name || 'Owner'}
-                subtitle={roleLabel(member.role)}
+                leading={
+                  <TeamMemberAvatar
+                    name={ownerName}
+                    photoStoragePath={member.photo_storage_path}
+                  />
+                }
+                title={ownerName}
+                subtitle={formatTeamMemberSubtitle({ role: 'owner', title: member.title })}
+                subtitleNumberOfLines={2}
                 collapsible
-                defaultExpanded={false}>
+                defaultExpanded={isSelf}>
                 <FieldBlock label="Role">
                   <FieldValue value={roleLabel(member.role)} />
                 </FieldBlock>
                 <FieldDivider />
                 <FieldBlock label="Title">
                   <FieldValue value={member.title || 'Owner'} />
+                </FieldBlock>
+                <FieldDivider />
+                <FieldBlock label="Access">
+                  <FieldValue value="All locations" />
+                </FieldBlock>
+                <FieldDivider />
+                <FieldBlock label="What they can do">
+                  <AccessCapabilities items={OWNER_ACCESS_ITEMS} />
                 </FieldBlock>
                 {isSelf ? (
                   <View style={styles.actions}>
@@ -601,20 +687,30 @@ export default function ClinicTeamSettingsScreen() {
             );
           })}
 
-          {managers.map((member, index) => {
+          {managers.map((member) => {
             const draftIds = getMemberAssignmentDraft(member);
-            const assignedNames = draftIds
+            const assignedNamesList = draftIds
               .map((id) => locationNameById.get(id))
-              .filter(Boolean)
-              .join(', ');
+              .filter((name): name is string => Boolean(name));
+            const assignedNames = assignedNamesList.join(', ');
+            const managerName = member.display_name || 'Manager';
 
             return (
               <SectionPanel
                 key={member.id}
-                icon="people-outline"
-                iconAccent={index % 2 === 0 ? 'secondary' : 'primary'}
-                title={member.display_name || 'Manager'}
-                subtitle="Manager"
+                leading={
+                  <TeamMemberAvatar
+                    name={managerName}
+                    photoStoragePath={member.photo_storage_path}
+                  />
+                }
+                title={managerName}
+                subtitle={formatTeamMemberSubtitle({
+                  role: 'manager',
+                  title: member.title,
+                  locationNames: assignedNamesList,
+                })}
+                subtitleNumberOfLines={2}
                 collapsible
                 defaultExpanded={false}>
                 <FieldBlock label="Role">
@@ -627,6 +723,10 @@ export default function ClinicTeamSettingsScreen() {
                 <FieldDivider />
                 <FieldBlock label="Assigned clinics">
                   <FieldValue value={assignedNames || null} />
+                </FieldBlock>
+                <FieldDivider />
+                <FieldBlock label="What they can do">
+                  <AccessCapabilities items={MANAGER_ACCESS_ITEMS} />
                 </FieldBlock>
                 <Text style={[styles.hint, { marginTop: 8 }]}>Update clinic access</Text>
                 <ChipSelector
@@ -663,69 +763,77 @@ export default function ClinicTeamSettingsScreen() {
           })}
 
           {invitations.length > 0
-            ? invitations.map((invite, index) => (
-                <SectionPanel
-                  key={invite.id}
-                  icon="mail-outline"
-                  iconAccent="secondary"
-                  title={invite.display_name || invite.email}
-                  subtitle="Manager · Invitation pending"
-                  collapsible
-                  defaultExpanded={false}>
-                  <Text style={styles.hint}>
-                    Manager waiting to accept invitation — they don’t have access yet.
-                  </Text>
-                  <FieldBlock label="Role">
-                    <FieldValue value="Manager" />
-                  </FieldBlock>
-                  <FieldDivider />
-                  <FieldBlock label="Status">
-                    <View style={styles.pendingStatus}>
-                      <Text style={styles.pendingStatusLabel}>Invitation pending</Text>
+            ? invitations.map((invite) => {
+                const inviteLocationNames = invite.location_ids
+                  .map((id) => locationNameById.get(id))
+                  .filter((name): name is string => Boolean(name));
+                const inviteName = invite.display_name || invite.email;
+                return (
+                  <SectionPanel
+                    key={invite.id}
+                    leading={<TeamMemberAvatar name={inviteName} />}
+                    title={inviteName}
+                    subtitle={formatTeamMemberSubtitle({
+                      role: 'pending',
+                      locationNames: inviteLocationNames,
+                    })}
+                    subtitleNumberOfLines={2}
+                    collapsible
+                    defaultExpanded={false}>
+                    <Text style={styles.hint}>
+                      Waiting to accept — they don’t have access until they join.
+                    </Text>
+                    <FieldBlock label="Role">
+                      <FieldValue value="Manager" />
+                    </FieldBlock>
+                    <FieldDivider />
+                    <FieldBlock label="Status">
+                      <View style={styles.pendingStatus}>
+                        <Text style={styles.pendingStatusLabel}>Invitation pending</Text>
+                      </View>
+                    </FieldBlock>
+                    <FieldDivider />
+                    <FieldBlock label="Title">
+                      <FieldValue value={invite.title || 'Manager'} />
+                    </FieldBlock>
+                    <FieldDivider />
+                    <FieldBlock label="Email">
+                      <FieldValue value={invite.email} />
+                    </FieldBlock>
+                    <FieldDivider />
+                    <FieldBlock label="Assigned clinics">
+                      <FieldValue
+                        value={inviteLocationNames.join(', ') || null}
+                      />
+                    </FieldBlock>
+                    <FieldDivider />
+                    <FieldBlock label="Access after they join">
+                      <AccessCapabilities items={MANAGER_ACCESS_ITEMS} />
+                    </FieldBlock>
+                    <FieldDivider />
+                    <FieldBlock label="Expires">
+                      <FieldValue value={formatInviteExpiry(invite.expires_at)} />
+                    </FieldBlock>
+                    <View style={styles.actions}>
+                      <EditPillButton
+                        label={busyInviteId === invite.id ? 'Resending…' : 'Resend'}
+                        onPress={() => void handleResend(invite)}
+                        showIcon={false}
+                      />
+                      <Pressable
+                        style={styles.actionLink}
+                        onPress={() => void copyInviteLink(invite.token)}>
+                        <Text style={styles.actionLinkLabel}>Copy link</Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.danger}
+                        onPress={() => void handleRevokeInvite(invite)}>
+                        <Text style={styles.dangerLabel}>Revoke</Text>
+                      </Pressable>
                     </View>
-                  </FieldBlock>
-                  <FieldDivider />
-                  <FieldBlock label="Title">
-                    <FieldValue value={invite.title || 'Manager'} />
-                  </FieldBlock>
-                  <FieldDivider />
-                  <FieldBlock label="Email">
-                    <FieldValue value={invite.email} />
-                  </FieldBlock>
-                  <FieldDivider />
-                  <FieldBlock label="Assigned clinics">
-                    <FieldValue
-                      value={
-                        invite.location_ids
-                          .map((id) => locationNameById.get(id))
-                          .filter(Boolean)
-                          .join(', ') || null
-                      }
-                    />
-                  </FieldBlock>
-                  <FieldDivider />
-                  <FieldBlock label="Expires">
-                    <FieldValue value={formatInviteExpiry(invite.expires_at)} />
-                  </FieldBlock>
-                  <View style={styles.actions}>
-                    <EditPillButton
-                      label={busyInviteId === invite.id ? 'Resending…' : 'Resend'}
-                      onPress={() => void handleResend(invite)}
-                      showIcon={false}
-                    />
-                    <Pressable
-                      style={styles.actionLink}
-                      onPress={() => void copyInviteLink(invite.token)}>
-                      <Text style={styles.actionLinkLabel}>Copy link</Text>
-                    </Pressable>
-                    <Pressable
-                      style={styles.danger}
-                      onPress={() => void handleRevokeInvite(invite)}>
-                      <Text style={styles.dangerLabel}>Revoke</Text>
-                    </Pressable>
-                  </View>
-                </SectionPanel>
-              ))
+                  </SectionPanel>
+                );
+              })
             : null}
         </ProfileDetailStack>
       </View>

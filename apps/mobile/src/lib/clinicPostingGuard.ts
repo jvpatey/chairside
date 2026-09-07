@@ -1,9 +1,9 @@
 import type { ClinicProfile, ClinicProfileCompletenessLocation } from '@chairside/api';
 import { getMissingClinicProfileFields } from '@chairside/api';
 import type { Href } from 'expo-router';
-import { Alert, Platform } from 'react-native';
 
 import { getClinicPostingSetupHref } from '@/lib/clinicPostingSetupRouting';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 
 type GuardClinicPostingInput = {
   isProfileComplete: boolean;
@@ -19,18 +19,12 @@ function showPostingBlockedAlert(
   setupHref: Href,
   onNavigate: (href: Href) => void,
 ) {
-  if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined') {
-      const confirmed = window.confirm(`${message}\n\nContinue setup?`);
-      if (confirmed) onNavigate(setupHref);
-    }
-    return;
-  }
-
-  Alert.alert('Complete your clinic profile', message, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Continue setup', onPress: () => onNavigate(setupHref) },
-  ]);
+  showConfirmActionSheet({
+    title: 'Complete your clinic profile',
+    message,
+    confirmLabel: 'Continue setup',
+    onConfirm: () => onNavigate(setupHref),
+  });
 }
 
 export function guardClinicPosting({

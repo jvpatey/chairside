@@ -31,6 +31,7 @@ import {
 } from '@/lib/routing';
 import { hasActiveListSearch, matchesOpenInquiryWorkerSearch } from '@/lib/clinicListSearch';
 import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { useThemedStyles, type GradientAccent } from '@/theme';
 
 const ACCENT: GradientAccent = 'primary';
@@ -136,14 +137,12 @@ export default function OpenInquiryCandidatesScreen() {
   };
 
   const guardProfile = () => {
-    Alert.alert(
-      'Complete your clinic profile',
-      'Finish your clinic profile before messaging candidates.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue setup', onPress: () => router.push(CLINIC_SETUP_BASICS) },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Complete your clinic profile',
+      message: 'Finish your clinic profile before messaging candidates.',
+      confirmLabel: 'Continue setup',
+      onConfirm: () => router.push(CLINIC_SETUP_BASICS),
+    });
   };
 
   const handleMessage = async (worker: OpenInquiryWorker) => {

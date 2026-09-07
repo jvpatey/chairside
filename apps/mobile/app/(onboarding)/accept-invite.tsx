@@ -8,7 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
@@ -17,10 +17,12 @@ import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 import {
   clearClinicInviteToken,
   saveClinicInviteToken,
 } from '@/lib/clinicInviteSession';
+import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { CLINIC_HOME, CLINIC_SETUP_ACCOUNT_TYPE } from '@/lib/routing';
 import {
   colorWithAlpha,
@@ -247,6 +249,7 @@ export default function AcceptClinicInviteScreen() {
   const params = useLocalSearchParams<{ token?: string }>();
   const { session, profile, refreshProfile } = useAuth();
   const { refreshClinicProfile } = useClinicProfile();
+  const { completeOnboarding } = useOnboarding();
   const { colors } = useTheme();
   const [token, setToken] = useState(
     typeof params.token === 'string' ? params.token : '',
@@ -257,6 +260,7 @@ export default function AcceptClinicInviteScreen() {
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showCodeEntry, setShowCodeEntry] = useState(!params.token);
+  const didAutoContinueRef = useRef(false);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
@@ -279,7 +283,7 @@ export default function AcceptClinicInviteScreen() {
     if (next) {
       setToken(next);
       setShowCodeEntry(false);
-      void saveClinicInviteToken(next);
+      // Only persist after preview confirms pending — revoked links must not re-trap sign-in.
     }
   }, [params.token]);
 
@@ -290,9 +294,15 @@ export default function AcceptClinicInviteScreen() {
     }
     setIsLoadingPreview(true);
     setSubmitError(null);
+    setPreview(null);
     try {
       const next = await previewClinicManagerInvitation(value.trim());
       setPreview(next);
+      if (next.status === 'pending') {
+        await saveClinicInviteToken(value.trim());
+        return;
+      }
+      await clearClinicInviteToken();
       if (next.status === 'not_found') {
         setSubmitError('Invitation not found. Check the link or code and try again.');
       } else if (next.status === 'expired') {
@@ -390,6 +400,39 @@ export default function AcceptClinicInviteScreen() {
     }
   };
 
+  const handleContinueWithoutInvite = useCallback(async () => {
+    if (!session) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await clearClinicInviteToken();
+      const { href, role } = await resolveAuthenticatedRoute({
+        userId: session.user.id,
+        profile,
+        refreshProfile,
+      });
+      if (role) {
+        await completeOnboarding(role);
+      }
+      router.replace(href);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Could not continue.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [completeOnboarding, profile, refreshProfile, session]);
+
+  const inviteUnusable = Boolean(
+    preview && preview.status !== 'pending' && !isLoadingPreview,
+  );
+
+  // Signed-in users hitting a dead invite link should leave automatically.
+  useEffect(() => {
+    if (!session || !inviteUnusable || didAutoContinueRef.current) return;
+    didAutoContinueRef.current = true;
+    void handleContinueWithoutInvite();
+  }, [handleContinueWithoutInvite, inviteUnusable, session]);
+
   const canJoin =
     Boolean(token.trim()) &&
     !emailMismatch &&
@@ -405,7 +448,9 @@ export default function AcceptClinicInviteScreen() {
       atmosphere="form"
       footer={
         <SetupStepFooter
-          canContinue={emailMismatch ? Boolean(token.trim()) : canJoin}
+          canContinue={
+            emailMismatch ? Boolean(token.trim()) : inviteUnusable ? true : canJoin
+          }
           validationMessage={
             emailMismatch
               ? `Sign in as ${preview?.email} to accept this invitation.`
@@ -414,8 +459,20 @@ export default function AcceptClinicInviteScreen() {
           showValidation={Boolean(submitError) && !token.trim()}
           submitError={submitError}
           isSubmitting={isSubmitting || isSwitchingAccount}
-          continueLabel={emailMismatch ? 'Switch account' : 'Join clinic group'}
-          onContinue={emailMismatch ? handleSwitchAccount : handleAccept}
+          continueLabel={
+            emailMismatch
+              ? 'Switch account'
+              : inviteUnusable
+                ? 'Continue'
+                : 'Join clinic group'
+          }
+          onContinue={
+            emailMismatch
+              ? handleSwitchAccount
+              : inviteUnusable
+                ? handleContinueWithoutInvite
+                : handleAccept
+          }
         />
       }>
       <AuthScreenHeader
@@ -423,7 +480,9 @@ export default function AcceptClinicInviteScreen() {
         subtitle={
           emailMismatch
             ? `This invite is for ${preview?.email}. Switch accounts to continue.`
-            : 'Review your invitation, then join with the invited email.'
+            : inviteUnusable
+              ? 'This invitation cannot be used. Continue to your account, or enter a different code.'
+              : 'Review your invitation, then join with the invited email.'
         }
         onBack={() => router.back()}
       />

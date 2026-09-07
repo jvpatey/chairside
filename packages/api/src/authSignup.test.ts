@@ -65,7 +65,7 @@ describe('getSignupEmailRedirectUrl', () => {
   it('uses the production web callback by default', () => {
     const previous = process.env.EXPO_PUBLIC_WEB_BASE_URL;
     delete process.env.EXPO_PUBLIC_WEB_BASE_URL;
-    expect(getSignupEmailRedirectUrl()).toBe('https://chairside.app/auth/callback');
+    expect(getSignupEmailRedirectUrl()).toBe('https://chairsidedental.app/auth/callback');
     if (previous === undefined) {
       delete process.env.EXPO_PUBLIC_WEB_BASE_URL;
     } else {
@@ -182,7 +182,7 @@ describe('completeEmailSignUp', () => {
     expect(signUp).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({
-          emailRedirectTo: 'https://chairside.app/auth/callback',
+          emailRedirectTo: 'https://chairsidedental.app/auth/callback',
         }),
       }),
     );
@@ -200,7 +200,7 @@ describe('resendSignupConfirmation', () => {
     expect(resend).toHaveBeenCalledWith({
       type: 'signup',
       email: 'a@b.com',
-      options: { emailRedirectTo: 'https://chairside.app/auth/callback' },
+      options: { emailRedirectTo: 'https://chairsidedental.app/auth/callback' },
     });
   });
 });

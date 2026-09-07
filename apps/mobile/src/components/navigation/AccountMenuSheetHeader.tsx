@@ -10,6 +10,7 @@ import {
   formatClinicSubscriptionStatus,
   formatSubscriptionStatusBadge,
 } from '@/lib/clinicPlanPresentation';
+import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { fontSemibold, useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
 
@@ -25,11 +26,6 @@ export type AccountMenuSheetHeaderProps = {
   billing?: ClinicBillingState | null;
   locationCount?: number;
 };
-
-function getAccountTypeLabel(role: 'worker' | 'clinic', isGroup: boolean): string {
-  if (role === 'worker') return 'Dental professional';
-  return isGroup ? 'Dental group' : 'Individual clinic';
-}
 
 function formatLocationCount(count: number): string {
   return count === 1 ? '1 location' : `${count} locations`;
@@ -115,7 +111,7 @@ export function AccountMenuSheetHeader({
     billing && plan && plan !== 'free' ? formatSubscriptionStatusBadge(billing.status) : null;
 
   const detailRows: InfoTableRowProps[] = [
-    { label: 'Account type', value: getAccountTypeLabel(role, isGroup) },
+    { label: 'Account type', value: getAccountTypeLabel(role, { isGroup }) },
   ];
 
   if (role === 'clinic' && plan) {

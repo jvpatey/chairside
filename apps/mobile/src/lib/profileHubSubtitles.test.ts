@@ -11,11 +11,22 @@ vi.mock('@chairside/api', () => ({
 }));
 
 import {
+  getAccountTypeLabel,
   getClinicAboutSubtitle,
   getClinicGroupDetailsSubtitle,
+  getClinicGroupProfileSubtitle,
   getClinicLocationsSubtitle,
   getClinicMessagingSubtitle,
 } from '@/lib/profileHubSubtitles';
+
+describe('getAccountTypeLabel', () => {
+  it('labels worker and clinic account types', () => {
+    expect(getAccountTypeLabel('worker')).toBe('Find work');
+    expect(getAccountTypeLabel('clinic')).toBe('Clinic');
+    expect(getAccountTypeLabel('clinic', { isGroup: false })).toBe('Clinic');
+    expect(getAccountTypeLabel('clinic', { isGroup: true })).toBe('Clinic group');
+  });
+});
 
 describe('getClinicMessagingSubtitle', () => {
   it('distinguishes locked Free from off-by-choice', () => {
@@ -78,6 +89,33 @@ describe('getClinicLocationsSubtitle', () => {
         ],
       }),
     ).toBe('1 location');
+  });
+});
+
+describe('getClinicGroupProfileSubtitle', () => {
+  it('prompts for the full group profile when name is missing', () => {
+    expect(getClinicGroupProfileSubtitle({ clinic_name: '' } as never)).toBe(
+      'Add group name, story, and doctors',
+    );
+  });
+
+  it('combines name with about extras', () => {
+    expect(
+      getClinicGroupProfileSubtitle(
+        {
+          clinic_name: 'Smile Group',
+          description: 'Great team',
+          website: 'https://example.com',
+        } as never,
+        { doctorCount: 2 },
+      ),
+    ).toBe('Smile Group · description, website, 2 doctors');
+  });
+
+  it('flags missing story when only the name is set', () => {
+    expect(getClinicGroupProfileSubtitle({ clinic_name: 'Smile Group' } as never)).toBe(
+      'Smile Group · Add story and doctors',
+    );
   });
 });
 

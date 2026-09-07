@@ -18,12 +18,16 @@ export type ProfileSettingsCardProps = {
   subtitle?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   iconAccent?: DashboardWidgetAccent;
+  /** Custom leading content (e.g. avatar). Takes precedence over `icon`. */
+  leading?: ReactNode;
   children: ReactNode;
   variant?: ProfileSettingsCardVariant;
   style?: StyleProp<ViewStyle>;
   headerAccessory?: ReactNode;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  /** Max lines for the subtitle (default 1). */
+  subtitleNumberOfLines?: number;
 };
 
 export function ProfileSettingsCard({
@@ -31,12 +35,14 @@ export function ProfileSettingsCard({
   subtitle,
   icon,
   iconAccent = 'primary',
+  leading,
   children,
   variant = 'default',
   style,
   headerAccessory,
   collapsible = false,
   defaultExpanded = true,
+  subtitleNumberOfLines = 1,
 }: ProfileSettingsCardProps) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -109,7 +115,9 @@ export function ProfileSettingsCard({
     setExpanded((current) => !current);
   };
 
-  const headerIcon = icon ? (
+  const headerIcon = leading ? (
+    leading
+  ) : icon ? (
     isDanger ? (
       <View style={styles.iconWrap}>
         <Ionicons name={icon} size={20} color={iconColor} />
@@ -125,7 +133,7 @@ export function ProfileSettingsCard({
         {title}
       </Text>
       {subtitle ? (
-        <Text style={styles.subtitle} numberOfLines={1}>
+        <Text style={styles.subtitle} numberOfLines={subtitleNumberOfLines}>
           {subtitle}
         </Text>
       ) : null}

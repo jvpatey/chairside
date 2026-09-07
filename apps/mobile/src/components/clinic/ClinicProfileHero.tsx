@@ -32,6 +32,8 @@ export type ClinicIdentityHeroCardProps = {
   onPickLogo?: () => void;
   avatarAccessibilityLabel?: string;
   showAccountBadge?: boolean;
+  /** When true, badge reads "Clinic group account" instead of "Clinic account". */
+  isGroup?: boolean;
   plan?: ClinicPlan | null;
   emptyMetaFallback?: string;
 };
@@ -51,6 +53,7 @@ export function ClinicIdentityHeroCard({
   onPickLogo,
   avatarAccessibilityLabel,
   showAccountBadge = false,
+  isGroup = false,
   plan,
   emptyMetaFallback,
 }: ClinicIdentityHeroCardProps) {
@@ -194,7 +197,10 @@ export function ClinicIdentityHeroCard({
             <View style={styles.badgeRow}>
               <BadgeRow>
                 {showAccountBadge ? (
-                  <AccountTypeBadge label={getAccountTypeLabel('clinic')} inRow />
+                  <AccountTypeBadge
+                    label={getAccountTypeLabel('clinic', { isGroup })}
+                    inRow
+                  />
                 ) : null}
                 {plan ? <PlanTierBadge plan={plan} size="sm" /> : null}
               </BadgeRow>
@@ -223,6 +229,7 @@ type ClinicProfileHeroProps = {
   isUploadingAvatar?: boolean;
   /** Hide specialty/city meta (groups use role · group on identityLine). */
   hideClinicMeta?: boolean;
+  isGroup?: boolean;
 };
 
 export function ClinicProfileHero({
@@ -238,6 +245,7 @@ export function ClinicProfileHero({
   onAvatarPress,
   isUploadingAvatar,
   hideClinicMeta = false,
+  isGroup = false,
 }: ClinicProfileHeroProps) {
   const {
     logoUri,
@@ -285,6 +293,7 @@ export function ClinicProfileHero({
               : 'Change clinic logo'
         }
         showAccountBadge
+        isGroup={isGroup}
         plan={plan}
         emptyMetaFallback={
           hideClinicMeta ? undefined : 'Complete your clinic profile to get started'

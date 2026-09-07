@@ -6,7 +6,7 @@ import {
 import { FILL_IN_BULK_OUTREACH_MAX, getRoleTypeLabel, ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { AvailableFillInWorkerCard } from '@/components/clinic/AvailableFillInWorkerCard';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
@@ -38,6 +38,7 @@ import {
   isClinicBillingFeatureLocked,
   isClinicBillingFeatureUnlocked,
 } from '@/lib/clinicPlanPresentation';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { useThemedStyles, type GradientAccent } from '@/theme';
 
 const FILL_IN_ACCENT: GradientAccent = 'secondary';
@@ -186,14 +187,12 @@ export default function FindAvailableWorkersScreen() {
   };
 
   const guardProfile = () => {
-    Alert.alert(
-      'Complete your clinic profile',
-      'Finish your clinic profile before messaging available workers.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue setup', onPress: () => router.push(CLINIC_SETUP_BASICS) },
-      ],
-    );
+    showConfirmActionSheet({
+      title: 'Complete your clinic profile',
+      message: 'Finish your clinic profile before messaging available workers.',
+      confirmLabel: 'Continue setup',
+      onConfirm: () => router.push(CLINIC_SETUP_BASICS),
+    });
   };
 
   const handleMessage = (worker: FillInOutreachWorker) => {

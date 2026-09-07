@@ -8,7 +8,7 @@ import {
 import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel, type TeamSizeRange } from '@chairside/config';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import {
   AddressAutocomplete,
@@ -43,6 +43,7 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { formatPhoneNumber } from '@/lib/phone';
 import { navigateToClinicProfileHub } from '@/lib/routing';
 import {
@@ -197,22 +198,6 @@ function LocationSettingsCard({
       ) : null}
     </SectionPanel>
   );
-}
-
-async function confirmDeleteLocation(locationName: string): Promise<boolean> {
-  const title = 'Delete location?';
-  const message = `${locationName} will stop accepting new posts. Existing posts stay in history.`;
-
-  if (Platform.OS === 'web') {
-    return typeof window !== 'undefined' ? window.confirm(`${title}\n\n${message}`) : false;
-  }
-
-  return new Promise((resolve) => {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-      { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
-    ]);
-  });
 }
 
 export default function ClinicLocationsSettingsScreen() {
@@ -427,25 +412,30 @@ export default function ClinicLocationsSettingsScreen() {
     }
   };
 
-  const handleDelete = async (location: ClinicLocation) => {
+  const handleDelete = (location: ClinicLocation) => {
     if (activeLocations.length <= 1) {
       setError('Keep at least one active location.');
       return;
     }
 
-    const confirmed = await confirmDeleteLocation(location.name);
-    if (!confirmed) return;
-
-    try {
-      setError(null);
-      await deactivateClinicLocation(location.id);
-      if (editingId === location.id) resetForm();
-      await refreshClinicProfile();
-    } catch (deleteError) {
-      setError(
-        deleteError instanceof Error ? deleteError.message : 'Could not delete location.',
-      );
-    }
+    showConfirmActionSheet({
+      title: 'Delete location?',
+      message: `${location.name} will stop accepting new posts. Existing posts stay in history.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          setError(null);
+          await deactivateClinicLocation(location.id);
+          if (editingId === location.id) resetForm();
+          await refreshClinicProfile();
+        } catch (deleteError) {
+          setError(
+            deleteError instanceof Error ? deleteError.message : 'Could not delete location.',
+          );
+        }
+      },
+    });
   };
 
   if (!isClinicProfileReady || !groupsEnabled || !isGroup) {

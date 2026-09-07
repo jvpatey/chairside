@@ -367,13 +367,19 @@ function LocationScopeDropdown({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   useWebEscapeKey(onClose, visible);
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, elevation }) => ({
     backdrop: {
       ...StyleSheet.absoluteFillObject,
     },
     panel: {
       paddingVertical: spacing.xs + 2,
       paddingHorizontal: spacing.xs + 2,
+      borderRadius: 14,
+      overflow: 'hidden' as const,
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      ...elevation('floating'),
     },
   }));
 
@@ -400,7 +406,7 @@ function LocationScopeDropdown({
           entering={DROPDOWN_ENTER}
           style={{ position: 'absolute', left, top, width }}>
           <Pressable onPress={(event) => event.stopPropagation()}>
-            <LiquidGlassSurface borderRadius={14} style={styles.panel}>
+            <View style={styles.panel}>
               <ScrollView
                 style={{ maxHeight }}
                 keyboardShouldPersistTaps="handled"
@@ -415,7 +421,7 @@ function LocationScopeDropdown({
                   density="menu"
                 />
               </ScrollView>
-            </LiquidGlassSurface>
+            </View>
           </Pressable>
         </Animated.View>
       </Pressable>

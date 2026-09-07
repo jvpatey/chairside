@@ -14,6 +14,8 @@ export type PracticeDoctorLocationLookup = {
 type PracticeDoctorListProps = {
   doctors: PracticeDoctor[];
   locations?: PracticeDoctorLocationLookup[];
+  /** When false, omit the built-in "Doctors" heading (for sectioned review layouts). */
+  showLabel?: boolean;
 };
 
 function formatDoctorLocationNames(
@@ -220,14 +222,15 @@ function PracticeDoctorReviewCard({
 export function PracticeDoctorReviewSection({
   doctors,
   locations = [],
+  showLabel = true,
 }: PracticeDoctorListProps) {
   const locationsById = new Map(locations.map((location) => [location.id, location.name]));
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     section: {
       gap: spacing.sm,
-      paddingVertical: spacing.sm,
-      borderBottomWidth: 1,
+      paddingVertical: showLabel ? spacing.sm : 0,
+      borderBottomWidth: showLabel ? 1 : 0,
       borderBottomColor: colors.separator,
     },
     label: {
@@ -243,7 +246,7 @@ export function PracticeDoctorReviewSection({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.label}>Doctors</Text>
+      {showLabel ? <Text style={styles.label}>Doctors</Text> : null}
       {doctors.length === 0 ? (
         <Text style={styles.empty}>—</Text>
       ) : (

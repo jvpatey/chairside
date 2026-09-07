@@ -1,22 +1,15 @@
 import { Redirect, useLocalSearchParams, type Href } from 'expo-router';
-import { useEffect } from 'react';
 
-import { saveClinicInviteToken } from '@/lib/clinicInviteSession';
 import { CLINIC_ACCEPT_INVITE } from '@/lib/routing';
 
 /**
  * Public HTTPS / app-link entry for manager invitations.
- * Persists the token and forwards into the onboarding accept screen.
+ * Forwards into the onboarding accept screen. Token persistence happens only
+ * after that screen confirms the invite is still pending.
  */
 export default function PublicAcceptInviteScreen() {
   const params = useLocalSearchParams<{ token?: string }>();
   const token = typeof params.token === 'string' ? params.token.trim() : '';
-
-  useEffect(() => {
-    if (token) {
-      void saveClinicInviteToken(token);
-    }
-  }, [token]);
 
   const href = token
     ? (`${String(CLINIC_ACCEPT_INVITE)}?token=${encodeURIComponent(token)}` as const)

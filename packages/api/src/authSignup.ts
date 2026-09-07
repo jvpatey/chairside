@@ -20,7 +20,7 @@ export function hasRealAuthIdentities(user: User | null | undefined): boolean {
 
 export function getSignupEmailRedirectUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_WEB_BASE_URL?.trim().replace(/\/$/, '');
-  return `${fromEnv || 'https://chairside.app'}/auth/callback`;
+  return `${fromEnv || 'https://chairsidedental.app'}/auth/callback`;
 }
 
 function isEmailNotConfirmedError(error: unknown): boolean {

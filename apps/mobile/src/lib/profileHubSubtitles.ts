@@ -14,8 +14,12 @@ import { getProvinceLabel, formatRoleTypesLabel, getSpecialtyLabel } from '@chai
 
 import { formatPhoneNumber } from '@/lib/phone';
 
-export function getAccountTypeLabel(role: UserRole): string {
-  return role === 'worker' ? 'Find work' : 'Clinic';
+export function getAccountTypeLabel(
+  role: UserRole,
+  options?: { isGroup?: boolean },
+): string {
+  if (role === 'worker') return 'Find work';
+  return options?.isGroup ? 'Clinic group' : 'Clinic';
 }
 
 export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null): string {
@@ -110,6 +114,29 @@ export function getClinicGroupDetailsSubtitle(profile: ClinicProfile | null): st
   if (name) return name;
   if (phone) return formatPhoneNumber(phone);
   return 'Add group name and phone';
+}
+
+/** Combined group identity + about subtitle for the Group profile settings row. */
+export function getClinicGroupProfileSubtitle(
+  profile: ClinicProfile | null,
+  options?: { doctorCount?: number },
+): string {
+  const name = profile?.clinic_name?.trim();
+  const hasDescription = Boolean(profile?.description?.trim());
+  const hasWebsite = Boolean(profile?.website?.trim());
+  const doctorCount = options?.doctorCount ?? profile?.practice_doctors?.length ?? 0;
+
+  if (!name) return 'Add group name, story, and doctors';
+
+  const extras: string[] = [];
+  if (hasDescription) extras.push('description');
+  if (hasWebsite) extras.push('website');
+  if (doctorCount > 0) {
+    extras.push(`${doctorCount} doctor${doctorCount === 1 ? '' : 's'}`);
+  }
+
+  if (extras.length === 0) return `${name} · Add story and doctors`;
+  return `${name} · ${extras.join(', ')}`;
 }
 
 export function getClinicLocationsSubtitle(input: {

@@ -3,7 +3,7 @@ export const LEGAL_LAST_UPDATED = 'August 16, 2026';
 
 /**
  * Production web origin for absolute legal URLs (App Store Connect).
- * Set EXPO_PUBLIC_WEB_BASE_URL in production, e.g. https://chairside.app
+ * Set EXPO_PUBLIC_WEB_BASE_URL in production, e.g. https://chairsidedental.app
  */
 export function getPublicWebBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_WEB_BASE_URL?.trim().replace(/\/$/, '');
@@ -11,7 +11,7 @@ export function getPublicWebBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location?.origin) {
     return window.location.origin;
   }
-  return 'https://chairside.app';
+  return 'https://chairsidedental.app';
 }
 
 export const PUBLIC_LEGAL_PATHS = {
