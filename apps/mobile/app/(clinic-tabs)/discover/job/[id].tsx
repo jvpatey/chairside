@@ -96,7 +96,7 @@ export default function ClinicDiscoverJobDetailScreen() {
             avatarSize={44}
           />
         </SurfaceCard>
-        <JobPostDetailView job={job} locationLabel={location || null} />
+        <JobPostDetailView job={job} featured={job.has_priority_listing} locationLabel={location || null} />
         <OnboardingButton
           label="View clinic profile"
           onPress={() =>

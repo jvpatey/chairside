@@ -1,11 +1,16 @@
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
-/** Compact scope trigger for tab headers (postings, fill-ins, applications, calendar). */
+/**
+ * Scope trigger for tablet/desktop tab headers.
+ * Phone uses the dashboard hero switcher instead.
+ */
 export function ClinicLocationScopeChip() {
+  const { isTablet } = useResponsiveLayout();
   const { isGroup, accessibleLocations } = useClinicProfile();
 
-  if (!isGroup || accessibleLocations.length <= 1) {
+  if (!isTablet || !isGroup || accessibleLocations.length <= 1) {
     return null;
   }
 

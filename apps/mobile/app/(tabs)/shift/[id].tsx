@@ -242,6 +242,7 @@ export default function WorkerShiftDetailScreen() {
           shift={shift}
           softwareUsed={shift.clinic.software_used}
           section="hero"
+          featured={shift.has_priority_listing}
           heroAccessory={<ShiftUrgencyBadge urgency={shift.urgency} />}
         />
         <SurfaceCard

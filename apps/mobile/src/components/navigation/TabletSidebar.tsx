@@ -167,8 +167,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { billing } = useClinicBilling();
   const showGroupLocationScope =
     role === 'clinic' && isGroup && accessibleLocations.length > 0;
-  const showIndividualPlanBadge = role === 'clinic' && !isGroup;
-  const individualPlan = billing?.plan ?? 'free';
+  const showClinicPlanBadge = role === 'clinic';
+  const clinicPlan = billing?.plan ?? 'free';
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
   const shellRef = useRef<View>(null);
@@ -869,14 +869,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     role === 'clinic' && billing ? getRecommendedUpgradePlan(billing.plan, billing.planFamily) : null;
 
   const clinicPlanAccent =
-    role === 'clinic' && showIndividualPlanBadge
-      ? getClinicPlanBrandAccentColor(individualPlan, colors)
+    role === 'clinic' && showClinicPlanBadge
+      ? getClinicPlanBrandAccentColor(clinicPlan, colors)
       : undefined;
 
   const planBadgeNode =
-    showIndividualPlanBadge && !isCollapsed ? (
+    showClinicPlanBadge && !isCollapsed ? (
       <ClinicPlanBadge
-        plan={individualPlan}
+        plan={clinicPlan}
         compact
         onPress={() => router.push(CLINIC_PROFILE_BILLING)}
       />

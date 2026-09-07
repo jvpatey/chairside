@@ -1,14 +1,18 @@
 import { isClinicSummaryGroup, type LiveJobPost } from '@chairside/api';
 import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
 import { formatJobPostRoleMeta } from '@chairside/config';
+import { View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
+import { BadgeRow } from '@/components/ui/BadgeRow';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { buildRoleListingMetaRows } from '@/lib/listingCardDisplay';
 import {
   formatWorkerListingCardLocation,
@@ -40,6 +44,7 @@ export function RoleListingCard({
   onPress,
   embedded = false,
 }: RoleListingCardProps) {
+  const { isCompact } = useResponsiveLayout();
   const featuredTreatment = useFeaturedListingTreatment();
   const logoStoragePath = resolveWorkerPostLogoStoragePath(job);
   const logoUri = useClinicLogoUri(logoStoragePath);
@@ -51,10 +56,13 @@ export function RoleListingCard({
     postedAt: job.created_at,
   });
 
-  const styles = useThemedStyles(() => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     stretchCard: {
       overflow: 'hidden',
       position: 'relative',
+    },
+    subtitleStack: {
+      gap: spacing.xs,
     },
   }));
 
@@ -69,13 +77,23 @@ export function RoleListingCard({
     ) : null;
 
   const isFeatured = job.has_priority_listing;
+  const badgeRow =
+    isFeatured || matchBadge ? (
+      <BadgeRow>
+        {isFeatured ? <FeaturedListingBadge size="sm" /> : null}
+        {matchBadge}
+      </BadgeRow>
+    ) : null;
+  /** Phone / narrow: stack badges under the clinic line so the title keeps full width. */
+  const stackBadges = isCompact && badgeRow != null;
 
   return (
     <SurfaceCard
       variant={embedded ? 'inner' : 'default'}
       onPress={onPress}
       padding="none"
-      style={[styles.stretchCard, isFeatured ? featuredTreatment.cardStyle : null]}
+      style={styles.stretchCard}
+      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
       accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
       <BrowseListRow
         avatar={
@@ -83,13 +101,23 @@ export function RoleListingCard({
         }
         title={job.title}
         subtitle={
-          <ListingClinicSubtitle
-            name={job.clinic.clinic_name}
-            isGroup={isClinicSummaryGroup(job.clinic)}
-          />
+          stackBadges ? (
+            <View style={styles.subtitleStack}>
+              <ListingClinicSubtitle
+                name={job.clinic.clinic_name}
+                isGroup={isClinicSummaryGroup(job.clinic)}
+              />
+              {badgeRow}
+            </View>
+          ) : (
+            <ListingClinicSubtitle
+              name={job.clinic.clinic_name}
+              isGroup={isClinicSummaryGroup(job.clinic)}
+            />
+          )
         }
         metaRows={metaRows}
-        topTrailing={matchBadge}
+        topTrailing={stackBadges ? null : badgeRow}
         onPress={onPress}
         showChevron={Boolean(onPress)}
       />

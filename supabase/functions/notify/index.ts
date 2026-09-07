@@ -51,6 +51,7 @@ const PINGRAM_TYPES = {
   messageReceived: 'message_received',
   fillInOutreachSms: 'fill_in_outreach_sms',
   clinicManagerInvitation: 'clinic_manager_invitation',
+  clinicManagerJoined: 'clinic_manager_joined',
 } as const;
 
 const DEFAULT_PINGRAM_API_URL = 'https://api.ca.pingram.io';
@@ -2107,6 +2108,86 @@ async function handleClinicInvitationInsert(
   });
 }
 
+async function handleClinicInvitationAccepted(
+  supabase: ReturnType<typeof createClient>,
+  pingramKey: string,
+  pingramBase: string,
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown> | null,
+): Promise<void> {
+  const invitationId = typeof record.id === 'string' ? record.id : null;
+  const organizationId =
+    typeof record.organization_id === 'string' ? record.organization_id : null;
+  const status = typeof record.status === 'string' ? record.status : '';
+  const oldStatus = typeof oldRecord?.status === 'string' ? oldRecord.status : '';
+  const acceptedByUserId =
+    typeof record.accepted_by_user_id === 'string' ? record.accepted_by_user_id : null;
+  const invitedByUserId =
+    typeof record.invited_by_user_id === 'string' ? record.invited_by_user_id : null;
+  const email = typeof record.email === 'string' ? record.email.trim() : '';
+  const displayName =
+    typeof record.display_name === 'string' ? record.display_name.trim() : '';
+
+  if (!invitationId || !organizationId || status !== 'accepted' || oldStatus === 'accepted') {
+    return;
+  }
+
+  const managerLabel =
+    displayName || (email.includes('@') ? email.split('@')[0]! : email) || 'A manager';
+
+  const [{ data: org }, { data: owners }, { data: accepter }] = await Promise.all([
+    supabase.from('clinic_organizations').select('name').eq('id', organizationId).maybeSingle(),
+    supabase
+      .from('clinic_memberships')
+      .select('user_id')
+      .eq('organization_id', organizationId)
+      .eq('role', 'owner')
+      .eq('status', 'active'),
+    acceptedByUserId
+      ? supabase.from('profiles').select('display_name').eq('id', acceptedByUserId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const organizationName =
+    (typeof org?.name === 'string' && org.name.trim()) || 'your clinic group';
+  const accepterName =
+    (typeof accepter?.display_name === 'string' && accepter.display_name.trim()) || managerLabel;
+
+  const recipientIds = new Set<string>();
+  for (const row of owners ?? []) {
+    if (typeof row.user_id === 'string' && row.user_id) {
+      recipientIds.add(row.user_id);
+    }
+  }
+  if (invitedByUserId) recipientIds.add(invitedByUserId);
+  // Don't notify the person who just joined.
+  if (acceptedByUserId) recipientIds.delete(acceptedByUserId);
+
+  if (recipientIds.size === 0) {
+    console.log('[notify] clinic_manager_joined skipped (no owner recipients)');
+    return;
+  }
+
+  const title = `${accepterName} joined your team`;
+  const message = `${accepterName} accepted their invite to manage ${organizationName}.`;
+  const deepLink = 'chairside:///(clinic-tabs)/profile/team';
+
+  for (const userId of recipientIds) {
+    const idempotencyKey = `${PINGRAM_TYPES.clinicManagerJoined}:${invitationId}:${userId}`;
+    await withIdempotentDispatch(supabase, idempotencyKey, 'clinic_manager_joined', async () => {
+      await sendUserAlert(supabase, pingramKey, pingramBase, {
+        type: PINGRAM_TYPES.clinicManagerJoined,
+        userId,
+        title,
+        message,
+        deepLink,
+        secondaryId: idempotencyKey,
+        includePush: true,
+      });
+    });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -2216,6 +2297,15 @@ Deno.serve(async (req) => {
     } else if (payload.table === 'clinic_invitations' && payload.type === 'INSERT') {
       console.log('[notify] clinic_invitations INSERT received');
       await handleClinicInvitationInsert(supabase, pingramKey, pingramBase, payload.record);
+    } else if (payload.table === 'clinic_invitations' && payload.type === 'UPDATE') {
+      console.log('[notify] clinic_invitations UPDATE received');
+      await handleClinicInvitationAccepted(
+        supabase,
+        pingramKey,
+        pingramBase,
+        payload.record,
+        payload.old_record,
+      );
     }
 
     return jsonResponse({ ok: true });

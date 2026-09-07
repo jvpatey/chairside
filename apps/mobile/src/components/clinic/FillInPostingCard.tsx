@@ -90,6 +90,11 @@ export function FillInPostingCard({
     actionButton: {
       flex: 1,
     },
+    subtitleStack: {
+      gap: spacing.xs,
+      minWidth: 0,
+      alignSelf: 'stretch',
+    },
   }));
 
   const toggleExpanded = () => {
@@ -100,20 +105,26 @@ export function FillInPostingCard({
   const reviewLabel =
     applicationCount === 1 ? 'Review applicant' : `Review ${applicationCount} applicants`;
   const isFeatured = shift.status === 'live' && Boolean(billing?.hasPriorityListing);
+  /** Always under the subtitle so long group site names keep full width. */
+  const statusBadges = (
+    <BadgeRow>
+      {isFeatured ? <FeaturedListingBadge accent={accent} size="sm" /> : null}
+      <ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />
+    </BadgeRow>
+  );
 
   const header = (
     <BrowseListRow
       paddingless
       avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={44} />}
       title={formatShiftPostRoleTitle(shift.role_type)}
-      subtitle={<ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />}
-      metaRows={metaRows}
-      topTrailing={
-        <BadgeRow>
-          {isFeatured ? <FeaturedListingBadge accent={accent} /> : null}
-          <ShiftPostStatusBadge status={shift.status} shiftDate={shift.shift_date} />
-        </BadgeRow>
+      subtitle={
+        <View style={styles.subtitleStack}>
+          <ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />
+          {statusBadges}
+        </View>
       }
+      metaRows={metaRows}
       contentAccessory={
         pendingRequestCount > 0 ? (
           <CountBadge label={formatRequestCountLabel(pendingRequestCount)} />
@@ -130,7 +141,7 @@ export function FillInPostingCard({
       onToggleExpand={toggleExpanded}
       variant={embedded ? 'inner' : 'default'}
       accent={accent}
-      style={isFeatured ? featuredTreatment.cardStyle : undefined}
+      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
       accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
       <ShiftPostDetailView
         shift={shift}

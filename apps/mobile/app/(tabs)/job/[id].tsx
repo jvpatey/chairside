@@ -182,6 +182,7 @@ export default function WorkerJobDetailScreen() {
         <JobPostDetailView
           job={job}
           part="hero"
+          featured={job.has_priority_listing}
           heroAccessory={
             jobMatch && matchContext ? (
               <MatchTierBadge

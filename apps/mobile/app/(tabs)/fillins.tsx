@@ -20,6 +20,7 @@ import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
 import { FillInAvailabilitySummaryCard } from '@/components/worker/FillInAvailabilitySummaryCard';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { FeaturedListingsSectionHeader } from '@/components/worker/FeaturedListingsDivider';
 import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
 import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
@@ -38,6 +39,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useMarkGetStartedBrowseVisit } from '@/hooks/useMarkGetStartedBrowseVisit';
 import { useRefreshOnForeground } from '@/hooks/useRefreshOnForeground';
+import { partitionByPriorityListing } from '@/lib/listingPriority';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerHiringCelebration } from '@/hooks/useWorkerHiringCelebration';
 import {
@@ -342,6 +344,13 @@ export default function FillInsScreen() {
     [confirmedFillInCount, filteredShifts.length, historyFillInCount, pendingFillInCount],
   );
 
+  const { featured: featuredOpenShifts, standard: standardOpenShifts } = useMemo(
+    () => partitionByPriorityListing(filteredShifts),
+    [filteredShifts],
+  );
+  const showOpenFeaturedDivider =
+    featuredOpenShifts.length > 0 && standardOpenShifts.length > 0;
+
   const openListContent = isLoading ? (
     <PageLoadingList rowCount={4} />
   ) : filteredShifts.length === 0 ? (
@@ -358,7 +367,29 @@ export default function FillInsScreen() {
   ) : (
     <View style={styles.cardList}>
       <StaggeredList>
-        {filteredShifts.map((shift) => (
+        {featuredOpenShifts.length > 0 ? (
+          <FeaturedListingsSectionHeader
+            label="Featured"
+            variant="featured"
+            accent="secondary"
+          />
+        ) : null}
+        {featuredOpenShifts.map((shift) => (
+          <FillInListingCard
+            key={shift.id}
+            shift={shift}
+            distanceLabel={shift.distanceLabel}
+            isSaved={savedShiftIds.has(shift.id)}
+            onToggleSaved={() =>
+              void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+            }
+            onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
+          />
+        ))}
+        {showOpenFeaturedDivider ? (
+          <FeaturedListingsSectionHeader label="More fill-ins" variant="rest" />
+        ) : null}
+        {standardOpenShifts.map((shift) => (
           <FillInListingCard
             key={shift.id}
             shift={shift}

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
+import { CardSectionDivider } from '@/components/ui/CardTitleSection';
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { ThemedSwitch } from '@/components/ui/ThemedSwitch';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -56,7 +57,7 @@ export function ClinicMessagingPreferences({
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     stack: {
-      gap: spacing.xs,
+      gap: spacing.sm,
     },
     card: {
       backgroundColor: colors.surface,
@@ -67,33 +68,45 @@ export function ClinicMessagingPreferences({
     },
     row: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
       paddingHorizontal: spacing.md,
       paddingVertical: compact ? spacing.sm : spacing.md,
-      gap: spacing.sm,
+      gap: spacing.md,
     },
-    rowText: { flex: 1, gap: compact ? 0 : 2 },
+    rowText: {
+      flex: 1,
+      minWidth: 0,
+      gap: compact ? 0 : 2,
+    },
     labelPressable: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: spacing.xs,
-      alignSelf: 'flex-start',
-      flexShrink: 1,
+      maxWidth: '100%',
       borderRadius: 8,
       ...webPointer(),
     },
     labelPressableHovered: webListRowHoverStyles(colors),
     labelPressablePressed: { opacity: 0.65 },
-    switchWrap: {},
+    switchWrap: {
+      flexShrink: 0,
+      paddingTop: 2,
+    },
     rowTitle: compact
       ? {
+          flex: 1,
+          minWidth: 0,
           fontSize: 15,
           lineHeight: 20,
           fontWeight: '500',
           color: colors.labelPrimary,
         }
       : { ...typography.body, fontWeight: '600', color: colors.labelPrimary },
+    infoIcon: {
+      marginTop: 2,
+      flexShrink: 0,
+    },
     rowHint: { fontSize: 13, lineHeight: 18, color: colors.labelSecondary },
     infoPanel: {
       borderRadius: compact ? 12 : 16,
@@ -121,11 +134,13 @@ export function ClinicMessagingPreferences({
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.sm + 2,
       gap: spacing.sm,
       ...webPointer(),
     },
     browseLabel: {
+      flex: 1,
+      minWidth: 0,
       fontSize: 15,
       lineHeight: 20,
       fontWeight: '500',
@@ -204,32 +219,26 @@ export function ClinicMessagingPreferences({
       <View style={styles.card}>
         <View style={styles.row}>
           <View style={styles.rowText}>
-            {compact ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={title}
-                accessibilityHint="Shows what letting candidates message you means"
-                accessibilityState={{ expanded: infoVisible }}
-                hitSlop={8}
-                onPress={() => showGeneralMessagesInfo(setInfoVisible)}
-                style={({ pressed, hovered }) => [
-                  styles.labelPressable,
-                  IS_WEB && webHover(hovered, pressed, styles.labelPressableHovered),
-                  pressed && styles.labelPressablePressed,
-                ]}>
-                <Text style={styles.rowTitle}>{title}</Text>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={16}
-                  color={colors.labelTertiary}
-                />
-              </Pressable>
-            ) : (
-              <>
-                <Text style={styles.rowTitle}>{title}</Text>
-                <Text style={styles.rowHint}>{hint}</Text>
-              </>
-            )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={title}
+              accessibilityHint="Shows what letting candidates message you means"
+              accessibilityState={{ expanded: infoVisible }}
+              hitSlop={8}
+              onPress={() => showGeneralMessagesInfo(setInfoVisible)}
+              style={({ pressed, hovered }) => [
+                styles.labelPressable,
+                IS_WEB && webHover(hovered, pressed, styles.labelPressableHovered),
+                pressed && styles.labelPressablePressed,
+              ]}>
+              <Text style={styles.rowTitle}>{title}</Text>
+              <Ionicons
+                name="information-circle-outline"
+                size={16}
+                color={colors.labelTertiary}
+                style={styles.infoIcon}
+              />
+            </Pressable>
           </View>
           <View style={styles.switchWrap}>
             <ThemedSwitch
@@ -239,6 +248,20 @@ export function ClinicMessagingPreferences({
             />
           </View>
         </View>
+        <CardSectionDivider />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Browse candidates"
+          accessibilityHint="Find workers who opted into open inquiries"
+          onPress={handleBrowseCandidates}
+          style={({ pressed, hovered }) => [
+            styles.browseRow,
+            IS_WEB && webHover(hovered, pressed, styles.labelPressableHovered),
+            pressed && styles.labelPressablePressed,
+          ]}>
+          <Text style={styles.browseLabel}>Browse candidates</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </Pressable>
       </View>
       {infoVisible ? (
         <View style={styles.infoPanel} accessibilityRole="text">
@@ -246,20 +269,6 @@ export function ClinicMessagingPreferences({
           <Text style={styles.infoMessage}>{GENERAL_MESSAGES_INFO.message}</Text>
         </View>
       ) : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Browse candidates"
-        accessibilityHint="Find workers who opted into open inquiries"
-        onPress={handleBrowseCandidates}
-        style={({ pressed, hovered }) => [
-          styles.card,
-          styles.browseRow,
-          IS_WEB && webHover(hovered, pressed, styles.labelPressableHovered),
-          pressed && styles.labelPressablePressed,
-        ]}>
-        <Text style={styles.browseLabel}>Browse candidates</Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-      </Pressable>
     </View>
   );
 }

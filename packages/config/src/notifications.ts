@@ -29,6 +29,8 @@ export const PINGRAM_NOTIFICATION_TYPES = {
   fillInOutreachSms: 'fill_in_outreach_sms',
   /** Email-only (manager invites; invitee may not have an account yet). */
   clinicManagerInvitation: 'clinic_manager_invitation',
+  /** Owner alert when a manager accepts an invite (in-app + Expo push). */
+  clinicManagerJoined: 'clinic_manager_joined',
 } as const;
 
 export type PingramNotificationType =

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { comparePriorityListingDesc, sortWithPriorityFirst } from '@/lib/listingPriority';
+import {
+  comparePriorityListingDesc,
+  partitionByPriorityListing,
+  sortWithPriorityFirst,
+} from '@/lib/listingPriority';
 
 type ListingItem = {
   id: string;
@@ -17,6 +21,16 @@ describe('comparePriorityListingDesc', () => {
         { has_priority_listing: false },
       ),
     ).toBeLessThan(0);
+  });
+
+  it('partitions featured from standard while preserving order', () => {
+    const { featured, standard } = partitionByPriorityListing([
+      { id: 'a', has_priority_listing: true },
+      { id: 'b', has_priority_listing: false },
+      { id: 'c', has_priority_listing: true },
+    ]);
+    expect(featured.map((item) => item.id)).toEqual(['a', 'c']);
+    expect(standard.map((item) => item.id)).toEqual(['b']);
   });
 });
 

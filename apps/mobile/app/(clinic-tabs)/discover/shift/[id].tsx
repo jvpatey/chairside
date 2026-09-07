@@ -111,7 +111,11 @@ export default function ClinicDiscoverShiftDetailScreen() {
             stackedAccessory
           />
         </SurfaceCard>
-        <ShiftPostDetailView shift={shift} locationLabel={shift.location ? location : null} />
+        <ShiftPostDetailView
+          shift={shift}
+          featured={shift.has_priority_listing}
+          locationLabel={shift.location ? location : null}
+        />
         <OnboardingButton
           label="View clinic profile"
           accent="secondary"

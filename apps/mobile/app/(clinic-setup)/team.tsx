@@ -127,7 +127,11 @@ export default function ClinicTeamSetupScreen() {
       setSubmitError('Enter a manager email to send an invitation.');
       return;
     }
-    if (locationOptions.length > 0 && selectedLocationIds.length === 0) {
+    if (locationOptions.length === 0) {
+      setSubmitError('Add a location before inviting a manager.');
+      return;
+    }
+    if (selectedLocationIds.length === 0) {
       setSubmitError('Select at least one location to assign.');
       return;
     }
@@ -256,7 +260,7 @@ export default function ClinicTeamSetupScreen() {
           <View style={styles.form}>
             <AuthField
               label="Manager name"
-              placeholder="Sarah Mitchell"
+              placeholder="First and last name"
               value={displayName}
               onChangeText={setDisplayName}
               autoCapitalize="words"
@@ -290,16 +294,25 @@ export default function ClinicTeamSetupScreen() {
                   onChange={(value) => setSelectedLocationIds(value as string[])}
                 />
               </View>
-            ) : null}
+            ) : (
+              <EmptyState
+                icon="business-outline"
+                title="Add locations first"
+                message="Create at least one location before inviting managers, or invite them later from Team & access."
+              />
+            )}
             <SetupStepFooter
               canContinue={
                 Boolean(email.trim()) &&
-                (locationOptions.length === 0 || selectedLocationIds.length > 0)
+                locationOptions.length > 0 &&
+                selectedLocationIds.length > 0
               }
               validationMessage={
                 !email.trim()
                   ? 'Enter an email address.'
-                  : 'Select at least one location to assign.'
+                  : locationOptions.length === 0
+                    ? 'Add a location before inviting a manager.'
+                    : 'Select at least one location to assign.'
               }
               showValidation={Boolean(submitError)}
               submitError={null}

@@ -83,6 +83,7 @@ export function ClinicRoleListRow({
   const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
   const columns = columnsProp ?? getClinicRoleTableColumns(isGroup);
   const gridTemplate = clinicPostingTableGridTemplate(columns);
+  const stackBadges = !tableMode;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     listRowWrap: {
@@ -217,6 +218,9 @@ export function ClinicRoleListRow({
     menuButtonHovered: webListRowHoverStyles(colors),
     menuButtonPressed: {
       opacity: 0.6,
+    },
+    subtitleStack: {
+      gap: spacing.xs,
     },
   }));
 
@@ -386,13 +390,27 @@ export function ClinicRoleListRow({
         compact
         avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />}
         title={job.title}
-        subtitle={<ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />}
+        subtitle={
+          stackBadges ? (
+            <View style={styles.subtitleStack}>
+              <ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />
+              <BadgeRow>
+                {isFeatured ? <FeaturedListingBadge size="sm" /> : null}
+                <JobPostStatusBadge status={job.status} />
+              </BadgeRow>
+            </View>
+          ) : (
+            <ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />
+          )
+        }
         metaRows={metaRows}
         topTrailing={
-          <BadgeRow>
-            {isFeatured ? <FeaturedListingBadge /> : null}
-            <JobPostStatusBadge status={job.status} />
-          </BadgeRow>
+          stackBadges ? null : (
+            <BadgeRow>
+              {isFeatured ? <FeaturedListingBadge size="sm" /> : null}
+              <JobPostStatusBadge status={job.status} />
+            </BadgeRow>
+          )
         }
         trailing={manage ? manageButton : null}
         onPress={onPress}

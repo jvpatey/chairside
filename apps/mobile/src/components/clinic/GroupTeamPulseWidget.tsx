@@ -59,7 +59,9 @@ export function GroupTeamPulseWidget({ counts, onPress }: GroupTeamPulseWidgetPr
   }
   if (unassignedManagers > 0) {
     lines.push(
-      `${unassignedManagers} manager${unassignedManagers === 1 ? '' : 's'} need a location`,
+      unassignedManagers === 1
+        ? '1 manager joined — assign a clinic'
+        : `${unassignedManagers} managers joined — assign clinics`,
     );
   }
 

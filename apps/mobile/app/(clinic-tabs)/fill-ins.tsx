@@ -118,9 +118,10 @@ export default function ClinicFillInsScreen() {
   const { colors } = useTheme();
   const { isTablet, isWide } = useResponsiveLayout();
   const { user } = useAuth();
-  const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
+  const { clinicId, scopedLocationIds, isGroup, isOwner, accessibleLocations } =
+    useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
-  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations, membership } = useClinicProfile();
   const { refreshPending } = useFillInPending();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
@@ -404,6 +405,8 @@ export default function ClinicFillInsScreen() {
       clinicProfile,
       locations,
       isGroup,
+      isOwner,
+      assignedLocationIds: membership?.location_ids ?? [],
       target,
       onAllowed: (href) => router.push(href),
     });

@@ -4,7 +4,6 @@ import {
   getClinicProfileByOrganizationId,
   getClinicWorkspace,
   isClinicGroupsEnabled,
-  isClinicProfileComplete,
   type ClinicLocation,
   type ClinicMembership,
   type ClinicOrganization,
@@ -23,6 +22,7 @@ import {
 } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { isClinicMemberReadyToPost } from '@/lib/clinicManagerAccess';
 import {
   loadStoredLocationScope,
   saveStoredLocationScope,
@@ -238,7 +238,13 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       setLocationScope,
       scopedLocationIds,
       isClinicProfileReady,
-      isProfileComplete: isClinicProfileComplete(clinicProfile, { locations: workspace?.locations ?? [] }),
+      isProfileComplete: isClinicMemberReadyToPost({
+        isGroup: workspace?.isGroup ?? clinicProfile?.account_type === 'group',
+        isOwner: workspace?.isOwner ?? true,
+        clinicProfile,
+        locations: workspace?.locations ?? [],
+        assignedLocationIds: workspace?.membership?.location_ids ?? [],
+      }),
       refreshClinicProfile,
     }),
     [

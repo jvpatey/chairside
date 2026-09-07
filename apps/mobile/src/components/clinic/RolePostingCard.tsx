@@ -109,10 +109,10 @@ export function RolePostingCard({
     menuButtonPressed: {
       opacity: 0.6,
     },
-    headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    subtitleStack: {
       gap: spacing.xs,
+      minWidth: 0,
+      alignSelf: 'stretch',
     },
     applicantSectionGrow: {
       flex: 1,
@@ -158,16 +158,9 @@ export function RolePostingCard({
 
   const statusBadges = (
     <BadgeRow>
-      {isFeatured ? <FeaturedListingBadge /> : null}
+      {isFeatured ? <FeaturedListingBadge size="sm" /> : null}
       {statusBadge}
     </BadgeRow>
-  );
-
-  const headerActions = (
-    <View style={styles.headerActions}>
-      {statusBadges}
-      {manageButton}
-    </View>
   );
 
   const clinicAvatar = (
@@ -181,7 +174,8 @@ export function RolePostingCard({
       variant={surfaceVariant}
       padding="none"
       onPress={showApplicantList ? undefined : onPress}
-      style={[styles.stretchCard, isFeatured ? featuredTreatment.cardStyle : null]}
+      style={styles.stretchCard}
+      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
       contentStyle={styles.stretchCardContent}
       accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
       <BrowseListRow
@@ -190,9 +184,14 @@ export function RolePostingCard({
         detailsDivider={embedded}
         avatar={clinicAvatar}
         title={job.title}
-        subtitle={<ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />}
+        subtitle={
+          <View style={styles.subtitleStack}>
+            <ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />
+            {statusBadges}
+          </View>
+        }
         metaRows={metaRows}
-        topTrailing={headerActions}
+        topTrailing={manageButton}
         contentAccessory={applicantControl}
         onPress={onPress}
         pressScope={showApplicantList ? 'header' : 'row'}

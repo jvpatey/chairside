@@ -82,7 +82,7 @@ HTTP headers:
 | `shift_posts`   | INSERT, UPDATE      |
 | `job_posts`     | INSERT, UPDATE      |
 | `messages`      | INSERT              |
-| `clinic_invitations` | INSERT         |
+| `clinic_invitations` | INSERT, UPDATE    |
 
 Use `application/json` body (default Supabase webhook payload). Shortlisting is an `applications` **UPDATE** (`applied`/`reviewed` → `in_progress`). If that webhook is INSERT-only, candidates never get a shortlist notification.
 
@@ -90,11 +90,13 @@ Use `application/json` body (default Supabase webhook payload). Shortlisting is 
 
 `clinic_invitations` INSERT (pending only) sends a Pingram **email** (`POST /email`) with type `clinic_manager_invitation`. Invitees may not have a Chairside account yet, so this path is email-only.
 
+`clinic_invitations` UPDATE to `accepted` notifies the group owner (and the inviting user, if different) with **in-app + Expo push** (`clinic_manager_joined`). Clinic assignments from the invite are copied on accept — no further owner setup step is required when locations were selected at invite time.
+
 Required ops steps:
 
 1. Run migrations through `097_clinic_manager_invitation_preview_resend.sql`.
 2. Create Pingram notification type `clinic_manager_invitation` (`./scripts/setup-pingram-notification-types.sh`).
-3. Deploy `notify` and add the `clinic_invitations` INSERT webhook above.
+3. Deploy `notify` and add the `clinic_invitations` **INSERT + UPDATE** webhook above.
 4. Set edge secrets as needed:
    - `APP_WEB_BASE_URL` (defaults to `https://chairsidedental.app`) for accept links
    - optional `INVITE_SENDER_EMAIL` / `INVITE_SENDER_NAME`
@@ -152,6 +154,7 @@ eas build --profile production --platform ios
 | Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/Expo push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
 | Auto shift-details message in outreach thread | — | — | suppressed (no send) | — |
 | Clinic manager invitation created | Invitee email | `clinic_manager_invitation` | email (`POST /email`) | — |
+| Clinic manager accepted invitation | Group owner (+ inviter if different) | `clinic_manager_joined` | in-app + Expo push | always on for this event |
 
 ### Deep links
 
@@ -161,6 +164,7 @@ eas build --profile production --platform ios
 | General / outreach message | `/(tabs)/conversation/{conversation_id}` or clinic equivalent |
 | Worker application update | `/(tabs)/application/{application_id}` |
 | Clinic new applicant | `/(clinic-tabs)/applications` |
+| Manager joined team | `/(clinic-tabs)/profile/team` |
 | Fill-in alert | `/(tabs)/fillins` |
 | Job alert | `/(tabs)/browse` |
 
@@ -176,5 +180,6 @@ Edge dispatch dedupes via `notification_dispatch_log.idempotency_key`. Common pa
 - `application_received:{applicationId}:{recipientUserId}` (clinic new applicant / cover request)
 - `application_interview_*:{applicationId}:{recipientUserId}` (clinic-side interview alerts)
 - `clinic_manager_invitation:{invitationId}` (manager invite email)
+- `clinic_manager_joined:{invitationId}:{ownerUserId}` (owner alert when manager accepts)
 
 Outreach SMS also has a DB-side 24h rate limit per clinic→worker pair before the message is inserted (`outreach_sms:{clinicId}:{workerId}:…`).

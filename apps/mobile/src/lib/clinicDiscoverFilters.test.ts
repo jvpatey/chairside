@@ -89,6 +89,70 @@ describe('filterClinicDiscoverJobs', () => {
     expect(filtered[0]?.id).toBe('job-1');
     expect(filtered[0]?.distanceLabel).toMatch(/km away/);
   });
+
+  it('keeps featured Pro roles above non-featured when sorting by newest', () => {
+    const jobs = [
+      makeJob({
+        id: 'standard-newer',
+        has_priority_listing: false,
+        created_at: '2026-03-10T12:00:00.000Z',
+      }),
+      makeJob({
+        id: 'featured-older',
+        has_priority_listing: true,
+        created_at: '2026-01-01T12:00:00.000Z',
+      }),
+    ];
+
+    const filtered = filterClinicDiscoverJobs(jobs, viewerClinic, {
+      ...DEFAULT_CLINIC_DISCOVER_FILTERS,
+      sort: 'newest',
+    });
+
+    expect(filtered.map((job) => job.id)).toEqual(['featured-older', 'standard-newer']);
+  });
+
+  it('keeps featured Pro roles above nearer non-featured when sorting by distance', () => {
+    const jobs = [
+      makeJob({
+        id: 'standard-near',
+        has_priority_listing: false,
+        clinic: {
+          clinic_id: 'clinic-near',
+          clinic_name: 'Near Clinic',
+          city: 'Halifax',
+          province: 'NS',
+          specialty: 'general',
+          software_used: [],
+          latitude: 44.651,
+          longitude: -63.571,
+          logo_storage_path: null,
+        },
+      }),
+      makeJob({
+        id: 'featured-far',
+        has_priority_listing: true,
+        clinic: {
+          clinic_id: 'clinic-far',
+          clinic_name: 'Far Clinic',
+          city: 'Dartmouth',
+          province: 'NS',
+          specialty: 'general',
+          software_used: [],
+          latitude: 44.9,
+          longitude: -63.2,
+          logo_storage_path: null,
+        },
+      }),
+    ];
+
+    const filtered = filterClinicDiscoverJobs(jobs, viewerClinic, {
+      ...DEFAULT_CLINIC_DISCOVER_FILTERS,
+      sort: 'distance',
+    });
+
+    expect(filtered.map((job) => job.id)).toEqual(['featured-far', 'standard-near']);
+  });
 });
 
 describe('filterClinicDiscoverShifts', () => {
@@ -109,5 +173,30 @@ describe('filterClinicDiscoverShifts', () => {
 
     expect(filtered).toHaveLength(1);
     expect(filtered[0]?.id).toBe('shift-1');
+  });
+
+  it('keeps featured Pro fill-ins above earlier non-featured dates', () => {
+    const shifts = [
+      makeShift({
+        id: 'standard-earlier',
+        has_priority_listing: false,
+        shift_date: '2026-02-01',
+      }),
+      makeShift({
+        id: 'featured-later',
+        has_priority_listing: true,
+        shift_date: '2026-03-15',
+      }),
+    ];
+
+    const filtered = filterClinicDiscoverShifts(shifts, viewerClinic, {
+      ...DEFAULT_CLINIC_DISCOVER_FILTERS,
+      sort: 'newest',
+    });
+
+    expect(filtered.map((shift) => shift.id)).toEqual([
+      'featured-later',
+      'standard-earlier',
+    ]);
   });
 });

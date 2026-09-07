@@ -553,7 +553,7 @@ export default function ClinicTeamSettingsScreen() {
               <>
                 <AuthField
                   label="Manager name"
-                  placeholder="Sarah Mitchell"
+                  placeholder="First and last name"
                   value={displayName}
                   onChangeText={setDisplayName}
                   autoCapitalize="words"
