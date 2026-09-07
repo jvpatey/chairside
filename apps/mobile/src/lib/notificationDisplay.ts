@@ -30,6 +30,11 @@ const TYPE_META: Record<string, NotificationDisplayMeta> = {
     accent: 'info',
     subtitle: 'Application update',
   },
+  application_kit_requested: {
+    icon: 'document-text-outline',
+    accent: 'primary',
+    subtitle: 'Full application requested',
+  },
   application_interview_offered: {
     icon: 'calendar-outline',
     accent: 'primary',

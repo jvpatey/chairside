@@ -7,6 +7,7 @@ import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { ListingMetaIconRow } from '@/components/ui/ListingMetaIconRow';
 import { CardContentSection, CardSectionDivider } from '@/components/ui/CardTitleSection';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
@@ -96,10 +97,13 @@ export function ClinicPostHeader({
 }: ClinicPostHeaderProps) {
   const logoUri = useClinicLogoUri(logoStoragePath);
   const { spacing } = useTheme();
+  const { isCompact } = useResponsiveLayout();
   const footerInset = avatarSize + spacing.md;
   const showClinicAsTitle = !title?.trim();
   const isSplit = layout === 'split';
   const headerOnlySplit = isSplit && headerOnly;
+  /** Phone / narrow: stack accessory under the title so the title keeps full width. */
+  const stackAccessory = isCompact && accessory != null;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     wrap: {
@@ -166,6 +170,10 @@ export function ClinicPostHeader({
     accessoryStack: {
       flexDirection: 'column',
       gap: spacing.xs,
+    },
+    stackedAccessoryWrap: {
+      alignSelf: 'flex-start',
+      marginTop: 2,
     },
     textFooter: {
       marginTop: spacing.xs,
@@ -256,11 +264,20 @@ export function ClinicPostHeader({
                 <Text style={styles.eyebrow} numberOfLines={headerOnlySplit ? 3 : 2}>
                   {clinicName}
                 </Text>
-                <Text style={styles.title} numberOfLines={2}>
+                <Text style={styles.title} numberOfLines={3}>
                   {title}
                 </Text>
               </>
             )}
+            {stackAccessory ? (
+              <View
+                style={[
+                  styles.stackedAccessoryWrap,
+                  stackedAccessory && styles.accessoryStack,
+                ]}>
+                {accessory}
+              </View>
+            ) : null}
             {!isSplit && locationNode}
             {headerOnlySplit && locationNode}
             {headerOnlySplit && statusLabel ? <View>{statusLabel}</View> : null}
@@ -270,7 +287,7 @@ export function ClinicPostHeader({
             {headerOnlySplit && postedLabel ? renderPostedLabel(postedLabel, styles.posted, 2) : null}
             {headerOnlySplit && footer ? <View style={styles.footer}>{footer}</View> : null}
           </View>
-          {accessory ? (
+          {!stackAccessory && accessory ? (
             <View style={[styles.accessory, stackedAccessory && styles.accessoryStack]}>
               {accessory}
             </View>

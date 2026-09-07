@@ -16,6 +16,7 @@ type ExpandableSurfaceCardProps = {
   padding?: CardPaddingTier;
   bleedPadding?: number;
   style?: StyleProp<ViewStyle>;
+  cardStyle?: StyleProp<ViewStyle>;
   accent?: GradientAccent;
   accentRailColor?: string;
 };
@@ -32,6 +33,7 @@ export function ExpandableSurfaceCard({
   padding = 'md',
   bleedPadding,
   style,
+  cardStyle,
   accent,
   accentRailColor,
 }: ExpandableSurfaceCardProps) {
@@ -55,6 +57,7 @@ export function ExpandableSurfaceCard({
       variant={variant}
       padding="none"
       style={style}
+      cardStyle={cardStyle}
       accentRailColor={accentRailColor}>
       <View style={styles.body}>{header}</View>
 

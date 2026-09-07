@@ -17,6 +17,8 @@ import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { BadgeRow } from '@/components/ui/BadgeRow';
+import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
+import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { fontBold, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type JobPostDetailPart = 'all' | 'hero' | 'body';
@@ -27,6 +29,8 @@ type JobPostDetailViewProps = {
   part?: JobPostDetailPart;
   /** Optional badges rendered below the hero row (e.g. match tier). */
   heroAccessory?: ReactNode;
+  /** Pro priority listing — Featured badge + hero treatment. */
+  featured?: boolean;
   /** Site location for group postings (Practice section). */
   locationLabel?: string | null;
   postedByLabel?: string | null;
@@ -37,11 +41,13 @@ export function JobPostDetailView({
   job,
   part = 'all',
   heroAccessory,
+  featured = false,
   locationLabel,
   postedByLabel,
   postedOnLabel,
 }: JobPostDetailViewProps) {
   const { colors } = useTheme();
+  const featuredTreatment = useFeaturedListingTreatment();
   const metaLine = formatJobPostRoleMeta(job);
   const matchableSoftware = job.software_used.filter(isMatchableSoftware);
   const softwareLabel = matchableSoftware.length > 0 ? matchableSoftware.join(' · ') : null;
@@ -101,12 +107,19 @@ export function JobPostDetailView({
 
   const showHero = part === 'all' || part === 'hero';
   const showBody = part === 'all' || part === 'body';
+  const showHeroBadges =
+    featured || Boolean(heroAccessory) || Boolean(job.screening_enabled);
 
   return (
     <View style={styles.wrap}>
       {showHero ? (
         <FadeInSection delayMs={0}>
-          <SurfaceCard padding="lg" gap elevationLevel="subtle">
+          <SurfaceCard
+            padding="lg"
+            gap
+            elevationLevel="subtle"
+            cardStyle={featured ? featuredTreatment.cardStyle : undefined}
+            accentRailColor={featured ? featuredTreatment.railColor : undefined}>
             <View style={styles.heroRow}>
               <View style={styles.iconBadge}>
                 <Ionicons name="briefcase-outline" size={18} color={colors.primary} />
@@ -118,8 +131,9 @@ export function JobPostDetailView({
               </View>
               <JobPostStatusBadge status={job.status} style={styles.statusBadge} />
             </View>
-            {heroAccessory || Boolean(job.screening_enabled) ? (
+            {showHeroBadges ? (
               <BadgeRow>
+                {featured ? <FeaturedListingBadge /> : null}
                 {heroAccessory}
                 {Boolean(job.screening_enabled) ? <CultureFitScreeningBadge /> : null}
               </BadgeRow>

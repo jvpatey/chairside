@@ -22,6 +22,7 @@ import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewTogg
 import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
 import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
+import { FeaturedListingsSectionHeader } from '@/components/worker/FeaturedListingsDivider';
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
@@ -45,6 +46,7 @@ import {
 } from '@/lib/clinicDiscoverMapItems';
 import { hasActiveListSearch } from '@/lib/clinicListSearch';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
+import { partitionByPriorityListing } from '@/lib/listingPriority';
 import {
   type ClinicDiscoverTab,
   type RoleTypeFilter,
@@ -205,11 +207,20 @@ export default function ClinicDiscoverScreen() {
     () => filterClinicDiscoverJobs(jobs, clinicProfile, filtersState),
     [clinicProfile, filtersState, jobs],
   );
-
   const filteredShifts = useMemo(
     () => filterClinicDiscoverShifts(shifts, clinicProfile, filtersState),
     [clinicProfile, filtersState, shifts],
   );
+  const { featured: featuredJobs, standard: standardJobs } = useMemo(
+    () => partitionByPriorityListing(filteredJobs),
+    [filteredJobs],
+  );
+  const { featured: featuredShifts, standard: standardShifts } = useMemo(
+    () => partitionByPriorityListing(filteredShifts),
+    [filteredShifts],
+  );
+  const showJobsFeaturedDivider = featuredJobs.length > 0 && standardJobs.length > 0;
+  const showShiftsFeaturedDivider = featuredShifts.length > 0 && standardShifts.length > 0;
 
   const hasSearch = hasActiveListSearch(searchQuery);
   const filterChangeCount = countClinicDiscoverFilterChanges(filtersState);
@@ -303,8 +314,24 @@ export default function ClinicDiscoverScreen() {
   const listContent =
     selectedTab === 'roles' ? (
       <View style={styles.cardList}>
+        {featuredJobs.length > 0 ? (
+          <FeaturedListingsSectionHeader label="Featured" variant="featured" />
+        ) : null}
         <ResponsiveGrid maxColumns={useWebSplitMap ? 1 : 2}>
-          {filteredJobs.map((job) => (
+          {featuredJobs.map((job) => (
+            <RoleListingCard
+              key={job.id}
+              job={job}
+              distanceLabel={job.distanceLabel}
+              onPress={() => router.push(getClinicDiscoverJobDetailRoute(job.id))}
+            />
+          ))}
+        </ResponsiveGrid>
+        {showJobsFeaturedDivider ? (
+          <FeaturedListingsSectionHeader label="More roles" variant="rest" />
+        ) : null}
+        <ResponsiveGrid maxColumns={useWebSplitMap ? 1 : 2}>
+          {standardJobs.map((job) => (
             <RoleListingCard
               key={job.id}
               job={job}
@@ -316,8 +343,28 @@ export default function ClinicDiscoverScreen() {
       </View>
     ) : (
       <View style={styles.cardList}>
+        {featuredShifts.length > 0 ? (
+          <FeaturedListingsSectionHeader
+            label="Featured"
+            variant="featured"
+            accent="secondary"
+          />
+        ) : null}
         <ResponsiveGrid maxColumns={useWebSplitMap ? 1 : 2}>
-          {filteredShifts.map((shift) => (
+          {featuredShifts.map((shift) => (
+            <FillInListingCard
+              key={shift.id}
+              shift={shift}
+              distanceLabel={shift.distanceLabel}
+              onPress={() => router.push(getClinicDiscoverShiftDetailRoute(shift.id))}
+            />
+          ))}
+        </ResponsiveGrid>
+        {showShiftsFeaturedDivider ? (
+          <FeaturedListingsSectionHeader label="More fill-ins" variant="rest" />
+        ) : null}
+        <ResponsiveGrid maxColumns={useWebSplitMap ? 1 : 2}>
+          {standardShifts.map((shift) => (
             <FillInListingCard
               key={shift.id}
               shift={shift}

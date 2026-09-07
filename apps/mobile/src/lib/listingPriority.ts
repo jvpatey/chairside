@@ -18,3 +18,16 @@ export function sortWithPriorityFirst<T extends { has_priority_listing: boolean 
     return secondarySort(left, right);
   });
 }
+
+/** Split a priority-sorted list into featured vs standard for list dividers. */
+export function partitionByPriorityListing<T extends { has_priority_listing: boolean }>(
+  items: T[],
+): { featured: T[]; standard: T[] } {
+  const featured: T[] = [];
+  const standard: T[] = [];
+  for (const item of items) {
+    if (item.has_priority_listing) featured.push(item);
+    else standard.push(item);
+  }
+  return { featured, standard };
+}

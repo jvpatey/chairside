@@ -7,6 +7,7 @@ import { Alert, View } from 'react-native';
 import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
+import { FeaturedListingsSectionHeader } from '@/components/worker/FeaturedListingsDivider';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
 import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
 import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseViewTransition';
@@ -35,6 +36,7 @@ import {
   type EnrichedLiveJobPost,
 } from '@/lib/workerBrowseFilters';
 import { buildLiveJobMatchDisplayContext, computeJobMatchBreakdown } from '@/lib/workerMatch';
+import { partitionByPriorityListing } from '@/lib/listingPriority';
 import { getWorkerClinicsDirectoryRoute, getWorkerJobDetailRoute } from '@/lib/routing';
 import {
   countUnmappablePosts,
@@ -43,6 +45,31 @@ import {
 } from '@/lib/workerMapItems';
 import { useThemedStyles } from '@/theme';
 
+function renderRoleListingCard(
+  job: EnrichedLiveJobPost,
+  applicationStatuses: Record<string, string>,
+  savedJobIds: Set<string>,
+  workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
+  onToggleSaved: (jobId: string, nextSaved: boolean) => void,
+) {
+  const status = applicationStatuses[job.id];
+  return (
+    <RoleListingCard
+      key={job.id}
+      job={job}
+      applicationStatus={status && isActiveApplicationStatus(status) ? status : null}
+      isSaved={savedJobIds.has(job.id)}
+      onToggleSaved={() => onToggleSaved(job.id, !savedJobIds.has(job.id))}
+      distanceLabel={job.distanceLabel}
+      jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
+      matchContext={
+        workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
+      }
+      onPress={() => router.push(getWorkerJobDetailRoute(job.id, 'browse-tab'))}
+    />
+  );
+}
+
 function renderRoleListingCards(
   jobs: EnrichedLiveJobPost[],
   applicationStatuses: Record<string, string>,
@@ -50,28 +77,23 @@ function renderRoleListingCards(
   workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
   onToggleSaved: (jobId: string, nextSaved: boolean) => void,
 ) {
+  const { featured, standard } = partitionByPriorityListing(jobs);
+  const showDivider = featured.length > 0 && standard.length > 0;
+
   return (
     <StaggeredList>
-      {jobs.map((job) => {
-        const status = applicationStatuses[job.id];
-        return (
-          <RoleListingCard
-            key={job.id}
-            job={job}
-            applicationStatus={
-              status && isActiveApplicationStatus(status) ? status : null
-            }
-            isSaved={savedJobIds.has(job.id)}
-            onToggleSaved={() => onToggleSaved(job.id, !savedJobIds.has(job.id))}
-            distanceLabel={job.distanceLabel}
-            jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
-            matchContext={
-              workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
-            }
-            onPress={() => router.push(getWorkerJobDetailRoute(job.id, 'browse-tab'))}
-          />
-        );
-      })}
+      {featured.length > 0 ? (
+        <FeaturedListingsSectionHeader label="Featured" variant="featured" />
+      ) : null}
+      {featured.map((job) =>
+        renderRoleListingCard(job, applicationStatuses, savedJobIds, workerProfile, onToggleSaved),
+      )}
+      {showDivider ? (
+        <FeaturedListingsSectionHeader label="More roles" variant="rest" />
+      ) : null}
+      {standard.map((job) =>
+        renderRoleListingCard(job, applicationStatuses, savedJobIds, workerProfile, onToggleSaved),
+      )}
     </StaggeredList>
   );
 }

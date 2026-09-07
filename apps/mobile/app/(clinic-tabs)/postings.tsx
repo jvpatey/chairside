@@ -79,8 +79,9 @@ export default function ClinicPostingsScreen() {
   const { mode, setMode, isWide, supportsListView } = useClinicListingViewMode('roles');
   const tableMode = isWide && supportsListView;
   const { user } = useAuth();
-  const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
-  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
+  const { clinicId, scopedLocationIds, isGroup, isOwner, accessibleLocations } =
+    useClinicActingContext();
+  const { clinicProfile, isProfileComplete, locations, membership } = useClinicProfile();
   const roleTableColumns = useMemo(() => getClinicRoleTableColumns(isGroup), [isGroup]);
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
@@ -189,6 +190,11 @@ export default function ClinicPostingsScreen() {
       clinicProfile,
       locations,
       isGroup,
+      isOwner,
+      assignedLocationIds:
+        membership?.location_ids?.length
+          ? membership.location_ids
+          : locations.map((location) => location.id).filter(Boolean),
       target,
       onAllowed: (href) => router.push(href),
     });

@@ -14,6 +14,8 @@ import { ShiftPostStatusBadge } from '@/components/clinic/ShiftPostStatusBadge';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { BadgeRow } from '@/components/ui/BadgeRow';
+import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
+import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { formatShiftPostDateLabel, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { formatTimeRangePreview } from '@/lib/time';
@@ -30,6 +32,8 @@ type ShiftPostDetailViewProps = {
   section?: 'full' | 'hero' | 'details';
   /** Optional badges rendered below the hero row (e.g. urgency). */
   heroAccessory?: ReactNode;
+  /** Pro priority listing — Featured badge + hero treatment. */
+  featured?: boolean;
   /** Site location for group postings (Shift details section). */
   locationLabel?: string | null;
   postedByLabel?: string | null;
@@ -44,11 +48,13 @@ export function ShiftPostDetailView({
   accent = 'secondary',
   section = 'full',
   heroAccessory,
+  featured = false,
   locationLabel,
   postedByLabel,
   postedOnLabel,
 }: ShiftPostDetailViewProps) {
   const { colors } = useTheme();
+  const featuredTreatment = useFeaturedListingTreatment(accent);
   const brandColor = accent === 'secondary' ? colors.secondary : colors.primary;
   const brandSubtle =
     accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
@@ -152,7 +158,12 @@ export function ShiftPostDetailView({
 
   const heroSection = (
     <FadeInSection delayMs={0}>
-      <SurfaceCard padding="lg" gap elevationLevel="subtle">
+      <SurfaceCard
+        padding="lg"
+        gap
+        elevationLevel="subtle"
+        cardStyle={featured ? featuredTreatment.cardStyle : undefined}
+        accentRailColor={featured ? featuredTreatment.railColor : undefined}>
         <View style={styles.heroRow}>
           <View style={styles.iconBadge}>
             <Ionicons name={FILL_IN_ICON.outline} size={18} color={brandColor} />
@@ -170,7 +181,12 @@ export function ShiftPostDetailView({
             />
           ) : null}
         </View>
-        {heroAccessory ? <BadgeRow>{heroAccessory}</BadgeRow> : null}
+        {featured || heroAccessory ? (
+          <BadgeRow>
+            {featured ? <FeaturedListingBadge accent={accent} /> : null}
+            {heroAccessory}
+          </BadgeRow>
+        ) : null}
       </SurfaceCard>
     </FadeInSection>
   );

@@ -4,6 +4,7 @@ import {
   getRoleTypeLabel,
 } from '@chairside/config';
 
+import { sortWithPriorityFirst } from '@/lib/listingPriority';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
 import type { RoleTypeFilter, WorkerDistanceFilter } from '@/lib/postingFilters';
 
@@ -213,15 +214,14 @@ export function filterClinicDiscoverJobs(
       return matchesTextSearch(buildJobSearchHaystack(job), query);
     });
 
-  if (filters.sort === 'distance') {
-    return filtered.sort((left, right) => {
+  return sortWithPriorityFirst(filtered, (left, right) => {
+    if (filters.sort === 'distance') {
       const byDistance = compareDistanceAsc(left.distanceKm, right.distanceKm);
       if (byDistance !== 0) return byDistance;
       return right.created_at.localeCompare(left.created_at);
-    });
-  }
-
-  return filtered.sort((left, right) => right.created_at.localeCompare(left.created_at));
+    }
+    return right.created_at.localeCompare(left.created_at);
+  });
 }
 
 export function filterClinicDiscoverShifts(
@@ -239,13 +239,12 @@ export function filterClinicDiscoverShifts(
       return matchesTextSearch(buildShiftSearchHaystack(shift), query);
     });
 
-  if (filters.sort === 'distance') {
-    return filtered.sort((left, right) => {
+  return sortWithPriorityFirst(filtered, (left, right) => {
+    if (filters.sort === 'distance') {
       const byDistance = compareDistanceAsc(left.distanceKm, right.distanceKm);
       if (byDistance !== 0) return byDistance;
       return left.shift_date.localeCompare(right.shift_date);
-    });
-  }
-
-  return filtered.sort((left, right) => left.shift_date.localeCompare(right.shift_date));
+    }
+    return left.shift_date.localeCompare(right.shift_date);
+  });
 }

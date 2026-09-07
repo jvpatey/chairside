@@ -4,7 +4,6 @@ import {
   getClinicProfileByOrganizationId,
   getClinicWorkspace,
   isClinicGroupsEnabled,
-  isClinicProfileComplete,
   type ClinicLocation,
   type ClinicMembership,
   type ClinicOrganization,
@@ -23,6 +22,7 @@ import {
 } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { isClinicMemberReadyToPost } from '@/lib/clinicManagerAccess';
 import {
   loadStoredLocationScope,
   saveStoredLocationScope,
@@ -222,36 +222,51 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
     return scopedLocationIdsKey.split(',');
   }, [scopedLocationIdsKey]);
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const isGroup = Boolean(workspace?.isGroup ?? clinicProfile?.account_type === 'group');
+    const membershipRole = workspace?.membership?.role;
+    // Never default group members to owner — that sends managers down the owner setup path.
+    const isOwner = isGroup ? membershipRole === 'owner' : true;
+    const locations = workspace?.locations ?? [];
+    const assignedLocationIds =
+      workspace?.membership?.location_ids?.length
+        ? workspace.membership.location_ids
+        : locations.map((location) => location.id).filter(Boolean);
+
+    return {
       clinicProfile,
       organization: workspace?.organization ?? null,
       membership: workspace?.membership ?? null,
-      locations: workspace?.locations ?? [],
+      locations,
       accessibleLocations,
       workspace,
       organizationId: workspace?.organization.id ?? clinicProfile?.organization_id ?? clinicProfile?.id ?? null,
       clinicId: workspace?.organization.id ?? clinicProfile?.id ?? null,
-      isOwner: workspace?.isOwner ?? true,
-      isGroup: workspace?.isGroup ?? clinicProfile?.account_type === 'group',
+      isOwner,
+      isGroup,
       locationScope,
       setLocationScope,
       scopedLocationIds,
       isClinicProfileReady,
-      isProfileComplete: isClinicProfileComplete(clinicProfile, { locations: workspace?.locations ?? [] }),
+      isProfileComplete: isClinicMemberReadyToPost({
+        isGroup,
+        isOwner,
+        clinicProfile,
+        locations,
+        assignedLocationIds,
+      }),
       refreshClinicProfile,
-    }),
-    [
-      accessibleLocations,
-      clinicProfile,
-      isClinicProfileReady,
-      locationScope,
-      refreshClinicProfile,
-      scopedLocationIds,
-      setLocationScope,
-      workspace,
-    ],
-  );
+    };
+  }, [
+    accessibleLocations,
+    clinicProfile,
+    isClinicProfileReady,
+    locationScope,
+    refreshClinicProfile,
+    scopedLocationIds,
+    setLocationScope,
+    workspace,
+  ]);
 
   return (
     <ClinicProfileContext.Provider value={value}>{children}</ClinicProfileContext.Provider>

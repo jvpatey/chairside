@@ -6,15 +6,17 @@ import {
   type ClinicInvitationPreview,
 } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { AuthScreenHeader } from '@/components/onboarding/AuthScreenHeader';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { PillBadge } from '@/components/ui/PillBadge';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -25,8 +27,12 @@ import {
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { CLINIC_HOME, CLINIC_SETUP_ACCOUNT_TYPE } from '@/lib/routing';
 import {
+  webHover,
+  webPointer,
+  webTextLinkHoverStyles,
+} from '@/lib/webPressableStyles';
+import {
   colorWithAlpha,
-  getHeroBandGradient,
   useTheme,
   useThemedStyles,
 } from '@/theme';
@@ -62,10 +68,11 @@ function InviteDetailRow({
     iconWrap: {
       width: 36,
       height: 36,
-      borderRadius: 12,
+      borderRadius: 10,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      backgroundColor: colorWithAlpha(themeColors.primary, 0.12),
+      backgroundColor: themeColors.primarySubtle,
+      flexShrink: 0,
     },
     copy: {
       flex: 1,
@@ -110,24 +117,12 @@ function ClinicInvitePreviewCard({
   inviteTitle: string;
   inviterLabel: string;
 }) {
-  const { colors, isDark } = useTheme();
-  const heroGradient = getHeroBandGradient(colors, isDark, 'primary');
+  const { colors } = useTheme();
   const locationNames = preview.location_names ?? [];
   const expiresLabel = formatExpiry(preview.expires_at);
 
-  const styles = useThemedStyles(({ colors: themeColors, spacing, radii, typography, elevation }) => ({
-    card: {
-      borderRadius: radii.hero,
-      overflow: 'hidden' as const,
-      borderWidth: 0,
-      backgroundColor: themeColors.surface,
-      ...elevation('subtle'),
-    },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
+  const styles = useThemedStyles(({ colors: themeColors, spacing, radii, typography }) => ({
     content: {
-      padding: spacing.lg,
       gap: spacing.md,
     },
     header: {
@@ -143,42 +138,26 @@ function ClinicInvitePreviewCard({
     },
     orgName: {
       ...typography.title,
-      fontSize: 26,
-      lineHeight: 32,
+      fontSize: 24,
+      lineHeight: 30,
       color: themeColors.labelPrimary,
-    },
-    rolePill: {
-      alignSelf: 'flex-start' as const,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 6,
-      borderRadius: radii.pill,
-      backgroundColor: colorWithAlpha(themeColors.primary, isDark ? 0.2 : 0.12),
-    },
-    rolePillLabel: {
-      fontSize: 13,
-      lineHeight: 18,
-      fontWeight: '600' as const,
-      color: themeColors.primary,
     },
     details: {
       gap: spacing.md,
       paddingTop: spacing.xs,
-    },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: themeColors.separator,
     },
     chips: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
       gap: spacing.xs,
       marginTop: 4,
+      paddingLeft: 44,
     },
     chip: {
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 6,
       borderRadius: radii.pill,
-      backgroundColor: colorWithAlpha(themeColors.labelPrimary, isDark ? 0.08 : 0.05),
+      backgroundColor: colorWithAlpha(themeColors.labelPrimary, 0.06),
     },
     chipLabel: {
       fontSize: 13,
@@ -189,25 +168,18 @@ function ClinicInvitePreviewCard({
   }));
 
   return (
-    <View style={styles.card}>
-      <LinearGradient
-        colors={heroGradient}
-        locations={[0, 0.28, 0.55, 0.75, 0.9, 1]}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
+    <SurfaceCard padding="lg" elevationLevel="subtle">
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Clinic invitation</Text>
           <Text style={styles.orgName}>{preview.organization_name || 'Clinic group'}</Text>
-          <View style={styles.rolePill}>
-            <Text style={styles.rolePillLabel}>{inviteTitle}</Text>
-          </View>
+          <PillBadge
+            label={inviteTitle}
+            color={colors.primary}
+            backgroundColor={colors.primarySubtle}
+            size="sm"
+          />
         </View>
-
-        <View style={styles.divider} />
 
         <View style={styles.details}>
           <InviteDetailRow icon="person-outline" label="Invited by" value={inviterLabel} />
@@ -241,7 +213,7 @@ function ClinicInvitePreviewCard({
           ) : null}
         </View>
       </View>
-    </View>
+    </SurfaceCard>
   );
 }
 
@@ -250,7 +222,6 @@ export default function AcceptClinicInviteScreen() {
   const { session, profile, refreshProfile } = useAuth();
   const { refreshClinicProfile } = useClinicProfile();
   const { completeOnboarding } = useOnboarding();
-  const { colors } = useTheme();
   const [token, setToken] = useState(
     typeof params.token === 'string' ? params.token : '',
   );
@@ -262,19 +233,23 @@ export default function AcceptClinicInviteScreen() {
   const [showCodeEntry, setShowCodeEntry] = useState(!params.token);
   const didAutoContinueRef = useRef(false);
 
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     form: { gap: spacing.lg },
-    hint: typography.subtitle,
-    action: { ...typography.body, color: colors.primary, fontWeight: '600' as const },
-    errorBox: {
-      gap: spacing.sm,
-      backgroundColor: `${colors.destructive}14`,
-      borderRadius: 12,
-      padding: spacing.md,
-    },
-    errorText: {
+    hint: {
       ...typography.subtitle,
-      color: colors.destructive,
+      color: colors.labelSecondary,
+    },
+    actionPressable: {
+      alignSelf: 'flex-start' as const,
+      paddingVertical: spacing.xs,
+      borderRadius: 8,
+      ...webPointer(),
+    },
+    actionPressableHovered: webTextLinkHoverStyles(colors),
+    action: {
+      ...typography.body,
+      color: colors.primary,
+      fontWeight: '600' as const,
     },
   }));
 
@@ -443,9 +418,14 @@ export default function AcceptClinicInviteScreen() {
   const inviterLabel =
     preview?.inviter_name?.trim() || preview?.organization_name?.trim() || 'the clinic';
 
+  const mismatchMessage = emailMismatch
+    ? `This invitation was sent to ${preview?.email}. You are signed in as ${session.user.email}. Switch to that account to join.`
+    : null;
+
   return (
     <OnboardingShell
       atmosphere="form"
+      webLayout="centeredDecision"
       footer={
         <SetupStepFooter
           canContinue={
@@ -494,18 +474,20 @@ export default function AcceptClinicInviteScreen() {
             : '.'}
         </Text>
 
-        {emailMismatch ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>
-              This invitation was sent to {preview?.email}. You are signed in as{' '}
-              {session.user.email}. Switch to that account to join.
-            </Text>
-            <Pressable onPress={() => void handleSwitchAccount()}>
+        {mismatchMessage ? (
+          <SurfaceCard padding="md" gap>
+            <FormErrorBanner message={mismatchMessage} />
+            <Pressable
+              onPress={() => void handleSwitchAccount()}
+              style={({ hovered, pressed }) => [
+                styles.actionPressable,
+                webHover(hovered, pressed, styles.actionPressableHovered),
+              ]}>
               <Text style={styles.action}>
                 {isSwitchingAccount ? 'Switching…' : 'Switch account'}
               </Text>
             </Pressable>
-          </View>
+          </SurfaceCard>
         ) : null}
 
         {preview?.status === 'pending' ? (
@@ -530,7 +512,12 @@ export default function AcceptClinicInviteScreen() {
             autoCapitalize="none"
           />
         ) : (
-          <Pressable onPress={() => setShowCodeEntry(true)}>
+          <Pressable
+            onPress={() => setShowCodeEntry(true)}
+            style={({ hovered, pressed }) => [
+              styles.actionPressable,
+              webHover(hovered, pressed, styles.actionPressableHovered),
+            ]}>
             <Text style={styles.action}>Enter a different code</Text>
           </Pressable>
         )}

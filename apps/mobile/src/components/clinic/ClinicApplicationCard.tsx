@@ -18,6 +18,7 @@ import { CardSectionDivider } from '@/components/ui/CardTitleSection';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { formatRelativeApplicationAge } from '@/lib/dates';
 import { isPastShiftDate } from '@/lib/fillInFilters';
@@ -137,6 +138,7 @@ export function ClinicApplicationCard({
   embedded = false,
 }: ClinicApplicationCardProps) {
   const { colors } = useTheme();
+  const { isCompact } = useResponsiveLayout();
   const { isApplicationHighlighted } = useApplicationTabBadge();
   const isJob = application.post_type === 'job';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
@@ -161,6 +163,7 @@ export function ClinicApplicationCard({
   const showMatchBadge = Boolean(jobMatch && matchContext);
   const showQualifications = Boolean(qualificationsLine);
   const stackOutcomeBadge = Platform.OS !== 'web';
+  const stackMatchBadge = isCompact && showMatchBadge;
   const stackContextLine = stackOutcomeBadge && Boolean(contextLine);
   const hasFooterMeta = showQualifications || (!stackContextLine && Boolean(contextLine));
 
@@ -206,6 +209,10 @@ export function ClinicApplicationCard({
     matchSlot: {
       flexShrink: 0,
       paddingTop: 1,
+    },
+    stackedMatch: {
+      alignSelf: 'flex-start',
+      marginTop: 2,
     },
     statusBlock: {
       gap: spacing.sm,
@@ -299,7 +306,7 @@ export function ClinicApplicationCard({
                 <Text style={styles.name} numberOfLines={2}>
                   {applicantName}
                 </Text>
-                {showMatchBadge && jobMatch && matchContext ? (
+                {!stackMatchBadge && showMatchBadge && jobMatch && matchContext ? (
                   <View style={styles.matchSlot}>
                     <MatchTierBadge
                       breakdown={jobMatch}
@@ -310,6 +317,16 @@ export function ClinicApplicationCard({
                   </View>
                 ) : null}
               </View>
+              {stackMatchBadge && jobMatch && matchContext ? (
+                <View style={styles.stackedMatch}>
+                  <MatchTierBadge
+                    breakdown={jobMatch}
+                    context={matchContext}
+                    subtitle={application.post_title}
+                    audience="clinic"
+                  />
+                </View>
+              ) : null}
               {postContextLine ? (
                 <Text style={styles.postContext} numberOfLines={1}>
                   {postContextLine}

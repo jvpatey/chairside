@@ -52,7 +52,8 @@ Owners invite managers from setup **Team** or **Profile → Team & access**:
 2. Creating a pending invite INSERT triggers the `notify` edge function → Pingram email with link `https://chairside.app/accept-invite?token=…`.
 3. Invitee signs in or signs up as a clinic user; the token is preserved through email/password, OAuth, email confirm, and app restarts.
 4. Accept screen shows a safe preview (group, inviter, locations, invited email, expiry). Acceptance is explicit (no silent auto-join) and requires an exact email match. Wrong email → **Switch account**.
-5. Owner actions on pending invites: **Resend** (fresh token + expiry + new email), **Copy invite link**, **Revoke**. If email delivery is delayed, copy-link remains available.
+5. On accept, assigned locations from the invite are copied to the membership — **that’s the full setup**. The group owner gets an in-app + push notification (`clinic_manager_joined`) linking to Team & access.
+6. Owner actions on pending invites: **Resend** (fresh token + expiry + new email), **Copy invite link**, **Revoke**. If email delivery is delayed, copy-link remains available.
 
 Manual code entry remains a secondary fallback on the accept screen.
 

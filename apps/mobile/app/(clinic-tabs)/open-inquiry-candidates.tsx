@@ -25,14 +25,14 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
-  CLINIC_SETUP_BASICS,
   getClinicConversationRoute,
   getClinicMessagesRoute,
 } from '@/lib/routing';
 import { hasActiveListSearch, matchesOpenInquiryWorkerSearch } from '@/lib/clinicListSearch';
 import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
-import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { useThemedStyles, type GradientAccent } from '@/theme';
+import { getManagerAccessBannerCopy, getManagerAccessBlockReason } from '@/lib/clinicManagerAccess';
+import { guardClinicMemberAccess } from '@/lib/clinicPostingGuard';
+import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
 const ACCENT: GradientAccent = 'primary';
 
@@ -47,8 +47,20 @@ const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
 ];
 
 export default function OpenInquiryCandidatesScreen() {
+  const { colors } = useTheme();
   const { user } = useAuth();
-  const { clinicProfile, isProfileComplete } = useClinicProfile();
+  const {
+    clinicProfile,
+    isProfileComplete,
+    locations,
+    isGroup,
+    isOwner,
+    membership,
+  } = useClinicProfile();
+  const assignedLocationIds =
+    membership?.location_ids?.length
+      ? membership.location_ids
+      : locations.map((location) => location.id).filter(Boolean);
   const { billing, isBillingReady, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
     useClinicUpgradePrompt();
 
@@ -60,7 +72,8 @@ export default function OpenInquiryCandidatesScreen() {
   const [isStarting, setIsStarting] = useState(false);
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
-    section: { gap: spacing.sm },
+    content: { gap: spacing.lg },
+    filters: { gap: spacing.sm },
     label: { ...typography.body, fontWeight: '600' },
     list: { gap: spacing.md },
     lockedLabel: {
@@ -136,18 +149,37 @@ export default function OpenInquiryCandidatesScreen() {
     router.replace(getClinicMessagesRoute());
   };
 
-  const guardProfile = () => {
-    showConfirmActionSheet({
-      title: 'Complete your clinic profile',
-      message: 'Finish your clinic profile before messaging candidates.',
-      confirmLabel: 'Continue setup',
-      onConfirm: () => router.push(CLINIC_SETUP_BASICS),
+  const incompleteAccessCopy = (() => {
+    const managerReason = getManagerAccessBlockReason({
+      isGroup,
+      isOwner,
+      clinicProfile,
+      locations,
+      assignedLocationIds,
     });
-  };
+    if (managerReason || (isGroup && !isOwner)) {
+      return getManagerAccessBannerCopy(managerReason ?? 'no_clinic_assigned');
+    }
+    return {
+      title: 'Complete your profile',
+      message: 'Finish your clinic profile to browse candidates.',
+    };
+  })();
 
   const handleMessage = async (worker: OpenInquiryWorker) => {
-    if (!isProfileComplete) {
-      guardProfile();
+    if (
+      !guardClinicMemberAccess({
+        isProfileComplete,
+        clinicProfile,
+        locations,
+        isGroup,
+        isOwner,
+        assignedLocationIds,
+        ownerTitle: 'Complete your clinic profile',
+        ownerMessage: 'Finish your clinic profile before messaging candidates.',
+        onNavigate: (href) => router.push(href),
+      })
+    ) {
       return;
     }
 
@@ -192,84 +224,87 @@ export default function OpenInquiryCandidatesScreen() {
         accent={ACCENT}
         onBack={handleBack}
       >
-        {isProfileComplete && isLocked ? (
-          <PlanUpgradeCallout
-            title="Upgrade for open inquiries"
-            message={getClinicGeneralMessagingUpgradeMessage(billing?.planFamily ?? 'clinic')}
-            accent={ACCENT}
-          />
-        ) : null}
+        <View style={styles.content}>
+          {isProfileComplete && isLocked ? (
+            <PlanUpgradeCallout
+              title="Upgrade for open inquiries"
+              message={getClinicGeneralMessagingUpgradeMessage(billing?.planFamily ?? 'clinic')}
+              accent={ACCENT}
+            />
+          ) : null}
 
-        <View style={styles.section}>
-          <Text style={[styles.label, isLocked && styles.lockedLabel]}>Filter by role</Text>
-          <ChipSelector
-            options={ROLE_FILTER_OPTIONS}
-            selected={roleFilter}
-            onChange={(value) => setRoleFilter(value as RoleFilter)}
-            accent={ACCENT}
-            disabled={isLocked}
-          />
+          <View style={styles.filters}>
+            <Text style={[styles.label, isLocked && styles.lockedLabel]}>Filter by role</Text>
+            <ChipSelector
+              options={ROLE_FILTER_OPTIONS}
+              selected={roleFilter}
+              onChange={(value) => setRoleFilter(value as RoleFilter)}
+              accent={ACCENT}
+              disabled={isLocked}
+              fadeColor={colors.backgroundGrouped}
+            />
+          </View>
+
+          {isProfileComplete ? (
+            <ListSearchFilterRow
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search candidate name or city"
+              accessibilityLabel="Search open inquiry candidates"
+              disabled={isLocked}
+            />
+          ) : null}
+
+          {formError ? <FormErrorBanner message={formError} /> : null}
+
+          {!isProfileComplete ? (
+            <EmptyState
+              icon="person-outline"
+              title={incompleteAccessCopy.title}
+              message={incompleteAccessCopy.message}
+              accent={ACCENT}
+            />
+          ) : isLocked ? null : isLoading ? (
+            <PageLoadingList rowCount={4} message="Loading candidates…" />
+          ) : workers.length === 0 ? (
+            <EmptyState
+              icon="chatbubbles-outline"
+              title="No candidates yet"
+              message={`No workers have opted into open inquiries for ${filteredRoleLabel} in ${clinicProfile?.province ?? 'your province'} yet.`}
+              accent={ACCENT}
+            />
+          ) : filteredWorkers.length === 0 ? (
+            <EmptyState
+              icon="search-outline"
+              title={hasSearch ? 'No matches' : 'No candidates yet'}
+              message={
+                hasSearch
+                  ? 'No candidates match your search.'
+                  : `No workers have opted into open inquiries for ${filteredRoleLabel} in ${clinicProfile?.province ?? 'your province'} yet.`
+              }
+              accent={ACCENT}
+            />
+          ) : (
+            <>
+              <Text style={styles.count}>
+                {filteredWorkers.length} candidate{filteredWorkers.length === 1 ? '' : 's'}
+              </Text>
+              <View style={styles.list}>
+                <StaggeredList>
+                  {filteredWorkers.map((worker) => (
+                    <OpenInquiryCandidateCard
+                      key={worker.workerId}
+                      worker={worker}
+                      onMessage={() => {
+                        void handleMessage(worker);
+                      }}
+                    />
+                  ))}
+                </StaggeredList>
+              </View>
+            </>
+          )}
         </View>
-
-        {isProfileComplete ? (
-          <ListSearchFilterRow
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search candidate name or city"
-            accessibilityLabel="Search open inquiry candidates"
-            disabled={isLocked}
-          />
-        ) : null}
-
-        {formError ? <FormErrorBanner message={formError} /> : null}
-
-        {!isProfileComplete ? (
-          <EmptyState
-            icon="person-outline"
-            title="Complete your profile"
-            message="Finish your clinic profile to browse candidates."
-            accent={ACCENT}
-          />
-        ) : isLocked ? null : isLoading ? (
-          <PageLoadingList rowCount={4} message="Loading candidates…" />
-        ) : workers.length === 0 ? (
-          <EmptyState
-            icon="chatbubbles-outline"
-            title="No candidates yet"
-            message={`No workers have opted into open inquiries for ${filteredRoleLabel} in ${clinicProfile?.province ?? 'your province'} yet.`}
-            accent={ACCENT}
-          />
-        ) : filteredWorkers.length === 0 ? (
-          <EmptyState
-            icon="search-outline"
-            title={hasSearch ? 'No matches' : 'No candidates yet'}
-            message={
-              hasSearch
-                ? 'No candidates match your search.'
-                : `No workers have opted into open inquiries for ${filteredRoleLabel} in ${clinicProfile?.province ?? 'your province'} yet.`
-            }
-            accent={ACCENT}
-          />
-        ) : (
-          <>
-            <Text style={styles.count}>
-              {filteredWorkers.length} candidate{filteredWorkers.length === 1 ? '' : 's'}
-            </Text>
-            <View style={styles.list}>
-              <StaggeredList>
-                {filteredWorkers.map((worker) => (
-                  <OpenInquiryCandidateCard
-                    key={worker.workerId}
-                    worker={worker}
-                    onMessage={() => {
-                      void handleMessage(worker);
-                    }}
-                  />
-                ))}
-              </StaggeredList>
-            </View>
-          </>
-        )}
       </FormScreen>
     </>
   );

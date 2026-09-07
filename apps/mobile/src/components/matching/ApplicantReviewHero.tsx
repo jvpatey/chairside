@@ -8,6 +8,7 @@ import {
   type ApplicationStatusSummaryAudience,
   type ApplicationStatusSummaryInput,
 } from '@/lib/applicationStatusSummary';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { colorWithAlpha, fontBold, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type ApplicantReviewHeroProps = {
@@ -77,12 +78,15 @@ export function ApplicantReviewHero({
   badges,
   status,
 }: ApplicantReviewHeroProps) {
+  const { isCompact } = useResponsiveLayout();
   const summary = getApplicationStatusSummary(
     status,
     status.audience,
     { isHighlighted: status.isHighlighted },
   );
   const variantStyles = useStatusVariantStyles(summary?.variant ?? 'default');
+  /** Phone / narrow: stack the match badge under the title so the title keeps full width. */
+  const stackTrailingBadge = isCompact && trailingBadge != null;
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     band: {
@@ -133,6 +137,10 @@ export function ApplicantReviewHero({
       flexShrink: 0,
       alignSelf: 'flex-start',
       marginLeft: spacing.sm,
+    },
+    stackedBadge: {
+      alignSelf: 'flex-start',
+      marginTop: 2,
     },
     badgeRow: {
       flexDirection: 'row',
@@ -211,16 +219,19 @@ export function ApplicantReviewHero({
                 label
               )
             ) : null}
-            <Text style={styles.title} numberOfLines={2}>
+            <Text style={styles.title} numberOfLines={3}>
               {title}
             </Text>
+            {stackTrailingBadge ? (
+              <View style={styles.stackedBadge}>{trailingBadge}</View>
+            ) : null}
             {meta ? (
               <Text style={styles.meta} numberOfLines={3}>
                 {meta}
               </Text>
             ) : null}
           </View>
-          {trailingBadge ? (
+          {!stackTrailingBadge && trailingBadge ? (
             <View style={styles.trailingBadge}>{trailingBadge}</View>
           ) : null}
         </View>

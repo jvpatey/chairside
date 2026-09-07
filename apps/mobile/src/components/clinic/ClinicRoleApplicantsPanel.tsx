@@ -19,6 +19,7 @@ import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import {
@@ -63,6 +64,7 @@ export function ClinicRoleApplicantsPanel({
   onLoadError,
 }: ClinicRoleApplicantsPanelProps) {
   const { user } = useAuth();
+  const { clinicId } = useClinicProfile();
   const { billing, isBillingReady, upgradePrompt, showCrmUpgrade } = useClinicUpgradePrompt();
   const crmLocked = isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseCrmFollowups');
 
@@ -118,7 +120,7 @@ export function ClinicRoleApplicantsPanel({
   }));
 
   const load = useCallback(async () => {
-    if (!user?.id || !jobId) {
+    if (!user?.id || !clinicId || !jobId) {
       setApplications([]);
       setArchivedApplications([]);
       setIsLoading(false);
@@ -128,10 +130,10 @@ export function ClinicRoleApplicantsPanel({
     setIsLoading(true);
     try {
       const [job, rows, archived, unread] = await Promise.all([
-        getJobPost(user.id, jobId),
-        listClinicApplicationsForJob(user.id, jobId, 'active'),
-        listClinicApplicationsForJob(user.id, jobId, 'archived'),
-        getUnreadConversationMap(user.id, 'clinic'),
+        getJobPost(clinicId, jobId),
+        listClinicApplicationsForJob(clinicId, jobId, 'active'),
+        listClinicApplicationsForJob(clinicId, jobId, 'archived'),
+        getUnreadConversationMap(clinicId, 'clinic'),
       ]);
       setPostTitle(job?.title ?? 'Role applicants');
       setPostPostedLabel(formatPostedDateLabel(job?.created_at));
@@ -150,7 +152,7 @@ export function ClinicRoleApplicantsPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [jobId, onBack, onLoadError, user?.id]);
+  }, [clinicId, jobId, onBack, onLoadError, user?.id]);
 
   useRefreshOnFocus(load);
 

@@ -118,9 +118,10 @@ export default function ClinicFillInsScreen() {
   const { colors } = useTheme();
   const { isTablet, isWide } = useResponsiveLayout();
   const { user } = useAuth();
-  const { clinicId, scopedLocationIds, isGroup, accessibleLocations } = useClinicActingContext();
+  const { clinicId, scopedLocationIds, isGroup, isOwner, accessibleLocations } =
+    useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string }>();
-  const { clinicProfile, isProfileComplete, locations } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations, membership } = useClinicProfile();
   const { refreshPending } = useFillInPending();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
     useClinicUpgradePrompt();
@@ -404,6 +405,11 @@ export default function ClinicFillInsScreen() {
       clinicProfile,
       locations,
       isGroup,
+      isOwner,
+      assignedLocationIds:
+        membership?.location_ids?.length
+          ? membership.location_ids
+          : locations.map((location) => location.id).filter(Boolean),
       target,
       onAllowed: (href) => router.push(href),
     });
@@ -614,7 +620,7 @@ export default function ClinicFillInsScreen() {
                                 shift={shift}
                                 pendingRequestCount={pendingCounts[shift.id] ?? 0}
                                 applicationCount={applicationCounts[shift.id] ?? 0}
-                                clinicId={user?.id}
+                                clinicId={clinicId ?? undefined}
                                 returnTo="fill-ins-tab"
                                 expanded={expandedShiftId === shift.id}
                                 onExpandChange={(next) => setExpandedShiftId(next ? shift.id : null)}
@@ -707,7 +713,7 @@ export default function ClinicFillInsScreen() {
                               <FillInApplicantCard
                                 key={request.id}
                                 application={request}
-                                clinicId={user?.id ?? ''}
+                                clinicId={clinicId ?? ''}
                                 returnTo="fill-ins-tab"
                                 hasUnreadMessages={Boolean(unreadMap[request.id])}
                                 onUpdated={() => void load()}
@@ -767,7 +773,7 @@ export default function ClinicFillInsScreen() {
                           {filteredConfirmedRows.map((row) => (
                             <ConfirmedFillInCard
                               key={row.applicationId}
-                              clinicId={user?.id ?? ''}
+                              clinicId={clinicId ?? ''}
                               workerName={row.workerName}
                               workerPhotoStoragePath={row.workerPhotoStoragePath}
                               shiftDate={row.shiftDate}

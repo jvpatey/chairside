@@ -64,6 +64,11 @@ import {
   summarizeJobApplicantPreviews,
 } from '@/lib/dashboardAttention';
 import { getClinicDashboardHeroNaming } from '@/lib/clinicDashboardHeroNaming';
+import {
+  getManagerAccessBannerCopy,
+  getManagerAccessBlockReason,
+  getOwnerUnassignedManagersCopy,
+} from '@/lib/clinicManagerAccess';
 import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
@@ -107,7 +112,8 @@ export default function ClinicDashboardScreen() {
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount, isApplicationHighlighted } =
     useApplicationTabBadge();
-  const { clinicProfile, isProfileComplete, locations, organization } = useClinicProfile();
+  const { clinicProfile, isProfileComplete, locations, organization, membership } =
+    useClinicProfile();
   const {
     clinicId,
     scopedLocationIds,
@@ -294,19 +300,39 @@ export default function ClinicDashboardScreen() {
     }
   }, [overview]);
 
+  const assignedLocationIds =
+    membership?.location_ids?.length
+      ? membership.location_ids
+      : locations.map((location) => location.id).filter(Boolean);
+
   const guardPosting = (target: Href) => {
     guardClinicPosting({
       isProfileComplete,
       clinicProfile,
       locations,
       isGroup,
+      isOwner,
+      assignedLocationIds,
       target,
       onAllowed: (href) => router.push(href),
     });
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
-  const showManagerSetupBanner = isGroup && !isOwner && !isProfileComplete;
+  const managerAccessReason = getManagerAccessBlockReason({
+    isGroup,
+    isOwner,
+    clinicProfile,
+    locations,
+    assignedLocationIds,
+  });
+  const managerAccessCopy = managerAccessReason
+    ? getManagerAccessBannerCopy(managerAccessReason)
+    : null;
+  const ownerUnassignedCopy =
+    isGroup && isOwner && teamPulse.unassignedManagers > 0
+      ? getOwnerUnassignedManagersCopy(teamPulse.unassignedManagers)
+      : null;
   const groupName =
     groupDisplayName || organization?.name?.trim() || clinicName || 'Dental group';
   const {
@@ -548,13 +574,25 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       alerts={
-        showManagerSetupBanner || locationGlanceRows.length > 0 ? (
+        managerAccessCopy || ownerUnassignedCopy || locationGlanceRows.length > 0 ? (
           <FadeInSection delayMs={40}>
             <View style={{ gap: 12 }}>
-              {showManagerSetupBanner ? (
-                <CardInfoPanel variant="info" icon="information-circle-outline" title="Setup in progress">
+              {managerAccessCopy ? (
+                <CardInfoPanel
+                  variant="info"
+                  icon="information-circle-outline"
+                  title={managerAccessCopy.title}>
+                  <CardInfoPanelText>{managerAccessCopy.message}</CardInfoPanelText>
+                </CardInfoPanel>
+              ) : null}
+              {ownerUnassignedCopy ? (
+                <CardInfoPanel
+                  variant="info"
+                  icon="people-outline"
+                  title={ownerUnassignedCopy.title}>
+                  <CardInfoPanelText>{ownerUnassignedCopy.message}</CardInfoPanelText>
                   <CardInfoPanelText>
-                    Your group owner needs to finish setup before you can post roles or fill-ins.
+                    Open Team & access from Settings to assign clinics.
                   </CardInfoPanelText>
                 </CardInfoPanel>
               ) : null}
@@ -650,7 +688,7 @@ export default function ClinicDashboardScreen() {
               applicantCounts={applicantCounts}
               shiftPendingCounts={shiftPendingCounts}
               shiftApplicationCounts={shiftApplicationCounts}
-              clinicId={user?.id}
+              clinicId={clinicId ?? undefined}
               fillInReturnTo="dashboard-fill-ins"
               onJobUpdated={handleJobUpdated}
               onJobDeleted={handleJobDeleted}
@@ -716,6 +754,9 @@ export default function ClinicDashboardScreen() {
             <ClinicReadinessChecklist
               clinicProfile={clinicProfile}
               locations={accessibleLocations}
+              isGroup={isGroup}
+              isOwner={isOwner}
+              assignedLocationIds={assignedLocationIds}
               fillInsPosted={counts.fillInsPosted}
               openRoles={counts.openRoles}
               totalApplications={counts.totalApplications}
