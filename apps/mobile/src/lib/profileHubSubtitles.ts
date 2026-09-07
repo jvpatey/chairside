@@ -14,8 +14,12 @@ import { getProvinceLabel, formatRoleTypesLabel, getSpecialtyLabel } from '@chai
 
 import { formatPhoneNumber } from '@/lib/phone';
 
-export function getAccountTypeLabel(role: UserRole): string {
-  return role === 'worker' ? 'Find work' : 'Clinic';
+export function getAccountTypeLabel(
+  role: UserRole,
+  options?: { isGroup?: boolean },
+): string {
+  if (role === 'worker') return 'Find work';
+  return options?.isGroup ? 'Clinic group' : 'Clinic';
 }
 
 export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null): string {

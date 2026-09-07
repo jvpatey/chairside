@@ -106,6 +106,7 @@ export default function ClinicAccountProfileScreen() {
           memberDisplayName={isGroup ? memberName || 'Your profile' : null}
           onAvatarPress={isGroup ? openMemberProfile : undefined}
           hideClinicMeta={isGroup}
+          isGroup={isGroup}
         />
 
         <ProfileSettingsGroup>

@@ -24,6 +24,7 @@ type AccountScreenContentProps = {
   firstName?: string | null;
   lastName?: string | null;
   accountTypeLabel: string;
+  audience: 'clinic' | 'worker';
   onProfileRefresh: () => Promise<unknown>;
   isSigningOut: boolean;
   onSignOut: () => void;
@@ -38,6 +39,7 @@ export function AccountScreenContent({
   firstName,
   lastName,
   accountTypeLabel,
+  audience,
   onProfileRefresh,
   isSigningOut,
   onSignOut,
@@ -47,7 +49,7 @@ export function AccountScreenContent({
 }: AccountScreenContentProps) {
   const busy = isSigningOut || isDeleting;
   const showPasswordSection = userHasEmailPasswordLogin(user);
-  const isClinic = accountTypeLabel === 'Clinic';
+  const isClinic = audience === 'clinic';
 
   const styles = useThemedStyles(({ colors, typography }) => ({
     intro: profileSettingsHintStyle({ typography, colors }),

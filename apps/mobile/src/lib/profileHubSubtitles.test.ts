@@ -11,12 +11,22 @@ vi.mock('@chairside/api', () => ({
 }));
 
 import {
+  getAccountTypeLabel,
   getClinicAboutSubtitle,
   getClinicGroupDetailsSubtitle,
   getClinicGroupProfileSubtitle,
   getClinicLocationsSubtitle,
   getClinicMessagingSubtitle,
 } from '@/lib/profileHubSubtitles';
+
+describe('getAccountTypeLabel', () => {
+  it('labels worker and clinic account types', () => {
+    expect(getAccountTypeLabel('worker')).toBe('Find work');
+    expect(getAccountTypeLabel('clinic')).toBe('Clinic');
+    expect(getAccountTypeLabel('clinic', { isGroup: false })).toBe('Clinic');
+    expect(getAccountTypeLabel('clinic', { isGroup: true })).toBe('Clinic group');
+  });
+});
 
 describe('getClinicMessagingSubtitle', () => {
   it('distinguishes locked Free from off-by-choice', () => {

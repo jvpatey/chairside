@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { AccountScreenContent } from '@/components/account/AccountScreenContent';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useSignOut } from '@/hooks/useSignOut';
 import { ACCOUNT_DELETION_DESCRIPTION } from '@/lib/accountDeletionCopy';
@@ -11,6 +12,7 @@ import { navigateToClinicProfileHub } from '@/lib/routing';
 
 export default function ClinicProfileAccountScreen() {
   const { user, profile, refreshProfile } = useAuth();
+  const { isGroup } = useClinicProfile();
   const { isSigningOut, signOut } = useSignOut();
   const { isDeleting, confirmDeleteAccount } = useDeleteAccount();
 
@@ -26,7 +28,8 @@ export default function ClinicProfileAccountScreen() {
         displayName={profile?.display_name}
         firstName={profile?.first_name}
         lastName={profile?.last_name}
-        accountTypeLabel={getAccountTypeLabel('clinic')}
+        accountTypeLabel={getAccountTypeLabel('clinic', { isGroup })}
+        audience="clinic"
         onProfileRefresh={refreshProfile}
         isSigningOut={isSigningOut}
         onSignOut={signOut}
