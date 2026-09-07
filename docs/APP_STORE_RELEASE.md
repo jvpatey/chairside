@@ -191,8 +191,8 @@ Password reset and sign-up confirmation emails use **Supabase Auth** for tokens 
 2. Pingram **Email Playground → SMTP & Supabase → Integrate with Supabase** (or manual: `smtp.ca.pingram.io`, port 465, username `auth_emails`).
 3. In Supabase **Authentication → SMTP**, confirm **Custom SMTP** is enabled and the from-address matches the verified domain.
 4. Enable **Confirm email** only after a test message appears in Pingram logs (not only `confirmation_sent_at`).
-5. **URL Configuration:** Site URL `https://chairside.app`; Redirect URLs include `https://chairside.app/**` and `chairside://**`.
-6. Prove it: new signup confirmation and password reset both arrive; the confirm link opens `https://chairside.app/auth/callback` and finishes setup.
+5. **URL Configuration:** Site URL `https://chairsidedental.app`; Redirect URLs include `https://chairsidedental.app/**`, `https://chairside.app/**` (if used), and `chairside://**`.
+6. Prove it: new signup confirmation and password reset both arrive; the confirm link opens `https://chairsidedental.app/auth/callback` and finishes setup.
 7. Replace the default Auth email HTML (old green Supabase template) with the Chairside templates:
    - [supabase/templates/confirm-signup.html](../supabase/templates/confirm-signup.html) → **Authentication → Emails → Confirm signup**
    - [supabase/templates/reset-password.html](../supabase/templates/reset-password.html) → **Reset password**

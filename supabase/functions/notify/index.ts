@@ -1993,7 +1993,7 @@ async function handleClinicInvitationInsert(
   const webBase = (
     Deno.env.get('APP_WEB_BASE_URL') ??
     Deno.env.get('EXPO_PUBLIC_WEB_BASE_URL') ??
-    'https://chairside.app'
+    'https://chairsidedental.app'
   ).replace(/\/$/, '');
   const acceptUrl = `${webBase}/accept-invite?token=${encodeURIComponent(token)}`;
 
