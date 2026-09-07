@@ -8,7 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
@@ -260,6 +260,7 @@ export default function AcceptClinicInviteScreen() {
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showCodeEntry, setShowCodeEntry] = useState(!params.token);
+  const didAutoContinueRef = useRef(false);
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     form: { gap: spacing.lg },
@@ -282,7 +283,7 @@ export default function AcceptClinicInviteScreen() {
     if (next) {
       setToken(next);
       setShowCodeEntry(false);
-      void saveClinicInviteToken(next);
+      // Only persist after preview confirms pending — revoked links must not re-trap sign-in.
     }
   }, [params.token]);
 
@@ -298,6 +299,7 @@ export default function AcceptClinicInviteScreen() {
       const next = await previewClinicManagerInvitation(value.trim());
       setPreview(next);
       if (next.status === 'pending') {
+        await saveClinicInviteToken(value.trim());
         return;
       }
       await clearClinicInviteToken();
@@ -398,7 +400,7 @@ export default function AcceptClinicInviteScreen() {
     }
   };
 
-  const handleContinueWithoutInvite = async () => {
+  const handleContinueWithoutInvite = useCallback(async () => {
     if (!session) return;
     setIsSubmitting(true);
     setSubmitError(null);
@@ -418,11 +420,19 @@ export default function AcceptClinicInviteScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [completeOnboarding, profile, refreshProfile, session]);
 
   const inviteUnusable = Boolean(
     preview && preview.status !== 'pending' && !isLoadingPreview,
   );
+
+  // Signed-in users hitting a dead invite link should leave automatically.
+  useEffect(() => {
+    if (!session || !inviteUnusable || didAutoContinueRef.current) return;
+    didAutoContinueRef.current = true;
+    void handleContinueWithoutInvite();
+  }, [handleContinueWithoutInvite, inviteUnusable, session]);
+
   const canJoin =
     Boolean(token.trim()) &&
     !emailMismatch &&
