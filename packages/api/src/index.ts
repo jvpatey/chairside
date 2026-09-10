@@ -65,6 +65,13 @@ export {
   type SupportContactSubject,
 } from './supportContact';
 export {
+  AdminStatsForbiddenError,
+  fetchAdminStats,
+  type AdminStatsClinicRow,
+  type AdminStatsProfessionalRow,
+  type AdminStatsPayload,
+} from './adminStats';
+export {
   completeClinicSetup,
   getClinicProfile,
   getClinicProfileByOrganizationId,

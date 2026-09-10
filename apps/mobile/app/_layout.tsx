@@ -101,6 +101,7 @@ export default function RootLayout() {
                   <Stack.Screen name="pricing" options={{ headerShown: false }} />
                   <Stack.Screen name="support" options={{ headerShown: false }} />
                   <Stack.Screen name="terms" options={{ headerShown: false }} />
+                  <Stack.Screen name="admin" options={{ headerShown: false }} />
                   </Stack>
                   </ToastProvider>
                 </OnboardingProvider>
