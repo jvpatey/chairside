@@ -84,6 +84,7 @@ function WorkerTabNavigator() {
       />
       <Tabs.Screen name="message-clinics" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="admin" options={{ href: null }} />
       <Tabs.Screen name="application" options={{ href: null }} />
       <Tabs.Screen name="conversation/[id]" options={{ href: null }} />
       <Tabs.Screen name="job/[id]" options={{ href: null }} />

@@ -45,10 +45,12 @@ import {
   CLINIC_PROFILE_ACCOUNT,
   CLINIC_PROFILE_BILLING,
   CLINIC_PROFILE_NOTIFICATIONS,
+  getAdminRouteForRole,
   WORKER_PROFILE,
   WORKER_PROFILE_ACCOUNT,
   WORKER_PROFILE_NOTIFICATIONS,
 } from '@/lib/routing';
+import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
 import { TABLET_TOP_INSET_EXTRA, TABLET_TOP_INSET_FALLBACK_IOS } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
@@ -645,6 +647,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const profileHref = role === 'worker' ? WORKER_PROFILE : CLINIC_PROFILE;
   const isProfileActive = pathname.includes('/profile');
+  const isAdminActive = pathname.includes('/admin');
+  const showAdminEntry = isWeb && isPlatformAdminEmail(user?.email);
 
   const clinicGroupName =
     organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || null;
@@ -1032,6 +1036,53 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             {!isCollapsed ? (
               <Text style={[styles.label, { color: colors.primary }]} numberOfLines={1}>
                 Upgrade
+              </Text>
+            ) : null}
+          </Pressable>
+        ) : null}
+        {showAdminEntry ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={isAdminActive ? { selected: true } : {}}
+            accessibilityLabel="Admin"
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push(getAdminRouteForRole(role));
+            }}
+            style={({ pressed, hovered }) => [
+              styles.item,
+              isCollapsed && styles.itemCollapsed,
+              !isCollapsed && isAdminActive && styles.itemActive,
+              isWeb &&
+                hovered &&
+                !pressed &&
+                (isCollapsed
+                  ? styles.itemHovered
+                  : isAdminActive
+                    ? styles.itemActiveHovered
+                    : styles.itemHovered),
+              pressed && styles.itemPressed,
+            ]}
+            {...(isCollapsed && isWeb ? webOnlyStyle({ title: 'Admin' } as ViewStyle) : {})}
+          >
+            <View style={styles.iconWrap}>
+              <Ionicons
+                name={isAdminActive ? 'stats-chart' : 'stats-chart-outline'}
+                size={20}
+                color={getSidebarNavIconColor(colors, 'primary', isAdminActive)}
+              />
+            </View>
+            {!isCollapsed ? (
+              <Text
+                style={[
+                  styles.label,
+                  isAdminActive && styles.labelActive,
+                  labelRevealStyle(isCollapsed),
+                ]}
+                accessibilityElementsHidden={isCollapsed}
+                importantForAccessibility={isCollapsed ? 'no' : 'auto'}
+              >
+                Admin
               </Text>
             ) : null}
           </Pressable>

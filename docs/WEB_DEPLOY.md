@@ -47,3 +47,7 @@ Set **Site URL** to your production web origin when deploying.
 ## Deep links
 
 Dynamic routes (`/conversation/[id]`, `/job/[id]`, etc.) require SPA fallback so refresh and direct links load the app shell.
+
+## Internal admin stats
+
+See [ADMIN_STATS.md](./ADMIN_STATS.md) for the web-only `/admin` dashboard (Edge Function secret `ADMIN_EMAILS`, no App Store build required).

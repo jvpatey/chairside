@@ -6,7 +6,10 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.jeffreyvpatey.chairside"
+      "bundleIdentifier": "com.jeffreyvpatey.chairside",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     }
   }
 }

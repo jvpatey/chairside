@@ -162,6 +162,8 @@ export type MessageThreadFocus = Pick<MessageThreadPreview, 'scrollToMessageId' 
 
 export const CLINIC_HOME: Href = '/(clinic-tabs)' as Href;
 export const WORKER_HOME: Href = '/(tabs)' as Href;
+export const CLINIC_ADMIN: Href = '/(clinic-tabs)/admin' as Href;
+export const WORKER_ADMIN: Href = '/(tabs)/admin' as Href;
 export const CLINIC_HOME_WELCOME: Href = '/(clinic-tabs)?welcome=1' as Href;
 export const WORKER_HOME_WELCOME: Href = '/(tabs)?welcome=1' as Href;
 /** Post-auth role picker when correcting worker vs clinic during incomplete setup. */
@@ -1059,6 +1061,10 @@ export function navigateAfterFillInSave(
 
 export function getHomeRouteForRole(role: UserRole): Href {
   return role === 'clinic' ? CLINIC_HOME : WORKER_HOME;
+}
+
+export function getAdminRouteForRole(role: UserRole): Href {
+  return role === 'clinic' ? CLINIC_ADMIN : WORKER_ADMIN;
 }
 
 const NOTIFICATION_TAB_ROOT_ROUTES = new Set([
