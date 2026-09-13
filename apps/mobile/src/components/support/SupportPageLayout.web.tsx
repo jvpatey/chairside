@@ -34,7 +34,7 @@ export function SupportPageLayout() {
     },
     hero: {
       position: 'relative' as const,
-      overflow: 'hidden' as const,
+      overflow: 'visible' as const,
       paddingTop: insets.top + 96,
       paddingBottom: spacing.xl,
       paddingHorizontal: spacing.lg,
@@ -65,17 +65,29 @@ export function SupportPageLayout() {
     columns: {
       flexDirection: isWide ? ('row' as const) : ('column' as const),
       gap: spacing.xl,
-      alignItems: 'flex-start' as const,
+      alignItems: isWide ? ('stretch' as const) : ('flex-start' as const),
     },
     formColumn: {
       flex: isWide ? 1.1 : undefined,
       minWidth: isWide ? 400 : undefined,
       width: isWide ? undefined : ('100%' as const),
+      ...(isWide
+        ? {
+            display: 'flex' as const,
+            flexDirection: 'column' as const,
+          }
+        : null),
     },
     topicsColumn: {
       flex: isWide ? 1 : undefined,
       minWidth: isWide ? 360 : undefined,
       width: isWide ? undefined : ('100%' as const),
+      ...(isWide
+        ? {
+            display: 'flex' as const,
+            flexDirection: 'column' as const,
+          }
+        : null),
     },
     formCard: {
       backgroundColor: colors.surface,
@@ -85,11 +97,17 @@ export function SupportPageLayout() {
       padding: spacing.lg,
       gap: spacing.lg,
       boxShadow: getWebShadow(isDark, 'raised'),
+      ...(isWide ? { flex: 1, alignSelf: 'stretch' as const } : null),
+    },
+    topicsCardFill: {
+      flex: 1,
+      alignSelf: 'stretch' as const,
     },
   }));
 
   return (
     <View style={styles.page}>
+      <WebPublicHeroAtmosphere />
       <WebMarketingNav scrollY={scrollY} />
       <Animated.ScrollView
         style={[styles.page, webScrollbarStyles()]}
@@ -100,7 +118,6 @@ export function SupportPageLayout() {
         })}
       >
         <View style={styles.hero}>
-          <WebPublicHeroAtmosphere />
           <WebPageEnter style={styles.heroInner}>
             <Text style={styles.title}>{SUPPORT_PAGE_CONTENT.title}</Text>
             <Text style={styles.intro}>{SUPPORT_PAGE_CONTENT.intro}</Text>
@@ -121,7 +138,10 @@ export function SupportPageLayout() {
             </WebPageEnter>
 
             <WebPageEnter delayMs={180} style={styles.topicsColumn}>
-              <SupportHelpTopics sections={FAQ_SECTIONS} />
+              <SupportHelpTopics
+                sections={FAQ_SECTIONS}
+                style={isWide ? styles.topicsCardFill : undefined}
+              />
             </WebPageEnter>
           </View>
         </View>

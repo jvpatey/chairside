@@ -26,13 +26,14 @@ export function WebPricingPage() {
     },
     pricing: {
       position: 'relative' as const,
-      overflow: 'hidden' as const,
+      overflow: 'visible' as const,
       paddingTop: insets.top + 88,
     },
   }));
 
   return (
     <View style={styles.page}>
+      <WebPublicHeroAtmosphere />
       <WebMarketingNav scrollY={scrollY} />
       <Animated.ScrollView
         style={[styles.page, webScrollbarStyles()]}
@@ -44,7 +45,6 @@ export function WebPricingPage() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pricing}>
-          <WebPublicHeroAtmosphere />
           <WebLandingPricing />
         </View>
         <WebMarketingFooter />

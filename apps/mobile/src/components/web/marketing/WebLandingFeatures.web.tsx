@@ -486,11 +486,6 @@ function ClinicRolesVisual() {
       fontWeight: '700' as const,
       color: colors.labelPrimary,
     },
-    wage: {
-      fontSize: 15,
-      fontWeight: '700' as const,
-      color: colors.primary,
-    },
     status: {
       alignSelf: 'flex-start' as const,
       paddingHorizontal: 8,
@@ -517,10 +512,6 @@ function ClinicRolesVisual() {
         <View style={styles.row}>
           <Text style={styles.label}>Type</Text>
           <Text style={styles.value}>Full-time</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Wage</Text>
-          <Text style={styles.wage}>$42–$48 / hr</Text>
         </View>
         <View style={[styles.status, phaseStyle(live, 8)]}>
           <Text style={styles.statusText}>{live ? 'Live · Accepting applicants' : 'Draft'}</Text>

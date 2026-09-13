@@ -1,7 +1,7 @@
 {
   "name": "mobile",
   "main": "expo-router/entry",
-  "version": "1.2",
+  "version": "1.2.1",
   "dependencies": {
     "@chairside/api": "workspace:*",
     "@chairside/config": "workspace:*",

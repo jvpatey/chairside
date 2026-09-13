@@ -381,7 +381,7 @@ function PricingTrustStrip() {
   }));
 
   return (
-    <WebPageEnter delayMs={320} trigger="visible">
+    <WebPageEnter delayMs={320}>
       <View style={styles.strip}>
         {TRUST_POINTS.map((point) => (
           <View key={point.label} style={styles.item}>
@@ -458,16 +458,22 @@ export function WebLandingPricing() {
 
   return (
     <WebMarketingSection style={styles.bleed} sectionId="pricing">
-      <WebMarketingSectionHeader
-        eyebrow="Pricing"
-        title="Clinic plans. Professionals always free."
-        subtitle={subtitle}
-        align="center"
-      />
+      <WebPageEnter>
+        <WebMarketingSectionHeader
+          eyebrow="Pricing"
+          title="Clinic plans. Professionals always free."
+          subtitle={subtitle}
+          align="center"
+        />
+      </WebPageEnter>
 
-      <PricingAudienceToggle value={audience} onChange={handleAudienceChange} />
+      <WebPageEnter delayMs={90}>
+        <PricingAudienceToggle value={audience} onChange={handleAudienceChange} />
+      </WebPageEnter>
 
-      <PricingAudiencePanel audience={audience} isWide={isWide} />
+      <WebPageEnter delayMs={180}>
+        <PricingAudiencePanel audience={audience} isWide={isWide} />
+      </WebPageEnter>
 
       <PricingTrustStrip />
     </WebMarketingSection>
