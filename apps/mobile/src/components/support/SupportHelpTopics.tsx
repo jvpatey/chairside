@@ -1,7 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from 'react-native';
+import {
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  Text,
+  UIManager,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import type { LegalPathKey } from '@/constants/legal';
 import { PUBLIC_LEGAL_PATHS, LEGAL_LAST_UPDATED } from '@/constants/legal';
@@ -31,6 +40,8 @@ type SupportHelpTopicsProps = {
   lastUpdated?: string;
   /** Prefer authenticated profile routes when signed in. Defaults to public URLs. */
   legalPaths?: Record<LegalPathKey, Href>;
+  /** Stretch to match a sibling card height (e.g. contact form on wide web). */
+  style?: StyleProp<ViewStyle>;
 };
 
 function toggleLayoutAnimation() {
@@ -214,6 +225,7 @@ export function SupportHelpTopics({
   sections,
   lastUpdated = LEGAL_LAST_UPDATED,
   legalPaths = PUBLIC_LEGAL_PATHS,
+  style,
 }: SupportHelpTopicsProps) {
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(() => new Set());
   const { isCompact } = useResponsiveLayout();
@@ -273,7 +285,7 @@ export function SupportHelpTopics({
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, style]}>
       <View style={styles.cardHeader}>
         <PublicPageCardHeader
           icon="help-circle-outline"

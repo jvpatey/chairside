@@ -108,7 +108,7 @@ export function getWelcomeHeroPreview(now = new Date()): WelcomeHeroPreview {
     role_type: 'hygienist',
     employment_type: 'permanent',
     title: 'Dental Hygienist',
-    wage_range: '$42–$48 / hr',
+    wage_range: null,
     schedule: 'Mon – Fri',
     description: null,
     required_qualifications: [],

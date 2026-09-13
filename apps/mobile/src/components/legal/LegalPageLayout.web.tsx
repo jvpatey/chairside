@@ -140,7 +140,7 @@ export function LegalPageLayout({
     },
     hero: {
       position: 'relative' as const,
-      overflow: 'hidden' as const,
+      overflow: 'visible' as const,
       paddingTop: insets.top + 96,
       paddingBottom: spacing.lg,
       paddingHorizontal: spacing.lg,
@@ -241,6 +241,7 @@ export function LegalPageLayout({
 
   return (
     <View style={styles.page}>
+      <WebPublicHeroAtmosphere />
       <WebMarketingNav scrollY={scrollY} />
       <Animated.ScrollView
         ref={scrollRef}
@@ -252,7 +253,6 @@ export function LegalPageLayout({
         })}
       >
         <View style={styles.hero}>
-          <WebPublicHeroAtmosphere />
           <WebPageEnter style={styles.heroInner}>
             <Text style={styles.eyebrow}>Legal</Text>
             <Text style={styles.title}>{content.title}</Text>
