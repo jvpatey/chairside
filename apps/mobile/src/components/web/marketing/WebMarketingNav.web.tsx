@@ -37,13 +37,17 @@ export function WebMarketingNav({ scrollY, onSectionPress }: WebMarketingNavProp
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { isDark, colors } = useTheme();
-  const { width } = useResponsiveLayout();
+  const { width, isWide } = useResponsiveLayout();
   const isNarrow = width < 480;
   const showAnchors = width >= 768;
   const [scrolled, setScrolled] = useState(false);
   const onPricing = isPricingPath(pathname);
   // Same scroll-glass behavior as welcome — no forced condensed state on pricing.
   const condensed = scrolled;
+  // On stacked welcome, hero owns the primary CTA — show nav CTA after scroll.
+  const showNavGetStarted = onPricing || isWide || condensed;
+  // Hero already shows the large wordmark on phone — avoid a duplicate in the sticky bar.
+  const showNavWordmark = onPricing || isWide || condensed;
 
   useEffect(() => {
     const id = scrollY.addListener(({ value }) => {
@@ -164,7 +168,9 @@ export function WebMarketingNav({ scrollY, onSectionPress }: WebMarketingNavProp
               )}
             </Pressable>
           ) : null}
-          <ChairsideWordmark variant="small" onPress={navigateToWelcome} />
+          {showNavWordmark ? (
+            <ChairsideWordmark variant="small" onPress={navigateToWelcome} />
+          ) : null}
           {!onPricing && showAnchors ? (
             <View style={styles.anchors}>
               {WELCOME_NAV_ITEMS.map((item) => (
@@ -214,12 +220,14 @@ export function WebMarketingNav({ scrollY, onSectionPress }: WebMarketingNavProp
               <Text style={styles.signInText}>Sign in</Text>
             </Pressable>
           ) : null}
-          <OnboardingButton
-            label="Get started"
-            onPress={() => router.push('/(onboarding)/role')}
-            variant="primary"
-            style={styles.getStarted}
-          />
+          {showNavGetStarted ? (
+            <OnboardingButton
+              label="Get started"
+              onPress={() => router.push('/(onboarding)/role')}
+              variant="primary"
+              style={styles.getStarted}
+            />
+          ) : null}
         </View>
       </View>
     </View>

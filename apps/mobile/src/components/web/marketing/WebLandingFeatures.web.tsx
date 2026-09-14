@@ -110,7 +110,7 @@ function FeaturesAudienceToggle({
 
   const styles = useThemedStyles(({ colors, spacing, typography, radii }) => ({
     wrap: {
-      alignSelf: 'flex-start' as const,
+      alignSelf: 'center' as const,
       width: '100%' as const,
       maxWidth: 360,
       marginBottom: spacing.xl,

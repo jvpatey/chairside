@@ -12,12 +12,16 @@ const POP_DURATION_MS = 780;
 
 type WebLandingHeroHeadlineProps = {
   style: StyleProp<TextStyle>;
+  align?: 'left' | 'center';
 };
 
 type IntroPhase = 'idle' | 'popping' | 'settled';
 
 /** Hero headline: smooth one-shot pop-settle on load, soft lift on hover. */
-export function WebLandingHeroHeadline({ style }: WebLandingHeroHeadlineProps) {
+export function WebLandingHeroHeadline({
+  style,
+  align = 'left',
+}: WebLandingHeroHeadlineProps) {
   const { colors } = useTheme();
   const reducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<IntroPhase>('idle');
@@ -46,7 +50,8 @@ export function WebLandingHeroHeadline({ style }: WebLandingHeroHeadlineProps) {
         flexDirection: 'row',
         flexWrap: 'wrap',
         alignItems: 'baseline',
-        alignSelf: 'flex-start',
+        alignSelf: align === 'center' ? 'center' : 'flex-start',
+        justifyContent: align === 'center' ? 'center' : 'flex-start',
         maxWidth: '100%',
       }}
     >
