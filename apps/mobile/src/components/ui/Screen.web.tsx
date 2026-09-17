@@ -16,7 +16,7 @@ import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { PageHeader, type PageHeaderVariant } from '@/components/ui/PageHeader';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
-import { WEB_SIDEBAR_OUTER_INSET } from '@/lib/breakpoints';
+import { getWebTabletContentTopPadding } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -43,6 +43,11 @@ export type ScreenProps = {
   animateEntry?: boolean;
   transparentBackground?: boolean;
   hideAtmosphere?: boolean;
+  /**
+   * Nested in a split pane that already applies sidebar-aligned top inset.
+   * Uses compact chrome padding instead of the full shell top.
+   */
+  embedded?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
   scrollRef?: RefObject<ScrollView | null>;
   scrollContentRef?: RefObject<View | null>;
@@ -83,6 +88,7 @@ export function Screen({
   animateEntry = true,
   transparentBackground = false,
   hideAtmosphere = false,
+  embedded = false,
   contentContainerStyle,
   scrollRef,
 }: ScreenProps) {
@@ -115,7 +121,18 @@ export function Screen({
   const containerBackground =
     passThroughAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory) || Boolean(onBack);
-  const topPadding = isTablet && !showHeader ? WEB_SIDEBAR_OUTER_INSET : insets.top + 16;
+  const tabletTopPadding = getWebTabletContentTopPadding(insets.top);
+  const paneTopPadding = spacing.md;
+  const topPadding = isTablet
+    ? embedded
+      ? paneTopPadding
+      : tabletTopPadding
+    : insets.top + 16;
+  const headerTopPadding = isTablet
+    ? embedded
+      ? paneTopPadding
+      : tabletTopPadding
+    : insets.top + spacing.sm;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     container: {
@@ -131,7 +148,6 @@ export function Screen({
       left: 0,
       right: 0,
       zIndex: 10,
-      paddingTop: insets.top + spacing.sm,
       paddingBottom: spacing.md,
       paddingHorizontal: spacing.lg,
       ...webTransition(['background-color', 'border-color', 'backdrop-filter']),
@@ -162,7 +178,6 @@ export function Screen({
     },
     staticHeader: {
       flexShrink: 0,
-      paddingTop: insets.top + spacing.sm,
       paddingBottom: spacing.md,
       paddingHorizontal: spacing.lg,
       backgroundColor: 'transparent',
@@ -198,6 +213,7 @@ export function Screen({
       onLayout={(event) => handleHeaderLayout(event.nativeEvent.layout.height)}
       style={[
         styles.overlayHeader,
+        { paddingTop: headerTopPadding },
         webStickyHeaderGlass(isDark, glassProgress),
         glassProgress <= 0 && {
           borderBottomWidth: StyleSheet.hairlineWidth,
@@ -210,7 +226,7 @@ export function Screen({
   ) : null;
 
   const staticHeaderBlock = showTopBar ? (
-    <View style={styles.staticHeader}>{pageHeader}</View>
+    <View style={[styles.staticHeader, { paddingTop: headerTopPadding }]}>{pageHeader}</View>
   ) : null;
 
   if (!scroll) {

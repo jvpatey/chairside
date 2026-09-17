@@ -23,10 +23,7 @@ import { AppText } from '@/components/ui/AppText';
 import { ThemedRefreshControl } from '@/components/ui/ThemedRefreshControl';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
-import {
-  TABLET_TOP_INSET_EXTRA,
-  TABLET_TOP_INSET_FALLBACK_IOS,
-} from '@/lib/breakpoints';
+import { getTabletTopPadding } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { colorWithAlpha, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
@@ -49,6 +46,8 @@ export type ScreenProps = {
   animateEntry?: boolean;
   transparentBackground?: boolean;
   hideAtmosphere?: boolean;
+  /** Nested in a split pane that already applies top inset (web). */
+  embedded?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -137,8 +136,7 @@ export function Screen({
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory) || Boolean(onBack);
   const topPadding = isTablet
-    ? Math.max(insets.top, Platform.OS === 'ios' ? TABLET_TOP_INSET_FALLBACK_IOS : 0) +
-      TABLET_TOP_INSET_EXTRA
+    ? getTabletTopPadding(insets.top, { applyIosFloor: Platform.OS === 'ios' })
     : insets.top + 16;
 
   const styles = useThemedStyles(({ spacing }) => ({

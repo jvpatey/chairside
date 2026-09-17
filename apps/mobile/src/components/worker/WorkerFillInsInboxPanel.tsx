@@ -161,6 +161,7 @@ export function WorkerFillInsInboxPanel({
       animateEntry={!compact}
       hideAtmosphere={compact}
       transparentBackground={compact}
+      embedded={compact}
       refreshing={refreshing}
       onRefresh={onRefresh}
       refreshAccent="secondary"

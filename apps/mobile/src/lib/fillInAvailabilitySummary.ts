@@ -10,6 +10,32 @@ export function isFillInAvailabilityConfigured(
   return Boolean(profile?.short_notice_available) && blocks.length > 0;
 }
 
+export type FillInSmsStatus = {
+  fillInsOn: boolean;
+  smsActive: boolean;
+  smsNeedsPhone: boolean;
+};
+
+/** Effective fill-in SMS state for summary badges and subtitles. */
+export function getFillInSmsStatus(profile: WorkerProfile | null): FillInSmsStatus {
+  const fillInsOn = profile?.short_notice_available ?? false;
+  const optedIn = profile?.fill_in_sms_opt_in ?? false;
+  const hasPhone = Boolean(profile?.phone?.trim());
+  return {
+    fillInsOn,
+    smsActive: fillInsOn && optedIn && hasPhone,
+    smsNeedsPhone: fillInsOn && optedIn && !hasPhone,
+  };
+}
+
+export function getFillInSmsSubtitlePart(profile: WorkerProfile | null): string | null {
+  const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  if (!fillInsOn) return null;
+  if (smsActive) return 'Texts: On';
+  if (smsNeedsPhone) return 'Texts: Needs phone';
+  return 'Texts: Off';
+}
+
 function formatScheduleDaysCompact(blocks: AvailabilityBlock[]): string {
   if (blocks.length === 0) return 'No schedule set';
 
@@ -27,10 +53,16 @@ function formatScheduleDaysCompact(blocks: AvailabilityBlock[]): string {
   return `${entries.length} days set`;
 }
 
+export type FillInAvailabilityStatusSegment = {
+  text: string;
+  tone: 'positive' | 'negative' | 'default';
+};
+
 export type FillInAvailabilityCollapsedSummary = {
   primaryLabel: string;
   primary: string;
   primaryTone: 'positive' | 'negative';
+  primarySegments: FillInAvailabilityStatusSegment[];
   secondaryLabel: string;
   secondary: string;
 };
@@ -47,6 +79,7 @@ export function getFillInAvailabilityCollapsedSummary(
       primaryLabel: 'Status',
       primary: 'Not available',
       primaryTone: 'negative',
+      primarySegments: [{ text: 'Not available', tone: 'negative' }],
       secondaryLabel: 'Schedule',
       secondary: schedulePart,
     };
@@ -60,10 +93,19 @@ export function getFillInAvailabilityCollapsedSummary(
         ? 'Matching days only'
         : 'Alerts off';
 
+  const { smsActive } = getFillInSmsStatus(profile);
+  const textsPart = smsActive ? 'Texts on' : 'Texts off';
+  const primarySegments: FillInAvailabilityStatusSegment[] = [
+    { text: 'Available', tone: 'positive' },
+    { text: textsPart, tone: smsActive ? 'positive' : 'negative' },
+    { text: alertPart, tone: 'default' },
+  ];
+
   return {
     primaryLabel: 'Status',
-    primary: `Available · ${alertPart}`,
+    primary: primarySegments.map((segment) => segment.text).join(' · '),
     primaryTone: 'positive',
+    primarySegments,
     secondaryLabel: 'Schedule',
     secondary: schedulePart,
   };

@@ -9,13 +9,17 @@ import {
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { EditPillButton } from '@/components/ui/EditPillButton';
+import { PillBadge } from '@/components/ui/PillBadge';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInAvailabilityPrimaryToggle } from '@/components/worker/FillInAvailabilityPrimaryToggle';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
-import { getFillInAvailabilityCollapsedSummary } from '@/lib/fillInAvailabilitySummary';
+import {
+  getFillInAvailabilityCollapsedSummary,
+  getFillInSmsStatus,
+} from '@/lib/fillInAvailabilitySummary';
 import { WORKER_FILLIN_AVAILABILITY, WORKER_SETUP_AVAILABILITY_SCHEDULE } from '@/lib/routing';
-import { useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 function navigateToManageAvailability() {
   router.push(WORKER_FILLIN_AVAILABILITY);
@@ -26,10 +30,12 @@ function navigateToEditSchedule() {
 }
 
 export function FillInAvailabilitySummaryCard() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const summary = getFillInAvailabilityCollapsedSummary(workerProfile, availabilityBlocks);
   const isAvailable = workerProfile?.short_notice_available ?? false;
+  const { smsActive } = getFillInSmsStatus(workerProfile);
+  const showSmsEnablement = isAvailable && !smsActive;
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     stack: {
@@ -39,6 +45,9 @@ export function FillInAvailabilitySummaryCard() {
       gap: spacing.sm,
     },
     hint: profileSettingsHintStyle({ typography, colors }),
+    statusRow: {
+      gap: spacing.sm,
+    },
     statusValue: {
       fontSize: 15,
       lineHeight: 22,
@@ -47,6 +56,15 @@ export function FillInAvailabilitySummaryCard() {
     },
     statusPositive: {
       color: colors.success,
+    },
+    statusNegative: {
+      color: colors.destructive,
+    },
+    statusSeparator: {
+      fontSize: 15,
+      lineHeight: 22,
+      fontWeight: '600',
+      color: colors.labelPrimary,
     },
     daysCardMuted: {
       opacity: 0.55,
@@ -68,15 +86,51 @@ export function FillInAvailabilitySummaryCard() {
               : 'Turn on when you can cover urgent shifts.'}
           </Text>
           <FieldBlock label={summary.primaryLabel}>
-            <Text
-              style={[
-                styles.statusValue,
-                summary.primaryTone === 'positive' ? styles.statusPositive : null,
-              ]}>
-              {summary.primary}
-            </Text>
+            <View style={styles.statusRow}>
+              <Text style={styles.statusValue}>
+                {summary.primarySegments.map((segment, index) => (
+                  <Text key={`${segment.text}-${index}`}>
+                    {index > 0 ? <Text style={styles.statusSeparator}> · </Text> : null}
+                    <Text
+                      style={
+                        segment.tone === 'positive'
+                          ? styles.statusPositive
+                          : segment.tone === 'negative'
+                            ? styles.statusNegative
+                            : null
+                      }>
+                      {segment.text}
+                    </Text>
+                  </Text>
+                ))}
+              </Text>
+              {smsActive ? (
+                <PillBadge
+                  label="Text alerts on"
+                  color={colors.secondary}
+                  backgroundColor={colorWithAlpha(colors.secondary, isDark ? 0.16 : 0.1)}
+                  borderColor={colorWithAlpha(colors.secondary, isDark ? 0.28 : 0.18)}
+                  size="sm"
+                  showDot
+                />
+              ) : null}
+            </View>
           </FieldBlock>
           <FieldDivider />
+          {showSmsEnablement ? (
+            <>
+              <ProfileSettingsRow
+                embedded
+                icon="chatbubble-ellipses-outline"
+                title="Get fill-ins by text"
+                subtitle="Faster alerts for urgent shifts"
+                iconColor={colors.secondary}
+                iconBackgroundColor={colors.secondarySubtle}
+                onPress={navigateToManageAvailability}
+              />
+              <FieldDivider />
+            </>
+          ) : null}
           <ProfileSettingsRow
             embedded
             icon="settings-outline"

@@ -67,6 +67,7 @@ export function WorkerApplicationSplitView({
   return (
     <MasterDetailLayout
       roundedPanes
+      alignToSidebar
       masterWidth={MASTER_WIDTH}
       showDetail
       master={

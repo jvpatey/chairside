@@ -316,6 +316,29 @@ export function FillInModePanel({
     </View>
   ) : null;
 
+  const textAlertsSection = showExpandedSettings ? (
+    <>
+      <View style={styles.sectionDivider} />
+      <SettingsSection title="Text alerts" nested={useNestedSections} embedded={isGrouped}>
+        <SettingsToggleRow
+          prominence="primary"
+          title="Text me for fill-ins"
+          hint={
+            hasPhone && phoneIsSaved
+              ? 'Get posted fill-ins and urgent clinic outreach by SMS.'
+              : 'Add and save your mobile number.'
+          }
+          value={smsOptIn}
+          disabled={isSaving || phoneNeedsSave}
+          bleedPadding={useNestedSections ? spacing.md : undefined}
+          accentColor={colors.secondary}
+          onValueChange={handleSmsToggle}
+        />
+        {phoneField}
+      </SettingsSection>
+    </>
+  ) : null;
+
   const clinicOutreachSection = showExpandedSettings ? (
     <>
       <View style={styles.sectionDivider} />
@@ -329,21 +352,6 @@ export function FillInModePanel({
           accentColor={colors.secondary}
           onValueChange={handleOutreachToggle}
         />
-        <View style={styles.radioDivider} />
-        <SettingsToggleRow
-          title="Text me for fill-ins"
-          hint={
-            hasPhone && phoneIsSaved
-              ? 'SMS for posted fill-ins and urgent clinic outreach.'
-              : 'Add and save your mobile number.'
-          }
-          value={smsOptIn}
-          disabled={isSaving || phoneNeedsSave}
-          bleedPadding={useNestedSections ? spacing.md : undefined}
-          accentColor={colors.secondary}
-          onValueChange={handleSmsToggle}
-        />
-        {phoneField}
       </SettingsSection>
     </>
   ) : null;
@@ -399,6 +407,7 @@ export function FillInModePanel({
           />
         </View>
       )}
+      {textAlertsSection}
       {clinicOutreachSection}
       {postedFillInAlertsSection}
     </View>
