@@ -82,6 +82,7 @@ describe('handleAuthSuccess invite resume', () => {
     await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
 
     expect(mocks.clearClinicInviteToken).toHaveBeenCalled();
+    expect(refreshProfile).toHaveBeenCalledWith('user-1');
     expect(mocks.resolveAuthenticatedRoute).toHaveBeenCalled();
     expect(completeOnboarding).toHaveBeenCalledWith('clinic');
     expect(mocks.routerReplace).toHaveBeenCalledWith('/(clinic-tabs)');
@@ -105,6 +106,7 @@ describe('handleAuthSuccess invite resume', () => {
 
     expect(mocks.previewClinicManagerInvitation).not.toHaveBeenCalled();
     expect(mocks.clearPendingSignupRole).toHaveBeenCalled();
+    expect(refreshProfile).toHaveBeenCalledWith('user-1');
     expect(mocks.resolveAuthenticatedRoute).toHaveBeenCalled();
     expect(completeOnboarding).toHaveBeenCalledWith('clinic');
     expect(mocks.routerReplace).toHaveBeenCalledWith('/(clinic-tabs)');
@@ -124,6 +126,7 @@ describe('handleAuthSuccess invite resume', () => {
     await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
 
     expect(mocks.setProfileRole).toHaveBeenCalledWith('user-1', 'worker');
+    expect(refreshProfile).toHaveBeenCalledWith('user-1');
     expect(completeOnboarding).toHaveBeenCalledWith('worker');
     expect(mocks.routerReplace).toHaveBeenCalledWith('/(worker-setup)/basics');
   });

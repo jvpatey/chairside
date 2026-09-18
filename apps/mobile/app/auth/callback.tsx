@@ -1,4 +1,10 @@
-import { hasAuthCallbackParams, isAuthCallbackPath } from '@chairside/api';
+import {
+  consumeNativeOAuthCallbackHandled,
+  hasAuthCallbackParams,
+  isAuthCallbackPath,
+  isAuthEmailLink,
+  isPasswordRecoveryUrl,
+} from '@chairside/api';
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 import { Animated, Platform, Text, View } from 'react-native';
@@ -45,10 +51,21 @@ async function resolveNativeCallbackUrl() {
   });
 }
 
+function isEmailOrRecoveryLink(url: string | null): boolean {
+  if (!url) return false;
+  return isAuthEmailLink(url) || isPasswordRecoveryUrl(url);
+}
+
 export default function AuthCallbackScreen() {
   const { refreshProfile, markPasswordRecoveryPending } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const [isClientReady, setIsClientReady] = useState(Platform.OS !== 'web');
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(
+    Platform.OS === 'web' ? resolveWebCallbackUrl() : null,
+  );
+  const [skipNativePaint, setSkipNativePaint] = useState(
+    () => Platform.OS !== 'web' && consumeNativeOAuthCallbackHandled(),
+  );
   const pulse = usePulseOpacity();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     body: {
@@ -79,7 +96,7 @@ export default function AuthCallbackScreen() {
   }, []);
 
   useEffect(() => {
-    if (!isClientReady) return;
+    if (!isClientReady || skipNativePaint) return;
 
     if (Platform.OS === 'web' && hasWebAuthLinkBeenHandled()) {
       return;
@@ -88,10 +105,24 @@ export default function AuthCallbackScreen() {
     let cancelled = false;
 
     async function handleCallback() {
+      // Re-check after awaiting the URL — native Google may have marked the gate
+      // while we were waiting on the deep-link listener.
+      if (Platform.OS !== 'web' && consumeNativeOAuthCallbackHandled()) {
+        setSkipNativePaint(true);
+        return;
+      }
+
       const url =
         Platform.OS === 'web' ? resolveWebCallbackUrl() : await resolveNativeCallbackUrl();
 
       if (!url || cancelled) return;
+
+      if (Platform.OS !== 'web' && consumeNativeOAuthCallbackHandled()) {
+        setSkipNativePaint(true);
+        return;
+      }
+
+      setCallbackUrl(url);
 
       await processAuthCallbackLink(url, {
         refreshProfile,
@@ -105,18 +136,29 @@ export default function AuthCallbackScreen() {
     return () => {
       cancelled = true;
     };
-  }, [completeOnboarding, isClientReady, markPasswordRecoveryPending, refreshProfile]);
+  }, [completeOnboarding, isClientReady, markPasswordRecoveryPending, refreshProfile, skipNativePaint]);
+
+  if (skipNativePaint) {
+    return null;
+  }
+
+  const showEmailLinkCopy = isEmailOrRecoveryLink(callbackUrl);
+  // Until the URL is known, prefer OAuth copy so Google/Apple do not flash
+  // "Opening your link". Email links set callbackUrl quickly and swap copy.
+  const title = showEmailLinkCopy ? 'Opening your link' : 'Signing you in';
+  const subtitle = showEmailLinkCopy
+    ? 'This only takes a moment. We’ll put you in the right place.'
+    : 'Just a moment…';
+  const statusMessage = showEmailLinkCopy ? 'Opening secure link…' : 'Signing you in…';
+  const accessibilityLabel = showEmailLinkCopy ? 'Opening secure link' : 'Signing you in';
 
   return (
     <OnboardingShell webLayout="centeredDecision" atmosphere="form">
-      <AuthScreenHeader
-        title="Opening your link"
-        subtitle="This only takes a moment. We’ll put you in the right place."
-      />
+      <AuthScreenHeader title={title} subtitle={subtitle} />
       <View
         style={styles.body}
         accessibilityRole="progressbar"
-        accessibilityLabel="Opening secure link"
+        accessibilityLabel={accessibilityLabel}
       >
         <Animated.View style={{ opacity: pulse }}>
           <ChairsideWordmark variant="compact" />
@@ -137,7 +179,7 @@ export default function AuthCallbackScreen() {
             />
           ))}
         </View>
-        <Text style={styles.message}>Opening secure link…</Text>
+        <Text style={styles.message}>{statusMessage}</Text>
       </View>
     </OnboardingShell>
   );

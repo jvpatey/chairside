@@ -5,6 +5,7 @@ import { renderWorkerTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { WorkerSetupGate } from '@/components/onboarding/SetupGate';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
+import { useAuth } from '@/contexts/AuthContext';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
@@ -100,13 +101,16 @@ function WorkerTabNavigator() {
 }
 
 export default function TabLayout() {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? 'signed-out';
+
   return (
     <SidebarCollapseProvider>
       <MessageUnreadProvider role="worker">
         <ApplicationTabBadgeProvider role="worker">
           <TabAtmosphereShell role="worker">
             <WorkerSetupGate>
-              <WorkerTabNavigator />
+              <WorkerTabNavigator key={userId} />
             </WorkerSetupGate>
           </TabAtmosphereShell>
         </ApplicationTabBadgeProvider>

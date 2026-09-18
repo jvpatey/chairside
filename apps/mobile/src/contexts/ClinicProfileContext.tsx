@@ -158,6 +158,9 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       // (e.g. profile identity change after browser-tab token refresh) must not
       // unmount the tab navigator — that resets web tabs to Roles.
       if (!isSoftRefresh) {
+        settledUserIdRef.current = null;
+        setClinicProfile(null);
+        setWorkspace(null);
         setIsClinicProfileReady(false);
       }
 

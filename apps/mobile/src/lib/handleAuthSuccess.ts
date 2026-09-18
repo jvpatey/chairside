@@ -15,7 +15,7 @@ import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import type { UserRole } from '@/types';
 
 export async function handleAuthSuccess(
-  refreshProfile: () => Promise<{ role: UserRole | null } | null>,
+  refreshProfile: (userId?: string) => Promise<{ role: UserRole | null } | null>,
   completeOnboarding: (role: UserRole) => Promise<void>,
   userId: string,
 ) {
@@ -52,12 +52,12 @@ export async function handleAuthSuccess(
     await clearPendingSignupRole();
   }
 
-  const refreshed = await refreshProfile();
+  const refreshed = await refreshProfile(userId);
 
   const { href, role } = await resolveAuthenticatedRoute({
     userId,
     profile: profile ?? refreshed,
-    refreshProfile,
+    refreshProfile: () => refreshProfile(userId),
   });
 
   if (role) {

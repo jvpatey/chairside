@@ -31,10 +31,29 @@ function renderGateDecision(
   return children;
 }
 
+function useResetKeepMountedOnUserChange(sessionUserId: string | undefined) {
+  const hasShownAppRef = useRef(false);
+  const lastSessionUserIdRef = useRef<string | null>(null);
+
+  if (sessionUserId !== lastSessionUserIdRef.current) {
+    // Account switch: never keep the previous user's tab tree mounted.
+    if (
+      lastSessionUserIdRef.current !== null &&
+      sessionUserId !== undefined &&
+      sessionUserId !== lastSessionUserIdRef.current
+    ) {
+      hasShownAppRef.current = false;
+    }
+    lastSessionUserIdRef.current = sessionUserId ?? null;
+  }
+
+  return hasShownAppRef;
+}
+
 export function ClinicSetupGate({ children }: { children: ReactNode }) {
   const { session, isAuthReady, isProfileReady, profile } = useAuth();
   const { clinicProfile, isClinicProfileReady, membership, isOwner, locations } = useClinicProfile();
-  const hasShownAppRef = useRef(false);
+  const hasShownAppRef = useResetKeepMountedOnUserChange(session?.user?.id);
 
   const decision = getClinicSetupGateDecision({
     isAuthReady,
@@ -63,7 +82,7 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
 export function WorkerSetupGate({ children }: { children: ReactNode }) {
   const { session, isAuthReady, isProfileReady, profile } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
-  const hasShownAppRef = useRef(false);
+  const hasShownAppRef = useResetKeepMountedOnUserChange(session?.user?.id);
 
   const decision = getWorkerSetupGateDecision({
     isAuthReady,

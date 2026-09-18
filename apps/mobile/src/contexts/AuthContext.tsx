@@ -32,7 +32,7 @@ type AuthContextValue = {
   /** False while a session exists but profile fetch has not settled yet. */
   isProfileReady: boolean;
   isPasswordRecoveryPending: boolean;
-  refreshProfile: () => Promise<Profile | null>;
+  refreshProfile: (userId?: string) => Promise<Profile | null>;
   markPasswordRecoveryPending: () => void;
   clearPasswordRecoveryPending: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -53,9 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isProfileReadyRef = useRef(false);
   const applyGenerationRef = useRef(0);
 
+  const profileUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     userIdRef.current = user?.id ?? null;
   }, [user?.id]);
+
+  useEffect(() => {
+    profileUserIdRef.current = profile?.id ?? null;
+  }, [profile?.id]);
 
   useEffect(() => {
     isProfileReadyRef.current = isProfileReady;
@@ -70,12 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsPasswordRecoveryPendingState(false);
   }, []);
 
-  const refreshProfile = useCallback(async () => {
+  const refreshProfile = useCallback(async (explicitUserId?: string) => {
     const supabase = getSupabaseClient();
     const {
       data: { session: activeSession },
     } = await supabase.auth.getSession();
-    const userId = user?.id ?? activeSession?.user?.id;
+    // Prefer the live session (and any explicit id from login) over React user —
+    // on account switch React user is still the previous account.
+    const userId = explicitUserId ?? activeSession?.user?.id ?? user?.id;
     if (!userId) {
       setProfile(null);
       setIsProfileReady(true);
@@ -98,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return null;
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,10 +142,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadProfile,
         setSession,
         setUser,
+        getProfileUserId: () => profileUserIdRef.current,
         clearProfile: () => {
           profileRequestRef.current += 1;
           setProfile(null);
           setIsProfileReady(true);
+        },
+        invalidateProfileForUserChange: () => {
+          profileRequestRef.current += 1;
+          setProfile(null);
+          setIsProfileReady(false);
         },
       });
     }

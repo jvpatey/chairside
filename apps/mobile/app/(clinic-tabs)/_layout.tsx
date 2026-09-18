@@ -6,6 +6,7 @@ import { ClinicSetupGate } from '@/components/onboarding/SetupGate';
 import { renderClinicTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
+import { useAuth } from '@/contexts/AuthContext';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
@@ -124,6 +125,9 @@ function ClinicTabNavigator() {
 }
 
 export default function ClinicTabLayout() {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? 'signed-out';
+
   return (
     <SidebarCollapseProvider>
       <MessageUnreadProvider role="clinic">
@@ -131,7 +135,7 @@ export default function ClinicTabLayout() {
           <ApplicationTabBadgeProvider role="clinic">
             <TabAtmosphereShell role="clinic">
               <ClinicSetupGate>
-                <ClinicTabNavigator />
+                <ClinicTabNavigator key={userId} />
               </ClinicSetupGate>
             </TabAtmosphereShell>
           </ApplicationTabBadgeProvider>
