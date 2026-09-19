@@ -59,3 +59,20 @@ export function getContentMaxWidth(width: number): number | undefined {
   if (tier === 'regular') return CONTENT_MAX_WIDTH.regular;
   return CONTENT_MAX_WIDTH.phone;
 }
+
+/** Shared tablet top inset used by sidebar panel and native Screen. */
+export function getTabletTopPadding(
+  safeTop: number,
+  options?: { applyIosFloor?: boolean },
+): number {
+  const floor = options?.applyIosFloor ? TABLET_TOP_INSET_FALLBACK_IOS : 0;
+  return Math.max(safeTop, floor) + TABLET_TOP_INSET_EXTRA;
+}
+
+/**
+ * Web tablet content top — matches sidebar `outerWeb` inset + panel top padding
+ * so dashboard hero / page headings align with the sidebar profile card.
+ */
+export function getWebTabletContentTopPadding(safeTop = 0): number {
+  return WEB_SIDEBAR_OUTER_INSET + getTabletTopPadding(safeTop, { applyIosFloor: false });
+}

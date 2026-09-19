@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import {
@@ -9,6 +10,7 @@ import {
   useTabAtmosphereAccent,
 } from '@/contexts/TabAtmosphereContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { getWebTabletContentTopPadding } from '@/lib/breakpoints';
 import { webOnlyStyle, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 import { getWebShadow, webMotion, webTransition } from '@/theme/web';
@@ -34,6 +36,11 @@ type MasterDetailLayoutProps = {
   onContextCollapsedChange?: (collapsed: boolean) => void;
   /** Card-style panes with rounded corners — for workspace split views like Applications. */
   roundedPanes?: boolean;
+  /**
+   * Top-level split hubs without an outer Screen (e.g. worker Applications).
+   * Aligns rounded pane tops with the sidebar profile card.
+   */
+  alignToSidebar?: boolean;
 };
 
 /** Web master/detail with optional third context pane at xwide widths. */
@@ -47,8 +54,10 @@ export function MasterDetailLayout({
   contextCollapsed = false,
   onContextCollapsedChange,
   roundedPanes = false,
+  alignToSidebar = false,
 }: MasterDetailLayoutProps) {
-  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { colors, spacing } = useTheme();
   const { isTablet, isXWide } = useResponsiveLayout();
   const tabAtmosphere = useTabAtmosphere();
   const tabAtmosphereAccent = useTabAtmosphereAccent();
@@ -62,6 +71,9 @@ export function MasterDetailLayout({
   const contextCollapsible = showContext && Boolean(onContextCollapsedChange);
   const contextExpanded = !contextCollapsed || !contextCollapsible;
   const contextPaneWidth = contextExpanded ? CONTEXT_WIDTH : CONTEXT_RAIL_WIDTH;
+  const roundedTopPadding = alignToSidebar
+    ? getWebTabletContentTopPadding(insets.top)
+    : spacing.md;
 
   const styles = useThemedStyles(({ colors, spacing, radii, isDark }) => ({
     root: {
@@ -77,7 +89,6 @@ export function MasterDetailLayout({
     },
     rowRounded: {
       gap: spacing.md,
-      paddingTop: spacing.md,
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.md,
     },
@@ -189,7 +200,12 @@ export function MasterDetailLayout({
 
   return (
     <View style={[styles.root, style]}>
-      <View style={[styles.row, roundedPanes ? styles.rowRounded : null]}>
+      <View
+        style={[
+          styles.row,
+          roundedPanes ? styles.rowRounded : null,
+          roundedPanes ? { paddingTop: roundedTopPadding } : null,
+        ]}>
         <View
           style={[
             styles.pane,

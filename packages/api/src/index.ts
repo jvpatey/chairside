@@ -25,6 +25,13 @@ export {
   isPasswordRecoveryUrl,
   parseAuthRedirectUrl,
 } from './parseAuthRedirectUrl';
+export {
+  clearNativeOAuthCallbackHandled,
+  consumeNativeOAuthCallbackHandled,
+  markNativeOAuthCallbackHandled,
+  peekNativeOAuthCallbackHandled,
+  resetNativeOAuthCallbackGateForTests,
+} from './nativeOAuthCallbackGate';
 export { getErrorMessage, throwWithMessage } from './errors';
 export {
   listFillInOutreachWorkersForClinic,

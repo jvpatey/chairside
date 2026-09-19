@@ -52,7 +52,7 @@ import {
 } from '@/lib/routing';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
-import { TABLET_TOP_INSET_EXTRA, TABLET_TOP_INSET_FALLBACK_IOS } from '@/lib/breakpoints';
+import { WEB_SIDEBAR_OUTER_INSET, getTabletTopPadding } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
 import {
@@ -221,8 +221,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     outerWeb: {
       flex: 1,
       width: '100%',
-      paddingHorizontal: isWeb ? spacing.xs : spacing.sm,
-      paddingVertical: isWeb ? spacing.xs : spacing.sm,
+      paddingHorizontal: isWeb ? WEB_SIDEBAR_OUTER_INSET : spacing.sm,
+      paddingVertical: isWeb ? WEB_SIDEBAR_OUTER_INSET : spacing.sm,
       backgroundColor: 'transparent',
       minHeight: 0,
       position: 'relative',
@@ -743,9 +743,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const panelPadding = {
     paddingHorizontal: isCollapsed ? spacing.xs : spacing.md,
-    paddingTop:
-      Math.max(insets.top, Platform.OS === 'ios' ? TABLET_TOP_INSET_FALLBACK_IOS : 0) +
-      TABLET_TOP_INSET_EXTRA,
+    paddingTop: getTabletTopPadding(insets.top, { applyIosFloor: Platform.OS === 'ios' }),
     paddingBottom: Math.max(insets.bottom, spacing.md),
     ...(isWeb
       ? webOnlyStyle({

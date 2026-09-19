@@ -17,6 +17,8 @@ type MasterDetailLayoutProps = {
   onContextCollapsedChange?: (collapsed: boolean) => void;
   /** Card-style panes with rounded corners — for workspace split views like Applications. */
   roundedPanes?: boolean;
+  /** Top-level split hubs without an outer Screen — align pane tops with the sidebar. */
+  alignToSidebar?: boolean;
 };
 
 /**
@@ -31,6 +33,7 @@ export function MasterDetailLayout({
   masterWidth = DEFAULT_MASTER_WIDTH,
   style,
   roundedPanes = false,
+  alignToSidebar = false,
 }: MasterDetailLayoutProps) {
   const { isTablet } = useResponsiveLayout();
   const styles = useThemedStyles(({ colors, spacing, radii, elevation }) => ({
@@ -46,7 +49,8 @@ export function MasterDetailLayout({
     },
     rowRounded: {
       gap: spacing.md,
-      paddingTop: spacing.md,
+      // Native split rarely uses sidebar-aligned web chrome; keep a modest inset.
+      paddingTop: alignToSidebar ? spacing.lg : spacing.md,
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.md,
     },

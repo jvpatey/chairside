@@ -115,6 +115,9 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
       const requestId = ++requestRef.current;
       const isSoftRefresh = settledUserIdRef.current === user.id;
       if (!isSoftRefresh) {
+        settledUserIdRef.current = null;
+        setWorkerProfile(null);
+        setAvailabilityBlocks([]);
         setIsWorkerProfileReady(false);
       }
 

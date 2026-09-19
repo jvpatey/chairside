@@ -15,7 +15,7 @@ export type SetupGateDecision =
 
 type ClinicGateInput = {
   isAuthReady: boolean;
-  session: unknown;
+  session: { user?: { id?: string } } | null | unknown;
   profile: Profile | null;
   /** False while session exists but auth profile fetch has not settled. */
   isProfileReady: boolean;
@@ -29,7 +29,7 @@ type ClinicGateInput = {
 
 type WorkerGateInput = {
   isAuthReady: boolean;
-  session: unknown;
+  session: { user?: { id?: string } } | null | unknown;
   profile: Profile | null;
   /** False while session exists but auth profile fetch has not settled. */
   isProfileReady: boolean;
@@ -38,11 +38,29 @@ type WorkerGateInput = {
   isWorkerSetupComplete: (profile: NonNullable<WorkerGateInput['workerProfile']>) => boolean;
 };
 
+function getSessionUserId(session: unknown): string | null {
+  if (typeof session !== 'object' || session === null) return null;
+  if (!('user' in session)) return null;
+  const user = (session as { user?: unknown }).user;
+  if (typeof user !== 'object' || user === null || !('id' in user)) return null;
+  const id = (user as { id?: unknown }).id;
+  return typeof id === 'string' ? id : null;
+}
+
+/** True when a loaded profile belongs to a different user than the live session. */
+function isStaleAuthProfile(session: unknown, profile: Profile | null): boolean {
+  if (!profile) return false;
+  const sessionUserId = getSessionUserId(session);
+  return Boolean(sessionUserId && profile.id !== sessionUserId);
+}
+
 export function getClinicSetupGateDecision(input: ClinicGateInput): SetupGateDecision {
   if (!input.isAuthReady) return { type: 'loading' };
   if (!input.session) return { type: 'redirect', href: '/(onboarding)/welcome' };
   // Session recovered but profile still loading — do not treat null as "pick role".
   if (!input.isProfileReady) return { type: 'loading' };
+  // Previous account's profile must not drive routing after a switch.
+  if (isStaleAuthProfile(input.session, input.profile)) return { type: 'loading' };
   if (input.profile === null) {
     return { type: 'redirect', href: '/(onboarding)/role?fromAuth=1' };
   }
@@ -80,6 +98,7 @@ export function getWorkerSetupGateDecision(input: WorkerGateInput): SetupGateDec
   if (!input.session) return { type: 'redirect', href: '/(onboarding)/welcome' };
   // Session recovered but profile still loading — do not treat null as "pick role".
   if (!input.isProfileReady) return { type: 'loading' };
+  if (isStaleAuthProfile(input.session, input.profile)) return { type: 'loading' };
   if (input.profile === null) {
     return { type: 'redirect', href: '/(onboarding)/role?fromAuth=1' };
   }

@@ -13,6 +13,7 @@ import {
 import { getAuthStorage } from './authStorage';
 import { getSupabaseClient, getSupabaseConfig } from './client';
 import { getErrorMessage, resolveFunctionErrorMessage } from './errors';
+import { clearNativeOAuthCallbackHandled, markNativeOAuthCallbackHandled } from './nativeOAuthCallbackGate';
 import { parseAuthRedirectUrl, isPasswordRecoveryRedirect } from './parseAuthRedirectUrl';
 import { ensureProfileName } from './profile';
 
@@ -27,6 +28,7 @@ export {
   signUpWithEmail,
   type SignUpSessionResult,
 } from './authSignup';
+import { getSignupEmailRedirectUrl } from './authSignup';
 
 export const PASSWORD_MIN_LENGTH = 8;
 
@@ -225,12 +227,20 @@ export async function signInWithGoogle() {
     throw new Error('Google sign-in failed.');
   }
 
-  const { session } = await createSessionFromUrl(result.url);
-  if (!session) {
-    throw new Error('No session returned from Google sign-in.');
-  }
+  // Mark before createSessionFromUrl so a racing /auth/callback mount skips
+  // duplicate paint/process while we finish the session here.
+  markNativeOAuthCallbackHandled();
 
-  return session;
+  try {
+    const { session } = await createSessionFromUrl(result.url);
+    if (!session) {
+      throw new Error('No session returned from Google sign-in.');
+    }
+    return session;
+  } catch (error) {
+    clearNativeOAuthCallbackHandled();
+    throw error;
+  }
 }
 
 function isAppleCancelError(error: unknown): boolean {

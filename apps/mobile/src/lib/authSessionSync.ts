@@ -12,7 +12,12 @@ type ApplyAuthSessionInput = {
   loadProfile: (userId: string, requestId: number) => Promise<void>;
   setSession: (session: Session | null) => void;
   setUser: (user: User | null) => void;
+  /** Current profile's user id, if any — used to detect account switches. */
+  getProfileUserId: () => string | null;
+  /** Clear profile after sign-out (marks profile ready). */
   clearProfile: () => void;
+  /** Drop stale profile immediately on user-id change (marks profile not ready). */
+  invalidateProfileForUserChange: () => void;
 };
 
 /**
@@ -33,19 +38,30 @@ export async function applyAuthSessionFromStorage({
   loadProfile,
   setSession,
   setUser,
+  getProfileUserId,
   clearProfile,
+  invalidateProfileForUserChange,
 }: ApplyAuthSessionInput): Promise<boolean> {
   const { session, error } = await getSession();
   if (error) throw error;
   if (isCancelled()) return false;
 
-  setSession(session);
-  setUser(session?.user ?? null);
+  const previousProfileUserId = getProfileUserId();
 
   if (!session?.user) {
+    setSession(null);
+    setUser(null);
     clearProfile();
     return true;
   }
+
+  // Clear stale profile before swapping user so UI never paints User A under User B.
+  if (previousProfileUserId && previousProfileUserId !== session.user.id) {
+    invalidateProfileForUserChange();
+  }
+
+  setSession(session);
+  setUser(session.user);
 
   const requestId = nextProfileRequestId();
   await loadProfile(session.user.id, requestId);

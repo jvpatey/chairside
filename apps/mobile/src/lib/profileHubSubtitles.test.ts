@@ -17,6 +17,7 @@ import {
   getClinicGroupProfileSubtitle,
   getClinicLocationsSubtitle,
   getClinicMessagingSubtitle,
+  getNotificationsSubtitle,
 } from '@/lib/profileHubSubtitles';
 
 describe('getAccountTypeLabel', () => {
@@ -127,5 +128,47 @@ describe('getClinicAboutSubtitle', () => {
         { isGroup: true, doctorCount: 2 },
       ),
     ).toBe('Description, website, and 2 doctors');
+  });
+});
+
+describe('getNotificationsSubtitle', () => {
+  it('omits texts when fill-ins are off', () => {
+    expect(
+      getNotificationsSubtitle({
+        job_notification_opt_in: true,
+        short_notice_available: false,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Jobs: On · Fill-ins: Off');
+  });
+
+  it('includes texts status when fill-ins are on', () => {
+    expect(
+      getNotificationsSubtitle({
+        job_notification_opt_in: false,
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Jobs: Off · Fill-ins: On · Texts: On');
+
+    expect(
+      getNotificationsSubtitle({
+        job_notification_opt_in: true,
+        short_notice_available: true,
+        fill_in_sms_opt_in: false,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Jobs: On · Fill-ins: On · Texts: Off');
+
+    expect(
+      getNotificationsSubtitle({
+        job_notification_opt_in: true,
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: null,
+      } as never),
+    ).toBe('Jobs: On · Fill-ins: On · Texts: Needs phone');
   });
 });

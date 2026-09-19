@@ -12,6 +12,7 @@ import {
 } from '@chairside/api';
 import { getProvinceLabel, formatRoleTypesLabel, getSpecialtyLabel } from '@chairside/config';
 
+import { getFillInSmsSubtitlePart } from '@/lib/fillInAvailabilitySummary';
 import { formatPhoneNumber } from '@/lib/phone';
 
 export function getAccountTypeLabel(
@@ -83,7 +84,10 @@ export function getApplicationKitSubtitle(profile: WorkerProfile | null): string
 export function getNotificationsSubtitle(profile: WorkerProfile | null): string {
   const fillInsOn = profile?.short_notice_available ?? false;
   const jobsOn = profile?.job_notification_opt_in ?? false;
-  return `Jobs: ${jobsOn ? 'On' : 'Off'} · Fill-ins: ${fillInsOn ? 'On' : 'Off'}`;
+  const parts = [`Jobs: ${jobsOn ? 'On' : 'Off'}`, `Fill-ins: ${fillInsOn ? 'On' : 'Off'}`];
+  const textsPart = getFillInSmsSubtitlePart(profile);
+  if (textsPart) parts.push(textsPart);
+  return parts.join(' · ');
 }
 
 export function getAccountSubtitle(email?: string | null): string {

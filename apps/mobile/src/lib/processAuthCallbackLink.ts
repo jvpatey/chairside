@@ -20,7 +20,7 @@ function stripAuthParamsFromBrowserUrl() {
 }
 
 type ProcessAuthCallbackDeps = {
-  refreshProfile: () => Promise<{ role: UserRole | null } | null>;
+  refreshProfile: (userId?: string) => Promise<{ role: UserRole | null } | null>;
   completeOnboarding: (role: UserRole) => Promise<void>;
   markRecoveryInContext: () => void;
 };

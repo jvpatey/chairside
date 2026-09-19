@@ -46,6 +46,23 @@ describe('getClinicSetupGateDecision', () => {
     ).toEqual({ type: 'loading' });
   });
 
+  it('stays loading when profile belongs to a different user than the session', () => {
+    expect(
+      getClinicSetupGateDecision({
+        isAuthReady: true,
+        session: { user: { id: 'user-b' } },
+        profile: { id: 'user-a', role: 'clinic' } as never,
+        isProfileReady: true,
+        isClinicProfileReady: true,
+        clinicProfile: clinicProfile as never,
+        membership: null,
+        isOwner: true,
+        isClinicGroupsEnabled: false,
+        isClinicSetupComplete: () => true,
+      }),
+    ).toEqual({ type: 'loading' });
+  });
+
   it('redirects to role selection when profile is confirmed null', () => {
     expect(
       getClinicSetupGateDecision({

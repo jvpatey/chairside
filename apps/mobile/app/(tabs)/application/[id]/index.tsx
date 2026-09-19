@@ -72,6 +72,7 @@ export default function WorkerApplicationDetailScreen() {
       <>
         <MasterDetailLayout
           roundedPanes
+          alignToSidebar
           showDetail
           master={
             <WorkerFillInsInboxPanel

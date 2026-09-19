@@ -31,6 +31,7 @@ import {
 } from '@/components/admin/adminLabels';
 import { ChairsideBrandText } from '@/components/brand/ChairsideWordmark';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
+import { getWebTabletContentTopPadding } from '@/lib/breakpoints';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
 import { fontBold, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
@@ -56,7 +57,7 @@ export function AdminDashboard() {
       maxWidth: 1160,
       alignSelf: 'center',
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.xl,
+      paddingTop: getWebTabletContentTopPadding(),
       paddingBottom: spacing.xl * 2,
       gap: spacing.lg,
     },

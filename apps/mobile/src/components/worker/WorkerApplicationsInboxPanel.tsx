@@ -353,6 +353,7 @@ export function WorkerApplicationsInboxPanel({
         animateEntry={!compact}
         hideAtmosphere={compact}
         transparentBackground={compact}
+        embedded={compact}
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="tertiary"

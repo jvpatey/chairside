@@ -23,7 +23,7 @@ export { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupComplet
 type ResolveAuthenticatedRouteInput = {
   userId: string;
   profile: Pick<Profile, 'role'> | null;
-  refreshProfile: () => Promise<Pick<Profile, 'role'> | null>;
+  refreshProfile: (userId?: string) => Promise<Pick<Profile, 'role'> | null>;
 };
 
 type ResolveAuthenticatedRouteResult = {

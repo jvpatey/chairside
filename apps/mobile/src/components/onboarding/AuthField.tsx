@@ -99,12 +99,14 @@ export function AuthField({
     accessory: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingRight: theme.spacing.md,
+      gap: theme.spacing.xs,
+      // Keep the toggle flush with the field’s trailing edge — input text already
+      // has horizontal padding; an extra md inset made the eye look floating.
+      paddingRight: theme.spacing.xs,
     },
     visibilityButton: {
-      minWidth: 44,
-      minHeight: 44,
+      width: 40,
+      height: 40,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 8,
