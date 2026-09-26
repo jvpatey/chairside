@@ -1,3 +1,5 @@
+import { hasAuthCallbackParams } from '@chairside/api';
+
 type WebAuthGateStatus = 'idle' | 'checking' | 'processing';
 
 let status: WebAuthGateStatus = 'idle';
@@ -15,6 +17,7 @@ export function getWebAuthGateStatus(): WebAuthGateStatus {
 }
 
 export function setWebAuthGateStatus(next: WebAuthGateStatus) {
+  if (status === next) return;
   status = next;
   notifyListeners();
 }
@@ -31,7 +34,21 @@ export function hasWebAuthLinkBeenHandled() {
 }
 
 export function markWebAuthLinkHandled() {
+  if (authLinkHandled) return;
   authLinkHandled = true;
+  notifyListeners();
+}
+
+/**
+ * Whether index (and similar) may safely route from the current session.
+ * Pure — safe to call from useSyncExternalStore getSnapshot.
+ */
+export function isWebAuthGateReady(href: string): boolean {
+  // Prefer status over URL params: params are stripped mid-handler, before
+  // handleAuthSuccess finishes navigating.
+  if (status === 'processing' || status === 'checking') return false;
+  if (!hasAuthCallbackParams(href)) return true;
+  return authLinkHandled;
 }
 
 export function resetWebAuthGateForTests() {

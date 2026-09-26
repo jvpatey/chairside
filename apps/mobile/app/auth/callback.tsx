@@ -98,7 +98,13 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     if (!isClientReady || skipNativePaint) return;
 
-    if (Platform.OS === 'web' && hasWebAuthLinkBeenHandled()) {
+    // Web: WebAuthCallbackHandler owns the exchange so this screen is display-only.
+    if (Platform.OS === 'web') {
+      setCallbackUrl(resolveWebCallbackUrl());
+      return;
+    }
+
+    if (hasWebAuthLinkBeenHandled()) {
       return;
     }
 
@@ -107,17 +113,16 @@ export default function AuthCallbackScreen() {
     async function handleCallback() {
       // Re-check after awaiting the URL — native Google may have marked the gate
       // while we were waiting on the deep-link listener.
-      if (Platform.OS !== 'web' && consumeNativeOAuthCallbackHandled()) {
+      if (consumeNativeOAuthCallbackHandled()) {
         setSkipNativePaint(true);
         return;
       }
 
-      const url =
-        Platform.OS === 'web' ? resolveWebCallbackUrl() : await resolveNativeCallbackUrl();
+      const url = await resolveNativeCallbackUrl();
 
       if (!url || cancelled) return;
 
-      if (Platform.OS !== 'web' && consumeNativeOAuthCallbackHandled()) {
+      if (consumeNativeOAuthCallbackHandled()) {
         setSkipNativePaint(true);
         return;
       }
