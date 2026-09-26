@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton';
@@ -10,6 +10,7 @@ import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import {
   getAccountSubtitle,
   getApplicationKitSubtitle,
@@ -18,6 +19,7 @@ import {
   getSupportSubtitle,
 } from '@/lib/profileHubSubtitles';
 import {
+  WORKER_ADMIN,
   WORKER_HOME,
   WORKER_PROFILE_ACCOUNT,
   WORKER_PROFILE_APPLICATION_KIT,
@@ -30,8 +32,10 @@ import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 export default function WorkerProfileScreen() {
   const { profile, user } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
-  const { isCompact } = useResponsiveLayout();
+  const { isCompact, isTablet } = useResponsiveLayout();
   const { colors } = useTheme();
+  const showAdminEntry =
+    Platform.OS === 'web' && !isTablet && isPlatformAdminEmail(user?.email);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
@@ -91,6 +95,16 @@ export default function WorkerProfileScreen() {
               iconColor={colors.success}
               iconBackgroundColor={colorWithAlpha(colors.success, 0.094)}
               onPress={() => router.push(WORKER_PROFILE_SUPPORT)}
+            />
+          ) : null}
+          {showAdminEntry ? (
+            <ProfileSettingsRow
+              icon="stats-chart-outline"
+              title="Admin"
+              subtitle="Platform stats and directories"
+              iconColor={colors.primary}
+              iconBackgroundColor={colors.primarySubtle}
+              onPress={() => router.push(WORKER_ADMIN)}
             />
           ) : null}
           <ProfileSettingsRow

@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { fontBold, fontSemibold, useThemedStyles } from '@/theme';
+import { fontBold, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type DistributionItem = {
   key: string;
@@ -25,6 +25,8 @@ type AdminDistributionBarsProps = {
   showPercent?: boolean;
   /** `plain` omits the outer card chrome (for embedding in another card). */
   variant?: 'card' | 'plain';
+  /** Full-width stacking on narrow layouts. */
+  compact?: boolean;
 };
 
 function DistributionBarRow({
@@ -124,16 +126,12 @@ export function AdminDistributionBars({
   emptyLabel = 'No data yet',
   showPercent = true,
   variant = 'card',
+  compact = false,
 }: AdminDistributionBarsProps) {
-  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
+  const { colors, spacing, radii } = useTheme();
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       flex: 1,
-      minWidth: variant === 'card' ? 280 : undefined,
-      backgroundColor: variant === 'card' ? colors.surface : 'transparent',
-      borderRadius: variant === 'card' ? radii.lg : 0,
-      borderWidth: variant === 'card' ? StyleSheet.hairlineWidth : 0,
-      borderColor: colors.separator,
-      padding: variant === 'card' ? spacing.lg : 0,
       gap: spacing.md,
     },
     title: {
@@ -154,9 +152,24 @@ export function AdminDistributionBars({
 
   const total = items.reduce((sum, item) => sum + item.count, 0);
   const maxCount = items.reduce((max, item) => Math.max(max, item.count), 0);
+  const isCard = variant === 'card';
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        isCard
+          ? {
+              minWidth: compact ? 0 : 280,
+              width: compact ? '100%' : undefined,
+              backgroundColor: colors.surface,
+              borderRadius: radii.lg,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.separator,
+              padding: compact ? spacing.md : spacing.lg,
+            }
+          : null,
+      ]}>
       {title ? <Text style={styles.title}>{title}</Text> : null}
       {items.length === 0 ? (
         <Text style={styles.empty}>{emptyLabel}</Text>

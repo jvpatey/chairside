@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,8 +19,9 @@ import {
   formatAdminDateTime,
   formatAdminPeriodEnd,
 } from '@/components/admin/adminLabels';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { fontBold, fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type DirectoryTab = 'clinics' | 'professionals';
 type ClinicSortKey = 'clinicName' | 'email' | 'plan' | 'status' | 'signedUpAt' | 'lastSignInAt';
@@ -30,8 +32,26 @@ type AdminDirectoryPanelProps = {
   professionals: AdminStatsProfessionalRow[];
 };
 
+const CLINIC_SORT_OPTIONS: Array<{ key: ClinicSortKey; label: string }> = [
+  { key: 'clinicName', label: 'Name' },
+  { key: 'email', label: 'Email' },
+  { key: 'plan', label: 'Plan' },
+  { key: 'status', label: 'Status' },
+  { key: 'signedUpAt', label: 'Signed up' },
+  { key: 'lastSignInAt', label: 'Last signed in' },
+];
+
+const PRO_SORT_OPTIONS: Array<{ key: ProSortKey; label: string }> = [
+  { key: 'name', label: 'Name' },
+  { key: 'email', label: 'Email' },
+  { key: 'signedUpAt', label: 'Signed up' },
+  { key: 'lastSignInAt', label: 'Last signed in' },
+];
+
 export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPanelProps) {
-  const { colors } = useTheme();
+  const { colors, spacing } = useTheme();
+  const { isTablet } = useResponsiveLayout();
+  const useCards = !isTablet;
   const [tab, setTab] = useState<DirectoryTab>('clinics');
   const [query, setQuery] = useState('');
   const [clinicSortKey, setClinicSortKey] = useState<ClinicSortKey>('clinicName');
@@ -47,8 +67,6 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
       overflow: 'hidden',
     },
     header: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
       paddingBottom: spacing.md,
       gap: spacing.md,
       borderBottomWidth: StyleSheet.hairlineWidth,
@@ -69,7 +87,6 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
       backgroundColor: colors.backgroundGrouped,
     },
     tab: {
-      paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: radii.pill,
       ...webPointer(),
@@ -101,6 +118,54 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
       fontSize: 14,
       color: colors.labelPrimary,
     } satisfies TextStyle,
+    sortRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    sortChipsScroll: {
+      flexGrow: 1,
+      flexShrink: 1,
+      minWidth: 0,
+    },
+    sortChips: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 2,
+    },
+    sortChip: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: radii.pill,
+      backgroundColor: colors.backgroundGrouped,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      ...webPointer(),
+    },
+    sortChipActive: {
+      backgroundColor: colors.primarySubtle,
+      borderColor: colors.primary,
+    },
+    sortChipLabel: {
+      fontFamily: fontSemibold,
+      fontSize: 12,
+      color: colors.labelSecondary,
+    },
+    sortChipLabelActive: {
+      color: colors.primary,
+    },
+    sortDirBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.backgroundGrouped,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.separator,
+      ...webPointer(),
+    },
     tableHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -128,6 +193,23 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.separator,
     },
+    cardRow: {
+      gap: spacing.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.separator,
+    },
+    cardTop: {
+      gap: 2,
+    },
+    cardMetaRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    cardDates: {
+      gap: 2,
+    },
     zebra: {
       backgroundColor: colors.fillSubtle,
     },
@@ -144,6 +226,13 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
       fontFamily: fontRegular,
       fontSize: 13,
       color: colors.labelSecondary,
+    },
+    metaLabel: {
+      fontFamily: fontSemibold,
+      fontSize: 11,
+      color: colors.labelTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
     },
     empty: {
       padding: spacing.xl,
@@ -254,19 +343,71 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
     </Pressable>
   );
 
+  const renderMobileSortBar = (
+    options: Array<{ key: string; label: string }>,
+    activeKey: string,
+    onSelect: (key: string) => void,
+  ) => (
+    <View style={styles.sortRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.sortChipsScroll}
+        contentContainerStyle={styles.sortChips}>
+        {options.map((option) => {
+          const active = option.key === activeKey;
+          return (
+            <Pressable
+              key={option.key}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`Sort by ${option.label}`}
+              onPress={() => onSelect(option.key)}
+              style={[styles.sortChip, active && styles.sortChipActive]}>
+              <Text style={[styles.sortChipLabel, active && styles.sortChipLabelActive]}>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={sortAsc ? 'Sort ascending' : 'Sort descending'}
+        onPress={() => setSortAsc((prev) => !prev)}
+        style={styles.sortDirBtn}>
+        <Text style={[styles.sortChipLabel, { color: colors.labelPrimary }]}>
+          {sortAsc ? '↑' : '↓'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+
   const shownCount = tab === 'clinics' ? filteredClinics.length : filteredPros.length;
   const totalCount = tab === 'clinics' ? clinics.length : professionals.length;
+  const headerPad = {
+    paddingHorizontal: useCards ? spacing.md : spacing.lg,
+    paddingTop: useCards ? spacing.md : spacing.lg,
+  };
+  const cardRowPad = {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  };
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
+      <View style={[styles.header, headerPad]}>
         <View style={styles.titleRow}>
           <View style={styles.tabs}>
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: tab === 'clinics' }}
               onPress={() => switchTab('clinics')}
-              style={[styles.tab, tab === 'clinics' && styles.tabActive]}>
+              style={[
+                styles.tab,
+                { paddingHorizontal: useCards ? 12 : 14 },
+                tab === 'clinics' && styles.tabActive,
+              ]}>
               <Text style={[styles.tabLabel, tab === 'clinics' && styles.tabLabelActive]}>
                 Clinics
               </Text>
@@ -275,7 +416,11 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
               accessibilityRole="button"
               accessibilityState={{ selected: tab === 'professionals' }}
               onPress={() => switchTab('professionals')}
-              style={[styles.tab, tab === 'professionals' && styles.tabActive]}>
+              style={[
+                styles.tab,
+                { paddingHorizontal: useCards ? 12 : 14 },
+                tab === 'professionals' && styles.tabActive,
+              ]}>
               <Text style={[styles.tabLabel, tab === 'professionals' && styles.tabLabelActive]}>
                 Professionals
               </Text>
@@ -299,88 +444,162 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
           autoCorrect={false}
           clearButtonMode="while-editing"
         />
+        {useCards
+          ? renderMobileSortBar(
+              tab === 'clinics' ? CLINIC_SORT_OPTIONS : PRO_SORT_OPTIONS,
+              tab === 'clinics' ? clinicSortKey : proSortKey,
+              (key) => {
+                if (tab === 'clinics') toggleClinicSort(key as ClinicSortKey);
+                else toggleProSort(key as ProSortKey);
+              },
+            )
+          : null}
       </View>
 
       {tab === 'clinics' ? (
-        <>
-          <View style={styles.tableHeader}>
-            {renderSortHeader(
-              clinicSortKey === 'clinicName',
-              'Clinic',
-              () => toggleClinicSort('clinicName'),
-              { flex: 1.4, minWidth: 130 },
-            )}
-            {renderSortHeader(
-              clinicSortKey === 'email',
-              'Email',
-              () => toggleClinicSort('email'),
-              { flex: 1.4, minWidth: 160 },
-            )}
-            {renderSortHeader(
-              clinicSortKey === 'plan',
-              'Plan',
-              () => toggleClinicSort('plan'),
-              { flex: 0.8, minWidth: 70 },
-            )}
-            {renderSortHeader(
-              clinicSortKey === 'status',
-              'Status',
-              () => toggleClinicSort('status'),
-              { flex: 0.8, minWidth: 70 },
-            )}
-            {renderSortHeader(
-              clinicSortKey === 'signedUpAt',
-              'Signed up',
-              () => toggleClinicSort('signedUpAt'),
-              { flex: 1, minWidth: 100 },
-            )}
-            {renderSortHeader(
-              clinicSortKey === 'lastSignInAt',
-              'Last signed in',
-              () => toggleClinicSort('lastSignInAt'),
-              { flex: 1, minWidth: 100 },
-            )}
-          </View>
-          {filteredClinics.length === 0 ? (
+        useCards ? (
+          filteredClinics.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>No clinics match this filter</Text>
             </View>
           ) : (
             filteredClinics.map((clinic, index) => (
-              <Pressable
+              <View
                 key={clinic.id}
-                style={({ hovered }) => [
-                  styles.row,
-                  index % 2 === 1 && styles.zebra,
-                  webHover(hovered, false, webListRowHoverStyles(colors)),
-                ]}>
-                <View style={{ flex: 1.4, minWidth: 130, gap: 2 }}>
-                  <Text style={styles.cellName} numberOfLines={1}>
+                style={[styles.cardRow, cardRowPad, index % 2 === 1 && styles.zebra]}>
+                <View style={styles.cardTop}>
+                  <Text style={styles.cellName} numberOfLines={2}>
                     {clinic.clinicName}
                   </Text>
-                  <Text style={styles.cellText}>{formatAdminAccountType(clinic.accountType)}</Text>
-                </View>
-                <View style={[styles.cell, { flex: 1.4, minWidth: 160 }]}>
                   <Text style={styles.cellText} numberOfLines={1}>
                     {clinic.email ?? '—'}
                   </Text>
+                  <Text style={styles.cellText}>{formatAdminAccountType(clinic.accountType)}</Text>
                 </View>
-                <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
+                <View style={styles.cardMetaRow}>
                   <AdminPlanBadge plan={clinic.plan} />
-                </View>
-                <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
                   <AdminStatusPill status={clinic.status} />
                 </View>
-                <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
+                <View style={styles.cardDates}>
+                  <Text style={styles.metaLabel}>Signed up</Text>
                   <Text style={styles.cellText}>{formatAdminPeriodEnd(clinic.signedUpAt)}</Text>
-                </View>
-                <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
+                  <Text style={[styles.metaLabel, { marginTop: 6 }]}>Last signed in</Text>
                   <Text style={styles.cellText}>{formatAdminDateTime(clinic.lastSignInAt)}</Text>
                 </View>
-              </Pressable>
+              </View>
             ))
-          )}
-        </>
+          )
+        ) : (
+          <>
+            <View style={styles.tableHeader}>
+              {renderSortHeader(
+                clinicSortKey === 'clinicName',
+                'Clinic',
+                () => toggleClinicSort('clinicName'),
+                { flex: 1.4, minWidth: 130 },
+              )}
+              {renderSortHeader(
+                clinicSortKey === 'email',
+                'Email',
+                () => toggleClinicSort('email'),
+                { flex: 1.4, minWidth: 160 },
+              )}
+              {renderSortHeader(
+                clinicSortKey === 'plan',
+                'Plan',
+                () => toggleClinicSort('plan'),
+                { flex: 0.8, minWidth: 70 },
+              )}
+              {renderSortHeader(
+                clinicSortKey === 'status',
+                'Status',
+                () => toggleClinicSort('status'),
+                { flex: 0.8, minWidth: 70 },
+              )}
+              {renderSortHeader(
+                clinicSortKey === 'signedUpAt',
+                'Signed up',
+                () => toggleClinicSort('signedUpAt'),
+                { flex: 1, minWidth: 100 },
+              )}
+              {renderSortHeader(
+                clinicSortKey === 'lastSignInAt',
+                'Last signed in',
+                () => toggleClinicSort('lastSignInAt'),
+                { flex: 1, minWidth: 100 },
+              )}
+            </View>
+            {filteredClinics.length === 0 ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>No clinics match this filter</Text>
+              </View>
+            ) : (
+              filteredClinics.map((clinic, index) => (
+                <Pressable
+                  key={clinic.id}
+                  style={({ hovered }) => [
+                    styles.row,
+                    index % 2 === 1 && styles.zebra,
+                    webHover(hovered, false, webListRowHoverStyles(colors)),
+                  ]}>
+                  <View style={{ flex: 1.4, minWidth: 130, gap: 2 }}>
+                    <Text style={styles.cellName} numberOfLines={1}>
+                      {clinic.clinicName}
+                    </Text>
+                    <Text style={styles.cellText}>{formatAdminAccountType(clinic.accountType)}</Text>
+                  </View>
+                  <View style={[styles.cell, { flex: 1.4, minWidth: 160 }]}>
+                    <Text style={styles.cellText} numberOfLines={1}>
+                      {clinic.email ?? '—'}
+                    </Text>
+                  </View>
+                  <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
+                    <AdminPlanBadge plan={clinic.plan} />
+                  </View>
+                  <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
+                    <AdminStatusPill status={clinic.status} />
+                  </View>
+                  <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
+                    <Text style={styles.cellText}>{formatAdminPeriodEnd(clinic.signedUpAt)}</Text>
+                  </View>
+                  <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
+                    <Text style={styles.cellText}>{formatAdminDateTime(clinic.lastSignInAt)}</Text>
+                  </View>
+                </Pressable>
+              ))
+            )}
+          </>
+        )
+      ) : useCards ? (
+        filteredPros.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No professionals match this filter</Text>
+          </View>
+        ) : (
+          filteredPros.map((pro, index) => (
+            <View
+              key={pro.id}
+              style={[styles.cardRow, cardRowPad, index % 2 === 1 && styles.zebra]}>
+              <View style={styles.cardTop}>
+                <Text style={styles.cellName} numberOfLines={2}>
+                  {pro.name}
+                </Text>
+                <Text style={styles.cellText} numberOfLines={1}>
+                  {pro.email ?? '—'}
+                </Text>
+                <Text style={styles.cellText} numberOfLines={2}>
+                  {formatRoleTypesLabel(pro.roles) || '—'}
+                </Text>
+              </View>
+              <View style={styles.cardDates}>
+                <Text style={styles.metaLabel}>Signed up</Text>
+                <Text style={styles.cellText}>{formatAdminPeriodEnd(pro.signedUpAt)}</Text>
+                <Text style={[styles.metaLabel, { marginTop: 6 }]}>Last signed in</Text>
+                <Text style={styles.cellText}>{formatAdminDateTime(pro.lastSignInAt)}</Text>
+              </View>
+            </View>
+          ))
+        )
       ) : (
         <>
           <View style={styles.tableHeader}>
