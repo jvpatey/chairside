@@ -13,13 +13,20 @@ import {
 import type { AdminStatsClinicRow, AdminStatsProfessionalRow } from '@chairside/api';
 import { formatRoleTypesLabel } from '@chairside/config';
 
+import { Ionicons } from '@expo/vector-icons';
+
 import { AdminPlanBadge, AdminStatusPill } from '@/components/admin/AdminBadges';
+import {
+  AdminDeleteAccountDialog,
+  type AdminDeleteTarget,
+} from '@/components/admin/AdminDeleteAccountDialog.web';
 import {
   formatAdminAccountType,
   formatAdminDateTime,
   formatAdminPeriodEnd,
 } from '@/components/admin/adminLabels';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
@@ -30,7 +37,31 @@ type ProSortKey = 'name' | 'email' | 'signedUpAt' | 'lastSignInAt';
 type AdminDirectoryPanelProps = {
   clinics: AdminStatsClinicRow[];
   professionals: AdminStatsProfessionalRow[];
+  onAccountDeleted?: (target: AdminDeleteTarget) => void;
 };
+
+const ACTIONS_COLUMN_WIDTH = 40;
+
+function toClinicDeleteTarget(clinic: AdminStatsClinicRow): AdminDeleteTarget {
+  return {
+    kind: 'clinic',
+    id: clinic.id,
+    name: clinic.clinicName,
+    email: clinic.email,
+    detail: formatAdminAccountType(clinic.accountType),
+    plan: clinic.plan,
+  };
+}
+
+function toProfessionalDeleteTarget(pro: AdminStatsProfessionalRow): AdminDeleteTarget {
+  return {
+    kind: 'professional',
+    id: pro.id,
+    name: pro.name,
+    email: pro.email,
+    detail: formatRoleTypesLabel(pro.roles) || '',
+  };
+}
 
 const CLINIC_SORT_OPTIONS: Array<{ key: ClinicSortKey; label: string }> = [
   { key: 'clinicName', label: 'Name' },
@@ -48,10 +79,15 @@ const PRO_SORT_OPTIONS: Array<{ key: ProSortKey; label: string }> = [
   { key: 'lastSignInAt', label: 'Last signed in' },
 ];
 
-export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPanelProps) {
+export function AdminDirectoryPanel({
+  clinics,
+  professionals,
+  onAccountDeleted,
+}: AdminDirectoryPanelProps) {
   const { colors, spacing } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const useCards = !isTablet;
+  const [deleteTarget, setDeleteTarget] = useState<AdminDeleteTarget | null>(null);
   const [tab, setTab] = useState<DirectoryTab>('clinics');
   const [query, setQuery] = useState('');
   const [clinicSortKey, setClinicSortKey] = useState<ClinicSortKey>('clinicName');
@@ -243,7 +279,64 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
       fontSize: 14,
       color: colors.labelTertiary,
     },
+    actionsCell: {
+      width: ACTIONS_COLUMN_WIDTH,
+      alignItems: 'flex-end',
+    },
+    deleteIconBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...webPointer(),
+    },
+    deleteIconBtnHovered: {
+      backgroundColor: `${colors.destructive}14`,
+    },
+    deleteLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 6,
+      paddingVertical: 4,
+      ...webPointer(),
+    },
+    deleteLinkText: {
+      fontFamily: fontSemibold,
+      fontSize: 13,
+      color: colors.destructive,
+    },
   }));
+
+  const renderDeleteIcon = (target: AdminDeleteTarget) => (
+    <View style={styles.actionsCell}>
+      {isPlatformAdminEmail(target.email) ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${target.name}`}
+          onPress={() => setDeleteTarget(target)}
+          style={({ hovered, pressed }) => [
+            styles.deleteIconBtn,
+            webHover(hovered, pressed, styles.deleteIconBtnHovered),
+          ]}>
+          <Ionicons name="trash-outline" size={16} color={colors.destructive} />
+        </Pressable>
+      )}
+    </View>
+  );
+
+  const renderDeleteLink = (target: AdminDeleteTarget) =>
+    isPlatformAdminEmail(target.email) ? null : (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Delete ${target.name}`}
+        onPress={() => setDeleteTarget(target)}
+        style={styles.deleteLink}>
+        <Ionicons name="trash-outline" size={14} color={colors.destructive} />
+        <Text style={styles.deleteLinkText}>Delete account</Text>
+      </Pressable>
+    );
 
   const filteredClinics = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -486,6 +579,7 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
                   <Text style={[styles.metaLabel, { marginTop: 6 }]}>Last signed in</Text>
                   <Text style={styles.cellText}>{formatAdminDateTime(clinic.lastSignInAt)}</Text>
                 </View>
+                {renderDeleteLink(toClinicDeleteTarget(clinic))}
               </View>
             ))
           )
@@ -528,6 +622,7 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
                 () => toggleClinicSort('lastSignInAt'),
                 { flex: 1, minWidth: 100 },
               )}
+              <View style={styles.actionsCell} />
             </View>
             {filteredClinics.length === 0 ? (
               <View style={styles.empty}>
@@ -565,6 +660,7 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
                   <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
                     <Text style={styles.cellText}>{formatAdminDateTime(clinic.lastSignInAt)}</Text>
                   </View>
+                  {renderDeleteIcon(toClinicDeleteTarget(clinic))}
                 </Pressable>
               ))
             )}
@@ -597,6 +693,7 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
                 <Text style={[styles.metaLabel, { marginTop: 6 }]}>Last signed in</Text>
                 <Text style={styles.cellText}>{formatAdminDateTime(pro.lastSignInAt)}</Text>
               </View>
+              {renderDeleteLink(toProfessionalDeleteTarget(pro))}
             </View>
           ))
         )
@@ -628,6 +725,7 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
               () => toggleProSort('lastSignInAt'),
               { flex: 1.1, minWidth: 110 },
             )}
+            <View style={styles.actionsCell} />
           </View>
           {filteredPros.length === 0 ? (
             <View style={styles.empty}>
@@ -663,11 +761,20 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
                 <View style={[styles.cell, { flex: 1.1, minWidth: 110 }]}>
                   <Text style={styles.cellText}>{formatAdminDateTime(pro.lastSignInAt)}</Text>
                 </View>
+                {renderDeleteIcon(toProfessionalDeleteTarget(pro))}
               </Pressable>
             ))
           )}
         </>
       )}
+      <AdminDeleteAccountDialog
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={(target) => {
+          setDeleteTarget(null);
+          onAccountDeleted?.(target);
+        }}
+      />
     </View>
   );
 }

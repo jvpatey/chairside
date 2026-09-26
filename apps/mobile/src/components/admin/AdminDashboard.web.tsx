@@ -17,6 +17,7 @@ import {
 } from '@chairside/api';
 
 import { AdminCollapsibleSection } from '@/components/admin/AdminCollapsibleSection';
+import type { AdminDeleteTarget } from '@/components/admin/AdminDeleteAccountDialog.web';
 import { AdminDeniedState } from '@/components/admin/AdminDeniedState';
 import { AdminDirectoryPanel } from '@/components/admin/AdminDirectoryPanel';
 import { AdminDistributionBars } from '@/components/admin/AdminDistributionBars';
@@ -164,6 +165,25 @@ export function AdminDashboard() {
   useEffect(() => {
     void load(false);
   }, [load]);
+
+  const handleAccountDeleted = useCallback(
+    (target: AdminDeleteTarget) => {
+      setState((current) =>
+        current.status === 'ready'
+          ? {
+              status: 'ready',
+              data: {
+                ...current.data,
+                clinics: current.data.clinics.filter((row) => row.id !== target.id),
+                professionals: current.data.professionals.filter((row) => row.id !== target.id),
+              },
+            }
+          : current,
+      );
+      void load(true);
+    },
+    [load],
+  );
 
   const roleItems = useMemo(() => {
     if (state.status !== 'ready') return [];
@@ -344,7 +364,11 @@ export function AdminDashboard() {
         <AdminCollapsibleSection
           title="Directory"
           subtitle="Browse clinics and professionals">
-          <AdminDirectoryPanel clinics={data.clinics} professionals={data.professionals} />
+          <AdminDirectoryPanel
+            clinics={data.clinics}
+            professionals={data.professionals}
+            onAccountDeleted={handleAccountDeleted}
+          />
         </AdminCollapsibleSection>
       </FadeInSection>
     </ScrollView>

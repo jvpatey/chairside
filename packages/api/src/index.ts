@@ -72,7 +72,9 @@ export {
   type SupportContactSubject,
 } from './supportContact';
 export {
+  ADMIN_DELETE_NO_EMAIL_CONFIRMATION,
   AdminStatsForbiddenError,
+  adminDeleteAccount,
   fetchAdminStats,
   type AdminStatsClinicRow,
   type AdminStatsProfessionalRow,

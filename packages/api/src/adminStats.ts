@@ -76,3 +76,37 @@ export async function fetchAdminStats(): Promise<AdminStatsPayload> {
 
   return data as AdminStatsPayload;
 }
+
+/** Typed confirmation for accounts with no email on file. */
+export const ADMIN_DELETE_NO_EMAIL_CONFIRMATION = 'DELETE';
+
+/**
+ * Platform admin only. `confirmation` must be the target account's email
+ * (or `ADMIN_DELETE_NO_EMAIL_CONFIRMATION` when it has none); the server re-checks it.
+ */
+export async function adminDeleteAccount(params: {
+  userId: string;
+  confirmation: string;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.functions.invoke('admin-delete-account', {
+    body: { userId: params.userId, confirmation: params.confirmation },
+  });
+
+  if (getFunctionsHttpStatus(error) === 403) {
+    throw new AdminStatsForbiddenError(
+      (await resolveFunctionErrorMessage(error, data)) ?? 'Forbidden',
+    );
+  }
+
+  if (error) {
+    throw new Error(
+      (await resolveFunctionErrorMessage(error, data)) ??
+        getErrorMessage(error, 'Could not delete account.'),
+    );
+  }
+
+  if (data && typeof data === 'object' && 'error' in data && data.error) {
+    throw new Error(String(data.error));
+  }
+}
