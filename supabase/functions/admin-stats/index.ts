@@ -270,6 +270,7 @@ Deno.serve(async (req) => {
         return {
           id: clinic.id,
           clinicName: clinic.clinic_name?.trim() || 'Unnamed clinic',
+          email: auth?.email ?? null,
           accountType: clinic.account_type === 'group' ? 'group' : 'individual',
           plan,
           status,

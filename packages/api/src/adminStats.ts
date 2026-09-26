@@ -4,6 +4,7 @@ import { getErrorMessage, getFunctionsHttpStatus, resolveFunctionErrorMessage } 
 export type AdminStatsClinicRow = {
   id: string;
   clinicName: string;
+  email: string | null;
   accountType: 'individual' | 'group' | string;
   plan: string;
   status: string;

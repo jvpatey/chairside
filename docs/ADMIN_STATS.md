@@ -7,7 +7,7 @@ Web-only internal dashboard for platform metrics. Not part of the App Store / na
 - Sidebar: **Admin** (near Settings) — opens inside the app shell so the sidebar stays visible
 - Deep link: `/admin` (redirects into clinic/worker tabs admin route)
 - Allowlisted email (UI + server): `jeffreyvpatey@gmail.com`
-- Directory tabs: Clinics and Professionals (name + email). Operator-only; keep `ADMIN_EMAILS` tight.
+- Directory tabs: Clinics and Professionals (name + login email). Operator-only; keep `ADMIN_EMAILS` tight.
 
 Native builds redirect away. Other accounts never see the sidebar item; the Edge Function returns 403.
 

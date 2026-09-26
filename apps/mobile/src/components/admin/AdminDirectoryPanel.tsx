@@ -22,7 +22,7 @@ import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableS
 import { fontBold, fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type DirectoryTab = 'clinics' | 'professionals';
-type ClinicSortKey = 'clinicName' | 'plan' | 'status' | 'signedUpAt' | 'lastSignInAt';
+type ClinicSortKey = 'clinicName' | 'email' | 'plan' | 'status' | 'signedUpAt' | 'lastSignInAt';
 type ProSortKey = 'name' | 'email' | 'signedUpAt' | 'lastSignInAt';
 
 type AdminDirectoryPanelProps = {
@@ -162,6 +162,7 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
       ? clinics.filter(
           (c) =>
             c.clinicName.toLowerCase().includes(q) ||
+            (c.email?.toLowerCase().includes(q) ?? false) ||
             c.plan.toLowerCase().includes(q) ||
             c.status.toLowerCase().includes(q) ||
             c.accountType.toLowerCase().includes(q),
@@ -289,7 +290,7 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
           onChangeText={setQuery}
           placeholder={
             tab === 'clinics'
-              ? 'Search clinics, plans, status…'
+              ? 'Search clinics, email, plans, status…'
               : 'Search name, email, role…'
           }
           placeholderTextColor={colors.labelTertiary}
@@ -307,31 +308,37 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
               clinicSortKey === 'clinicName',
               'Clinic',
               () => toggleClinicSort('clinicName'),
-              { flex: 1.5, minWidth: 140 },
+              { flex: 1.4, minWidth: 130 },
+            )}
+            {renderSortHeader(
+              clinicSortKey === 'email',
+              'Email',
+              () => toggleClinicSort('email'),
+              { flex: 1.4, minWidth: 160 },
             )}
             {renderSortHeader(
               clinicSortKey === 'plan',
               'Plan',
               () => toggleClinicSort('plan'),
-              { flex: 0.9, minWidth: 80 },
+              { flex: 0.8, minWidth: 70 },
             )}
             {renderSortHeader(
               clinicSortKey === 'status',
               'Status',
               () => toggleClinicSort('status'),
-              { flex: 0.9, minWidth: 80 },
+              { flex: 0.8, minWidth: 70 },
             )}
             {renderSortHeader(
               clinicSortKey === 'signedUpAt',
               'Signed up',
               () => toggleClinicSort('signedUpAt'),
-              { flex: 1.1, minWidth: 110 },
+              { flex: 1, minWidth: 100 },
             )}
             {renderSortHeader(
               clinicSortKey === 'lastSignInAt',
               'Last signed in',
               () => toggleClinicSort('lastSignInAt'),
-              { flex: 1.1, minWidth: 110 },
+              { flex: 1, minWidth: 100 },
             )}
           </View>
           {filteredClinics.length === 0 ? (
@@ -347,22 +354,27 @@ export function AdminDirectoryPanel({ clinics, professionals }: AdminDirectoryPa
                   index % 2 === 1 && styles.zebra,
                   webHover(hovered, false, webListRowHoverStyles(colors)),
                 ]}>
-                <View style={{ flex: 1.5, minWidth: 140, gap: 2 }}>
+                <View style={{ flex: 1.4, minWidth: 130, gap: 2 }}>
                   <Text style={styles.cellName} numberOfLines={1}>
                     {clinic.clinicName}
                   </Text>
                   <Text style={styles.cellText}>{formatAdminAccountType(clinic.accountType)}</Text>
                 </View>
-                <View style={[styles.cell, { flex: 0.9, minWidth: 80 }]}>
+                <View style={[styles.cell, { flex: 1.4, minWidth: 160 }]}>
+                  <Text style={styles.cellText} numberOfLines={1}>
+                    {clinic.email ?? '—'}
+                  </Text>
+                </View>
+                <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
                   <AdminPlanBadge plan={clinic.plan} />
                 </View>
-                <View style={[styles.cell, { flex: 0.9, minWidth: 80 }]}>
+                <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
                   <AdminStatusPill status={clinic.status} />
                 </View>
-                <View style={[styles.cell, { flex: 1.1, minWidth: 110 }]}>
+                <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
                   <Text style={styles.cellText}>{formatAdminPeriodEnd(clinic.signedUpAt)}</Text>
                 </View>
-                <View style={[styles.cell, { flex: 1.1, minWidth: 110 }]}>
+                <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
                   <Text style={styles.cellText}>{formatAdminDateTime(clinic.lastSignInAt)}</Text>
                 </View>
               </Pressable>
