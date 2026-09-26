@@ -19,7 +19,13 @@ export type SetupValidationResult = {
 };
 
 export type ClinicSetupStepId = 'basics' | 'location' | 'practice' | 'about' | 'review';
-export type WorkerSetupStepId = 'basics' | 'experience' | 'skills' | 'location' | 'review';
+export type WorkerSetupStepId =
+  | 'basics'
+  | 'experience'
+  | 'skills'
+  | 'location'
+  | 'fill-ins'
+  | 'review';
 
 export function validateClinicBasicsStep(values: {
   clinicName: string;

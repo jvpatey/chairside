@@ -181,6 +181,7 @@ export const WORKER_SETUP_BASICS: Href = '/(worker-setup)/basics' as Href;
 export const WORKER_SETUP_EXPERIENCE: Href = '/(worker-setup)/experience' as Href;
 export const WORKER_SETUP_SKILLS: Href = '/(worker-setup)/skills' as Href;
 export const WORKER_SETUP_LOCATION: Href = '/(worker-setup)/location' as Href;
+export const WORKER_SETUP_FILL_INS: Href = '/(worker-setup)/fill-ins' as Href;
 export const WORKER_SETUP_AVAILABILITY: Href = '/(worker-setup)/availability' as Href;
 export const WORKER_SETUP_AVAILABILITY_SCHEDULE: Href =
   '/(worker-setup)/availability-schedule' as Href;

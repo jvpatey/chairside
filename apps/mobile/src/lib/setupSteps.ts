@@ -7,6 +7,7 @@ import {
   CLINIC_SETUP_LOCATION,
   CLINIC_SETUP_PRACTICE,
   CLINIC_SETUP_REVIEW,
+  WORKER_SETUP_FILL_INS,
 } from '@/lib/routing';
 import {
   getClinicSetupStepIndexFromPath,
@@ -28,6 +29,7 @@ export const WORKER_SETUP_STEPS: SetupNavStep[] = [
   { id: 'experience', label: 'Experience', href: '/(worker-setup)/experience' },
   { id: 'skills', label: 'Skills', href: '/(worker-setup)/skills' },
   { id: 'location', label: 'Location', href: '/(worker-setup)/location' },
+  { id: 'fill-ins', label: 'Fill-ins', href: WORKER_SETUP_FILL_INS },
   { id: 'review', label: 'Review', href: '/(worker-setup)/review' },
 ];
 

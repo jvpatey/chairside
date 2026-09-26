@@ -11,9 +11,9 @@ const WORKER_COPY: DashboardWelcomeCopy = {
   title: 'Welcome to Chairside',
   subtitle: 'Your profile is ready — finish a few quick steps before you apply.',
   bullets: [
+    'Get same-day fill-in alerts by text — manage anytime in Fill-ins',
     'Set up your application profile — resume, photo, and cover note',
     'Browse open roles and fill-ins in your province',
-    'Turn on fill-in alerts when you want short-notice work',
   ],
   ctaLabel: 'Explore dashboard',
 };

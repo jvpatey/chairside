@@ -72,9 +72,6 @@ export function isWorkerGetStartedComplete(params: {
   jobApplicationCount: number;
   shiftApplicationCount: number;
   visitedRoles: boolean;
-  visitedFillIns: boolean;
-  availabilityBlockCount?: number;
-  savedShiftCount?: number;
 }): boolean {
   return (
     isWorkerProfileComplete(params.workerProfile) &&
@@ -85,10 +82,7 @@ export function isWorkerGetStartedComplete(params: {
     }) &&
     isWorkerFillInsStepComplete({
       shiftApplicationCount: params.shiftApplicationCount,
-      visitedFillIns: params.visitedFillIns,
       workerProfile: params.workerProfile as WorkerFillInEngagementProfile | undefined,
-      availabilityBlockCount: params.availabilityBlockCount,
-      savedShiftCount: params.savedShiftCount,
     })
   );
 }

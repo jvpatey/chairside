@@ -25,6 +25,7 @@ import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
+import { getFillInAvailabilityCollapsedSummary } from '@/lib/fillInAvailabilitySummary';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -53,7 +54,8 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 
 export default function WorkerReviewScreen() {
   const { user, profile } = useAuth();
-  const { workerProfile, isWorkerProfileReady, refreshWorkerProfile } = useWorkerProfile();
+  const { workerProfile, isWorkerProfileReady, refreshWorkerProfile, availabilityBlocks } =
+    useWorkerProfile();
   const { isEditMode, exitHref } = useSetupEditMode({ role: 'worker' });
   const setupFormProps = useSetupFormScreenProps('worker');
   const progress = useSetupStepProgress('review', { role: 'worker' });
@@ -145,6 +147,7 @@ export default function WorkerReviewScreen() {
     workerProfile.preferred_employment_types.length > 0
       ? workerProfile.preferred_employment_types.map(getEmploymentTypeLabel).join(', ')
       : '';
+  const fillInSummary = getFillInAvailabilityCollapsedSummary(workerProfile, availabilityBlocks);
 
   return (
     <FormScreen
@@ -200,6 +203,14 @@ export default function WorkerReviewScreen() {
         <ReviewRow
           label="Travel distance"
           value={getTravelRadiusRangeLabel(workerProfile?.travel_radius_range)}
+        />
+        <ReviewRow
+          label="Fill-ins"
+          value={
+            workerProfile?.short_notice_available
+              ? fillInSummary.primary
+              : 'Off · turn on anytime in Fill-ins'
+          }
         />
         <ReviewRow label="Bio" value={workerProfile?.bio ?? ''} />
       </SurfaceCard>

@@ -36,7 +36,8 @@ describe('dashboardWelcomeCopy', () => {
 
     expect(workerCopy.title).toBe('Welcome to Chairside');
     expect(workerCopy.subtitle).toContain('before you apply');
-    expect(workerCopy.bullets[0]).toContain('application profile');
+    expect(workerCopy.bullets[0]).toContain('fill-in alerts');
+    expect(workerCopy.bullets[1]).toContain('application profile');
     expect(workerCopy.bullets).toHaveLength(3);
     expect(workerCopy.ctaLabel).toBe('Explore dashboard');
 

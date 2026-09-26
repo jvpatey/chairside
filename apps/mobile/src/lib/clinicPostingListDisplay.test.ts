@@ -19,6 +19,7 @@ describe('clinicPostingListDisplay', () => {
       'role',
       'status',
       'applicants',
+      'views',
       'posted',
       'pay',
       'actions',
@@ -28,12 +29,13 @@ describe('clinicPostingListDisplay', () => {
       'status',
       'location',
       'applicants',
+      'views',
       'posted',
       'pay',
       'actions',
     ]);
     expect(clinicPostingTableGridTemplate(getClinicRoleTableColumns(false))).toBe(
-      'minmax(240px, 2.4fr) 104px 148px 96px minmax(92px, 0.9fr) 44px',
+      'minmax(220px, 2.2fr) 104px 132px 88px 96px minmax(88px, 0.85fr) 44px',
     );
     expect(CLINIC_ROLE_TABLE_COLUMNS).toEqual(getClinicRoleTableColumns(true));
   });
