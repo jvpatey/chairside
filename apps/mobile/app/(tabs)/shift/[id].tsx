@@ -2,6 +2,7 @@ import {
   getLiveShiftPost,
   getWorkerShiftApplication,
   isShiftPostSaved,
+  recordShiftPostListingView,
   saveShiftPost,
   unsaveShiftPost,
   ACTIVE_SHIFT_COVER_STATUSES,
@@ -129,6 +130,9 @@ export default function WorkerShiftDetailScreen() {
       setShift(nextShift);
 
       if (user?.id) {
+        void recordShiftPostListingView(shiftId).catch(() => {
+          // Reach tracking is best-effort — never block the detail screen.
+        });
         const [application, saved] = await Promise.all([
           getWorkerShiftApplication(user.id, shiftId),
           isShiftPostSaved(user.id, shiftId),

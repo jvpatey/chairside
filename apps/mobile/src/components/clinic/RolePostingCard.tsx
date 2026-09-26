@@ -36,6 +36,7 @@ export type RolePostingCardManageProps = {
 type RolePostingCardProps = {
   job: JobPost;
   applicantCount?: number;
+  viewCount?: number;
   /** Dashboard: applicant rows shown below the role header. */
   applicants?: JobApplicantPreview[];
   /** Inner surface for dashboard file-tab panels. */
@@ -51,6 +52,7 @@ type RolePostingCardProps = {
 export function RolePostingCard({
   job,
   applicantCount = 0,
+  viewCount = 0,
   embedded = false,
   onPress,
   onApplicantsPress,
@@ -80,6 +82,7 @@ export function RolePostingCard({
     location: placeLabel,
     roleMeta,
     postedAt: job.created_at,
+    viewCount,
   });
 
   const styles = useThemedStyles(({ spacing }) => ({

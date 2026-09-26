@@ -1,4 +1,9 @@
-import { getJobPost, type JobPost } from '@chairside/api';
+import {
+  getJobPost,
+  getJobPostApplicationCount,
+  getJobPostListingViewCountsMap,
+  type JobPost,
+} from '@chairside/api';
 import { formatJobPostRoleMeta } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -21,6 +26,8 @@ export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const jobId = typeof id === 'string' ? id : '';
   const [job, setJob] = useState<JobPost | null>(null);
+  const [viewCount, setViewCount] = useState(0);
+  const [applicantCount, setApplicantCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -51,7 +58,13 @@ export default function JobDetailScreen() {
         router.back();
         return;
       }
+      const [views, applicants] = await Promise.all([
+        getJobPostListingViewCountsMap([jobId]),
+        getJobPostApplicationCount(clinicId, jobId),
+      ]);
       setJob(nextJob);
+      setViewCount(views[jobId] ?? 0);
+      setApplicantCount(applicants);
     } catch (error) {
       Alert.alert(
         'Could not load role',
@@ -115,6 +128,8 @@ export default function JobDetailScreen() {
           locationLabel={locationLabel || null}
           postedByLabel={postedByLabel}
           postedOnLabel={postedOnLabel}
+          viewCount={viewCount}
+          applicantCount={applicantCount}
         />
       </View>
     </FormScreen>

@@ -8,6 +8,7 @@ export type ClinicPostingTableColumnKey =
   | 'status'
   | 'location'
   | 'applicants'
+  | 'views'
   | 'posted'
   | 'pay'
   | 'actions';
@@ -23,21 +24,22 @@ export function getClinicRoleTableColumns(
   showLocation = false,
 ): readonly ClinicPostingTableColumn[] {
   return [
-    { key: 'role', label: 'Role', width: 'minmax(240px, 2.4fr)', align: 'start' },
+    { key: 'role', label: 'Role', width: 'minmax(220px, 2.2fr)', align: 'start' },
     { key: 'status', label: 'Status', width: '104px', align: 'start' },
     ...(showLocation
       ? ([
           {
             key: 'location',
             label: 'Location',
-            width: 'minmax(128px, 1.1fr)',
+            width: 'minmax(120px, 1fr)',
             align: 'start',
           },
         ] as const)
       : []),
-    { key: 'applicants', label: 'Applicants', width: '148px', align: 'start' },
+    { key: 'applicants', label: 'Applicants', width: '132px', align: 'start' },
+    { key: 'views', label: 'Views', width: '88px', align: 'end' },
     { key: 'posted', label: 'Posted', width: '96px', align: 'end' },
-    { key: 'pay', label: 'Pay', width: 'minmax(92px, 0.9fr)', align: 'end' },
+    { key: 'pay', label: 'Pay', width: 'minmax(88px, 0.85fr)', align: 'end' },
     { key: 'actions', label: '', width: '44px', align: 'end' },
   ];
 }

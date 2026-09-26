@@ -2,6 +2,7 @@ import {
   getLiveJobPost,
   hasAppliedToJob,
   isJobPostSaved,
+  recordJobPostListingView,
   saveJobPost,
   unsaveJobPost,
   type LiveJobPost,
@@ -95,6 +96,9 @@ export default function WorkerJobDetailScreen() {
       setJob(nextJob);
 
       if (user?.id) {
+        void recordJobPostListingView(jobId).catch(() => {
+          // Reach tracking is best-effort — never block the detail screen.
+        });
         const [applied, saved] = await Promise.all([
           hasAppliedToJob(user.id, jobId),
           isJobPostSaved(user.id, jobId),

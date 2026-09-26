@@ -164,8 +164,10 @@ type DashboardOverviewPanelProps = {
   shifts: ShiftPost[];
   applications: ClinicApplication[];
   applicantCounts?: Record<string, number>;
+  jobViewCounts?: Record<string, number>;
   shiftPendingCounts?: Record<string, number>;
   shiftApplicationCounts?: Record<string, number>;
+  shiftViewCounts?: Record<string, number>;
   clinicId?: string;
   fillInReturnTo?: FillInReturnTarget;
   onJobUpdated?: (job: JobPost) => void;
@@ -257,8 +259,10 @@ export function DashboardOverviewPanel({
   shifts,
   applications,
   applicantCounts,
+  jobViewCounts = {},
   shiftPendingCounts = {},
   shiftApplicationCounts = {},
+  shiftViewCounts = {},
   clinicId,
   fillInReturnTo = 'dashboard-fill-ins',
   onJobUpdated,
@@ -317,6 +321,7 @@ export function DashboardOverviewPanel({
                   embedded={embedded}
                   applicants={applicantPreviewByJobId?.[job.id]}
                   applicantCount={applicantCounts?.[job.id] ?? 0}
+                  viewCount={jobViewCounts[job.id] ?? 0}
                   onPress={onJobPress ? () => onJobPress(job.id) : undefined}
                   onApplicantsPress={
                     onJobApplicationsPress ? () => onJobApplicationsPress(job.id) : undefined
@@ -360,6 +365,7 @@ export function DashboardOverviewPanel({
                 shift={shift}
                 pendingRequestCount={shiftPendingCounts[shift.id] ?? 0}
                 applicationCount={shiftApplicationCounts[shift.id] ?? 0}
+                viewCount={shiftViewCounts[shift.id] ?? 0}
                 clinicId={clinicId}
                 returnTo={fillInReturnTo}
                 accent="secondary"

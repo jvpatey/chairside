@@ -213,6 +213,12 @@ export {
   type WorkerDashboardCounts,
 } from './posts';
 export {
+  getJobPostListingViewCountsMap,
+  getShiftPostListingViewCountsMap,
+  recordJobPostListingView,
+  recordShiftPostListingView,
+} from './postListingViews';
+export {
   getClinicHiringInsights,
   type ClinicHiringInsights,
   type GetClinicHiringInsightsInput,
