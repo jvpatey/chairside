@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { type AnimatedStyle } from 'react-native-reanimated';
 
 type SlidingSegmentIndicatorProps = {
-  animatedStyle: StyleProp<ViewStyle>;
+  animatedStyle: StyleProp<AnimatedStyle<ViewStyle>>;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
 };

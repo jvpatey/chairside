@@ -31,7 +31,7 @@ export function MessageContextPanelSheet({
       justifyContent: 'flex-end',
     },
     backdrop: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.32)',
       backdropFilter: 'blur(4px)',
       WebkitBackdropFilter: 'blur(4px)',

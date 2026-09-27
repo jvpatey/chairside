@@ -2,7 +2,7 @@ import {
   DarkTheme,
   DefaultTheme,
   type Theme as NavigationTheme,
-} from '@react-navigation/native';
+} from 'expo-router/react-navigation';
 import type { ColorSchemeName } from 'react-native';
 
 import { getColors } from './colors';

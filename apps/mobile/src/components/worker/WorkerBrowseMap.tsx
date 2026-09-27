@@ -123,7 +123,7 @@ export function WorkerBrowseMap({
       backgroundColor: colors.surface,
     },
     map: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
   }));
 

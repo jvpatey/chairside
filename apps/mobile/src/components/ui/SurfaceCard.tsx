@@ -120,7 +120,7 @@ export function SurfaceCard({
           : colors.surface,
     },
     gradient: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       zIndex: 0,
     },
     cardHovered: webTileHoverStyles(colors, isDark),

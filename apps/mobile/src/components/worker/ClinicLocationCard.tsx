@@ -75,11 +75,11 @@ export function ClinicLocationCard({ profile }: ClinicLocationCardProps) {
       borderRadius: 12,
     },
     mapTapTarget: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       borderRadius: 12,
     },
     calloutOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: 'flex-end',
       padding: spacing.sm,
       pointerEvents: 'box-none',

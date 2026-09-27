@@ -161,7 +161,7 @@ export function WorkerBrowseMap({
       backgroundColor: colors.surface,
     },
     mapOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       pointerEvents: 'box-none',
     },
   }));

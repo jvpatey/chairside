@@ -1,5 +1,5 @@
 import { Platform, type ViewStyle } from 'react-native';
-import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
+import type { BottomTabNavigationOptions } from 'expo-router/js-tabs';
 
 import { useShellAtmosphere, useTabAtmosphere } from '@/contexts/TabAtmosphereContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';

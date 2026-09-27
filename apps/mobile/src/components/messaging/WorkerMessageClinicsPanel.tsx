@@ -9,10 +9,12 @@ import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 
+import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { MessageableClinicListItem } from '@/components/messaging/MessageableClinicListItem';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
+import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -54,6 +56,8 @@ export function WorkerMessageClinicsPanel({
   const [clinics, setClinics] = useState<MessageableClinic[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isStarting, setIsStarting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ spacing, typography, colors, radii }) => ({
     content: { gap: spacing.lg },
@@ -98,14 +102,21 @@ export function WorkerMessageClinicsPanel({
   const load = useCallback(async () => {
     if (!user?.id) {
       setClinics([]);
+      setIsLoading(false);
+      setLoadError(null);
       return;
     }
 
+    setIsLoading(true);
     try {
       const rows = await listMessageableClinicsForWorker(user.id);
       setClinics(rows);
-    } catch {
+      setLoadError(null);
+    } catch (error) {
+      setLoadError(getErrorMessage(error, 'Could not load clinics.'));
       setClinics([]);
+    } finally {
+      setIsLoading(false);
     }
   }, [user?.id]);
 
@@ -193,7 +204,16 @@ export function WorkerMessageClinicsPanel({
             accessibilityLabel="Search clinics"
           />
 
-          {filteredClinics.length === 0 ? (
+          {loadError ? (
+            <DashboardErrorBanner
+              message={loadError}
+              onRetry={() => {
+                void load();
+              }}
+            />
+          ) : isLoading && clinics.length === 0 ? (
+            <PageLoadingList message="Loading clinics…" compact={embedded} />
+          ) : filteredClinics.length === 0 ? (
             <View style={styles.emptyCard}>
               <View style={styles.emptyIconWrap}>
                 <Ionicons name="chatbubbles-outline" size={24} color={colors.primary} />

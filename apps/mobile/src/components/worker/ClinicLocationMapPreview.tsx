@@ -42,7 +42,7 @@ export function ClinicLocationMapPreview({
       backgroundColor: colors.fillSubtle,
     },
     map: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
     pinWrap: {
       alignItems: 'center',

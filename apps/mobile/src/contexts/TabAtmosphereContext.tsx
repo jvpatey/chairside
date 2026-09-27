@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { Platform, View } from 'react-native';
-import { ThemeProvider, useTheme as useNavigationTheme } from '@react-navigation/native';
+import { ThemeProvider, useTheme as useNavigationTheme } from 'expo-router/react-navigation';
 import { usePathname } from 'expo-router';
 
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';

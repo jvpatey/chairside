@@ -65,6 +65,7 @@
         }
       ],
       "expo-apple-authentication",
+      "expo-secure-store",
       "expo-web-browser",
       "@react-native-community/datetimepicker",
       [

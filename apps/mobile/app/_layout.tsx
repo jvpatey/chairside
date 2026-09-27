@@ -5,7 +5,7 @@ import {
   PlusJakartaSans_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import { ThemeProvider } from '@react-navigation/native';
+import { ThemeProvider } from 'expo-router/react-navigation';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
