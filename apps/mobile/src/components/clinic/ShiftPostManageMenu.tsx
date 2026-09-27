@@ -7,12 +7,14 @@ import {
 } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { getEditShiftRoute, type FillInReturnTarget } from '@/lib/routing';
 import { formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -21,9 +23,16 @@ type ManageAction = {
   status?: ShiftPostStatus;
   destructive?: boolean;
   isDelete?: boolean;
+  isEdit?: boolean;
 };
 
+const EDIT_ACTION: ManageAction = { label: 'Edit fill-in', isEdit: true };
+
 function getManageActions(status: ShiftPostStatus): ManageAction[] {
+  return [EDIT_ACTION, ...getStatusActions(status)];
+}
+
+function getStatusActions(status: ShiftPostStatus): ManageAction[] {
   switch (status) {
     case 'live':
       return [
@@ -59,6 +68,7 @@ type ShiftPostManageMenuProps = {
   onDeleted: () => void;
   style?: StyleProp<ViewStyle>;
   trigger?: 'button' | 'icon';
+  returnTo?: FillInReturnTarget;
 };
 
 export function ShiftPostManageMenu({
@@ -68,6 +78,7 @@ export function ShiftPostManageMenu({
   onDeleted,
   style,
   trigger = 'button',
+  returnTo = 'fill-ins-tab',
 }: ShiftPostManageMenuProps) {
   const { colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -119,6 +130,10 @@ export function ShiftPostManageMenu({
   };
 
   const runAction = (action: ManageAction) => {
+    if (action.isEdit) {
+      router.push(getEditShiftRoute(shift.id, returnTo));
+      return;
+    }
     if (action.isDelete) {
       void confirmDelete();
       return;

@@ -5,10 +5,12 @@ import {
   type JobPost,
   type JobPostStatus,
 } from '@chairside/api';
+import { router } from 'expo-router';
 import { useCallback } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { getEditJobRoute } from '@/lib/routing';
 import {
   adaptiveSheetFooter,
   adaptiveSheetHeader,
@@ -28,9 +30,16 @@ type ManageAction = {
   status?: JobPostStatus;
   destructive?: boolean;
   isDelete?: boolean;
+  isEdit?: boolean;
 };
 
+const EDIT_ACTION: ManageAction = { label: 'Edit role', isEdit: true };
+
 function getManageActions(status: JobPostStatus): ManageAction[] {
+  return [EDIT_ACTION, ...getStatusActions(status)];
+}
+
+function getStatusActions(status: JobPostStatus): ManageAction[] {
   switch (status) {
     case 'live':
       return [
@@ -199,6 +208,10 @@ export function JobPostManageSheetBody({
   const runAction = useCallback(
     (action: ManageAction) => {
       onClose();
+      if (action.isEdit) {
+        router.push(getEditJobRoute(job.id));
+        return;
+      }
       if (action.isDelete) {
         void confirmDelete();
         return;
@@ -218,7 +231,7 @@ export function JobPostManageSheetBody({
         void handleStatusChange(action.status);
       }
     },
-    [confirmDelete, handleStatusChange, job.status, job.title, onClose],
+    [confirmDelete, handleStatusChange, job.id, job.status, job.title, onClose],
   );
 
   if (!visible) return null;

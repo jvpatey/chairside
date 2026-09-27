@@ -205,6 +205,7 @@ export function RolePostingCard({
           <RoleApplicantPreviewList
             applicants={applicants}
             onApplicantPress={onApplicantPress}
+            compact={mobileEmbedded}
           />
         </View>
       ) : null}

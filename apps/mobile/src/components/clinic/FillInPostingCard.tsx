@@ -177,6 +177,7 @@ export function FillInPostingCard({
               style={applicationCount > 0 ? undefined : styles.actionButton}
               clinicId={clinicId}
               shift={shift}
+              returnTo={returnTo}
               onUpdated={onShiftUpdated ?? (() => undefined)}
               onDeleted={onShiftDeleted ?? (() => undefined)}
             />

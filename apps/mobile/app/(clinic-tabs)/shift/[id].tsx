@@ -143,6 +143,7 @@ export default function ShiftDetailScreen() {
                 style={applicationCount > 0 ? undefined : styles.footerRowButton}
                 clinicId={clinicId}
                 shift={shift}
+                returnTo={resolvedReturnTo}
                 onUpdated={setShift}
                 onDeleted={() => navigateAfterFillInSave(router, resolvedReturnTo)}
               />
