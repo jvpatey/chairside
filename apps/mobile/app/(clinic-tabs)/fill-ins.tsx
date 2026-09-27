@@ -1,5 +1,6 @@
 import {
   getShiftPostApplicationCount,
+  getShiftPostListingViewCountsMap,
   getShiftPostPendingApplicationCountsMap,
   getUnreadConversationMap,
   listFillInCoverRequests,
@@ -129,6 +130,7 @@ export default function ClinicFillInsScreen() {
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
   const [applicationCounts, setApplicationCounts] = useState<Record<string, number>>({});
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const [confirmedRows, setConfirmedRows] = useState<ConfirmedFillInSummary[]>([]);
   const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
   const [expandedConfirmedId, setExpandedConfirmedId] = useState<string | null>(null);
@@ -368,11 +370,13 @@ export default function ClinicFillInsScreen() {
           return [shift.id, count] as const;
         }),
       );
+      const views = await getShiftPostListingViewCountsMap(shiftPosts.map((shift) => shift.id));
 
       setCoverRequests(requests);
       setShifts(shiftPosts);
       setPendingCounts(counts);
       setApplicationCounts(Object.fromEntries(applicationCountEntries));
+      setViewCounts(views);
       setConfirmedRows(confirmed);
       setUnreadMap(unread);
       await refreshPending();
@@ -620,6 +624,7 @@ export default function ClinicFillInsScreen() {
                                 shift={shift}
                                 pendingRequestCount={pendingCounts[shift.id] ?? 0}
                                 applicationCount={applicationCounts[shift.id] ?? 0}
+                                viewCount={viewCounts[shift.id] ?? 0}
                                 clinicId={clinicId ?? undefined}
                                 returnTo="fill-ins-tab"
                                 expanded={expandedShiftId === shift.id}

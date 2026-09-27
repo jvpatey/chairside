@@ -3,6 +3,8 @@ import {
   hasAuthCallbackParams,
   isAuthCallbackPath,
 } from '@chairside/api';
+import type { Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useLayoutEffect } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,10 +35,12 @@ export function WebAuthCallbackHandler() {
 
     setWebAuthGateStatus('processing');
 
+    // Move Expo Router onto the callback screen (not just the browser URL) so
+    // index cannot paint the dashboard while the code exchange runs.
     if (!isAuthCallbackPath(window.location.pathname)) {
       const callbackHref = getWebAuthCallbackHref(href);
       if (callbackHref) {
-        window.history.replaceState(null, '', callbackHref);
+        router.replace(callbackHref as Href);
       }
     }
 

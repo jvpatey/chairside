@@ -25,7 +25,7 @@ function renderGateDecision(
     // Soft refreshes (browser tab focus / token refresh) must not unmount the
     // tab navigator — remounting resets web tabs to the first declared route.
     if (keepChildrenDuringLoading) return children;
-    return <PageLoadingSpinner />;
+    return <PageLoadingSpinner message="Just a moment…" />;
   }
   if (decision.type === 'redirect') return <Redirect href={decision.href} />;
   return children;

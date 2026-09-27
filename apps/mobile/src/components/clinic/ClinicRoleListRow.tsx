@@ -37,6 +37,7 @@ import type { RolePostingCardManageProps } from '@/components/clinic/RolePosting
 type ClinicRoleListRowProps = {
   job: JobPost;
   applicantCount?: number;
+  viewCount?: number;
   applicants?: JobApplicantPreview[];
   tableMode?: boolean;
   columns?: readonly ClinicPostingTableColumn[];
@@ -51,6 +52,7 @@ const TABLE_AVATAR_SIZE = 24;
 export function ClinicRoleListRow({
   job,
   applicantCount = 0,
+  viewCount = 0,
   applicants = [],
   tableMode = false,
   columns: columnsProp,
@@ -78,6 +80,7 @@ export function ClinicRoleListRow({
     location: placeLabel,
     roleMeta,
     postedAt: job.created_at,
+    viewCount,
   });
   const postedDate = formatClinicPostingPostedDate(job.created_at);
   const isFeatured = job.status === 'live' && Boolean(billing?.hasPriorityListing);
@@ -334,6 +337,18 @@ export function ClinicRoleListRow({
           <View key={column.key}>
             {applicantControl}
           </View>
+        );
+      case 'views':
+        return (
+          <Text
+            key={column.key}
+            style={[
+              viewCount > 0 ? styles.numericText : styles.muted,
+              styles.numericCell as TextStyle,
+            ]}
+            numberOfLines={1}>
+            {viewCount > 0 ? viewCount.toLocaleString() : '—'}
+          </Text>
         );
       case 'posted':
         return (

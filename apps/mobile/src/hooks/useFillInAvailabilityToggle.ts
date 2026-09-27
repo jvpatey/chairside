@@ -2,7 +2,7 @@ import {
   type FillInNotificationMode,
 } from '@chairside/config';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
@@ -15,6 +15,7 @@ export function useFillInAvailabilityToggle() {
   const [acceptsClinicOutreach, setAcceptsClinicOutreach] = useState(false);
   const [smsOptIn, setSmsOptIn] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workerProfile) return;
@@ -33,6 +34,7 @@ export function useFillInAvailabilityToggle() {
     outreach: boolean = acceptsClinicOutreach,
   ) => {
     setIsSaving(true);
+    setError(null);
     try {
       await save({
         short_notice_available: available,
@@ -41,8 +43,11 @@ export function useFillInAvailabilityToggle() {
         accepts_clinic_fill_in_outreach: available && outreach,
       });
       await refreshWorkerProfile();
-    } catch (error) {
-      Alert.alert('Could not save', error instanceof Error ? error.message : 'Please try again.');
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : 'Please try again.';
+      setError(message);
+      setShortNoticeAvailable(workerProfile?.short_notice_available ?? false);
+      if (Platform.OS !== 'web') Alert.alert('Could not save', message);
     } finally {
       setIsSaving(false);
     }
@@ -68,6 +73,7 @@ export function useFillInAvailabilityToggle() {
   return {
     shortNoticeAvailable,
     isSaving,
+    error,
     handleToggle,
   };
 }

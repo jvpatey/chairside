@@ -72,7 +72,9 @@ export {
   type SupportContactSubject,
 } from './supportContact';
 export {
+  ADMIN_DELETE_NO_EMAIL_CONFIRMATION,
   AdminStatsForbiddenError,
+  adminDeleteAccount,
   fetchAdminStats,
   type AdminStatsClinicRow,
   type AdminStatsProfessionalRow,
@@ -212,6 +214,12 @@ export {
   type UpdateShiftPostInput,
   type WorkerDashboardCounts,
 } from './posts';
+export {
+  getJobPostListingViewCountsMap,
+  getShiftPostListingViewCountsMap,
+  recordJobPostListingView,
+  recordShiftPostListingView,
+} from './postListingViews';
 export {
   getClinicHiringInsights,
   type ClinicHiringInsights,

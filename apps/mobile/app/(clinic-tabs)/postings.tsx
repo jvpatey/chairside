@@ -2,6 +2,7 @@ import {
   listClinicApplications,
   listJobPosts,
   getJobPostApplicationCountsMap,
+  getJobPostListingViewCountsMap,
   type ClinicApplication,
   type JobPost,
 } from '@chairside/api';
@@ -89,6 +90,7 @@ export default function ClinicPostingsScreen() {
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const [jobStatusFilter, setJobStatusFilter] = useState<
     Extract<JobStatusFilter, 'live' | 'paused' | 'filled'>
   >('live');
@@ -216,6 +218,8 @@ export default function ClinicPostingsScreen() {
       setApplications([]);
       setLoadError(false);
       setIsLoading(false);
+      setApplicantCounts({});
+      setViewCounts({});
       return;
     }
 
@@ -227,13 +231,16 @@ export default function ClinicPostingsScreen() {
         getJobPostApplicationCountsMap(clinicId),
         listClinicApplications(clinicId, 'active', { locationIds: scopedLocationIds }),
       ]);
+      const views = await getJobPostListingViewCountsMap(jobPosts.map((job) => job.id));
       setJobs(jobPosts);
       setApplicantCounts(counts);
+      setViewCounts(views);
       setApplications(applicationRows);
       await refreshBilling();
     } catch {
       setJobs([]);
       setApplicantCounts({});
+      setViewCounts({});
       setApplications([]);
       setLoadError(true);
     } finally {
@@ -399,6 +406,7 @@ export default function ClinicPostingsScreen() {
                               key={job.id}
                               job={job}
                               applicantCount={applicantCounts[job.id] ?? 0}
+                              viewCount={viewCounts[job.id] ?? 0}
                               applicants={applicantPreviewByJobId[job.id]}
                               onPress={() => router.push(getJobDetailRoute(job.id))}
                               onApplicantsPress={() =>
@@ -433,6 +441,7 @@ export default function ClinicPostingsScreen() {
                             tableMode={tableMode}
                             columns={roleTableColumns}
                             applicantCount={applicantCounts[job.id] ?? 0}
+                            viewCount={viewCounts[job.id] ?? 0}
                             applicants={applicantPreviewByJobId[job.id]}
                             onPress={() => router.push(getJobDetailRoute(job.id))}
                             onApplicantsPress={() =>

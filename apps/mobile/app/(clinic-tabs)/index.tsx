@@ -1,7 +1,9 @@
 import {
   getClinicDashboardCounts,
   getJobPostApplicationCountsMap,
+  getJobPostListingViewCountsMap,
   getShiftPostApplicationCount,
+  getShiftPostListingViewCountsMap,
   getShiftPostPendingApplicationCountsMap,
   listClinicApplications,
   listClinicCalendarEvents,
@@ -151,8 +153,10 @@ export default function ClinicDashboardScreen() {
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
+  const [jobViewCounts, setJobViewCounts] = useState<Record<string, number>>({});
   const [shiftPendingCounts, setShiftPendingCounts] = useState<Record<string, number>>({});
   const [shiftApplicationCounts, setShiftApplicationCounts] = useState<Record<string, number>>({});
+  const [shiftViewCounts, setShiftViewCounts] = useState<Record<string, number>>({});
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
@@ -200,13 +204,19 @@ export default function ClinicDashboardScreen() {
           return [shift.id, count] as const;
         }),
       );
+      const [jobViews, shiftViews] = await Promise.all([
+        getJobPostListingViewCountsMap(jobPosts.map((job) => job.id)),
+        getShiftPostListingViewCountsMap(shiftPosts.map((shift) => shift.id)),
+      ]);
 
       setCounts(nextCounts);
       setJobs(jobPosts);
       setShifts(shiftPosts);
       setApplicantCounts(counts);
+      setJobViewCounts(jobViews);
       setShiftPendingCounts(pendingShiftCounts);
       setShiftApplicationCounts(Object.fromEntries(shiftApplicationCountEntries));
+      setShiftViewCounts(shiftViews);
       setConversations(conversationRows);
       setApplications(clinicApplications);
       setCalendarEvents(calendarRows);
@@ -686,8 +696,10 @@ export default function ClinicDashboardScreen() {
               shifts={shifts}
               applications={dashboardApplications}
               applicantCounts={applicantCounts}
+              jobViewCounts={jobViewCounts}
               shiftPendingCounts={shiftPendingCounts}
               shiftApplicationCounts={shiftApplicationCounts}
+              shiftViewCounts={shiftViewCounts}
               clinicId={clinicId ?? undefined}
               fillInReturnTo="dashboard-fill-ins"
               onJobUpdated={handleJobUpdated}

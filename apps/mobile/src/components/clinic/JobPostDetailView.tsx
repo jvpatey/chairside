@@ -14,6 +14,7 @@ import {
 import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { CultureFitScreeningBadge } from '@/components/clinic/CultureFitScreeningBadge';
 import { JobPostStatusBadge } from '@/components/clinic/JobPostStatusBadge';
+import { PostEngagementStrip } from '@/components/clinic/ListingReachStat';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { BadgeRow } from '@/components/ui/BadgeRow';
@@ -35,6 +36,10 @@ type JobPostDetailViewProps = {
   locationLabel?: string | null;
   postedByLabel?: string | null;
   postedOnLabel?: string | null;
+  /** Unique professional detail opens — clinic-facing only. */
+  viewCount?: number | null;
+  /** Optional applicant count paired with views in the hero strip. */
+  applicantCount?: number | null;
 };
 
 export function JobPostDetailView({
@@ -45,6 +50,8 @@ export function JobPostDetailView({
   locationLabel,
   postedByLabel,
   postedOnLabel,
+  viewCount = null,
+  applicantCount = null,
 }: JobPostDetailViewProps) {
   const { colors } = useTheme();
   const featuredTreatment = useFeaturedListingTreatment();
@@ -128,6 +135,12 @@ export function JobPostDetailView({
                 <Text style={styles.overline}>Open role</Text>
                 <Text style={styles.title}>{job.title}</Text>
                 <Text style={styles.meta}>{metaLine}</Text>
+                {viewCount != null ? (
+                  <PostEngagementStrip
+                    viewCount={viewCount}
+                    applicantCount={applicantCount ?? undefined}
+                  />
+                ) : null}
               </View>
               <JobPostStatusBadge status={job.status} style={styles.statusBadge} />
             </View>

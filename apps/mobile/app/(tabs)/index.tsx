@@ -36,6 +36,7 @@ import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { DashboardNeedsAttention } from '@/components/dashboard/DashboardNeedsAttention';
 import { DashboardCalendarWidget } from '@/components/dashboard/DashboardCalendarWidget';
 import { FileTabWell, type FileTabOption } from '@/components/dashboard/FileTabWell';
+import { FillInAlertsNudgeCard } from '@/components/worker/FillInAlertsNudgeCard';
 import { WorkerReadinessChecklist } from '@/components/worker/WorkerReadinessChecklist';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { buildWorkerAttentionItems } from '@/lib/dashboardAttention';
@@ -407,6 +408,11 @@ export default function WorkerDashboardScreen() {
           <DashboardNeedsAttention items={attentionItems} />
         ) : null
       }
+      alerts={
+        isProfileComplete ? (
+          <FillInAlertsNudgeCard openFillInCount={counts.openFillInsInProvince} />
+        ) : null
+      }
       calendar={
         <FadeInSection delayMs={60}>
           <DashboardCalendarWidget
@@ -478,7 +484,6 @@ export default function WorkerDashboardScreen() {
               workerProfile={workerProfile}
               jobApplicationCount={jobApplications.length}
               shiftApplicationCount={shiftApplications.length}
-              savedShiftCount={savedShiftIds.size}
             />
           </FadeInSection>
         ) : null

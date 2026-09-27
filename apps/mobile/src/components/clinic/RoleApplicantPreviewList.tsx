@@ -20,6 +20,8 @@ const LIST_MAX_HEIGHT = ROW_MIN_HEIGHT * 3 + 4;
 type RoleApplicantPreviewListProps = {
   applicants: JobApplicantPreview[];
   onApplicantPress: (applicationId: string) => void;
+  /** Match the tighter inset of compact dashboard rows. */
+  compact?: boolean;
 };
 
 function ApplicantPreviewRow({
@@ -38,7 +40,7 @@ function ApplicantPreviewRow({
       alignItems: 'center',
       gap: spacing.sm,
       minHeight: ROW_MIN_HEIGHT,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
       borderRadius: radii.sm,
       ...webPointer(),
@@ -98,6 +100,7 @@ function ApplicantPreviewRow({
 export function RoleApplicantPreviewList({
   applicants,
   onApplicantPress,
+  compact = false,
 }: RoleApplicantPreviewListProps) {
   const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
@@ -107,8 +110,12 @@ export function RoleApplicantPreviewList({
       borderRadius: cardShellRadii.inner,
       overflow: 'hidden',
     },
+    wrapCompact: {
+      marginHorizontal: spacing.sm,
+      marginBottom: spacing.sm,
+    },
     header: {
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
       paddingBottom: spacing.xs,
       borderBottomWidth: StyleSheet.hairlineWidth,
@@ -142,7 +149,7 @@ export function RoleApplicantPreviewList({
   }));
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, compact && styles.wrapCompact]}>
       <View style={styles.header}>
         <Text style={styles.headerLabel}>Applicants</Text>
       </View>

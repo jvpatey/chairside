@@ -18,6 +18,7 @@ import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
+import { FillInAlertsNudgeCard } from '@/components/worker/FillInAlertsNudgeCard';
 import { FillInAvailabilitySummaryCard } from '@/components/worker/FillInAvailabilitySummaryCard';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { FeaturedListingsSectionHeader } from '@/components/worker/FeaturedListingsDivider';
@@ -424,6 +425,7 @@ export default function FillInsScreen() {
               onRetry={() => void load()}
             />
           ) : null}
+          <FillInAlertsNudgeCard variant="inline" openFillInCount={shifts.length} />
           <FillInAvailabilitySummaryCard />
           {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
             <View style={styles.controlsBlock}>

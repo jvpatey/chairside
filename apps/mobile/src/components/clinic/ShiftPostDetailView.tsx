@@ -11,6 +11,7 @@ import {
 } from '@/components/clinic/DetailCard';
 import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { ShiftPostStatusBadge } from '@/components/clinic/ShiftPostStatusBadge';
+import { PostEngagementStrip } from '@/components/clinic/ListingReachStat';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { BadgeRow } from '@/components/ui/BadgeRow';
@@ -38,6 +39,10 @@ type ShiftPostDetailViewProps = {
   locationLabel?: string | null;
   postedByLabel?: string | null;
   postedOnLabel?: string | null;
+  /** Unique professional detail opens — clinic-facing only. */
+  viewCount?: number | null;
+  /** Optional cover-request / applicant count paired with views. */
+  applicantCount?: number | null;
 };
 
 export function ShiftPostDetailView({
@@ -52,6 +57,8 @@ export function ShiftPostDetailView({
   locationLabel,
   postedByLabel,
   postedOnLabel,
+  viewCount = null,
+  applicantCount = null,
 }: ShiftPostDetailViewProps) {
   const { colors } = useTheme();
   const featuredTreatment = useFeaturedListingTreatment(accent);
@@ -141,7 +148,16 @@ export function ShiftPostDetailView({
   if (variant === 'embedded') {
     return (
       <View style={styles.wrap}>
-        <FadeInSection delayMs={0}>{detailRows}</FadeInSection>
+        {viewCount != null ? (
+          <FadeInSection delayMs={0}>
+            <PostEngagementStrip
+              viewCount={viewCount}
+              applicantCount={applicantCount ?? undefined}
+              applicantNoun="request"
+            />
+          </FadeInSection>
+        ) : null}
+        <FadeInSection delayMs={viewCount != null ? 40 : 0}>{detailRows}</FadeInSection>
         {description ? (
           <FadeInSection delayMs={80}>
             <CardDetailSection title="Notes">
@@ -172,6 +188,13 @@ export function ShiftPostDetailView({
             <Text style={styles.overline}>Fill-in shift</Text>
             <Text style={styles.title}>{formatShiftPostRoleTitle(shift.role_type)}</Text>
             <Text style={styles.meta}>{dateLabel}</Text>
+            {viewCount != null ? (
+              <PostEngagementStrip
+                viewCount={viewCount}
+                applicantCount={applicantCount ?? undefined}
+                applicantNoun="request"
+              />
+            ) : null}
           </View>
           {showStatusBadge ? (
             <ShiftPostStatusBadge

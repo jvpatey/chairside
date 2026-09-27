@@ -15,6 +15,7 @@ export const LISTING_META_ICONS = {
   roleType: 'briefcase-outline',
   shiftDetails: 'calendar-outline',
   postedDate: 'time-outline',
+  views: 'eye-outline',
 } as const satisfies Record<string, IoniconName>;
 
 export function formatListingPostedDate(
@@ -30,15 +31,22 @@ function compactMetaRow(icon: IoniconName, label: string | null | undefined): Li
   return { icon, label: trimmed };
 }
 
+function formatViewMetaLabel(viewCount: number | null | undefined): string | null {
+  if (viewCount == null || viewCount <= 0) return null;
+  return viewCount === 1 ? '1 view' : `${viewCount.toLocaleString()} views`;
+}
+
 export function buildRoleListingMetaRows(input: {
   location: string | null | undefined;
   roleMeta: string | null | undefined;
   postedAt: string | null | undefined;
+  viewCount?: number | null;
 }): ListingMetaRow[] {
   const postedLabel = formatListingPostedDate(input.postedAt);
   return [
     compactMetaRow(LISTING_META_ICONS.location, input.location),
     compactMetaRow(LISTING_META_ICONS.roleType, input.roleMeta),
+    compactMetaRow(LISTING_META_ICONS.views, formatViewMetaLabel(input.viewCount)),
     compactMetaRow(LISTING_META_ICONS.postedDate, postedLabel),
   ].filter((row): row is ListingMetaRow => row !== null);
 }
@@ -47,11 +55,13 @@ export function buildFillInListingMetaRows(input: {
   location: string | null | undefined;
   shiftMeta: string | null | undefined;
   postedAt: string | null | undefined;
+  viewCount?: number | null;
 }): ListingMetaRow[] {
   const postedLabel = formatListingPostedDate(input.postedAt);
   return [
     compactMetaRow(LISTING_META_ICONS.location, input.location),
     compactMetaRow(LISTING_META_ICONS.shiftDetails, input.shiftMeta),
+    compactMetaRow(LISTING_META_ICONS.views, formatViewMetaLabel(input.viewCount)),
     compactMetaRow(LISTING_META_ICONS.postedDate, postedLabel),
   ].filter((row): row is ListingMetaRow => row !== null);
 }

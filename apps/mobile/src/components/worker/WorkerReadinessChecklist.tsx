@@ -7,7 +7,7 @@ import { GetStartedChecklistCard } from '@/components/dashboard/GetStartedCheckl
 import { useDismissedGetStartedChecklist } from '@/hooks/useDismissedGetStartedChecklist';
 import { useGetStartedBrowseProgress } from '@/contexts/GetStartedBrowseProgressContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
 import {
   areAllGetStartedItemsComplete,
   isWorkerApplicationKitStarted,
@@ -18,6 +18,7 @@ import {
 import { type WorkerFillInEngagementProfile } from '@/lib/workerFillInGetStarted';
 import {
   WORKER_BROWSE,
+  WORKER_FILLIN_AVAILABILITY,
   WORKER_FILLINS,
   WORKER_SETUP_APPLICATION,
   WORKER_SETUP_BASICS,
@@ -27,20 +28,16 @@ type WorkerReadinessChecklistProps = {
   workerProfile: WorkerProfile | null;
   jobApplicationCount: number;
   shiftApplicationCount: number;
-  savedShiftCount?: number;
 };
 
 export function WorkerReadinessChecklist({
   workerProfile,
   jobApplicationCount,
   shiftApplicationCount,
-  savedShiftCount = 0,
 }: WorkerReadinessChecklistProps) {
   const { isHydrated, isDismissed, dismiss } = useDismissedGetStartedChecklist('worker');
-  const { availabilityBlocks } = useWorkerProfile();
   const {
     visitedRoles,
-    visitedFillIns,
     isHydrated: isBrowseHydrated,
     refresh: refreshBrowseProgress,
   } = useGetStartedBrowseProgress();
@@ -50,16 +47,9 @@ export function WorkerReadinessChecklist({
   const rolesComplete = isWorkerRolesStepComplete({ jobApplicationCount, visitedRoles });
   const fillInsComplete = isWorkerFillInsStepComplete({
     shiftApplicationCount,
-    visitedFillIns,
     workerProfile: workerProfile as WorkerFillInEngagementProfile | undefined,
-    availabilityBlockCount: availabilityBlocks.length,
-    savedShiftCount,
   });
-  const fillInsConfigured =
-    Boolean(workerProfile?.short_notice_available) ||
-    availabilityBlocks.length > 0 ||
-    (workerProfile?.fill_in_notification_mode ?? 'off') !== 'off' ||
-    savedShiftCount > 0;
+  const textsOn = getFillInSmsStatus(workerProfile).smsActive;
 
   const items = useMemo<GetStartedChecklistItem[]>(
     () => [
@@ -98,27 +88,19 @@ export function WorkerReadinessChecklist({
         onPress: () => router.push(WORKER_BROWSE),
       },
       {
-        id: 'browse-fill-ins',
-        title: fillInsComplete ? 'Explored fill-in shifts' : 'Browse fill-in shifts',
+        id: 'fill-in-alerts',
+        title: fillInsComplete ? 'Fill-in alerts on' : 'Turn on fill-in alerts',
         body: fillInsComplete
-          ? shiftApplicationCount > 0
-            ? 'You have submitted at least one fill-in application.'
-            : fillInsConfigured
-              ? 'Your fill-in availability and alerts are set up.'
-              : 'You have browsed temporary shifts near you.'
-          : 'Temporary shifts are a fast way to get chairside experience.',
+          ? textsOn
+            ? 'You get same-day fill-ins by push and text.'
+            : 'You get same-day fill-in alerts. Add texts in Fill-ins for faster alerts.'
+          : 'Hear about same-day shifts near you the moment clinics post them.',
         complete: fillInsComplete,
-        onPress: () => router.push(WORKER_FILLINS),
+        primary: isWorkerProfileComplete(workerProfile) && !fillInsComplete,
+        onPress: () => router.push(fillInsComplete ? WORKER_FILLINS : WORKER_FILLIN_AVAILABILITY),
       },
     ],
-    [
-      fillInsComplete,
-      fillInsConfigured,
-      jobApplicationCount,
-      rolesComplete,
-      shiftApplicationCount,
-      workerProfile,
-    ],
+    [fillInsComplete, jobApplicationCount, rolesComplete, textsOn, workerProfile],
   );
 
   if (

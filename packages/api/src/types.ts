@@ -494,6 +494,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      job_post_listing_views: {
+        Row: {
+          worker_id: string;
+          job_post_id: string;
+          first_viewed_at: string;
+          last_viewed_at: string;
+        };
+        Insert: {
+          worker_id: string;
+          job_post_id: string;
+          first_viewed_at?: string;
+          last_viewed_at?: string;
+        };
+        Update: {
+          worker_id?: string;
+          job_post_id?: string;
+          first_viewed_at?: string;
+          last_viewed_at?: string;
+        };
+        Relationships: [];
+      };
+      shift_post_listing_views: {
+        Row: {
+          worker_id: string;
+          shift_post_id: string;
+          first_viewed_at: string;
+          last_viewed_at: string;
+        };
+        Insert: {
+          worker_id: string;
+          shift_post_id: string;
+          first_viewed_at?: string;
+          last_viewed_at?: string;
+        };
+        Update: {
+          worker_id?: string;
+          shift_post_id?: string;
+          first_viewed_at?: string;
+          last_viewed_at?: string;
+        };
+        Relationships: [];
+      };
       worker_saved_posts: {
         Row: {
           id: string;
@@ -642,6 +684,22 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      record_job_post_listing_view: {
+        Args: { p_job_post_id: string };
+        Returns: undefined;
+      };
+      record_shift_post_listing_view: {
+        Args: { p_shift_post_id: string };
+        Returns: undefined;
+      };
+      get_job_post_listing_view_counts: {
+        Args: { p_job_post_ids: string[] };
+        Returns: { job_post_id: string; view_count: number }[];
+      };
+      get_shift_post_listing_view_counts: {
+        Args: { p_shift_post_ids: string[] };
+        Returns: { shift_post_id: string; view_count: number }[];
+      };
       mark_conversation_read: {
         Args: { p_conversation_id: string };
         Returns: undefined;

@@ -39,6 +39,7 @@ type FillInPostingCardProps = {
   shift: ShiftPost;
   pendingRequestCount?: number;
   applicationCount?: number;
+  viewCount?: number;
   expanded?: boolean;
   onExpandChange?: (expanded: boolean) => void;
   clinicId?: string;
@@ -53,6 +54,7 @@ export function FillInPostingCard({
   shift,
   pendingRequestCount = 0,
   applicationCount = 0,
+  viewCount = 0,
   expanded = false,
   onExpandChange,
   clinicId,
@@ -76,6 +78,7 @@ export function FillInPostingCard({
     location: placeLabel,
     shiftMeta,
     postedAt: shift.created_at,
+    viewCount,
   });
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -149,6 +152,8 @@ export function FillInPostingCard({
         showStatusBadge={false}
         accent={accent}
         locationLabel={isGroup ? location || null : null}
+        viewCount={viewCount}
+        applicantCount={applicationCount}
       />
       <View style={styles.actions}>
         {applicationCount > 0 ? (
@@ -172,6 +177,7 @@ export function FillInPostingCard({
               style={applicationCount > 0 ? undefined : styles.actionButton}
               clinicId={clinicId}
               shift={shift}
+              returnTo={returnTo}
               onUpdated={onShiftUpdated ?? (() => undefined)}
               onDeleted={onShiftDeleted ?? (() => undefined)}
             />

@@ -1,5 +1,6 @@
 import {
   getJobPostApplicationCountsMap,
+  getJobPostListingViewCountsMap,
   listClinicApplications,
   listJobPosts,
   type ClinicApplication,
@@ -47,6 +48,7 @@ function HistorySection({
   helper,
   jobs,
   applicantCounts,
+  viewCounts,
   applicantPreviewByJobId,
   emptyTitle,
   emptyBody,
@@ -61,6 +63,7 @@ function HistorySection({
   helper?: string;
   jobs: JobPost[];
   applicantCounts: Record<string, number>;
+  viewCounts: Record<string, number>;
   applicantPreviewByJobId: ReturnType<typeof summarizeJobApplicantPreviews>;
   emptyTitle: string;
   emptyBody: string;
@@ -122,6 +125,7 @@ function HistorySection({
                     key={job.id}
                     job={job}
                     applicantCount={applicantCounts[job.id] ?? 0}
+                    viewCount={viewCounts[job.id] ?? 0}
                     applicants={applicantPreviewByJobId[job.id]}
                     onPress={() => router.push(getJobDetailRoute(job.id))}
                     onApplicantsPress={() =>
@@ -152,6 +156,7 @@ function HistorySection({
                   tableMode={tableMode}
                   columns={columns}
                   applicantCount={applicantCounts[job.id] ?? 0}
+                  viewCount={viewCounts[job.id] ?? 0}
                   applicants={applicantPreviewByJobId[job.id]}
                   onPress={() => router.push(getJobDetailRoute(job.id))}
                   onApplicantsPress={() =>
@@ -184,6 +189,7 @@ export default function RoleHistoryScreen() {
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const [roleTypeFilter, setRoleTypeFilter] = useState<RoleTypeFilter>('all');
   const [roleSort, setRoleSort] = useState<ClinicRoleSort>(DEFAULT_CLINIC_ROLE_SORT);
   const [isLoading, setIsLoading] = useState(true);
@@ -243,7 +249,7 @@ export default function RoleHistoryScreen() {
       setJobs([]);
       setApplications([]);
       setApplicantCounts({});
-      setApplications([]);
+      setViewCounts({});
       setIsLoading(false);
       return;
     }
@@ -255,12 +261,15 @@ export default function RoleHistoryScreen() {
         getJobPostApplicationCountsMap(clinicId),
         listClinicApplications(clinicId, 'active'),
       ]);
+      const views = await getJobPostListingViewCountsMap(jobPosts.map((job) => job.id));
       setJobs(jobPosts);
       setApplicantCounts(counts);
+      setViewCounts(views);
       setApplications(applicationRows);
     } catch (error) {
       setJobs([]);
       setApplicantCounts({});
+      setViewCounts({});
       setApplications([]);
       Alert.alert(
         'Could not load role history',
@@ -318,6 +327,7 @@ export default function RoleHistoryScreen() {
               helper="Roles you archived. Post again when the same position opens up."
               jobs={archivedJobs}
               applicantCounts={applicantCounts}
+              viewCounts={viewCounts}
               applicantPreviewByJobId={applicantPreviewByJobId}
               emptyTitle="No archived roles"
               emptyBody="Archived roles appear here when you remove them from your active list."
@@ -334,6 +344,7 @@ export default function RoleHistoryScreen() {
               helper="Roles you marked as filled. Delete when you no longer need the record."
               jobs={filledJobs}
               applicantCounts={applicantCounts}
+              viewCounts={viewCounts}
               applicantPreviewByJobId={applicantPreviewByJobId}
               emptyTitle="No filled roles"
               emptyBody="When you mark a role as filled, it will appear here for your records."

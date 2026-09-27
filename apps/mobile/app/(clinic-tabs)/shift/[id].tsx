@@ -1,4 +1,9 @@
-import { getShiftPost, getShiftPostApplicationCount, type ShiftPost } from '@chairside/api';
+import {
+  getShiftPost,
+  getShiftPostApplicationCount,
+  getShiftPostListingViewCountsMap,
+  type ShiftPost,
+} from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -24,6 +29,7 @@ export default function ShiftDetailScreen() {
   const resolvedReturnTo = (typeof returnTo === 'string' ? returnTo : 'fill-ins-tab') as FillInReturnTarget;
   const [shift, setShift] = useState<ShiftPost | null>(null);
   const [applicationCount, setApplicationCount] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -59,9 +65,10 @@ export default function ShiftDetailScreen() {
 
     setIsLoading(true);
     try {
-      const [nextShift, count] = await Promise.all([
+      const [nextShift, count, views] = await Promise.all([
         getShiftPost(clinicId, shiftId),
         getShiftPostApplicationCount(clinicId, shiftId),
+        getShiftPostListingViewCountsMap([shiftId]),
       ]);
       if (!nextShift) {
         Alert.alert('Fill-in not found', 'This shift may have been removed.');
@@ -70,6 +77,7 @@ export default function ShiftDetailScreen() {
       }
       setShift(nextShift);
       setApplicationCount(count);
+      setViewCount(views[shiftId] ?? 0);
     } catch (error) {
       Alert.alert(
         'Could not load fill-in',
@@ -135,6 +143,7 @@ export default function ShiftDetailScreen() {
                 style={applicationCount > 0 ? undefined : styles.footerRowButton}
                 clinicId={clinicId}
                 shift={shift}
+                returnTo={resolvedReturnTo}
                 onUpdated={setShift}
                 onDeleted={() => navigateAfterFillInSave(router, resolvedReturnTo)}
               />
@@ -149,6 +158,8 @@ export default function ShiftDetailScreen() {
           locationLabel={locationLabel || null}
           postedByLabel={postedByLabel}
           postedOnLabel={postedOnLabel}
+          viewCount={viewCount}
+          applicantCount={applicationCount}
         />
       </View>
     </FormScreen>

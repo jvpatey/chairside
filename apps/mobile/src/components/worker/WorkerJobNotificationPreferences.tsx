@@ -8,12 +8,12 @@ import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 export function WorkerJobNotificationPreferences() {
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
-  const [jobOptIn, setJobOptIn] = useState(false);
+  const [jobOptIn, setJobOptIn] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!workerProfile) return;
-    setJobOptIn(workerProfile.job_notification_opt_in ?? false);
+    setJobOptIn(workerProfile.job_notification_opt_in ?? true);
   }, [workerProfile]);
 
   const persistJobOptIn = async (value: boolean) => {

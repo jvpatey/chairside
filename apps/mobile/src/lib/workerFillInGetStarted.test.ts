@@ -7,56 +7,38 @@ describe('isWorkerFillInsStepComplete', () => {
     expect(
       isWorkerFillInsStepComplete({
         shiftApplicationCount: 1,
-        visitedFillIns: false,
       }),
     ).toBe(true);
   });
 
-  it('completes when the fill-ins tab was visited on this device', () => {
+  it('completes when fill-ins and alerts are on', () => {
     expect(
       isWorkerFillInsStepComplete({
         shiftApplicationCount: 0,
-        visitedFillIns: true,
-      }),
-    ).toBe(true);
-  });
-
-  it('completes when fill-in availability is enabled on the profile', () => {
-    expect(
-      isWorkerFillInsStepComplete({
-        shiftApplicationCount: 0,
-        visitedFillIns: false,
         workerProfile: {
           short_notice_available: true,
-          fill_in_notification_mode: 'off',
+          fill_in_notification_mode: 'available_days_only',
         },
       }),
     ).toBe(true);
   });
 
-  it('completes when the worker saved a fill-in or set a schedule', () => {
+  it('stays incomplete when available but alerts are off', () => {
     expect(
       isWorkerFillInsStepComplete({
         shiftApplicationCount: 0,
-        visitedFillIns: false,
-        savedShiftCount: 1,
+        workerProfile: {
+          short_notice_available: true,
+          fill_in_notification_mode: 'off',
+        },
       }),
-    ).toBe(true);
-
-    expect(
-      isWorkerFillInsStepComplete({
-        shiftApplicationCount: 0,
-        visitedFillIns: false,
-        availabilityBlockCount: 2,
-      }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it('stays incomplete for a brand-new worker with no fill-in engagement', () => {
+  it('stays incomplete for a brand-new worker with fill-ins off', () => {
     expect(
       isWorkerFillInsStepComplete({
         shiftApplicationCount: 0,
-        visitedFillIns: false,
         workerProfile: {
           short_notice_available: false,
           fill_in_notification_mode: 'off',

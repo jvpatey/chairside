@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { WORKER_SETUP_REVIEW } from '@/lib/routing';
+import { WORKER_SETUP_FILL_INS } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
@@ -109,7 +109,7 @@ export default function WorkerLocationScreen() {
       if (isEditMode) {
         router.replace(exitHref);
       } else {
-        router.push(WORKER_SETUP_REVIEW);
+        router.push(WORKER_SETUP_FILL_INS);
       }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');

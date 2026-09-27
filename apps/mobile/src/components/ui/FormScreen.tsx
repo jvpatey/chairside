@@ -79,6 +79,10 @@ export function FormScreen({
       gap: spacing.lg,
       ...getElevationStyle({ isDark, level: 'subtle' }),
     },
+    afterCard: {
+      marginTop: spacing.lg,
+      gap: spacing.lg,
+    },
   }));
 
   const showHeader = Boolean(title || eyebrow || subtitle || onBack || headerAccessory);
@@ -100,7 +104,7 @@ export function FormScreen({
   const bodyContent = (
     <>
       {useElevatedCard ? <View style={styles.elevatedCard}>{children}</View> : children}
-      {afterCard}
+      {afterCard ? <View style={styles.afterCard}>{afterCard}</View> : null}
     </>
   );
 

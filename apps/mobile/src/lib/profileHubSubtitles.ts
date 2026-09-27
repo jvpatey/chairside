@@ -83,7 +83,7 @@ export function getApplicationKitSubtitle(profile: WorkerProfile | null): string
 
 export function getNotificationsSubtitle(profile: WorkerProfile | null): string {
   const fillInsOn = profile?.short_notice_available ?? false;
-  const jobsOn = profile?.job_notification_opt_in ?? false;
+  const jobsOn = profile?.job_notification_opt_in ?? true;
   const parts = [`Jobs: ${jobsOn ? 'On' : 'Off'}`, `Fill-ins: ${fillInsOn ? 'On' : 'Off'}`];
   const textsPart = getFillInSmsSubtitlePart(profile);
   if (textsPart) parts.push(textsPart);

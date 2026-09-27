@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { ClinicProfileHero } from '@/components/clinic/ClinicProfileHero';
 import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton';
@@ -15,6 +15,7 @@ import {
 } from '@/hooks/useClinicActingContext';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import {
   getAccountSubtitle,
   getClinicAboutSubtitle,
@@ -28,6 +29,7 @@ import {
   getSupportSubtitle,
 } from '@/lib/profileHubSubtitles';
 import {
+  CLINIC_ADMIN,
   CLINIC_HOME,
   CLINIC_PROFILE_ABOUT,
   CLINIC_PROFILE_ACCOUNT,
@@ -59,8 +61,10 @@ export default function ClinicAccountProfileScreen() {
   } = useClinicProfile();
   const { photoUri: memberPhotoUri, hasPhoto: hasMemberPhoto } = useClinicMemberPhoto();
   const { billing, isBillingReady } = useClinicBilling();
-  const { isCompact } = useResponsiveLayout();
+  const { isCompact, isTablet } = useResponsiveLayout();
   const { colors } = useTheme();
+  const showAdminEntry =
+    Platform.OS === 'web' && !isTablet && isPlatformAdminEmail(user?.email);
   const groupsEnabled = isClinicGroupsEnabled();
   const groupDisplayName =
     organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || 'Dental group';
@@ -226,6 +230,16 @@ export default function ClinicAccountProfileScreen() {
               title="Support"
               subtitle={getSupportSubtitle()}
               onPress={() => router.push(CLINIC_PROFILE_SUPPORT)}
+            />
+          ) : null}
+          {showAdminEntry ? (
+            <ProfileSettingsRow
+              icon="stats-chart-outline"
+              title="Admin"
+              subtitle="Platform stats and directories"
+              iconColor={colors.primary}
+              iconBackgroundColor={colors.primarySubtle}
+              onPress={() => router.push(CLINIC_ADMIN)}
             />
           ) : null}
           <ProfileSettingsRow

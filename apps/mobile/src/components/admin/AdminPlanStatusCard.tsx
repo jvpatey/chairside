@@ -22,19 +22,22 @@ type StatusItem = {
 type AdminPlanStatusCardProps = {
   planItems: PlanItem[];
   statusItems: StatusItem[];
+  compact?: boolean;
 };
 
-export function AdminPlanStatusCard({ planItems, statusItems }: AdminPlanStatusCardProps) {
-  const { colors } = useTheme();
+export function AdminPlanStatusCard({
+  planItems,
+  statusItems,
+  compact = false,
+}: AdminPlanStatusCardProps) {
+  const { colors, spacing } = useTheme();
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     card: {
       flex: 1,
-      minWidth: 280,
       backgroundColor: colors.surface,
       borderRadius: radii.lg,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      padding: spacing.lg,
       gap: spacing.lg,
     },
     sectionTitle: {
@@ -74,7 +77,15 @@ export function AdminPlanStatusCard({ planItems, statusItems }: AdminPlanStatusC
   }));
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          minWidth: compact ? 0 : 280,
+          width: compact ? '100%' : undefined,
+          padding: compact ? spacing.md : spacing.lg,
+        },
+      ]}>
       <View>
         <Text style={styles.sectionTitle}>Plans & status</Text>
         <AdminDistributionBars title="" items={planItems} showPercent={false} variant="plain" />
