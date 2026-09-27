@@ -369,7 +369,7 @@ function LocationScopeDropdown({
 
   const styles = useThemedStyles(({ colors, spacing, elevation }) => ({
     backdrop: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
     panel: {
       paddingVertical: spacing.xs + 2,

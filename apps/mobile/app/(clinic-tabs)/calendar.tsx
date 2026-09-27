@@ -1,6 +1,6 @@
 import { ScheduleCalendarScreenPanel } from '@/components/calendar/ScheduleCalendarScreenPanel';
 import { Screen } from '@/components/ui/Screen';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 

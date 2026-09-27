@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, Text, type TextStyle, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
@@ -234,7 +234,7 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
                 <Text
                   style={[
                     styles.signInLink,
-                    webHover(hovered, false, styles.signInLinkHovered),
+                    webHover(hovered, false, styles.signInLinkHovered) as TextStyle | false,
                   ]}
                 >
                   Sign in

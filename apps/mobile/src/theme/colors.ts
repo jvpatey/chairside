@@ -1,3 +1,5 @@
+import type { ColorSchemeName } from 'react-native';
+
 export type Colors = {
   background: string;
   backgroundGrouped: string;
@@ -96,6 +98,6 @@ export const darkColors: Colors = {
   tertiaryOnTertiary: '#FFFFFF',
 };
 
-export function getColors(scheme: 'light' | 'dark' | null | undefined): Colors {
+export function getColors(scheme: ColorSchemeName | null | undefined): Colors {
   return scheme === 'dark' ? darkColors : lightColors;
 }

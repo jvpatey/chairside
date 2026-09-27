@@ -1,5 +1,5 @@
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { BottomTabBarHeightCallbackContext } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
+import { BottomTabBarHeightCallbackContext } from 'expo-router/js-tabs';
 import * as Haptics from 'expo-haptics';
 import { usePathname } from 'expo-router';
 import { useContext, useEffect } from 'react';
@@ -231,7 +231,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
       overflow: 'hidden',
     },
     indicatorGradient: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
     item: {
       flex: 1,

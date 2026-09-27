@@ -25,7 +25,7 @@ export function ShimmerBlock({ height, width, borderRadius = 8, style }: Shimmer
       overflow: 'hidden',
     },
     shimmer: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       width: '50%',
     },
   }));
@@ -56,7 +56,7 @@ export function ShimmerBlock({ height, width, borderRadius = 8, style }: Shimmer
           ]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
         />
       </Animated.View>
     </View>

@@ -43,7 +43,7 @@ export function WebDialogShell({
       paddingVertical: spacing.xl,
     },
     backdrop: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.32)',
       backdropFilter: 'blur(6px)',
       WebkitBackdropFilter: 'blur(6px)',

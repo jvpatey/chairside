@@ -168,7 +168,7 @@ export function MasterDetailLayout({
       minHeight: 0,
     },
     contextRail: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       alignItems: 'center',
       paddingTop: spacing.md,
       zIndex: 2,

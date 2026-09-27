@@ -1,4 +1,4 @@
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { BottomTabBarHeightContext } from 'expo-router/js-tabs';
 import { useContext } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

@@ -126,7 +126,7 @@ export function OnboardingShell({
       backgroundColor: 'transparent',
     },
     backgroundLayer: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       pointerEvents: 'none',
     },
     shellInner: {

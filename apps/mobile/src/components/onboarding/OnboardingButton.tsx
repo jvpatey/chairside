@@ -95,7 +95,7 @@ export function OnboardingButton({
       ...(split ? { flex: 1, width: '100%' as const } : null),
     },
     gradient: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
     webInteractive: webPointer(),
     webDisabled: webPointer('default'),

@@ -125,7 +125,7 @@ export function SetupWebShell({ role, children }: SetupWebShellProps) {
       backgroundColor: colors.backgroundGrouped,
     },
     contentAtmosphere: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       pointerEvents: 'none' as const,
       ...webOnboardingAtmosphereStyle(isDark),
     },

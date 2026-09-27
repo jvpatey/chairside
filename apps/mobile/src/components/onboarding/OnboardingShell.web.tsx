@@ -106,7 +106,7 @@ export function OnboardingShell({
       overflow: 'hidden',
     },
     backgroundLayer: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       pointerEvents: 'none',
     },
     overlayHeader: {
@@ -227,7 +227,7 @@ export function OnboardingShell({
           {backgroundLayer}
           <View
             pointerEvents="none"
-            style={[StyleSheet.absoluteFillObject, webOnboardingAtmosphereStyle(isDark)]}
+            style={[StyleSheet.absoluteFill, webOnboardingAtmosphereStyle(isDark)]}
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           />
