@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
+import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
 import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
@@ -24,7 +25,8 @@ export function WorkerProfileHero({
   editable = false,
 }: WorkerProfileHeroProps) {
   const { colors } = useTheme();
-  const { photoUri, isUploading, pickPhoto } = useProfilePhoto();
+  const { photoUri, isUploading, cropCandidate, pickPhoto, cancelCrop, confirmCrop } =
+    useProfilePhoto();
   const name = displayName?.trim() || 'Your profile';
   const roleLabel = profile
     ? formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null
@@ -145,6 +147,17 @@ export function WorkerProfileHero({
           </View>
         </View>
       </View>
+      {cropCandidate ? (
+        <ProfilePhotoCropEditor
+          visible
+          imageUri={cropCandidate.uri}
+          imageWidth={cropCandidate.width}
+          imageHeight={cropCandidate.height}
+          isSaving={isUploading}
+          onCancel={cancelCrop}
+          onConfirm={(transform) => void confirmCrop(transform)}
+        />
+      ) : null}
     </View>
   );
 }

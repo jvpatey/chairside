@@ -1,4 +1,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import {
+  DEFAULT_PINGRAM_API_URL,
+  maskPhone,
+  normalizeE164,
+  pingramPost,
+} from '../_shared/pingram.ts';
+import { buildFillInSms, buildOutreachSms, formatTime12h, toGsmSafeSms } from '../_shared/sms.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,8 +60,6 @@ const PINGRAM_TYPES = {
   clinicManagerInvitation: 'clinic_manager_invitation',
   clinicManagerJoined: 'clinic_manager_joined',
 } as const;
-
-const DEFAULT_PINGRAM_API_URL = 'https://api.ca.pingram.io';
 
 const NOTIFICATION_PREFERENCE_CATEGORIES = {
   messages: 'messages',
@@ -116,28 +121,6 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-function normalizeE164(phone: string | null | undefined): string | null {
-  if (!phone?.trim()) return null;
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-  if (phone.startsWith('+') && digits.length >= 10) return `+${digits}`;
-  return null;
-}
-
-function formatTime12h(time: string): string | null {
-  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(time.trim());
-  if (!match) return null;
-
-  const hours24 = Number(match[1]);
-  const minutes = match[2];
-  if (hours24 < 0 || hours24 > 23) return null;
-
-  const period = hours24 >= 12 ? 'PM' : 'AM';
-  const hours12 = hours24 % 12 || 12;
-  return minutes === '00' ? `${hours12} ${period}` : `${hours12}:${minutes} ${period}`;
-}
-
 function formatShiftTimeRange(startTime: string, endTime: string): string | null {
   const start = formatTime12h(startTime);
   const end = formatTime12h(endTime);
@@ -179,7 +162,6 @@ function buildFillInAlertCopy(input: {
   compensation?: string | null;
   isUpdate?: boolean;
 }): { title: string; message: string; smsMessage: string } {
-  const locationSuffix = input.locationLabel ? ` (${input.locationLabel})` : '';
   const dateLabel = formatShiftDateLabel(input.shiftDate);
   const timeRange =
     input.startTime && input.endTime ? formatShiftTimeRange(input.startTime, input.endTime) : null;
@@ -194,9 +176,7 @@ function buildFillInAlertCopy(input: {
   const locationInMessage = input.locationLabel ? ` · ${input.locationLabel}` : '';
   const message = `${input.clinicName}${locationInMessage} ${verb} a fill-in for ${detailParts}.${compensationSuffix}`;
 
-  const smsMessage = `Chairside: ${input.clinicName}${locationSuffix} ${verb} a fill-in for ${detailParts}.${compensationSuffix} Open Chairside to apply. Reply STOP to opt out.`;
-
-  return { title, message, smsMessage };
+  return { title, message, smsMessage: buildFillInSms(input) };
 }
 
 function shiftWeekday(shiftDate: string): number {
@@ -390,25 +370,56 @@ async function pingramSendSms(
   apiKey: string,
   apiBase: string,
   input: { type: string; phone: string; message: string },
-) {
-  if (!apiKey.trim()) {
-    throw new Error('PINGRAM_API_KEY not configured');
-  }
-  const res = await fetch(`${apiBase.replace(/\/$/, '')}/sms`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      type: input.type,
-      to: input.phone,
-      message: input.message,
-    }),
+): Promise<string | null> {
+  const trackingId = await pingramPost(apiKey, apiBase, '/sms', {
+    type: input.type,
+    to: input.phone,
+    message: toGsmSafeSms(input.message),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Pingram SMS failed (${res.status}): ${text}`);
+  console.log(
+    `[notify] pingram SMS accepted type=${input.type} to=${maskPhone(input.phone)} trackingId=${trackingId ?? 'none'}`,
+  );
+  return trackingId;
+}
+
+function isSmsReplyEnabled(): boolean {
+  return Deno.env.get('SMS_REPLY_ENABLED')?.trim().toLowerCase() === 'true';
+}
+
+/** Offer code for "Reply YES {code}"; null (link-only SMS) if the offer can't be created. */
+async function createSmsFillInOffer(
+  supabase: ReturnType<typeof createClient>,
+  input: { workerId: string; shiftPostId: string; phone: string },
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc('create_sms_fill_in_offer', {
+    p_worker_id: input.workerId,
+    p_shift_post_id: input.shiftPostId,
+    p_phone_e164: input.phone,
+  });
+  if (error || typeof data !== 'string') {
+    console.error(
+      `[notify] create_sms_fill_in_offer failed (workerId=${input.workerId}, shiftId=${input.shiftPostId})`,
+      error,
+    );
+    return null;
+  }
+  return data;
+}
+
+async function recordSmsOfferTrackingId(
+  supabase: ReturnType<typeof createClient>,
+  input: { workerId: string; shiftPostId: string; trackingId: string },
+): Promise<void> {
+  const { error } = await supabase
+    .from('sms_fill_in_offers')
+    .update({ pingram_tracking_id: input.trackingId })
+    .eq('worker_id', input.workerId)
+    .eq('shift_post_id', input.shiftPostId);
+  if (error) {
+    console.error(
+      `[notify] failed to store SMS offer trackingId (workerId=${input.workerId}, shiftId=${input.shiftPostId})`,
+      error,
+    );
   }
 }
 
@@ -545,8 +556,9 @@ async function sendUserAlert(
     smsMessage?: string;
     pushCustomData?: Record<string, string>;
   },
-): Promise<void> {
+): Promise<{ smsTrackingId: string | null }> {
   let inboxError: unknown;
+  let smsTrackingId: string | null = null;
 
   try {
     await insertUserNotification(supabase, {
@@ -576,7 +588,7 @@ async function sendUserAlert(
 
   if (input.includeSms && input.smsMessage && input.phone) {
     try {
-      await pingramSendSms(apiKey, apiBase, {
+      smsTrackingId = await pingramSendSms(apiKey, apiBase, {
         type: input.type,
         phone: input.phone,
         message: input.smsMessage,
@@ -592,6 +604,8 @@ async function sendUserAlert(
   if (inboxError && !(input.includeSms && input.smsMessage && input.phone)) {
     throw inboxError;
   }
+
+  return { smsTrackingId };
 }
 
 async function claimIdempotency(
@@ -651,25 +665,6 @@ function truncatePreview(text: string, maxLength = 120): string {
   const trimmed = text.trim();
   if (trimmed.length <= maxLength) return trimmed;
   return `${trimmed.slice(0, maxLength - 1).trim()}…`;
-}
-
-function buildOutreachSmsCopy(input: {
-  clinicName: string;
-  shiftDate?: string | null;
-  startTime?: string | null;
-  endTime?: string | null;
-  roleType?: string | null;
-}): string {
-  if (input.shiftDate) {
-    const dateLabel = formatShiftDateLabel(input.shiftDate);
-    const timeRange =
-      input.startTime && input.endTime
-        ? formatShiftTimeRange(input.startTime, input.endTime)
-        : null;
-    const detailParts = [dateLabel, timeRange].filter(Boolean).join(', ');
-    return `Chairside: ${input.clinicName} sent you a fill-in request for ${detailParts}. Open Chairside to reply. Reply STOP to opt out.`;
-  }
-  return `Chairside: ${input.clinicName} sent you a fill-in request. Open Chairside to reply. Reply STOP to opt out.`;
 }
 
 async function handleMessageInsert(
@@ -831,12 +826,11 @@ async function handleMessageInsert(
       .maybeSingle();
 
     const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
-    const smsMessage = buildOutreachSmsCopy({
+    const smsMessage = buildOutreachSms({
       clinicName,
-      shiftDate: conversation.outreach_shift_date as string,
+      shiftDate: conversation.outreach_shift_date as string | null,
       startTime: conversation.outreach_start_time as string | null,
       endTime: conversation.outreach_end_time as string | null,
-      roleType: conversation.outreach_role_type as string | null,
     });
 
     await withIdempotentDispatch(supabase, smsKey, 'fill_in_outreach_sms', async () => {
@@ -1462,7 +1456,7 @@ async function handleShiftPostLive(
 
   const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
   const locationLabel = formatClinicLocation(clinic ?? {});
-  const fillInCopy = buildFillInAlertCopy({
+  const fillInCopyInput = {
     clinicName,
     locationLabel,
     shiftDate,
@@ -1470,7 +1464,9 @@ async function handleShiftPostLive(
     endTime,
     compensation,
     isUpdate: options.isUpdate === true,
-  });
+  };
+  const fillInCopy = buildFillInAlertCopy(fillInCopyInput);
+  const smsReplyEnabled = isSmsReplyEnabled();
   const recipients = await listFillInRecipients(
     supabase,
     {
@@ -1517,7 +1513,15 @@ async function handleShiftPostLive(
         idempotencyKey,
         'fill_in_posted',
         async () => {
-          await sendUserAlert(
+          const replyCode =
+            smsReplyEnabled && e164
+              ? await createSmsFillInOffer(supabase, {
+                  workerId: worker.id,
+                  shiftPostId: shiftId,
+                  phone: e164,
+                })
+              : null;
+          const { smsTrackingId } = await sendUserAlert(
             supabase,
             pingramKey,
             pingramBase,
@@ -1531,9 +1535,18 @@ async function handleShiftPostLive(
               secondaryId: idempotencyKey,
               includePush: pushPreferences.get(worker.id) ?? true,
               includeSms: Boolean(smsOptIn && e164),
-              smsMessage: fillInCopy.smsMessage,
+              smsMessage: replyCode
+                ? buildFillInSms({ ...fillInCopyInput, replyCode })
+                : fillInCopy.smsMessage,
             },
           );
+          if (replyCode && smsTrackingId) {
+            await recordSmsOfferTrackingId(supabase, {
+              workerId: worker.id,
+              shiftPostId: shiftId,
+              trackingId: smsTrackingId,
+            });
+          }
         },
       );
       if (result === 'skipped') continue;
@@ -1943,21 +1956,8 @@ async function pingramSendEmail(
     fromAddress: string;
   },
 ): Promise<void> {
-  if (!apiKey.trim()) {
-    throw new Error('PINGRAM_API_KEY not configured');
-  }
-  const res = await fetch(`${apiBase.replace(/\/$/, '')}/email`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Pingram email failed (${res.status}): ${text}`);
-  }
+  const trackingId = await pingramPost(apiKey, apiBase, '/email', body);
+  console.log(`[notify] pingram email accepted type=${body.type} trackingId=${trackingId ?? 'none'}`);
 }
 
 function buildClinicManagerInvitationEmailHtml(input: {

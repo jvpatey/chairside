@@ -22,12 +22,45 @@ Pingram is **not** used for in-app or mobile push.
 3. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
 4. Configure **APNs** in **EAS credentials** (not Pingram) — see [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) via EAS when you ship Android push.
 5. Register SMS sender / campaign with Pingram support if using fill-in SMS.
-6. Verify SMS channel: `export PINGRAM_API_KEY='pingram_sk_...' && ./scripts/verify-pingram-sms.sh`
+6. Verify SMS channel: `export PINGRAM_API_KEY='pingram_sk_...' && ./scripts/verify-pingram-sms.sh` (add `TEST_PHONE='+1...'` to send a real test SMS). Pingram regions are separate accounts: `app.pingram.io` ↔ `https://api.pingram.io` (US), `app.ca.pingram.io` ↔ `https://api.ca.pingram.io` (Canada, the code default). `PINGRAM_API_URL` must match the region the key was created in, or every send returns 401 and nothing appears in the dashboard.
+   - **Production uses the Canada account.** The `PINGRAM_API_KEY` edge secret is a Canada-region key and `PINGRAM_API_URL=https://api.ca.pingram.io` is set explicitly. Fill-in SMS, manager invites, and support emails show up under **Logs** at [app.ca.pingram.io](https://app.ca.pingram.io), not `app.pingram.io`.
+   - A separate US-region Pingram account also exists (`app.pingram.io`). The Cursor Pingram plugin is signed in to that US account, so its logs, numbers, and `sms_send` do not reflect production traffic.
 7. Run migrations:
    - [`121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) — Expo push tokens
    - [`123_user_notifications.sql`](../supabase/migrations/123_user_notifications.sql) — in-app inbox
 
+SMS copy is built in [`supabase/functions/_shared/sms.ts`](../supabase/functions/_shared/sms.ts) and must stay within **one 160-character GSM-7 segment** (Pingram bills per segment; Canada is US$0.015/segment and the free tier is about 60 Canadian segments a month). A single non-GSM character (en dash, curly quote, accented letter, emoji) switches the whole text to Unicode at 70 characters per segment, so every SMS goes through `toGsmSafeSms` and the fill-in copy drops the location, then the compensation, then shortens the clinic name until it fits. Run the tests with `cd supabase/functions && deno test _shared/sms.test.ts`.
+
 Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). The posting clinic must be on a paid plan (`starter`, `pro`, `group_starter`, or `group_pro` — `clinic_can_use_feature(..., 'fill_in_sms')`). The worker must have `fill_in_sms_opt_in=true`, a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift. Free clinics still get in-app + push alerts; SMS is skipped.
+
+### Reply YES to request a fill-in (SMS replies)
+
+Workers can request a fill-in by replying to the fill-in text (`Reply YES 4821 to request.`). A reply creates a normal **cover request** (`applications` row, status `applied`); the clinic still confirms, and the existing `application_received` alert fires. The feature is **off** until `SMS_REPLY_ENABLED=true`, so fill-in texts stay link-only ("Open Chairside to apply") by default.
+
+Pieces:
+
+- [`133_sms_fill_in_offers.sql`](../supabase/migrations/133_sms_fill_in_offers.sql): the `sms_fill_in_offers` table (one 4-digit code per worker + shift, expires at the end of the shift day, Atlantic time) plus two service-role-only functions: `create_sms_fill_in_offer` and `request_shift_cover_from_sms`. The second runs the same rules as the app's request button: the shift must be live, one request per worker per shift, and a declined request is re-opened through `re_request_shift_cover`.
+- `notify` (when enabled): creates or reuses the worker's offer code, adds the reply line to the fill-in SMS, and stores the Pingram tracking id on the offer.
+- [`pingram-sms-inbound`](../supabase/functions/pingram-sms-inbound/index.ts): the Pingram webhook receiver. It verifies `X-Pingram-Signature` (HMAC-SHA256 over `id.timestamp.body` with `PINGRAM_WEBHOOK_SECRET`, 5-minute tolerance) and dedupes on `X-Pingram-Id` (`pingram_webhook:{id}` in `notification_dispatch_log`). On `SMS_INBOUND` it handles `YES`, `YES 4821`, and `HELP`, and only acts when the sender's number belongs to exactly one opted-in worker. A bare `YES` works only when that worker has exactly one open offer. `SMS_UNSUBSCRIBE` / `SMS_SUBSCRIBE` (STOP / START) set `worker_profiles.fill_in_sms_opt_in` so the app matches Pingram's suppression list. Without the secret, the function rejects every request (503).
+- Reply copy lives in [`_shared/smsReply.ts`](../supabase/functions/_shared/smsReply.ts) and is tested to be GSM-7 and one segment (`deno test _shared/`).
+
+Requires a **dedicated Pingram number**. On the free tier that is a one-time 7-day trial (the number is released afterwards, and free accounts can't buy another), so going live needs a paid Pingram plan ($20/mo; the number is $0.50/mo from that budget). Go-live steps, all in the **Canada** Pingram account (`app.ca.pingram.io`):
+
+1. Apply `133_sms_fill_in_offers.sql` in the Supabase SQL editor.
+2. In Pingram, get a Canadian number (trial or paid), then run `./scripts/setup-pingram-notification-types.sh` to create the `fill_in_sms_reply` type.
+3. Point both the **inbound SMS webhook** and the **events webhook** (for `SMS_UNSUBSCRIBE` / `SMS_SUBSCRIBE`) at `https://<project-ref>.supabase.co/functions/v1/pingram-sms-inbound`, then copy the webhook secret (`pingram_whsecret_...`).
+4. Set the secrets and deploy:
+
+   ```bash
+   supabase secrets set PINGRAM_WEBHOOK_SECRET=pingram_whsecret_...
+   supabase secrets set SMS_REPLY_ENABLED=true
+   supabase functions deploy pingram-sms-inbound --no-verify-jwt --use-api
+   ```
+
+5. Test: post a fill-in from a paid clinic, then reply `YES <code>` from an opted-in test worker's phone. The application should appear for the clinic, and the worker should get "request sent". Also check an expired code, a filled shift, a second YES, an unknown number, and STOP then START (`fill_in_sms_opt_in` should flip to false, then back to true).
+6. Upgrade before the trial ends. A paid account can buy a released number back within two weeks.
+
+To turn replies off, `supabase secrets unset SMS_REPLY_ENABLED`. Texts go back to link-only, and inbound YES replies get a "use the app" answer.
 
 Other event type ids (`application_received`, `message_received`, etc.) remain in `packages/config/src/notifications.ts` as Chairside type ids for the Supabase inbox + Expo push payloads. They do **not** need Pingram templates.
 
@@ -53,8 +86,8 @@ Run [`supabase/migrations/123_user_notifications.sql`](../supabase/migrations/12
 ```bash
 supabase secrets set PINGRAM_API_KEY=pingram_sk_...
 supabase secrets set NOTIFY_WEBHOOK_SECRET=$(openssl rand -hex 32)
-# Optional override (defaults to https://api.ca.pingram.io):
-# PINGRAM_API_URL=https://api.ca.pingram.io
+# Must match the key's region (production: Canada; also the code default):
+supabase secrets set PINGRAM_API_URL=https://api.ca.pingram.io
 # Optional Expo Push access token (higher rate limits):
 # EXPO_ACCESS_TOKEN=...
 
@@ -153,6 +186,7 @@ eas build --profile production --platform ios
 | New message | Worker ↔ clinic: clinic recipients are **owner + managers for the application post’s location** (general/outreach / null location → owner + all managers); each user’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app + Expo push | `messages` |
 | Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/Expo push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
 | Auto shift-details message in outreach thread | — | — | suppressed (no send) | — |
+| Worker replies `YES <code>` to a fill-in text (when `SMS_REPLY_ENABLED`) | Worker (SMS reply); clinic via the resulting `application_received` | `fill_in_sms_reply` | SMS reply | SMS uses worker opt-in |
 | Clinic manager invitation created | Invitee email | `clinic_manager_invitation` | email (`POST /email`) | — |
 | Clinic manager accepted invitation | Group owner (+ inviter if different) | `clinic_manager_joined` | in-app + Expo push | always on for this event |
 
@@ -175,6 +209,7 @@ Edge dispatch dedupes via `notification_dispatch_log.idempotency_key`. Common pa
 - `message_received:{messageId}:{recipientUserId}` (per recipient; location-aware clinic fan-out)
 - `fill_in_outreach_sms:{messageId}` (SMS-only outreach text alert)
 - `fill_in_posted:{shiftId}:{workerId}:{updatedAt}`
+- `pingram_webhook:{X-Pingram-Id}` (inbound SMS / STOP / START webhook events)
 - `application_{status}:{applicationId}:{status}` (worker status updates)
 - `application_kit_requested:{applicationId}:kit_requested` (clinic requested full application)
 - `application_received:{applicationId}:{recipientUserId}` (clinic new applicant / cover request)

@@ -76,6 +76,8 @@ create_type "fill_in_posted" "Fill-in posted" '["SMS"]' "$(sms_channel_options)"
 echo ""
 create_type "fill_in_outreach_sms" "Fill-in outreach SMS" '["SMS"]' "$(sms_channel_options)" || true
 echo ""
+create_type "fill_in_sms_reply" "Fill-in SMS reply" '["SMS"]' "$(sms_channel_options)" || true
+echo ""
 create_type "clinic_manager_invitation" "Clinic manager invitation" '["EMAIL"]' "$(email_channel_options)" || true
 echo ""
 
