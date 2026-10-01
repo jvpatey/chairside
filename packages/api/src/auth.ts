@@ -183,27 +183,48 @@ export async function updatePassword(newPassword: string) {
   return data.user;
 }
 
-export async function signInWithGoogle() {
+/**
+ * Web OAuth leaves the page; /auth/callback finishes sign-in on return.
+ * Resolves `null` once the redirect has started — callers must not route.
+ */
+async function startWebOAuthRedirect(provider: 'google' | 'apple'): Promise<null> {
   const supabase = getSupabaseClient();
-  const redirectTo = getOAuthRedirectUrl();
 
-  if (Platform.OS === 'web') {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-      },
-    });
-
-    if (error) throw error;
-    if (!data.url) {
-      throw new Error('Google sign-in URL was not returned.');
-    }
-
-    window.location.assign(data.url);
-    return null;
+  // A leftover session stays live while the browser is away at the provider,
+  // so the return trip would land as an account switch instead of a sign-in.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session) {
+    await signOut();
   }
 
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: getOAuthRedirectUrl(),
+      skipBrowserRedirect: true,
+    },
+  });
+
+  if (error) throw error;
+  if (!data.url) {
+    throw new Error(
+      `${provider === 'google' ? 'Google' : 'Apple'} sign-in URL was not returned.`,
+    );
+  }
+
+  window.location.assign(data.url);
+  return null;
+}
+
+export async function signInWithGoogle() {
+  if (Platform.OS === 'web') {
+    return startWebOAuthRedirect('google');
+  }
+
+  const supabase = getSupabaseClient();
+  const redirectTo = getOAuthRedirectUrl();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -254,22 +275,7 @@ function isAppleCancelError(error: unknown): boolean {
 
 export async function signInWithApple() {
   if (Platform.OS === 'web') {
-    const supabase = getSupabaseClient();
-    const redirectTo = getOAuthRedirectUrl();
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: {
-        redirectTo,
-      },
-    });
-
-    if (error) throw error;
-    if (!data.url) {
-      throw new Error('Apple sign-in URL was not returned.');
-    }
-
-    window.location.assign(data.url);
-    return null;
+    return startWebOAuthRedirect('apple');
   }
 
   if (Platform.OS !== 'ios') {

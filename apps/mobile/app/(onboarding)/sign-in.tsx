@@ -146,8 +146,15 @@ export default function SignInScreen() {
     setIsSubmitting(true);
     setFormError(null);
     setResetHint(null);
+    let redirecting = false;
     try {
-      await action();
+      // Web OAuth resolves null after handing off to the provider; the page is
+      // unloading and /auth/callback owns routing on return.
+      if ((await action()) === null) {
+        redirecting = true;
+        return;
+      }
+
       const {
         data: { session },
       } = await getSupabaseClient().auth.getSession();
@@ -163,7 +170,7 @@ export default function SignInScreen() {
         }
       }
     } finally {
-      setIsSubmitting(false);
+      if (!redirecting) setIsSubmitting(false);
     }
   };
 
