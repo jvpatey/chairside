@@ -81,6 +81,20 @@ export {
   type AdminStatsPayload,
 } from './adminStats';
 export {
+  createAdminSourcedListing,
+  deleteAdminSourcedListing,
+  listAdminSourcedListings,
+  setAdminSourcedListingStatus,
+  updateAdminSourcedListing,
+  type CreateSourcedListingInput,
+  type SourcedFillInListing,
+  type SourcedListing,
+  type SourcedListingKind,
+  type SourcedListingsPayload,
+  type SourcedRoleListing,
+  type UpdateSourcedListingInput,
+} from './adminSourcedListings';
+export {
   completeClinicSetup,
   getClinicProfile,
   getClinicProfileByOrganizationId,
@@ -194,7 +208,9 @@ export {
   type ClinicLocationScopeOptions,
   type ClinicSummary,
   isClinicSummaryGroup,
+  isSourcedListing,
   type PostLocationSummary,
+  type SourcedListingFields,
   type CreateJobPostInput,
   type CreateShiftPostInput,
   type EmploymentType,

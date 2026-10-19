@@ -24,6 +24,7 @@ import { AdminDistributionBars } from '@/components/admin/AdminDistributionBars'
 import { AdminKpiCard } from '@/components/admin/AdminKpiCard';
 import { AdminLoadingSkeleton } from '@/components/admin/AdminLoadingSkeleton';
 import { AdminPlanStatusCard } from '@/components/admin/AdminPlanStatusCard';
+import { AdminSourcedListingsPanel } from '@/components/admin/AdminSourcedListingsPanel.web';
 import {
   formatAdminPlanLabel,
   formatAdminRelativeTime,
@@ -342,7 +343,16 @@ export function AdminDashboard() {
         </AdminCollapsibleSection>
       </FadeInSection>
 
-      <FadeInSection delayMs={100}>
+      <FadeInSection delayMs={90}>
+        <AdminCollapsibleSection
+          title="Sourced listings"
+          subtitle="Exposure-only roles and fill-ins without a clinic account (web only)"
+          defaultExpanded={false}>
+          <AdminSourcedListingsPanel />
+        </AdminCollapsibleSection>
+      </FadeInSection>
+
+      <FadeInSection delayMs={110}>
         <AdminCollapsibleSection title="Breakdown" subtitle="Role mix and clinic plans">
           <View style={[styles.mid, stackMid && { flexDirection: 'column' }]}>
             <AdminDistributionBars

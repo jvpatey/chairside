@@ -1351,7 +1351,7 @@ async function filterWorkerNotificationRecipients(
 async function listFillInRecipients(
   supabase: ReturnType<typeof createClient>,
   shift: { role_type: string; shift_date: string },
-  clinicId: string,
+  clinicId: string | null,
 ) {
   const weekday = shiftWeekday(shift.shift_date);
 
@@ -1367,7 +1367,11 @@ async function listFillInRecipients(
   if (error) throw error;
   if (!workers?.length) return [];
 
-  const eligibleWorkers = await filterWorkerNotificationRecipients(supabase, workers, [clinicId]);
+  const eligibleWorkers = await filterWorkerNotificationRecipients(
+    supabase,
+    workers,
+    clinicId ? [clinicId] : [],
+  );
   if (!eligibleWorkers.length) return [];
 
   const roleMatched = eligibleWorkers.filter((worker) => {
@@ -1413,8 +1417,12 @@ async function listFillInRecipients(
 /** Paid plans only: starter / pro / group_starter / group_pro (via clinic_can_use_feature). */
 async function clinicCanSendFillInSms(
   supabase: ReturnType<typeof createClient>,
-  clinicId: string,
+  clinicId: string | null,
+  isSourced: boolean,
 ): Promise<boolean> {
+  if (isSourced) return true;
+  if (!clinicId) return false;
+
   const { data, error } = await supabase.rpc('clinic_can_use_feature', {
     p_clinic_id: clinicId,
     p_feature: 'fill_in_sms',
@@ -1440,7 +1448,8 @@ async function handleShiftPostLive(
   options: { isUpdate?: boolean } = {},
 ): Promise<Set<string>> {
   const shiftId = record.id as string;
-  const clinicId = record.clinic_id as string;
+  const clinicId = (record.clinic_id as string | null | undefined) ?? null;
+  const isSourced = record.is_sourced === true;
   const shiftDate = record.shift_date as string;
   const roleType = record.role_type as string;
   const startTime = record.start_time as string | undefined;
@@ -1448,14 +1457,27 @@ async function handleShiftPostLive(
   const compensation = record.compensation as string | null | undefined;
   const updatedAt = (record.updated_at as string | undefined) ?? shiftId;
 
-  const { data: clinic } = await supabase
-    .from('clinic_profiles')
-    .select('clinic_name, city, province')
-    .eq('id', clinicId)
-    .maybeSingle();
+  let clinicName = 'A clinic';
+  let locationLabel = '';
 
-  const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
-  const locationLabel = formatClinicLocation(clinic ?? {});
+  if (isSourced) {
+    clinicName =
+      (typeof record.display_clinic_name === 'string' && record.display_clinic_name.trim()) ||
+      'A clinic';
+    locationLabel = formatClinicLocation({
+      city: typeof record.display_city === 'string' ? record.display_city : null,
+      province: typeof record.display_province === 'string' ? record.display_province : null,
+    });
+  } else if (clinicId) {
+    const { data: clinic } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name, city, province')
+      .eq('id', clinicId)
+      .maybeSingle();
+    clinicName = clinic?.clinic_name?.trim() || 'A clinic';
+    locationLabel = formatClinicLocation(clinic ?? {});
+  }
+
   const fillInCopyInput = {
     clinicName,
     locationLabel,
@@ -1476,7 +1498,7 @@ async function handleShiftPostLive(
     clinicId,
   );
 
-  const clinicSmsAllowed = await clinicCanSendFillInSms(supabase, clinicId);
+  const clinicSmsAllowed = await clinicCanSendFillInSms(supabase, clinicId, isSourced);
   const smsEligibleCount = clinicSmsAllowed
     ? recipients.filter(
         (w) => w.fill_in_sms_opt_in === true && normalizeE164(w.phone as string | null),
@@ -1569,18 +1591,30 @@ async function handleJobPostLive(
   record: Record<string, unknown>,
 ) {
   const jobId = record.id as string;
-  const clinicId = record.clinic_id as string;
+  const clinicId = (record.clinic_id as string | null | undefined) ?? null;
+  const isSourced = record.is_sourced === true;
   const roleType = record.role_type as string;
   const title = record.title as string;
 
-  const { data: clinic } = await supabase
-    .from('clinic_profiles')
-    .select('clinic_name, city')
-    .eq('id', clinicId)
-    .maybeSingle();
+  let clinicName = 'A clinic';
+  let cityLabel = '';
 
-  const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
-  const cityLabel = clinic?.city ? ` · ${clinic.city}` : '';
+  if (isSourced) {
+    clinicName =
+      (typeof record.display_clinic_name === 'string' && record.display_clinic_name.trim()) ||
+      'A clinic';
+    const city =
+      typeof record.display_city === 'string' ? record.display_city.trim() : '';
+    cityLabel = city ? ` · ${city}` : '';
+  } else if (clinicId) {
+    const { data: clinic } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name, city')
+      .eq('id', clinicId)
+      .maybeSingle();
+    clinicName = clinic?.clinic_name?.trim() || 'A clinic';
+    cityLabel = clinic?.city ? ` · ${clinic.city}` : '';
+  }
 
   const { data: workers, error } = await supabase
     .from('worker_profiles')
@@ -1591,7 +1625,11 @@ async function handleJobPostLive(
 
   if (error) throw error;
 
-  const recipients = await filterWorkerNotificationRecipients(supabase, workers ?? [], [clinicId]);
+  const recipients = await filterWorkerNotificationRecipients(
+    supabase,
+    workers ?? [],
+    clinicId ? [clinicId] : [],
+  );
 
   const pushPreferences = await loadPushPreferenceMap(
     supabase,
@@ -1723,7 +1761,7 @@ function shouldNotifySavedShiftChange(
 async function listSavedWorkersForJob(
   supabase: ReturnType<typeof createClient>,
   jobId: string,
-  clinicId: string,
+  clinicId: string | null,
 ): Promise<Array<{ id: string }>> {
   const { data, error } = await supabase
     .from('worker_saved_posts')
@@ -1732,13 +1770,13 @@ async function listSavedWorkersForJob(
 
   if (error) throw error;
   const workers = (data ?? []).map((row) => ({ id: row.worker_id as string }));
-  return filterWorkerNotificationRecipients(supabase, workers, [clinicId]);
+  return filterWorkerNotificationRecipients(supabase, workers, clinicId ? [clinicId] : []);
 }
 
 async function listSavedWorkersForShift(
   supabase: ReturnType<typeof createClient>,
   shiftId: string,
-  clinicId: string,
+  clinicId: string | null,
 ): Promise<Array<{ id: string }>> {
   const { data, error } = await supabase
     .from('worker_saved_posts')
@@ -1747,7 +1785,7 @@ async function listSavedWorkersForShift(
 
   if (error) throw error;
   const workers = (data ?? []).map((row) => ({ id: row.worker_id as string }));
-  return filterWorkerNotificationRecipients(supabase, workers, [clinicId]);
+  return filterWorkerNotificationRecipients(supabase, workers, clinicId ? [clinicId] : []);
 }
 
 async function handleSavedJobPostUpdate(
@@ -1758,7 +1796,8 @@ async function handleSavedJobPostUpdate(
   oldRecord: Record<string, unknown>,
 ) {
   const jobId = record.id as string;
-  const clinicId = record.clinic_id as string;
+  const clinicId = (record.clinic_id as string | null | undefined) ?? null;
+  const isSourced = record.is_sourced === true;
   const title = record.title as string;
   const updatedAt = (record.updated_at as string | undefined) ?? jobId;
   const unavailable = savedJobBecameUnavailable(record, oldRecord);
@@ -1766,14 +1805,24 @@ async function handleSavedJobPostUpdate(
   const savers = await listSavedWorkersForJob(supabase, jobId, clinicId);
   if (!savers.length) return;
 
-  const { data: clinic } = await supabase
-    .from('clinic_profiles')
-    .select('clinic_name, city')
-    .eq('id', clinicId)
-    .maybeSingle();
-
-  const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
-  const cityLabel = clinic?.city ? ` · ${clinic.city}` : '';
+  let clinicName = 'A clinic';
+  let cityLabel = '';
+  if (isSourced) {
+    clinicName =
+      (typeof record.display_clinic_name === 'string' && record.display_clinic_name.trim()) ||
+      'A clinic';
+    const city =
+      typeof record.display_city === 'string' ? record.display_city.trim() : '';
+    cityLabel = city ? ` · ${city}` : '';
+  } else if (clinicId) {
+    const { data: clinic } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name, city')
+      .eq('id', clinicId)
+      .maybeSingle();
+    clinicName = clinic?.clinic_name?.trim() || 'A clinic';
+    cityLabel = clinic?.city ? ` · ${clinic.city}` : '';
+  }
   const deepLink = `chairside:///(tabs)/job/${jobId}`;
   const pingramType = unavailable
     ? PINGRAM_TYPES.savedPostUnavailable
@@ -1836,7 +1885,8 @@ async function handleSavedShiftPostUpdate(
   excludeWorkerIds: Set<string>,
 ) {
   const shiftId = record.id as string;
-  const clinicId = record.clinic_id as string;
+  const clinicId = (record.clinic_id as string | null | undefined) ?? null;
+  const isSourced = record.is_sourced === true;
   const shiftDate = record.shift_date as string;
   const startTime = record.start_time as string | undefined;
   const endTime = record.end_time as string | undefined;
@@ -1849,14 +1899,25 @@ async function handleSavedShiftPostUpdate(
   );
   if (!savers.length) return;
 
-  const { data: clinic } = await supabase
-    .from('clinic_profiles')
-    .select('clinic_name, city, province')
-    .eq('id', clinicId)
-    .maybeSingle();
-
-  const clinicName = clinic?.clinic_name?.trim() || 'A clinic';
-  const locationLabel = formatClinicLocation(clinic ?? {});
+  let clinicName = 'A clinic';
+  let locationLabel = '';
+  if (isSourced) {
+    clinicName =
+      (typeof record.display_clinic_name === 'string' && record.display_clinic_name.trim()) ||
+      'A clinic';
+    locationLabel = formatClinicLocation({
+      city: typeof record.display_city === 'string' ? record.display_city : null,
+      province: typeof record.display_province === 'string' ? record.display_province : null,
+    });
+  } else if (clinicId) {
+    const { data: clinic } = await supabase
+      .from('clinic_profiles')
+      .select('clinic_name, city, province')
+      .eq('id', clinicId)
+      .maybeSingle();
+    clinicName = clinic?.clinic_name?.trim() || 'A clinic';
+    locationLabel = formatClinicLocation(clinic ?? {});
+  }
   const locationSuffix = locationLabel ? ` · ${locationLabel}` : '';
   const deepLink = 'chairside:///(tabs)/fillins';
   const pingramType = unavailable

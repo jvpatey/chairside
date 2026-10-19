@@ -51,7 +51,7 @@ export type ClinicProfileRow = {
 
 export type JobPostRow = {
   id: string;
-  clinic_id: string;
+  clinic_id: string | null;
   organization_id: string | null;
   location_id: string | null;
   posted_by_membership_id: string | null;
@@ -71,13 +71,21 @@ export type JobPostRow = {
   benefits: string | null;
   offerings: string[];
   status: string;
+  is_sourced?: boolean;
+  display_clinic_name?: string | null;
+  display_city?: string | null;
+  display_province?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  external_url?: string | null;
+  admin_notes?: string | null;
   created_at: string;
   updated_at: string;
 };
 
 export type ShiftPostRow = {
   id: string;
-  clinic_id: string;
+  clinic_id: string | null;
   organization_id: string | null;
   location_id: string | null;
   posted_by_membership_id: string | null;
@@ -91,6 +99,14 @@ export type ShiftPostRow = {
   urgency: string;
   description: string | null;
   status: string;
+  is_sourced?: boolean;
+  display_clinic_name?: string | null;
+  display_city?: string | null;
+  display_province?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  external_url?: string | null;
+  admin_notes?: string | null;
   created_at: string;
   updated_at: string;
 };

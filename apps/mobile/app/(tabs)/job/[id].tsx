@@ -2,6 +2,7 @@ import {
   getLiveJobPost,
   hasAppliedToJob,
   isJobPostSaved,
+  isSourcedListing,
   recordJobPostListingView,
   saveJobPost,
   unsaveJobPost,
@@ -21,6 +22,7 @@ import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
+import { SourcedListingContactActions } from '@/components/worker/SourcedListingContactActions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -136,7 +138,7 @@ export default function WorkerJobDetailScreen() {
   }, [isSaved, job, user?.id]);
 
   const handleApply = () => {
-    if (!job) return;
+    if (!job || isSourcedListing(job)) return;
     guardApply(workerProfile, isProfileComplete, getApplyRoute('job', job.id));
   };
 
@@ -152,6 +154,7 @@ export default function WorkerJobDetailScreen() {
     );
   }
 
+  const sourced = isSourcedListing(job);
   const location = formatWorkerPostLocation(job);
   const { displayName, placeLabel } = resolveWorkerPostLocationParts(job);
   const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
@@ -159,10 +162,10 @@ export default function WorkerJobDetailScreen() {
     postedByDisplayName: job.posted_by_display_name,
     postedByTitle: job.posted_by_title,
   });
-  const jobMatch = workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
-  const matchContext = workerProfile
-    ? buildLiveJobMatchDisplayContext(workerProfile, job)
-    : null;
+  const jobMatch =
+    !sourced && workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
+  const matchContext =
+    !sourced && workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : null;
 
   return (
     <FormScreen
@@ -175,11 +178,15 @@ export default function WorkerJobDetailScreen() {
       }
       footer={
         <View style={styles.footer}>
-          <OnboardingButton
-            label={hasApplied ? 'Applied' : 'Apply now'}
-            disabled={hasApplied}
-            onPress={handleApply}
-          />
+          {sourced ? (
+            <SourcedListingContactActions contact={job} />
+          ) : (
+            <OnboardingButton
+              label={hasApplied ? 'Applied' : 'Apply now'}
+              disabled={hasApplied}
+              onPress={handleApply}
+            />
+          )}
         </View>
       }>
       <View style={styles.content}>
@@ -198,27 +205,40 @@ export default function WorkerJobDetailScreen() {
             ) : null
           }
         />
-        <SurfaceCard
-          onPress={() =>
-            router.push(
-              getWorkerClinicProfileRoute(
-                job.clinic_id,
-                returnContext?.returnTo === 'application-detail'
-                  ? returnContext
-                  : { returnTo: 'job-detail', jobId: job.id },
-              ),
-            )
-          }>
-          <ClinicPostHeader
-            clinicName={displayName}
-            logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
-            location={placeLabel}
-            detail={getSpecialtyLabel(job.clinic.specialty)}
-            detailIcon="medkit-outline"
-            metaIcons
-          />
-          <ClinicProfileLinkFooter />
-        </SurfaceCard>
+        {sourced ? (
+          <SurfaceCard>
+            <ClinicPostHeader
+              clinicName={displayName}
+              logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
+              location={placeLabel}
+              detail={getSpecialtyLabel(job.clinic.specialty)}
+              detailIcon="medkit-outline"
+              metaIcons
+            />
+          </SurfaceCard>
+        ) : job.clinic_id ? (
+          <SurfaceCard
+            onPress={() =>
+              router.push(
+                getWorkerClinicProfileRoute(
+                  job.clinic_id!,
+                  returnContext?.returnTo === 'application-detail'
+                    ? returnContext
+                    : { returnTo: 'job-detail', jobId: job.id },
+                ),
+              )
+            }>
+            <ClinicPostHeader
+              clinicName={displayName}
+              logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
+              location={placeLabel}
+              detail={getSpecialtyLabel(job.clinic.specialty)}
+              detailIcon="medkit-outline"
+              metaIcons
+            />
+            <ClinicProfileLinkFooter />
+          </SurfaceCard>
+        ) : null}
         <JobPostDetailView
           job={job}
           part="body"
