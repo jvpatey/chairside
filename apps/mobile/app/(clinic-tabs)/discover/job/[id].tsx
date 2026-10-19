@@ -97,14 +97,16 @@ export default function ClinicDiscoverJobDetailScreen() {
           />
         </SurfaceCard>
         <JobPostDetailView job={job} featured={job.has_priority_listing} locationLabel={location || null} />
-        <OnboardingButton
-          label="View clinic profile"
-          onPress={() =>
-            router.push(
-              getClinicDiscoverClinicProfileRoute(job.clinic_id, { fromJobId: job.id }),
-            )
-          }
-        />
+        {job.clinic_id ? (
+          <OnboardingButton
+            label="View clinic profile"
+            onPress={() =>
+              router.push(
+                getClinicDiscoverClinicProfileRoute(job.clinic_id!, { fromJobId: job.id }),
+              )
+            }
+          />
+        ) : null}
       </View>
     </FormScreen>
   );

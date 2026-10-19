@@ -24,9 +24,20 @@ export type PostStatus = ShiftPostStatus;
 export type EmploymentType = 'permanent' | 'part-time' | 'temp' | 'fill-in';
 export type ShiftUrgency = 'normal' | 'urgent' | 'same_day';
 
+export type SourcedListingFields = {
+  is_sourced?: boolean;
+  display_clinic_name?: string | null;
+  display_city?: string | null;
+  display_province?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  external_url?: string | null;
+  admin_notes?: string | null;
+};
+
 export type JobPost = {
   id: string;
-  clinic_id: string;
+  clinic_id: string | null;
   organization_id?: string | null;
   location_id?: string | null;
   posted_by_membership_id?: string | null;
@@ -49,7 +60,7 @@ export type JobPost = {
   status: JobPostStatus;
   created_at: string;
   updated_at: string;
-};
+} & SourcedListingFields;
 
 export type JobPostWithScreening = JobPost & {
   screening_questions: ScreeningQuestion[];
@@ -57,7 +68,7 @@ export type JobPostWithScreening = JobPost & {
 
 export type ShiftPost = {
   id: string;
-  clinic_id: string;
+  clinic_id: string | null;
   organization_id?: string | null;
   location_id?: string | null;
   posted_by_membership_id?: string | null;
@@ -73,7 +84,13 @@ export type ShiftPost = {
   status: ShiftPostStatus;
   created_at: string;
   updated_at: string;
-};
+} & SourcedListingFields;
+
+export function isSourcedListing(
+  post: Pick<SourcedListingFields, 'is_sourced'> | null | undefined,
+): boolean {
+  return post?.is_sourced === true;
+}
 
 export type ClinicDashboardCounts = {
   openRoles: number;
@@ -753,12 +770,13 @@ async function getClinicListingSummary(clinicId: string): Promise<ClinicSummary 
   return mapClinicListingSummaryRow(row);
 }
 
-function attachClinic<T extends { clinic_id: string }>(
+function attachClinic<T extends { clinic_id: string | null }>(
   posts: T[],
   clinicMap: Map<string, ClinicSummary>,
 ): Array<T & { clinic: ClinicSummary }> {
   return posts
     .map((post) => {
+      if (!post.clinic_id) return null;
       const clinic = clinicMap.get(post.clinic_id);
       if (!clinic) return null;
       return { ...post, clinic };
@@ -766,11 +784,39 @@ function attachClinic<T extends { clinic_id: string }>(
     .filter((post): post is T & { clinic: ClinicSummary } => post != null);
 }
 
-function attachPriorityListing<T extends { clinic_id: string }>(
+function clinicSummaryFromSourced(
+  post: SourcedListingFields & { id: string },
+): ClinicSummary | null {
+  const name = post.display_clinic_name?.trim();
+  const province = post.display_province?.trim();
+  if (!name || !province) return null;
+  return {
+    clinic_id: post.id,
+    clinic_name: name,
+    city: post.display_city?.trim() || null,
+    province,
+    specialty: 'general',
+    software_used: [],
+    latitude: null,
+    longitude: null,
+    logo_storage_path: null,
+    account_type: 'individual',
+  };
+}
+
+function attachSourcedClinic<T extends SourcedListingFields & { id: string }>(
+  post: T,
+): (T & { clinic: ClinicSummary }) | null {
+  const clinic = clinicSummaryFromSourced(post);
+  if (!clinic) return null;
+  return { ...post, clinic };
+}
+
+function attachPriorityListing<T extends { clinic_id: string | null }>(
   post: T,
   planMap: Map<string, ClinicPlan>,
 ): T & { has_priority_listing: boolean } {
-  const plan = planMap.get(post.clinic_id);
+  const plan = post.clinic_id ? planMap.get(post.clinic_id) : undefined;
   return {
     ...post,
     has_priority_listing: plan === 'pro' || plan === 'group_pro',
@@ -817,14 +863,14 @@ function attachPostLocation<T extends { location_id?: string | null }>(
   };
 }
 
-function sortPostsByClinicPlanPriority<T extends { clinic_id: string; created_at?: string }>(
+function sortPostsByClinicPlanPriority<T extends { clinic_id: string | null; created_at?: string }>(
   posts: T[],
   planMap: Map<string, ClinicPlan>,
   secondarySort: (left: T, right: T) => number,
 ): T[] {
   return [...posts].sort((left, right) => {
-    const leftPlan = planMap.get(left.clinic_id);
-    const rightPlan = planMap.get(right.clinic_id);
+    const leftPlan = left.clinic_id ? planMap.get(left.clinic_id) : undefined;
+    const rightPlan = right.clinic_id ? planMap.get(right.clinic_id) : undefined;
     const leftPriority = leftPlan === 'pro' || leftPlan === 'group_pro' ? 1 : 0;
     const rightPriority = rightPlan === 'pro' || rightPlan === 'group_pro' ? 1 : 0;
     if (leftPriority !== rightPriority) {
@@ -834,23 +880,63 @@ function sortPostsByClinicPlanPriority<T extends { clinic_id: string; created_at
   });
 }
 
-export async function listLiveJobPosts(province: string): Promise<LiveJobPost[]> {
+async function listSourcedLiveJobPosts(province: string): Promise<JobPost[]> {
   const supabase = getSupabaseClient();
-  const clinicMap = await listClinicSummariesInProvince(province);
-  const clinicIds = [...clinicMap.keys()];
-  if (clinicIds.length === 0) return [];
-
   const { data, error } = await supabase
     .from('job_posts')
     .select('*')
     .eq('status', 'live')
-    .in('clinic_id', clinicIds)
+    .eq('is_sourced', true)
+    .eq('display_province', province)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  const posts = attachClinic((data ?? []) as JobPost[], clinicMap);
+  return (data ?? []) as JobPost[];
+}
+
+async function listSourcedLiveShiftPosts(province: string, today: string): Promise<ShiftPost[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('shift_posts')
+    .select('*')
+    .eq('status', 'live')
+    .eq('is_sourced', true)
+    .eq('display_province', province)
+    .gte('shift_date', today)
+    .order('shift_date', { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as ShiftPost[];
+}
+
+export async function listLiveJobPosts(province: string): Promise<LiveJobPost[]> {
+  const supabase = getSupabaseClient();
+  const clinicMap = await listClinicSummariesInProvince(province);
+  const clinicIds = [...clinicMap.keys()];
+
+  const clinicPostsResult =
+    clinicIds.length === 0
+      ? { data: [] as JobPost[], error: null }
+      : await supabase
+          .from('job_posts')
+          .select('*')
+          .eq('status', 'live')
+          .in('clinic_id', clinicIds)
+          .order('created_at', { ascending: false });
+
+  if (clinicPostsResult.error) throw clinicPostsResult.error;
+
+  const sourcedRows = await listSourcedLiveJobPosts(province);
+  const clinicAttached = attachClinic((clinicPostsResult.data ?? []) as JobPost[], clinicMap);
+  const sourcedAttached = sourcedRows
+    .map((post) => attachSourcedClinic(post))
+    .filter((post): post is JobPost & { clinic: ClinicSummary } => post != null);
+
+  const posts = [...clinicAttached, ...sourcedAttached];
   const locationMap = await fetchPostLocationMap(posts.map((post) => post.location_id));
-  const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
+  const planMap = await getClinicPlanMap(
+    posts.map((post) => post.clinic_id).filter((id): id is string => Boolean(id)),
+  );
   const sortedPosts = sortPostsByClinicPlanPriority(posts, planMap, (left, right) =>
     right.created_at.localeCompare(left.created_at),
   );
@@ -866,22 +952,32 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
   const supabase = getSupabaseClient();
   const clinicMap = await listClinicSummariesInProvince(province);
   const clinicIds = [...clinicMap.keys()];
-  if (clinicIds.length === 0) return [];
-
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data, error } = await supabase
-    .from('shift_posts')
-    .select('*')
-    .eq('status', 'live')
-    .in('clinic_id', clinicIds)
-    .gte('shift_date', today)
-    .order('shift_date', { ascending: true });
+  const clinicPostsResult =
+    clinicIds.length === 0
+      ? { data: [] as ShiftPost[], error: null }
+      : await supabase
+          .from('shift_posts')
+          .select('*')
+          .eq('status', 'live')
+          .in('clinic_id', clinicIds)
+          .gte('shift_date', today)
+          .order('shift_date', { ascending: true });
 
-  if (error) throw error;
-  const posts = attachClinic((data ?? []) as ShiftPost[], clinicMap);
+  if (clinicPostsResult.error) throw clinicPostsResult.error;
+
+  const sourcedRows = await listSourcedLiveShiftPosts(province, today);
+  const clinicAttached = attachClinic((clinicPostsResult.data ?? []) as ShiftPost[], clinicMap);
+  const sourcedAttached = sourcedRows
+    .map((post) => attachSourcedClinic(post))
+    .filter((post): post is ShiftPost & { clinic: ClinicSummary } => post != null);
+
+  const posts = [...clinicAttached, ...sourcedAttached];
   const locationMap = await fetchPostLocationMap(posts.map((post) => post.location_id));
-  const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
+  const planMap = await getClinicPlanMap(
+    posts.map((post) => post.clinic_id).filter((id): id is string => Boolean(id)),
+  );
   return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
     const dateCompare = left.shift_date.localeCompare(right.shift_date);
     if (dateCompare !== 0) return dateCompare;
@@ -941,18 +1037,22 @@ export async function markShiftPostsSeenByWorker(shiftPostIds: string[]): Promis
 }
 
 function isViewerOwnClinicPost(
-  post: { clinic_id: string; organization_id?: string | null },
+  post: { clinic_id: string | null; organization_id?: string | null },
   viewerClinicId: string,
 ): boolean {
   return post.clinic_id === viewerClinicId || post.organization_id === viewerClinicId;
 }
 
 async function hydrateLiveJobPost(data: JobPost): Promise<LiveJobPost | null> {
-  const clinic = await getClinicListingSummary(data.clinic_id);
+  const clinic = isSourcedListing(data)
+    ? clinicSummaryFromSourced(data)
+    : data.clinic_id
+      ? await getClinicListingSummary(data.clinic_id)
+      : null;
   if (!clinic) return null;
 
   let screeningQuestions: ScreeningQuestion[] = [];
-  if (data.screening_enabled) {
+  if (data.screening_enabled && !isSourcedListing(data)) {
     try {
       screeningQuestions = await getJobPostScreeningQuestions(data.id, {
         province: clinic.province,
@@ -962,7 +1062,7 @@ async function hydrateLiveJobPost(data: JobPost): Promise<LiveJobPost | null> {
     }
   }
 
-  const planMap = await getClinicPlanMap([data.clinic_id]);
+  const planMap = await getClinicPlanMap(data.clinic_id ? [data.clinic_id] : []);
   const locationMap = await fetchPostLocationMap([data.location_id]);
   const base = attachPostLocation(
     {
@@ -976,10 +1076,14 @@ async function hydrateLiveJobPost(data: JobPost): Promise<LiveJobPost | null> {
 }
 
 async function hydrateLiveShiftPost(data: ShiftPost): Promise<LiveShiftPost | null> {
-  const clinic = await getClinicListingSummary(data.clinic_id);
+  const clinic = isSourcedListing(data)
+    ? clinicSummaryFromSourced(data)
+    : data.clinic_id
+      ? await getClinicListingSummary(data.clinic_id)
+      : null;
   if (!clinic) return null;
 
-  const planMap = await getClinicPlanMap([data.clinic_id]);
+  const planMap = await getClinicPlanMap(data.clinic_id ? [data.clinic_id] : []);
   const locationMap = await fetchPostLocationMap([data.location_id]);
   const base = attachPostLocation(
     {
@@ -1041,7 +1145,9 @@ export async function listClinicDiscoverJobPosts(
     (job) => !isViewerOwnClinicPost(job, viewerClinicId),
   );
   const locationMap = await fetchPostLocationMap(posts.map((post) => post.location_id));
-  const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
+  const planMap = await getClinicPlanMap(
+    posts.map((post) => post.clinic_id).filter((id): id is string => Boolean(id)),
+  );
   const sortedPosts = sortPostsByClinicPlanPriority(posts, planMap, (left, right) =>
     right.created_at.localeCompare(left.created_at),
   );
@@ -1068,7 +1174,9 @@ export async function listClinicDiscoverShiftPosts(
     (shift) => !isViewerOwnClinicPost(shift, viewerClinicId),
   );
   const locationMap = await fetchPostLocationMap(posts.map((post) => post.location_id));
-  const planMap = await getClinicPlanMap(posts.map((post) => post.clinic_id));
+  const planMap = await getClinicPlanMap(
+    posts.map((post) => post.clinic_id).filter((id): id is string => Boolean(id)),
+  );
   return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
     const dateCompare = left.shift_date.localeCompare(right.shift_date);
     if (dateCompare !== 0) return dateCompare;
@@ -1118,6 +1226,7 @@ export async function getWorkerAppliedShiftPost(
 
   if (error) throw error;
   if (!data) return null;
+  if (!data.clinic_id) return null;
 
   const { data: clinic, error: clinicError } = await supabase
     .from('clinic_profiles')

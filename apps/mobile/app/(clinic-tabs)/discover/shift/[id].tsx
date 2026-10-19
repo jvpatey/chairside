@@ -116,15 +116,19 @@ export default function ClinicDiscoverShiftDetailScreen() {
           featured={shift.has_priority_listing}
           locationLabel={shift.location ? location : null}
         />
-        <OnboardingButton
-          label="View clinic profile"
-          accent="secondary"
-          onPress={() =>
-            router.push(
-              getClinicDiscoverClinicProfileRoute(shift.clinic_id, { fromShiftId: shift.id }),
-            )
-          }
-        />
+        {shift.clinic_id ? (
+          <OnboardingButton
+            label="View clinic profile"
+            accent="secondary"
+            onPress={() =>
+              router.push(
+                getClinicDiscoverClinicProfileRoute(shift.clinic_id!, {
+                  fromShiftId: shift.id,
+                }),
+              )
+            }
+          />
+        ) : null}
       </View>
     </FormScreen>
   );

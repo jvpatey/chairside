@@ -10,6 +10,7 @@ Web-only internal dashboard for platform metrics. Not part of the App Store / na
 - Deep link: `/admin` (redirects into clinic/worker tabs admin route)
 - Allowlisted email (UI + server): `jeffreyvpatey@gmail.com`
 - Directory tabs: Clinics and Professionals (name + login email). Operator-only; keep `ADMIN_EMAILS` tight.
+- **Sourced listings** (roles / fill-ins without a clinic account): collapsible section on this same web Admin dashboard only. Native builds never expose create/edit/delete for sourced listings.
 
 Native builds redirect away. Other accounts never see the entry points; the Edge Function returns 403.
 
@@ -21,19 +22,24 @@ Native builds redirect away. Other accounts never see the entry points; the Edge
    supabase secrets set ADMIN_EMAILS=jeffreyvpatey@gmail.com
    ```
 
-2. Deploy the functions:
+2. Apply DB migration `134_sourced_listings.sql` (sourced columns + billing/attribution skips).
+
+3. Deploy the functions:
 
    ```bash
    supabase functions deploy admin-stats --use-api
    supabase functions deploy admin-delete-account --use-api
+   supabase functions deploy admin-sourced-listings --use-api
+   supabase functions deploy notify --use-api
    ```
 
-3. Deploy web as usual (`pnpm export:web` / Vercel). No App Store / EAS submission is required to use this dashboard.
+4. Deploy web as usual (`pnpm export:web` / Vercel). No App Store / EAS submission is required to use this dashboard.
 
 ## Notes
 
 - Client helper: `apps/mobile/src/lib/platformAdmin.ts` (visibility only). Keep it in sync with `ADMIN_EMAILS`.
 - Data is loaded via `admin-stats` using the service role after JWT + email allowlist checks.
+- Sourced listing CRUD uses `admin-sourced-listings` (JWT + `ADMIN_EMAILS` + service role). Workers still see live sourced posts in app feeds; contact is phone / email / URL only (no in-app apply).
 - Do not put the allowlist in `EXPO_PUBLIC_*` env vars.
 
 ## Deleting accounts

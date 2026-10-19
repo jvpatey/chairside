@@ -123,6 +123,9 @@ export default function ApplyScreen() {
       if (type === 'job') {
         const loadedJob = await getLiveJobPost(id);
         if (!loadedJob) throw new Error('Role not found');
+        if (loadedJob.is_sourced) {
+          throw new Error('This listing is contact-only. Open the role to call or email the clinic.');
+        }
         setJob(loadedJob);
         setShift(null);
         setScreeningEnabled(loadedJob.screening_enabled && loadedJob.screening_questions.length > 0);
@@ -136,6 +139,11 @@ export default function ApplyScreen() {
       } else {
         const loadedShift = await getLiveShiftPost(id);
         if (!loadedShift) throw new Error('Shift not found');
+        if (loadedShift.is_sourced) {
+          throw new Error(
+            'This fill-in is contact-only. Open the listing to call or email the clinic.',
+          );
+        }
         setShift(loadedShift);
         setJob(null);
         setJobMatch(null);

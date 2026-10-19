@@ -315,10 +315,12 @@ async function enrichWorkerConversations(
     const jobMap = new Map((jobsResult.data ?? []).map((job) => [job.id, job]));
     const shiftMap = new Map((shiftsResult.data ?? []).map((shift) => [shift.id, shift]));
     const clinicIds = [
-      ...new Set([
-        ...(jobsResult.data ?? []).map((job) => job.clinic_id),
-        ...(shiftsResult.data ?? []).map((shift) => shift.clinic_id),
-      ]),
+      ...new Set(
+        [
+          ...(jobsResult.data ?? []).map((job) => job.clinic_id),
+          ...(shiftsResult.data ?? []).map((shift) => shift.clinic_id),
+        ].filter((id): id is string => Boolean(id)),
+      ),
     ];
 
     const { data: clinics, error: clinicsError } =
@@ -340,7 +342,7 @@ async function enrichWorkerConversations(
 
       if (application.job_post_id && jobMap.has(application.job_post_id)) {
         const job = jobMap.get(application.job_post_id)!;
-        const clinic = clinicMap.get(job.clinic_id);
+        const clinic = job.clinic_id ? clinicMap.get(job.clinic_id) : undefined;
         const clinicDeleted = isConversationCounterpartDeleted(row, 'worker');
         conversations.push({
           ...row,
@@ -361,7 +363,7 @@ async function enrichWorkerConversations(
         });
       } else if (application.shift_post_id && shiftMap.has(application.shift_post_id)) {
         const shift = shiftMap.get(application.shift_post_id)!;
-        const clinic = clinicMap.get(shift.clinic_id);
+        const clinic = shift.clinic_id ? clinicMap.get(shift.clinic_id) : undefined;
         const clinicDeleted = isConversationCounterpartDeleted(row, 'worker');
         conversations.push({
           ...row,

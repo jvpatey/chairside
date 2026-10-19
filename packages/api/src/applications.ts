@@ -541,10 +541,12 @@ export async function listWorkerApplications(
   );
 
   const clinicIds = [
-    ...new Set([
-      ...(jobsResult.data ?? []).map((job) => job.clinic_id),
-      ...(shiftsResult.data ?? []).map((shift) => shift.clinic_id),
-    ]),
+    ...new Set(
+      [
+        ...(jobsResult.data ?? []).map((job) => job.clinic_id),
+        ...(shiftsResult.data ?? []).map((shift) => shift.clinic_id),
+      ].filter((id): id is string => Boolean(id)),
+    ),
   ];
 
   const { data: clinics, error: clinicsError } =
@@ -575,6 +577,7 @@ export async function listWorkerApplications(
 
     if (row.job_post_id && jobMap.has(row.job_post_id)) {
       const job = jobMap.get(row.job_post_id)!;
+      if (!job.clinic_id) continue;
       const clinic = clinicMap.get(job.clinic_id);
       const clinicFields = resolveWorkerClinicFields(application, clinic);
       applications.push({
@@ -588,6 +591,7 @@ export async function listWorkerApplications(
       });
     } else if (row.shift_post_id && shiftMap.has(row.shift_post_id)) {
       const shift = shiftMap.get(row.shift_post_id)!;
+      if (!shift.clinic_id) continue;
       const clinic = clinicMap.get(shift.clinic_id);
       const workerShift = buildWorkerShiftApplication(
         application,
@@ -629,7 +633,7 @@ async function enrichWorkerApplication(
       .maybeSingle();
 
     if (jobError) throw jobError;
-    if (!job) return null;
+    if (!job?.clinic_id) return null;
 
     const { data: clinic, error: clinicError } = await supabase
       .from('clinic_profiles')
@@ -658,7 +662,7 @@ async function enrichWorkerApplication(
 
     if (shiftError) throw shiftError;
 
-    if (shift) {
+    if (shift?.clinic_id) {
       const { data: clinic, error: clinicError } = await supabase
         .from('clinic_profiles')
         .select('clinic_name, city, province, address_line1, logo_storage_path, latitude, longitude')
@@ -667,7 +671,17 @@ async function enrichWorkerApplication(
 
       if (clinicError) throw clinicError;
 
-      return buildWorkerShiftApplication(application, shift, clinic);
+      return buildWorkerShiftApplication(
+        application,
+        {
+          role_type: shift.role_type,
+          shift_date: shift.shift_date,
+          start_time: shift.start_time,
+          end_time: shift.end_time,
+          clinic_id: shift.clinic_id,
+        },
+        clinic,
+      );
     }
   }
 

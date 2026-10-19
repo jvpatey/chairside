@@ -2,6 +2,7 @@ import {
   getLiveShiftPost,
   getWorkerShiftApplication,
   isShiftPostSaved,
+  isSourcedListing,
   recordShiftPostListingView,
   saveShiftPost,
   unsaveShiftPost,
@@ -27,6 +28,7 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
+import { SourcedListingContactActions } from '@/components/worker/SourcedListingContactActions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -189,31 +191,34 @@ export default function WorkerShiftDetailScreen() {
       ? (returnContext.applicationReturnTo ?? 'applications-tab')
       : ((resolvedReturnTo as WorkerApplicationReturnTarget | undefined) ?? 'fill-ins-tab');
 
-  const footerAction =
-    applicationView.kind === 'none' ? (
-      <OnboardingButton
-        label="Request to cover"
-        onPress={() =>
-          guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
-        }
-      />
-    ) : applicationView.kind === 'pending' ? (
-      <OnboardingButton label="Requested" disabled />
-    ) : applicationView.kind === 'confirmed' && shiftApplication ? (
-      <OnboardingButton
-        label="View confirmed fill-in"
-        onPress={() =>
-          router.push(getWorkerApplicationRoute(shiftApplication.id, applicationReturnTo))
-        }
-      />
-    ) : applicationView.kind === 'cancelled' && shiftApplication ? (
-      <OnboardingButton
-        label="Request to cover again"
-        onPress={() =>
-          guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
-        }
-      />
-    ) : null;
+  const sourced = isSourcedListing(shift);
+
+  const footerAction = sourced ? (
+    <SourcedListingContactActions contact={shift} />
+  ) : applicationView.kind === 'none' ? (
+    <OnboardingButton
+      label="Request to cover"
+      onPress={() =>
+        guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
+      }
+    />
+  ) : applicationView.kind === 'pending' ? (
+    <OnboardingButton label="Requested" disabled />
+  ) : applicationView.kind === 'confirmed' && shiftApplication ? (
+    <OnboardingButton
+      label="View confirmed fill-in"
+      onPress={() =>
+        router.push(getWorkerApplicationRoute(shiftApplication.id, applicationReturnTo))
+      }
+    />
+  ) : applicationView.kind === 'cancelled' && shiftApplication ? (
+    <OnboardingButton
+      label="Request to cover again"
+      onPress={() =>
+        guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
+      }
+    />
+  ) : null;
 
   const statusFooter =
     applicationView.kind === 'pending' ? (
@@ -249,28 +254,41 @@ export default function WorkerShiftDetailScreen() {
           featured={shift.has_priority_listing}
           heroAccessory={<ShiftUrgencyBadge urgency={shift.urgency} />}
         />
-        <SurfaceCard
-          onPress={() =>
-            router.push(
-              getWorkerClinicProfileRoute(
-                shift.clinic_id,
-                returnContext?.returnTo === 'application-detail'
-                  ? returnContext
-                  : { returnTo: 'shift-detail', shiftId: shift.id },
-              ),
-            )
-          }>
-          <ClinicPostHeader
-            clinicName={displayName}
-            logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
-            location={placeLabel}
-            detail={getSpecialtyLabel(shift.clinic.specialty)}
-            detailIcon="medkit-outline"
-            metaIcons
-            textFooter={statusFooter}
-          />
-          <ClinicProfileLinkFooter />
-        </SurfaceCard>
+        {sourced ? (
+          <SurfaceCard>
+            <ClinicPostHeader
+              clinicName={displayName}
+              logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
+              location={placeLabel}
+              detail={getSpecialtyLabel(shift.clinic.specialty)}
+              detailIcon="medkit-outline"
+              metaIcons
+            />
+          </SurfaceCard>
+        ) : shift.clinic_id ? (
+          <SurfaceCard
+            onPress={() =>
+              router.push(
+                getWorkerClinicProfileRoute(
+                  shift.clinic_id!,
+                  returnContext?.returnTo === 'application-detail'
+                    ? returnContext
+                    : { returnTo: 'shift-detail', shiftId: shift.id },
+                ),
+              )
+            }>
+            <ClinicPostHeader
+              clinicName={displayName}
+              logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
+              location={placeLabel}
+              detail={getSpecialtyLabel(shift.clinic.specialty)}
+              detailIcon="medkit-outline"
+              metaIcons
+              textFooter={statusFooter}
+            />
+            <ClinicProfileLinkFooter />
+          </SurfaceCard>
+        ) : null}
         <ShiftPostDetailView
           shift={shift}
           softwareUsed={shift.clinic.software_used}
