@@ -40,9 +40,13 @@ eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --v
 eas env:create --environment production --name EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN --value '<mapbox-token>'
 eas env:create --environment production --name EXPO_PUBLIC_WEB_BASE_URL --value 'https://chairside.app'
 eas env:create --environment production --name EXPO_PUBLIC_REVENUECAT_IOS_API_KEY --value '<revenuecat-ios-public-key>'
+eas env:create --environment production --name EXPO_PUBLIC_POSTHOG_KEY --value '<posthog-project-api-key>'
+eas env:create --environment production --name EXPO_PUBLIC_POSTHOG_HOST --value 'https://us.i.posthog.com'
 
 # Repeat for --environment preview (TestFlight)
 ```
+
+PostHog setup (client + SMS server events): see [ANALYTICS.md](./ANALYTICS.md).
 
 List and verify:
 

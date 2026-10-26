@@ -76,8 +76,8 @@ function emptyForm(kind: SourcedListingKind): FormState {
     wageRange: '',
     schedule: '',
     shiftDate: '',
-    startTime: '09:00',
-    endTime: '17:00',
+    startTime: '',
+    endTime: '',
     compensation: '',
   };
 }
@@ -103,9 +103,9 @@ function formFromListing(listing: SourcedListing): FormState {
           schedule: listing.schedule ?? '',
         }
       : {
-          shiftDate: listing.shiftDate,
-          startTime: listing.startTime.slice(0, 5),
-          endTime: listing.endTime.slice(0, 5),
+          shiftDate: listing.shiftDate ?? '',
+          startTime: listing.startTime?.slice(0, 5) ?? '',
+          endTime: listing.endTime?.slice(0, 5) ?? '',
           compensation: listing.compensation ?? '',
         }),
   };
@@ -117,15 +117,31 @@ function Field({
   onChangeText,
   placeholder,
   multiline,
+  minWidth = 160,
+  fullWidth,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  minWidth?: number;
+  /** Full-width block field (default for multiline). */
+  fullWidth?: boolean;
 }) {
+  const isFullWidth = fullWidth ?? Boolean(multiline);
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
-    wrap: { gap: 4, flex: 1, minWidth: 160 },
+    wrap: isFullWidth
+      ? {
+          gap: 4,
+          alignSelf: 'stretch' as const,
+          width: '100%' as const,
+        }
+      : {
+          gap: 4,
+          flexGrow: 1,
+          flexShrink: 1,
+        },
     label: {
       fontFamily: fontSemibold,
       fontSize: 12,
@@ -147,7 +163,8 @@ function Field({
   }));
 
   return (
-    <View style={styles.wrap}>
+    <View
+      style={[styles.wrap, !isFullWidth && { flexBasis: minWidth, minWidth }]}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
@@ -358,6 +375,8 @@ export function AdminSourcedListingsPanel() {
       backgroundColor: colors.surface,
       padding: spacing.md,
       gap: spacing.md,
+      alignSelf: 'stretch',
+      width: '100%',
     },
     formTitle: {
       fontFamily: fontSemibold,
@@ -455,9 +474,9 @@ export function AdminSourcedListingsPanel() {
             schedule: form.schedule.trim() || null,
           }
         : {
-            shiftDate: form.shiftDate.trim(),
-            startTime: form.startTime.trim(),
-            endTime: form.endTime.trim(),
+            shiftDate: form.shiftDate.trim() || null,
+            startTime: form.startTime.trim() || null,
+            endTime: form.endTime.trim() || null,
             compensation: form.compensation.trim() || null,
           }),
     };
@@ -573,11 +592,13 @@ export function AdminSourcedListingsPanel() {
               label="Clinic name"
               value={form.displayClinicName}
               onChangeText={(v) => patchForm('displayClinicName', v)}
+              minWidth={200}
             />
             <Field
               label="City"
               value={form.displayCity}
               onChangeText={(v) => patchForm('displayCity', v)}
+              minWidth={160}
             />
           </View>
           <SelectField
@@ -611,41 +632,47 @@ export function AdminSourcedListingsPanel() {
               />
               <View style={styles.formRow}>
                 <Field
-                  label="Wage range"
+                  label="Wage range (optional)"
                   value={form.wageRange}
                   onChangeText={(v) => patchForm('wageRange', v)}
+                  minWidth={220}
                 />
                 <Field
-                  label="Schedule"
+                  label="Schedule (optional)"
                   value={form.schedule}
                   onChangeText={(v) => patchForm('schedule', v)}
+                  minWidth={220}
                 />
               </View>
             </>
           ) : (
             <View style={styles.formRow}>
               <Field
-                label="Shift date (YYYY-MM-DD)"
+                label="Shift date (YYYY-MM-DD, optional)"
                 value={form.shiftDate}
                 onChangeText={(v) => patchForm('shiftDate', v)}
                 placeholder="2026-10-20"
+                minWidth={200}
               />
               <Field
-                label="Start"
+                label="Start (optional)"
                 value={form.startTime}
                 onChangeText={(v) => patchForm('startTime', v)}
                 placeholder="09:00"
+                minWidth={110}
               />
               <Field
-                label="End"
+                label="End (optional)"
                 value={form.endTime}
                 onChangeText={(v) => patchForm('endTime', v)}
                 placeholder="17:00"
+                minWidth={110}
               />
               <Field
                 label="Compensation"
                 value={form.compensation}
                 onChangeText={(v) => patchForm('compensation', v)}
+                minWidth={160}
               />
             </View>
           )}
@@ -654,26 +681,29 @@ export function AdminSourcedListingsPanel() {
               label="Phone"
               value={form.contactPhone}
               onChangeText={(v) => patchForm('contactPhone', v)}
+              minWidth={140}
             />
             <Field
               label="Email"
               value={form.contactEmail}
               onChangeText={(v) => patchForm('contactEmail', v)}
+              minWidth={180}
             />
             <Field
               label="External URL"
               value={form.externalUrl}
               onChangeText={(v) => patchForm('externalUrl', v)}
+              minWidth={200}
             />
           </View>
           <Field
-            label="Description"
+            label="Description (optional)"
             value={form.description}
             onChangeText={(v) => patchForm('description', v)}
             multiline
           />
           <Field
-            label="Admin notes (internal)"
+            label="Admin notes (internal, optional)"
             value={form.adminNotes}
             onChangeText={(v) => patchForm('adminNotes', v)}
             multiline
@@ -719,7 +749,9 @@ export function AdminSourcedListingsPanel() {
             <Text style={styles.cardTitle}>
               {listing.kind === 'role'
                 ? listing.title
-                : `${getRoleTypeLabel(listing.roleType)} · ${listing.shiftDate}`}
+                : listing.shiftDate
+                  ? `${getRoleTypeLabel(listing.roleType)} · ${listing.shiftDate}`
+                  : getRoleTypeLabel(listing.roleType)}
             </Text>
             <Text style={styles.cardMeta}>
               {listing.displayClinicName} · {listing.displayCity},{' '}

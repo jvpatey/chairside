@@ -270,23 +270,13 @@ Deno.serve(async (req) => {
         return jsonResponse({ listing: mapRow(data as Record<string, unknown>, 'role') }, 200);
       }
 
-      const shiftDate = asTrimmedString(body.shiftDate);
-      const startTime = asTrimmedString(body.startTime);
-      const endTime = asTrimmedString(body.endTime);
-      if (!shiftDate || !startTime || !endTime) {
-        return jsonResponse(
-          { error: 'shiftDate, startTime, and endTime are required for fill-ins' },
-          400,
-        );
-      }
-
       const { data, error } = await adminClient
         .from('shift_posts')
         .insert({
           ...shared,
-          shift_date: shiftDate,
-          start_time: startTime,
-          end_time: endTime,
+          shift_date: asOptionalTrimmed(body.shiftDate),
+          start_time: asOptionalTrimmed(body.startTime),
+          end_time: asOptionalTrimmed(body.endTime),
           compensation: asOptionalTrimmed(body.compensation),
           urgency: asOptionalTrimmed(body.urgency) ?? 'normal',
         })
@@ -382,21 +372,9 @@ Deno.serve(async (req) => {
         if ('wageRange' in body) patch.wage_range = asOptionalTrimmed(body.wageRange);
         if ('schedule' in body) patch.schedule = asOptionalTrimmed(body.schedule);
       } else {
-        if ('shiftDate' in body) {
-          const shiftDate = asTrimmedString(body.shiftDate);
-          if (!shiftDate) return jsonResponse({ error: 'shiftDate cannot be empty' }, 400);
-          patch.shift_date = shiftDate;
-        }
-        if ('startTime' in body) {
-          const startTime = asTrimmedString(body.startTime);
-          if (!startTime) return jsonResponse({ error: 'startTime cannot be empty' }, 400);
-          patch.start_time = startTime;
-        }
-        if ('endTime' in body) {
-          const endTime = asTrimmedString(body.endTime);
-          if (!endTime) return jsonResponse({ error: 'endTime cannot be empty' }, 400);
-          patch.end_time = endTime;
-        }
+        if ('shiftDate' in body) patch.shift_date = asOptionalTrimmed(body.shiftDate);
+        if ('startTime' in body) patch.start_time = asOptionalTrimmed(body.startTime);
+        if ('endTime' in body) patch.end_time = asOptionalTrimmed(body.endTime);
         if ('compensation' in body) patch.compensation = asOptionalTrimmed(body.compensation);
         if ('urgency' in body) patch.urgency = asOptionalTrimmed(body.urgency) ?? 'normal';
       }

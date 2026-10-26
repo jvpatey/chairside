@@ -169,7 +169,7 @@ export function filterShiftPostsForFillInsListMode(
   return filterShiftPosts(shifts, statusFilter, roleTypeFilter, dateFilter)
     .filter(isHistoryShift)
     .sort((a, b) => {
-      const dateCompare = b.shift_date.localeCompare(a.shift_date);
+      const dateCompare = (b.shift_date ?? '').localeCompare(a.shift_date ?? '');
       if (dateCompare !== 0) return dateCompare;
       return b.created_at.localeCompare(a.created_at);
     });

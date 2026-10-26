@@ -243,8 +243,8 @@ export function filterClinicDiscoverShifts(
     if (filters.sort === 'distance') {
       const byDistance = compareDistanceAsc(left.distanceKm, right.distanceKm);
       if (byDistance !== 0) return byDistance;
-      return left.shift_date.localeCompare(right.shift_date);
+      return (left.shift_date ?? '\uffff').localeCompare(right.shift_date ?? '\uffff');
     }
-    return left.shift_date.localeCompare(right.shift_date);
+    return (left.shift_date ?? '\uffff').localeCompare(right.shift_date ?? '\uffff');
   });
 }

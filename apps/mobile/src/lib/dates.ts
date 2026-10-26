@@ -25,7 +25,8 @@ export function toISODate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function parseISODate(value: string): Date | null {
+export function parseISODate(value: string | null | undefined): Date | null {
+  if (!value?.trim()) return null;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
   if (!match) return null;
 

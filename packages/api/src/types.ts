@@ -92,9 +92,10 @@ export type ShiftPostRow = {
   posted_by_display_name: string | null;
   posted_by_title: string | null;
   role_type: string;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
+  /** Null only for sourced fill-ins that omit schedule details. */
+  shift_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
   compensation: string | null;
   urgency: string;
   description: string | null;
@@ -1054,6 +1055,10 @@ export type Database = {
       get_clinic_discover_shift_post: {
         Args: { p_shift_id: string };
         Returns: ShiftPostRow | null;
+      };
+      get_public_listing: {
+        Args: { p_kind: string; p_id: string };
+        Returns: Record<string, unknown> | null;
       };
     };
     Enums: Record<string, never>;

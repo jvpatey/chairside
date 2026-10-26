@@ -26,6 +26,8 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { SectionPanel, profileSettingsHintStyle } from '@/components/profile/ProfileDetailBlocks';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { AnalyticsEvents } from '@/lib/analytics/events';
+import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { getApplyScreeningRoute, WORKER_APPLICATIONS, WORKER_PENDING_FILLINS, WORKER_SETUP_BASICS } from '@/lib/routing';
 import { getApplyApplicationKitEditRoute } from '@/hooks/useSetupEditMode';
@@ -202,6 +204,13 @@ export default function ApplyScreen() {
         shiftPostId: type === 'shift' ? id : undefined,
         coverMessage: coverMessage.trim() || undefined,
       });
+      captureAnalyticsEvent(
+        type === 'shift' ? AnalyticsEvents.coverRequested : AnalyticsEvents.applySubmitted,
+        {
+          target: type === 'shift' ? 'shift' : 'job',
+          listing_id: id,
+        },
+      );
       router.replace(type === 'shift' ? WORKER_PENDING_FILLINS : WORKER_APPLICATIONS);
     } catch (error) {
       const message = getErrorMessage(error, 'Please try again.');

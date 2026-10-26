@@ -6,6 +6,7 @@ import {
   formatSmsTimeRange,
   gsmLength,
   SMS_SEGMENT_LIMIT,
+  SMS_TWO_SEGMENT_LIMIT,
   toGsmSafeSms,
 } from './sms.ts';
 
@@ -105,6 +106,67 @@ Deno.test('fill-in SMS with a reply code swaps the call to action and still fits
   assert(!sms.includes('Open Chairside to apply.'));
   assert(sms.endsWith('Reply STOP to opt out.'));
   assert(gsmLength(sms) <= SMS_SEGMENT_LIMIT);
+});
+
+Deno.test('fill-in SMS with listing URL uses Apply CTA and may use two segments', () => {
+  const listingUrl = 'https://chairside.app/f/11111111-2222-3333-4444-555555555555';
+  const sms = buildFillInSms({
+    clinicName: 'Bayview Dental',
+    locationLabel: 'Halifax, NS',
+    shiftDate: '2026-09-27',
+    startTime: '08:00',
+    endTime: '16:00',
+    compensation: '$45/hr',
+    listingUrl,
+  });
+  assertStringIncludes(sms, `Apply: ${listingUrl}`);
+  assert(!sms.includes('Open Chairside to apply.'));
+  assert(sms.endsWith('Reply STOP to opt out.'));
+  assert(isGsmOnly(sms));
+  assert(gsmLength(sms) <= SMS_TWO_SEGMENT_LIMIT);
+});
+
+Deno.test('fill-in SMS with listing URL uses Details CTA for sourced listings', () => {
+  const listingUrl = 'https://chairside.app/f/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  const sms = buildFillInSms({
+    clinicName: 'Coastal Hygienists',
+    locationLabel: 'Halifax, NS',
+    shiftDate: '2026-09-27',
+    startTime: '08:00',
+    endTime: '16:00',
+    listingUrl,
+    listingCta: 'Details',
+  });
+  assertStringIncludes(sms, `Details: ${listingUrl}`);
+  assert(!sms.includes('Apply:'));
+  assert(gsmLength(sms) <= SMS_TWO_SEGMENT_LIMIT);
+});
+
+Deno.test('fill-in SMS reply code wins over listing URL', () => {
+  const sms = buildFillInSms({
+    clinicName: 'Bayview Dental',
+    locationLabel: 'Halifax, NS',
+    shiftDate: '2026-09-27',
+    startTime: '08:00',
+    endTime: '16:00',
+    replyCode: '4821',
+    listingUrl: 'https://chairside.app/f/11111111-2222-3333-4444-555555555555',
+  });
+  assertStringIncludes(sms, 'Reply YES 4821 to request.');
+  assert(!sms.includes('chairside.app'));
+  assert(gsmLength(sms) <= SMS_SEGMENT_LIMIT);
+});
+
+Deno.test('fill-in SMS handles missing shift date as schedule TBD', () => {
+  const sms = buildFillInSms({
+    clinicName: 'Bayview Dental',
+    locationLabel: 'Halifax, NS',
+    shiftDate: null,
+    listingUrl: 'https://chairside.app/f/11111111-2222-3333-4444-555555555555',
+    listingCta: 'Details',
+  });
+  assertStringIncludes(sms, 'fill-in for schedule TBD.');
+  assert(gsmLength(sms) <= SMS_TWO_SEGMENT_LIMIT);
 });
 
 Deno.test('outreach SMS fits one segment with and without shift details', () => {

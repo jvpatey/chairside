@@ -341,7 +341,8 @@ export function formatISODateLabel(isoDate: string): string {
   });
 }
 
-export function formatFillInPostTitle(shiftDate: string): string {
+export function formatFillInPostTitle(shiftDate: string | null | undefined): string {
+  if (!shiftDate?.trim()) return 'Fill-in';
   return `Fill-in · ${formatISODateLabel(shiftDate)}`;
 }
 

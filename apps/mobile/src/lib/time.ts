@@ -22,7 +22,8 @@ export function formatTime12h(time: string): string | null {
   return minutes === '00' ? `${hours12} ${period}` : `${hours12}:${minutes} ${period}`;
 }
 
-export function normalizeTime24h(value: string): string {
+export function normalizeTime24h(value: string | null | undefined): string {
+  if (!value?.trim()) return '';
   const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value.trim());
   if (!match) return value.trim();
   return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
@@ -54,7 +55,11 @@ export function isValidTimeRange(startTime: string, endTime: string): boolean {
   return start.getTime() < end.getTime();
 }
 
-export function formatTimeRangePreview(startTime: string, endTime: string): string | null {
+export function formatTimeRangePreview(
+  startTime: string | null | undefined,
+  endTime: string | null | undefined,
+): string | null {
+  if (!startTime?.trim() || !endTime?.trim()) return null;
   const start = formatTime12h(startTime);
   const end = formatTime12h(endTime);
   if (!start || !end) return null;

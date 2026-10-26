@@ -20,7 +20,8 @@ export function formatFillInRoleLabel(shiftDate: string): string {
   return formatFillInPostTitle(shiftDate);
 }
 
-export function formatShiftPostDateLabel(shiftDate: string): string {
+export function formatShiftPostDateLabel(shiftDate: string | null | undefined): string {
+  if (!shiftDate?.trim()) return 'Date TBD';
   const date = parseISODate(shiftDate);
   if (!date) return shiftDate;
 
@@ -35,8 +36,11 @@ export function formatShiftPostDateLabel(shiftDate: string): string {
 export function formatShiftPostMeta(
   shift: Pick<ShiftPost, 'shift_date' | 'start_time' | 'end_time'>,
 ): string {
-  const dateLabel = formatShiftPostDateLabel(shift.shift_date);
+  const hasDate = Boolean(shift.shift_date?.trim());
   const hours = formatTimeRangePreview(shift.start_time, shift.end_time);
+  if (!hasDate && !hours) return 'Schedule TBD';
+  if (!hasDate) return hours!;
+  const dateLabel = formatShiftPostDateLabel(shift.shift_date);
   return hours ? `${dateLabel} · ${hours}` : dateLabel;
 }
 

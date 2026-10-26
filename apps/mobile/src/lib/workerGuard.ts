@@ -6,6 +6,8 @@ import {
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
 
+import { AnalyticsEvents } from '@/lib/analytics/events';
+import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { WORKER_SETUP_BASICS } from '@/lib/routing';
 
@@ -15,6 +17,10 @@ export function guardApply(
   target: Href,
 ) {
   if (isProfileComplete) {
+    const path = String(target);
+    captureAnalyticsEvent(AnalyticsEvents.applyStarted, {
+      target: path.includes('shift') ? 'shift' : path.includes('job') ? 'job' : 'unknown',
+    });
     router.push(target);
     return;
   }

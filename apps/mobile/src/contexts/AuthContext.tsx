@@ -16,6 +16,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { resetAnalyticsUser } from '@/lib/analytics/posthog';
 import {
   clearPasswordRecoveryPending,
   isPasswordRecoveryPending,
@@ -287,6 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       setIsProfileReady(true);
       signingOutRef.current = false;
+      resetAnalyticsUser();
     }
   }, [clearRecoveryPending, user?.id]);
 

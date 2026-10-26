@@ -27,7 +27,7 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
         'Notification preferences: push, in-app, and optional SMS opt-in for fill-in alerts, including your mobile number when you enable text alerts.',
         'Billing information for clinic accounts: plan, subscription status, and provider customer or entitlement identifiers needed to manage paid features. Payment card details are handled by Apple or Stripe — we do not store full card numbers.',
         'Support messages: name, email, subject, and message you submit through the Support form.',
-        'Device and usage data: push notification tokens, basic device information for notification delivery, and standard web analytics on our website.',
+        'Device and usage data: push notification tokens, basic device information for notification delivery, and product analytics events about how you use the app and website (for example screens viewed and key actions such as applying or opening a listing from an SMS link).',
       ],
     },
     {
@@ -40,6 +40,7 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
         'Send transactional notifications about applications, messages, interviews, invites, and fill-in alerts (including optional SMS when you opt in).',
         'Process clinic subscriptions and enforce plan limits.',
         'Respond to support messages you submit through the Support page.',
+        'Understand product usage so we can improve reliability and the experience (via analytics events; we do not sell this data).',
         'Improve reliability, prevent abuse, and support customers.',
       ],
     },
@@ -58,6 +59,7 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
         'Google — Sign in with Google when you choose that option.',
         'Stripe — payment processing for web billing.',
         'Vercel Analytics — anonymous website usage on our web app only.',
+        'PostHog — product analytics on the native apps and website (including SMS listing-link opens and related funnel events). We do not send phone numbers, message bodies, or invite tokens to PostHog.',
       ],
     },
     {

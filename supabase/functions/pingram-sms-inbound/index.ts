@@ -5,6 +5,7 @@ import {
   normalizeE164,
   pingramPost,
 } from '../_shared/pingram.ts';
+import { capturePosthogEvent } from '../_shared/posthog.ts';
 import { toGsmSafeSms } from '../_shared/sms.ts';
 import {
   type CoverRequestOutcome,
@@ -130,7 +131,13 @@ async function handleInboundSms(supabase: Supabase, event: PingramWebhookEvent):
   const reply = (message: string) => sendReply({ to: replyTo, from: event.to, message });
 
   const parsed = parseSmsReply(event.text ?? '');
-  if (parsed.kind === 'help') return reply(SMS_REPLY_COPY.help);
+  if (parsed.kind === 'help') {
+    void capturePosthogEvent({
+      distinctId: 'sms_anonymous',
+      event: 'sms_help',
+    });
+    return reply(SMS_REPLY_COPY.help);
+  }
   if (parsed.kind === 'unknown') return reply(SMS_REPLY_COPY.unknown);
   if (!isSmsReplyEnabled()) return reply(SMS_REPLY_COPY.disabled);
 
@@ -168,6 +175,14 @@ async function handleInboundSms(supabase: Supabase, event: PingramWebhookEvent):
   console.log(
     `[sms-inbound] cover request via SMS workerId=${workerId} shiftId=${offer.shift_post_id} outcome=${outcome}`,
   );
+  void capturePosthogEvent({
+    distinctId: workerId,
+    event: 'sms_reply_yes',
+    properties: {
+      shift_post_id: offer.shift_post_id,
+      outcome: outcome as string,
+    },
+  });
   await reply(
     outcomeReply(outcome as CoverRequestOutcome, await clinicNameForShift(supabase, offer.shift_post_id)),
   );
@@ -206,6 +221,17 @@ async function handleSubscriptionChange(
     .in('id', [...workerIds]);
   if (error) throw error;
   console.log(`[sms-inbound] ${event.eventType}: fill_in_sms_opt_in=${optIn} for ${workerIds.size} worker(s)`);
+
+  const eventName = optIn ? 'sms_opt_in' : 'sms_opt_out';
+  for (const workerId of workerIds) {
+    void capturePosthogEvent({
+      distinctId: workerId,
+      event: eventName,
+      properties: {
+        worker_count: workerIds.size,
+      },
+    });
+  }
 }
 
 Deno.serve(async (req) => {

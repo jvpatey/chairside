@@ -52,6 +52,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
               host: 'chairside.app',
               pathPrefix: '/auth/callback',
             },
+            {
+              scheme: 'https',
+              host: 'chairside.app',
+              pathPrefix: '/f',
+            },
+            {
+              scheme: 'https',
+              host: 'chairside.app',
+              pathPrefix: '/j',
+            },
           ],
         },
       ],

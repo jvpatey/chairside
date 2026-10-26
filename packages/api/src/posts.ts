@@ -75,9 +75,10 @@ export type ShiftPost = {
   posted_by_display_name?: string | null;
   posted_by_title?: string | null;
   role_type: RoleType;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
+  /** Null only for sourced fill-ins that omit schedule details. */
+  shift_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
   compensation: string | null;
   urgency: ShiftUrgency;
   description: string | null;
@@ -902,8 +903,8 @@ async function listSourcedLiveShiftPosts(province: string, today: string): Promi
     .eq('status', 'live')
     .eq('is_sourced', true)
     .eq('display_province', province)
-    .gte('shift_date', today)
-    .order('shift_date', { ascending: true });
+    .or(`shift_date.gte.${today},shift_date.is.null`)
+    .order('shift_date', { ascending: true, nullsFirst: false });
 
   if (error) throw error;
   return (data ?? []) as ShiftPost[];
@@ -979,7 +980,7 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
     posts.map((post) => post.clinic_id).filter((id): id is string => Boolean(id)),
   );
   return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
-    const dateCompare = left.shift_date.localeCompare(right.shift_date);
+    const dateCompare = (left.shift_date ?? '\uffff').localeCompare(right.shift_date ?? '\uffff');
     if (dateCompare !== 0) return dateCompare;
     return left.created_at.localeCompare(right.created_at);
   }).map((post) => attachPriorityListing(attachPostLocation(post, locationMap), planMap));
@@ -1005,6 +1006,7 @@ export async function getMatchingLiveShiftPosts(
   const liveShifts = await listLiveShiftPosts(province);
   return liveShifts.filter((shift) => {
     if (!roleSet.has(shift.role_type)) return false;
+    if (!shift.shift_date) return false;
     return daySet.has(shiftWeekday(shift.shift_date));
   });
 }
@@ -1122,7 +1124,7 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
     .select('*')
     .eq('id', shiftId)
     .eq('status', 'live')
-    .gte('shift_date', today)
+    .or(`shift_date.gte.${today},and(shift_date.is.null,is_sourced.eq.true)`)
     .maybeSingle();
 
   if (error) throw error;
@@ -1178,7 +1180,7 @@ export async function listClinicDiscoverShiftPosts(
     posts.map((post) => post.clinic_id).filter((id): id is string => Boolean(id)),
   );
   return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
-    const dateCompare = left.shift_date.localeCompare(right.shift_date);
+    const dateCompare = (left.shift_date ?? '\uffff').localeCompare(right.shift_date ?? '\uffff');
     if (dateCompare !== 0) return dateCompare;
     return left.created_at.localeCompare(right.created_at);
   }).map((post) => attachPriorityListing(attachPostLocation(post, locationMap), planMap));
@@ -1314,4 +1316,119 @@ export async function getWorkerDashboardCounts(
     openFillInsInProvince: shifts.length,
     pendingApplications,
   };
+}
+
+export type PublicListingKind = 'shift' | 'job';
+
+export type PublicListingBase = {
+  kind: PublicListingKind;
+  id: string;
+  status: 'live';
+  is_sourced: boolean;
+  role_type: RoleType;
+  clinic_name: string;
+  city: string | null;
+  province: string | null;
+  description: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  external_url: string | null;
+};
+
+export type PublicShiftListing = PublicListingBase & {
+  kind: 'shift';
+  shift_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  compensation: string | null;
+  urgency: ShiftUrgency | null;
+};
+
+export type PublicJobListing = PublicListingBase & {
+  kind: 'job';
+  title: string;
+  employment_type: EmploymentType;
+  wage_range: string | null;
+  schedule: string | null;
+  specialty: string | null;
+  start_date: string | null;
+  benefits: string | null;
+};
+
+export type PublicListing = PublicShiftListing | PublicJobListing;
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function mapPublicListing(raw: Record<string, unknown>): PublicListing | null {
+  const kind = raw.kind;
+  const id = typeof raw.id === 'string' ? raw.id : null;
+  if (!id || (kind !== 'shift' && kind !== 'job')) return null;
+
+  const base = {
+    id,
+    status: 'live' as const,
+    is_sourced: raw.is_sourced === true,
+    role_type: (typeof raw.role_type === 'string' ? raw.role_type : 'other') as RoleType,
+    clinic_name:
+      (typeof raw.clinic_name === 'string' && raw.clinic_name.trim()) || 'Clinic',
+    city: asNullableString(raw.city),
+    province: asNullableString(raw.province),
+    description: asNullableString(raw.description),
+    contact_phone: asNullableString(raw.contact_phone),
+    contact_email: asNullableString(raw.contact_email),
+    external_url: asNullableString(raw.external_url),
+  };
+
+  if (kind === 'shift') {
+    return {
+      ...base,
+      kind: 'shift',
+      shift_date: asNullableString(raw.shift_date),
+      start_time: asNullableString(raw.start_time),
+      end_time: asNullableString(raw.end_time),
+      compensation: asNullableString(raw.compensation),
+      urgency: (asNullableString(raw.urgency) as ShiftUrgency | null) ?? null,
+    };
+  }
+
+  return {
+    ...base,
+    kind: 'job',
+    title: (typeof raw.title === 'string' && raw.title.trim()) || 'Role',
+    employment_type: (typeof raw.employment_type === 'string'
+      ? raw.employment_type
+      : 'permanent') as EmploymentType,
+    wage_range: asNullableString(raw.wage_range),
+    schedule: asNullableString(raw.schedule),
+    specialty: asNullableString(raw.specialty),
+    start_date: asNullableString(raw.start_date),
+    benefits: asNullableString(raw.benefits),
+  };
+}
+
+/** Live listing preview for public SMS / share links (anon-safe columns only). */
+export async function getPublicListing(
+  kind: PublicListingKind,
+  id: string,
+): Promise<PublicListing | null> {
+  const trimmed = id.trim();
+  if (!trimmed) return null;
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_public_listing', {
+    p_kind: kind,
+    p_id: trimmed,
+  });
+
+  if (error) throw error;
+  if (data == null) return null;
+
+  const raw =
+    typeof data === 'object' && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null;
+  if (!raw) return null;
+  return mapPublicListing(raw);
 }

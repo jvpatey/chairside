@@ -21,6 +21,14 @@
           {
             "/": "/auth/callback/*",
             "comment": "Auth confirmation, OAuth, and password recovery"
+          },
+          {
+            "/": "/f/*",
+            "comment": "Public fill-in listing links from SMS"
+          },
+          {
+            "/": "/j/*",
+            "comment": "Public job listing links"
           }
         ]
       }
