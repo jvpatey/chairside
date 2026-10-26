@@ -18,9 +18,11 @@ function normalizeExternalUrl(raw: string): string {
 export function SourcedListingContactActions({
   contact,
   compact = false,
+  onContactTap,
 }: {
   contact: SourcedListingContact;
   compact?: boolean;
+  onContactTap?: (method: 'phone' | 'email' | 'url') => void;
 }) {
   const styles = useThemedStyles(({ spacing }) => ({
     row: {
@@ -39,21 +41,30 @@ export function SourcedListingContactActions({
       {phone ? (
         <OnboardingButton
           label={compact ? 'Call' : 'Call clinic'}
-          onPress={() => void Linking.openURL(`tel:${phone.replace(/\s+/g, '')}`)}
+          onPress={() => {
+            onContactTap?.('phone');
+            void Linking.openURL(`tel:${phone.replace(/\s+/g, '')}`);
+          }}
         />
       ) : null}
       {email ? (
         <OnboardingButton
           label={compact ? 'Email' : 'Email clinic'}
           variant="secondary"
-          onPress={() => void Linking.openURL(`mailto:${email}`)}
+          onPress={() => {
+            onContactTap?.('email');
+            void Linking.openURL(`mailto:${email}`);
+          }}
         />
       ) : null}
       {url ? (
         <OnboardingButton
           label={compact ? 'Open link' : 'Open listing'}
           variant="secondary"
-          onPress={() => void Linking.openURL(normalizeExternalUrl(url))}
+          onPress={() => {
+            onContactTap?.('url');
+            void Linking.openURL(normalizeExternalUrl(url));
+          }}
         />
       ) : null}
     </View>

@@ -1,5 +1,7 @@
 /** Max characters in one GSM-7 SMS segment. Any non-GSM character switches to UCS-2 (70/segment). */
 export const SMS_SEGMENT_LIMIT = 160;
+/** Two-segment budget when a listing URL is included (Pingram bills per segment). */
+export const SMS_TWO_SEGMENT_LIMIT = SMS_SEGMENT_LIMIT * 2;
 
 const SMS_CLINIC_NAME_MAX = 40;
 
@@ -43,10 +45,10 @@ export function gsmLength(text: string): number {
   return length;
 }
 
-/** First candidate that fits one segment after sanitizing; otherwise the last (shortest) one. */
-export function fitSms(candidates: string[]): string {
+/** First candidate that fits within maxLength after sanitizing; otherwise the last (shortest) one. */
+export function fitSms(candidates: string[], maxLength = SMS_SEGMENT_LIMIT): string {
   const safe = candidates.map(toGsmSafeSms);
-  return safe.find((text) => gsmLength(text) <= SMS_SEGMENT_LIMIT) ?? safe[safe.length - 1] ?? '';
+  return safe.find((text) => gsmLength(text) <= maxLength) ?? safe[safe.length - 1] ?? '';
 }
 
 export function formatTime12h(time: string): string | null {
@@ -89,38 +91,54 @@ function truncateName(name: string, max = SMS_CLINIC_NAME_MAX): string {
 }
 
 function shiftDetails(input: {
-  shiftDate: string;
+  shiftDate?: string | null;
   startTime?: string | null;
   endTime?: string | null;
 }): string {
-  return [formatSmsDate(input.shiftDate), formatSmsTimeRange(input.startTime, input.endTime)]
-    .filter(Boolean)
-    .join(', ');
+  const date = input.shiftDate?.trim() ? formatSmsDate(input.shiftDate) : null;
+  const range = formatSmsTimeRange(input.startTime, input.endTime);
+  const parts = [date, range].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : 'schedule TBD';
 }
 
 /**
- * Fill-in alert SMS. Drops location, then compensation, then shortens the clinic name to fit
- * one segment. Never drops the brand prefix, clinic, date, call to action, or opt-out text.
+ * Fill-in alert SMS. Drops location, then compensation, then shortens the clinic name to fit.
+ * Never drops the brand prefix, clinic, date, call to action, or opt-out text.
+ * With a listing URL, allows up to two GSM-7 segments.
  */
 export function buildFillInSms(input: {
   clinicName: string;
   locationLabel: string;
-  shiftDate: string;
+  shiftDate?: string | null;
   startTime?: string | null;
   endTime?: string | null;
   compensation?: string | null;
   isUpdate?: boolean;
   /** When set, the call to action becomes "Reply YES {code} to request." */
   replyCode?: string | null;
+  /** Public listing URL (e.g. https://chairside.app/f/{id}). Ignored when replyCode is set. */
+  listingUrl?: string | null;
+  /** CTA verb when listingUrl is set. Default "Apply". Use "Details" for sourced ads. */
+  listingCta?: 'Apply' | 'Details' | null;
 }): string {
   const verb = input.isUpdate ? 'updated' : 'posted';
   const details = shiftDetails(input);
   const compensation = input.compensation?.trim();
   const compensationPart = compensation ? ` Pay: ${compensation}.` : '';
   const location = input.locationLabel.trim();
-  const callToAction = input.replyCode
-    ? `Reply YES ${input.replyCode} to request.`
-    : 'Open Chairside to apply.';
+  const listingUrl = input.listingUrl?.trim() || null;
+  const listingCta = input.listingCta === 'Details' ? 'Details' : 'Apply';
+
+  let callToAction: string;
+  if (input.replyCode) {
+    callToAction = `Reply YES ${input.replyCode} to request.`;
+  } else if (listingUrl) {
+    callToAction = `${listingCta}: ${listingUrl}`;
+  } else {
+    callToAction = 'Open Chairside to apply.';
+  }
+
+  const maxLength = listingUrl && !input.replyCode ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT;
 
   const build = (clinicName: string, withLocation: boolean, withCompensation: boolean) => {
     const locationPart = withLocation && location ? ` (${location})` : '';
@@ -128,12 +146,15 @@ export function buildFillInSms(input: {
     return `Chairside: ${clinicName}${locationPart} ${verb} a fill-in for ${details}.${payPart} ${callToAction} Reply STOP to opt out.`;
   };
 
-  return fitSms([
-    build(input.clinicName, true, true),
-    build(input.clinicName, false, true),
-    build(input.clinicName, false, false),
-    build(truncateName(input.clinicName), false, false),
-  ]);
+  return fitSms(
+    [
+      build(input.clinicName, true, true),
+      build(input.clinicName, false, true),
+      build(input.clinicName, false, false),
+      build(truncateName(input.clinicName), false, false),
+    ],
+    maxLength,
+  );
 }
 
 /** Outreach text alert SMS (clinic messaged a worker directly about a fill-in). */

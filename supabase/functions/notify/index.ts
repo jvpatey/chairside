@@ -5,6 +5,7 @@ import {
   normalizeE164,
   pingramPost,
 } from '../_shared/pingram.ts';
+import { capturePosthogEvent } from '../_shared/posthog.ts';
 import { buildFillInSms, buildOutreachSms, formatTime12h, toGsmSafeSms } from '../_shared/sms.ts';
 
 const corsHeaders = {
@@ -153,16 +154,32 @@ function formatClinicLocation(clinic: { city?: string | null; province?: string 
   return '';
 }
 
+function getPublicWebBaseUrl(): string {
+  return (
+    Deno.env.get('APP_WEB_BASE_URL') ??
+    Deno.env.get('EXPO_PUBLIC_WEB_BASE_URL') ??
+    'https://chairsidedental.app'
+  ).replace(/\/$/, '');
+}
+
+function buildFillInListingUrl(shiftId: string): string {
+  return `${getPublicWebBaseUrl()}/f/${shiftId}?src=sms`;
+}
+
 function buildFillInAlertCopy(input: {
   clinicName: string;
   locationLabel: string;
-  shiftDate: string;
+  shiftDate?: string | null;
   startTime?: string | null;
   endTime?: string | null;
   compensation?: string | null;
   isUpdate?: boolean;
+  listingUrl?: string | null;
+  listingCta?: 'Apply' | 'Details' | null;
 }): { title: string; message: string; smsMessage: string } {
-  const dateLabel = formatShiftDateLabel(input.shiftDate);
+  const dateLabel = input.shiftDate?.trim()
+    ? formatShiftDateLabel(input.shiftDate)
+    : 'Schedule TBD';
   const timeRange =
     input.startTime && input.endTime ? formatShiftTimeRange(input.startTime, input.endTime) : null;
   const compensation = input.compensation?.trim();
@@ -369,17 +386,46 @@ function buildExpoPushPayload(input: {
 async function pingramSendSms(
   apiKey: string,
   apiBase: string,
-  input: { type: string; phone: string; message: string },
+  input: {
+    type: string;
+    phone: string;
+    message: string;
+    userId?: string | null;
+    properties?: Record<string, string | number | boolean | null | undefined>;
+  },
 ): Promise<string | null> {
-  const trackingId = await pingramPost(apiKey, apiBase, '/sms', {
-    type: input.type,
-    to: input.phone,
-    message: toGsmSafeSms(input.message),
-  });
-  console.log(
-    `[notify] pingram SMS accepted type=${input.type} to=${maskPhone(input.phone)} trackingId=${trackingId ?? 'none'}`,
-  );
-  return trackingId;
+  const distinctId = input.userId?.trim() || 'sms_anonymous';
+  try {
+    const trackingId = await pingramPost(apiKey, apiBase, '/sms', {
+      type: input.type,
+      to: input.phone,
+      message: toGsmSafeSms(input.message),
+    });
+    console.log(
+      `[notify] pingram SMS accepted type=${input.type} to=${maskPhone(input.phone)} trackingId=${trackingId ?? 'none'}`,
+    );
+    void capturePosthogEvent({
+      distinctId,
+      event: 'sms_sent',
+      properties: {
+        type: input.type,
+        tracking_id: trackingId,
+        ...input.properties,
+      },
+    });
+    return trackingId;
+  } catch (error) {
+    void capturePosthogEvent({
+      distinctId,
+      event: 'sms_failed',
+      properties: {
+        type: input.type,
+        error: 'send_failed',
+        ...input.properties,
+      },
+    });
+    throw error;
+  }
 }
 
 function isSmsReplyEnabled(): boolean {
@@ -592,6 +638,7 @@ async function sendUserAlert(
         type: input.type,
         phone: input.phone,
         message: input.smsMessage,
+        userId: input.userId,
       });
     } catch (error) {
       console.error(`[notify] pingram SMS failed for ${input.userId} type=${input.type}`, error);
@@ -838,6 +885,10 @@ async function handleMessageInsert(
         type: PINGRAM_TYPES.fillInOutreachSms,
         phone: e164,
         message: smsMessage,
+        userId: conversation.worker_id as string,
+        properties: {
+          conversation_id: conversation.id as string,
+        },
       });
     });
   }
@@ -1478,17 +1529,21 @@ async function handleShiftPostLive(
     locationLabel = formatClinicLocation(clinic ?? {});
   }
 
+  const listingUrl = buildFillInListingUrl(shiftId);
   const fillInCopyInput = {
     clinicName,
     locationLabel,
-    shiftDate,
+    shiftDate: typeof shiftDate === 'string' ? shiftDate : null,
     startTime,
     endTime,
     compensation,
     isUpdate: options.isUpdate === true,
+    listingUrl,
+    listingCta: isSourced ? ('Details' as const) : ('Apply' as const),
   };
   const fillInCopy = buildFillInAlertCopy(fillInCopyInput);
-  const smsReplyEnabled = isSmsReplyEnabled();
+  // YES-reply cover requests need a real clinic_id — never offer them for sourced ads.
+  const smsReplyEnabled = !isSourced && isSmsReplyEnabled();
   const recipients = await listFillInRecipients(
     supabase,
     {
@@ -1520,7 +1575,7 @@ async function handleShiftPostLive(
     notifiedRecipientIds.add(worker.id);
     const idempotencyKey = `${PINGRAM_TYPES.fillInPosted}:${shiftId}:${worker.id}:${updatedAt}`;
 
-    const deepLink = 'chairside:///(tabs)/fillins';
+    const deepLink = `chairside:///(tabs)/shift/${shiftId}`;
     const smsOptIn = clinicSmsAllowed && worker.fill_in_sms_opt_in === true;
     const e164 = smsOptIn ? normalizeE164(worker.phone as string | null) : null;
     if (smsOptIn && !e164) {
@@ -1558,7 +1613,7 @@ async function handleShiftPostLive(
               includePush: pushPreferences.get(worker.id) ?? true,
               includeSms: Boolean(smsOptIn && e164),
               smsMessage: replyCode
-                ? buildFillInSms({ ...fillInCopyInput, replyCode })
+                ? buildFillInSms({ ...fillInCopyInput, replyCode, listingUrl: null })
                 : fillInCopy.smsMessage,
             },
           );
@@ -2095,12 +2150,7 @@ async function handleClinicInvitationInsert(
     return;
   }
 
-  const webBase = (
-    Deno.env.get('APP_WEB_BASE_URL') ??
-    Deno.env.get('EXPO_PUBLIC_WEB_BASE_URL') ??
-    'https://chairsidedental.app'
-  ).replace(/\/$/, '');
-  const acceptUrl = `${webBase}/accept-invite?token=${encodeURIComponent(token)}`;
+  const acceptUrl = `${getPublicWebBaseUrl()}/accept-invite?token=${encodeURIComponent(token)}`;
 
   const [{ data: org }, { data: clinicProfile }, { data: inviterProfile }, locationsResult] =
     await Promise.all([

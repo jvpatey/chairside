@@ -29,13 +29,24 @@ Pingram is **not** used for in-app or mobile push.
    - [`121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) — Expo push tokens
    - [`123_user_notifications.sql`](../supabase/migrations/123_user_notifications.sql) — in-app inbox
 
-SMS copy is built in [`supabase/functions/_shared/sms.ts`](../supabase/functions/_shared/sms.ts) and must stay within **one 160-character GSM-7 segment** (Pingram bills per segment; Canada is US$0.015/segment and the free tier is about 60 Canadian segments a month). A single non-GSM character (en dash, curly quote, accented letter, emoji) switches the whole text to Unicode at 70 characters per segment, so every SMS goes through `toGsmSafeSms` and the fill-in copy drops the location, then the compensation, then shortens the clinic name until it fits. Run the tests with `cd supabase/functions && deno test _shared/sms.test.ts`.
+SMS copy is built in [`supabase/functions/_shared/sms.ts`](../supabase/functions/_shared/sms.ts). By default it stays within **one 160-character GSM-7 segment** (Pingram bills per segment; Canada is US$0.015/segment and the free tier is about 60 Canadian segments a month). When a public listing URL is included, the builder may use **up to two segments** (320 GSM-7 chars) so the link is never dropped. A single non-GSM character (en dash, curly quote, accented letter, emoji) switches the whole text to Unicode at 70 characters per segment, so every SMS goes through `toGsmSafeSms` and the fill-in copy drops the location, then the compensation, then shortens the clinic name until it fits. Run the tests with `cd supabase/functions && deno test _shared/sms.test.ts`.
 
-Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). The posting clinic must be on a paid plan (`starter`, `pro`, `group_starter`, or `group_pro` — `clinic_can_use_feature(..., 'fill_in_sms')`). The worker must have `fill_in_sms_opt_in=true`, a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift. Free clinics still get in-app + push alerts; SMS is skipped.
+Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). The posting clinic must be on a paid plan (`starter`, `pro`, `group_starter`, or `group_pro` — `clinic_can_use_feature(..., 'fill_in_sms')`). Sourced fill-ins bypass the clinic plan gate. The worker must have `fill_in_sms_opt_in=true`, a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift. Free clinics still get in-app + push alerts; SMS is skipped.
+
+SMS send/reply funnels are also captured in PostHog (`sms_sent`, `sms_reply_yes`, etc.). See [ANALYTICS.md](./ANALYTICS.md).
+
+### Public listing links in fill-in SMS
+
+When SMS reply codes are **off** (the default), fill-in texts include a short HTTPS link to a **public listing page** that does not require login:
+
+- Clinic-owned: `Apply: https://chairside.app/f/{shiftId}` — preview details + **Sign in to apply**
+- Sourced: `Details: https://chairside.app/f/{shiftId}` — preview + Call / Email / Open listing (no login)
+
+Permanent jobs use the same public preview at `/j/{id}` (no SMS today). Live-only safe fields come from the `get_public_listing` RPC ([`136_public_listing.sql`](../supabase/migrations/136_public_listing.sql)). Push deep links go to `chairside:///(tabs)/shift/{id}`. Universal links for `/f/*` and `/j/*` are registered in AASA + Android intent filters. Base URL comes from `APP_WEB_BASE_URL` / `EXPO_PUBLIC_WEB_BASE_URL` (fallback `https://chairsidedental.app`).
 
 ### Reply YES to request a fill-in (SMS replies)
 
-Workers can request a fill-in by replying to the fill-in text (`Reply YES 4821 to request.`). A reply creates a normal **cover request** (`applications` row, status `applied`); the clinic still confirms, and the existing `application_received` alert fires. The feature is **off** until `SMS_REPLY_ENABLED=true`, so fill-in texts stay link-only ("Open Chairside to apply") by default.
+Workers can request a fill-in by replying to the fill-in text (`Reply YES 4821 to request.`). A reply creates a normal **cover request** (`applications` row, status `applied`); the clinic still confirms, and the existing `application_received` alert fires. The feature is **off** until `SMS_REPLY_ENABLED=true`. When reply codes are enabled, clinic-owned fill-in texts use the YES CTA instead of the listing URL. **Sourced** fill-ins never get reply codes (no clinic inbox) — they always use the public Details link.
 
 Pieces:
 
@@ -60,7 +71,7 @@ Requires a **dedicated Pingram number**. On the free tier that is a one-time 7-d
 5. Test: post a fill-in from a paid clinic, then reply `YES <code>` from an opted-in test worker's phone. The application should appear for the clinic, and the worker should get "request sent". Also check an expired code, a filled shift, a second YES, an unknown number, and STOP then START (`fill_in_sms_opt_in` should flip to false, then back to true).
 6. Upgrade before the trial ends. A paid account can buy a released number back within two weeks.
 
-To turn replies off, `supabase secrets unset SMS_REPLY_ENABLED`. Texts go back to link-only, and inbound YES replies get a "use the app" answer.
+To turn replies off, `supabase secrets unset SMS_REPLY_ENABLED`. Texts go back to the public listing URL CTA, and inbound YES replies get a "use the app" answer.
 
 Other event type ids (`application_received`, `message_received`, etc.) remain in `packages/config/src/notifications.ts` as Chairside type ids for the Supabase inbox + Expo push payloads. They do **not** need Pingram templates.
 
@@ -199,8 +210,8 @@ eas build --profile production --platform ios
 | Worker application update | `/(tabs)/application/{application_id}` |
 | Clinic new applicant | `/(clinic-tabs)/applications` |
 | Manager joined team | `/(clinic-tabs)/profile/team` |
-| Fill-in alert | `/(tabs)/fillins` |
-| Job alert | `/(tabs)/browse` |
+| Fill-in alert | `/(tabs)/shift/{shiftId}` (SMS/public: `/f/{shiftId}`) |
+| Job alert | `/(tabs)/browse` (public share: `/j/{jobId}`) |
 
 ### Idempotency
 

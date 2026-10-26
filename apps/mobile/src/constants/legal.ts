@@ -1,5 +1,5 @@
 /** Shown on legal pages; update when policy copy changes materially. */
-export const LEGAL_LAST_UPDATED = 'August 16, 2026';
+export const LEGAL_LAST_UPDATED = 'October 26, 2026';
 
 /**
  * Production web origin for absolute legal URLs (App Store Connect).

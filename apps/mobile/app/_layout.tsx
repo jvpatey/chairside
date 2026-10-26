@@ -20,6 +20,7 @@ import { ToastProvider } from '@/contexts/ToastContext';
 
 import { PushRegistration } from '@/components/notifications/PushRegistration';
 import { WebAuthCallbackHandler } from '@/components/auth/WebAuthCallbackHandler';
+import { PostHogApp } from '@/components/analytics/PostHogApp';
 import { VercelAnalytics } from '@/components/analytics/VercelAnalytics';
 import { ConfirmActionSheetHost } from '@/lib/confirmActionSheet';
 import { armBootSplashFallback } from '@/lib/bootSplash';
@@ -72,6 +73,7 @@ export default function RootLayout() {
       <View style={{ flex: 1, backgroundColor: rootBackground }}>
       <ThemeProvider value={navigationTheme}>
       <AuthProvider>
+        <PostHogApp>
         <GetStartedBrowseProgressProvider>
         <ClinicProfileProvider>
           <ClinicBillingProvider>
@@ -101,6 +103,8 @@ export default function RootLayout() {
                   <Stack.Screen name="pricing" options={{ headerShown: false }} />
                   <Stack.Screen name="support" options={{ headerShown: false }} />
                   <Stack.Screen name="terms" options={{ headerShown: false }} />
+                  <Stack.Screen name="f/[id]" options={{ headerShown: false }} />
+                  <Stack.Screen name="j/[id]" options={{ headerShown: false }} />
                   <Stack.Screen name="admin" options={{ headerShown: false }} />
                   </Stack>
                   </ToastProvider>
@@ -111,6 +115,7 @@ export default function RootLayout() {
           </ClinicBillingProvider>
         </ClinicProfileProvider>
         </GetStartedBrowseProgressProvider>
+        </PostHogApp>
       </AuthProvider>
       </ThemeProvider>
       </View>

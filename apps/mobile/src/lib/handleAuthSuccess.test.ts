@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   resolveAuthenticatedRoute: vi.fn(),
   consumePendingSignupRole: vi.fn(),
   clearPendingSignupRole: vi.fn(),
+  consumePendingPublicListingHref: vi.fn(),
+  clearPendingPublicListingHref: vi.fn(),
+  captureAnalyticsEvent: vi.fn(),
 }));
 
 vi.mock('@chairside/api', () => ({
@@ -39,6 +42,15 @@ vi.mock('@/lib/pendingSignupRole', () => ({
   clearPendingSignupRole: mocks.clearPendingSignupRole,
 }));
 
+vi.mock('@/lib/pendingPublicListing', () => ({
+  consumePendingPublicListingHref: mocks.consumePendingPublicListingHref,
+  clearPendingPublicListingHref: mocks.clearPendingPublicListingHref,
+}));
+
+vi.mock('@/lib/analytics/posthog', () => ({
+  captureAnalyticsEvent: mocks.captureAnalyticsEvent,
+}));
+
 vi.mock('@/lib/resolveAuthenticatedRoute', () => ({
   resolveAuthenticatedRoute: mocks.resolveAuthenticatedRoute,
 }));
@@ -55,6 +67,8 @@ describe('handleAuthSuccess invite resume', () => {
     mocks.resolveAuthProfile.mockResolvedValue({ id: 'user-1', role: 'clinic' });
     mocks.consumePendingSignupRole.mockResolvedValue(null);
     mocks.clearPendingSignupRole.mockResolvedValue(undefined);
+    mocks.consumePendingPublicListingHref.mockResolvedValue(null);
+    mocks.clearPendingPublicListingHref.mockResolvedValue(undefined);
     mocks.clearClinicInviteToken.mockResolvedValue(undefined);
     mocks.resolveAuthenticatedRoute.mockResolvedValue({
       href: '/(clinic-tabs)',

@@ -1317,3 +1317,118 @@ export async function getWorkerDashboardCounts(
     pendingApplications,
   };
 }
+
+export type PublicListingKind = 'shift' | 'job';
+
+export type PublicListingBase = {
+  kind: PublicListingKind;
+  id: string;
+  status: 'live';
+  is_sourced: boolean;
+  role_type: RoleType;
+  clinic_name: string;
+  city: string | null;
+  province: string | null;
+  description: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  external_url: string | null;
+};
+
+export type PublicShiftListing = PublicListingBase & {
+  kind: 'shift';
+  shift_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  compensation: string | null;
+  urgency: ShiftUrgency | null;
+};
+
+export type PublicJobListing = PublicListingBase & {
+  kind: 'job';
+  title: string;
+  employment_type: EmploymentType;
+  wage_range: string | null;
+  schedule: string | null;
+  specialty: string | null;
+  start_date: string | null;
+  benefits: string | null;
+};
+
+export type PublicListing = PublicShiftListing | PublicJobListing;
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function mapPublicListing(raw: Record<string, unknown>): PublicListing | null {
+  const kind = raw.kind;
+  const id = typeof raw.id === 'string' ? raw.id : null;
+  if (!id || (kind !== 'shift' && kind !== 'job')) return null;
+
+  const base = {
+    id,
+    status: 'live' as const,
+    is_sourced: raw.is_sourced === true,
+    role_type: (typeof raw.role_type === 'string' ? raw.role_type : 'other') as RoleType,
+    clinic_name:
+      (typeof raw.clinic_name === 'string' && raw.clinic_name.trim()) || 'Clinic',
+    city: asNullableString(raw.city),
+    province: asNullableString(raw.province),
+    description: asNullableString(raw.description),
+    contact_phone: asNullableString(raw.contact_phone),
+    contact_email: asNullableString(raw.contact_email),
+    external_url: asNullableString(raw.external_url),
+  };
+
+  if (kind === 'shift') {
+    return {
+      ...base,
+      kind: 'shift',
+      shift_date: asNullableString(raw.shift_date),
+      start_time: asNullableString(raw.start_time),
+      end_time: asNullableString(raw.end_time),
+      compensation: asNullableString(raw.compensation),
+      urgency: (asNullableString(raw.urgency) as ShiftUrgency | null) ?? null,
+    };
+  }
+
+  return {
+    ...base,
+    kind: 'job',
+    title: (typeof raw.title === 'string' && raw.title.trim()) || 'Role',
+    employment_type: (typeof raw.employment_type === 'string'
+      ? raw.employment_type
+      : 'permanent') as EmploymentType,
+    wage_range: asNullableString(raw.wage_range),
+    schedule: asNullableString(raw.schedule),
+    specialty: asNullableString(raw.specialty),
+    start_date: asNullableString(raw.start_date),
+    benefits: asNullableString(raw.benefits),
+  };
+}
+
+/** Live listing preview for public SMS / share links (anon-safe columns only). */
+export async function getPublicListing(
+  kind: PublicListingKind,
+  id: string,
+): Promise<PublicListing | null> {
+  const trimmed = id.trim();
+  if (!trimmed) return null;
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_public_listing', {
+    p_kind: kind,
+    p_id: trimmed,
+  });
+
+  if (error) throw error;
+  if (data == null) return null;
+
+  const raw =
+    typeof data === 'object' && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null;
+  if (!raw) return null;
+  return mapPublicListing(raw);
+}

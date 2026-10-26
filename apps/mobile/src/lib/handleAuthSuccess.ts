@@ -1,6 +1,8 @@
 import { previewClinicManagerInvitation, resolveAuthProfile, setProfileRole } from '@chairside/api';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 
+import { AnalyticsEvents } from '@/lib/analytics/events';
+import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { isPasswordRecoveryPending } from '@/lib/authRecoveryState';
 import {
   buildClinicInviteAcceptHref,
@@ -11,7 +13,12 @@ import {
   clearPendingSignupRole,
   consumePendingSignupRole,
 } from '@/lib/pendingSignupRole';
+import {
+  clearPendingPublicListingHref,
+  consumePendingPublicListingHref,
+} from '@/lib/pendingPublicListing';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
+import { WORKER_HOME } from '@/lib/routing';
 import type { UserRole } from '@/types';
 
 export async function handleAuthSuccess(
@@ -62,6 +69,20 @@ export async function handleAuthSuccess(
 
   if (role) {
     await completeOnboarding(role);
+    captureAnalyticsEvent(AnalyticsEvents.authSignedIn, { role });
+  }
+
+  if (role === 'worker') {
+    const pendingListing = await consumePendingPublicListingHref();
+    if (
+      pendingListing &&
+      (href === WORKER_HOME || String(href).startsWith('/(tabs)'))
+    ) {
+      router.replace(pendingListing as Href);
+      return;
+    }
+  } else {
+    await clearPendingPublicListingHref();
   }
 
   router.replace(href);

@@ -64,7 +64,7 @@ Security rules (SQL RPC): exact invited-email match, 7-day expiry, one-time acce
 Installed apps should open invitation HTTPS links via:
 
 - iOS Associated Domains: `applinks:chairside.app`
-- Android verified intent filter for `https://chairside.app/accept-invite`
+- Android verified intent filters for `https://chairside.app/accept-invite`, `/f` (fill-in listings), and `/j` (job listings)
 
 Host from web static assets (served without SPA rewrite):
 

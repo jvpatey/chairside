@@ -1056,6 +1056,10 @@ export type Database = {
         Args: { p_shift_id: string };
         Returns: ShiftPostRow | null;
       };
+      get_public_listing: {
+        Args: { p_kind: string; p_id: string };
+        Returns: Record<string, unknown> | null;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

@@ -14,6 +14,8 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { ScreeningIntroCard } from '@/components/worker/screening/ScreeningIntroCard';
 import { ScreeningQuestionList } from '@/components/worker/screening/ScreeningQuestionList';
 import { useAuth } from '@/contexts/AuthContext';
+import { AnalyticsEvents } from '@/lib/analytics/events';
+import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { WORKER_APPLICATIONS } from '@/lib/routing';
 import {
   countAnsweredQuestions,
@@ -93,6 +95,11 @@ export default function ApplyScreeningScreen() {
           status: 'completed',
           answers: buildScreeningAnswersPayload(questions, answers),
         },
+      });
+      captureAnalyticsEvent(AnalyticsEvents.applySubmitted, {
+        target: 'job',
+        listing_id: jobId,
+        screening: true,
       });
       router.replace(WORKER_APPLICATIONS);
     } catch (error) {
