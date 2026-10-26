@@ -278,6 +278,7 @@ export function openShiftPostToCalendarEvent(
   location?: OpenShiftLocation | null,
   range?: CalendarEventRange,
 ): CalendarEvent | null {
+  if (!shift.shift_date) return null;
   if (!isWithinRange(shift.shift_date, range)) return null;
 
   const locationLabel = formatShiftLocationLabel(location);

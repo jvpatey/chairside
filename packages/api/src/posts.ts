@@ -75,9 +75,10 @@ export type ShiftPost = {
   posted_by_display_name?: string | null;
   posted_by_title?: string | null;
   role_type: RoleType;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
+  /** Null only for sourced fill-ins that omit schedule details. */
+  shift_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
   compensation: string | null;
   urgency: ShiftUrgency;
   description: string | null;
@@ -902,8 +903,8 @@ async function listSourcedLiveShiftPosts(province: string, today: string): Promi
     .eq('status', 'live')
     .eq('is_sourced', true)
     .eq('display_province', province)
-    .gte('shift_date', today)
-    .order('shift_date', { ascending: true });
+    .or(`shift_date.gte.${today},shift_date.is.null`)
+    .order('shift_date', { ascending: true, nullsFirst: false });
 
   if (error) throw error;
   return (data ?? []) as ShiftPost[];
@@ -979,7 +980,7 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
     posts.map((post) => post.clinic_id).filter((id): id is string => Boolean(id)),
   );
   return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
-    const dateCompare = left.shift_date.localeCompare(right.shift_date);
+    const dateCompare = (left.shift_date ?? '\uffff').localeCompare(right.shift_date ?? '\uffff');
     if (dateCompare !== 0) return dateCompare;
     return left.created_at.localeCompare(right.created_at);
   }).map((post) => attachPriorityListing(attachPostLocation(post, locationMap), planMap));
@@ -1005,6 +1006,7 @@ export async function getMatchingLiveShiftPosts(
   const liveShifts = await listLiveShiftPosts(province);
   return liveShifts.filter((shift) => {
     if (!roleSet.has(shift.role_type)) return false;
+    if (!shift.shift_date) return false;
     return daySet.has(shiftWeekday(shift.shift_date));
   });
 }
@@ -1122,7 +1124,7 @@ export async function getLiveShiftPost(shiftId: string): Promise<LiveShiftPost |
     .select('*')
     .eq('id', shiftId)
     .eq('status', 'live')
-    .gte('shift_date', today)
+    .or(`shift_date.gte.${today},and(shift_date.is.null,is_sourced.eq.true)`)
     .maybeSingle();
 
   if (error) throw error;
@@ -1178,7 +1180,7 @@ export async function listClinicDiscoverShiftPosts(
     posts.map((post) => post.clinic_id).filter((id): id is string => Boolean(id)),
   );
   return sortPostsByClinicPlanPriority(posts, planMap, (left, right) => {
-    const dateCompare = left.shift_date.localeCompare(right.shift_date);
+    const dateCompare = (left.shift_date ?? '\uffff').localeCompare(right.shift_date ?? '\uffff');
     if (dateCompare !== 0) return dateCompare;
     return left.created_at.localeCompare(right.created_at);
   }).map((post) => attachPriorityListing(attachPostLocation(post, locationMap), planMap));

@@ -15,7 +15,7 @@ export type LocationPostSource = {
 };
 
 export type LocationShiftSource = LocationPostSource & {
-  shift_date: string;
+  shift_date: string | null;
 };
 
 export type LocationApplicationSource = {
@@ -57,7 +57,7 @@ export function addDaysIso(today: string, days: number): string {
 }
 
 function isOpenFillIn(shift: LocationShiftSource, today: string): boolean {
-  return shift.status === 'live' && shift.shift_date >= today;
+  return shift.status === 'live' && Boolean(shift.shift_date) && shift.shift_date! >= today;
 }
 
 function isOpenRole(job: LocationPostSource): boolean {
@@ -150,6 +150,7 @@ export function buildWeekCoverageRows(input: {
 
   for (const shift of input.shifts) {
     if (shift.status !== 'live') continue;
+    if (!shift.shift_date) continue;
     if (shift.shift_date < today || shift.shift_date >= endExclusive) continue;
 
     const locationId = shift.location_id ?? input.fallbackLocationId ?? null;

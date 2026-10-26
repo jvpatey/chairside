@@ -33,9 +33,9 @@ export type SourcedRoleListing = SourcedListingShared & {
 
 export type SourcedFillInListing = SourcedListingShared & {
   kind: 'fill_in';
-  shiftDate: string;
-  startTime: string;
-  endTime: string;
+  shiftDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
   compensation: string | null;
   urgency: ShiftUrgency | string;
 };
@@ -62,9 +62,9 @@ export type CreateSourcedListingInput = {
   employmentType?: EmploymentType | string;
   wageRange?: string | null;
   schedule?: string | null;
-  shiftDate?: string;
-  startTime?: string;
-  endTime?: string;
+  shiftDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
   compensation?: string | null;
   urgency?: ShiftUrgency | string;
 };

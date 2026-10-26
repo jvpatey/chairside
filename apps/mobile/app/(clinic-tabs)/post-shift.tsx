@@ -43,7 +43,7 @@ const FILL_IN_ACCENT = 'secondary' as const;
 function applyShiftToForm(shift: ShiftPost) {
   return {
     roleType: shift.role_type,
-    shiftDate: shift.shift_date,
+    shiftDate: shift.shift_date ?? '',
     startTime: normalizeTime24h(shift.start_time),
     endTime: normalizeTime24h(shift.end_time),
     compensation: shift.compensation ?? '',

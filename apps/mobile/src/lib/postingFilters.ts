@@ -79,9 +79,9 @@ export function sortClinicFillInPosts(
           b.updated_at.localeCompare(a.updated_at) || b.created_at.localeCompare(a.created_at)
         );
       case 'shift_date': {
-        const dateCompare = a.shift_date.localeCompare(b.shift_date);
+        const dateCompare = (a.shift_date ?? '\uffff').localeCompare(b.shift_date ?? '\uffff');
         if (dateCompare !== 0) return dateCompare;
-        return a.start_time.localeCompare(b.start_time);
+        return (a.start_time ?? '').localeCompare(b.start_time ?? '');
       }
       case 'requests': {
         const diff = (requestCounts[b.id] ?? 0) - (requestCounts[a.id] ?? 0);
@@ -328,7 +328,7 @@ function matchesShiftDate(shift: ShiftPost, dateFilter: ShiftDateFilter): boolea
 
   switch (dateFilter) {
     case 'today':
-      return shift.shift_date === todayISO();
+      return (shift.shift_date ?? '') === todayISO();
     case 'upcoming':
       return shiftTime > todayTime;
     case 'past':
@@ -350,7 +350,7 @@ export function filterShiftPosts(
         matchesShiftDate(shift, dateFilter),
     )
     .sort((a, b) => {
-      const dateCompare = a.shift_date.localeCompare(b.shift_date);
+      const dateCompare = (a.shift_date ?? '\uffff').localeCompare(b.shift_date ?? '\uffff');
       if (dateCompare !== 0) return dateCompare;
       return b.created_at.localeCompare(a.created_at);
     });

@@ -220,13 +220,13 @@ function sortShifts(
       case 'distance': {
         const distanceCompare = compareDistanceAsc(a.distanceKm, b.distanceKm);
         if (distanceCompare !== 0) return distanceCompare;
-        return a.shift_date.localeCompare(b.shift_date);
+        return (a.shift_date ?? '\uffff').localeCompare(b.shift_date ?? '\uffff');
       }
       case 'oldest':
-        return a.shift_date.localeCompare(b.shift_date);
+        return (a.shift_date ?? '\uffff').localeCompare(b.shift_date ?? '\uffff');
       case 'newest':
       default:
-        return b.shift_date.localeCompare(a.shift_date);
+        return (b.shift_date ?? '').localeCompare(a.shift_date ?? '');
     }
   });
 }
@@ -283,6 +283,7 @@ export function filterAndSortLiveShifts(
       if (!matchesPayListedFilter(shift.compensation, filters.payListedFilter)) return false;
       if (filters.availabilityFilter === 'my_available_days') {
         if (availabilityDays.size === 0) return false;
+        if (!shift.shift_date) return false;
         if (!availabilityDays.has(shiftWeekday(shift.shift_date))) return false;
       }
       return true;

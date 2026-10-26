@@ -50,7 +50,8 @@ async function fetchShiftLocationMap(
   );
 }
 
-function isTodayOrUpcomingShiftDate(shiftDate: string): boolean {
+function isTodayOrUpcomingShiftDate(shiftDate: string | null | undefined): boolean {
+  if (!shiftDate) return false;
   const today = new Date().toISOString().slice(0, 10);
   return shiftDate >= today;
 }
@@ -94,6 +95,7 @@ export async function listClinicCalendarEvents(
     if (error) throw error;
 
     for (const shift of data ?? []) {
+      if (!shift.shift_date) continue;
       shiftMap.set(shift.id, {
         shiftDate: shift.shift_date,
         startTime: shift.start_time,

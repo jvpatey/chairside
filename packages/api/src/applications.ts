@@ -263,7 +263,7 @@ function buildWorkerShiftApplication(
   application: Application,
   shift?: {
     role_type: string;
-    shift_date: string;
+    shift_date: string | null;
     start_time: string | null;
     end_time: string | null;
     clinic_id: string;
@@ -1691,16 +1691,18 @@ export async function listFillInCoverRequests(
   if (!shifts?.length) return [];
 
   const shiftMap = new Map(
-    shifts.map((shift) => [
-      shift.id,
-      {
-        title: formatFillInPostTitle(shift.shift_date),
-        role_type: shift.role_type,
-        shift_date: shift.shift_date,
-        start_time: shift.start_time,
-        end_time: shift.end_time,
-      },
-    ]),
+    shifts
+      .filter((shift): shift is typeof shift & { shift_date: string } => Boolean(shift.shift_date))
+      .map((shift) => [
+        shift.id,
+        {
+          title: formatFillInPostTitle(shift.shift_date),
+          role_type: shift.role_type,
+          shift_date: shift.shift_date,
+          start_time: shift.start_time ?? '',
+          end_time: shift.end_time ?? '',
+        },
+      ]),
   );
 
   const shiftIds = shifts.map((shift) => shift.id);
@@ -1787,7 +1789,12 @@ export async function listUpcomingConfirmedFillIns(
 
   const today = new Date().toISOString().slice(0, 10);
   const shiftMap = new Map(
-    shifts.filter((shift) => shift.shift_date >= today).map((shift) => [shift.id, shift]),
+    shifts
+      .filter(
+        (shift): shift is typeof shift & { shift_date: string } =>
+          Boolean(shift.shift_date) && shift.shift_date! >= today,
+      )
+      .map((shift) => [shift.id, shift]),
   );
 
   if (shiftMap.size === 0) return [];
