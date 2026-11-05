@@ -16,7 +16,11 @@ export function getPostHogClient(): WebPostHog | null {
       api_host: config.host,
       capture_pageview: false,
       capture_pageleave: true,
-      disable_session_recording: true,
+      disable_session_recording: false,
+      session_recording: {
+        // Mask typed input so passwords / form fields are not stored in clear text.
+        maskAllInputs: true,
+      },
       persistence: 'localStorage+cookie',
     });
     posthog.register({ platform: 'web' });

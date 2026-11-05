@@ -18,7 +18,13 @@ export function getPostHogClient(): PostHog | null {
   client = new PostHog(config.apiKey, {
     host: config.host,
     captureAppLifecycleEvents: true,
-    enableSessionReplay: false,
+    enableSessionReplay: true,
+    sessionReplayConfig: {
+      // Defaults mask text inputs and images; keep that for staffing PII.
+      maskAllTextInputs: true,
+      maskAllImages: true,
+      captureLog: false,
+    },
   });
   client.register({
     platform: Platform.OS === 'ios' ? 'ios' : 'android',

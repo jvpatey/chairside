@@ -8,7 +8,7 @@ Chairside uses **PostHog** for product analytics across:
 
 Vercel Analytics remains enabled on web for anonymous page metrics.
 
-Session replay is **off**.
+Session replay is **on** (web + native). Typed inputs are masked; native also masks images by default. Replay must also be enabled in the PostHog project settings (Session replay).
 
 ## Environment
 
