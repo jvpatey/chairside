@@ -54,7 +54,9 @@ Use the **same PostHog project** for client and server so SMS → listing → ap
 | `$pageview` | Web Expo Router path changes |
 | Autocaptured screens | Native (PostHog provider) |
 | `listing_opened` | Public `/f` or `/j` listing loaded (`source`: `sms` \| `share` \| `direct`) |
-| `listing_contact_tapped` | Sourced Call / Email / Open |
+| `listing_contact_revealed` | Sourced public listing: Show phone / Show email |
+| `listing_contact_tapped` | Sourced Call / Email / Open (value link or button) |
+| `listing_contact_copied` | Sourced phone / email copy icon |
 | `listing_sign_in_to_apply_tapped` | Clinic public listing CTA |
 | `apply_started` | Worker starts apply / cover flow |
 | `cover_requested` / `apply_submitted` | Successful cover request or job application |

@@ -9,27 +9,31 @@ import {
   getSpecialtyLabel,
 } from '@chairside/config';
 import { Redirect, router, type Href } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DetailProse, DetailRow, RowDivider } from '@/components/clinic/DetailCard';
+import { DetailProse } from '@/components/clinic/DetailCard';
 import { PublicLegalPageHeader } from '@/components/legal/PublicLegalPageHeader';
 import { PublicLegalPageShell } from '@/components/legal/PublicLegalPageShell';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
+import { PillBadge } from '@/components/ui/PillBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
+import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { SourcedListingContactActions } from '@/components/worker/SourcedListingContactActions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { AnalyticsEvents, type ListingOpenSource } from '@/lib/analytics/events';
 import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
-import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
 import { savePendingPublicListingHref } from '@/lib/pendingPublicListing';
 import { isWorkerSetupComplete } from '@/lib/setupCompletion';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
+
+/** Tighter reading width than app dashboards — listing feels intentional on iPad. */
+const PUBLIC_LISTING_MAX_WIDTH = 600;
 
 function locationLabel(listing: PublicListing): string | null {
   const city = listing.city?.trim();
@@ -40,90 +44,155 @@ function locationLabel(listing: PublicListing): string | null {
   return null;
 }
 
-function PublicListingBody({ listing }: { listing: PublicListing }) {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    content: {
-      gap: spacing.lg,
+type Fact = { label: string; value: string };
+
+function listingFacts(listing: PublicListing): Fact[] {
+  const roleLabel = getRoleTypeLabel(listing.role_type);
+  if (listing.kind === 'shift') {
+    const facts: Fact[] = [
+      { label: 'Role', value: roleLabel },
+      { label: 'When', value: formatShiftPostMeta(listing) },
+    ];
+    if (listing.compensation?.trim()) {
+      facts.push({ label: 'Pay', value: listing.compensation.trim() });
+    }
+    return facts;
+  }
+
+  const facts: Fact[] = [
+    { label: 'Title', value: listing.title },
+    { label: 'Role', value: roleLabel },
+    { label: 'Type', value: getEmploymentTypeLabel(listing.employment_type) },
+  ];
+  if (listing.wage_range?.trim()) {
+    facts.push({ label: 'Pay', value: listing.wage_range.trim() });
+  }
+  if (listing.schedule?.trim()) {
+    facts.push({ label: 'Schedule', value: listing.schedule.trim() });
+  }
+  if (listing.specialty?.trim()) {
+    facts.push({ label: 'Specialty', value: getSpecialtyLabel(listing.specialty) });
+  }
+  return facts;
+}
+
+function FactGrid({ facts, twoColumn }: { facts: Fact[]; twoColumn: boolean }) {
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    grid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: spacing.md,
     },
-    clinicName: {
-      ...typography.label,
-      fontSize: 18,
-      color: colors.labelPrimary,
+    tile: {
+      gap: spacing.xs,
+      ...(twoColumn
+        ? {
+            width: '47%' as const,
+            flexGrow: 1,
+            minWidth: 140,
+          }
+        : {
+            width: '100%' as const,
+          }),
     },
-    location: {
-      ...typography.subtitle,
-      fontSize: 15,
+    tileDivider: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.separator,
+      paddingBottom: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    label: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600' as const,
+      letterSpacing: 0.2,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+    },
+    value: {
+      fontSize: 16,
       lineHeight: 22,
-      color: colors.labelSecondary,
-      marginTop: spacing.xs,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+      letterSpacing: -0.2,
     },
   }));
 
-  const place = locationLabel(listing);
-  const roleLabel = getRoleTypeLabel(listing.role_type);
+  return (
+    <View style={styles.grid}>
+      {facts.map((fact, index) => {
+        const isLast = index === facts.length - 1;
+        const showDivider = !twoColumn && !isLast;
+        return (
+          <View
+            key={`${fact.label}-${index}`}
+            style={[styles.tile, showDivider && styles.tileDivider]}>
+            <Text style={styles.label}>{fact.label}</Text>
+            <Text style={styles.value}>{fact.value}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function PublicListingBody({
+  listing,
+  twoColumn,
+}: {
+  listing: PublicListing;
+  twoColumn: boolean;
+}) {
+  const styles = useThemedStyles(({ spacing }) => ({
+    content: {
+      gap: spacing.lg,
+    },
+  }));
+
+  const facts = useMemo(() => listingFacts(listing), [listing]);
+  const description = listing.description?.trim() || null;
 
   return (
     <View style={styles.content}>
       <SurfaceCard>
-        <Text style={styles.clinicName}>{listing.clinic_name}</Text>
-        {place ? <Text style={styles.location}>{place}</Text> : null}
+        <FactGrid facts={facts} twoColumn={twoColumn} />
       </SurfaceCard>
 
-      <SurfaceCard>
-        {listing.kind === 'shift' ? (
-          <>
-            <DetailRow label="Role" value={roleLabel} />
-            <RowDivider />
-            <DetailRow label="When" value={formatShiftPostMeta(listing)} />
-            {listing.compensation?.trim() ? (
-              <>
-                <RowDivider />
-                <DetailRow label="Pay" value={listing.compensation.trim()} />
-              </>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <DetailRow label="Title" value={listing.title} />
-            <RowDivider />
-            <DetailRow label="Role" value={roleLabel} />
-            <RowDivider />
-            <DetailRow
-              label="Type"
-              value={getEmploymentTypeLabel(listing.employment_type)}
-            />
-            {listing.wage_range?.trim() ? (
-              <>
-                <RowDivider />
-                <DetailRow label="Pay" value={listing.wage_range.trim()} />
-              </>
-            ) : null}
-            {listing.schedule?.trim() ? (
-              <>
-                <RowDivider />
-                <DetailRow label="Schedule" value={listing.schedule.trim()} />
-              </>
-            ) : null}
-            {listing.specialty?.trim() ? (
-              <>
-                <RowDivider />
-                <DetailRow
-                  label="Specialty"
-                  value={getSpecialtyLabel(listing.specialty)}
-                />
-              </>
-            ) : null}
-          </>
-        )}
-      </SurfaceCard>
-
-      {listing.description?.trim() ? (
+      {description ? (
         <SurfaceCard>
-          <DetailProse text={listing.description.trim()} />
+          <DetailProse text={description} />
         </SurfaceCard>
       ) : null}
     </View>
   );
+}
+
+function ListingCtaFooter({
+  listing,
+  onSignInToApply,
+  onContactTap,
+  onContactReveal,
+  onContactCopy,
+}: {
+  listing: PublicListing;
+  onSignInToApply: () => void;
+  onContactTap: (method: 'phone' | 'email' | 'url') => void;
+  onContactReveal: (method: 'phone' | 'email') => void;
+  onContactCopy: (method: 'phone' | 'email') => void;
+}) {
+  if (listing.is_sourced) {
+    return (
+      <SourcedListingContactActions
+        contact={listing}
+        revealBeforeShow
+        onContactTap={onContactTap}
+        onContactReveal={onContactReveal}
+        onContactCopy={onContactCopy}
+      />
+    );
+  }
+
+  return <OnboardingButton label="Sign in to apply" onPress={onSignInToApply} />;
 }
 
 export function PublicListingPage({
@@ -136,6 +205,7 @@ export function PublicListingPage({
   source?: ListingOpenSource;
 }) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const { isCompact } = useResponsiveLayout();
   const { session, profile, isAuthReady } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
@@ -145,6 +215,9 @@ export function PublicListingPage({
   const openedTrackedRef = useRef<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+    root: {
+      flex: 1,
+    },
     page: {
       flex: 1,
       backgroundColor: 'transparent',
@@ -153,27 +226,45 @@ export function PublicListingPage({
       flexGrow: 1,
       paddingHorizontal: isCompact ? spacing.md : spacing.lg,
       paddingTop: insets.top + (isCompact ? spacing.md : spacing.lg),
-      paddingBottom: insets.bottom + (isCompact ? spacing.lg : spacing.xl),
+      paddingBottom: isCompact
+        ? spacing.xl + 8
+        : insets.bottom + spacing.xl,
       alignSelf: 'center' as const,
       width: '100%' as const,
-      maxWidth: CONTENT_MAX_WIDTH.regular,
+      maxWidth: PUBLIC_LISTING_MAX_WIDTH,
       gap: spacing.lg,
     },
-    title: {
+    hero: {
+      gap: spacing.sm,
+    },
+    clinicName: {
       ...typography.title,
-      fontSize: isCompact ? 28 : 32,
-      lineHeight: isCompact ? 34 : 38,
-      letterSpacing: -0.4,
+      fontSize: isCompact ? 28 : 34,
+      lineHeight: isCompact ? 34 : 40,
+      letterSpacing: -0.5,
       color: colors.labelPrimary,
     },
-    subtitle: {
+    location: {
       ...typography.body,
+      fontSize: 16,
+      lineHeight: 22,
       color: colors.labelSecondary,
-      marginTop: spacing.xs,
     },
-    footer: {
+    stickyFooter: {
+      borderTopWidth: 1,
+      borderTopColor: colors.separator,
+      backgroundColor: colors.background,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: insets.bottom + spacing.md,
       gap: spacing.sm,
-      marginTop: spacing.md,
+      alignSelf: 'center' as const,
+      width: '100%' as const,
+      maxWidth: PUBLIC_LISTING_MAX_WIDTH,
+    },
+    inlineFooter: {
+      gap: spacing.sm,
+      marginTop: spacing.sm,
     },
   }));
 
@@ -249,6 +340,30 @@ export function PublicListingPage({
     [id, kind, source],
   );
 
+  const handleContactReveal = useCallback(
+    (method: 'phone' | 'email') => {
+      captureAnalyticsEvent(AnalyticsEvents.listingContactRevealed, {
+        kind,
+        listing_id: id,
+        method,
+        source,
+      });
+    },
+    [id, kind, source],
+  );
+
+  const handleContactCopy = useCallback(
+    (method: 'phone' | 'email') => {
+      captureAnalyticsEvent(AnalyticsEvents.listingContactCopied, {
+        kind,
+        listing_id: id,
+        method,
+        source,
+      });
+    },
+    [id, kind, source],
+  );
+
   const workerReady =
     isAuthReady &&
     Boolean(session) &&
@@ -260,40 +375,87 @@ export function PublicListingPage({
     return <Redirect href={inAppHref} />;
   }
 
-  const title = kind === 'shift' ? 'Fill-in' : 'Role';
   const notFoundSubtitle = loadError
     ? 'Could not load this listing.'
     : 'This listing is no longer available.';
 
+  const kindLabel = kind === 'shift' ? 'Fill-in' : 'Role';
+  const kindAccent =
+    kind === 'shift'
+      ? {
+          color: colors.secondary,
+          backgroundColor: colors.secondarySubtle,
+        }
+      : {
+          color: colors.primary,
+          backgroundColor: colors.primarySubtle,
+        };
+
+  const place = listing ? locationLabel(listing) : null;
+  const stickyCta = Boolean(isCompact && listing);
+
+  const ctaProps = listing
+    ? {
+        listing,
+        onSignInToApply: handleSignInToApply,
+        onContactTap: handleContactTap,
+        onContactReveal: handleContactReveal,
+        onContactCopy: handleContactCopy,
+      }
+    : null;
+
   return (
     <PublicLegalPageShell>
-      <ScrollView style={styles.page} contentContainerStyle={styles.scrollContent}>
-        <PublicLegalPageHeader />
-        <View>
-          <Text style={styles.title}>{title}</Text>
-          {listing ? (
-            <Text style={styles.subtitle}>{listing.clinic_name}</Text>
-          ) : !isLoading ? (
-            <Text style={styles.subtitle}>{notFoundSubtitle}</Text>
-          ) : null}
-        </View>
+      <View style={styles.root}>
+        <ScrollView
+          style={styles.page}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled">
+          <PublicLegalPageHeader />
 
-        {isLoading ? <PageLoadingDetail /> : null}
-        {listing ? <PublicListingBody listing={listing} /> : null}
-
-        {listing ? (
-          <View style={styles.footer}>
-            {listing.is_sourced ? (
-              <SourcedListingContactActions
-                contact={listing}
-                onContactTap={handleContactTap}
-              />
+          <WebPageEnter style={styles.hero}>
+            <PillBadge
+              label={kindLabel}
+              color={kindAccent.color}
+              backgroundColor={kindAccent.backgroundColor}
+              size="sm"
+            />
+            {listing ? (
+              <>
+                <Text style={styles.clinicName}>{listing.clinic_name}</Text>
+                {place ? <Text style={styles.location}>{place}</Text> : null}
+              </>
+            ) : !isLoading ? (
+              <>
+                <Text style={styles.clinicName}>{kindLabel}</Text>
+                <Text style={styles.location}>{notFoundSubtitle}</Text>
+              </>
             ) : (
-              <OnboardingButton label="Sign in to apply" onPress={handleSignInToApply} />
+              <Text style={styles.clinicName}>{kindLabel}</Text>
             )}
+          </WebPageEnter>
+
+          {isLoading ? <PageLoadingDetail /> : null}
+
+          {listing ? (
+            <WebPageEnter delayMs={120}>
+              <PublicListingBody listing={listing} twoColumn={!isCompact} />
+            </WebPageEnter>
+          ) : null}
+
+          {listing && !stickyCta && ctaProps ? (
+            <WebPageEnter delayMs={200} style={styles.inlineFooter}>
+              <ListingCtaFooter {...ctaProps} />
+            </WebPageEnter>
+          ) : null}
+        </ScrollView>
+
+        {stickyCta && ctaProps ? (
+          <View style={styles.stickyFooter}>
+            <ListingCtaFooter {...ctaProps} />
           </View>
         ) : null}
-      </ScrollView>
+      </View>
     </PublicLegalPageShell>
   );
 }
