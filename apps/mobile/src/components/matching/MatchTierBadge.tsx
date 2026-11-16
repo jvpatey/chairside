@@ -16,6 +16,11 @@ type MatchTierBadgeProps = {
   audience?: MatchDetailAudience;
   /** Use a contrasting pill surface when the badge sits on a tinted row background. */
   onTintedSurface?: boolean;
+  /**
+   * When false, render a static pill (no nested <button> inside pressable listing cards).
+   * Match details remain available on the listing detail screen.
+   */
+  interactive?: boolean;
 };
 
 export function MatchTierBadge({
@@ -25,6 +30,7 @@ export function MatchTierBadge({
   showProfileHint = false,
   audience = 'worker',
   onTintedSurface = false,
+  interactive = true,
 }: MatchTierBadgeProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const { colors } = useTheme();
@@ -39,18 +45,22 @@ export function MatchTierBadge({
         color={palette.color}
         backgroundColor={onTintedSurface ? colors.surface : palette.backgroundColor}
         borderColor={onTintedSurface ? palette.borderColor : undefined}
-        accessibilityLabel={`${label}. Tap for details.`}
-        onPress={() => setModalVisible(true)}
+        accessibilityLabel={
+          interactive ? `${label}. Tap for details.` : label
+        }
+        onPress={interactive ? () => setModalVisible(true) : undefined}
       />
-      <MatchDetailModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        breakdown={breakdown}
-        context={displayContext}
-        subtitle={subtitle}
-        showProfileHint={showProfileHint}
-        audience={audience}
-      />
+      {interactive ? (
+        <MatchDetailModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          breakdown={breakdown}
+          context={displayContext}
+          subtitle={subtitle}
+          showProfileHint={showProfileHint}
+          audience={audience}
+        />
+      ) : null}
     </>
   );
 }

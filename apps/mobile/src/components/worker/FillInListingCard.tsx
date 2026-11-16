@@ -98,7 +98,7 @@ export function FillInListingCard({
         }
         metaRows={metaRows}
         topTrailing={stackBadge ? null : featuredBadge}
-        onPress={onPress}
+        // SurfaceCard owns the row press — avoid nested <button> on web.
         showChevron={Boolean(onPress)}
       />
     </SurfaceCard>

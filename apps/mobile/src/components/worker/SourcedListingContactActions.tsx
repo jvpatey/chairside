@@ -180,7 +180,7 @@ function ContactChannelRow({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         style={({ pressed, hovered }) => [
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           webPointer(),
           webHover(hovered, pressed, webListRowHoverStyles(colors)),
           pressed && { opacity: 0.92 },

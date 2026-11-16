@@ -211,40 +211,40 @@ export function GetStartedChecklistCard({
           </View>
         </>
       ) : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Getting started. ${completedCount} of ${items.length} complete. Next: ${nextItem.title}`}
-          onPress={() => setExpanded(true)}
-          style={({ pressed }) => [styles.collapsed, pressed && { opacity: 0.92 }]}>
+        <View style={styles.collapsed}>
           <View style={styles.collapsedRow}>
-            <ProgressRing completed={completedCount} total={items.length} />
-            <View style={styles.collapsedText}>
-              <Text style={styles.title}>
-                {completedCount} of {items.length} complete
-              </Text>
-              <Text style={styles.nextTitle} numberOfLines={1}>
-                Next: {nextItem.title}
-              </Text>
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {subtitle}
-              </Text>
-            </View>
-            <View style={styles.controls}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Dismiss getting started checklist"
-                onPress={(event) => {
-                  event.stopPropagation();
-                  onDismiss();
-                }}
-                hitSlop={8}
-                style={styles.iconButton}>
-                <Ionicons name="close" size={18} color={colors.labelSecondary} />
-              </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Getting started. ${completedCount} of ${items.length} complete. Next: ${nextItem.title}`}
+              onPress={() => setExpanded(true)}
+              style={({ pressed }) => [
+                { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 },
+                pressed && { opacity: 0.92 },
+              ]}>
+              <ProgressRing completed={completedCount} total={items.length} />
+              <View style={styles.collapsedText}>
+                <Text style={styles.title}>
+                  {completedCount} of {items.length} complete
+                </Text>
+                <Text style={styles.nextTitle} numberOfLines={1}>
+                  Next: {nextItem.title}
+                </Text>
+                <Text style={styles.subtitle} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              </View>
               <Ionicons name="chevron-down" size={18} color={colors.labelSecondary} />
-            </View>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss getting started checklist"
+              onPress={onDismiss}
+              hitSlop={8}
+              style={styles.iconButton}>
+              <Ionicons name="close" size={18} color={colors.labelSecondary} />
+            </Pressable>
           </View>
-        </Pressable>
+        </View>
       )}
     </View>
   );

@@ -73,6 +73,8 @@ export function RoleListingCard({
         context={matchContext}
         subtitle={job.title}
         showProfileHint
+        // Avoid <button> inside SurfaceCard's pressable on web.
+        interactive={!onPress}
       />
     ) : null;
 
@@ -118,7 +120,7 @@ export function RoleListingCard({
         }
         metaRows={metaRows}
         topTrailing={stackBadges ? null : badgeRow}
-        onPress={onPress}
+        // SurfaceCard owns the row press — avoid nested <button> on web.
         showChevron={Boolean(onPress)}
       />
     </SurfaceCard>

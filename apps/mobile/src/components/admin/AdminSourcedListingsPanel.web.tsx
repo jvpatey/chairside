@@ -5,6 +5,7 @@ import {
   Text,
   TextInput,
   View,
+  type KeyboardTypeOptions,
 } from 'react-native';
 
 import {
@@ -22,12 +23,25 @@ import {
 import {
   EMPLOYMENT_TYPE_OPTIONS,
   ROLE_TYPE_OPTIONS,
+  URGENCY_OPTIONS,
   getProvinceLabel,
   getRoleTypeLabel,
 } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 
+import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { CompensationInput } from '@/components/clinic/CompensationInput';
+import { ShiftDateInput } from '@/components/clinic/ShiftDateInput';
+import { TimeRangeInput } from '@/components/clinic/TimeRangeInput';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormFieldLabel } from '@/components/ui/FormFieldLabel';
+import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
+import {
+  formFieldInputRowFocusedStyle,
+  formFieldInputRowStyle,
+  formFieldInputStyle,
+} from '@/theme/formFieldTokens';
 import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type Tab = SourcedListingKind;
@@ -39,6 +53,11 @@ const PROVINCE_OPTIONS = [
   { value: 'PE', label: 'Prince Edward Island' },
   { value: 'NL', label: 'Newfoundland and Labrador' },
 ] as const;
+
+/** Sourced roles are permanent/part-time/temp — fill-in uses the fill-in tab. */
+const SOURCED_ROLE_EMPLOYMENT_OPTIONS = EMPLOYMENT_TYPE_OPTIONS.filter(
+  (option) => option.value !== 'fill-in',
+);
 
 type FormState = {
   displayClinicName: string;
@@ -58,6 +77,7 @@ type FormState = {
   startTime: string;
   endTime: string;
   compensation: string;
+  urgency: string;
 };
 
 function emptyForm(kind: SourcedListingKind): FormState {
@@ -71,7 +91,7 @@ function emptyForm(kind: SourcedListingKind): FormState {
     externalUrl: '',
     adminNotes: '',
     description: '',
-    title: kind === 'role' ? '' : '',
+    title: '',
     employmentType: 'permanent',
     wageRange: '',
     schedule: '',
@@ -79,6 +99,7 @@ function emptyForm(kind: SourcedListingKind): FormState {
     startTime: '',
     endTime: '',
     compensation: '',
+    urgency: 'normal',
   };
 }
 
@@ -98,7 +119,8 @@ function formFromListing(listing: SourcedListing): FormState {
     ...(listing.kind === 'role'
       ? {
           title: listing.title,
-          employmentType: listing.employmentType,
+          employmentType:
+            listing.employmentType === 'fill-in' ? 'temp' : listing.employmentType,
           wageRange: listing.wageRange ?? '',
           schedule: listing.schedule ?? '',
         }
@@ -107,144 +129,94 @@ function formFromListing(listing: SourcedListing): FormState {
           startTime: listing.startTime?.slice(0, 5) ?? '',
           endTime: listing.endTime?.slice(0, 5) ?? '',
           compensation: listing.compensation ?? '',
+          urgency: listing.urgency || 'normal',
         }),
   };
 }
 
-function Field({
+function validateSourcedForm(
+  form: FormState,
+  kind: SourcedListingKind,
+): string | null {
+  if (!form.displayClinicName.trim()) return 'Clinic name is required.';
+  if (!form.displayCity.trim()) return 'City is required.';
+  if (!form.displayProvince.trim()) return 'Province is required.';
+  if (kind === 'role' && !form.title.trim()) return 'Role title is required.';
+  const hasContact = Boolean(
+    form.contactPhone.trim() || form.contactEmail.trim() || form.externalUrl.trim(),
+  );
+  if (!hasContact) return 'Add at least one contact method (phone, email, or URL).';
+  return null;
+}
+
+function AdminFormField({
   label,
   value,
   onChangeText,
   placeholder,
   multiline,
+  required,
   minWidth = 160,
   fullWidth,
+  keyboardType,
+  autoCapitalize,
+  autoCorrect,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  required?: boolean;
   minWidth?: number;
-  /** Full-width block field (default for multiline). */
   fullWidth?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoCorrect?: boolean;
 }) {
+  const { colors } = useTheme();
+  const [focused, setFocused] = useState(false);
   const isFullWidth = fullWidth ?? Boolean(multiline);
-  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
+
+  const styles = useThemedStyles((theme) => ({
     wrap: isFullWidth
       ? {
-          gap: 4,
+          gap: theme.spacing.sm,
           alignSelf: 'stretch' as const,
           width: '100%' as const,
         }
       : {
-          gap: 4,
+          gap: theme.spacing.sm,
           flexGrow: 1,
           flexShrink: 1,
         },
-    label: {
-      fontFamily: fontSemibold,
-      fontSize: 12,
-      color: colors.labelSecondary,
-    },
+    row: formFieldInputRowStyle(theme, { multiline }),
+    rowFocused: formFieldInputRowFocusedStyle(theme),
     input: {
-      borderWidth: 1,
-      borderColor: colors.separator,
-      backgroundColor: colors.surface,
-      borderRadius: radii.md,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
-      fontFamily: fontRegular,
-      fontSize: 14,
-      color: colors.labelPrimary,
-      minHeight: multiline ? 72 : 40,
-      textAlignVertical: multiline ? 'top' : 'center',
+      ...formFieldInputStyle(theme, { multiline }),
+      flex: 1,
+      minHeight: multiline ? 88 : undefined,
+      textAlignVertical: multiline ? ('top' as const) : ('center' as const),
     },
   }));
 
   return (
-    <View
-      style={[styles.wrap, !isFullWidth && { flexBasis: minWidth, minWidth }]}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
-        multiline={multiline}
-        style={styles.input}
-      />
-    </View>
-  );
-}
-
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: ReadonlyArray<{ value: string; label: string }>;
-  onChange: (value: string) => void;
-}) {
-  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
-    wrap: { gap: 4, flex: 1, minWidth: 140 },
-    label: {
-      fontFamily: fontSemibold,
-      fontSize: 12,
-      color: colors.labelSecondary,
-    },
-    row: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.xs,
-    },
-    chip: {
-      borderWidth: 1,
-      borderColor: colors.separator,
-      borderRadius: radii.pill,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 6,
-      backgroundColor: colors.surface,
-      ...webPointer(),
-    },
-    chipActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.fillSubtle,
-    },
-    chipLabel: {
-      fontFamily: fontSemibold,
-      fontSize: 12,
-      color: colors.labelSecondary,
-    },
-    chipLabelActive: {
-      color: colors.primary,
-    },
-  }));
-
-  return (
-    <View style={styles.wrap}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.row}>
-        {options.map((option) => {
-          const active = option.value === value;
-          return (
-            <Pressable
-              key={option.value}
-              onPress={() => onChange(option.value)}
-              style={({ hovered, pressed }) => [
-                styles.chip,
-                active && styles.chipActive,
-                webHover(hovered, pressed, { opacity: 0.9 }),
-              ]}>
-              <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+    <View style={[styles.wrap, !isFullWidth && { flexBasis: minWidth, minWidth }]}>
+      <FormFieldLabel label={label} required={required} />
+      <View style={[styles.row, focused && styles.rowFocused]}>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.labelTertiary}
+          multiline={multiline}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={styles.input}
+        />
       </View>
     </View>
   );
@@ -257,7 +229,8 @@ export function AdminSourcedListingsPanel() {
   const [fillIns, setFillIns] = useState<SourcedFillInListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<FormMode | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm('role'));
 
@@ -320,11 +293,6 @@ export function AdminSourcedListingsPanel() {
       color: colors.primary,
     },
     dangerLabel: { color: colors.destructive },
-    error: {
-      fontFamily: fontRegular,
-      fontSize: 13,
-      color: colors.destructive,
-    },
     empty: {
       fontFamily: fontRegular,
       fontSize: 13,
@@ -373,25 +341,33 @@ export function AdminSourcedListingsPanel() {
       borderColor: colors.separator,
       borderRadius: radii.lg,
       backgroundColor: colors.surface,
-      padding: spacing.md,
-      gap: spacing.md,
+      padding: spacing.lg,
+      gap: spacing.lg,
       alignSelf: 'stretch',
       width: '100%',
     },
     formTitle: {
       fontFamily: fontSemibold,
-      fontSize: 16,
+      fontSize: 18,
       color: colors.labelPrimary,
+      letterSpacing: -0.2,
+    },
+    formSection: {
+      gap: spacing.md,
     },
     formRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.sm,
+      gap: spacing.md,
+    },
+    formStack: {
+      gap: spacing.md,
     },
     formActions: {
       flexDirection: 'row',
       gap: spacing.sm,
       flexWrap: 'wrap',
+      paddingTop: spacing.xs,
     },
     secondaryBtn: {
       paddingHorizontal: spacing.md,
@@ -411,13 +387,13 @@ export function AdminSourcedListingsPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setListError(null);
     try {
       const payload = await listAdminSourcedListings('all');
       setRoles(payload.roles);
       setFillIns(payload.fillIns);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load sourced listings.');
+      setListError(err instanceof Error ? err.message : 'Could not load sourced listings.');
     } finally {
       setLoading(false);
     }
@@ -435,23 +411,29 @@ export function AdminSourcedListingsPanel() {
   const openCreate = (kind: SourcedListingKind) => {
     setFormMode({ mode: 'create', kind });
     setForm(emptyForm(kind));
-    setError(null);
+    setFormError(null);
   };
 
   const openEdit = (listing: SourcedListing) => {
     setFormMode({ mode: 'edit', kind: listing.kind, listing });
     setForm(formFromListing(listing));
-    setError(null);
+    setFormError(null);
   };
 
   const closeForm = () => {
     setFormMode(null);
+    setFormError(null);
     setSaving(false);
   };
 
   const patchForm = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setFormError(null);
   };
+
+  const handleCompensationChange = useCallback((compensation: string) => {
+    setForm((prev) => ({ ...prev, compensation }));
+  }, []);
 
   const buildPayload = (): CreateSourcedListingInput => {
     if (!formMode) throw new Error('No form');
@@ -478,14 +460,21 @@ export function AdminSourcedListingsPanel() {
             startTime: form.startTime.trim() || null,
             endTime: form.endTime.trim() || null,
             compensation: form.compensation.trim() || null,
+            urgency: form.urgency || 'normal',
           }),
     };
   };
 
   const handleSave = async () => {
     if (!formMode) return;
+    const validationError = validateSourcedForm(form, formMode.kind);
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
     setSaving(true);
-    setError(null);
+    setFormError(null);
     try {
       const payload = buildPayload();
       if (formMode.mode === 'create') {
@@ -500,13 +489,13 @@ export function AdminSourcedListingsPanel() {
       closeForm();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save listing.');
+      setFormError(err instanceof Error ? err.message : 'Could not save listing.');
       setSaving(false);
     }
   };
 
   const handleSetStatus = async (listing: SourcedListing, status: string) => {
-    setError(null);
+    setListError(null);
     try {
       await setAdminSourcedListingStatus({
         kind: listing.kind,
@@ -515,7 +504,7 @@ export function AdminSourcedListingsPanel() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not update status.');
+      setListError(err instanceof Error ? err.message : 'Could not update status.');
     }
   };
 
@@ -525,15 +514,20 @@ export function AdminSourcedListingsPanel() {
         ? window.confirm(`Delete sourced listing for ${listing.displayClinicName}?`)
         : false;
     if (!confirmed) return;
-    setError(null);
+    setListError(null);
     try {
       await deleteAdminSourcedListing({ kind: listing.kind, id: listing.id });
       if (formMode?.listing?.id === listing.id) closeForm();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete listing.');
+      setListError(err instanceof Error ? err.message : 'Could not delete listing.');
     }
   };
+
+  const formAccent = formMode?.kind === 'fill_in' ? 'secondary' : 'primary';
+  const compensationKey = formMode
+    ? `${formMode.mode}-${formMode.listing?.id ?? 'new'}-${formMode.kind}`
+    : 'idle';
 
   return (
     <View style={styles.root}>
@@ -579,7 +573,7 @@ export function AdminSourcedListingsPanel() {
         </Pressable>
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {listError ? <FormErrorBanner message={listError} /> : null}
 
       {formMode ? (
         <View style={styles.form}>
@@ -587,128 +581,234 @@ export function AdminSourcedListingsPanel() {
             {formMode.mode === 'create' ? 'New' : 'Edit'}{' '}
             {formMode.kind === 'role' ? 'sourced role' : 'sourced fill-in'}
           </Text>
-          <View style={styles.formRow}>
-            <Field
-              label="Clinic name"
-              value={form.displayClinicName}
-              onChangeText={(v) => patchForm('displayClinicName', v)}
-              minWidth={200}
+
+          <View style={styles.formSection}>
+            <FormSectionHeader
+              icon="business-outline"
+              label="Clinic & location"
+              required
+              accent={formAccent}
             />
-            <Field
-              label="City"
-              value={form.displayCity}
-              onChangeText={(v) => patchForm('displayCity', v)}
-              minWidth={160}
-            />
-          </View>
-          <SelectField
-            label="Province"
-            value={form.displayProvince}
-            options={PROVINCE_OPTIONS}
-            onChange={(v) => patchForm('displayProvince', v)}
-          />
-          <SelectField
-            label="Role"
-            value={form.roleType}
-            options={ROLE_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-            onChange={(v) => patchForm('roleType', v)}
-          />
-          {formMode.kind === 'role' ? (
-            <>
-              <Field
-                label="Title"
-                value={form.title}
-                onChangeText={(v) => patchForm('title', v)}
-                placeholder="e.g. Full-time Hygienist"
-              />
-              <SelectField
-                label="Employment type"
-                value={form.employmentType}
-                options={EMPLOYMENT_TYPE_OPTIONS.map((o) => ({
-                  value: o.value,
-                  label: o.label,
-                }))}
-                onChange={(v) => patchForm('employmentType', v)}
-              />
-              <View style={styles.formRow}>
-                <Field
-                  label="Wage range (optional)"
-                  value={form.wageRange}
-                  onChangeText={(v) => patchForm('wageRange', v)}
-                  minWidth={220}
-                />
-                <Field
-                  label="Schedule (optional)"
-                  value={form.schedule}
-                  onChangeText={(v) => patchForm('schedule', v)}
-                  minWidth={220}
-                />
-              </View>
-            </>
-          ) : (
             <View style={styles.formRow}>
-              <Field
-                label="Shift date (YYYY-MM-DD, optional)"
-                value={form.shiftDate}
-                onChangeText={(v) => patchForm('shiftDate', v)}
-                placeholder="2026-10-20"
-                minWidth={200}
+              <AdminFormField
+                label="Clinic name"
+                required
+                value={form.displayClinicName}
+                onChangeText={(v) => patchForm('displayClinicName', v)}
+                placeholder="e.g. Evergreen Dental"
+                autoCapitalize="words"
+                minWidth={220}
               />
-              <Field
-                label="Start (optional)"
-                value={form.startTime}
-                onChangeText={(v) => patchForm('startTime', v)}
-                placeholder="09:00"
-                minWidth={110}
-              />
-              <Field
-                label="End (optional)"
-                value={form.endTime}
-                onChangeText={(v) => patchForm('endTime', v)}
-                placeholder="17:00"
-                minWidth={110}
-              />
-              <Field
-                label="Compensation"
-                value={form.compensation}
-                onChangeText={(v) => patchForm('compensation', v)}
+              <AdminFormField
+                label="City"
+                required
+                value={form.displayCity}
+                onChangeText={(v) => patchForm('displayCity', v)}
+                placeholder="e.g. Dartmouth"
+                autoCapitalize="words"
                 minWidth={160}
               />
             </View>
-          )}
-          <View style={styles.formRow}>
-            <Field
-              label="Phone"
-              value={form.contactPhone}
-              onChangeText={(v) => patchForm('contactPhone', v)}
-              minWidth={140}
+            <View style={styles.formStack}>
+              <FormFieldLabel label="Province" required />
+              <ChipSelector
+                options={PROVINCE_OPTIONS}
+                selected={form.displayProvince}
+                horizontal={false}
+                accent={formAccent}
+                onChange={(value) =>
+                  patchForm(
+                    'displayProvince',
+                    (Array.isArray(value) ? value[0] : value) as string,
+                  )
+                }
+              />
+            </View>
+          </View>
+
+          <View style={styles.formSection}>
+            <FormSectionHeader
+              icon={formMode.kind === 'fill_in' ? 'calendar-outline' : 'briefcase-outline'}
+              label="Listing details"
+              required
+              accent={formAccent}
             />
-            <Field
-              label="Email"
-              value={form.contactEmail}
-              onChangeText={(v) => patchForm('contactEmail', v)}
-              minWidth={180}
+            <View style={styles.formStack}>
+              <FormFieldLabel label="Role type" required />
+              <ChipSelector
+                options={ROLE_TYPE_OPTIONS.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
+                selected={form.roleType}
+                horizontal={false}
+                accent={formAccent}
+                onChange={(value) =>
+                  patchForm('roleType', (Array.isArray(value) ? value[0] : value) as string)
+                }
+              />
+            </View>
+
+            {formMode.kind === 'role' ? (
+              <View style={styles.formStack}>
+                <AdminFormField
+                  label="Title"
+                  required
+                  value={form.title}
+                  onChangeText={(v) => patchForm('title', v)}
+                  placeholder="e.g. Full-time Hygienist"
+                  autoCapitalize="sentences"
+                  fullWidth
+                />
+                <View style={styles.formStack}>
+                  <FormFieldLabel label="Employment type" required />
+                  <ChipSelector
+                    options={SOURCED_ROLE_EMPLOYMENT_OPTIONS.map((o) => ({
+                      value: o.value,
+                      label: o.label,
+                    }))}
+                    selected={form.employmentType}
+                    horizontal={false}
+                    accent={formAccent}
+                    onChange={(value) =>
+                      patchForm(
+                        'employmentType',
+                        (Array.isArray(value) ? value[0] : value) as string,
+                      )
+                    }
+                  />
+                </View>
+                <View style={styles.formRow}>
+                  <AdminFormField
+                    label="Wage range"
+                    value={form.wageRange}
+                    onChangeText={(v) => patchForm('wageRange', v)}
+                    placeholder="e.g. $42–48/hr"
+                    minWidth={220}
+                  />
+                  <AdminFormField
+                    label="Schedule"
+                    value={form.schedule}
+                    onChangeText={(v) => patchForm('schedule', v)}
+                    placeholder="e.g. Mon–Thu"
+                    minWidth={220}
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.formStack}>
+                <ShiftDateInput
+                  value={form.shiftDate}
+                  onChange={(isoDate) => patchForm('shiftDate', isoDate)}
+                  accent="secondary"
+                />
+                <TimeRangeInput
+                  schedule={{ startTime: form.startTime, endTime: form.endTime }}
+                  onChange={(schedule) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      startTime: schedule.startTime,
+                      endTime: schedule.endTime,
+                    }));
+                    setFormError(null);
+                  }}
+                  accent="secondary"
+                />
+                <CompensationInput
+                  key={compensationKey}
+                  initialValue={form.compensation}
+                  onChange={handleCompensationChange}
+                />
+                <View style={styles.formStack}>
+                  <FormFieldLabel label="Urgency" />
+                  <ChipSelector
+                    options={URGENCY_OPTIONS.map((o) => ({
+                      value: o.value,
+                      label: o.label,
+                    }))}
+                    selected={form.urgency}
+                    horizontal={false}
+                    accent="secondary"
+                    onChange={(value) =>
+                      patchForm(
+                        'urgency',
+                        (Array.isArray(value) ? value[0] : value) as string,
+                      )
+                    }
+                  />
+                </View>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.formSection}>
+            <FormSectionHeader
+              icon="call-outline"
+              label="Worker contact"
+              required
+              hint="At least one of phone, email, or URL is required."
+              accent={formAccent}
             />
-            <Field
-              label="External URL"
-              value={form.externalUrl}
-              onChangeText={(v) => patchForm('externalUrl', v)}
-              minWidth={200}
+            <View style={styles.formRow}>
+              <AdminFormField
+                label="Phone"
+                value={form.contactPhone}
+                onChangeText={(v) => patchForm('contactPhone', v)}
+                placeholder="902-555-0100"
+                keyboardType="phone-pad"
+                autoCapitalize="none"
+                autoCorrect={false}
+                minWidth={160}
+              />
+              <AdminFormField
+                label="Email"
+                value={form.contactEmail}
+                onChangeText={(v) => patchForm('contactEmail', v)}
+                placeholder="hiring@clinic.ca"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                minWidth={200}
+              />
+              <AdminFormField
+                label="External URL"
+                value={form.externalUrl}
+                onChangeText={(v) => patchForm('externalUrl', v)}
+                placeholder="https://…"
+                keyboardType="url"
+                autoCapitalize="none"
+                autoCorrect={false}
+                minWidth={220}
+              />
+            </View>
+          </View>
+
+          <View style={styles.formSection}>
+            <FormSectionHeader
+              icon="document-text-outline"
+              label="Notes"
+              accent={formAccent}
+            />
+            <AdminFormField
+              label="Description"
+              value={form.description}
+              onChangeText={(v) => patchForm('description', v)}
+              placeholder="Shown to workers on the listing"
+              multiline
+              fullWidth
+            />
+            <AdminFormField
+              label="Admin notes"
+              value={form.adminNotes}
+              onChangeText={(v) => patchForm('adminNotes', v)}
+              placeholder="Internal only — permission date, original posting URL…"
+              multiline
+              fullWidth
             />
           </View>
-          <Field
-            label="Description (optional)"
-            value={form.description}
-            onChangeText={(v) => patchForm('description', v)}
-            multiline
-          />
-          <Field
-            label="Admin notes (internal, optional)"
-            value={form.adminNotes}
-            onChangeText={(v) => patchForm('adminNotes', v)}
-            multiline
-            placeholder="Permission date, original posting URL…"
-          />
+
+          <FormErrorBanner message={formError} />
+
           <View style={styles.formActions}>
             <Pressable
               disabled={saving}
