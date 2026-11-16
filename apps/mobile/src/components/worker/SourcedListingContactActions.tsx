@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Platform, Pressable, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { copyToClipboard } from '@/lib/copyToClipboard';
-import { webPointer } from '@/lib/webPressableStyles';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 export type SourcedListingContact = {
@@ -12,6 +12,8 @@ export type SourcedListingContact = {
   contact_email?: string | null;
   external_url?: string | null;
 };
+
+export type SourcedContactSections = 'rows' | 'buttons' | 'all';
 
 type ContactMethod = 'phone' | 'email' | 'url';
 
@@ -110,10 +112,111 @@ function CopyIconButton({
   );
 }
 
+function ContactChannelRow({
+  icon,
+  label,
+  value,
+  accessibilityLabel,
+  onPress,
+  onCopied,
+}: {
+  icon: 'call-outline' | 'mail-outline';
+  label: string;
+  value: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+  onCopied?: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(({ colors, spacing }) => ({
+    row: {
+      position: 'relative' as const,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+      minHeight: 56,
+      paddingVertical: spacing.sm,
+      borderRadius: 10,
+      overflow: 'hidden' as const,
+    },
+    iconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.primarySubtle,
+    },
+    textBlock: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    label: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600' as const,
+      letterSpacing: 0.2,
+      color: colors.labelTertiary,
+    },
+    value: {
+      fontSize: 16,
+      lineHeight: 22,
+      fontWeight: '600' as const,
+      letterSpacing: -0.2,
+      color: colors.labelPrimary,
+    },
+  }));
+
+  return (
+    // Tap target is a sibling overlay (not a parent) so web never nests <button> in <button>
+    // with the copy control.
+    <View
+      style={styles.row}
+      {...PH_NO_CAPTURE}
+    >
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        style={({ pressed, hovered }) => [
+          StyleSheet.absoluteFillObject,
+          webPointer(),
+          webHover(hovered, pressed, webListRowHoverStyles(colors)),
+          pressed && { opacity: 0.92 },
+          { zIndex: 0 },
+        ]}
+      />
+      <View style={styles.iconWrap} pointerEvents="none">
+        <Ionicons name={icon} size={18} color={colors.primary} />
+      </View>
+      <View style={styles.textBlock} pointerEvents="none">
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.value} numberOfLines={2}>
+          {value}
+        </Text>
+      </View>
+      <View style={{ zIndex: 1 }}>
+        <CopyIconButton
+          value={value}
+          accessibilityLabel={`Copy ${label.toLowerCase()}`}
+          onCopied={onCopied}
+        />
+      </View>
+    </View>
+  );
+}
+
+/** True when phone or email is present (rows card should render). */
+export function hasSourcedContactChannels(contact: SourcedListingContact): boolean {
+  return Boolean(contact.contact_phone?.trim() || contact.contact_email?.trim());
+}
+
 export function SourcedListingContactActions({
   contact,
   compact = false,
   revealBeforeShow = false,
+  sections = 'all',
   onContactTap,
   onContactReveal,
   onContactCopy,
@@ -122,42 +225,24 @@ export function SourcedListingContactActions({
   compact?: boolean;
   /** When true, hide phone/email until the user taps Show (public listing / PostHog). */
   revealBeforeShow?: boolean;
+  /** rows = body card; buttons = footer CTAs; all = public sticky footer. */
+  sections?: SourcedContactSections;
   onContactTap?: (method: ContactMethod) => void;
   onContactReveal?: (method: 'phone' | 'email') => void;
   onContactCopy?: (method: 'phone' | 'email') => void;
 }) {
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
       gap: spacing.md,
     },
     details: {
-      gap: spacing.sm,
+      gap: 0,
     },
-    detailRow: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      alignItems: 'center' as const,
-      gap: spacing.xs,
-    },
-    detailLabel: {
-      ...typography.label,
-      fontSize: 13,
-      color: colors.labelSecondary,
-      minWidth: 52,
-    },
-    valueRow: {
-      flex: 1,
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      flexWrap: 'wrap' as const,
-      minWidth: 0,
-    },
-    detailValue: {
-      ...typography.body,
-      fontSize: 16,
-      color: colors.primary,
-      textDecorationLine: 'underline' as const,
-      flexShrink: 1,
+    rowDivider: {
+      height: 1,
+      backgroundColor: colors.separator,
+      opacity: 0.6,
+      marginLeft: 56,
     },
     buttons: {
       gap: spacing.sm,
@@ -208,55 +293,45 @@ export function SourcedListingContactActions({
   const showPhoneRevealCta = Boolean(phone && revealBeforeShow && !phoneRevealed);
   const showEmailRevealCta = Boolean(email && revealBeforeShow && !emailRevealed);
 
-  return (
-    <View style={styles.wrap}>
-      {showPhoneValue || showEmailValue ? (
-        <View style={styles.details}>
-          {showPhoneValue && phone ? (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Phone</Text>
-              <View style={styles.valueRow} {...PH_NO_CAPTURE}>
-                <Pressable
-                  onPress={openPhone}
-                  accessibilityRole="link"
-                  accessibilityLabel="Call clinic"
-                  style={webPointer()}>
-                  <Text style={styles.detailValue} selectable>
-                    {phone}
-                  </Text>
-                </Pressable>
-                <CopyIconButton
-                  value={phone}
-                  accessibilityLabel="Copy phone number"
-                  onCopied={() => onContactCopy?.('phone')}
-                />
-              </View>
-            </View>
-          ) : null}
-          {showEmailValue && email ? (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Email</Text>
-              <View style={styles.valueRow} {...PH_NO_CAPTURE}>
-                <Pressable
-                  onPress={openEmail}
-                  accessibilityRole="link"
-                  accessibilityLabel="Email clinic"
-                  style={webPointer()}>
-                  <Text style={styles.detailValue} selectable>
-                    {email}
-                  </Text>
-                </Pressable>
-                <CopyIconButton
-                  value={email}
-                  accessibilityLabel="Copy email address"
-                  onCopied={() => onContactCopy?.('email')}
-                />
-              </View>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+  const showRows = sections === 'rows' || sections === 'all';
+  const showButtons = sections === 'buttons' || sections === 'all';
 
+  const rowsContent =
+    showRows && (showPhoneValue || showEmailValue) ? (
+      <View style={styles.details}>
+        {showPhoneValue && phone ? (
+          <ContactChannelRow
+            icon="call-outline"
+            label="Phone"
+            value={phone}
+            accessibilityLabel="Call clinic"
+            onPress={openPhone}
+            onCopied={() => onContactCopy?.('phone')}
+          />
+        ) : null}
+        {showPhoneValue && showEmailValue ? <View style={styles.rowDivider} /> : null}
+        {showEmailValue && email ? (
+          <ContactChannelRow
+            icon="mail-outline"
+            label="Email"
+            value={email}
+            accessibilityLabel="Email clinic"
+            onPress={openEmail}
+            onCopied={() => onContactCopy?.('email')}
+          />
+        ) : null}
+      </View>
+    ) : null;
+
+  const hasButtonContent =
+    showPhoneRevealCta ||
+    showPhoneValue ||
+    showEmailRevealCta ||
+    showEmailValue ||
+    Boolean(url);
+
+  const buttonsContent =
+    showButtons && hasButtonContent ? (
       <View style={styles.buttons}>
         {showPhoneRevealCta ? (
           <OnboardingButton label="Show phone" onPress={revealPhone} />
@@ -289,6 +364,14 @@ export function SourcedListingContactActions({
           />
         ) : null}
       </View>
+    ) : null;
+
+  if (!rowsContent && !buttonsContent) return null;
+
+  return (
+    <View style={styles.wrap}>
+      {rowsContent}
+      {buttonsContent}
     </View>
   );
 }
