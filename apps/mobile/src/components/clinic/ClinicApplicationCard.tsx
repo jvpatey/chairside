@@ -313,6 +313,7 @@ export function ClinicApplicationCard({
                       context={matchContext}
                       subtitle={application.post_title}
                       audience="clinic"
+                      interactive={false}
                     />
                   </View>
                 ) : null}
@@ -324,6 +325,7 @@ export function ClinicApplicationCard({
                     context={matchContext}
                     subtitle={application.post_title}
                     audience="clinic"
+                    interactive={false}
                   />
                 </View>
               ) : null}

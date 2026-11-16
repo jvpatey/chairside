@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -27,7 +27,7 @@ import {
 } from '@/components/admin/adminLabels';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
-import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
+import { webHover, webPointer } from '@/lib/webPressableStyles';
 import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type DirectoryTab = 'clinics' | 'professionals';
@@ -39,6 +39,20 @@ type AdminDirectoryPanelProps = {
   professionals: AdminStatsProfessionalRow[];
   onAccountDeleted?: (target: AdminDeleteTarget) => void;
 };
+
+function DirectoryTableRow({
+  zebra,
+  rowStyle,
+  zebraStyle,
+  children,
+}: {
+  zebra: boolean;
+  rowStyle: ViewStyle;
+  zebraStyle: ViewStyle;
+  children: ReactNode;
+}) {
+  return <View style={[rowStyle, zebra && zebraStyle]}>{children}</View>;
+}
 
 const ACTIONS_COLUMN_WIDTH = 40;
 
@@ -308,6 +322,13 @@ export function AdminDirectoryPanel({
       color: colors.destructive,
     },
   }));
+
+  /** View + hover — never a Pressable row, so delete buttons are not nested <button>s on web. */
+  const renderTableRow = (zebra: boolean, children: ReactNode) => (
+    <DirectoryTableRow zebra={zebra} rowStyle={styles.row} zebraStyle={styles.zebra}>
+      {children}
+    </DirectoryTableRow>
+  );
 
   const renderDeleteIcon = (target: AdminDeleteTarget) => (
     <View style={styles.actionsCell}>
@@ -630,38 +651,43 @@ export function AdminDirectoryPanel({
               </View>
             ) : (
               filteredClinics.map((clinic, index) => (
-                <Pressable
-                  key={clinic.id}
-                  style={({ hovered }) => [
-                    styles.row,
-                    index % 2 === 1 && styles.zebra,
-                    webHover(hovered, false, webListRowHoverStyles(colors)),
-                  ]}>
-                  <View style={{ flex: 1.4, minWidth: 130, gap: 2 }}>
-                    <Text style={styles.cellName} numberOfLines={1}>
-                      {clinic.clinicName}
-                    </Text>
-                    <Text style={styles.cellText}>{formatAdminAccountType(clinic.accountType)}</Text>
-                  </View>
-                  <View style={[styles.cell, { flex: 1.4, minWidth: 160 }]}>
-                    <Text style={styles.cellText} numberOfLines={1}>
-                      {clinic.email ?? '—'}
-                    </Text>
-                  </View>
-                  <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
-                    <AdminPlanBadge plan={clinic.plan} />
-                  </View>
-                  <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
-                    <AdminStatusPill status={clinic.status} />
-                  </View>
-                  <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
-                    <Text style={styles.cellText}>{formatAdminPeriodEnd(clinic.signedUpAt)}</Text>
-                  </View>
-                  <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
-                    <Text style={styles.cellText}>{formatAdminDateTime(clinic.lastSignInAt)}</Text>
-                  </View>
-                  {renderDeleteIcon(toClinicDeleteTarget(clinic))}
-                </Pressable>
+                <View key={clinic.id}>
+                  {renderTableRow(
+                    index % 2 === 1,
+                    <>
+                      <View style={{ flex: 1.4, minWidth: 130, gap: 2 }}>
+                        <Text style={styles.cellName} numberOfLines={1}>
+                          {clinic.clinicName}
+                        </Text>
+                        <Text style={styles.cellText}>
+                          {formatAdminAccountType(clinic.accountType)}
+                        </Text>
+                      </View>
+                      <View style={[styles.cell, { flex: 1.4, minWidth: 160 }]}>
+                        <Text style={styles.cellText} numberOfLines={1}>
+                          {clinic.email ?? '—'}
+                        </Text>
+                      </View>
+                      <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
+                        <AdminPlanBadge plan={clinic.plan} />
+                      </View>
+                      <View style={[styles.cell, { flex: 0.8, minWidth: 70 }]}>
+                        <AdminStatusPill status={clinic.status} />
+                      </View>
+                      <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
+                        <Text style={styles.cellText}>
+                          {formatAdminPeriodEnd(clinic.signedUpAt)}
+                        </Text>
+                      </View>
+                      <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
+                        <Text style={styles.cellText}>
+                          {formatAdminDateTime(clinic.lastSignInAt)}
+                        </Text>
+                      </View>
+                      {renderDeleteIcon(toClinicDeleteTarget(clinic))}
+                    </>,
+                  )}
+                </View>
               ))
             )}
           </>
@@ -733,36 +759,39 @@ export function AdminDirectoryPanel({
             </View>
           ) : (
             filteredPros.map((pro, index) => (
-              <Pressable
-                key={pro.id}
-                style={({ hovered }) => [
-                  styles.row,
-                  index % 2 === 1 && styles.zebra,
-                  webHover(hovered, false, webListRowHoverStyles(colors)),
-                ]}>
-                <View style={{ flex: 1.3, minWidth: 130 }}>
-                  <Text style={styles.cellName} numberOfLines={1}>
-                    {pro.name}
-                  </Text>
-                </View>
-                <View style={[styles.cell, { flex: 1.4, minWidth: 160 }]}>
-                  <Text style={styles.cellText} numberOfLines={1}>
-                    {pro.email ?? '—'}
-                  </Text>
-                </View>
-                <View style={[styles.cell, { flex: 1.2, minWidth: 120 }]}>
-                  <Text style={styles.cellText} numberOfLines={2}>
-                    {formatRoleTypesLabel(pro.roles) || '—'}
-                  </Text>
-                </View>
-                <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
-                  <Text style={styles.cellText}>{formatAdminPeriodEnd(pro.signedUpAt)}</Text>
-                </View>
-                <View style={[styles.cell, { flex: 1.1, minWidth: 110 }]}>
-                  <Text style={styles.cellText}>{formatAdminDateTime(pro.lastSignInAt)}</Text>
-                </View>
-                {renderDeleteIcon(toProfessionalDeleteTarget(pro))}
-              </Pressable>
+              <View key={pro.id}>
+                {renderTableRow(
+                  index % 2 === 1,
+                  <>
+                    <View style={{ flex: 1.3, minWidth: 130 }}>
+                      <Text style={styles.cellName} numberOfLines={1}>
+                        {pro.name}
+                      </Text>
+                    </View>
+                    <View style={[styles.cell, { flex: 1.4, minWidth: 160 }]}>
+                      <Text style={styles.cellText} numberOfLines={1}>
+                        {pro.email ?? '—'}
+                      </Text>
+                    </View>
+                    <View style={[styles.cell, { flex: 1.2, minWidth: 120 }]}>
+                      <Text style={styles.cellText} numberOfLines={2}>
+                        {formatRoleTypesLabel(pro.roles) || '—'}
+                      </Text>
+                    </View>
+                    <View style={[styles.cell, { flex: 1, minWidth: 100 }]}>
+                      <Text style={styles.cellText}>
+                        {formatAdminPeriodEnd(pro.signedUpAt)}
+                      </Text>
+                    </View>
+                    <View style={[styles.cell, { flex: 1.1, minWidth: 110 }]}>
+                      <Text style={styles.cellText}>
+                        {formatAdminDateTime(pro.lastSignInAt)}
+                      </Text>
+                    </View>
+                    {renderDeleteIcon(toProfessionalDeleteTarget(pro))}
+                  </>,
+                )}
+              </View>
             ))
           )}
         </>

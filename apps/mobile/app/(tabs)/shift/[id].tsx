@@ -21,6 +21,7 @@ import {
   RequestedPillBadge,
 } from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
@@ -28,7 +29,10 @@ import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
-import { SourcedListingContactActions } from '@/components/worker/SourcedListingContactActions';
+import {
+  hasSourcedContactChannels,
+  SourcedListingContactActions,
+} from '@/components/worker/SourcedListingContactActions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -194,7 +198,7 @@ export default function WorkerShiftDetailScreen() {
   const sourced = isSourcedListing(shift);
 
   const footerAction = sourced ? (
-    <SourcedListingContactActions contact={shift} />
+    <SourcedListingContactActions contact={shift} sections="buttons" />
   ) : applicationView.kind === 'none' ? (
     <OnboardingButton
       label="Request to cover"
@@ -297,6 +301,13 @@ export default function WorkerShiftDetailScreen() {
           postedByLabel={postedByLabel}
           postedOnLabel={postedOnLabel}
         />
+        {sourced && hasSourcedContactChannels(shift) ? (
+          <SurfaceCard>
+            <CardDetailSection title="Contact">
+              <SourcedListingContactActions contact={shift} sections="rows" />
+            </CardDetailSection>
+          </SurfaceCard>
+        ) : null}
       </View>
     </FormScreen>
   );

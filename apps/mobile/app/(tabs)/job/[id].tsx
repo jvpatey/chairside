@@ -16,13 +16,17 @@ import { Alert, View } from 'react-native';
 import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
 import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
 import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
-import { SourcedListingContactActions } from '@/components/worker/SourcedListingContactActions';
+import {
+  hasSourcedContactChannels,
+  SourcedListingContactActions,
+} from '@/components/worker/SourcedListingContactActions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -179,7 +183,7 @@ export default function WorkerJobDetailScreen() {
       footer={
         <View style={styles.footer}>
           {sourced ? (
-            <SourcedListingContactActions contact={job} />
+            <SourcedListingContactActions contact={job} sections="buttons" />
           ) : (
             <OnboardingButton
               label={hasApplied ? 'Applied' : 'Apply now'}
@@ -246,6 +250,13 @@ export default function WorkerJobDetailScreen() {
           postedByLabel={postedByLabel}
           postedOnLabel={postedOnLabel}
         />
+        {sourced && hasSourcedContactChannels(job) ? (
+          <SurfaceCard>
+            <CardDetailSection title="Contact">
+              <SourcedListingContactActions contact={job} sections="rows" />
+            </CardDetailSection>
+          </SurfaceCard>
+        ) : null}
       </View>
     </FormScreen>
   );

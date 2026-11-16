@@ -35,6 +35,7 @@ import {
 import { ChairsideBrandText } from '@/components/brand/ChairsideWordmark';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
+import { PageTabBar } from '@/components/ui/PageTabBar';
 import { getWebTabletContentTopPadding } from '@/lib/breakpoints';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
@@ -46,6 +47,13 @@ type LoadState =
   | { status: 'error'; message: string }
   | { status: 'ready'; data: AdminStatsPayload };
 
+type AdminPageTab = 'stats' | 'listings';
+
+const ADMIN_PAGE_TABS: { value: AdminPageTab; label: string }[] = [
+  { value: 'stats', label: 'Stats' },
+  { value: 'listings', label: 'Listings' },
+];
+
 export function AdminDashboard() {
   const { colors, spacing } = useTheme();
   const { width } = useWindowDimensions();
@@ -54,6 +62,7 @@ export function AdminDashboard() {
   const tabDockInset = useMobileTabDockInset();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [refreshing, setRefreshing] = useState(false);
+  const [pageTab, setPageTab] = useState<AdminPageTab>('stats');
 
   const topPadding = isTablet
     ? getWebTabletContentTopPadding(insets.top)
@@ -242,6 +251,7 @@ export function AdminDashboard() {
   }
 
   const { data } = state;
+  const isListingsTab = pageTab === 'listings';
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={contentStyle}>
@@ -250,137 +260,151 @@ export function AdminDashboard() {
           <View style={[styles.headerText, !isCompact && { minWidth: 220 }]}>
             <Text style={[styles.title, { fontSize: titleSize }]} accessibilityRole="header">
               <ChairsideBrandText variant="inherit" />
-              <Text style={[styles.titleSuffix, { fontSize: titleSize }]}> Statistics</Text>
+              <Text style={[styles.titleSuffix, { fontSize: titleSize }]}>
+                {isListingsTab ? ' Listings' : ' Statistics'}
+              </Text>
             </Text>
             <Text style={styles.subtitle}>
-              Platform snapshot · Updated {formatAdminRelativeTime(data.generatedAt)}
+              {isListingsTab
+                ? 'Sourced roles and fill-ins'
+                : `Platform snapshot · Updated ${formatAdminRelativeTime(data.generatedAt)}`}
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Refresh stats"
-            disabled={refreshing}
-            onPress={() => void load(true)}
-            style={({ hovered, pressed }) => [
-              styles.refreshBtn,
-              webHover(hovered, pressed, styles.refreshHovered),
-              refreshing && { opacity: 0.6 },
-            ]}>
-            <Ionicons name="refresh" size={16} color={colors.primary} />
-            <Text style={styles.refreshLabel}>{refreshing ? 'Refreshing…' : 'Refresh'}</Text>
-          </Pressable>
+          {!isListingsTab ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Refresh stats"
+              disabled={refreshing}
+              onPress={() => void load(true)}
+              style={({ hovered, pressed }) => [
+                styles.refreshBtn,
+                webHover(hovered, pressed, styles.refreshHovered),
+                refreshing && { opacity: 0.6 },
+              ]}>
+              <Ionicons name="refresh" size={16} color={colors.primary} />
+              <Text style={styles.refreshLabel}>{refreshing ? 'Refreshing…' : 'Refresh'}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </FadeInSection>
 
-      <FadeInSection delayMs={40}>
-        <AdminCollapsibleSection
-          title="People"
-          subtitle="Registered accounts across the platform">
-          <View style={styles.kpiRow}>
-            <AdminKpiCard
-              label="Professionals"
-              value={data.kpis.professionals}
-              accent="primary"
-              compact={isCompact}
-            />
-            <AdminKpiCard
-              label="Clinics"
-              value={data.kpis.clinics}
-              accent="secondary"
-              compact={isCompact}
-            />
-            <AdminKpiCard
-              label="New accounts (7 days)"
-              value={data.kpis.signups7d}
-              accent="tertiary"
-              hint="Pros + clinics"
-              compact={isCompact}
-            />
-            <AdminKpiCard
-              label="New accounts (30 days)"
-              value={data.kpis.signups30d}
-              accent="warning"
-              hint="Pros + clinics"
-              compact={isCompact}
-            />
-          </View>
-        </AdminCollapsibleSection>
+      <FadeInSection delayMs={20}>
+        <PageTabBar
+          options={ADMIN_PAGE_TABS}
+          selected={pageTab}
+          onChange={setPageTab}
+          density={isCompact ? 'compact' : 'default'}
+        />
       </FadeInSection>
 
-      <FadeInSection delayMs={70}>
-        <AdminCollapsibleSection
-          title="Hiring"
-          subtitle="Role posts and fill-in coverage">
-          <View style={styles.kpiRow}>
-            <AdminKpiCard
-              label="Open roles"
-              value={data.kpis.openRoles}
-              accent="primary"
-              hint="Live job posts"
-              compact={isCompact}
-            />
-            <AdminKpiCard
-              label="Roles filled"
-              value={data.kpis.filledRoles}
-              accent="secondary"
-              hint="Filled job posts"
-              compact={isCompact}
-            />
-            <AdminKpiCard
-              label="Live fill-ins"
-              value={data.kpis.liveFillIns}
-              accent="tertiary"
-              compact={isCompact}
-            />
-            <AdminKpiCard
-              label="Fill-ins filled"
-              value={data.kpis.filledFillIns}
-              accent="warning"
-              hint="Confirmed cover"
-              compact={isCompact}
-            />
-          </View>
-        </AdminCollapsibleSection>
-      </FadeInSection>
-
-      <FadeInSection delayMs={90}>
-        <AdminCollapsibleSection
-          title="Sourced listings"
-          subtitle="Exposure-only roles and fill-ins without a clinic account (web only)"
-          defaultExpanded={false}>
+      {isListingsTab ? (
+        <FadeInSection delayMs={40}>
           <AdminSourcedListingsPanel />
-        </AdminCollapsibleSection>
-      </FadeInSection>
+        </FadeInSection>
+      ) : (
+        <>
+          <FadeInSection delayMs={40}>
+            <AdminCollapsibleSection
+              title="People"
+              subtitle="Registered accounts across the platform">
+              <View style={styles.kpiRow}>
+                <AdminKpiCard
+                  label="Professionals"
+                  value={data.kpis.professionals}
+                  accent="primary"
+                  compact={isCompact}
+                />
+                <AdminKpiCard
+                  label="Clinics"
+                  value={data.kpis.clinics}
+                  accent="secondary"
+                  compact={isCompact}
+                />
+                <AdminKpiCard
+                  label="New accounts (7 days)"
+                  value={data.kpis.signups7d}
+                  accent="tertiary"
+                  hint="Pros + clinics"
+                  compact={isCompact}
+                />
+                <AdminKpiCard
+                  label="New accounts (30 days)"
+                  value={data.kpis.signups30d}
+                  accent="warning"
+                  hint="Pros + clinics"
+                  compact={isCompact}
+                />
+              </View>
+            </AdminCollapsibleSection>
+          </FadeInSection>
 
-      <FadeInSection delayMs={110}>
-        <AdminCollapsibleSection title="Breakdown" subtitle="Role mix and clinic plans">
-          <View style={[styles.mid, stackMid && { flexDirection: 'column' }]}>
-            <AdminDistributionBars
-              title="Professionals by role"
-              items={roleItems}
-              showPercent={false}
-              compact={isCompact || stackMid}
-            />
-            <AdminPlanStatusCard
-              planItems={planItems}
-              statusItems={data.statusMix}
-              compact={isCompact || stackMid}
-            />
-          </View>
-        </AdminCollapsibleSection>
-      </FadeInSection>
+          <FadeInSection delayMs={70}>
+            <AdminCollapsibleSection
+              title="Hiring"
+              subtitle="Role posts and fill-in coverage">
+              <View style={styles.kpiRow}>
+                <AdminKpiCard
+                  label="Open roles"
+                  value={data.kpis.openRoles}
+                  accent="primary"
+                  hint="Live job posts"
+                  compact={isCompact}
+                />
+                <AdminKpiCard
+                  label="Roles filled"
+                  value={data.kpis.filledRoles}
+                  accent="secondary"
+                  hint="Filled job posts"
+                  compact={isCompact}
+                />
+                <AdminKpiCard
+                  label="Live fill-ins"
+                  value={data.kpis.liveFillIns}
+                  accent="tertiary"
+                  compact={isCompact}
+                />
+                <AdminKpiCard
+                  label="Fill-ins filled"
+                  value={data.kpis.filledFillIns}
+                  accent="warning"
+                  hint="Confirmed cover"
+                  compact={isCompact}
+                />
+              </View>
+            </AdminCollapsibleSection>
+          </FadeInSection>
 
-      <FadeInSection delayMs={150}>
-        <AdminCollapsibleSection
-          title="Directory"
-          subtitle="Browse clinics and professionals">
-          <AdminDirectoryPanel
-            clinics={data.clinics}
-            professionals={data.professionals}
-            onAccountDeleted={handleAccountDeleted}
-          />
-        </AdminCollapsibleSection>
-      </FadeInSection>
+          <FadeInSection delayMs={110}>
+            <AdminCollapsibleSection title="Breakdown" subtitle="Role mix and clinic plans">
+              <View style={[styles.mid, stackMid && { flexDirection: 'column' }]}>
+                <AdminDistributionBars
+                  title="Professionals by role"
+                  items={roleItems}
+                  showPercent={false}
+                  compact={isCompact || stackMid}
+                />
+                <AdminPlanStatusCard
+                  planItems={planItems}
+                  statusItems={data.statusMix}
+                  compact={isCompact || stackMid}
+                />
+              </View>
+            </AdminCollapsibleSection>
+          </FadeInSection>
+
+          <FadeInSection delayMs={150}>
+            <AdminCollapsibleSection
+              title="Directory"
+              subtitle="Browse clinics and professionals">
+              <AdminDirectoryPanel
+                clinics={data.clinics}
+                professionals={data.professionals}
+                onAccountDeleted={handleAccountDeleted}
+              />
+            </AdminCollapsibleSection>
+          </FadeInSection>
+        </>
+      )}
     </ScrollView>
   );
 }

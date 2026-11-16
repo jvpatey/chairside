@@ -112,6 +112,19 @@ export function RolePostingCard({
     menuButtonPressed: {
       opacity: 0.6,
     },
+    /** Sibling of SurfaceCard press target — avoids nested <button> on web. */
+    manageOverlay: {
+      position: 'absolute' as const,
+      top: 10,
+      right: 10,
+      zIndex: 2,
+    },
+    applicantOverlay: {
+      position: 'absolute' as const,
+      bottom: 12,
+      right: 12,
+      zIndex: 2,
+    },
     subtitleStack: {
       gap: spacing.xs,
       minWidth: 0,
@@ -172,11 +185,13 @@ export function RolePostingCard({
 
   const surfaceVariant = embedded ? 'inner' : 'default';
 
+  const cardOpensDetail = Boolean(onPress) && !showApplicantList;
+
   return (
     <SurfaceCard
       variant={surfaceVariant}
       padding="none"
-      onPress={showApplicantList ? undefined : onPress}
+      onPress={cardOpensDetail ? onPress : undefined}
       style={styles.stretchCard}
       cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
       contentStyle={styles.stretchCardContent}
@@ -194,12 +209,19 @@ export function RolePostingCard({
           </View>
         }
         metaRows={metaRows}
-        topTrailing={manageButton}
-        contentAccessory={applicantControl}
-        onPress={onPress}
+        // When the card itself is pressable, keep actions as siblings (not nested buttons).
+        topTrailing={cardOpensDetail ? null : manageButton}
+        contentAccessory={cardOpensDetail ? null : applicantControl}
+        onPress={showApplicantList ? onPress : undefined}
         pressScope={showApplicantList ? 'header' : 'row'}
         showChevron={Boolean(onPress)}
       />
+      {cardOpensDetail && manageButton ? (
+        <View style={styles.manageOverlay}>{manageButton}</View>
+      ) : null}
+      {cardOpensDetail && applicantControl ? (
+        <View style={styles.applicantOverlay}>{applicantControl}</View>
+      ) : null}
       {showApplicantList && onApplicantPress ? (
         <View style={styles.applicantSectionGrow}>
           <RoleApplicantPreviewList
