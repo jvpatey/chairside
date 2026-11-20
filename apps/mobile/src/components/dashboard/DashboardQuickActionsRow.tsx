@@ -24,33 +24,43 @@ type DashboardQuickActionsRowProps = {
   actions: [DashboardQuickActionConfig, DashboardQuickActionConfig];
   /** Phone stacked tiles even on a wide window (marketing preview). */
   forcePhoneLayout?: boolean;
+  /** Emphasize the first action (fill-ins) over the second (roles). */
+  emphasizeFirst?: boolean;
 };
 
 export function DashboardQuickActionsRow({
   actions,
   forcePhoneLayout = false,
+  emphasizeFirst = false,
 }: DashboardQuickActionsRowProps) {
   const { isWide } = useResponsiveLayout();
   const compact = forcePhoneLayout ? false : IS_WEB && isWide;
-  const styles = useThemedStyles((theme) => getDashboardLayoutStyles(theme));
+  const styles = useThemedStyles((theme) => ({
+    ...getDashboardLayoutStyles(theme),
+    primaryFlex: { flex: emphasizeFirst ? 1.45 : 1, minWidth: 0 },
+    secondaryFlex: { flex: 1, minWidth: 0, ...(emphasizeFirst ? { opacity: 0.92 } : null) },
+  }));
 
   return (
     <View style={styles.quickActionSection}>
       <View style={styles.quickActionRow}>
-        {actions.map((action) => (
-          <DashboardQuickActionTile
+        {actions.map((action, index) => (
+          <View
             key={action.label}
-            label={action.label}
-            description={action.description}
-            icon={action.icon}
-            variant={action.variant}
-            compact={compact}
-            disabled={action.disabled}
-            dimmed={action.dimmed}
-            accessibilityHint={action.accessibilityHint}
-            forcePhoneLayout={forcePhoneLayout}
-            onPress={action.onPress}
-          />
+            style={index === 0 ? styles.primaryFlex : styles.secondaryFlex}>
+            <DashboardQuickActionTile
+              label={action.label}
+              description={action.description}
+              icon={action.icon}
+              variant={action.variant}
+              compact={compact}
+              disabled={action.disabled}
+              dimmed={action.dimmed}
+              accessibilityHint={action.accessibilityHint}
+              forcePhoneLayout={forcePhoneLayout}
+              onPress={action.onPress}
+            />
+          </View>
         ))}
       </View>
     </View>

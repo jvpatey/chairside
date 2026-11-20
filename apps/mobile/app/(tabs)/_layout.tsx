@@ -8,23 +8,22 @@ import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptive
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
-import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { MessageUnreadProvider } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { fillInTabIcon } from '@/lib/fillInIcons';
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  anchor: 'index',
 };
 
 function WorkerTabNavigator() {
-  const { unreadCount } = useMessageUnread();
-  const { pendingCount: applicationPendingCount, fillInPendingCount } = useApplicationTabBadge();
+  const { fillInPendingCount } = useApplicationTabBadge();
   const { isTablet } = useResponsiveLayout();
   const screenOptions = useAdaptiveTabScreenOptions();
 
   return (
-    <Tabs tabBar={renderWorkerTabBar} screenOptions={screenOptions}>
+    <Tabs tabBar={renderWorkerTabBar} screenOptions={screenOptions} backBehavior="initialRoute">
       <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
       <Tabs.Screen
         name="browse"
@@ -35,21 +34,7 @@ function WorkerTabNavigator() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="applications"
-        options={{
-          title: 'Applications',
-          tabBarAccessibilityLabel: 'Applications',
-          tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'document-text' : 'document-text-outline'}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
+      <Tabs.Screen name="applications" options={{ href: null }} />
       <Tabs.Screen
         name="fillins"
         options={{
@@ -60,29 +45,8 @@ function WorkerTabNavigator() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Calendar',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'today' : 'today-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
+      <Tabs.Screen name="calendar" options={{ href: null }} />
+      <Tabs.Screen name="messages" options={{ href: null }} />
       <Tabs.Screen name="message-clinics" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="admin" options={{ href: null }} />

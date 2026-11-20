@@ -29,6 +29,7 @@ import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseView
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
+import { CoverageCardGrid } from '@/components/dashboard/CoverageCardGrid';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
@@ -322,7 +323,7 @@ export default function FillInsScreen() {
       },
       {
         value: 'pending' as const,
-        label: 'Pending',
+        label: 'Requested',
         count: pendingFillInCount,
         accent: 'secondary' as const,
         icon: 'hourglass-outline' as const,
@@ -357,52 +358,59 @@ export default function FillInsScreen() {
   ) : filteredShifts.length === 0 ? (
     <DashboardEmptyState
       embedded
+      accent="secondary"
       icon={FILL_IN_ICON.outline}
-      title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'}
+      title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins yet'}
       message={
         hasActiveFillInFilters
           ? 'Try a different search term or adjust your filters.'
-          : 'New temp shifts in your province will appear here.'
+          : 'We’ll text you when a shift opens near you.'
       }
     />
   ) : (
     <View style={styles.cardList}>
-      <StaggeredList>
-        {featuredOpenShifts.length > 0 ? (
-          <FeaturedListingsSectionHeader
-            label="Featured"
-            variant="featured"
-            accent="secondary"
-          />
-        ) : null}
-        {featuredOpenShifts.map((shift) => (
-          <FillInListingCard
-            key={shift.id}
-            shift={shift}
-            distanceLabel={shift.distanceLabel}
-            isSaved={savedShiftIds.has(shift.id)}
-            onToggleSaved={() =>
-              void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
-            }
-            onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
-          />
-        ))}
-        {showOpenFeaturedDivider ? (
-          <FeaturedListingsSectionHeader label="More fill-ins" variant="rest" />
-        ) : null}
-        {standardOpenShifts.map((shift) => (
-          <FillInListingCard
-            key={shift.id}
-            shift={shift}
-            distanceLabel={shift.distanceLabel}
-            isSaved={savedShiftIds.has(shift.id)}
-            onToggleSaved={() =>
-              void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
-            }
-            onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
-          />
-        ))}
-      </StaggeredList>
+      {featuredOpenShifts.length > 0 ? (
+        <FeaturedListingsSectionHeader
+          label="Featured"
+          variant="featured"
+          accent="secondary"
+        />
+      ) : null}
+      {featuredOpenShifts.length > 0 ? (
+        <CoverageCardGrid>
+          {featuredOpenShifts.map((shift) => (
+            <FillInListingCard
+              key={shift.id}
+              shift={shift}
+              distanceLabel={shift.distanceLabel}
+              isSaved={savedShiftIds.has(shift.id)}
+              onToggleSaved={() =>
+                void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+              }
+              onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
+            />
+          ))}
+        </CoverageCardGrid>
+      ) : null}
+      {showOpenFeaturedDivider ? (
+        <FeaturedListingsSectionHeader label="More fill-ins" variant="rest" />
+      ) : null}
+      {standardOpenShifts.length > 0 ? (
+        <CoverageCardGrid>
+          {standardOpenShifts.map((shift) => (
+            <FillInListingCard
+              key={shift.id}
+              shift={shift}
+              distanceLabel={shift.distanceLabel}
+              isSaved={savedShiftIds.has(shift.id)}
+              onToggleSaved={() =>
+                void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+              }
+              onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
+            />
+          ))}
+        </CoverageCardGrid>
+      ) : null}
     </View>
   );
 
@@ -410,7 +418,7 @@ export default function FillInsScreen() {
     <>
       <Screen
         title="Fill-ins"
-        subtitle="Temp shifts and your availability."
+        subtitle="Open shifts near you — request cover in a tap."
         fillsContainer={fillMapViewport}
         scroll={!fillMapViewport}
         scrollEnabled={!fillMapViewport}
@@ -481,7 +489,7 @@ export default function FillInsScreen() {
                 <DashboardEmptyState
                   embedded
                   icon="hourglass-outline"
-                  title="No pending cover requests"
+                  title="No requested cover yet"
                   message="When you request to cover a fill-in, it stays here until the clinic confirms or declines."
                 />
               ) : (

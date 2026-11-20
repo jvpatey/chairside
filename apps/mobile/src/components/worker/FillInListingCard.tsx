@@ -1,22 +1,21 @@
 import { isClinicSummaryGroup, type LiveShiftPost } from '@chairside/api';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
-import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
 import { useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { buildFillInListingMetaRows } from '@/lib/listingCardDisplay';
+import { LISTING_META_ICONS } from '@/lib/listingCardDisplay';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import {
   formatWorkerListingCardLocation,
   resolveWorkerPostLogoStoragePath,
 } from '@/lib/workerPostLocation';
-import { useThemedStyles, type GradientAccent } from '@/theme';
+import { fontSemibold, useThemedStyles, type GradientAccent } from '@/theme';
 
 type FillInListingCardProps = {
   shift: LiveShiftPost;
@@ -28,6 +27,7 @@ type FillInListingCardProps = {
   embedded?: boolean;
 };
 
+/** Signature fill-in card — when is dominant; clinic/place secondary. */
 export function FillInListingCard({
   shift,
   distanceLabel,
@@ -39,25 +39,35 @@ export function FillInListingCard({
 }: FillInListingCardProps) {
   const { isCompact } = useResponsiveLayout();
   const tabAccent = useTabAtmosphereAccent();
-  const resolvedAccent = accent ?? tabAccent;
+  const resolvedAccent = accent ?? tabAccent ?? 'secondary';
   const featuredTreatment = useFeaturedListingTreatment(resolvedAccent);
   const logoStoragePath = resolveWorkerPostLogoStoragePath(shift);
   const logoUri = useClinicLogoUri(logoStoragePath);
   const location = formatWorkerListingCardLocation(shift, distanceLabel);
   const roleTitle = formatShiftPostRoleTitle(shift.role_type);
-  const shiftMeta = formatShiftPostMeta(shift);
-  const metaRows = buildFillInListingMetaRows({
-    location,
-    shiftMeta,
-    postedAt: shift.created_at,
-  });
+  const whenLabel = formatShiftPostMeta(shift);
+  const pay = shift.compensation?.trim() || null;
+  const clinicName = shift.clinic.clinic_name;
+  const isGroup = isClinicSummaryGroup(shift.clinic);
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors }) => ({
     stretchCard: {
-      overflow: 'hidden',
+      overflow: 'hidden' as const,
+    },
+    roleLine: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.secondary,
+    },
+    clinicLine: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
     },
     subtitleStack: {
-      gap: spacing.xs,
+      gap: 2,
     },
   }));
 
@@ -65,7 +75,15 @@ export function FillInListingCard({
   const featuredBadge = isFeatured ? (
     <FeaturedListingBadge accent={resolvedAccent} size="sm" />
   ) : null;
-  const stackBadge = isCompact && featuredBadge != null;
+
+  const metaRows = [
+    location
+      ? { icon: LISTING_META_ICONS.location, label: location }
+      : null,
+    pay ? { icon: 'cash-outline' as const, label: pay } : null,
+  ].filter((row): row is { icon: typeof LISTING_META_ICONS.location | 'cash-outline'; label: string } =>
+    row != null,
+  );
 
   return (
     <SurfaceCard
@@ -73,32 +91,25 @@ export function FillInListingCard({
       onPress={onPress}
       padding="none"
       style={styles.stretchCard}
-      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
-      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
+      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}>
       <BrowseListRow
         avatar={
-          <ClinicLogoAvatar clinicName={shift.clinic.clinic_name} logoUri={logoUri} size={44} />
+          <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={44} />
         }
-        title={roleTitle}
+        title={whenLabel}
         subtitle={
-          stackBadge ? (
-            <View style={styles.subtitleStack}>
-              <ListingClinicSubtitle
-                name={shift.clinic.clinic_name}
-                isGroup={isClinicSummaryGroup(shift.clinic)}
-              />
-              {featuredBadge}
-            </View>
-          ) : (
-            <ListingClinicSubtitle
-              name={shift.clinic.clinic_name}
-              isGroup={isClinicSummaryGroup(shift.clinic)}
-            />
-          )
+          <View style={styles.subtitleStack}>
+            <Text style={styles.roleLine} numberOfLines={1}>
+              {roleTitle}
+            </Text>
+            <Text style={styles.clinicLine} numberOfLines={1}>
+              {isGroup ? `${clinicName} · Group` : clinicName}
+            </Text>
+            {isCompact && featuredBadge ? featuredBadge : null}
+          </View>
         }
         metaRows={metaRows}
-        topTrailing={stackBadge ? null : featuredBadge}
-        // SurfaceCard owns the row press — avoid nested <button> on web.
+        topTrailing={isCompact ? null : featuredBadge}
         showChevron={Boolean(onPress)}
       />
     </SurfaceCard>

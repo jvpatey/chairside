@@ -1,14 +1,11 @@
 import type { Href } from 'expo-router';
 
 import {
-  CLINIC_SETUP_ABOUT,
   CLINIC_SETUP_ACCOUNT_TYPE,
   CLINIC_SETUP_BASICS,
   CLINIC_SETUP_LOCATION,
   CLINIC_SETUP_LOCATIONS,
-  CLINIC_SETUP_PRACTICE,
   CLINIC_SETUP_REVIEW,
-  CLINIC_SETUP_TEAM,
 } from '@/lib/routing';
 
 export type ClinicSetupNavStep = {
@@ -22,8 +19,6 @@ export const CLINIC_INDIVIDUAL_SETUP_STEPS: ClinicSetupNavStep[] = [
   { id: 'account-type', label: 'Account type', href: CLINIC_SETUP_ACCOUNT_TYPE },
   { id: 'basics', label: 'Basics', href: CLINIC_SETUP_BASICS },
   { id: 'location', label: 'Location', href: CLINIC_SETUP_LOCATION },
-  { id: 'practice', label: 'Practice', href: CLINIC_SETUP_PRACTICE },
-  { id: 'about', label: 'About', href: CLINIC_SETUP_ABOUT },
   { id: 'review', label: 'Review', href: CLINIC_SETUP_REVIEW },
 ];
 
@@ -32,8 +27,6 @@ export const CLINIC_GROUP_SETUP_STEPS: ClinicSetupNavStep[] = [
   { id: 'account-type', label: 'Account type', href: CLINIC_SETUP_ACCOUNT_TYPE },
   { id: 'basics', label: 'Basics', href: CLINIC_SETUP_BASICS },
   { id: 'locations', label: 'Locations', href: CLINIC_SETUP_LOCATIONS },
-  { id: 'team', label: 'Team', href: CLINIC_SETUP_TEAM },
-  { id: 'about', label: 'About', href: CLINIC_SETUP_ABOUT },
   { id: 'review', label: 'Review', href: CLINIC_SETUP_REVIEW },
 ];
 

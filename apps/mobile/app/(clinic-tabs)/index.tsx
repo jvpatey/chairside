@@ -6,48 +6,37 @@ import {
   getShiftPostListingViewCountsMap,
   getShiftPostPendingApplicationCountsMap,
   listClinicApplications,
-  listClinicCalendarEvents,
   listClinicInvitations,
   listClinicMemberships,
-  listConversationsForClinic,
   listJobPosts,
   listShiftPosts,
-  type CalendarEvent,
   type ClinicApplication,
   type ClinicDashboardCounts,
-  type Conversation,
   type JobPost,
   type ShiftPost,
 } from '@chairside/api';
 import type { Href } from 'expo-router';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
-import {
-  DashboardOverviewPanel,
-  type OverviewStat,
-} from '@/components/clinic/ClinicCards';
-import { ClinicReadinessChecklist } from '@/components/clinic/ClinicReadinessChecklist';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { GroupLocationsGlanceWidget } from '@/components/clinic/GroupLocationsGlanceWidget';
-import { GroupTeamPulseWidget } from '@/components/clinic/GroupTeamPulseWidget';
-import { GroupWeekCoverageWidget } from '@/components/clinic/GroupWeekCoverageWidget';
-import { HiringInsightsPanel } from '@/components/clinic/HiringInsightsPanel';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
 import { DashboardNeedsAttention } from '@/components/dashboard/DashboardNeedsAttention';
-import { DashboardCalendarWidget } from '@/components/dashboard/DashboardCalendarWidget';
-import { DashboardPlanUsage } from '@/components/dashboard/DashboardPlanUsage';
+import { CoverageFeedSection } from '@/components/dashboard/CoverageFeedSection';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
-import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
-import { DashboardMessagesWidget } from '@/components/messaging/DashboardMessagesWidget';
+import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
+import { RolePostingCard } from '@/components/clinic/RolePostingCard';
+import { CoverageCardGrid } from '@/components/dashboard/CoverageCardGrid';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -73,19 +62,17 @@ import {
 } from '@/lib/clinicManagerAccess';
 import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
-import { buildClinicHeroPulse } from '@/lib/dashboardPulse';
-import { sortDashboardApplications } from '@/lib/applicationPipeline';
-import { isDecidedApplicationStatus } from '@chairside/config';
+import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
+import { isMainListJob } from '@/lib/postingFilters';
+import { useThemedStyles } from '@/theme';
 import {
   isClinicBillingFeatureUnlocked,
   isFillInPostingLimitReached,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
-import { getMessageThreadPreview } from '@/lib/conversationDisplay';
 import {
   buildLocationGlanceRows,
   buildTeamPulseCounts,
-  buildWeekCoverageRows,
   type TeamPulseCounts,
 } from '@/lib/groupDashboardMetrics';
 import {
@@ -94,14 +81,10 @@ import {
   CLINIC_POSTINGS,
   CLINIC_POST_JOB,
   CLINIC_PROFILE,
-  CLINIC_PROFILE_TEAM,
   getClinicApplicationRoute,
-  getClinicMessagesRoute,
   getClinicRoleApplicationsRoute,
-  getConversationMessagesRoute,
   getJobDetailRoute,
   getPostShiftRoute,
-  getShiftDetailRoute,
 } from '@/lib/routing';
 
 export default function ClinicDashboardScreen() {
@@ -112,8 +95,7 @@ export default function ClinicDashboardScreen() {
   });
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: fillInUpdateCount } = useFillInPending();
-  const { pendingCount: applicationUpdateCount, isApplicationHighlighted } =
-    useApplicationTabBadge();
+  const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
   const { clinicProfile, isProfileComplete, locations, organization, membership } =
     useClinicProfile();
   const {
@@ -139,7 +121,6 @@ export default function ClinicDashboardScreen() {
   } = useClinicUpgradePrompt();
   const { logoUri } = useClinicLogo();
   const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
-  const { overview } = useLocalSearchParams<{ overview?: string }>();
   const [counts, setCounts] = useState<ClinicDashboardCounts>({
     openRoles: 0,
     fillInsPosted: 0,
@@ -149,16 +130,20 @@ export default function ClinicDashboardScreen() {
     fillInsWeekDelta: 0,
     applicationsWeekDelta: 0,
   });
-  const [selectedOverview, setSelectedOverview] = useState<OverviewStat>('fill-ins');
   const [jobs, setJobs] = useState<JobPost[]>([]);
+  const [expandedHomeShiftId, setExpandedHomeShiftId] = useState<string | null>(null);
+  const feedStyles = useThemedStyles(({ spacing }) => ({
+    feedStack: {
+      gap: spacing.xl,
+      width: '100%',
+    },
+  }));
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
   const [applicantCounts, setApplicantCounts] = useState<Record<string, number>>({});
   const [jobViewCounts, setJobViewCounts] = useState<Record<string, number>>({});
   const [shiftPendingCounts, setShiftPendingCounts] = useState<Record<string, number>>({});
   const [shiftApplicationCounts, setShiftApplicationCounts] = useState<Record<string, number>>({});
   const [shiftViewCounts, setShiftViewCounts] = useState<Record<string, number>>({});
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
   const [teamPulse, setTeamPulse] = useState<TeamPulseCounts>({
     pendingInvites: 0,
@@ -182,9 +167,7 @@ export default function ClinicDashboardScreen() {
         shiftPosts,
         counts,
         pendingShiftCounts,
-        conversationRows,
         clinicApplications,
-        calendarRows,
       ] = await Promise.all([
         getClinicDashboardCounts(clinicId, { locationIds: scopedLocationIds }),
         listJobPosts(clinicId, { locationIds: scopedLocationIds }),
@@ -193,9 +176,7 @@ export default function ClinicDashboardScreen() {
         getShiftPostPendingApplicationCountsMap(clinicId, {
           locationIds: scopedLocationIds,
         }),
-        listConversationsForClinic(clinicId, { locationIds: scopedLocationIds }),
         listClinicApplications(clinicId, 'active', { locationIds: scopedLocationIds }),
-        listClinicCalendarEvents(clinicId, undefined, { locationIds: scopedLocationIds }),
       ]);
 
       const shiftApplicationCountEntries = await Promise.all(
@@ -217,9 +198,7 @@ export default function ClinicDashboardScreen() {
       setShiftPendingCounts(pendingShiftCounts);
       setShiftApplicationCounts(Object.fromEntries(shiftApplicationCountEntries));
       setShiftViewCounts(shiftViews);
-      setConversations(conversationRows);
       setApplications(clinicApplications);
-      setCalendarEvents(calendarRows);
 
       if (isGroup && isOwner) {
         try {
@@ -255,7 +234,6 @@ export default function ClinicDashboardScreen() {
         setApplicantCounts({});
         setShiftPendingCounts({});
         setShiftApplicationCounts({});
-        setConversations([]);
         setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
       }
     } finally {
@@ -303,12 +281,6 @@ export default function ClinicDashboardScreen() {
     },
     [loadDashboard, refreshBilling],
   );
-
-  useEffect(() => {
-    if (overview === 'roles' || overview === 'fill-ins' || overview === 'applications') {
-      setSelectedOverview(overview);
-    }
-  }, [overview]);
 
   const assignedLocationIds =
     membership?.location_ids?.length
@@ -367,21 +339,6 @@ export default function ClinicDashboardScreen() {
   const roleLimitReached = isBillingReady && isRolePostingLimitReached(billing);
   const fillInLimitReached = isBillingReady && isFillInPostingLimitReached(billing);
 
-  const openConversation = useCallback((conversation: Conversation) => {
-    const preview = getMessageThreadPreview(conversation, 'clinic');
-    router.push(
-      getConversationMessagesRoute(
-        conversation,
-        'clinic',
-        {
-          conversationId: conversation.id,
-          ...preview,
-        },
-        'messages-tab',
-      ),
-    );
-  }, []);
-
   const applicantPreviewByJobId = useMemo(
     () =>
       summarizeJobApplicantPreviews(
@@ -393,15 +350,6 @@ export default function ClinicDashboardScreen() {
         })),
       ),
     [applications],
-  );
-
-  const dashboardApplications = useMemo(
-    () =>
-      sortDashboardApplications(
-        applications.filter((application) => !isDecidedApplicationStatus(application.status)),
-        isApplicationHighlighted,
-      ),
-    [applications, isApplicationHighlighted],
   );
 
   const attentionItems = useMemo(
@@ -432,51 +380,14 @@ export default function ClinicDashboardScreen() {
     ],
   );
 
-  const upcomingCalendarEvents = useMemo(() => {
-    const now = Date.now();
-    return calendarEvents.filter((event) => new Date(event.startsAt).getTime() >= now);
-  }, [calendarEvents]);
-
-  const handleCalendarEventPress = useCallback((event: CalendarEvent) => {
-    if (event.kind === 'open_fill_in' && event.shiftPostId) {
-      router.push(getShiftDetailRoute(event.shiftPostId, 'fill-ins-tab'));
-      return;
-    }
-    if (event.applicationId) {
-      router.push(getClinicApplicationRoute(event.applicationId, 'dashboard-applications'));
-    }
-  }, []);
-
-  const heroPulse = useMemo(
+  const liveHomeShifts = useMemo(
     () =>
-      isProfileComplete
-        ? buildClinicHeroPulse({
-            newApplications: counts.newApplications,
-            onOpenApplications: () => router.push(CLINIC_APPLICATIONS),
-          })
-        : null,
-    [counts.newApplications, isProfileComplete],
+      shifts
+        .filter((shift) => shift.status === 'live' && isTodayOrUpcomingShiftDate(shift.shift_date))
+        .slice(0, 5),
+    [shifts],
   );
-
-  // Incomplete profiles need the checklist most — it owns the setup CTA.
-  // Once complete, keep it while early hiring steps are still open.
-  const showChecklist =
-    !isProfileComplete ||
-    counts.openRoles === 0 ||
-    counts.fillInsPosted === 0 ||
-    counts.totalApplications === 0;
-
-  const overviewViewAll = useCallback(() => {
-    if (selectedOverview === 'roles') {
-      router.push(CLINIC_POSTINGS);
-      return;
-    }
-    if (selectedOverview === 'fill-ins') {
-      router.push(CLINIC_FILL_INS);
-      return;
-    }
-    router.push(CLINIC_APPLICATIONS);
-  }, [selectedOverview]);
+  const liveHomeRoles = useMemo(() => jobs.filter(isMainListJob).slice(0, 3), [jobs]);
 
   const locationGlanceRows = useMemo(() => {
     if (!isGroup || locationScope !== 'all' || accessibleLocations.length < 2) {
@@ -489,47 +400,6 @@ export default function ClinicDashboardScreen() {
       applications,
     });
   }, [accessibleLocations, applications, isGroup, jobs, locationScope, shifts]);
-
-  const weekCoverageRows = useMemo(() => {
-    if (isGroup) {
-      return buildWeekCoverageRows({
-        locations: accessibleLocations,
-        shifts,
-        locationIdFilter: locationScope === 'all' ? null : locationScope,
-      });
-    }
-
-    if (!clinicId) return [];
-
-    const practiceLocations =
-      accessibleLocations.length > 0
-        ? accessibleLocations
-        : [
-            {
-              id: clinicId,
-              name: clinicProfile?.clinic_name?.trim() || 'Your practice',
-              city: clinicProfile?.city ?? null,
-              province: clinicProfile?.province ?? null,
-              logo_storage_path: clinicProfile?.logo_storage_path ?? null,
-            },
-          ];
-
-    return buildWeekCoverageRows({
-      locations: practiceLocations,
-      shifts,
-      fallbackLocationId: accessibleLocations.length === 0 ? clinicId : null,
-    });
-  }, [
-    accessibleLocations,
-    clinicId,
-    clinicProfile?.city,
-    clinicProfile?.clinic_name,
-    clinicProfile?.logo_storage_path,
-    clinicProfile?.province,
-    isGroup,
-    locationScope,
-    shifts,
-  ]);
 
   const focusLocation = useCallback(
     (locationId: string) => {
@@ -547,6 +417,7 @@ export default function ClinicDashboardScreen() {
       hero={
         <FadeInSection delayMs={0}>
           <DashboardHero
+            flush
             profileHref={CLINIC_PROFILE}
             avatarKind={isGroup ? 'worker' : 'clinic'}
             displayName={heroDisplayName}
@@ -561,7 +432,14 @@ export default function ClinicDashboardScreen() {
             subtitle={heroSubtitle}
             identityLine={heroIdentityLine}
             greetingName={heroGreetingName}
-            pulse={heroPulse}
+            statusLine={
+              isProfileComplete
+                ? liveHomeShifts.length === 1
+                  ? '1 open fill-in needs coverage'
+                  : `${liveHomeShifts.length} open fill-ins · Post when you need cover`
+                : null
+            }
+            onStatusPress={() => router.push(CLINIC_FILL_INS)}
             hideProfileOnWebTablet
             contextSlot={
               isGroup && !isTablet ? (
@@ -616,30 +494,14 @@ export default function ClinicDashboardScreen() {
           </FadeInSection>
         ) : null
       }
-      calendar={
-        <FadeInSection delayMs={60}>
-          <DashboardCalendarWidget
-            events={upcomingCalendarEvents}
-            onEventPress={handleCalendarEventPress}
-            onViewAllPress={() => router.push('/(clinic-tabs)/calendar' as Href)}
-          />
-        </FadeInSection>
-      }
-      coverage={
-        <FadeInSection delayMs={80}>
-          <GroupWeekCoverageWidget
-            rows={weekCoverageRows}
-            onSelectLocation={focusLocation}
-          />
-        </FadeInSection>
-      }
       quickActions={
         <FadeInSection delayMs={100}>
           <DashboardQuickActionsRow
+            emphasizeFirst
             actions={[
               {
                 label: 'Post fill-in',
-                description: 'Temp or urgent shift',
+                description: 'We’ll text matching professionals',
                 icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 disabled: fillInLimitReached,
@@ -647,7 +509,7 @@ export default function ClinicDashboardScreen() {
               },
               {
                 label: 'Post a role',
-                description: 'Full-time or part-time hire',
+                description: 'Alert matched candidates',
                 icon: 'briefcase-outline',
                 variant: 'primary',
                 disabled: roleLimitReached,
@@ -659,146 +521,91 @@ export default function ClinicDashboardScreen() {
       }
       workspace={
         <FadeInSection delayMs={120}>
-          <FileTabWell
-            variant="dashboard"
-            selected={selectedOverview}
-            onSelect={setSelectedOverview}
-            tabs={[
-              {
-                value: 'fill-ins',
-                label: 'Fill-ins',
-                count: counts.fillInsPosted,
-                badgeCount: fillInUpdateCount,
-                accent: 'secondary',
-                icon: FILL_IN_ICON.outline,
-              },
-              {
-                value: 'roles',
-                label: 'Roles',
-                count: counts.openRoles,
-                accent: 'primary',
-                icon: 'briefcase-outline',
-              },
-              {
-                value: 'applications',
-                label: 'Applications',
-                count: counts.totalApplications,
-                badgeCount: applicationUpdateCount || counts.newApplications,
-                accent: 'tertiary',
-                icon: 'people-outline',
-              },
-            ]}>
-            <DashboardOverviewPanel
-              embedded
-              selected={selectedOverview}
-              applicantPreviewByJobId={applicantPreviewByJobId}
-              jobs={jobs}
-              shifts={shifts}
-              applications={dashboardApplications}
-              applicantCounts={applicantCounts}
-              jobViewCounts={jobViewCounts}
-              shiftPendingCounts={shiftPendingCounts}
-              shiftApplicationCounts={shiftApplicationCounts}
-              shiftViewCounts={shiftViewCounts}
-              clinicId={clinicId ?? undefined}
-              fillInReturnTo="dashboard-fill-ins"
-              onJobUpdated={handleJobUpdated}
-              onJobDeleted={handleJobDeleted}
-              onShiftUpdated={handleShiftUpdated}
-              onShiftDeleted={handleShiftDeleted}
-              onJobPress={(jobId) => router.push(getJobDetailRoute(jobId))}
-              onJobApplicationsPress={(jobId) =>
-                router.push(getClinicRoleApplicationsRoute(jobId, 'dashboard-applications'))
-              }
-              onApplicantPress={(applicationId, jobId) =>
-                router.push(
-                  getClinicApplicationRoute(applicationId, 'dashboard-applications', jobId),
-                )
-              }
-              onViewAllPress={overviewViewAll}
-            />
-          </FileTabWell>
+          <View style={feedStyles.feedStack}>
+            <CoverageFeedSection
+              title="Needs response"
+              count={liveHomeShifts.length}
+              accent="secondary"
+              icon={FILL_IN_ICON.outline}
+              onViewAll={() => router.push(CLINIC_FILL_INS)}>
+              {liveHomeShifts.length === 0 ? (
+                <DashboardEmptyState
+                  icon={FILL_IN_ICON.outline}
+                  title="No open fill-ins"
+                  message="Post a fill-in and we’ll text matching professionals."
+                  accent="secondary"
+                />
+              ) : (
+                <CoverageCardGrid>
+                  {liveHomeShifts.map((shift) => (
+                    <FillInPostingCard
+                      key={shift.id}
+                      shift={shift}
+                      pendingRequestCount={shiftPendingCounts[shift.id] ?? 0}
+                      applicationCount={shiftApplicationCounts[shift.id] ?? 0}
+                      viewCount={shiftViewCounts[shift.id] ?? 0}
+                      clinicId={clinicId ?? undefined}
+                      returnTo="dashboard-fill-ins"
+                      accent="secondary"
+                      expanded={expandedHomeShiftId === shift.id}
+                      onExpandChange={(next) =>
+                        setExpandedHomeShiftId(next ? shift.id : null)
+                      }
+                      onShiftUpdated={handleShiftUpdated}
+                      onShiftDeleted={() => handleShiftDeleted(shift.id)}
+                    />
+                  ))}
+                </CoverageCardGrid>
+              )}
+            </CoverageFeedSection>
+
+            <CoverageFeedSection
+              quiet
+              title="Permanent openings"
+              count={liveHomeRoles.length}
+              accent="primary"
+              icon="briefcase-outline"
+              onViewAll={() => router.push(CLINIC_POSTINGS)}>
+              {liveHomeRoles.length === 0 ? (
+                <DashboardEmptyState
+                  icon="briefcase-outline"
+                  title="No active roles yet"
+                  message="Post a role to alert matched professionals."
+                />
+              ) : (
+                <CoverageCardGrid>
+                  {liveHomeRoles.map((job) => (
+                    <RolePostingCard
+                      key={job.id}
+                      job={job}
+                      applicants={applicantPreviewByJobId?.[job.id]}
+                      applicantCount={applicantCounts?.[job.id] ?? 0}
+                      viewCount={jobViewCounts[job.id] ?? 0}
+                      onPress={() => router.push(getJobDetailRoute(job.id))}
+                      onApplicantsPress={() =>
+                        router.push(getClinicRoleApplicationsRoute(job.id, 'postings-tab'))
+                      }
+                      onApplicantPress={(applicationId) =>
+                        router.push(
+                          getClinicApplicationRoute(applicationId, 'postings-tab', job.id),
+                        )
+                      }
+                      manage={
+                        clinicId
+                          ? {
+                              clinicId,
+                              onUpdated: handleJobUpdated,
+                              onDeleted: () => handleJobDeleted(job.id),
+                            }
+                          : undefined
+                      }
+                    />
+                  ))}
+                </CoverageCardGrid>
+              )}
+            </CoverageFeedSection>
+          </View>
         </FadeInSection>
-      }
-      planUsage={
-        billing && isBillingReady && billing.activeRoleLimit != null ? (
-          <FadeInSection delayMs={140}>
-            <DashboardPlanUsage
-              label="Fill-ins"
-              used={billing.activeFillInCount}
-              limit={billing.activeFillInLimit}
-              secondaryLabel="Open roles"
-              secondaryUsed={billing.activeRoleCount}
-              secondaryLimit={billing.activeRoleLimit}
-              syncNotice={
-                isHealingSubscription ||
-                (revenueCatPlan != null &&
-                  revenueCatPlan !== 'free' &&
-                  billing.plan === 'free')
-                  ? 'Subscription found — refreshing…'
-                  : null
-              }
-              onViewPlansPress={() =>
-                openClinicBillingModal({
-                  focus: billing.planFamily === 'group' || isGroup ? 'group' : 'clinic',
-                })
-              }
-            />
-          </FadeInSection>
-        ) : null
-      }
-      insights={
-        clinicId &&
-        isClinicBillingFeatureUnlocked(billing, isBillingReady, 'canUseHiringInsights') ? (
-          <FadeInSection delayMs={160}>
-            <HiringInsightsPanel
-              clinicId={clinicId}
-              locationIds={Array.isArray(scopedLocationIds) ? scopedLocationIds : undefined}
-              canUseHiringInsights
-              showLocationBreakdown={billing?.plan === 'group_pro'}
-            />
-          </FadeInSection>
-        ) : null
-      }
-      checklist={
-        showChecklist ? (
-          <FadeInSection delayMs={180}>
-            <ClinicReadinessChecklist
-              clinicProfile={clinicProfile}
-              locations={accessibleLocations}
-              isGroup={isGroup}
-              isOwner={isOwner}
-              assignedLocationIds={assignedLocationIds}
-              fillInsPosted={counts.fillInsPosted}
-              openRoles={counts.openRoles}
-              totalApplications={counts.totalApplications}
-              conversationCount={conversations.length}
-              onPostFillIn={() => guardPosting(getPostShiftRoute('fill-ins-tab'))}
-              onPostRole={() => guardPosting(CLINIC_POST_JOB)}
-            />
-          </FadeInSection>
-        ) : null
-      }
-      messages={
-        <FadeInSection delayMs={200}>
-          <DashboardMessagesWidget
-            conversations={conversations}
-            avatarKind="worker"
-            role="clinic"
-            onConversationPress={openConversation}
-            onViewAllPress={() => router.push(getClinicMessagesRoute())}
-          />
-        </FadeInSection>
-      }
-      teamPulse={
-        isGroup && isOwner ? (
-          <FadeInSection delayMs={220}>
-            <GroupTeamPulseWidget
-              counts={teamPulse}
-              onPress={() => router.push(CLINIC_PROFILE_TEAM)}
-            />
-          </FadeInSection>
-        ) : null
       }
     />
   );

@@ -192,7 +192,12 @@ function ListingCtaFooter({
     );
   }
 
-  return <OnboardingButton label="Sign in to apply" onPress={onSignInToApply} />;
+  return (
+    <OnboardingButton
+      label={listing.kind === 'shift' ? 'Sign in to request cover' : 'Sign in to apply'}
+      onPress={onSignInToApply}
+    />
+  );
 }
 
 export function PublicListingPage({

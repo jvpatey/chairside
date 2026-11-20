@@ -2,13 +2,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PENDING_PUBLIC_LISTING_KEY = 'chairside.pendingPublicListingHref';
 
-const ALLOWED_PREFIXES = ['/(tabs)/shift/', '/(tabs)/job/'] as const;
+const ALLOWED_PREFIXES = [
+  '/(tabs)/shift/',
+  '/(tabs)/job/',
+  '/(tabs)/application/',
+  '/(clinic-tabs)/application/',
+  '/a/',
+] as const;
 
 function isAllowedListingHref(href: string): boolean {
   return ALLOWED_PREFIXES.some((prefix) => href.startsWith(prefix));
 }
 
-/** Persist in-app listing path so sign-in can return to apply after auth. */
+/** Persist in-app listing/application path so sign-in can return after auth. */
 export async function savePendingPublicListingHref(
   href: string | null | undefined,
 ): Promise<void> {

@@ -282,8 +282,10 @@ export function clinicPlanIncludesFeature(
   switch (feature) {
     case 'publish_opportunity':
       return true;
-    case 'fill_in_outreach':
     case 'fill_in_sms':
+      // Ungated while plans are revamped — SMS coverage loop is core product.
+      return true;
+    case 'fill_in_outreach':
     case 'screening_questions':
     case 'crm_followups':
     case 'application_pdf_export':

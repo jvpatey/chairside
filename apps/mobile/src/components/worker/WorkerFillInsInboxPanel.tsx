@@ -82,7 +82,7 @@ export function WorkerFillInsInboxPanel({
         : []),
       {
         value: 'pending' as const,
-        label: 'Pending',
+        label: 'Requested',
         count: pendingFillInCount,
         accent: 'secondary' as const,
         icon: 'hourglass-outline' as const,

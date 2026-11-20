@@ -156,7 +156,17 @@ export async function upsertWorkerProfile(
   if (partial.fill_in_notification_mode !== undefined) {
     payload.fill_in_notification_mode = partial.fill_in_notification_mode;
   }
-  if (partial.phone !== undefined) payload.phone = partial.phone;
+  if (partial.phone !== undefined) {
+    payload.phone = partial.phone;
+    // Auto-enable fill-in SMS when a valid phone is saved unless explicitly overridden.
+    if (
+      partial.fill_in_sms_opt_in === undefined &&
+      typeof partial.phone === 'string' &&
+      partial.phone.trim().length > 0
+    ) {
+      payload.fill_in_sms_opt_in = true;
+    }
+  }
   if (partial.fill_in_sms_opt_in !== undefined) {
     payload.fill_in_sms_opt_in = partial.fill_in_sms_opt_in;
   }

@@ -18,7 +18,7 @@ export function getClinicPostingSetupHref(missing: string[], isGroup: boolean): 
   if (missing.includes('Clinic name')) {
     return CLINIC_PROFILE_GROUP;
   }
-  if (missing.includes('Phone or contact name')) {
+  if (missing.includes('Phone') || missing.includes('Phone or contact name')) {
     return CLINIC_PROFILE_MEMBER;
   }
   return CLINIC_PROFILE_LOCATIONS;

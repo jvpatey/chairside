@@ -174,3 +174,58 @@ export function buildOutreachSms(input: {
 
   return fitSms([build(input.clinicName), build(truncateName(input.clinicName))]);
 }
+
+/** Clinic SMS when a professional requests cover on a fill-in. */
+export function buildClinicCoverRequestSms(input: {
+  workerName: string;
+  shiftDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  decisionUrl: string;
+}): string {
+  const details = shiftDetails(input);
+  const worker = input.workerName.trim() || 'A professional';
+  const url = input.decisionUrl.trim();
+  const build = (name: string) =>
+    `Chairside: ${name} requested your fill-in for ${details}. Review: ${url}`;
+
+  return fitSms(
+    [build(worker), build(truncateName(worker, 24))],
+    url ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT,
+  );
+}
+
+/** Worker SMS for fill-in accept / decline / filled outcomes. */
+export function buildFillInDecisionSms(input: {
+  outcome: 'accepted' | 'declined' | 'filled';
+  clinicName: string;
+  shiftDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  detailsUrl?: string | null;
+}): string {
+  const details = shiftDetails(input);
+  const clinic = input.clinicName.trim() || 'A clinic';
+  const url = input.detailsUrl?.trim() || null;
+
+  let body: (clinicName: string) => string;
+  if (input.outcome === 'accepted') {
+    body = (clinicName) =>
+      url
+        ? `Chairside: ${clinicName} confirmed you for ${details}. Details: ${url}`
+        : `Chairside: ${clinicName} confirmed you for ${details}. Open Chairside for details.`;
+  } else if (input.outcome === 'filled') {
+    body = (clinicName) =>
+      `Chairside: The fill-in at ${clinicName} for ${details} was covered by someone else.`;
+  } else {
+    body = (clinicName) =>
+      url
+        ? `Chairside: ${clinicName} declined your cover request for ${details}. ${url}`
+        : `Chairside: ${clinicName} declined your cover request for ${details}.`;
+  }
+
+  return fitSms(
+    [body(clinic), body(truncateName(clinic))],
+    url ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT,
+  );
+}

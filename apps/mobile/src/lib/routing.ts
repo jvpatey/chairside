@@ -415,6 +415,8 @@ export function getTabRootHref(tabName: string, role: TabAtmosphereRole): Href |
         return getClinicCalendarSidebarRoute();
       case 'messages':
         return getClinicMessagesRoute();
+      case 'profile':
+        return CLINIC_PROFILE;
       default:
         return null;
     }
@@ -433,6 +435,8 @@ export function getTabRootHref(tabName: string, role: TabAtmosphereRole): Href |
       return getWorkerCalendarSidebarRoute();
     case 'messages':
       return getWorkerMessagesRoute();
+    case 'profile':
+      return WORKER_PROFILE;
     default:
       return null;
   }

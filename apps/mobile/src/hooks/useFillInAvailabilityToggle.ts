@@ -56,8 +56,13 @@ export function useFillInAvailabilityToggle() {
   const handleToggle = async (value: boolean) => {
     const mode =
       value && notificationMode === 'off' ? ('all' as FillInNotificationMode) : notificationMode;
+    const hasPhone = Boolean(workerProfile?.phone?.trim());
+    const smsWhenOn = value && (smsOptIn || hasPhone);
     setShortNoticeAvailable(value);
-    if (value) setNotificationMode(mode);
+    if (value) {
+      setNotificationMode(mode);
+      if (hasPhone) setSmsOptIn(true);
+    }
     if (!value) {
       setSmsOptIn(false);
       setAcceptsClinicOutreach(false);
@@ -65,7 +70,7 @@ export function useFillInAvailabilityToggle() {
     await persist(
       value,
       value ? mode : 'off',
-      value ? smsOptIn : false,
+      smsWhenOn,
       value ? acceptsClinicOutreach : false,
     );
   };

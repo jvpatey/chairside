@@ -4,7 +4,6 @@ import { formatJobPostRoleMeta } from '@chairside/config';
 import { View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
-import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
@@ -35,8 +34,8 @@ type RoleListingCardProps = {
 
 export function RoleListingCard({
   job,
-  jobMatch,
-  matchContext,
+  jobMatch: _jobMatch,
+  matchContext: _matchContext,
   applicationStatus: _applicationStatus,
   isSaved: _isSaved = false,
   onToggleSaved: _onToggleSaved,
@@ -66,26 +65,12 @@ export function RoleListingCard({
     },
   }));
 
-  const matchBadge =
-    jobMatch && matchContext ? (
-      <MatchTierBadge
-        breakdown={jobMatch}
-        context={matchContext}
-        subtitle={job.title}
-        showProfileHint
-        // Avoid <button> inside SurfaceCard's pressable on web.
-        interactive={!onPress}
-      />
-    ) : null;
-
   const isFeatured = job.has_priority_listing;
-  const badgeRow =
-    isFeatured || matchBadge ? (
-      <BadgeRow>
-        {isFeatured ? <FeaturedListingBadge size="sm" /> : null}
-        {matchBadge}
-      </BadgeRow>
-    ) : null;
+  const badgeRow = isFeatured ? (
+    <BadgeRow>
+      <FeaturedListingBadge size="sm" />
+    </BadgeRow>
+  ) : null;
   /** Phone / narrow: stack badges under the clinic line so the title keeps full width. */
   const stackBadges = isCompact && badgeRow != null;
 
@@ -95,11 +80,10 @@ export function RoleListingCard({
       onPress={onPress}
       padding="none"
       style={styles.stretchCard}
-      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
-      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
+      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}>
       <BrowseListRow
         avatar={
-          <ClinicLogoAvatar clinicName={job.clinic.clinic_name} logoUri={logoUri} size={48} />
+          <ClinicLogoAvatar clinicName={job.clinic.clinic_name} logoUri={logoUri} size={44} />
         }
         title={job.title}
         subtitle={

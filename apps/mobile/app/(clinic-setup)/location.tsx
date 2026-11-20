@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CLINIC_SETUP_LOCATIONS, CLINIC_SETUP_PRACTICE } from '@/lib/routing';
+import { CLINIC_SETUP_LOCATIONS, CLINIC_SETUP_REVIEW } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
@@ -97,7 +97,7 @@ export default function ClinicLocationScreen() {
       } else if (isGroup) {
         router.push(CLINIC_SETUP_LOCATIONS);
       } else {
-        router.push(CLINIC_SETUP_PRACTICE);
+        router.push(CLINIC_SETUP_REVIEW);
       }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');

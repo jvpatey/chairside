@@ -38,14 +38,14 @@ export function getFillInTextAlertsHint(
   const formatted = savedPhone ? formatPhoneNumber(savedPhone) : '';
   switch (state) {
     case 'on':
-      return `Texts go to ${formatted}.`;
+      return `On by default at ${formatted}. Turn off anytime — reply STOP to opt out.`;
     case 'off_ready':
-      return `Get posted fill-ins and urgent clinic requests by text at ${formatted}.`;
+      return `Off. Turn on to resume texts at ${formatted}.`;
     case 'finishing':
-      return 'Add your mobile number below to finish.';
+      return 'Add your mobile number below. Texts turn on automatically when you save.';
     case 'changing_number':
       return 'Enter the new number for fill-in texts.';
     default:
-      return 'Get posted fill-ins and urgent clinic requests by text.';
+      return 'On by default when you add a mobile number. You can turn texts off anytime.';
   }
 }

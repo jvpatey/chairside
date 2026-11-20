@@ -2,10 +2,8 @@ import { isClinicGroupsEnabled } from '@chairside/api';
 import type { Href } from 'expo-router';
 
 import {
-  CLINIC_SETUP_ABOUT,
   CLINIC_SETUP_BASICS,
   CLINIC_SETUP_LOCATION,
-  CLINIC_SETUP_PRACTICE,
   CLINIC_SETUP_REVIEW,
   WORKER_SETUP_FILL_INS,
 } from '@/lib/routing';
@@ -26,8 +24,6 @@ export type SetupNavStep = {
 
 export const WORKER_SETUP_STEPS: SetupNavStep[] = [
   { id: 'basics', label: 'Basics', href: '/(worker-setup)/basics' },
-  { id: 'experience', label: 'Experience', href: '/(worker-setup)/experience' },
-  { id: 'skills', label: 'Skills', href: '/(worker-setup)/skills' },
   { id: 'location', label: 'Location', href: '/(worker-setup)/location' },
   { id: 'fill-ins', label: 'Fill-ins', href: WORKER_SETUP_FILL_INS },
   { id: 'review', label: 'Review', href: '/(worker-setup)/review' },
@@ -36,8 +32,6 @@ export const WORKER_SETUP_STEPS: SetupNavStep[] = [
 export const CLINIC_SETUP_STEPS_LEGACY: SetupNavStep[] = [
   { id: 'basics', label: 'Basics', href: CLINIC_SETUP_BASICS },
   { id: 'location', label: 'Location', href: CLINIC_SETUP_LOCATION },
-  { id: 'practice', label: 'Practice', href: CLINIC_SETUP_PRACTICE },
-  { id: 'about', label: 'About', href: CLINIC_SETUP_ABOUT },
   { id: 'review', label: 'Review', href: CLINIC_SETUP_REVIEW },
 ];
 

@@ -262,7 +262,7 @@ export default function PostShiftScreen() {
             : 'Publishing…'
           : isEditing
             ? 'Save changes'
-            : 'Publish fill-in'
+            : 'Post fill-in & alert pros'
       }
       disabled={isSubmitting || fillInLimitReached || pickerOpen}
       accent={FILL_IN_ACCENT}
@@ -292,7 +292,7 @@ export default function PostShiftScreen() {
         subtitle={
           isEditing
             ? 'Update your fill-in shift details.'
-            : 'Publish a short-notice or temp shift.'
+            : 'Matching professionals will be texted as soon as you publish.'
         }
         accent={FILL_IN_ACCENT}
         onBack={handleBack}

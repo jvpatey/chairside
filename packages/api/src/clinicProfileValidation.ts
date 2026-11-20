@@ -23,7 +23,10 @@ export type ClinicProfileCompletenessOptions = {
 };
 
 function hasClinicContact(profile: ClinicProfileCompletenessProfile): boolean {
-  return Boolean(profile.phone?.trim() || profile.contact_name?.trim());
+  if (isGroupAccount(profile)) {
+    return Boolean(profile.phone?.trim() || profile.contact_name?.trim());
+  }
+  return Boolean(profile.phone?.trim());
 }
 
 export function isClinicLocationRecordComplete(
@@ -32,8 +35,7 @@ export function isClinicLocationRecordComplete(
   return (
     Boolean(location.address_line1?.trim()) &&
     Boolean(location.city?.trim()) &&
-    Boolean(location.postal_code?.trim()) &&
-    (location.software_used?.length ?? 0) > 0
+    Boolean(location.postal_code?.trim())
   );
 }
 
@@ -70,8 +72,7 @@ export function isClinicProfileComplete(
   return (
     Boolean(profile.address_line1?.trim()) &&
     Boolean(profile.city?.trim()) &&
-    Boolean(profile.postal_code?.trim()) &&
-    (profile.software_used?.length ?? 0) > 0
+    Boolean(profile.postal_code?.trim())
   );
 }
 
@@ -80,26 +81,21 @@ export function getMissingClinicProfileFields(
   options?: ClinicProfileCompletenessOptions,
 ): string[] {
   if (!profile) {
-    return [
-      'Clinic name',
-      'Street address',
-      'City',
-      'Postal code',
-      'Software used',
-      'Phone or contact name',
-    ];
+    return ['Clinic name', 'Street address', 'City', 'Postal code', 'Phone'];
   }
 
   const missing: string[] = [];
   if (!profile.clinic_name?.trim()) missing.push('Clinic name');
-  if (!hasClinicContact(profile)) missing.push('Phone or contact name');
+  if (!hasClinicContact(profile)) {
+    missing.push(isGroupAccount(profile) ? 'Phone or contact name' : 'Phone');
+  }
 
   if (isGroupAccount(profile)) {
     const active = activeLocations(options?.locations);
     if (active.length === 0) {
       missing.push('A clinic location');
     } else if (!hasCompleteGroupLocation(options?.locations)) {
-      missing.push('A location with address and software');
+      missing.push('A location with a complete address');
     }
     return missing;
   }
@@ -107,6 +103,5 @@ export function getMissingClinicProfileFields(
   if (!profile.address_line1?.trim()) missing.push('Street address');
   if (!profile.city?.trim()) missing.push('City');
   if (!profile.postal_code?.trim()) missing.push('Postal code');
-  if ((profile.software_used?.length ?? 0) === 0) missing.push('Software used');
   return missing;
 }

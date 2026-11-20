@@ -253,8 +253,12 @@ export function FillInModePanel({
   const handleToggle = async (value: boolean) => {
     const mode =
       value && notificationMode === 'off' ? ('all' as FillInNotificationMode) : notificationMode;
+    const smsWhenOn = value && (smsOptIn || hasPhone);
     setShortNoticeAvailable(value);
-    if (value) setNotificationMode(mode);
+    if (value) {
+      setNotificationMode(mode);
+      if (hasPhone) setSmsOptIn(true);
+    }
     if (!value) {
       setSmsOptIn(false);
       setAcceptsClinicOutreach(false);
@@ -263,7 +267,7 @@ export function FillInModePanel({
     await persist({
       available: value,
       mode: value ? mode : 'off',
-      sms: value ? smsOptIn : false,
+      sms: smsWhenOn,
       outreach: value ? acceptsClinicOutreach : false,
     });
   };
@@ -345,8 +349,8 @@ export function FillInModePanel({
         label={
           textState === 'finishing'
             ? isSaving
-              ? 'Turning on…'
-              : 'Turn on text alerts'
+              ? 'Saving…'
+              : 'Save number'
             : isSaving
               ? 'Saving…'
               : 'Save new number'
@@ -361,7 +365,7 @@ export function FillInModePanel({
         </Pressable>
       ) : null}
       <Text style={styles.helper}>
-        Message and data rates may apply. You can turn texts off anytime.
+        Texts are on by default when you save a number. Message and data rates may apply.
       </Text>
     </View>
   ) : hasPhone ? (
@@ -383,7 +387,7 @@ export function FillInModePanel({
       <SettingsSection title="Text alerts" nested={useNestedSections} embedded={isGrouped}>
         <SettingsToggleRow
           prominence="primary"
-          title="Text me for fill-ins"
+          title="Fill-in text alerts"
           hint={getFillInTextAlertsHint(textState, savedPhone)}
           value={isFillInTextAlertsSwitchOn(textState, smsOptIn)}
           disabled={isSaving}

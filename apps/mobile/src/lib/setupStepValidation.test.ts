@@ -13,6 +13,7 @@ describe('validateWorkerBasicsStep', () => {
         firstName: '',
         lastName: 'Doe',
         roleTypes: ['hygienist'],
+        phone: '9025551234',
       }),
     ).toEqual({ ok: false, message: 'Enter your first and last name.' });
 
@@ -21,6 +22,7 @@ describe('validateWorkerBasicsStep', () => {
         firstName: 'Jane',
         lastName: '',
         roleTypes: ['hygienist'],
+        phone: '9025551234',
       }),
     ).toEqual({ ok: false, message: 'Enter your first and last name.' });
   });
@@ -31,6 +33,7 @@ describe('validateWorkerBasicsStep', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         roleTypes: [],
+        phone: '9025551234',
       }),
     ).toEqual({
       ok: false,
@@ -38,12 +41,27 @@ describe('validateWorkerBasicsStep', () => {
     });
   });
 
-  it('passes when first, last, and roles are present', () => {
+  it('requires a valid mobile phone', () => {
     expect(
       validateWorkerBasicsStep({
         firstName: 'Jane',
         lastName: 'Doe',
         roleTypes: ['hygienist'],
+        phone: '',
+      }),
+    ).toEqual({
+      ok: false,
+      message: 'Enter a 10-digit mobile number for fill-in texts.',
+    });
+  });
+
+  it('passes when first, last, roles, and phone are present', () => {
+    expect(
+      validateWorkerBasicsStep({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        roleTypes: ['hygienist'],
+        phone: '9025551234',
       }),
     ).toEqual({ ok: true, message: null });
   });
@@ -64,6 +82,6 @@ describe('getClinicSetupStepGuard', () => {
 
     expect(getClinicSetupStepGuard(group as never, 'review')).toBeNull();
     expect(getClinicSetupStepGuard(group as never, 'about')).toBeNull();
-    expect(getClinicSetupStepGuard(group as never, 'practice')).toEqual('/(clinic-setup)/about');
+    expect(getClinicSetupStepGuard(group as never, 'practice')).toBeNull();
   });
 });

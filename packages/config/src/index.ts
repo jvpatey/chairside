@@ -1,3 +1,4 @@
+export { THIN_PERMANENT_ROLES } from './product';
 export {
   EMPLOYMENT_TYPE_OPTIONS,
   ROLE_EMPLOYMENT_TYPE_OPTIONS,

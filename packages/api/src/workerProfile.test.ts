@@ -9,6 +9,7 @@ import {
 function buildProfile(partial: {
   role_type?: string | null;
   role_types?: string[];
+  phone?: string | null;
   address_line1?: string | null;
   city?: string | null;
   postal_code?: string | null;
@@ -16,6 +17,7 @@ function buildProfile(partial: {
   return {
     role_type: null,
     role_types: [],
+    phone: '9025551234',
     address_line1: '123 Main St',
     city: 'Halifax',
     postal_code: 'B3H 1A1',
@@ -51,5 +53,10 @@ describe('isWorkerProfileComplete', () => {
     expect(getMissingWorkerProfileFields(buildProfile({ role_types: [], role_type: null }))).toContain(
       'Role type',
     );
+  });
+
+  it('requires a mobile phone', () => {
+    expect(isWorkerProfileComplete(buildProfile({ phone: '' }))).toBe(false);
+    expect(getMissingWorkerProfileFields(buildProfile({ phone: null }))).toContain('Mobile phone');
   });
 });

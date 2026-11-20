@@ -103,6 +103,7 @@ export default function ClinicBasicsScreen() {
     // Groups already collect the person's name in the profile section.
     contactName: isGroup ? memberDisplayName : contactName,
     phone,
+    isGroup,
   });
   const membershipNameMissing = isGroup && !memberDisplayName.trim();
   const validationOk = basicsValidation.ok && !membershipNameMissing;
@@ -295,7 +296,7 @@ export default function ClinicBasicsScreen() {
               hint={
                 isGroup
                   ? 'Optional phone for the group account.'
-                  : 'Provide at least a phone number or contact name.'
+                  : 'Clinic phone for fill-in coordination.'
               }
             />
             {!isGroup ? (
@@ -321,13 +322,8 @@ export default function ClinicBasicsScreen() {
               onChangeText={(text) => setPhone(formatPhoneNumber(text))}
               keyboardType="phone-pad"
               icon="call-outline"
-              invalid={
-                !isGroup &&
-                showValidation &&
-                !basicsValidation.ok &&
-                !contactName.trim() &&
-                !phone.trim()
-              }
+              required={!isGroup}
+              invalid={!isGroup && showValidation && !basicsValidation.ok}
             />
           </View>
         </View>

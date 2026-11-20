@@ -1,5 +1,7 @@
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import {
+  buildClinicCoverRequestSms,
+  buildFillInDecisionSms,
   buildFillInSms,
   buildOutreachSms,
   formatSmsDate,
@@ -186,4 +188,52 @@ Deno.test('outreach SMS fits one segment with and without shift details', () => 
     noShift,
     'Chairside: Bayview Dental sent you a fill-in request. Open Chairside to reply. Reply STOP to opt out.',
   );
+});
+
+Deno.test('clinic cover-request SMS includes decision URL', () => {
+  const sms = buildClinicCoverRequestSms({
+    workerName: 'Alex Chen',
+    shiftDate: '2026-09-27',
+    startTime: '08:00',
+    endTime: '16:00',
+    decisionUrl: 'https://chairside.app/a/11111111-2222-3333-4444-555555555555?src=sms',
+  });
+  assertStringIncludes(sms, 'Alex Chen requested');
+  assertStringIncludes(sms, 'chairside.app/a/');
+  assert(gsmLength(sms) <= SMS_TWO_SEGMENT_LIMIT);
+  assert(isGsmOnly(sms));
+});
+
+Deno.test('fill-in decision SMS covers accepted, declined, and filled', () => {
+  const accepted = buildFillInDecisionSms({
+    outcome: 'accepted',
+    clinicName: 'Bayview Dental',
+    shiftDate: '2026-09-27',
+    startTime: '08:00',
+    endTime: '16:00',
+    detailsUrl: 'https://chairside.app/a/11111111-2222-3333-4444-555555555555?src=sms',
+  });
+  assertStringIncludes(accepted, 'confirmed you');
+  assertStringIncludes(accepted, 'Details:');
+
+  const declined = buildFillInDecisionSms({
+    outcome: 'declined',
+    clinicName: 'Bayview Dental',
+    shiftDate: '2026-09-27',
+    startTime: '08:00',
+    endTime: '16:00',
+  });
+  assertStringIncludes(declined, 'declined your cover request');
+
+  const filled = buildFillInDecisionSms({
+    outcome: 'filled',
+    clinicName: 'Bayview Dental',
+    shiftDate: '2026-09-27',
+    startTime: '08:00',
+    endTime: '16:00',
+  });
+  assertStringIncludes(filled, 'covered by someone else');
+  assert(gsmLength(accepted) <= SMS_TWO_SEGMENT_LIMIT);
+  assert(gsmLength(declined) <= SMS_SEGMENT_LIMIT);
+  assert(gsmLength(filled) <= SMS_SEGMENT_LIMIT);
 });

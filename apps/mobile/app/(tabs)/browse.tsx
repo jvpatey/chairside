@@ -17,7 +17,7 @@ import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanne
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
-import { StaggeredList } from '@/components/ui/StaggeredList';
+import { CoverageCardGrid } from '@/components/dashboard/CoverageCardGrid';
 import { Screen } from '@/components/ui/Screen';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { WorkerClinicsDirectoryIconButton } from '@/components/worker/WorkerClinicsDirectoryEntryCard';
@@ -81,20 +81,40 @@ function renderRoleListingCards(
   const showDivider = featured.length > 0 && standard.length > 0;
 
   return (
-    <StaggeredList>
+    <>
       {featured.length > 0 ? (
         <FeaturedListingsSectionHeader label="Featured" variant="featured" />
       ) : null}
-      {featured.map((job) =>
-        renderRoleListingCard(job, applicationStatuses, savedJobIds, workerProfile, onToggleSaved),
-      )}
+      {featured.length > 0 ? (
+        <CoverageCardGrid>
+          {featured.map((job) =>
+            renderRoleListingCard(
+              job,
+              applicationStatuses,
+              savedJobIds,
+              workerProfile,
+              onToggleSaved,
+            ),
+          )}
+        </CoverageCardGrid>
+      ) : null}
       {showDivider ? (
         <FeaturedListingsSectionHeader label="More roles" variant="rest" />
       ) : null}
-      {standard.map((job) =>
-        renderRoleListingCard(job, applicationStatuses, savedJobIds, workerProfile, onToggleSaved),
-      )}
-    </StaggeredList>
+      {standard.length > 0 ? (
+        <CoverageCardGrid>
+          {standard.map((job) =>
+            renderRoleListingCard(
+              job,
+              applicationStatuses,
+              savedJobIds,
+              workerProfile,
+              onToggleSaved,
+            ),
+          )}
+        </CoverageCardGrid>
+      ) : null}
+    </>
   );
 }
 
@@ -384,15 +404,15 @@ export default function BrowseScreen() {
           icon: 'briefcase-outline' as const,
           title: 'No open roles in this filter',
           message: hasActiveFilters
-            ? 'Try a different search or filter, or check the Applied or Saved tab.'
+            ? 'Try a different search or filter, or check Applied or Saved.'
             : 'Check back soon for new opportunities.',
         };
       case 'applied':
         return {
           icon: 'checkmark-circle-outline' as const,
-          title: 'No active applications',
+          title: 'No active interest yet',
           message:
-            'Roles you apply to appear here while they are in progress. Hired and closed applications move to Applications → Past.',
+            'When you apply to a permanent opening, it stays here until the clinic responds.',
         };
       case 'saved':
         return {
@@ -439,7 +459,7 @@ export default function BrowseScreen() {
   return (
     <Screen
       title="Roles"
-      subtitle="Open roles in your province."
+      subtitle="Permanent openings nearby."
       fillsContainer={fillMapViewport}
       scroll={!fillMapViewport}
       scrollEnabled={!fillMapViewport}

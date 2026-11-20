@@ -58,9 +58,10 @@ export function buildFillInListingMetaRows(input: {
   viewCount?: number | null;
 }): ListingMetaRow[] {
   const postedLabel = formatListingPostedDate(input.postedAt);
+  // Date/time first — fill-ins are scanned for when, then where.
   return [
-    compactMetaRow(LISTING_META_ICONS.location, input.location),
     compactMetaRow(LISTING_META_ICONS.shiftDetails, input.shiftMeta),
+    compactMetaRow(LISTING_META_ICONS.location, input.location),
     compactMetaRow(LISTING_META_ICONS.views, formatViewMetaLabel(input.viewCount)),
     compactMetaRow(LISTING_META_ICONS.postedDate, postedLabel),
   ].filter((row): row is ListingMetaRow => row !== null);

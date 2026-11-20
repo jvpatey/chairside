@@ -23,13 +23,13 @@ export function handleTabBarPress({
   pathname,
   role,
 }: HandleTabBarPressOptions): void {
-  const event = navigation.emit({
+  const event = navigation?.emit?.({
     type: 'tabPress',
     target: route.key,
     canPreventDefault: true,
   });
 
-  if (event.defaultPrevented) {
+  if (event?.defaultPrevented) {
     return;
   }
 
@@ -46,6 +46,10 @@ export function handleTabBarPress({
   // Switching tabs: use navigate so sibling tab state stays mounted.
   // router.replace here remounts the navigator destination and can snap to the
   // first declared tab (Roles) after a web remount.
+  if (!navigation?.dispatch) {
+    if (tabRootHref) router.replace(tabRootHref);
+    return;
+  }
   navigation.dispatch({
     ...CommonActions.navigate(route.name),
     target: state.key,

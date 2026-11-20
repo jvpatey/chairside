@@ -13,10 +13,7 @@ import {
   clearPendingSignupRole,
   consumePendingSignupRole,
 } from '@/lib/pendingSignupRole';
-import {
-  clearPendingPublicListingHref,
-  consumePendingPublicListingHref,
-} from '@/lib/pendingPublicListing';
+import { consumePendingPublicListingHref } from '@/lib/pendingPublicListing';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { WORKER_HOME } from '@/lib/routing';
 import type { UserRole } from '@/types';
@@ -72,17 +69,20 @@ export async function handleAuthSuccess(
     captureAnalyticsEvent(AnalyticsEvents.authSignedIn, { role });
   }
 
-  if (role === 'worker') {
-    const pendingListing = await consumePendingPublicListingHref();
-    if (
-      pendingListing &&
-      (href === WORKER_HOME || String(href).startsWith('/(tabs)'))
-    ) {
+  const pendingListing = await consumePendingPublicListingHref();
+  if (pendingListing) {
+    const isApplicationDeepLink = pendingListing.startsWith('/a/');
+    const isWorkerListing =
+      role === 'worker' &&
+      (href === WORKER_HOME || String(href).startsWith('/(tabs)'));
+    const isClinicApplication =
+      role === 'clinic' &&
+      (isApplicationDeepLink || pendingListing.startsWith('/(clinic-tabs)/application/'));
+
+    if (isWorkerListing || isClinicApplication || (isApplicationDeepLink && role)) {
       router.replace(pendingListing as Href);
       return;
     }
-  } else {
-    await clearPendingPublicListingHref();
   }
 
   router.replace(href);

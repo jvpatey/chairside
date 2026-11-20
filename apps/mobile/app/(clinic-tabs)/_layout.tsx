@@ -10,28 +10,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
-import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
-import {
-  ApplicationTabBadgeProvider,
-  useApplicationTabBadge,
-} from '@/contexts/ApplicationTabBadgeContext';
+import { MessageUnreadProvider } from '@/contexts/MessageUnreadContext';
+import { ApplicationTabBadgeProvider } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { fillInTabIcon } from '@/lib/fillInIcons';
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  anchor: 'index',
 };
 
 function ClinicTabNavigator() {
-  const { unreadCount } = useMessageUnread();
   const { pendingCount } = useFillInPending();
-  const { pendingCount: applicationPendingCount } = useApplicationTabBadge();
   const { isTablet } = useResponsiveLayout();
   const screenOptions = useAdaptiveTabScreenOptions();
 
   return (
     <>
-      <Tabs tabBar={renderClinicTabBar} screenOptions={screenOptions}>
+      <Tabs tabBar={renderClinicTabBar} screenOptions={screenOptions} backBehavior="initialRoute">
         <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
         <Tabs.Screen
           name="postings"
@@ -46,30 +41,8 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="discover"
-          options={{
-            title: 'Discover',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons
-                name={focused ? 'compass' : 'compass-outline'}
-                size={22}
-                color={color}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="applications"
-          options={{
-            title: 'Applications',
-            tabBarAccessibilityLabel: 'Applications',
-            tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'people' : 'people-outline'} size={22} color={color} />
-            ),
-          }}
-        />
+        <Tabs.Screen name="discover" options={{ href: null }} />
+        <Tabs.Screen name="applications" options={{ href: null }} />
         <Tabs.Screen
           name="fill-ins"
           options={{
@@ -80,29 +53,8 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="calendar"
-          options={{
-            title: 'Calendar',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'today' : 'today-outline'} size={22} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons
-                name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
-                size={22}
-                color={color}
-              />
-            ),
-          }}
-        />
+        <Tabs.Screen name="calendar" options={{ href: null }} />
+        <Tabs.Screen name="messages" options={{ href: null }} />
         <Tabs.Screen name="profile" options={{ href: null }} />
         <Tabs.Screen name="admin" options={{ href: null }} />
         <Tabs.Screen name="application" options={{ href: null }} />

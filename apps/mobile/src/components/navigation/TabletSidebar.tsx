@@ -17,12 +17,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SidebarProfileHeader } from '@/components/navigation/SidebarProfileHeader';
+import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { getSidebarNavIconColor } from '@/components/navigation/sidebarNavIcons';
 import { AccountMenuSheetHeader } from '@/components/navigation/AccountMenuSheetHeader';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { ClinicPlanBadge } from '@/components/clinic/ClinicPlanBadge';
+import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
@@ -36,10 +38,7 @@ import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { getClinicMembershipRoleLabel } from '@/hooks/useClinicActingContext';
 import { useSignOut } from '@/hooks/useSignOut';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
-import {
-  getClinicPlanBrandAccentColor,
-  getRecommendedUpgradePlan,
-} from '@/lib/clinicPlanPresentation';
+import { getRecommendedUpgradePlan } from '@/lib/clinicPlanPresentation';
 import {
   CLINIC_PROFILE,
   CLINIC_PROFILE_ACCOUNT,
@@ -60,7 +59,6 @@ import {
   webListRowHoverStyles,
   webOnlyStyle,
   webPointer,
-  webTileHoverStyles,
 } from '@/lib/webPressableStyles';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { webMotion } from '@/theme/web';
@@ -69,8 +67,6 @@ export {
   TABLET_SIDEBAR_COLLAPSED_WIDTH,
   TABLET_SIDEBAR_WIDTH,
 } from '@/components/navigation/sidebarDimensions';
-
-const COLLAPSED_AVATAR_SIZE = 40;
 
 function getSidebarRoutes(
   state: BottomTabBarProps['state'],
@@ -81,6 +77,9 @@ function getSidebarRoutes(
 
   return state.routes
     .filter((route) => typeof descriptors[route.key]?.options?.tabBarIcon === 'function')
+    .filter((route) => order.includes(route.name))
+    // Profile stays reachable via the account header — avoid a duplicate nav row.
+    .filter((route) => route.name !== 'profile')
     .sort((a, b) => {
       const aIndex = order.indexOf(a.name);
       const bIndex = order.indexOf(b.name);
@@ -248,7 +247,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       gap: spacing.sm,
     },
     profileRowExpanded: {
-      minHeight: 56,
+      minHeight: 44,
     },
     profileHeaderWrap: {
       flex: 1,
@@ -268,19 +267,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     toggleHovered: webListRowHoverStyles(colors),
     togglePressed: { opacity: 0.88 },
-    profileSection: {
-      flexShrink: 0,
-      justifyContent: 'center',
-      paddingBottom: spacing.md,
-      marginBottom: spacing.sm,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.separator,
-    },
-    profileSectionCollapsed: {
-      alignItems: 'center',
-      width: '100%',
-      overflow: 'hidden',
-    },
     sidebarEdgeZone: {
       position: 'absolute',
       top: 0,
@@ -328,39 +314,80 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     sidebarEdgeCollapseButtonNative: {
       opacity: 0.88,
     },
-    profileHeaderCard: {
-      backgroundColor: colors.surface,
-      borderRadius: radii.lg,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md + 2,
-      ...webPointer(),
-      ...webOnlyStyle({
-        transitionProperty: 'background-color, border-color, box-shadow, transform',
-        transitionDuration: '140ms',
-      } as ViewStyle),
-      ...(isWeb
-        ? webOnlyStyle({
-            boxShadow: isDark
-              ? '0 8px 24px rgba(0, 0, 0, 0.28)'
-              : '0 8px 24px rgba(15, 23, 42, 0.08)',
-          } as ViewStyle)
-        : {}),
+    brandSection: {
+      flexShrink: 0,
+      paddingBottom: spacing.sm,
+      marginBottom: spacing.xs,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.separator,
+      gap: spacing.sm,
     },
-    profileHeaderCardPressed: {
-      opacity: 0.92,
+    brandSectionCollapsed: {
+      alignItems: 'center',
+      width: '100%',
+      overflow: 'hidden',
     },
-    profileCollapsedPressable: {
-      borderRadius: radii.lg,
-      paddingVertical: spacing.xs,
+    brandWordmarkWrap: {
       paddingHorizontal: spacing.xs,
-      ...webPointer(),
+      paddingVertical: 2,
+      minHeight: 36,
+      justifyContent: 'center',
     },
-    profileCollapsedShell: {
+    brandWordmarkCollapsed: {
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
+      paddingVertical: spacing.xs,
+    },
+    brandMarkCollapsed: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySubtle,
+    },
+    brandMarkCollapsedText: {
+      fontSize: 14,
+      fontFamily: fontSemibold,
+      fontWeight: '700' as const,
+      color: colors.primary,
+    },
+    accountRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      minHeight: 36,
+      paddingVertical: 7,
+      paddingHorizontal: spacing.sm,
+      borderRadius: isWeb ? 10 : 8,
+      marginBottom: spacing.xs,
+      ...webPointer(),
+    },
+    accountRowCollapsed: {
+      justifyContent: 'center',
+      alignSelf: 'center',
+      width: 40,
+      paddingHorizontal: 0,
+      paddingVertical: 9,
+      gap: 0,
+    },
+    accountRowLabel: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 13,
+      fontWeight: '500' as const,
+      color: colors.labelPrimary,
+    },
+    accountRowMeta: {
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.labelTertiary,
+      marginTop: 1,
+    },
+    accountRowText: {
+      flex: 1,
+      minWidth: 0,
     },
     profileToggleAlone: {
       alignItems: 'flex-end',
@@ -480,19 +507,19 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     item: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
-      minHeight: 44,
-      paddingVertical: 10,
+      gap: spacing.sm,
+      minHeight: 36,
+      paddingVertical: 7,
       paddingHorizontal: spacing.sm,
-      borderRadius: isWeb ? 12 : 10,
+      borderRadius: isWeb ? 10 : 8,
       position: 'relative',
       overflow: 'hidden',
       zIndex: 1,
       ...webPointer(),
       ...(isWeb
         ? webOnlyStyle({
-            transitionProperty: 'background-color, box-shadow, transform',
-            transitionDuration: '180ms',
+            transitionProperty: 'background-color, transform',
+            transitionDuration: '160ms',
             transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
           } as ViewStyle)
         : {}),
@@ -500,32 +527,30 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     itemHovered: {
       backgroundColor: colors.fillSubtle,
       ...webOnlyStyle({
-        transform: [{ translateX: 2 }],
+        transform: [{ translateX: 1 }],
       } as ViewStyle),
     },
     accentBar: {
       position: 'absolute',
       left: 0,
-      top: 8,
-      bottom: 8,
-      width: 3,
+      top: 6,
+      bottom: 6,
+      width: 2,
       borderRadius: 2,
     },
     itemCollapsed: {
       justifyContent: 'center',
       alignSelf: 'center',
-      width: 44,
+      width: 40,
       paddingHorizontal: 0,
-      paddingVertical: 11,
+      paddingVertical: 9,
       gap: 0,
     },
     itemActive: {
-      backgroundColor: colors.primarySubtle,
+      backgroundColor: colors.fillSubtle,
     },
     itemActiveHovered: webOnlyStyle({
-      boxShadow: isDark
-        ? '0 4px 12px rgba(74, 154, 255, 0.12)'
-        : '0 4px 12px rgba(26, 111, 212, 0.1)',
+      backgroundColor: colors.fillSubtle,
     } as ViewStyle),
     itemPressed: {
       opacity: 0.85,
@@ -538,12 +563,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     },
     label: {
       flex: 1,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '500',
       color: colors.labelPrimary,
     },
     labelActive: {
-      fontWeight: '700',
+      fontWeight: '600',
     },
     badge: {
       minWidth: 20,
@@ -781,7 +806,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     };
 
     const onLongPress = () => {
-      navigation.emit({
+      navigation?.emit?.({
         type: 'tabLongPress',
         target: route.key,
       });
@@ -870,11 +895,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const recommendedUpgrade =
     role === 'clinic' && billing ? getRecommendedUpgradePlan(billing.plan, billing.planFamily) : null;
 
-  const clinicPlanAccent =
-    role === 'clinic' && showClinicPlanBadge
-      ? getClinicPlanBrandAccentColor(clinicPlan, colors)
-      : undefined;
-
   const planBadgeNode =
     showClinicPlanBadge && !isCollapsed ? (
       <ClinicPlanBadge
@@ -893,73 +913,29 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     openAccountMenu();
   };
 
+  const accountAvatarKind =
+    role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic';
+  const accountPhotoUri =
+    role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri;
+
   const sidebarContent = (
     <>
-      <View style={[styles.profileSection, isCollapsed && styles.profileSectionCollapsed]}>
+      <View style={[styles.brandSection, isCollapsed && styles.brandSectionCollapsed]}>
         {isCollapsed ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={accountMenuAccessibilityLabel}
-            onPress={handleAccountMenuPress}
-            style={({ pressed, hovered }) => [
-              styles.profileCollapsedShell,
-              styles.profileCollapsedPressable,
-              webHover(hovered, pressed, webListRowHoverStyles(colors)),
-              pressed && styles.profileHeaderCardPressed,
-            ]}>
-            <SidebarProfileHeader
-              interactive={false}
-              avatarKind={
-                role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic'
-              }
-              displayName={profileName}
-              photoUri={
-                role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri
-              }
-              subtitle={profileSubtitle}
-              meta={profileMeta}
-              collapsed
-              avatarSize={COLLAPSED_AVATAR_SIZE}
-              avatarRingColor={clinicPlanAccent}
-            />
-          </Pressable>
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={accountMenuAccessibilityLabel}
-            onPress={handleAccountMenuPress}
-            style={({ pressed, hovered }) => [
-              styles.profileHeaderCard,
-              webHover(hovered, pressed, webTileHoverStyles(colors, isDark)),
-              pressed && styles.profileHeaderCardPressed,
-            ]}>
-            <View style={[styles.profileRow, styles.profileRowExpanded]}>
-              <View style={styles.profileHeaderWrap}>
-                <SidebarProfileHeader
-                  interactive={false}
-                  embeddedInCard
-                  avatarKind={
-                    role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic'
-                  }
-                  displayName={profileName}
-                  photoUri={
-                    role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri
-                  }
-                  subtitle={profileSubtitle}
-                  meta={profileMeta}
-                  planBadge={planBadgeNode}
-                  avatarSize={44}
-                  avatarRingColor={clinicPlanAccent}
-                />
-              </View>
+          <View style={styles.brandWordmarkCollapsed}>
+            <View style={styles.brandMarkCollapsed}>
+              <Text style={styles.brandMarkCollapsedText}>c</Text>
             </View>
-          </Pressable>
+          </View>
+        ) : (
+          <View style={styles.brandWordmarkWrap}>
+            <ChairsideWordmark variant="small" align="left" />
+          </View>
         )}
         {showGroupLocationScope ? (
-          <View style={{ marginTop: isCollapsed ? spacing.xs : spacing.sm }}>
-            <ClinicLocationScopeSwitcher variant="sidebar" collapsed={isCollapsed} />
-          </View>
+          <ClinicLocationScopeSwitcher variant="sidebar" collapsed={isCollapsed} />
         ) : null}
+        {planBadgeNode && !isCollapsed ? planBadgeNode : null}
       </View>
 
       <View
@@ -1010,6 +986,43 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       </View>
 
       <View style={[styles.footer, isCollapsed && styles.footerCollapsed]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={accountMenuAccessibilityLabel}
+          onPress={handleAccountMenuPress}
+          style={({ pressed, hovered }) => [
+            styles.accountRow,
+            isCollapsed && styles.accountRowCollapsed,
+            webHover(hovered, pressed, styles.itemHovered),
+            pressed && styles.itemPressed,
+          ]}
+          {...(isCollapsed && isWeb ? webOnlyStyle({ title: profileName ?? 'Account' } as ViewStyle) : {})}>
+          {accountAvatarKind === 'worker' ? (
+            <WorkerProfileAvatar
+              displayName={profileName}
+              photoUri={accountPhotoUri}
+              size={22}
+            />
+          ) : (
+            <ClinicLogoAvatar
+              clinicName={profileName ?? 'Clinic'}
+              logoUri={accountPhotoUri}
+              size={22}
+            />
+          )}
+          {!isCollapsed ? (
+            <View style={styles.accountRowText}>
+              <Text style={styles.accountRowLabel} numberOfLines={1}>
+                {profileName?.trim() || 'Account'}
+              </Text>
+              {profileSubtitle ? (
+                <Text style={styles.accountRowMeta} numberOfLines={1}>
+                  {profileSubtitle}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+        </Pressable>
         {recommendedUpgrade ? (
           <Pressable
             accessibilityRole="button"

@@ -123,8 +123,8 @@ export default function WorkerLocationScreen() {
   return (
     <FormScreen
       {...setupFormProps}
-      title="Professional background · Location & bio"
-      subtitle="Your province determines which roles you can browse."
+      title="Location"
+      subtitle="Where you are based for nearby fill-ins and roles."
       onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter

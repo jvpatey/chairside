@@ -29,6 +29,7 @@ import {
   resolveWorkerRoleTypes,
   getSpecialtyLabel,
   getRoleTypeLabel,
+  THIN_PERMANENT_ROLES,
 } from '@chairside/config';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -556,6 +557,7 @@ export function ClinicApplicationDetailCard({
     dismiss: dismissScreeningReviewBadge,
   } = useDismissedScreeningReviews();
   const isJob = application.post_type === 'job';
+  const thinJobApplicant = THIN_PERMANENT_ROLES && isJob;
   const accent: GradientAccent = isJob ? 'tertiary' : 'secondary';
   const jobMatch = isJob ? parseApplicationJobMatch(application) : null;
   const matchContext = isJob ? getApplicationMatchDisplayContext(application) : null;
@@ -960,6 +962,51 @@ export function ClinicApplicationDetailCard({
       return { primary, secondary, destructive };
     }
 
+    if (thinJobApplicant) {
+      const declineInterest = (): ActionButtonSpec => ({
+        key: 'decline-interest',
+        label: 'Decline interest',
+        variant: 'secondary',
+        onPress: () => void updateStatus('rejected'),
+      });
+
+      if (isScreeningStage && !awaitingKit) {
+        primary.push({
+          key: 'accept-interest',
+          label: 'Accept interest',
+          onPress: () => void updateStatus('in_progress'),
+        });
+        destructive.push(declineInterest());
+        return { primary, secondary, destructive };
+      }
+
+      if (application.status === 'applied' || application.status === 'reviewed') {
+        primary.push({
+          key: 'accept-interest',
+          label: 'Accept interest',
+          onPress: () => void updateStatus('in_progress'),
+        });
+        destructive.push(declineInterest());
+        return { primary, secondary, destructive };
+      }
+
+      if (
+        application.status === 'in_progress' ||
+        application.status === 'interview_offered' ||
+        application.status === 'interview_scheduled'
+      ) {
+        primary.push({
+          key: 'mark-hired',
+          label: 'Mark hired',
+          onPress: handleMarkHired,
+        });
+        destructive.push(declineInterest());
+        return { primary, secondary, destructive };
+      }
+
+      return { primary, secondary, destructive };
+    }
+
     if (isConfirmedFillIn) {
       destructive.push({
         key: 'cancel-fill-in',
@@ -1206,7 +1253,7 @@ export function ClinicApplicationDetailCard({
               onPress: handleMessage,
             }}
             summaryAction={
-              canGenerateApplicationPdfPacket(application)
+              !thinJobApplicant && canGenerateApplicationPdfPacket(application)
                 ? {
                     key: 'candidate-summary',
                     label: isGeneratingPdf ? 'Preparing summary…' : 'Export candidate summary',
@@ -1234,7 +1281,7 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         )}
 
-        {hasInterviewDetails ? (
+        {hasInterviewDetails && !thinJobApplicant ? (
           <SurfaceCard padding="md" gap>
             <CardInfoPanel
               variant={application.status === 'interview_offered' ? 'warning' : 'info'}
@@ -1290,7 +1337,10 @@ export function ClinicApplicationDetailCard({
           />
         ) : null}
 
-        {application.post_type === 'job' && application.screening && !workerDeleted ? (
+        {application.post_type === 'job' &&
+        application.screening &&
+        !workerDeleted &&
+        !thinJobApplicant ? (
           <SurfaceCard padding="md" gap>
             <ApplicantDetailSection
               icon="clipboard-outline"
@@ -1322,7 +1372,8 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         ) : null}
 
-        {application.interview_details &&
+        {!thinJobApplicant &&
+        application.interview_details &&
         !workerDeleted &&
         application.status !== 'interview_offered' &&
         application.status !== 'interview_scheduled' ? (
@@ -1356,7 +1407,7 @@ export function ClinicApplicationDetailCard({
           </SurfaceCard>
         ) : null}
 
-        {canManageCrm ? (
+        {canManageCrm && !thinJobApplicant ? (
           <SurfaceCard padding="md" gap>
             <ClinicWorkerCrmSection
               record={crmUnlocked ? crmRecord : null}

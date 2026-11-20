@@ -32,7 +32,8 @@ export function useAdaptiveTabScreenOptions(): (
     !isWeb || shellAtmosphere || (isWebTablet && tabAtmosphere !== 'none');
 
   return ({ navigation }) => {
-    const isFocused = navigation.isFocused();
+    // Guard: on web, screenOptions can run before the tab navigation object is ready.
+    const isFocused = navigation?.isFocused?.() ?? true;
     const sceneBackground = transparentScenes ? 'transparent' : colors.backgroundGrouped;
 
     const shared: BottomTabNavigationOptions = {

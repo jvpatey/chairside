@@ -18,15 +18,15 @@ import {
 } from '@/components/dashboard/DashboardHeroIdentity';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { DashboardHeroPulse } from '@/lib/dashboardPulse';
-import { getTimeOfDayGreeting, getTimeOfDayIcon } from '@/lib/greeting';
 import { useEnterAnimation, usePrefersReducedMotion } from '@/lib/motion';
 import {
   IS_WEB,
+  webHover,
   webListRowHoverStyles,
   webOnlyStyle,
   webPointer,
 } from '@/lib/webPressableStyles';
-import { fontRegular, fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type DashboardHeroProps = {
   profileHref: Href;
@@ -37,10 +37,13 @@ type DashboardHeroProps = {
   subtitle: string;
   /** Muted identity meta on the subtitle line (e.g. "Owner"). */
   identityLine?: string;
-  /** Optional first name for "Good afternoon, Sarah". */
+  /** @deprecated Unused — identity header no longer shows a time-of-day greeting. */
   greetingName?: string | null;
   /** Live one-line summary; tap opens highest-priority destination. */
   pulse?: DashboardHeroPulse | null;
+  /** Product status under identity (e.g. "2 open fill-ins · Text alerts on"). */
+  statusLine?: string | null;
+  onStatusPress?: () => void;
   /** Static context chip (e.g. read-only label). Ignored when `contextSlot` is set. */
   contextLine?: string;
   /** Interactive or custom context under the subtitle (e.g. location scope picker). */
@@ -50,15 +53,12 @@ type DashboardHeroProps = {
   hideProfileOnWebTablet?: boolean;
   /** Render the phone overlay layout even when the window is tablet-sized (marketing preview). */
   forcePhoneLayout?: boolean;
+  /**
+   * Flush page header — no card chrome. Name + role left, actions right.
+   * Preferred for Home when the sidebar is present.
+   */
+  flush?: boolean;
 };
-
-function formatDashboardDate(date = new Date()) {
-  return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-}
 
 function HeroStaggerBlock({
   delayMs,
@@ -80,7 +80,7 @@ function HeroStaggerBlock({
   );
 }
 
-/** Compact dashboard header — flat surface, no gradient wash. */
+/** Home / dashboard header — identity first, optional product status. */
 export function DashboardHero({
   profileHref,
   avatarKind,
@@ -89,55 +89,60 @@ export function DashboardHero({
   namePlaceholder,
   subtitle,
   identityLine,
-  greetingName,
+  greetingName: _greetingName,
   pulse,
+  statusLine,
+  onStatusPress,
   contextLine,
   contextSlot,
   showActions = true,
   hideProfileOnWebTablet = false,
   forcePhoneLayout = false,
+  flush = false,
 }: DashboardHeroProps) {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const reduceMotion = usePrefersReducedMotion();
-  const overlayActions = (forcePhoneLayout || !isTablet) && showActions;
+  const overlayActions = (forcePhoneLayout || !isTablet) && showActions && !flush;
   const heroOpensProfile = Platform.OS !== 'web';
   const hideProfileInActions = hideProfileOnWebTablet && IS_WEB && isTablet && !forcePhoneLayout;
   const isWeb = Platform.OS === 'web';
-  const timeIcon = getTimeOfDayIcon();
-  const isPhoneGreeting = forcePhoneLayout || !(IS_WEB && isTablet);
+  const useFlush = flush || (IS_WEB && isTablet && !forcePhoneLayout);
 
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
-    band: {
-      borderRadius: radii.lg,
-      backgroundColor: colors.surface,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      position: 'relative' as const,
-      overflow: 'hidden' as const,
-    },
+    band: useFlush
+      ? {
+          position: 'relative' as const,
+          width: '100%' as const,
+          backgroundColor: 'transparent',
+        }
+      : {
+          borderRadius: radii.lg,
+          backgroundColor: colors.surface,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.separator,
+          position: 'relative' as const,
+          overflow: 'hidden' as const,
+        },
     bandBody: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: pulse ? spacing.md : spacing.lg,
+      paddingHorizontal: useFlush ? 0 : spacing.lg,
+      paddingTop: useFlush ? spacing.xs : spacing.lg,
+      paddingBottom: pulse && !useFlush ? spacing.md : useFlush ? spacing.sm : spacing.lg,
     },
     row: {
       position: 'relative' as const,
-      ...(overlayActions
-        ? null
-        : {
-            flexDirection: 'row' as const,
-            alignItems: 'flex-start' as const,
-            gap: spacing.md,
-          }),
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+      width: '100%' as const,
     },
     identity: {
       flex: 1,
       minWidth: 0,
-      gap: spacing.xs + 2,
+      gap: spacing.xs,
     },
     identityStack: {
-      gap: spacing.xs,
+      gap: 4,
     },
     identityPressed: {
       opacity: 0.85,
@@ -148,36 +153,34 @@ export function DashboardHero({
       right: spacing.sm,
       zIndex: 2,
     },
-    greetingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs + 2,
-    },
-    greetingGlyph: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.tertiarySubtle,
+    actionsInline: {
       flexShrink: 0,
+      alignSelf: 'center' as const,
     },
-    greeting: {
-      flex: 1,
-      minWidth: 0,
+    statusPressable: {
+      alignSelf: 'flex-start' as const,
+      marginTop: 2,
+      ...webPointer(),
+    },
+    statusLine: {
       fontSize: 14,
       lineHeight: 20,
-      fontFamily: fontRegular,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.secondary,
+    },
+    statusLineMuted: {
       color: colors.labelSecondary,
     },
     contextRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
       gap: spacing.xs,
+      marginTop: 2,
     },
     chip: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
       gap: 6,
       paddingHorizontal: spacing.sm + 2,
       paddingVertical: 6,
@@ -190,20 +193,20 @@ export function DashboardHero({
       fontSize: 12,
       lineHeight: 16,
       fontFamily: fontSemibold,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       color: colors.labelPrimary,
     },
     pulseDivider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
+      marginTop: useFlush ? spacing.sm : 0,
     },
     pulseRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
       gap: spacing.sm,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      minHeight: 52,
+      paddingVertical: spacing.sm,
+      minHeight: 44,
       ...webPointer(),
       ...webOnlyStyle({
         transitionProperty: 'background-color, opacity',
@@ -218,8 +221,8 @@ export function DashboardHero({
       width: 28,
       height: 28,
       borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       backgroundColor: colors.primarySubtle,
       flexShrink: 0,
     },
@@ -229,7 +232,7 @@ export function DashboardHero({
       fontSize: 14,
       lineHeight: 18,
       fontFamily: fontSemibold,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       color: colors.labelPrimary,
     },
     pulseChevron: {
@@ -249,8 +252,14 @@ export function DashboardHero({
     pulse.onPress();
   }, [pulse]);
 
-  const hasContext = Boolean(contextSlot) || Boolean(contextLine);
+  const handleStatusPress = useCallback(() => {
+    if (!onStatusPress) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onStatusPress();
+  }, [onStatusPress]);
+
   const trimmedIdentity = identityLine?.trim() || null;
+  const trimmedStatus = statusLine?.trim() || null;
 
   const contextContent = contextSlot ? (
     <View style={styles.contextRow}>{contextSlot}</View>
@@ -265,29 +274,38 @@ export function DashboardHero({
   const identityCore = (
     <View style={styles.identityStack}>
       <HeroStaggerBlock delayMs={0} reduceMotion={reduceMotion}>
-        <View style={styles.greetingRow}>
-          <View style={styles.greetingGlyph}>
-            <Ionicons name={timeIcon} size={15} color={colors.tertiary} />
-          </View>
-          <Text
-            style={[styles.greeting, !isPhoneGreeting && { fontSize: 15 }]}
-            accessibilityRole="text"
-            numberOfLines={1}
-          >
-            {getTimeOfDayGreeting(greetingName)}
-          </Text>
-        </View>
-      </HeroStaggerBlock>
-      <HeroStaggerBlock delayMs={40} reduceMotion={reduceMotion}>
-        <DashboardHeroName displayName={displayName} namePlaceholder={namePlaceholder} />
-      </HeroStaggerBlock>
-      <HeroStaggerBlock delayMs={80} reduceMotion={reduceMotion}>
-        <DashboardHeroSubtitle
-          subtitle={subtitle}
-          detail={trimmedIdentity}
-          trailing={hasContext || trimmedIdentity || pulse ? undefined : formatDashboardDate()}
+        <DashboardHeroName
+          displayName={displayName}
+          namePlaceholder={namePlaceholder}
+          size={useFlush ? 'page' : 'hero'}
         />
       </HeroStaggerBlock>
+      <HeroStaggerBlock delayMs={40} reduceMotion={reduceMotion}>
+        <DashboardHeroSubtitle subtitle={subtitle} detail={trimmedIdentity} />
+      </HeroStaggerBlock>
+      {trimmedStatus ? (
+        <HeroStaggerBlock delayMs={80} reduceMotion={reduceMotion}>
+          {onStatusPress ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={trimmedStatus}
+              onPress={handleStatusPress}
+              style={({ pressed, hovered }) => [
+                styles.statusPressable,
+                webHover(hovered, pressed, webListRowHoverStyles(colors)),
+                pressed && { opacity: 0.85 },
+              ]}>
+              <Text style={styles.statusLine} numberOfLines={1}>
+                {trimmedStatus}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.statusLine, styles.statusLineMuted]} numberOfLines={1}>
+              {trimmedStatus}
+            </Text>
+          )}
+        </HeroStaggerBlock>
+      ) : null}
     </View>
   );
 
@@ -309,10 +327,24 @@ export function DashboardHero({
     </View>
   );
 
-  const pulseFooter = pulse ? (
+  const actions = showActions ? (
+    <View style={styles.actionsInline}>
+      <DashboardHeroActions
+        profileHref={profileHref}
+        avatarKind={avatarKind}
+        displayName={displayName}
+        photoUri={photoUri}
+        compact
+        hideProfile={hideProfileInActions || useFlush}
+        hideSignOut={hideProfileInActions || useFlush}
+      />
+    </View>
+  ) : null;
+
+  const pulseFooter = pulse && !trimmedStatus ? (
     <HeroStaggerBlock delayMs={120} reduceMotion={reduceMotion}>
       <View>
-        <View style={styles.pulseDivider} />
+        {!useFlush ? <View style={styles.pulseDivider} /> : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={pulse.label}
@@ -341,38 +373,11 @@ export function DashboardHero({
 
   return (
     <View style={styles.band}>
-      {overlayActions && showActions ? (
-        <View style={styles.actionsCorner}>
-          <DashboardHeroActions
-            profileHref={profileHref}
-            avatarKind={avatarKind}
-            displayName={displayName}
-            photoUri={photoUri}
-            compact
-            hideProfile={hideProfileInActions}
-            hideSignOut={hideProfileInActions}
-          />
-        </View>
-      ) : null}
+      {overlayActions ? <View style={styles.actionsCorner}>{actions}</View> : null}
       <View style={styles.bandBody}>
         <View style={styles.row}>
-          {overlayActions ? (
-            identity
-          ) : (
-            <>
-              {identity}
-              {showActions ? (
-                <DashboardHeroActions
-                  profileHref={profileHref}
-                  avatarKind={avatarKind}
-                  displayName={displayName}
-                  photoUri={photoUri}
-                  hideProfile={hideProfileInActions}
-                  hideSignOut={hideProfileInActions}
-                />
-              ) : null}
-            </>
-          )}
+          {identity}
+          {!overlayActions ? actions : null}
         </View>
       </View>
       {pulseFooter}

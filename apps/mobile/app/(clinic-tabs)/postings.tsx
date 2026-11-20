@@ -283,7 +283,7 @@ export default function ClinicPostingsScreen() {
       {upgradePrompt}
       <Screen
         title="Roles"
-        subtitle="Open roles at your clinic."
+        subtitle="Permanent openings — alert matched professionals."
         refreshing={refreshing}
         onRefresh={onRefresh}
         headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>

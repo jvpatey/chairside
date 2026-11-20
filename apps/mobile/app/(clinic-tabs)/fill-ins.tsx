@@ -268,7 +268,7 @@ export default function ClinicFillInsScreen() {
     () => [
       {
         value: 'active' as const,
-        label: 'Active',
+        label: 'Open',
         count: activeFillInCount,
         accent: 'secondary' as const,
         icon: FILL_IN_ICON.outline,
@@ -287,7 +287,7 @@ export default function ClinicFillInsScreen() {
     () => [
       {
         value: 'requests' as const,
-        label: 'Cover requests',
+        label: 'Requested',
         count: coverRequests.length,
         accent: 'secondary' as const,
         icon: 'mail-outline' as const,
@@ -435,7 +435,7 @@ export default function ClinicFillInsScreen() {
     return (
       <Screen
         title="Fill-ins"
-        subtitle="Review cover requests and manage your fill-in shifts."
+        subtitle="Open · Requested · Confirmed — coverage at a glance."
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="secondary"
@@ -450,7 +450,7 @@ export default function ClinicFillInsScreen() {
       {upgradePrompt}
       <Screen
         title="Fill-ins"
-        subtitle="Review cover requests and manage your fill-in shifts."
+        subtitle="Open · Requested · Confirmed — coverage at a glance."
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="secondary"
@@ -529,7 +529,7 @@ export default function ClinicFillInsScreen() {
                     fill={equalEmptyColumns}
                     icon={FILL_IN_ICON.outline}
                     title="No fill-ins yet"
-                    message="Post a fill-in shift when you need temporary or urgent coverage."
+                    message="Post a fill-in when you need cover — matching professionals get a text right away."
                     ctaLabel={
                       isProfileComplete && !fillInLimitReached ? 'Post fill-in' : undefined
                     }
@@ -686,7 +686,7 @@ export default function ClinicFillInsScreen() {
                           embedded
                           fill={equalEmptyColumns}
                           icon="mail-outline"
-                          title="No pending cover requests"
+                          title="No requested cover yet"
                           message="New requests from workers will appear here when they apply to cover a fill-in."
                         />
                       </View>

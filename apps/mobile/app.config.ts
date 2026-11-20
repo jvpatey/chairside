@@ -62,6 +62,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
               host: 'chairside.app',
               pathPrefix: '/j',
             },
+            {
+              scheme: 'https',
+              host: 'chairside.app',
+              pathPrefix: '/a',
+            },
           ],
         },
       ],

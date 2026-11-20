@@ -23,20 +23,27 @@ export function DashboardHeroGreeting() {
 type DashboardHeroNameProps = {
   displayName?: string | null;
   namePlaceholder: string;
+  /** `page` — flush Home header on web/tablet; `hero` — full card identity. */
+  size?: 'hero' | 'page';
 };
 
-export function DashboardHeroName({ displayName, namePlaceholder }: DashboardHeroNameProps) {
+export function DashboardHeroName({
+  displayName,
+  namePlaceholder,
+  size = 'hero',
+}: DashboardHeroNameProps) {
   const name = displayName?.trim();
+  const isPage = size === 'page';
 
   const styles = useThemedStyles(({ colors }) => ({
     name: {
-      fontSize: 34,
+      fontSize: isPage ? 28 : 34,
       // Tight to the glyph box so flex gap reads evenly vs greeting/meta.
-      lineHeight: 38,
+      lineHeight: isPage ? 32 : 38,
       fontFamily: fontBold,
-      fontWeight: '700',
+      fontWeight: '700' as const,
       color: colors.labelPrimary,
-      letterSpacing: -0.6,
+      letterSpacing: isPage ? -0.45 : -0.6,
     },
     nameHidden: {
       opacity: 0,

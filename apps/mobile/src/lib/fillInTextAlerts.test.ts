@@ -57,10 +57,11 @@ describe('isFillInTextAlertsSwitchOn', () => {
 
 describe('getFillInTextAlertsHint', () => {
   it('shows the saved number when on', () => {
-    expect(getFillInTextAlertsHint('on', '9025551234')).toBe('Texts go to (902) 555-1234.');
+    expect(getFillInTextAlertsHint('on', '9025551234')).toContain('(902) 555-1234');
+    expect(getFillInTextAlertsHint('on', '9025551234')).toContain('On by default');
   });
 
   it('asks for a number while finishing', () => {
-    expect(getFillInTextAlertsHint('finishing', null)).toContain('Add your mobile number');
+    expect(getFillInTextAlertsHint('finishing', null)).toContain('turn on automatically');
   });
 });

@@ -26,6 +26,7 @@ import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { getFillInAvailabilityCollapsedSummary } from '@/lib/fillInAvailabilitySummary';
+import { formatPhoneNumber } from '@/lib/phone';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -152,8 +153,8 @@ export default function WorkerReviewScreen() {
   return (
     <FormScreen
       {...setupFormProps}
-      title="Review profile"
-      subtitle="Confirm your professional background before browsing roles."
+      title="You’re ready"
+      subtitle="Confirm the essentials below. Add experience and skills anytime from Profile."
       onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
@@ -183,6 +184,10 @@ export default function WorkerReviewScreen() {
         <ReviewRow
           label="Roles"
           value={formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))}
+        />
+        <ReviewRow
+          label="Mobile phone"
+          value={workerProfile?.phone ? formatPhoneNumber(workerProfile.phone) : ''}
         />
         <ReviewRow
           label="Experience"

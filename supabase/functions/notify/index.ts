@@ -6,7 +6,14 @@ import {
   pingramPost,
 } from '../_shared/pingram.ts';
 import { capturePosthogEvent } from '../_shared/posthog.ts';
-import { buildFillInSms, buildOutreachSms, formatTime12h, toGsmSafeSms } from '../_shared/sms.ts';
+import {
+  buildClinicCoverRequestSms,
+  buildFillInDecisionSms,
+  buildFillInSms,
+  buildOutreachSms,
+  formatTime12h,
+  toGsmSafeSms,
+} from '../_shared/sms.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -164,6 +171,20 @@ function getPublicWebBaseUrl(): string {
 
 function buildFillInListingUrl(shiftId: string): string {
   return `${getPublicWebBaseUrl()}/f/${shiftId}?src=sms`;
+}
+
+function buildApplicationUrl(applicationId: string): string {
+  return `${getPublicWebBaseUrl()}/a/${applicationId}?src=sms`;
+}
+
+/** Paid gate removed — fill-in SMS is core product while plans are revamped. */
+async function clinicCanSendFillInSms(
+  _supabase: ReturnType<typeof createClient>,
+  clinicId: string | null,
+  isSourced: boolean,
+): Promise<boolean> {
+  if (isSourced) return true;
+  return Boolean(clinicId);
 }
 
 function buildFillInAlertCopy(input: {
@@ -1019,10 +1040,68 @@ async function sendWorkerStatusNotification(
   }
 
   const idempotencyKey = `${notification.pingramType}:${applicationId}:${status}`;
+  const applicationUrl = buildApplicationUrl(applicationId);
+  const deepLink = applicationUrl;
 
-  const deepLink = isShift
-    ? 'chairside:///(tabs)/fillins'
-    : `chairside:///(tabs)/application/${applicationId}`;
+  let includeSms = false;
+  let smsMessage: string | undefined;
+  let workerPhone: string | null = null;
+
+  if (isShift && (status === 'hired' || status === 'selected' || status === 'rejected')) {
+    const { data: worker } = await supabase
+      .from('worker_profiles')
+      .select('fill_in_sms_opt_in, phone')
+      .eq('id', workerId)
+      .maybeSingle();
+    workerPhone =
+      worker?.fill_in_sms_opt_in === true
+        ? normalizeE164((worker.phone as string | null | undefined) ?? null)
+        : null;
+
+    let clinicName = 'A clinic';
+    let shiftDate: string | null = null;
+    let startTime: string | null = null;
+    let endTime: string | null = null;
+    const shiftPostId = application.shift_post_id as string | null;
+    if (shiftPostId) {
+      const { data: shift } = await supabase
+        .from('shift_posts')
+        .select('clinic_id, shift_date, start_time, end_time, status')
+        .eq('id', shiftPostId)
+        .maybeSingle();
+      shiftDate = (shift?.shift_date as string | null | undefined) ?? null;
+      startTime = (shift?.start_time as string | null | undefined) ?? null;
+      endTime = (shift?.end_time as string | null | undefined) ?? null;
+      const clinicId = shift?.clinic_id as string | null | undefined;
+      if (clinicId) {
+        const { data: clinic } = await supabase
+          .from('clinic_profiles')
+          .select('clinic_name')
+          .eq('id', clinicId)
+          .maybeSingle();
+        clinicName = clinic?.clinic_name?.trim() || 'A clinic';
+      }
+    }
+
+    let outcome: 'accepted' | 'declined' | 'filled' = 'declined';
+    if (status === 'hired' || status === 'selected') {
+      outcome = 'accepted';
+    } else if (notification.title === 'Cover request update' &&
+      notification.message.includes('covered by another')) {
+      outcome = 'filled';
+    }
+
+    smsMessage = buildFillInDecisionSms({
+      outcome,
+      clinicName,
+      shiftDate,
+      startTime,
+      endTime,
+      detailsUrl: outcome === 'accepted' || outcome === 'declined' ? applicationUrl : null,
+    });
+    includeSms = Boolean(workerPhone && smsMessage);
+  }
+
   const includePush = await isPushEnabledForUser(
     supabase,
     workerId,
@@ -1040,11 +1119,14 @@ async function sendWorkerStatusNotification(
         {
           type: notification.pingramType,
           userId: workerId,
+          phone: includeSms ? workerPhone : undefined,
           title: notification.title,
           message: notification.message,
           deepLink,
           secondaryId: idempotencyKey,
           includePush,
+          includeSms,
+          smsMessage,
         },
       );
     },
@@ -1164,6 +1246,7 @@ async function handleApplicationInsert(
 
   const workerName = (record.worker_display_name as string | null)?.trim() || 'A worker';
   const isShiftRequest = Boolean(shiftPostId);
+  const applicationUrl = buildApplicationUrl(applicationId);
 
   const title = isShiftRequest
     ? `New cover request · ${postTitle}`
@@ -1171,19 +1254,39 @@ async function handleApplicationInsert(
   const message = isShiftRequest
     ? `${workerName} requested to cover your ${postType}.`
     : `${workerName} applied to your ${postType}.`;
-  const deepLink =
-    isShiftRequest && shiftPostId
-      ? `chairside:///(clinic-tabs)/shift-applicants/${shiftPostId}`
-      : jobPostId
-        ? `chairside:///(clinic-tabs)/role-applicants/${jobPostId}`
-        : 'chairside:///(clinic-tabs)/applications';
+  const deepLink = applicationUrl;
 
+  let clinicSmsPhone: string | null = null;
+  let clinicSmsMessage: string | null = null;
+  if (isShiftRequest && shiftPostId) {
+    const [{ data: clinic }, { data: shift }] = await Promise.all([
+      supabase.from('clinic_profiles').select('phone').eq('id', clinicId).maybeSingle(),
+      supabase
+        .from('shift_posts')
+        .select('shift_date, start_time, end_time')
+        .eq('id', shiftPostId)
+        .maybeSingle(),
+    ]);
+    clinicSmsPhone = normalizeE164((clinic?.phone as string | null | undefined) ?? null);
+    clinicSmsMessage = buildClinicCoverRequestSms({
+      workerName,
+      shiftDate: (shift?.shift_date as string | null | undefined) ?? null,
+      startTime: (shift?.start_time as string | null | undefined) ?? null,
+      endTime: (shift?.end_time as string | null | undefined) ?? null,
+      decisionUrl: applicationUrl,
+    });
+  }
+
+  let clinicSmsSent = false;
   for (const recipientId of recipientIds) {
     const idempotencyKey = `${PINGRAM_TYPES.applicationReceived}:${applicationId}:${recipientId}`;
     const includePush = await isPushEnabledForUser(
       supabase,
       recipientId,
       NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
+    );
+    const sendClinicSms = Boolean(
+      isShiftRequest && !clinicSmsSent && clinicSmsPhone && clinicSmsMessage,
     );
 
     await withIdempotentDispatch(supabase, idempotencyKey, 'application_received', async () => {
@@ -1194,14 +1297,18 @@ async function handleApplicationInsert(
         {
           type: PINGRAM_TYPES.applicationReceived,
           userId: recipientId,
+          phone: sendClinicSms ? clinicSmsPhone : undefined,
           title,
           message,
           deepLink,
           secondaryId: idempotencyKey,
           includePush,
+          includeSms: sendClinicSms,
+          smsMessage: sendClinicSms ? clinicSmsMessage! : undefined,
         },
       );
     });
+    if (sendClinicSms) clinicSmsSent = true;
   }
 }
 
@@ -1463,32 +1570,6 @@ async function listFillInRecipients(
     seen.add(w.id);
     return true;
   });
-}
-
-/** Paid plans only: starter / pro / group_starter / group_pro (via clinic_can_use_feature). */
-async function clinicCanSendFillInSms(
-  supabase: ReturnType<typeof createClient>,
-  clinicId: string | null,
-  isSourced: boolean,
-): Promise<boolean> {
-  if (isSourced) return true;
-  if (!clinicId) return false;
-
-  const { data, error } = await supabase.rpc('clinic_can_use_feature', {
-    p_clinic_id: clinicId,
-    p_feature: 'fill_in_sms',
-  });
-
-  if (error) {
-    console.error(
-      `[notify] clinic_can_use_feature(fill_in_sms) failed (clinicId=${clinicId})`,
-      error,
-    );
-    // Fail closed: never bill SMS when plan resolution is unknown.
-    return false;
-  }
-
-  return data === true;
 }
 
 async function handleShiftPostLive(

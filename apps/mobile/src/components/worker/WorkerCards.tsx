@@ -347,7 +347,7 @@ export function WorkerOverviewPanel({
             ) : null}
             {activeShiftApplications.length > 0 ? (
               <View style={styles.group}>
-                <DashboardSectionHeader title="Pending" compact />
+                <DashboardSectionHeader title="Requested" compact />
                 {activeShiftApplications.map((application) => (
                   <WorkerApplicationListCard
                     key={application.id}
