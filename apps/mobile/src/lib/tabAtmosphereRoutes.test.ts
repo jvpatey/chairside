@@ -1,6 +1,63 @@
 import { describe, expect, it } from 'vitest';
 
-import { getActiveTabBarName, getTabAccentForName, isTabRootPath } from './tabAtmosphereRoutes';
+import {
+  getActiveTabBarName,
+  getFocusedTabSceneName,
+  getTabAccentForName,
+  isTabRootPath,
+  isWebTabSceneFocused,
+} from './tabAtmosphereRoutes';
+
+describe('getFocusedTabSceneName', () => {
+  it('maps fill-in availability to its own scene, not fillins', () => {
+    expect(getFocusedTabSceneName('/(tabs)/fill-in-availability', 'worker')).toBe(
+      'fill-in-availability',
+    );
+    expect(getFocusedTabSceneName('/fill-in-availability', 'worker')).toBe(
+      'fill-in-availability',
+    );
+  });
+
+  it('maps shift and job details to dynamic scene names', () => {
+    expect(getFocusedTabSceneName('/shift/abc-123', 'worker')).toBe('shift/[id]');
+    expect(getFocusedTabSceneName('/(tabs)/shift/abc-123', 'worker')).toBe('shift/[id]');
+    expect(getFocusedTabSceneName('/job/abc-123', 'worker')).toBe('job/[id]');
+  });
+
+  it('maps main tabs and home', () => {
+    expect(getFocusedTabSceneName('/(tabs)/fillins', 'worker')).toBe('fillins');
+    expect(getFocusedTabSceneName('/(tabs)', 'worker')).toBe('index');
+    expect(getFocusedTabSceneName('/(tabs)/browse', 'worker')).toBe('browse');
+  });
+});
+
+describe('isWebTabSceneFocused', () => {
+  it('focuses shift/[id] for fill-in detail URLs, not fillins or index', () => {
+    const pathname = '/shift/893d634e-2a12-4b82-9d8d-ac0e7e0aa777';
+
+    expect(isWebTabSceneFocused('shift/[id]', pathname, 'worker')).toBe(true);
+    expect(isWebTabSceneFocused('fillins', pathname, 'worker')).toBe(false);
+    expect(isWebTabSceneFocused('index', pathname, 'worker')).toBe(false);
+    expect(isWebTabSceneFocused('fill-in-availability', pathname, 'worker')).toBe(
+      false,
+    );
+  });
+
+  it('focuses fill-in-availability for its own route', () => {
+    const pathname = '/fill-in-availability';
+
+    expect(isWebTabSceneFocused('fill-in-availability', pathname, 'worker')).toBe(
+      true,
+    );
+    expect(isWebTabSceneFocused('fillins', pathname, 'worker')).toBe(false);
+    expect(isWebTabSceneFocused('index', pathname, 'worker')).toBe(false);
+  });
+
+  it('focuses fillins on the hub, not shift detail', () => {
+    expect(isWebTabSceneFocused('fillins', '/fillins', 'worker')).toBe(true);
+    expect(isWebTabSceneFocused('shift/[id]', '/fillins', 'worker')).toBe(false);
+  });
+});
 
 describe('getActiveTabBarName', () => {
   it('keeps applications selected on worker application detail', () => {

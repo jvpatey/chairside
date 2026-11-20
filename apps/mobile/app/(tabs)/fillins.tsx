@@ -18,8 +18,7 @@ import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { FillInAlertsNudgeCard } from '@/components/worker/FillInAlertsNudgeCard';
-import { FillInAvailabilitySummaryCard } from '@/components/worker/FillInAvailabilitySummaryCard';
+import { FillInAvailabilityStatusRow } from '@/components/worker/FillInAvailabilityStatusRow';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { FeaturedListingsSectionHeader } from '@/components/worker/FeaturedListingsDivider';
 import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
@@ -58,7 +57,7 @@ import {
   DEFAULT_WORKER_FILLIN_BROWSE_FILTERS,
   filterAndSortLiveShifts,
 } from '@/lib/workerBrowseFilters';
-import { getWorkerShiftDetailRoute } from '@/lib/routing';
+import { getWorkerShiftDetailRoute, WORKER_FILLIN_AVAILABILITY } from '@/lib/routing';
 import {
   countUnmappablePosts,
   groupWorkerMapItemsByClinic,
@@ -158,7 +157,7 @@ export default function FillInsScreen() {
       return;
     }
     if (tab === 'availability') {
-      setSelectedMode('open');
+      router.push(WORKER_FILLIN_AVAILABILITY);
     }
   }, [params.tab]);
 
@@ -353,6 +352,33 @@ export default function FillInsScreen() {
   const showOpenFeaturedDivider =
     featuredOpenShifts.length > 0 && standardOpenShifts.length > 0;
 
+  const openBrowseControls = (
+    <View style={styles.controlsBlock}>
+      <View style={styles.browseControlsRow}>
+        <View style={styles.searchField}>
+          <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
+        </View>
+        <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
+        <WorkerFillInBrowseFilters
+          roleTypeFilter={roleTypeFilter}
+          sort={sort}
+          distanceFilter={distanceFilter}
+          softwareFilter={softwareFilter}
+          payListedFilter={payListedFilter}
+          availabilityFilter={availabilityFilter}
+          savedOnlyFilter={savedOnlyFilter}
+          onRoleTypeChange={setRoleTypeFilter}
+          onSortChange={setSort}
+          onDistanceFilterChange={setDistanceFilter}
+          onSoftwareFilterChange={setSoftwareFilter}
+          onPayListedFilterChange={setPayListedFilter}
+          onAvailabilityFilterChange={setAvailabilityFilter}
+          onSavedOnlyFilterChange={setSavedOnlyFilter}
+        />
+      </View>
+    </View>
+  );
+
   const openListContent = isLoading ? (
     <PageLoadingList rowCount={4} />
   ) : filteredShifts.length === 0 ? (
@@ -363,7 +389,7 @@ export default function FillInsScreen() {
       title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins yet'}
       message={
         hasActiveFillInFilters
-          ? 'Try a different search term or adjust your filters.'
+          ? 'Try a different search or filter.'
           : 'We’ll text you when a shift opens near you.'
       }
     />
@@ -414,11 +440,26 @@ export default function FillInsScreen() {
     </View>
   );
 
+  const openPanelBody = (
+    <View style={[styles.panel, fillMapViewport ? styles.panelFill : null]}>
+      {openBrowseControls}
+      {useWebSplitMap ? (
+        <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
+      ) : (
+        <WorkerBrowseViewTransition
+          mode={showOpenMap ? 'map' : 'list'}
+          style={showOpenMap ? styles.mapPanel : undefined}>
+          {showOpenMap ? mapElement : openListContent}
+        </WorkerBrowseViewTransition>
+      )}
+    </View>
+  );
+
   return (
     <>
       <Screen
         title="Fill-ins"
-        subtitle="Open shifts near you — request cover in a tap."
+        subtitle="Browse open shifts and track your cover requests."
         fillsContainer={fillMapViewport}
         scroll={!fillMapViewport}
         scrollEnabled={!fillMapViewport}
@@ -433,34 +474,7 @@ export default function FillInsScreen() {
               onRetry={() => void load()}
             />
           ) : null}
-          <FillInAlertsNudgeCard variant="inline" openFillInCount={shifts.length} />
-          <FillInAvailabilitySummaryCard />
-          {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
-            <View style={styles.controlsBlock}>
-              <View style={styles.browseControlsRow}>
-                <View style={styles.searchField}>
-                  <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
-                </View>
-                <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
-                <WorkerFillInBrowseFilters
-                  roleTypeFilter={roleTypeFilter}
-                  sort={sort}
-                  distanceFilter={distanceFilter}
-                  softwareFilter={softwareFilter}
-                  payListedFilter={payListedFilter}
-                  availabilityFilter={availabilityFilter}
-                  savedOnlyFilter={savedOnlyFilter}
-                  onRoleTypeChange={setRoleTypeFilter}
-                  onSortChange={setSort}
-                  onDistanceFilterChange={setDistanceFilter}
-                  onSoftwareFilterChange={setSoftwareFilter}
-                  onPayListedFilterChange={setPayListedFilter}
-                  onAvailabilityFilterChange={setAvailabilityFilter}
-                  onSavedOnlyFilterChange={setSavedOnlyFilter}
-                />
-              </View>
-            </View>
-          ) : null}
+          <FillInAvailabilityStatusRow />
 
           <View style={fillMapViewport ? styles.panelFill : undefined}>
             <FileTabWell
@@ -469,18 +483,7 @@ export default function FillInsScreen() {
               onSelect={setSelectedMode}
               fillHeight={fillMapViewport}
             >
-            {selectedMode === 'open' ? (
-              useWebSplitMap ? (
-                <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
-              ) : (
-                <WorkerBrowseViewTransition
-                  mode={showOpenMap ? 'map' : 'list'}
-                  style={showOpenMap ? styles.mapPanel : undefined}
-                >
-                  {showOpenMap ? mapElement : openListContent}
-                </WorkerBrowseViewTransition>
-              )
-            ) : null}
+            {selectedMode === 'open' ? openPanelBody : null}
 
             {selectedMode === 'pending' ? (
               isLoading ? (
@@ -488,9 +491,10 @@ export default function FillInsScreen() {
               ) : pendingFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
+                  accent="secondary"
                   icon="hourglass-outline"
                   title="No requested cover yet"
-                  message="When you request to cover a fill-in, it stays here until the clinic confirms or declines."
+                  message="Request an open fill-in and it stays here until the clinic responds."
                 />
               ) : (
                 <View style={styles.applicationGroup}>
@@ -513,9 +517,10 @@ export default function FillInsScreen() {
               ) : confirmedFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
+                  accent="secondary"
                   icon="checkmark-circle-outline"
                   title="No confirmed fill-ins yet"
-                  message="When a clinic confirms your cover request, the shift will appear here."
+                  message="Confirmed cover shows up here with the shift details."
                 />
               ) : (
                 <View style={styles.applicationGroup}>
@@ -539,9 +544,10 @@ export default function FillInsScreen() {
               ) : historyFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
+                  accent="secondary"
                   icon="time-outline"
                   title="No fill-in history yet"
-                  message="Declined requests, cancelled shifts, and past fill-ins will appear here."
+                  message="Past cover — filled, declined, or cancelled — lands here."
                 />
               ) : (
                 <>

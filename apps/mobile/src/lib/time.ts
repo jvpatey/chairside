@@ -60,6 +60,8 @@ export function formatTimeRangePreview(
   endTime: string | null | undefined,
 ): string | null {
   if (!startTime?.trim() || !endTime?.trim()) return null;
+  // Reject equal/inverted ranges (e.g. 00:00–00:00 → "12 AM – 12 AM").
+  if (!isValidTimeRange(startTime, endTime)) return null;
   const start = formatTime12h(startTime);
   const end = formatTime12h(endTime);
   if (!start || !end) return null;

@@ -1,39 +1,48 @@
 import { Platform, type ViewStyle } from 'react-native';
 import type { BottomTabNavigationOptions } from 'expo-router/js-tabs';
+import { usePathname } from 'expo-router';
 
 import { useShellAtmosphere, useTabAtmosphere } from '@/contexts/TabAtmosphereContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import {
+  isWebTabSceneFocused,
+  type TabAtmosphereRole,
+} from '@/lib/tabAtmosphereRoutes';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme } from '@/theme';
 
 type TabScreenOptionsArgs = {
-  navigation: { isFocused: () => boolean };
+  route: { name: string };
+  navigation: { isFocused?: () => boolean };
 };
 
 /** Hide inactive tab scenes on web — react-native-screens does not detach them. */
 function webInactiveSceneStyle(isFocused: boolean): ViewStyle {
-  if (Platform.OS !== 'web' || isFocused) return {};
-  return webOnlyStyle({ display: 'none' }) as ViewStyle;
+  if (Platform.OS !== 'web') return {};
+  // Always set display explicitly so a prior `none` cannot stick after focus changes.
+  return webOnlyStyle({ display: isFocused ? 'flex' : 'none' }) as ViewStyle;
 }
 
-export function useAdaptiveTabScreenOptions(): (
-  args: TabScreenOptionsArgs,
-) => BottomTabNavigationOptions {
+export function useAdaptiveTabScreenOptions(
+  role: TabAtmosphereRole = 'worker',
+): (args: TabScreenOptionsArgs) => BottomTabNavigationOptions {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
   const { sidebarWidth } = useSidebarCollapse();
   const tabAtmosphere = useTabAtmosphere();
   const shellAtmosphere = useShellAtmosphere();
+  const pathname = usePathname();
 
   const isWeb = Platform.OS === 'web';
   const isWebTablet = isWeb && isTablet;
   const transparentScenes =
     !isWeb || shellAtmosphere || (isWebTablet && tabAtmosphere !== 'none');
 
-  return ({ navigation }) => {
-    // Guard: on web, screenOptions can run before the tab navigation object is ready.
-    const isFocused = navigation?.isFocused?.() ?? true;
+  return ({ route, navigation }) => {
+    const isFocused = isWeb
+      ? isWebTabSceneFocused(route.name, pathname, role)
+      : (navigation?.isFocused?.() ?? false);
     const sceneBackground = transparentScenes ? 'transparent' : colors.backgroundGrouped;
 
     const shared: BottomTabNavigationOptions = {

@@ -5,6 +5,7 @@ import { JobPostManageMenuHost } from '@/components/clinic/JobPostManageMenuHost
 import { ClinicSetupGate } from '@/components/onboarding/SetupGate';
 import { renderClinicTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
+import { hiddenTabScreenOptions } from '@/components/navigation/hiddenTabScreenOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
@@ -22,7 +23,7 @@ export const unstable_settings = {
 function ClinicTabNavigator() {
   const { pendingCount } = useFillInPending();
   const { isTablet } = useResponsiveLayout();
-  const screenOptions = useAdaptiveTabScreenOptions();
+  const screenOptions = useAdaptiveTabScreenOptions('clinic');
 
   return (
     <>
@@ -41,8 +42,8 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen name="discover" options={{ href: null }} />
-        <Tabs.Screen name="applications" options={{ href: null }} />
+        <Tabs.Screen name="discover" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="applications" options={hiddenTabScreenOptions} />
         <Tabs.Screen
           name="fill-ins"
           options={{
@@ -53,23 +54,23 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen name="calendar" options={{ href: null }} />
-        <Tabs.Screen name="messages" options={{ href: null }} />
-        <Tabs.Screen name="profile" options={{ href: null }} />
-        <Tabs.Screen name="admin" options={{ href: null }} />
-        <Tabs.Screen name="application" options={{ href: null }} />
-        <Tabs.Screen name="conversation/[id]" options={{ href: null }} />
-        <Tabs.Screen name="post-job" options={{ href: null }} />
-        <Tabs.Screen name="post-shift" options={{ href: null }} />
-        <Tabs.Screen name="find-available-workers" options={{ href: null }} />
-        <Tabs.Screen name="open-inquiry-candidates" options={{ href: null }} />
-        <Tabs.Screen name="outreach-compose" options={{ href: null }} />
-        <Tabs.Screen name="job/[id]" options={{ href: null }} />
-        <Tabs.Screen name="shift/[id]" options={{ href: null }} />
-        <Tabs.Screen name="clinic/[clinicId]" options={{ href: null }} />
-        <Tabs.Screen name="role-applicants/[jobId]" options={{ href: null }} />
-        <Tabs.Screen name="shift-applicants/[shiftId]" options={{ href: null }} />
-        <Tabs.Screen name="role-history" options={{ href: null }} />
+        <Tabs.Screen name="calendar" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="messages" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="profile" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="admin" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="application" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="conversation/[id]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="post-job" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="post-shift" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="find-available-workers" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="open-inquiry-candidates" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="outreach-compose" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="job/[id]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="shift/[id]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="clinic/[clinicId]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="role-applicants/[jobId]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="shift-applicants/[shiftId]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="role-history" options={hiddenTabScreenOptions} />
       </Tabs>
       <JobPostManageMenuHost />
     </>

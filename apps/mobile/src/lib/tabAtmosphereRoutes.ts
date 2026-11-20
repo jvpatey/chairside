@@ -185,6 +185,68 @@ function getStackParentTabFromRelativePath(
   return null;
 }
 
+/**
+ * Actual Tabs.Screen `name` for the current pathname — used for web scene
+ * visibility. Differs from getActiveTabBarName (sidebar highlight), which maps
+ * hidden routes like fill-in-availability → fillins.
+ */
+export function getFocusedTabSceneName(
+  pathname: string,
+  role: TabAtmosphereRole,
+): string | null {
+  const normalized = normalizePath(pathname);
+  const relative = stripTabGroupPrefix(normalized, role);
+  const segments = relative.split('/').filter(Boolean);
+
+  if (segments.length === 0) return 'index';
+
+  const root = segments[0]!;
+
+  if (root === 'index') return 'index';
+
+  if (role === 'worker') {
+    if (root === 'conversation') return 'conversation/[id]';
+    if (root === 'job') return 'job/[id]';
+    if (root === 'shift') return 'shift/[id]';
+    if (root === 'clinic') return 'clinic/[clinicId]';
+    return root;
+  }
+
+  // clinic
+  if (root === 'conversation') return 'conversation/[id]';
+  if (root === 'job') return 'job/[id]';
+  if (root === 'shift') return 'shift/[id]';
+  if (root === 'clinic') return 'clinic/[clinicId]';
+  if (root === 'role-applicants') return 'role-applicants/[jobId]';
+  if (root === 'shift-applicants') return 'shift-applicants/[shiftId]';
+  return root;
+}
+
+/**
+ * Web tab scene focus must use the real Tabs.Screen name (e.g. `shift/[id]`),
+ * not the sidebar parent tab (`fillins`). Sidebar highlight uses
+ * getActiveTabBarName separately.
+ */
+export function isWebTabSceneFocused(
+  routeName: string,
+  pathname: string,
+  role: TabAtmosphereRole,
+): boolean {
+  const pathSceneName = getFocusedTabSceneName(pathname, role);
+  if (pathSceneName != null && routeName === pathSceneName) {
+    return true;
+  }
+
+  // Dynamic routes: `/shift/uuid` must show `shift/[id]`, not the parent fillins tab.
+  if (routeName.includes('[')) {
+    const routeBase = routeName.split('/')[0]!;
+    const normalized = normalizePath(pathname);
+    return new RegExp(`(?:^|/)${routeBase}/[^/]+`).test(normalized);
+  }
+
+  return false;
+}
+
 /** Resolve which tab bar item should appear selected for stack/detail routes. */
 export function getActiveTabBarName(
   pathname: string,
