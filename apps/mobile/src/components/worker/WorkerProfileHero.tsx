@@ -6,10 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
-import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
-import { BadgeRow } from '@/components/ui/BadgeRow';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
-import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { webHover, webPointer } from '@/lib/webPressableStyles';
 import { fontBold, useTheme, useThemedStyles } from '@/theme';
 
@@ -97,9 +94,6 @@ export function WorkerProfileHero({
       lineHeight: 20,
       color: colors.labelSecondary,
     },
-    badgeRow: {
-      marginTop: spacing.xs,
-    },
   }));
 
   const avatar = (
@@ -140,11 +134,6 @@ export function WorkerProfileHero({
             {name}
           </Text>
           <Text style={styles.meta}>{metaLine}</Text>
-          <View style={styles.badgeRow}>
-            <BadgeRow>
-              <AccountTypeBadge label={getAccountTypeLabel('worker')} inRow />
-            </BadgeRow>
-          </View>
         </View>
       </View>
       {cropCandidate ? (

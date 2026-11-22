@@ -112,27 +112,25 @@ describe('getFillInAvailabilityCollapsedSummary', () => {
       } as never,
       [],
     );
-    expect(textsOn.primary).toBe('Available · Texts on · All fill-ins');
+    expect(textsOn.primary).toBe('Open to fill-ins · Texts on');
     expect(textsOn.primarySegments).toEqual([
-      { text: 'Available', tone: 'positive' },
+      { text: 'Open to fill-ins', tone: 'positive' },
       { text: 'Texts on', tone: 'positive' },
-      { text: 'All fill-ins', tone: 'default' },
     ]);
 
     const textsOff = getFillInAvailabilityCollapsedSummary(
       {
         short_notice_available: true,
-        fill_in_notification_mode: 'available_days_only',
+        fill_in_notification_mode: 'all',
         fill_in_sms_opt_in: false,
         phone: '9025551234',
       } as never,
       [],
     );
-    expect(textsOff.primary).toBe('Available · Texts off · Matching days only');
+    expect(textsOff.primary).toBe('Open to fill-ins · Texts off');
     expect(textsOff.primarySegments).toEqual([
-      { text: 'Available', tone: 'positive' },
+      { text: 'Open to fill-ins', tone: 'positive' },
       { text: 'Texts off', tone: 'negative' },
-      { text: 'Matching days only', tone: 'default' },
     ]);
 
     const needsPhone = getFillInAvailabilityCollapsedSummary(
@@ -144,6 +142,6 @@ describe('getFillInAvailabilityCollapsedSummary', () => {
       } as never,
       [],
     );
-    expect(needsPhone.primary).toBe('Available · Needs phone · All fill-ins');
+    expect(needsPhone.primary).toBe('Open to fill-ins · Needs phone');
   });
 });

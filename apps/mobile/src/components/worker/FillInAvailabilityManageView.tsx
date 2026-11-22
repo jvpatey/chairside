@@ -1,34 +1,21 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { EditPillButton } from '@/components/ui/EditPillButton';
-import { profileSettingsHintStyle } from '@/components/profile/ProfileDetailBlocks';
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
-import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInModePanel } from '@/components/worker/FillInModePanel';
 import { FillInSmsPreview } from '@/components/worker/FillInSmsPreview';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
-import { WORKER_SETUP_AVAILABILITY_SCHEDULE } from '@/lib/routing';
 import { webPointer } from '@/lib/webPressableStyles';
 import { fontSemibold, useThemedStyles } from '@/theme';
 
-function navigateToEditSchedule() {
-  router.push(WORKER_SETUP_AVAILABILITY_SCHEDULE);
-}
-
 export function FillInAvailabilityManageView() {
-  const { workerProfile, availabilityBlocks } = useWorkerProfile();
+  const { workerProfile } = useWorkerProfile();
   const { smsActive, fillInsOn } = getFillInSmsStatus(workerProfile);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const styles = useThemedStyles(({ spacing, typography, colors }) => ({
+  const styles = useThemedStyles(({ spacing, colors }) => ({
     content: { gap: spacing.lg },
-    daysCardMuted: {
-      opacity: 0.55,
-    },
-    hint: profileSettingsHintStyle({ typography, colors }),
     previewCard: {
       gap: spacing.sm,
     },
@@ -83,20 +70,6 @@ export function FillInAvailabilityManageView() {
             ) : null}
           </>
         ) : null}
-      </ProfileSettingsCard>
-
-      <ProfileSettingsCard
-        title="Available days"
-        icon="calendar-outline"
-        iconAccent="primary"
-        headerAccessory={<EditPillButton label="Edit days" onPress={navigateToEditSchedule} />}
-        style={!fillInsOn ? styles.daysCardMuted : undefined}>
-        <Text style={styles.hint}>
-          {fillInsOn
-            ? 'Days and hours you can cover. Used when you limit alerts to matching days.'
-            : 'Turn on text alerts above, then choose which days you can cover.'}
-        </Text>
-        <AvailabilityScheduleSummary blocks={availabilityBlocks} variant="grouped" />
       </ProfileSettingsCard>
     </View>
   );

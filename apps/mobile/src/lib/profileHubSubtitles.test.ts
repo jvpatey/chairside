@@ -72,7 +72,7 @@ describe('getTextAlertsSubtitle', () => {
 
 describe('getOtherAlertsSubtitle', () => {
   it('keeps a quiet hub label', () => {
-    expect(getOtherAlertsSubtitle()).toBe('Push and role alerts');
+    expect(getOtherAlertsSubtitle()).toBe('Push · fill-ins and roles');
   });
 });
 

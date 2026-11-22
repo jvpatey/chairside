@@ -79,7 +79,7 @@ export default function WorkerProfileScreen() {
           />
           <ProfileSettingsRow
             icon="person-outline"
-            title="You"
+            title="Profile"
             subtitle={getProfessionalBackgroundSubtitle(workerProfile)}
             iconColor={colors.primary}
             iconBackgroundColor={colors.primarySubtle}
@@ -87,7 +87,7 @@ export default function WorkerProfileScreen() {
           />
           <ProfileSettingsRow
             icon="notifications-outline"
-            title="Other alerts"
+            title="Notifications"
             subtitle={getOtherAlertsSubtitle()}
             iconColor={colors.info}
             iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}

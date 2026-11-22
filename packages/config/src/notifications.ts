@@ -53,18 +53,18 @@ export const NOTIFICATION_PREFERENCE_CATEGORY_LABELS: Record<
 > = {
   messages: {
     title: 'Messages',
-    hint: 'Push when someone sends you a new message.',
+    hint: 'When someone sends you a new message.',
   },
   applications_interviews: {
     title: 'Applications & interviews',
-    hint: 'Push for application updates, interview invitations, and hiring decisions.',
+    hint: 'Application updates, interview invites, and hiring decisions.',
   },
   job_alerts: {
-    title: 'New job alerts',
-    hint: 'Push when a clinic posts a live role matching your position.',
+    title: 'New roles',
+    hint: 'When a clinic posts a live role matching yours.',
   },
   fill_in_alerts: {
-    title: 'Fill-in alerts',
-    hint: 'Push when a clinic posts a fill-in shift you may be eligible for.',
+    title: 'Fill-ins',
+    hint: 'When a clinic posts a fill-in matching your role. Separate from text alerts.',
   },
 };

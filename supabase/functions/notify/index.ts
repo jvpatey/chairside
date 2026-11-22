@@ -217,11 +217,6 @@ function buildFillInAlertCopy(input: {
   return { title, message, smsMessage: buildFillInSms(input) };
 }
 
-function shiftWeekday(shiftDate: string): number {
-  const d = new Date(`${shiftDate}T12:00:00`);
-  return d.getDay();
-}
-
 function normalizeUuid(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null;
   return value.trim().toLowerCase();
@@ -1508,11 +1503,11 @@ async function filterWorkerNotificationRecipients(
 
 async function listFillInRecipients(
   supabase: ReturnType<typeof createClient>,
-  shift: { role_type: string; shift_date: string },
+  shift: { role_type: string },
   clinicId: string | null,
 ) {
-  const weekday = shiftWeekday(shift.shift_date);
-
+  // Outreach-first: SMS/push recipients match on role only (plus opt-in gates).
+  // Schedule / available-days are not used for fill-in alerts.
   const { data: workers, error } = await supabase
     .from('worker_profiles')
     .select(
@@ -1532,7 +1527,7 @@ async function listFillInRecipients(
   );
   if (!eligibleWorkers.length) return [];
 
-  const roleMatched = eligibleWorkers.filter((worker) => {
+  return eligibleWorkers.filter((worker) => {
     const roleTypes =
       Array.isArray(worker.role_types) && worker.role_types.length > 0
         ? worker.role_types
@@ -1540,35 +1535,6 @@ async function listFillInRecipients(
           ? [worker.role_type]
           : [];
     return roleTypes.includes(shift.role_type);
-  });
-
-  const availableDaysOnly = roleMatched.filter(
-    (w) => w.fill_in_notification_mode === 'available_days_only',
-  );
-  const alwaysNotify = roleMatched.filter((w) => w.fill_in_notification_mode === 'all');
-
-  if (availableDaysOnly.length === 0) {
-    return alwaysNotify;
-  }
-
-  const ids = availableDaysOnly.map((w) => w.id);
-  const { data: blocks, error: blockError } = await supabase
-    .from('availability_blocks')
-    .select('worker_id')
-    .in('worker_id', ids)
-    .eq('day_of_week', weekday);
-
-  if (blockError) throw blockError;
-
-  const withSchedule = new Set((blocks ?? []).map((b) => b.worker_id));
-  const scheduledWorkers = availableDaysOnly.filter((w) => withSchedule.has(w.id));
-
-  const seen = new Set<string>();
-  const merged = [...alwaysNotify, ...scheduledWorkers];
-  return merged.filter((w) => {
-    if (seen.has(w.id)) return false;
-    seen.add(w.id);
-    return true;
   });
 }
 
@@ -1627,10 +1593,7 @@ async function handleShiftPostLive(
   const smsReplyEnabled = !isSourced && isSmsReplyEnabled();
   const recipients = await listFillInRecipients(
     supabase,
-    {
-      role_type: roleType,
-      shift_date: shiftDate,
-    },
+    { role_type: roleType },
     clinicId,
   );
 

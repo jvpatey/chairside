@@ -5,44 +5,32 @@ import { ProfileDetailStack } from '@/components/profile/ProfileDetailBlocks';
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { NotificationCategoryPreferences } from '@/components/notifications/NotificationCategoryPreferences';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
-import { WorkerJobNotificationPreferences } from '@/components/worker/WorkerJobNotificationPreferences';
-import { WorkerOpenInquiryPreferences } from '@/components/worker/WorkerOpenInquiryPreferences';
 import { NOTIFICATION_PREFERENCE_CATEGORIES } from '@chairside/config';
 import { navigateToWorkerProfileHub } from '@/lib/routing';
 
-const pushAlertsTitle = Platform.OS === 'web' ? 'In-app alerts' : 'Push alerts';
+const channelTitle = Platform.OS === 'web' ? 'In-app' : 'Push';
 
 export default function WorkerProfileNotificationsScreen() {
   return (
     <ProfileDetailScreen
-      title="Other alerts"
+      title="Notifications"
       subtitle={
         Platform.OS === 'web'
-          ? 'Push and role preferences. Text alerts are managed separately.'
-          : 'Push and role preferences. Text alerts are managed separately.'
+          ? 'In-app alerts for fill-ins and matching roles. Texts are under Text alerts.'
+          : 'Push and in-app for fill-ins and matching roles. Texts are under Text alerts.'
       }
       onBack={() => navigateToWorkerProfileHub(router)}>
       <ProfileDetailStack>
         <ProfileSettingsCard
-          title={pushAlertsTitle}
+          title={channelTitle}
           icon="notifications-outline"
           iconAccent="primary">
           <NotificationCategoryPreferences
             categories={[
-              NOTIFICATION_PREFERENCE_CATEGORIES.messages,
-              NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
-              NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
               NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
+              NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
             ]}
           />
-        </ProfileSettingsCard>
-
-        <ProfileSettingsCard title="Role alerts" icon="briefcase-outline" iconAccent="primary">
-          <WorkerJobNotificationPreferences />
-        </ProfileSettingsCard>
-
-        <ProfileSettingsCard title="Open inquiries" icon="chatbubbles-outline" iconAccent="primary">
-          <WorkerOpenInquiryPreferences />
         </ProfileSettingsCard>
       </ProfileDetailStack>
     </ProfileDetailScreen>

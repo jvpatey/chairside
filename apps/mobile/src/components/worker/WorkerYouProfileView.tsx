@@ -161,7 +161,7 @@ export function WorkerYouProfileView({
   return (
     <View style={styles.root}>
       <View style={styles.doc}>
-        <Text style={styles.sectionLabel}>You</Text>
+        <Text style={styles.sectionLabel}>Profile</Text>
         <AccountDisplayNameField
           userId={user.id}
           savedFirstName={firstName}

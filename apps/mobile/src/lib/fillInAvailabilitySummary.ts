@@ -108,14 +108,6 @@ export function getFillInAvailabilityCollapsedSummary(
     };
   }
 
-  const mode = profile?.fill_in_notification_mode ?? 'off';
-  const alertPart =
-    mode === 'all'
-      ? 'All fill-ins'
-      : mode === 'available_days_only'
-        ? 'Matching days only'
-        : 'Alerts off';
-
   const { smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
   const textsPart = smsActive
     ? 'Texts on'
@@ -123,12 +115,11 @@ export function getFillInAvailabilityCollapsedSummary(
       ? 'Needs phone'
       : 'Texts off';
   const primarySegments: FillInAvailabilityStatusSegment[] = [
-    { text: 'Available', tone: 'positive' },
+    { text: 'Open to fill-ins', tone: 'positive' },
     {
       text: textsPart,
       tone: smsActive ? 'positive' : 'negative',
     },
-    { text: alertPart, tone: 'default' },
   ];
 
   return {

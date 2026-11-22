@@ -94,9 +94,9 @@ export function getTextAlertsSubtitle(profile: WorkerProfile | null): string {
   return 'Off';
 }
 
-/** Quieter push / role prefs — SMS lives on Text alerts. */
+/** Push / in-app prefs — SMS lives on Text alerts. */
 export function getOtherAlertsSubtitle(): string {
-  return 'Push and role alerts';
+  return 'Push · fill-ins and roles';
 }
 
 /** @deprecated Prefer getOtherAlertsSubtitle for the settings hub. */

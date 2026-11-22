@@ -1,15 +1,10 @@
-import {
-  FILL_IN_NOTIFICATION_MODE_OPTIONS,
-  normalizePhoneForStorage,
-  type FillInNotificationMode,
-} from '@chairside/config';
+import { normalizePhoneForStorage, type FillInNotificationMode } from '@chairside/config';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FadeSwap } from '@/components/ui/FadeSwap';
-import { SettingsRadioRow } from '@/components/ui/SettingsRadioRow';
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
@@ -28,8 +23,8 @@ type FillInModePanelProps = {
   variant?: 'card' | 'grouped';
   /**
    * textAlerts — single Text alerts hero + phone (settings hub).
-   * moreOptions — outreach + posted alert mode only.
-   * default — available toggle + SMS + outreach + modes (onboarding).
+   * moreOptions — clinic outreach only.
+   * default — available toggle + SMS + outreach (onboarding).
    */
   layout?: 'default' | 'textAlerts' | 'moreOptions';
 };
@@ -42,10 +37,6 @@ type PersistParams = {
   /** Normalized phone to save alongside the change. */
   phone?: string;
 };
-
-const NOTIFICATION_MODE_OPTIONS = FILL_IN_NOTIFICATION_MODE_OPTIONS.filter(
-  (option) => option.value !== 'off',
-);
 
 function SettingsSection({
   title,
@@ -184,11 +175,6 @@ export function FillInModePanel({
       backgroundColor: colors.separator,
       opacity: 0.7,
     },
-    radioDivider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.separator,
-      opacity: 0.7,
-    },
     saveError: {
       fontSize: 13,
       lineHeight: 18,
@@ -258,16 +244,27 @@ export function FillInModePanel({
   });
 
   const handleToggle = async (value: boolean) => {
-    const mode =
-      value && notificationMode === 'off' ? ('all' as FillInNotificationMode) : notificationMode;
+    // Outreach-first: text alerts always use province-wide matching (`all`), not schedule days.
+    const mode: FillInNotificationMode =
+      layout === 'textAlerts'
+        ? value
+          ? 'all'
+          : 'off'
+        : value && notificationMode === 'off'
+          ? 'all'
+          : notificationMode;
     const smsWhenOn = value && (smsOptIn || hasPhone);
     setShortNoticeAvailable(value);
     if (value) {
-      setNotificationMode(mode);
+      setNotificationMode(mode === 'off' ? 'all' : mode);
       if (hasPhone) {
         setSmsOptIn(true);
       } else if (layout === 'textAlerts') {
         setIsFinishingTexts(true);
+      }
+      // Default clinics can reach out when turning texts on from settings.
+      if (layout === 'textAlerts') {
+        setAcceptsClinicOutreach(true);
       }
     }
     if (!value) {
@@ -275,21 +272,23 @@ export function FillInModePanel({
       setAcceptsClinicOutreach(false);
       closePhoneEntry();
     }
+    const outreachWhenOn =
+      layout === 'textAlerts' ? value : value ? acceptsClinicOutreach : false;
     // Without a phone, wait for Save number before persisting SMS on.
     if (value && !hasPhone && layout === 'textAlerts') {
       await persist({
         available: true,
-        mode,
+        mode: 'all',
         sms: false,
-        outreach: acceptsClinicOutreach,
+        outreach: true,
       });
       return;
     }
     await persist({
       available: value,
-      mode: value ? mode : 'off',
+      mode: value ? (mode === 'off' ? 'all' : mode) : 'off',
       sms: smsWhenOn,
-      outreach: value ? acceptsClinicOutreach : false,
+      outreach: outreachWhenOn,
     });
   };
 
@@ -297,13 +296,6 @@ export function FillInModePanel({
     setAcceptsClinicOutreach(value);
     if (shortNoticeAvailable) {
       await persist({ ...currentSettings(), outreach: value });
-    }
-  };
-
-  const handleModeChange = async (mode: FillInNotificationMode) => {
-    setNotificationMode(mode);
-    if (shortNoticeAvailable) {
-      await persist({ ...currentSettings(), mode });
     }
   };
 
@@ -337,9 +329,21 @@ export function FillInModePanel({
     setPhoneError(null);
 
     if (textState === 'finishing') {
-      const ok = await persist({ ...currentSettings(), sms: true, phone: pendingPhone });
+      const ok = await persist({
+        ...currentSettings(),
+        available: true,
+        mode: layout === 'textAlerts' ? 'all' : currentSettings().mode,
+        sms: true,
+        outreach: layout === 'textAlerts' ? true : currentSettings().outreach,
+        phone: pendingPhone,
+      });
       if (ok) {
         setSmsOptIn(true);
+        setShortNoticeAvailable(true);
+        if (layout === 'textAlerts') {
+          setNotificationMode('all');
+          setAcceptsClinicOutreach(true);
+        }
         closePhoneEntry();
       }
       return;
@@ -434,53 +438,21 @@ export function FillInModePanel({
       </SettingsSection>
     ) : null;
 
-  const showMoreOptions =
+  const showOutreach =
     (layout === 'moreOptions' || layout === 'default') && showExpandedSettings;
-
-  const clinicOutreachSection = showMoreOptions ? (
+  const clinicOutreachSection = showOutreach ? (
     <>
       {layout === 'default' ? <View style={styles.sectionDivider} /> : null}
       <SettingsSection nested={useNestedSections} embedded={isGrouped}>
         <SettingsToggleRow
           title="Let clinics reach out"
-          hint="Clinics in your province can find you and message you about fill-ins."
+          hint="Clinics can find you and message about fill-ins."
           value={acceptsClinicOutreach}
           disabled={isSaving}
           bleedPadding={useNestedSections ? spacing.md : undefined}
           accentColor={colors.primary}
           onValueChange={(value) => void handleOutreachToggle(value)}
         />
-      </SettingsSection>
-    </>
-  ) : null;
-
-  const postedFillInAlertsSection = showMoreOptions ? (
-    <>
-      <View style={styles.sectionDivider} />
-      <SettingsSection title="Posted fill-in alerts" nested={useNestedSections} embedded={isGrouped}>
-        {NOTIFICATION_MODE_OPTIONS.map((option, index) => {
-          const selected = notificationMode === option.value;
-          return (
-            <View key={option.value}>
-              <SettingsRadioRow
-                label={option.label}
-                hint={
-                  option.value === 'available_days_only'
-                    ? 'When the shift matches your schedule.'
-                    : undefined
-                }
-                selected={selected}
-                disabled={isSaving}
-                bleedPadding={useNestedSections ? spacing.md : undefined}
-                accent="primary"
-                onPress={() => void handleModeChange(option.value)}
-              />
-              {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
-                <View style={styles.radioDivider} />
-              ) : null}
-            </View>
-          );
-        })}
       </SettingsSection>
     </>
   ) : null;
@@ -513,17 +485,13 @@ export function FillInModePanel({
       )}
       {layout === 'textAlerts' ? textAlertsPhoneOnly : null}
       {layout === 'moreOptions' ? (
-        <>
-          {clinicOutreachSection}
-          {postedFillInAlertsSection}
-        </>
+        clinicOutreachSection
       ) : layout === 'default' ? (
         <FadeSwap
           swapKey={showExpandedSettings ? 'expanded' : 'collapsed'}
           style={isGrouped ? styles.grouped : undefined}>
           {textAlertsSection}
           {clinicOutreachSection}
-          {postedFillInAlertsSection}
         </FadeSwap>
       ) : null}
       {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}

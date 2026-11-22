@@ -19,7 +19,7 @@ export default function WorkerProfileAccountScreen() {
 
   return (
     <ProfileDetailScreen
-      title="You"
+      title="Profile"
       subtitle="Name, role, and city for fill-in texts."
       onBack={() => navigateToWorkerProfileHub(router)}>
       <WorkerYouProfileView

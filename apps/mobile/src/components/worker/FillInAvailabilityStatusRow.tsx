@@ -4,11 +4,8 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import {
-  getFillInAvailabilityCollapsedSummary,
-  getFillInSmsStatus,
-} from '@/lib/fillInAvailabilitySummary';
-import { WORKER_FILLIN_AVAILABILITY } from '@/lib/routing';
+import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
+import { getWorkerFillInAvailabilityRoute } from '@/lib/routing';
 import {
   webHover,
   webListRowHoverStyles,
@@ -16,23 +13,19 @@ import {
 } from '@/lib/webPressableStyles';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
-/** Compact hub chrome — status only; full editor lives on fill-in-availability. */
+/** Compact hub chrome — SMS / outreach status only. */
 export function FillInAvailabilityStatusRow() {
   const { colors } = useTheme();
-  const { workerProfile, availabilityBlocks } = useWorkerProfile();
-  const summary = getFillInAvailabilityCollapsedSummary(workerProfile, availabilityBlocks);
-  const isAvailable = workerProfile?.short_notice_available ?? false;
-  const { smsActive, smsNeedsPhone } = getFillInSmsStatus(workerProfile);
+  const { workerProfile } = useWorkerProfile();
+  const { smsActive, smsNeedsPhone, fillInsOn } = getFillInSmsStatus(workerProfile);
 
-  const label = !isAvailable
-    ? 'Turn on fill-in alerts'
-    : [
-        'Available',
-        smsActive ? 'Texts on' : smsNeedsPhone ? 'Add phone for texts' : 'Texts off',
-        summary.secondary !== 'No schedule set' ? summary.secondary : null,
-      ]
-        .filter(Boolean)
-        .join(' · ');
+  const label = !fillInsOn
+    ? 'Turn on text alerts'
+    : smsActive
+      ? 'Text alerts on'
+      : smsNeedsPhone
+        ? 'Add phone for texts'
+        : 'Text alerts off';
 
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     row: {
@@ -53,7 +46,7 @@ export function FillInAvailabilityStatusRow() {
       borderRadius: 8,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      backgroundColor: isAvailable ? colors.primarySubtle : colors.fillSubtle,
+      backgroundColor: fillInsOn ? colors.primarySubtle : colors.fillSubtle,
       flexShrink: 0,
     },
     label: {
@@ -63,17 +56,17 @@ export function FillInAvailabilityStatusRow() {
       lineHeight: 18,
       fontFamily: fontSemibold,
       fontWeight: '600' as const,
-      color: isAvailable ? colors.labelPrimary : colors.primary,
+      color: fillInsOn ? colors.labelPrimary : colors.primary,
     },
   }));
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label}. Manage availability`}
+      accessibilityLabel={`${label}. Manage text alerts`}
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(WORKER_FILLIN_AVAILABILITY);
+        router.push(getWorkerFillInAvailabilityRoute('fill-ins'));
       }}
       style={({ pressed, hovered }) => [
         styles.row,
@@ -82,9 +75,9 @@ export function FillInAvailabilityStatusRow() {
       ]}>
       <View style={styles.iconWrap}>
         <Ionicons
-          name={isAvailable ? 'notifications' : 'notifications-outline'}
+          name={smsActive ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
           size={15}
-          color={isAvailable ? colors.primary : colors.labelSecondary}
+          color={fillInsOn ? colors.primary : colors.labelSecondary}
         />
       </View>
       <Text style={styles.label} numberOfLines={1}>
