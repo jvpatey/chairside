@@ -18,14 +18,61 @@ import {
   getClinicLocationsSubtitle,
   getClinicMessagingSubtitle,
   getNotificationsSubtitle,
+  getOtherAlertsSubtitle,
+  getTextAlertsSubtitle,
 } from '@/lib/profileHubSubtitles';
 
 describe('getAccountTypeLabel', () => {
   it('labels worker and clinic account types', () => {
-    expect(getAccountTypeLabel('worker')).toBe('Find work');
+    expect(getAccountTypeLabel('worker')).toBe('Worker');
     expect(getAccountTypeLabel('clinic')).toBe('Clinic');
     expect(getAccountTypeLabel('clinic', { isGroup: false })).toBe('Clinic');
     expect(getAccountTypeLabel('clinic', { isGroup: true })).toBe('Clinic group');
+  });
+});
+
+describe('getTextAlertsSubtitle', () => {
+  it('shows off when fill-ins are off', () => {
+    expect(
+      getTextAlertsSubtitle({
+        short_notice_available: false,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Off');
+  });
+
+  it('shows on with phone when SMS is active', () => {
+    expect(
+      getTextAlertsSubtitle({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toMatch(/^On ·/);
+  });
+
+  it('shows add phone and off states', () => {
+    expect(
+      getTextAlertsSubtitle({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: null,
+      } as never),
+    ).toBe('Add phone');
+    expect(
+      getTextAlertsSubtitle({
+        short_notice_available: true,
+        fill_in_sms_opt_in: false,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Off');
+  });
+});
+
+describe('getOtherAlertsSubtitle', () => {
+  it('keeps a quiet hub label', () => {
+    expect(getOtherAlertsSubtitle()).toBe('Push and role alerts');
   });
 });
 

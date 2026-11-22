@@ -75,11 +75,6 @@ export function isWorkerGetStartedComplete(params: {
 }): boolean {
   return (
     isWorkerProfileComplete(params.workerProfile) &&
-    isWorkerApplicationKitStarted(params.workerProfile) &&
-    isWorkerRolesStepComplete({
-      jobApplicationCount: params.jobApplicationCount,
-      visitedRoles: params.visitedRoles,
-    }) &&
     isWorkerFillInsStepComplete({
       shiftApplicationCount: params.shiftApplicationCount,
       workerProfile: params.workerProfile as WorkerFillInEngagementProfile | undefined,

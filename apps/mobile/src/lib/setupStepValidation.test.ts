@@ -4,7 +4,11 @@ vi.mock('@chairside/api', () => ({
   getWorkerRoleTypes: () => [],
 }));
 
-import { validateWorkerBasicsStep, getClinicSetupStepGuard } from './setupStepValidation';
+import {
+  getClinicSetupStepGuard,
+  validateWorkerBasicsStep,
+  validateWorkerPlaceStep,
+} from './setupStepValidation';
 
 describe('validateWorkerBasicsStep', () => {
   it('requires both first and last name', () => {
@@ -64,6 +68,23 @@ describe('validateWorkerBasicsStep', () => {
         phone: '9025551234',
       }),
     ).toEqual({ ok: true, message: null });
+  });
+});
+
+describe('validateWorkerPlaceStep', () => {
+  it('requires city and province only', () => {
+    expect(validateWorkerPlaceStep({ city: '', province: 'NS' })).toEqual({
+      ok: false,
+      message: 'Enter your city to continue.',
+    });
+    expect(validateWorkerPlaceStep({ city: 'Halifax', province: '' })).toEqual({
+      ok: false,
+      message: 'Select your province to continue.',
+    });
+    expect(validateWorkerPlaceStep({ city: 'Halifax', province: 'NS' })).toEqual({
+      ok: true,
+      message: null,
+    });
   });
 });
 

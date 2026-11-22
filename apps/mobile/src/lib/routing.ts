@@ -223,6 +223,22 @@ export function getWorkerApplicationsRoute(applicationId?: string): Href {
 }
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_FILLIN_AVAILABILITY: Href = '/(tabs)/fill-in-availability' as Href;
+
+export type WorkerFillInAvailabilityReturn = 'profile' | 'fill-ins';
+
+/** Text alerts / fill-in availability — back target depends on entry point. */
+export function getWorkerFillInAvailabilityRoute(
+  returnTo: WorkerFillInAvailabilityReturn = 'fill-ins',
+): Href {
+  if (returnTo === 'profile') {
+    return {
+      pathname: '/(tabs)/fill-in-availability',
+      params: { returnTo: 'profile' },
+    } as Href;
+  }
+  return WORKER_FILLIN_AVAILABILITY;
+}
+
 /** Nearby open browse (escape hatch). Legacy `open-fill-ins` deep links still resolve here. */
 export const WORKER_OPEN_FILLINS: Href = '/(tabs)/fillins?tab=open' as Href;
 export const WORKER_PENDING_FILLINS: Href = '/(tabs)/fillins?tab=pending' as Href;

@@ -12,32 +12,33 @@ import {
 } from '@chairside/api';
 import { getProvinceLabel, formatRoleTypesLabel, getSpecialtyLabel } from '@chairside/config';
 
-import { getFillInSmsSubtitlePart } from '@/lib/fillInAvailabilitySummary';
+import {
+  getFillInSmsStatus,
+  getFillInSmsSubtitlePart,
+} from '@/lib/fillInAvailabilitySummary';
 import { formatPhoneNumber } from '@/lib/phone';
 
 export function getAccountTypeLabel(
   role: UserRole,
   options?: { isGroup?: boolean },
 ): string {
-  if (role === 'worker') return 'Find work';
+  if (role === 'worker') return 'Worker';
   return options?.isGroup ? 'Clinic group' : 'Clinic';
 }
 
 export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null): string {
   if (!profile) {
-    return 'Add roles, experience, and location';
+    return 'Add your role and city';
   }
 
   if (!isWorkerProfileComplete(profile)) {
     const hasRoles = getWorkerRoleTypes(profile).length > 0;
-    const hasLocation = Boolean(
-      profile.address_line1?.trim() && profile.city?.trim() && profile.postal_code?.trim(),
-    );
+    const hasPlace = Boolean(profile.city?.trim() && profile.province?.trim());
 
-    if (!hasRoles && !hasLocation) return 'Add roles and location to complete';
-    if (!hasRoles) return 'Add your roles to complete';
-    if (!hasLocation) return 'Add your location to complete';
-    return 'Finish required details';
+    if (!hasRoles && !hasPlace) return 'Add role and city for fill-in texts';
+    if (!hasRoles) return 'Add your role';
+    if (!hasPlace) return 'Add your city';
+    return 'Add your mobile number';
   }
 
   const roleLabel = formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null;
@@ -55,11 +56,11 @@ export function getApplicationKitSubtitle(profile: WorkerProfile | null): string
   const hasNote = Boolean(profile?.default_cover_message?.trim());
 
   if (!hasResume && !hasPhoto && !hasNote) {
-    return 'Add a resume, photo, and note for clinics';
+    return 'Resume and note for clinics';
   }
 
   if (hasResume && hasPhoto && hasNote) {
-    return 'Resume, photo, and note clinics see when you apply';
+    return 'Resume, photo, and note ready';
   }
 
   const added: string[] = [];
@@ -76,11 +77,29 @@ export function getApplicationKitSubtitle(profile: WorkerProfile | null): string
       ? `Add a ${missing[0]}`
       : missing.length === 2
         ? `Add ${missing[0]} and ${missing[1]}`
-        : 'Add a resume, photo, and note';
+        : 'Add resume and note';
 
   return added.length > 0 ? `${added[0]} · ${missingLabel}` : missingLabel;
 }
 
+/** Hub row for SMS-first text alerts. */
+export function getTextAlertsSubtitle(profile: WorkerProfile | null): string {
+  const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  if (!fillInsOn) return 'Off';
+  if (smsActive) {
+    const phone = profile?.phone?.trim();
+    return phone ? `On · ${formatPhoneNumber(phone)}` : 'On';
+  }
+  if (smsNeedsPhone) return 'Add phone';
+  return 'Off';
+}
+
+/** Quieter push / role prefs — SMS lives on Text alerts. */
+export function getOtherAlertsSubtitle(): string {
+  return 'Push and role alerts';
+}
+
+/** @deprecated Prefer getOtherAlertsSubtitle for the settings hub. */
 export function getNotificationsSubtitle(profile: WorkerProfile | null): string {
   const fillInsOn = profile?.short_notice_available ?? false;
   const jobsOn = profile?.job_notification_opt_in ?? true;

@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { WORKER_PROFILE_APPLICATION_KIT } from '@/lib/routing';
+import { WORKER_PROFILE_ACCOUNT } from '@/lib/routing';
 import {
   webHover,
   webListRowHoverStyles,
@@ -12,7 +12,7 @@ import {
 } from '@/lib/webPressableStyles';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
-/** Compact hub chrome — only when setup is incomplete. Clinic messaging stays off Roles. */
+/** Compact hub chrome — only when setup is incomplete. */
 export function RolesStatusRow() {
   const { colors } = useTheme();
   const { workerProfile } = useWorkerProfile();
@@ -58,10 +58,10 @@ export function RolesStatusRow() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Finish profile to apply. Open application kit"
+      accessibilityLabel="Add role and city for fill-in texts. Open You"
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(WORKER_PROFILE_APPLICATION_KIT);
+        router.push(WORKER_PROFILE_ACCOUNT);
       }}
       style={({ pressed, hovered }) => [
         styles.row,
@@ -69,10 +69,10 @@ export function RolesStatusRow() {
         pressed && { opacity: 0.88 },
       ]}>
       <View style={styles.iconWrap}>
-        <Ionicons name="document-text-outline" size={15} color={colors.labelSecondary} />
+        <Ionicons name="person-outline" size={15} color={colors.labelSecondary} />
       </View>
       <Text style={styles.label} numberOfLines={1}>
-        Finish profile to apply
+        Add role and city for fill-in texts
       </Text>
       <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
     </Pressable>

@@ -27,12 +27,12 @@ export function guardApply(
 
   const missing = getMissingWorkerProfileFields(workerProfile);
   showConfirmActionSheet({
-    title: 'Complete your profile',
+    title: 'A few details first',
     message:
       missing.length > 0
-        ? `Add the following before applying: ${missing.join(', ')}`
-        : 'Finish your profile to apply.',
-    confirmLabel: 'Continue setup',
+        ? `Add the following to request cover: ${missing.join(', ')}`
+        : 'Add your role, phone, and city to request cover.',
+    confirmLabel: 'Continue',
     onConfirm: () => router.push(WORKER_SETUP_BASICS),
   });
 }
@@ -44,12 +44,12 @@ export function guardQuickApply(workerProfile: WorkerProfile | null, _kitRoute: 
 
   const missing = getMissingWorkerProfileFields(workerProfile);
   showConfirmActionSheet({
-    title: 'Complete your background',
+    title: 'A few details first',
     message:
       missing.length > 0
-        ? `Add the following before applying: ${missing.join(', ')}`
-        : 'Finish your professional background to apply.',
-    confirmLabel: 'Add background',
+        ? `Add the following to continue: ${missing.join(', ')}`
+        : 'Add your role, phone, and city to continue.',
+    confirmLabel: 'Continue',
     onConfirm: () => router.push(WORKER_SETUP_BASICS),
   });
   return false;

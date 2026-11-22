@@ -16,8 +16,7 @@ type AccountDisplayNameFieldProps = {
 };
 
 const DISPLAY_NAME_HINTS = {
-  worker:
-    'Shown on your profile and new applications to clinics. Applications you already sent keep the name from when you applied.',
+  worker: 'How clinics see your name when you request cover.',
   clinic:
     'Shown on your profile and on new postings and messages. Existing conversations keep the name from when they started.',
 } as const;

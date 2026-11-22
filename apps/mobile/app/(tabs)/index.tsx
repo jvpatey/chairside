@@ -38,11 +38,11 @@ import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
 import { getFirstName } from '@/lib/greeting';
 import {
+  getWorkerFillInAvailabilityRoute,
   WORKER_APPLICATIONS,
   WORKER_OPEN_FILLINS,
   WORKER_PENDING_FILLINS,
   WORKER_PROFILE,
-  WORKER_PROFILE_NOTIFICATIONS,
 } from '@/lib/routing';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -242,7 +242,8 @@ export default function WorkerDashboardScreen() {
                   description: smsStatus.smsActive ? 'On' : 'Set up',
                   icon: 'chatbubble-ellipses-outline',
                   variant: 'primary',
-                  onPress: () => router.push(WORKER_PROFILE_NOTIFICATIONS),
+                  onPress: () =>
+                    router.push(getWorkerFillInAvailabilityRoute('profile')),
                 },
               ]}
             />

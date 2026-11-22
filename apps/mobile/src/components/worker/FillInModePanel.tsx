@@ -26,6 +26,12 @@ type FillInModePanelProps = {
   showNotificationOptions?: boolean;
   hidePrimaryToggle?: boolean;
   variant?: 'card' | 'grouped';
+  /**
+   * textAlerts — single Text alerts hero + phone (settings hub).
+   * moreOptions — outreach + posted alert mode only.
+   * default — available toggle + SMS + outreach + modes (onboarding).
+   */
+  layout?: 'default' | 'textAlerts' | 'moreOptions';
 };
 
 type PersistParams = {
@@ -107,6 +113,7 @@ export function FillInModePanel({
   showNotificationOptions = true,
   hidePrimaryToggle = false,
   variant = 'card',
+  layout = 'default',
 }: FillInModePanelProps) {
   const { colors } = useTheme();
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
@@ -257,12 +264,26 @@ export function FillInModePanel({
     setShortNoticeAvailable(value);
     if (value) {
       setNotificationMode(mode);
-      if (hasPhone) setSmsOptIn(true);
+      if (hasPhone) {
+        setSmsOptIn(true);
+      } else if (layout === 'textAlerts') {
+        setIsFinishingTexts(true);
+      }
     }
     if (!value) {
       setSmsOptIn(false);
       setAcceptsClinicOutreach(false);
       closePhoneEntry();
+    }
+    // Without a phone, wait for Save number before persisting SMS on.
+    if (value && !hasPhone && layout === 'textAlerts') {
+      await persist({
+        available: true,
+        mode,
+        sms: false,
+        outreach: acceptsClinicOutreach,
+      });
+      return;
     }
     await persist({
       available: value,
@@ -381,30 +402,44 @@ export function FillInModePanel({
     </Pressable>
   ) : null;
 
-  const textAlertsSection = showExpandedSettings ? (
-    <>
-      {hidePrimaryToggle ? null : <View style={styles.sectionDivider} />}
-      <SettingsSection title="Text alerts" nested={useNestedSections} embedded={isGrouped}>
-        <SettingsToggleRow
-          prominence="primary"
-          title="Fill-in text alerts"
-          hint={getFillInTextAlertsHint(textState, savedPhone)}
-          value={isFillInTextAlertsSwitchOn(textState, smsOptIn)}
-          disabled={isSaving}
-          bleedPadding={useNestedSections ? spacing.md : undefined}
-          accentColor={colors.primary}
-          onValueChange={(value) => void handleSmsToggle(value)}
-        />
+  const textAlertsSection =
+    showExpandedSettings && layout === 'default' ? (
+      <>
+        {hidePrimaryToggle ? null : <View style={styles.sectionDivider} />}
+        <SettingsSection title="Text alerts" nested={useNestedSections} embedded={isGrouped}>
+          <SettingsToggleRow
+            prominence="primary"
+            title="Fill-in text alerts"
+            hint={getFillInTextAlertsHint(textState, savedPhone)}
+            value={isFillInTextAlertsSwitchOn(textState, smsOptIn)}
+            disabled={isSaving}
+            bleedPadding={useNestedSections ? spacing.md : undefined}
+            accentColor={colors.primary}
+            onValueChange={(value) => void handleSmsToggle(value)}
+          />
+          <FadeSwap swapKey={phoneEntryOpen ? 'entry' : 'summary'} durationMs={220}>
+            {phoneEntry}
+          </FadeSwap>
+        </SettingsSection>
+      </>
+    ) : null;
+
+  const textAlertsPhoneOnly =
+    layout === 'textAlerts' && shortNoticeAvailable ? (
+      <SettingsSection nested={useNestedSections} embedded={isGrouped}>
+        <Text style={styles.helper}>{getFillInTextAlertsHint(textState, savedPhone)}</Text>
         <FadeSwap swapKey={phoneEntryOpen ? 'entry' : 'summary'} durationMs={220}>
           {phoneEntry}
         </FadeSwap>
       </SettingsSection>
-    </>
-  ) : null;
+    ) : null;
 
-  const clinicOutreachSection = showExpandedSettings ? (
+  const showMoreOptions =
+    (layout === 'moreOptions' || layout === 'default') && showExpandedSettings;
+
+  const clinicOutreachSection = showMoreOptions ? (
     <>
-      <View style={styles.sectionDivider} />
+      {layout === 'default' ? <View style={styles.sectionDivider} /> : null}
       <SettingsSection nested={useNestedSections} embedded={isGrouped}>
         <SettingsToggleRow
           title="Let clinics reach out"
@@ -419,7 +454,7 @@ export function FillInModePanel({
     </>
   ) : null;
 
-  const postedFillInAlertsSection = showExpandedSettings ? (
+  const postedFillInAlertsSection = showMoreOptions ? (
     <>
       <View style={styles.sectionDivider} />
       <SettingsSection title="Posted fill-in alerts" nested={useNestedSections} embedded={isGrouped}>
@@ -450,18 +485,24 @@ export function FillInModePanel({
     </>
   ) : null;
 
+  const primaryTitle = layout === 'textAlerts' ? 'Text alerts' : 'Available for fill-ins';
+  const primaryHint =
+    layout === 'textAlerts'
+      ? shortNoticeAvailable
+        ? 'We’ll text you when a fill-in opens nearby.'
+        : 'Turn on to get fill-in opportunities by text.'
+      : shortNoticeAvailable
+        ? 'You appear open to short-notice fill-in opportunities.'
+        : 'Turn on when you can cover urgent shifts.';
+
   return (
     <View style={isGrouped ? styles.grouped : styles.card}>
-      {hidePrimaryToggle ? null : (
+      {hidePrimaryToggle || layout === 'moreOptions' ? null : (
         <View style={styles.primarySection}>
           <SettingsToggleRow
             prominence="primary"
-            title="Available for fill-ins"
-            hint={
-              shortNoticeAvailable
-                ? 'You appear open to short-notice fill-in opportunities.'
-                : 'Turn on when you can cover urgent shifts.'
-            }
+            title={primaryTitle}
+            hint={primaryHint}
             value={shortNoticeAvailable}
             disabled={isSaving}
             accentColor={colors.primary}
@@ -470,13 +511,21 @@ export function FillInModePanel({
           />
         </View>
       )}
-      <FadeSwap
-        swapKey={showExpandedSettings ? 'expanded' : 'collapsed'}
-        style={isGrouped ? styles.grouped : undefined}>
-        {textAlertsSection}
-        {clinicOutreachSection}
-        {postedFillInAlertsSection}
-      </FadeSwap>
+      {layout === 'textAlerts' ? textAlertsPhoneOnly : null}
+      {layout === 'moreOptions' ? (
+        <>
+          {clinicOutreachSection}
+          {postedFillInAlertsSection}
+        </>
+      ) : layout === 'default' ? (
+        <FadeSwap
+          swapKey={showExpandedSettings ? 'expanded' : 'collapsed'}
+          style={isGrouped ? styles.grouped : undefined}>
+          {textAlertsSection}
+          {clinicOutreachSection}
+          {postedFillInAlertsSection}
+        </FadeSwap>
+      ) : null}
       {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
     </View>
   );

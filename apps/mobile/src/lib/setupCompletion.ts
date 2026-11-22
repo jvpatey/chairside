@@ -8,7 +8,7 @@ import {
 
 type WorkerSetupProfile = Pick<
   WorkerProfile,
-  'setup_completed_at' | 'role_type' | 'role_types' | 'phone' | 'address_line1' | 'city' | 'postal_code'
+  'setup_completed_at' | 'role_type' | 'role_types' | 'phone' | 'city' | 'province'
 >;
 
 export function isClinicSetupComplete(

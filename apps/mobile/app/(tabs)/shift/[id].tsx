@@ -192,12 +192,12 @@ export default function WorkerShiftDetailScreen() {
     if (!isProfileComplete) {
       const missing = getMissingWorkerProfileFields(workerProfile);
       showConfirmActionSheet({
-        title: 'Complete your profile',
+        title: 'A few details first',
         message:
           missing.length > 0
-            ? `Add the following before requesting cover: ${missing.join(', ')}`
-            : 'Finish your profile to request cover.',
-        confirmLabel: 'Continue setup',
+            ? `Add the following to request cover: ${missing.join(', ')}`
+            : 'Add your role, phone, and city to request cover.',
+        confirmLabel: 'Continue',
         onConfirm: () => router.push(WORKER_SETUP_BASICS),
       });
       return;

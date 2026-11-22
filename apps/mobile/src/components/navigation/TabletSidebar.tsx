@@ -47,9 +47,9 @@ import {
   CLINIC_PROFILE_NOTIFICATIONS,
   getAdminRouteForRole,
   WORKER_HOME,
+  getWorkerFillInAvailabilityRoute,
   WORKER_PROFILE,
   WORKER_PROFILE_ACCOUNT,
-  WORKER_PROFILE_NOTIFICATIONS,
 } from '@/lib/routing';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
@@ -726,11 +726,19 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       },
     },
     {
-      label: 'Notifications',
-      icon: <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />,
+      label: role === 'worker' ? 'Text alerts' : 'Notifications',
+      icon: (
+        <Ionicons
+          name={role === 'worker' ? 'chatbubble-ellipses-outline' : 'notifications-outline'}
+          size={20}
+          color={colors.labelSecondary}
+        />
+      ),
       onPress: () => {
         router.push(
-          role === 'worker' ? WORKER_PROFILE_NOTIFICATIONS : CLINIC_PROFILE_NOTIFICATIONS,
+          role === 'worker'
+            ? getWorkerFillInAvailabilityRoute('profile')
+            : CLINIC_PROFILE_NOTIFICATIONS,
         );
       },
     },

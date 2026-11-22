@@ -11,10 +11,14 @@ export function getWorkerRoleTypes(
   return resolveWorkerRoleTypes(profile);
 }
 
+/**
+ * SMS-first completeness: role + phone + city/province.
+ * Street / postal are optional until confirmed cover or directions.
+ */
 export function isWorkerProfileComplete(
   profile: Pick<
     WorkerProfileRow,
-    'role_type' | 'role_types' | 'phone' | 'address_line1' | 'city' | 'postal_code'
+    'role_type' | 'role_types' | 'phone' | 'city' | 'province'
   > | null,
 ): boolean {
   if (!profile) return false;
@@ -22,27 +26,25 @@ export function isWorkerProfileComplete(
   return (
     getWorkerRoleTypes(profile).length > 0 &&
     Boolean(profile.phone?.trim()) &&
-    Boolean(profile.address_line1?.trim()) &&
     Boolean(profile.city?.trim()) &&
-    Boolean(profile.postal_code?.trim())
+    Boolean(profile.province?.trim())
   );
 }
 
 export function getMissingWorkerProfileFields(
   profile: Pick<
     WorkerProfileRow,
-    'role_type' | 'role_types' | 'phone' | 'address_line1' | 'city' | 'postal_code'
+    'role_type' | 'role_types' | 'phone' | 'city' | 'province'
   > | null,
 ): string[] {
   if (!profile) {
-    return ['Role type', 'Mobile phone', 'Street address', 'City', 'Postal code'];
+    return ['Role type', 'Mobile phone', 'City', 'Province'];
   }
 
   const missing: string[] = [];
   if (getWorkerRoleTypes(profile).length === 0) missing.push('Role type');
   if (!profile.phone?.trim()) missing.push('Mobile phone');
-  if (!profile.address_line1?.trim()) missing.push('Street address');
   if (!profile.city?.trim()) missing.push('City');
-  if (!profile.postal_code?.trim()) missing.push('Postal code');
+  if (!profile.province?.trim()) missing.push('Province');
   return missing;
 }

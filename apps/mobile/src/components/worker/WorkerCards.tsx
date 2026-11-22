@@ -66,13 +66,13 @@ export function WorkerSetupBanner({ onPress }: WorkerSetupBannerProps) {
           <Ionicons name="person" size={20} color={colors.primaryOnPrimary} />
         </View>
         <View style={styles.textBlock}>
-          <Text style={styles.title}>Complete your profile</Text>
+          <Text style={styles.title}>A few details first</Text>
           <Text style={styles.body}>
-            Add your credentials to apply for roles and receive fill-in alerts.
+            Add your role, phone, and city so we can text you about nearby fill-ins.
           </Text>
         </View>
       </View>
-      <OnboardingButton label="Continue setup" onPress={onPress} />
+      <OnboardingButton label="Continue" onPress={onPress} />
     </View>
   );
 }

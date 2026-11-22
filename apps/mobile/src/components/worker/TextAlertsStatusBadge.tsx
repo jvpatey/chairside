@@ -7,7 +7,7 @@ import {
   getFillInSmsBadgePresentation,
   type FillInSmsBadgeTone,
 } from '@/lib/fillInAvailabilitySummary';
-import { WORKER_PROFILE_NOTIFICATIONS } from '@/lib/routing';
+import { getWorkerFillInAvailabilityRoute } from '@/lib/routing';
 import { colorWithAlpha, useTheme, type Colors } from '@/theme';
 
 type TextAlertsStatusBadgeProps = {
@@ -67,7 +67,8 @@ export function TextAlertsStatusBadge({
       style={[{ alignSelf: 'flex-start' }, style]}
       onPress={
         interactive
-          ? (onPress ?? (() => router.push(WORKER_PROFILE_NOTIFICATIONS)))
+          ? (onPress ??
+              (() => router.push(getWorkerFillInAvailabilityRoute('profile'))))
           : undefined
       }
       accessibilityLabel={`${presentation.label}. Manage text alerts`}

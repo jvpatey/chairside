@@ -50,6 +50,19 @@ export function validateAddressStep(
   return { ok: true, message: null };
 }
 
+/** Worker place for SMS matching — city + province only. */
+export function validateWorkerPlaceStep(
+  address: Pick<AddressFormValue, 'city' | 'province'>,
+): SetupValidationResult {
+  if (!address.city.trim()) {
+    return { ok: false, message: 'Enter your city to continue.' };
+  }
+  if (!address.province.trim()) {
+    return { ok: false, message: 'Select your province to continue.' };
+  }
+  return { ok: true, message: null };
+}
+
 export function validateClinicPracticeStep(softwareUsed: string[]): SetupValidationResult {
   if (softwareUsed.length === 0) {
     return { ok: false, message: 'Select at least one software system to continue.' };
@@ -111,10 +124,9 @@ export function isWorkerBasicsComplete(
 }
 
 export function isWorkerLocationComplete(profile: WorkerProfile | null): boolean {
-  return validateAddressStep({
-    address_line1: profile?.address_line1 ?? '',
+  return validateWorkerPlaceStep({
     city: profile?.city ?? '',
-    postal_code: profile?.postal_code ?? '',
+    province: profile?.province ?? '',
   }).ok;
 }
 

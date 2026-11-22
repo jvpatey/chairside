@@ -1,12 +1,10 @@
-import { completeWorkerSetup, getMissingWorkerProfileFields, getWorkerRoleTypes, joinDisplayName } from '@chairside/api';
 import {
-  formatWorkerEducation,
-  formatRoleTypesLabel,
-  getEmploymentTypeLabel,
-  getProvinceLabel,
-  getSpecialtyLabel,
-  getTravelRadiusRangeLabel,
-} from '@chairside/config';
+  completeWorkerSetup,
+  getMissingWorkerProfileFields,
+  getWorkerRoleTypes,
+  joinDisplayName,
+} from '@chairside/api';
+import { formatRoleTypesLabel, getProvinceLabel } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
 import { WORKER_HOME_WELCOME } from '@/lib/routing';
 import { useState } from 'react';
@@ -126,35 +124,16 @@ export default function WorkerReviewScreen() {
   if (!isWorkerProfileReady) return null;
 
   const displayName = joinDisplayName(profile?.first_name, profile?.last_name);
-  const address = [
-    workerProfile?.address_line1,
-    workerProfile?.address_line2,
-    workerProfile?.city,
-    workerProfile?.province ? getProvinceLabel(workerProfile.province) : null,
-    workerProfile?.postal_code,
-  ]
+  const place = [workerProfile?.city, workerProfile?.province ? getProvinceLabel(workerProfile.province) : null]
     .filter(Boolean)
     .join(', ');
-  const softwareLabel =
-    workerProfile?.software_used && workerProfile.software_used.length > 0
-      ? workerProfile.software_used.join(', ')
-      : '';
-  const practiceTypesLabel =
-    workerProfile?.practice_types && workerProfile.practice_types.length > 0
-      ? workerProfile.practice_types.map(getSpecialtyLabel).join(', ')
-      : '';
-  const employmentLabel =
-    workerProfile?.preferred_employment_types &&
-    workerProfile.preferred_employment_types.length > 0
-      ? workerProfile.preferred_employment_types.map(getEmploymentTypeLabel).join(', ')
-      : '';
   const fillInSummary = getFillInAvailabilityCollapsedSummary(workerProfile, availabilityBlocks);
 
   return (
     <FormScreen
       {...setupFormProps}
       title="You’re ready"
-      subtitle="Confirm the essentials below. Add experience and skills anytime from Profile."
+      subtitle="Confirm the essentials for fill-in texts."
       onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
@@ -189,35 +168,15 @@ export default function WorkerReviewScreen() {
           label="Mobile phone"
           value={workerProfile?.phone ? formatPhoneNumber(workerProfile.phone) : ''}
         />
+        <ReviewRow label="City" value={place} />
         <ReviewRow
-          label="Experience"
-          value={
-            workerProfile?.years_of_experience != null
-              ? `${workerProfile.years_of_experience} years`
-              : ''
-          }
-        />
-        <ReviewRow
-          label="Education"
-          value={workerProfile ? formatWorkerEducation(workerProfile) : ''}
-        />
-        <ReviewRow label="Software" value={softwareLabel} />
-        <ReviewRow label="Practice types" value={practiceTypesLabel} />
-        <ReviewRow label="Preferred employment" value={employmentLabel} />
-        <ReviewRow label="Address" value={address} />
-        <ReviewRow
-          label="Travel distance"
-          value={getTravelRadiusRangeLabel(workerProfile?.travel_radius_range)}
-        />
-        <ReviewRow
-          label="Fill-ins"
+          label="Text alerts"
           value={
             workerProfile?.short_notice_available
               ? fillInSummary.primary
-              : 'Off · turn on anytime in Fill-ins'
+              : 'Off · turn on anytime in Text alerts'
           }
         />
-        <ReviewRow label="Bio" value={workerProfile?.bio ?? ''} />
       </SurfaceCard>
     </FormScreen>
   );
