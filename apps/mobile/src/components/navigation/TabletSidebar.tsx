@@ -40,11 +40,13 @@ import { useSignOut } from '@/hooks/useSignOut';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { getRecommendedUpgradePlan } from '@/lib/clinicPlanPresentation';
 import {
+  CLINIC_HOME,
   CLINIC_PROFILE,
   CLINIC_PROFILE_ACCOUNT,
   CLINIC_PROFILE_BILLING,
   CLINIC_PROFILE_NOTIFICATIONS,
   getAdminRouteForRole,
+  WORKER_HOME,
   WORKER_PROFILE,
   WORKER_PROFILE_ACCOUNT,
   WORKER_PROFILE_NOTIFICATIONS,
@@ -338,20 +340,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       justifyContent: 'center',
       width: '100%',
       paddingVertical: spacing.xs,
-    },
-    brandMarkCollapsed: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primarySubtle,
-    },
-    brandMarkCollapsedText: {
-      fontSize: 14,
-      fontFamily: fontSemibold,
-      fontWeight: '700' as const,
-      color: colors.primary,
+      minHeight: 36,
     },
     accountRow: {
       flexDirection: 'row',
@@ -923,13 +912,19 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       <View style={[styles.brandSection, isCollapsed && styles.brandSectionCollapsed]}>
         {isCollapsed ? (
           <View style={styles.brandWordmarkCollapsed}>
-            <View style={styles.brandMarkCollapsed}>
-              <Text style={styles.brandMarkCollapsedText}>c</Text>
-            </View>
+            <ChairsideWordmark
+              variant="stacked"
+              align="center"
+              onPress={() => router.push(role === 'worker' ? WORKER_HOME : CLINIC_HOME)}
+            />
           </View>
         ) : (
           <View style={styles.brandWordmarkWrap}>
-            <ChairsideWordmark variant="small" align="left" />
+            <ChairsideWordmark
+              variant="small"
+              align="left"
+              onPress={() => router.push(role === 'worker' ? WORKER_HOME : CLINIC_HOME)}
+            />
           </View>
         )}
         {showGroupLocationScope ? (

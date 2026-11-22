@@ -16,6 +16,7 @@ export const LISTING_META_ICONS = {
   shiftDetails: 'calendar-outline',
   postedDate: 'time-outline',
   views: 'eye-outline',
+  pay: 'cash-outline',
 } as const satisfies Record<string, IoniconName>;
 
 export function formatListingPostedDate(
@@ -38,7 +39,9 @@ function formatViewMetaLabel(viewCount: number | null | undefined): string | nul
 
 export function buildRoleListingMetaRows(input: {
   location: string | null | undefined;
-  roleMeta: string | null | undefined;
+  /** Omit when role/employment is promoted into the card subtitle. */
+  roleMeta?: string | null | undefined;
+  compensation?: string | null | undefined;
   postedAt: string | null | undefined;
   viewCount?: number | null;
 }): ListingMetaRow[] {
@@ -46,6 +49,7 @@ export function buildRoleListingMetaRows(input: {
   return [
     compactMetaRow(LISTING_META_ICONS.location, input.location),
     compactMetaRow(LISTING_META_ICONS.roleType, input.roleMeta),
+    compactMetaRow(LISTING_META_ICONS.pay, input.compensation?.trim() || null),
     compactMetaRow(LISTING_META_ICONS.views, formatViewMetaLabel(input.viewCount)),
     compactMetaRow(LISTING_META_ICONS.postedDate, postedLabel),
   ].filter((row): row is ListingMetaRow => row !== null);

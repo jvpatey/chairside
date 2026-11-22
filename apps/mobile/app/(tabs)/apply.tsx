@@ -78,7 +78,7 @@ export default function ApplyScreen() {
     compensation: {
       fontSize: 15,
       fontWeight: '600',
-      color: colors.secondary,
+      color: colors.primary,
     },
     footer: {
       flexDirection: 'row',

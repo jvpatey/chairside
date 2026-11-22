@@ -53,7 +53,7 @@ export function FillInAvailabilityStatusRow() {
       borderRadius: 8,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      backgroundColor: isAvailable ? colors.secondarySubtle : colors.fillSubtle,
+      backgroundColor: isAvailable ? colors.primarySubtle : colors.fillSubtle,
       flexShrink: 0,
     },
     label: {
@@ -63,7 +63,7 @@ export function FillInAvailabilityStatusRow() {
       lineHeight: 18,
       fontFamily: fontSemibold,
       fontWeight: '600' as const,
-      color: isAvailable ? colors.labelPrimary : colors.secondary,
+      color: isAvailable ? colors.labelPrimary : colors.primary,
     },
   }));
 
@@ -84,7 +84,7 @@ export function FillInAvailabilityStatusRow() {
         <Ionicons
           name={isAvailable ? 'notifications' : 'notifications-outline'}
           size={15}
-          color={isAvailable ? colors.secondary : colors.labelSecondary}
+          color={isAvailable ? colors.primary : colors.labelSecondary}
         />
       </View>
       <Text style={styles.label} numberOfLines={1}>

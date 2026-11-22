@@ -223,7 +223,8 @@ export function getWorkerApplicationsRoute(applicationId?: string): Href {
 }
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_FILLIN_AVAILABILITY: Href = '/(tabs)/fill-in-availability' as Href;
-export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;
+/** Nearby open browse (escape hatch). Legacy `open-fill-ins` deep links still resolve here. */
+export const WORKER_OPEN_FILLINS: Href = '/(tabs)/fillins?tab=open' as Href;
 export const WORKER_PENDING_FILLINS: Href = '/(tabs)/fillins?tab=pending' as Href;
 export const WORKER_PAST_FILLINS: Href = '/(tabs)/fillins?tab=history' as Href;
 export const WORKER_PROFILE: Href = '/(tabs)/profile' as Href;

@@ -90,4 +90,13 @@ if [[ -n "${TEST_PHONE:-}" ]]; then
   echo "OK: test SMS accepted. It should now appear in Logs on the Pingram dashboard for this region."
 fi
 
+echo ""
+echo "SMS-first go-live checklist (Best Match YES = request cover, not auto-hire):"
+echo "  1. supabase secrets set SMS_REPLY_ENABLED=true"
+echo "  2. supabase secrets set PINGRAM_WEBHOOK_SECRET=pingram_whsecret_..."
+echo "  3. Point Pingram inbound + events webhooks at /functions/v1/pingram-sms-inbound"
+echo "  4. Deploy notify + pingram-sms-inbound"
+echo "  5. Confirm fill-in SMS includes both Reply YES #### and Details /f/{id} link"
+echo "See docs/NOTIFICATIONS.md for full steps."
+
 exit "$MISSING"

@@ -5,7 +5,8 @@ import { fontWordmark } from '@/theme/fonts';
 import { useTheme } from '@/theme';
 
 type ChairsideWordmarkProps = {
-  variant?: 'hero' | 'compact' | 'small';
+  /** `stacked` = app-icon lockup (chair over side) for collapsed chrome. */
+  variant?: 'hero' | 'compact' | 'small' | 'stacked';
   align?: 'left' | 'center';
   /** Web-only: slides "side" right on hover. Defaults on when `onPress` is set. */
   animateSideOnHover?: boolean;
@@ -14,6 +15,8 @@ type ChairsideWordmarkProps = {
 
 const COMPACT = { fontSize: 28, letterSpacing: -0.6 } as const;
 const SMALL = { fontSize: 20, letterSpacing: -0.45 } as const;
+/** Collapsed sidebar / rail — matches iOS stacked app-icon wordmark. */
+const STACKED = { fontSize: 11, letterSpacing: -0.35, lineHeight: 12, gap: 1 } as const;
 const SIDE_SLIDE_PX = 10;
 
 type ChairsideBrandTextProps = {
@@ -83,6 +86,51 @@ function WordmarkSplitText({
   );
 }
 
+function StackedWordmark({
+  colors,
+  alignStyle,
+  onPress,
+}: {
+  colors: { labelPrimary: string; primary: string };
+  alignStyle: ViewStyle;
+  onPress?: () => void;
+}) {
+  const lineStyle = {
+    fontFamily: fontWordmark,
+    fontSize: STACKED.fontSize,
+    lineHeight: STACKED.lineHeight,
+    letterSpacing: STACKED.letterSpacing,
+    textTransform: 'lowercase' as const,
+    textAlign: 'center' as const,
+  };
+
+  const stack = (
+    <View style={{ alignItems: 'center', gap: STACKED.gap }}>
+      <Text style={[lineStyle, { color: colors.labelPrimary }]}>chair</Text>
+      <Text style={[lineStyle, { color: colors.primary }]}>side</Text>
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel="chairside"
+        accessibilityHint="Go to home"
+        onPress={onPress}
+        style={[alignStyle, webPointer()]}>
+        {stack}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View accessibilityRole="header" accessibilityLabel="chairside" style={alignStyle}>
+      {stack}
+    </View>
+  );
+}
+
 export function ChairsideWordmark({
   variant = 'hero',
   align = 'center',
@@ -91,6 +139,12 @@ export function ChairsideWordmark({
 }: ChairsideWordmarkProps) {
   const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
+
+  const alignStyle = { alignSelf: align === 'left' ? ('flex-start' as const) : ('center' as const) };
+
+  if (variant === 'stacked') {
+    return <StackedWordmark colors={colors} alignStyle={alignStyle} onPress={onPress} />;
+  }
 
   const fontSize =
     variant === 'hero' ? heroSize(screenWidth) : variant === 'small' ? SMALL.fontSize : COMPACT.fontSize;
@@ -102,8 +156,6 @@ export function ChairsideWordmark({
       : variant === 'small'
         ? SMALL.letterSpacing
         : COMPACT.letterSpacing;
-
-  const alignStyle = { alignSelf: align === 'left' ? ('flex-start' as const) : ('center' as const) };
 
   const baseTextStyle = {
     fontFamily: fontWordmark,

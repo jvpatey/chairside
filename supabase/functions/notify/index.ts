@@ -1694,7 +1694,12 @@ async function handleShiftPostLive(
               includePush: pushPreferences.get(worker.id) ?? true,
               includeSms: Boolean(smsOptIn && e164),
               smsMessage: replyCode
-                ? buildFillInSms({ ...fillInCopyInput, replyCode, listingUrl: null })
+                ? buildFillInSms({
+                    ...fillInCopyInput,
+                    replyCode,
+                    listingUrl: fillInCopyInput.listingUrl,
+                    listingCta: 'Details',
+                  })
                 : fillInCopy.smsMessage,
             },
           );

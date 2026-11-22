@@ -72,7 +72,8 @@ export default function FillInsScreen() {
   const params = useLocalSearchParams<{ mode?: string; date?: string; tab?: string }>();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
-  const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('open');
+  /** Status hub first — Open browse is a secondary escape hatch. */
+  const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('pending');
   const [viewMode, setViewMode] = useState<WorkerBrowseViewMode>('list');
   const [searchQuery, setSearchQuery] = useState(DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.searchQuery);
   const [roleTypeFilter, setRoleTypeFilter] = useState(
@@ -314,32 +315,32 @@ export default function FillInsScreen() {
   const fillInTabs = useMemo(
     () => [
       {
-        value: 'open' as const,
-        label: 'Open',
-        count: filteredShifts.length,
-        accent: 'secondary' as const,
-        icon: FILL_IN_ICON.outline,
-      },
-      {
         value: 'pending' as const,
         label: 'Requested',
         count: pendingFillInCount,
-        accent: 'secondary' as const,
+        accent: 'primary' as const,
         icon: 'hourglass-outline' as const,
       },
       {
         value: 'confirmed' as const,
         label: 'Confirmed',
         count: confirmedFillInCount,
-        accent: 'secondary' as const,
+        accent: 'primary' as const,
         icon: 'checkmark-circle-outline' as const,
       },
       {
         value: 'history' as const,
         label: 'History',
         count: historyFillInCount,
-        accent: 'secondary' as const,
+        accent: 'primary' as const,
         icon: 'time-outline' as const,
+      },
+      {
+        value: 'open' as const,
+        label: 'Nearby',
+        count: filteredShifts.length,
+        accent: 'primary' as const,
+        icon: FILL_IN_ICON.outline,
       },
     ],
     [confirmedFillInCount, filteredShifts.length, historyFillInCount, pendingFillInCount],
@@ -384,7 +385,7 @@ export default function FillInsScreen() {
   ) : filteredShifts.length === 0 ? (
     <DashboardEmptyState
       embedded
-      accent="secondary"
+      accent="primary"
       icon={FILL_IN_ICON.outline}
       title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins yet'}
       message={
@@ -399,7 +400,7 @@ export default function FillInsScreen() {
         <FeaturedListingsSectionHeader
           label="Featured"
           variant="featured"
-          accent="secondary"
+          accent="primary"
         />
       ) : null}
       {featuredOpenShifts.length > 0 ? (
@@ -459,13 +460,13 @@ export default function FillInsScreen() {
     <>
       <Screen
         title="Fill-ins"
-        subtitle="Browse open shifts and track your cover requests."
+        subtitle="Track requests and confirmed cover. Nearby open shifts are optional."
         fillsContainer={fillMapViewport}
         scroll={!fillMapViewport}
         scrollEnabled={!fillMapViewport}
         refreshing={fillMapViewport ? undefined : refreshing}
         onRefresh={fillMapViewport ? undefined : onRefresh}
-        refreshAccent="secondary"
+        refreshAccent="primary"
       >
         <View style={[styles.content, fillMapViewport ? styles.contentFill : null]}>
           {loadError ? (
@@ -491,7 +492,7 @@ export default function FillInsScreen() {
               ) : pendingFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
-                  accent="secondary"
+                  accent="primary"
                   icon="hourglass-outline"
                   title="No requested cover yet"
                   message="Request an open fill-in and it stays here until the clinic responds."
@@ -517,7 +518,7 @@ export default function FillInsScreen() {
               ) : confirmedFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
-                  accent="secondary"
+                  accent="primary"
                   icon="checkmark-circle-outline"
                   title="No confirmed fill-ins yet"
                   message="Confirmed cover shows up here with the shift details."
@@ -544,7 +545,7 @@ export default function FillInsScreen() {
               ) : historyFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
-                  accent="secondary"
+                  accent="primary"
                   icon="time-outline"
                   title="No fill-in history yet"
                   message="Past cover — filled, declined, or cancelled — lands here."

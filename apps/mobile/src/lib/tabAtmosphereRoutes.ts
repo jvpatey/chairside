@@ -359,7 +359,8 @@ export function getTabAtmosphereIntensityFromPathname(
 }
 
 export function getTabAccentForName(tabName: string): TabAtmosphereAccent {
-  if (tabName === 'fillins' || tabName === 'fill-ins') return 'secondary';
+  // SMS-first: fill-ins are the primary product — use brand blue, not purple lane.
+  if (tabName === 'fillins' || tabName === 'fill-ins') return 'primary';
   if (tabName === 'applications') return 'tertiary';
   return 'primary';
 }

@@ -139,24 +139,62 @@ function FactGrid({ facts, twoColumn }: { facts: Fact[]; twoColumn: boolean }) {
 function PublicListingBody({
   listing,
   twoColumn,
+  showSmsHint,
 }: {
   listing: PublicListing;
   twoColumn: boolean;
+  showSmsHint?: boolean;
 }) {
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: {
       gap: spacing.lg,
+    },
+    smsHint: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
+    contactLabel: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600' as const,
+      letterSpacing: 0.2,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+      marginBottom: spacing.xs,
+    },
+    contactValue: {
+      fontSize: 16,
+      lineHeight: 22,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
     },
   }));
 
   const facts = useMemo(() => listingFacts(listing), [listing]);
   const description = listing.description?.trim() || null;
+  const contactPhone = listing.contact_phone?.trim() || null;
 
   return (
     <View style={styles.content}>
+      {showSmsHint && listing.kind === 'shift' && !listing.is_sourced ? (
+        <Text style={styles.smsHint}>
+          Prefer text? Reply YES to the Chairside message to request this cover without signing in
+          first. Or sign in below to request from the app.
+        </Text>
+      ) : null}
+
       <SurfaceCard>
         <FactGrid facts={facts} twoColumn={twoColumn} />
       </SurfaceCard>
+
+      {contactPhone ? (
+        <SurfaceCard>
+          <Text style={styles.contactLabel}>Clinic contact</Text>
+          <Text style={styles.contactValue}>{contactPhone}</Text>
+        </SurfaceCard>
+      ) : null}
 
       {description ? (
         <SurfaceCard>
@@ -194,7 +232,12 @@ function ListingCtaFooter({
 
   return (
     <OnboardingButton
-      label={listing.kind === 'shift' ? 'Sign in to request cover' : 'Sign in to apply'}
+      label={
+        listing.kind === 'shift'
+          ? 'Sign in to request cover'
+          : 'Sign in to apply'
+      }
+      accent="primary"
       onPress={onSignInToApply}
     />
   );
@@ -385,16 +428,10 @@ export function PublicListingPage({
     : 'This listing is no longer available.';
 
   const kindLabel = kind === 'shift' ? 'Fill-in' : 'Role';
-  const kindAccent =
-    kind === 'shift'
-      ? {
-          color: colors.secondary,
-          backgroundColor: colors.secondarySubtle,
-        }
-      : {
-          color: colors.primary,
-          backgroundColor: colors.primarySubtle,
-        };
+  const kindAccent = {
+    color: colors.primary,
+    backgroundColor: colors.primarySubtle,
+  };
 
   const place = listing ? locationLabel(listing) : null;
   const stickyCta = Boolean(isCompact && listing);
@@ -444,7 +481,11 @@ export function PublicListingPage({
 
           {listing ? (
             <WebPageEnter delayMs={120}>
-              <PublicListingBody listing={listing} twoColumn={!isCompact} />
+              <PublicListingBody
+                listing={listing}
+                twoColumn={!isCompact}
+                showSmsHint={source === 'sms'}
+              />
             </WebPageEnter>
           ) : null}
 

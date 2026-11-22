@@ -160,7 +160,7 @@ export function FillInModePanel({
     linkText: {
       fontSize: 14,
       fontWeight: '600',
-      color: colors.secondary,
+      color: colors.primary,
     },
     cancelLink: {
       alignSelf: 'center',
@@ -342,7 +342,7 @@ export function FillInModePanel({
         editable={!isSaving}
         invalid={Boolean(phoneError)}
         validated={Boolean(pendingPhone)}
-        accent="secondary"
+        accent="primary"
       />
       {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
       <OnboardingButton
@@ -355,7 +355,7 @@ export function FillInModePanel({
               ? 'Saving…'
               : 'Save new number'
         }
-        accent="secondary"
+        accent="primary"
         disabled={isSaving || !pendingPhone}
         onPress={() => void handleSubmitPhone()}
       />
@@ -392,7 +392,7 @@ export function FillInModePanel({
           value={isFillInTextAlertsSwitchOn(textState, smsOptIn)}
           disabled={isSaving}
           bleedPadding={useNestedSections ? spacing.md : undefined}
-          accentColor={colors.secondary}
+          accentColor={colors.primary}
           onValueChange={(value) => void handleSmsToggle(value)}
         />
         <FadeSwap swapKey={phoneEntryOpen ? 'entry' : 'summary'} durationMs={220}>
@@ -412,7 +412,7 @@ export function FillInModePanel({
           value={acceptsClinicOutreach}
           disabled={isSaving}
           bleedPadding={useNestedSections ? spacing.md : undefined}
-          accentColor={colors.secondary}
+          accentColor={colors.primary}
           onValueChange={(value) => void handleOutreachToggle(value)}
         />
       </SettingsSection>
@@ -437,7 +437,7 @@ export function FillInModePanel({
                 selected={selected}
                 disabled={isSaving}
                 bleedPadding={useNestedSections ? spacing.md : undefined}
-                accent="secondary"
+                accent="primary"
                 onPress={() => void handleModeChange(option.value)}
               />
               {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
@@ -464,7 +464,7 @@ export function FillInModePanel({
             }
             value={shortNoticeAvailable}
             disabled={isSaving}
-            accentColor={colors.secondary}
+            accentColor={colors.primary}
             bleedPadding={isGrouped ? undefined : spacing.md}
             onValueChange={(value) => void handleToggle(value)}
           />

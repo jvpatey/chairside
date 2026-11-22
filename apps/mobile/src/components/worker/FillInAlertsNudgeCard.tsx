@@ -43,8 +43,8 @@ export function FillInAlertsNudgeCard({
     card: {
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: `${colors.secondary}44`,
-      backgroundColor: colors.secondarySubtle,
+      borderColor: `${colors.primary}44`,
+      backgroundColor: colors.primarySubtle,
       padding: spacing.md,
       gap: spacing.md,
     },
@@ -61,7 +61,7 @@ export function FillInAlertsNudgeCard({
       justifyContent: 'center' as const,
       backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: `${colors.secondary}33`,
+      borderColor: `${colors.primary}33`,
       flexShrink: 0,
     },
     copy: {
@@ -119,7 +119,7 @@ export function FillInAlertsNudgeCard({
           <Ionicons
             name={isOff ? FILL_IN_ICON.outline : 'chatbubble-ellipses-outline'}
             size={20}
-            color={colors.secondary}
+            color={colors.primary}
           />
         </View>
         <View style={styles.copy}>
@@ -141,7 +141,7 @@ export function FillInAlertsNudgeCard({
         <View style={styles.actions}>
           <OnboardingButton
             label={isSaving ? 'Turning on…' : 'Turn on'}
-            accent="secondary"
+            accent="primary"
             split
             disabled={isSaving}
             onPress={() => void handleToggle(true)}
@@ -151,7 +151,7 @@ export function FillInAlertsNudgeCard({
       ) : (
         <OnboardingButton
           label="Set up texts"
-          accent="secondary"
+          accent="primary"
           onPress={openManage}
         />
       )}

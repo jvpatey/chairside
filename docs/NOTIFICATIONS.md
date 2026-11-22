@@ -33,20 +33,23 @@ SMS copy is built in [`supabase/functions/_shared/sms.ts`](../supabase/functions
 
 Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). **`fill_in_sms` is ungated** while plans are revamped (client billing + `clinic_can_use_feature` + notify all allow it). The worker must have `fill_in_sms_opt_in=true` (auto-enabled when a phone is saved), a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift.
 
+**Product model:** SMS-first fill-ins with a thin companion app (not a browse marketplace). `YES` = request cover (Best Match); the clinic still confirms. Permanent roles stay push/in-app awareness only (no role SMS handshake). See `packages/config/src/product.ts`.
+
 **SMS handshake (fill-ins):**
-1. Fill-in posted → worker SMS with `/f/{shiftId}` (or YES code when enabled)
+1. Fill-in posted → worker SMS with `Reply YES ####` (when `SMS_REPLY_ENABLED`) **and** a Details link to `/f/{shiftId}?src=sms`
 2. Cover requested → clinic SMS to `clinic_profiles.phone` with `/a/{applicationId}`
 3. Accept / decline / filled → worker SMS with `/a/{applicationId}` (or short filled notice)
-In-app + Expo push still fire alongside SMS. Roles stay push/in-app awareness only (no role SMS handshake).
+In-app + Expo push still fire alongside SMS.
 
 SMS send/reply funnels are also captured in PostHog (`sms_sent`, `sms_reply_yes`, etc.). See [ANALYTICS.md](./ANALYTICS.md).
 
 ### Public listing links in fill-in SMS
 
-When SMS reply codes are **off** (the default), fill-in texts include a short HTTPS link to a **public listing page** that does not require login:
+Fill-in texts include a short HTTPS link to a **public listing companion page** that does not require login (opens in-app via universal links when installed):
 
-- Clinic-owned: `Apply: https://chairside.app/f/{shiftId}` — preview details + **Sign in to request cover**
-- Sourced: `Details: https://chairside.app/f/{shiftId}` — preview + Call / Email / Open listing (no login)
+- Clinic-owned with replies on: `Reply YES 4821 to request. Details: https://chairside.app/f/{shiftId}?src=sms`
+- Clinic-owned with replies off: `Apply: https://chairside.app/f/{shiftId}` — preview + **Sign in to request cover**
+- Sourced: `Details: https://chairside.app/f/{shiftId}` — preview + Call / Email / Open listing (no login; never gets YES codes)
 - Application decision: `https://chairside.app/a/{applicationId}` — routes clinic/worker into the same detail screens used in-app
 
 Permanent jobs use the same public preview at `/j/{id}` (push/in-app awareness; no SMS handshake). Live-only safe fields come from the `get_public_listing` RPC ([`136_public_listing.sql`](../supabase/migrations/136_public_listing.sql)). Universal links for `/f/*`, `/j/*`, and `/a/*` are registered in AASA + Android intent filters. Base URL comes from `APP_WEB_BASE_URL` / `EXPO_PUBLIC_WEB_BASE_URL` (fallback `https://chairsidedental.app`).
@@ -55,7 +58,7 @@ Android App Links: replace `REPLACE_WITH_PLAY_APP_SIGNING_SHA256` in [`apps/mobi
 
 ### Reply YES to request a fill-in (SMS replies)
 
-Workers can request a fill-in by replying to the fill-in text (`Reply YES 4821 to request.`). A reply creates a normal **cover request** (`applications` row, status `applied`); the clinic still confirms, and the existing `application_received` alert fires. The feature is **off** until `SMS_REPLY_ENABLED=true`. When reply codes are enabled, clinic-owned fill-in texts use the YES CTA instead of the listing URL. **Sourced** fill-ins never get reply codes (no clinic inbox) — they always use the public Details link.
+Workers can request a fill-in by replying to the fill-in text (`Reply YES 4821 to request.`). A reply creates a normal **cover request** (`applications` row, status `applied`); the clinic still confirms (Best Match — not Instant Fill), and the existing `application_received` alert fires. **Production should set `SMS_REPLY_ENABLED=true`.** When enabled, clinic-owned fill-in texts include **both** the YES CTA and the Details listing URL. **Sourced** fill-ins never get reply codes (no clinic inbox) — they always use the public Details link only.
 
 Pieces:
 

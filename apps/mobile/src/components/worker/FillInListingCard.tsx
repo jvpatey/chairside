@@ -39,7 +39,7 @@ export function FillInListingCard({
 }: FillInListingCardProps) {
   const { isCompact } = useResponsiveLayout();
   const tabAccent = useTabAtmosphereAccent();
-  const resolvedAccent = accent ?? tabAccent ?? 'secondary';
+  const resolvedAccent = accent ?? tabAccent ?? 'primary';
   const featuredTreatment = useFeaturedListingTreatment(resolvedAccent);
   const logoStoragePath = resolveWorkerPostLogoStoragePath(shift);
   const logoUri = useClinicLogoUri(logoStoragePath);
@@ -59,7 +59,7 @@ export function FillInListingCard({
       lineHeight: 20,
       fontFamily: fontSemibold,
       fontWeight: '600' as const,
-      color: colors.secondary,
+      color: resolvedAccent === 'primary' ? colors.primary : colors.secondary,
     },
     clinicLine: {
       fontSize: 13,

@@ -110,12 +110,12 @@ export function CoverageFeedSection({
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
-        {typeof count === 'number' ? (
+        {typeof count === 'number' && count > 0 ? (
           <View style={styles.countPill}>
             <Text style={styles.countText}>{count}</Text>
           </View>
         ) : null}
-        {onViewAll ? (
+        {onViewAll && (typeof count !== 'number' || count > 0) ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={viewAllLabel}

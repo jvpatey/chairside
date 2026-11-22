@@ -70,7 +70,7 @@ export default function TabLayout() {
   const userId = session?.user?.id ?? 'signed-out';
 
   return (
-    <SidebarCollapseProvider>
+    <SidebarCollapseProvider defaultCollapsed>
       <MessageUnreadProvider role="worker">
         <ApplicationTabBadgeProvider role="worker">
           <TabAtmosphereShell role="worker">

@@ -1,24 +1,14 @@
 import {
   getWorkerDashboardCounts,
-  getWorkerSavedPostIds,
-  listLiveJobPosts,
-  listLiveShiftPosts,
-  listWorkerAppliedJobPostIds,
   listWorkerShiftApplications,
-  saveJobPost,
-  saveShiftPost,
-  unsaveJobPost,
-  unsaveShiftPost,
-  type LiveJobPost,
-  type LiveShiftPost,
   type WorkerApplication,
   type WorkerDashboardCounts,
 } from '@chairside/api';
 import { getWorkerRoleTypes } from '@chairside/api';
-import { formatRoleTypesLabel } from '@chairside/config';
+import { formatRoleTypesLabel, WORKER_STATUS_HUB } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
 import { CoverageFeedSection } from '@/components/dashboard/CoverageFeedSection';
@@ -28,13 +18,11 @@ import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanne
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { DashboardLoadingShell } from '@/components/dashboard/DashboardLoadingShell';
 import { DashboardNeedsAttention } from '@/components/dashboard/DashboardNeedsAttention';
-import { CoverageCardGrid } from '@/components/dashboard/CoverageCardGrid';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { FillInAlertsNudgeCard } from '@/components/worker/FillInAlertsNudgeCard';
-import { FillInListingCard } from '@/components/worker/FillInListingCard';
-import { RoleListingCard } from '@/components/worker/RoleListingCard';
+import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,26 +32,25 @@ import { useDashboardWelcomeCelebration } from '@/hooks/useDashboardWelcomeCeleb
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { buildWorkerAttentionItems } from '@/lib/dashboardAttention';
-import { getWorkerOpenListExcludedShiftIds } from '@/lib/fillInFilters';
+import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
 import { getFirstName } from '@/lib/greeting';
 import {
   WORKER_APPLICATIONS,
-  WORKER_BROWSE,
-  WORKER_FILLINS,
+  WORKER_OPEN_FILLINS,
+  WORKER_PENDING_FILLINS,
   WORKER_PROFILE,
   WORKER_PROFILE_NOTIFICATIONS,
-  getWorkerJobDetailRoute,
-  getWorkerShiftDetailRoute,
 } from '@/lib/routing';
-import { useThemedStyles } from '@/theme';
+import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
+import { useTheme, useThemedStyles } from '@/theme';
 
-const HOME_FILL_IN_PREVIEW = 5;
-const HOME_ROLE_PREVIEW = 3;
+const HOME_STATUS_PREVIEW = 6;
 
 export default function WorkerDashboardScreen() {
   const { user, profile } = useAuth();
+  const { colors } = useTheme();
   const { visible: welcomeVisible, dismiss: dismissWelcome } = useDashboardWelcomeCelebration({
     role: 'worker',
     userId: user?.id,
@@ -78,21 +65,32 @@ export default function WorkerDashboardScreen() {
     openFillInsInProvince: 0,
     pendingApplications: 0,
   });
-  const [jobs, setJobs] = useState<LiveJobPost[]>([]);
-  const [appliedJobPostIds, setAppliedJobPostIds] = useState<Set<string>>(new Set());
-  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
-  const [savedShiftIds, setSavedShiftIds] = useState<Set<string>>(new Set());
-  const [shifts, setShifts] = useState<LiveShiftPost[]>([]);
   const [shiftApplications, setShiftApplications] = useState<WorkerApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
   const { markVisited: markGetStartedBrowseVisited } = useGetStartedBrowseProgress();
 
-  const feedStyles = useThemedStyles(({ spacing }) => ({
+  const feedStyles = useThemedStyles(({ spacing, typography }) => ({
     feedStack: {
       gap: spacing.xl,
       width: '100%',
+    },
+    statusList: {
+      gap: spacing.sm,
+      width: '100%',
+    },
+    nearbyLink: {
+      alignSelf: 'flex-start' as const,
+      paddingVertical: spacing.xs,
+      ...webPointer(),
+    },
+    nearbyLinkLabel: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600' as const,
+      color: colors.primary,
     },
   }));
 
@@ -105,33 +103,18 @@ export default function WorkerDashboardScreen() {
     setLoadError(false);
 
     try {
-      const [nextCounts, jobPosts, appliedJobIds, shiftPosts, shiftApplicationRows, savedPostIds] =
-        await Promise.all([
-          getWorkerDashboardCounts(user.id, province),
-          listLiveJobPosts(province),
-          listWorkerAppliedJobPostIds(user.id),
-          listLiveShiftPosts(province),
-          listWorkerShiftApplications(user.id),
-          getWorkerSavedPostIds(user.id),
-        ]);
+      const [nextCounts, shiftApplicationRows] = await Promise.all([
+        getWorkerDashboardCounts(user.id, province),
+        listWorkerShiftApplications(user.id),
+      ]);
 
       setCounts(nextCounts);
-      setJobs(jobPosts);
-      setAppliedJobPostIds(new Set(appliedJobIds));
-      setSavedJobIds(savedPostIds.jobIds);
-      setSavedShiftIds(savedPostIds.shiftIds);
-      setShifts(shiftPosts);
       setShiftApplications(shiftApplicationRows);
       hasLoadedOnce.current = true;
     } catch {
       setLoadError(true);
       if (!hasLoadedOnce.current) {
         setCounts({ openRolesInProvince: 0, openFillInsInProvince: 0, pendingApplications: 0 });
-        setJobs([]);
-        setAppliedJobPostIds(new Set());
-        setSavedJobIds(new Set());
-        setSavedShiftIds(new Set());
-        setShifts([]);
         setShiftApplications([]);
       }
     } finally {
@@ -145,69 +128,15 @@ export default function WorkerDashboardScreen() {
     void markGetStartedBrowseVisited('fillIns');
   }, [markGetStartedBrowseVisited]);
 
-  const openJobs = useMemo(
-    () => jobs.filter((job) => !appliedJobPostIds.has(job.id)),
-    [appliedJobPostIds, jobs],
+  const { upcomingConfirmed, upcomingInProgress } = useMemo(
+    () => partitionWorkerShiftApplications(shiftApplications),
+    [shiftApplications],
   );
 
-  const openShifts = useMemo(() => {
-    const excludedShiftIds = getWorkerOpenListExcludedShiftIds(shiftApplications);
-    return shifts.filter((shift) => !excludedShiftIds.has(shift.id));
-  }, [shiftApplications, shifts]);
-
-  const previewShifts = useMemo(
-    () => openShifts.slice(0, HOME_FILL_IN_PREVIEW),
-    [openShifts],
-  );
-  const previewJobs = useMemo(() => openJobs.slice(0, HOME_ROLE_PREVIEW), [openJobs]);
-
-  const handleToggleSavedJob = useCallback(
-    async (jobId: string, nextSaved: boolean) => {
-      if (!user?.id) return;
-      const previous = new Set(savedJobIds);
-      setSavedJobIds((current) => {
-        const next = new Set(current);
-        if (nextSaved) next.add(jobId);
-        else next.delete(jobId);
-        return next;
-      });
-      try {
-        if (nextSaved) await saveJobPost(jobId);
-        else await unsaveJobPost(jobId);
-      } catch (error) {
-        setSavedJobIds(previous);
-        Alert.alert(
-          'Could not update saved role',
-          error instanceof Error ? error.message : 'Please try again.',
-        );
-      }
-    },
-    [savedJobIds, user?.id],
-  );
-
-  const handleToggleSavedShift = useCallback(
-    async (shiftId: string, nextSaved: boolean) => {
-      if (!user?.id) return;
-      const previous = new Set(savedShiftIds);
-      setSavedShiftIds((current) => {
-        const next = new Set(current);
-        if (nextSaved) next.add(shiftId);
-        else next.delete(shiftId);
-        return next;
-      });
-      try {
-        if (nextSaved) await saveShiftPost(shiftId);
-        else await unsaveShiftPost(shiftId);
-      } catch (error) {
-        setSavedShiftIds(previous);
-        Alert.alert(
-          'Could not update saved fill-in',
-          error instanceof Error ? error.message : 'Please try again.',
-        );
-      }
-    },
-    [savedShiftIds, user?.id],
-  );
+  const myFillIns = useMemo(() => {
+    const merged = [...upcomingConfirmed, ...upcomingInProgress];
+    return merged.slice(0, HOME_STATUS_PREVIEW);
+  }, [upcomingConfirmed, upcomingInProgress]);
 
   const attentionItems = useMemo(
     () =>
@@ -215,7 +144,7 @@ export default function WorkerDashboardScreen() {
         applicationUpdateCount,
         fillInPendingCount,
         onOpenApplications: () => router.push(WORKER_APPLICATIONS),
-        onOpenFillIns: () => router.push(WORKER_FILLINS),
+        onOpenFillIns: () => router.push(WORKER_PENDING_FILLINS),
       }),
     [applicationUpdateCount, fillInPendingCount],
   );
@@ -233,10 +162,18 @@ export default function WorkerDashboardScreen() {
     : 'Finish your profile setup';
 
   const smsStatus = getFillInSmsStatus(workerProfile);
-  const fillInCountLabel =
-    openShifts.length === 1
-      ? '1 open fill-in nearby'
-      : `${openShifts.length} open fill-ins nearby`;
+  const pendingLabel =
+    upcomingInProgress.length === 1
+      ? '1 request pending'
+      : upcomingInProgress.length > 0
+        ? `${upcomingInProgress.length} requests pending`
+        : null;
+  const confirmedLabel =
+    upcomingConfirmed.length === 1
+      ? '1 confirmed fill-in'
+      : upcomingConfirmed.length > 0
+        ? `${upcomingConfirmed.length} confirmed fill-ins`
+        : null;
   const smsStatusLabel = smsStatus.smsActive
     ? 'Text alerts on'
     : smsStatus.smsNeedsPhone
@@ -245,8 +182,12 @@ export default function WorkerDashboardScreen() {
         ? 'Text alerts off'
         : null;
   const homeStatusLine = isProfileComplete
-    ? [fillInCountLabel, smsStatusLabel].filter(Boolean).join(' · ')
+    ? [smsStatusLabel, confirmedLabel, pendingLabel].filter(Boolean).join(' · ') ||
+      'We’ll text you when a fill-in opens nearby'
     : null;
+
+  const statusHub = WORKER_STATUS_HUB;
+  const hasActiveFillIns = myFillIns.length > 0;
 
   const dashboardBody = (
     <DashboardBodyLayout
@@ -265,7 +206,7 @@ export default function WorkerDashboardScreen() {
             onStatusPress={
               smsStatusLabel && !smsStatus.smsActive
                 ? () => router.push(WORKER_PROFILE_NOTIFICATIONS)
-                : () => router.push(WORKER_FILLINS)
+                : () => router.push(WORKER_PENDING_FILLINS)
             }
             hideProfileOnWebTablet
           />
@@ -295,18 +236,18 @@ export default function WorkerDashboardScreen() {
               emphasizeFirst
               actions={[
                 {
-                  label: 'Find fill-ins',
-                  description: 'Open shifts near you — request in a tap',
+                  label: 'My fill-ins',
+                  description: 'Requests & confirmed',
                   icon: FILL_IN_ICON.outline,
-                  variant: 'secondary',
-                  onPress: () => router.push(WORKER_FILLINS),
+                  variant: 'primary',
+                  onPress: () => router.push(WORKER_PENDING_FILLINS),
                 },
                 {
-                  label: 'Browse roles',
-                  description: 'See permanent openings nearby',
-                  icon: 'briefcase-outline',
+                  label: 'Text alerts',
+                  description: smsStatus.smsActive ? 'On' : 'Set up',
+                  icon: 'chatbubble-ellipses-outline',
                   variant: 'primary',
-                  onPress: () => router.push(WORKER_BROWSE),
+                  onPress: () => router.push(WORKER_PROFILE_NOTIFICATIONS),
                 },
               ]}
             />
@@ -316,70 +257,48 @@ export default function WorkerDashboardScreen() {
       workspace={
         <FadeInSection delayMs={120}>
           <View style={feedStyles.feedStack}>
-            <CoverageFeedSection
-              title="Open fill-ins near you"
-              count={openShifts.length}
-              accent="secondary"
-              icon={FILL_IN_ICON.outline}
-              onViewAll={() => router.push(WORKER_FILLINS)}>
-              {previewShifts.length === 0 ? (
-                <DashboardEmptyState
-                  icon={FILL_IN_ICON.outline}
-                  title="No open fill-ins yet"
-                  message="We’ll text you when a shift opens near you."
-                  accent="secondary"
-                />
-              ) : (
-                <CoverageCardGrid>
-                  {previewShifts.map((shift) => (
-                    <FillInListingCard
-                      key={shift.id}
-                      shift={shift}
-                      accent="secondary"
-                      isSaved={savedShiftIds.has(shift.id)}
-                      onToggleSaved={() =>
-                        void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
-                      }
-                      onPress={() =>
-                        router.push(getWorkerShiftDetailRoute(shift.id, 'dashboard-fill-ins'))
-                      }
-                    />
-                  ))}
-                </CoverageCardGrid>
-              )}
-            </CoverageFeedSection>
+            {statusHub ? (
+              <CoverageFeedSection
+                title="My fill-ins"
+                count={hasActiveFillIns ? myFillIns.length : undefined}
+                accent="primary"
+                icon={FILL_IN_ICON.outline}
+                onViewAll={hasActiveFillIns ? () => router.push(WORKER_PENDING_FILLINS) : undefined}>
+                {hasActiveFillIns ? (
+                  <View style={feedStyles.statusList}>
+                    {myFillIns.map((application) => (
+                      <WorkerApplicationListCard
+                        key={application.id}
+                        application={application}
+                        returnTo="dashboard-fill-ins"
+                        compact
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <DashboardEmptyState
+                    icon={FILL_IN_ICON.outline}
+                    title="No active fill-ins"
+                    message="We’ll text you when a clinic needs cover."
+                    accent="primary"
+                  />
+                )}
+              </CoverageFeedSection>
+            ) : null}
 
-            <CoverageFeedSection
-              quiet
-              title="Permanent openings"
-              count={openJobs.length}
-              accent="primary"
-              icon="briefcase-outline"
-              onViewAll={() => router.push(WORKER_BROWSE)}>
-              {previewJobs.length === 0 ? (
-                <DashboardEmptyState
-                  icon="briefcase-outline"
-                  title="No open roles yet"
-                  message="New roles in your province will appear here when clinics post them."
-                />
-              ) : (
-                <CoverageCardGrid>
-                  {previewJobs.map((job) => (
-                    <RoleListingCard
-                      key={job.id}
-                      job={job}
-                      isSaved={savedJobIds.has(job.id)}
-                      onToggleSaved={() =>
-                        void handleToggleSavedJob(job.id, !savedJobIds.has(job.id))
-                      }
-                      onPress={() =>
-                        router.push(getWorkerJobDetailRoute(job.id, 'dashboard-roles'))
-                      }
-                    />
-                  ))}
-                </CoverageCardGrid>
-              )}
-            </CoverageFeedSection>
+            {isProfileComplete ? (
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="See nearby open fill-ins"
+                onPress={() => router.push(WORKER_OPEN_FILLINS)}
+                style={({ pressed, hovered }) => [
+                  feedStyles.nearbyLink,
+                  webHover(hovered, pressed, webListRowHoverStyles(colors)),
+                  pressed && { opacity: 0.85 },
+                ]}>
+                <Text style={feedStyles.nearbyLinkLabel}>Nearby open fill-ins</Text>
+              </Pressable>
+            ) : null}
           </View>
         </FadeInSection>
       }

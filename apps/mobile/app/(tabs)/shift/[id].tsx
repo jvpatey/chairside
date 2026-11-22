@@ -1,5 +1,8 @@
 import {
+  createApplication,
+  getErrorMessage,
   getLiveShiftPost,
+  getMissingWorkerProfileFields,
   getWorkerShiftApplication,
   isShiftPostSaved,
   isSourcedListing,
@@ -36,13 +39,16 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { AnalyticsEvents } from '@/lib/analytics/events';
+import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import {
-  getApplyRoute,
   getWorkerApplicationRoute,
   getWorkerClinicProfileRoute,
   getWorkerClinicProfileBackLabel,
   navigateAfterWorkerShift,
   parseWorkerPostingReturnParams,
+  WORKER_PENDING_FILLINS,
+  WORKER_SETUP_BASICS,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
 import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
@@ -51,7 +57,7 @@ import {
   resolveWorkerPostLocationParts,
   resolveWorkerPostLogoStoragePath,
 } from '@/lib/workerPostLocation';
-import { guardApply } from '@/lib/workerGuard';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { useThemedStyles } from '@/theme';
 
 type ShiftApplicationView =
@@ -112,6 +118,7 @@ export default function WorkerShiftDetailScreen() {
   const [shiftApplication, setShiftApplication] = useState<WorkerApplication | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRequesting, setIsRequesting] = useState(false);
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
@@ -177,6 +184,49 @@ export default function WorkerShiftDetailScreen() {
     }
   }, [isSaved, shift, user?.id]);
 
+  const handleRequestCover = useCallback(() => {
+    if (!shift) return;
+
+    if (!isProfileComplete) {
+      const missing = getMissingWorkerProfileFields(workerProfile);
+      showConfirmActionSheet({
+        title: 'Complete your profile',
+        message:
+          missing.length > 0
+            ? `Add the following before requesting cover: ${missing.join(', ')}`
+            : 'Finish your profile to request cover.',
+        confirmLabel: 'Continue setup',
+        onConfirm: () => router.push(WORKER_SETUP_BASICS),
+      });
+      return;
+    }
+
+    if (!user?.id) return;
+
+    showConfirmActionSheet({
+      title: 'Request to cover?',
+      message: 'We’ll notify the clinic. You’ll get a text if they confirm you.',
+      confirmLabel: 'Request cover',
+      onConfirm: () => {
+        void (async () => {
+          setIsRequesting(true);
+          try {
+            await createApplication(user.id, { shiftPostId: shift.id });
+            captureAnalyticsEvent(AnalyticsEvents.coverRequested, {
+              target: 'shift',
+              listing_id: shift.id,
+            });
+            router.replace(WORKER_PENDING_FILLINS);
+          } catch (error) {
+            Alert.alert('Request failed', getErrorMessage(error, 'Please try again.'));
+          } finally {
+            setIsRequesting(false);
+          }
+        })();
+      },
+    });
+  }, [isProfileComplete, shift, user?.id, workerProfile]);
+
   if (isLoading || !shift) {
     return (
       <FormScreen
@@ -201,13 +251,12 @@ export default function WorkerShiftDetailScreen() {
     <SourcedListingContactActions contact={shift} sections="buttons" />
   ) : applicationView.kind === 'none' ? (
     <OnboardingButton
-      label="Request to cover"
-      onPress={() =>
-        guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
-      }
+      label={isRequesting ? 'Requesting…' : 'Request to cover'}
+      disabled={isRequesting}
+      onPress={handleRequestCover}
     />
   ) : applicationView.kind === 'pending' ? (
-    <OnboardingButton label="Requested" disabled />
+    <OnboardingButton label="Requested — waiting on clinic" disabled />
   ) : applicationView.kind === 'confirmed' && shiftApplication ? (
     <OnboardingButton
       label="View confirmed fill-in"
@@ -217,10 +266,9 @@ export default function WorkerShiftDetailScreen() {
     />
   ) : applicationView.kind === 'cancelled' && shiftApplication ? (
     <OnboardingButton
-      label="Request to cover again"
-      onPress={() =>
-        guardApply(workerProfile, isProfileComplete, getApplyRoute('shift', shift.id))
-      }
+      label={isRequesting ? 'Requesting…' : 'Request to cover again'}
+      disabled={isRequesting}
+      onPress={handleRequestCover}
     />
   ) : null;
 
@@ -248,7 +296,7 @@ export default function WorkerShiftDetailScreen() {
       headerAccessory={
         user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
       }
-      accent="secondary"
+      accent="primary"
       footer={footerAction}>
       <View style={styles.content}>
         <ShiftPostDetailView
