@@ -25,7 +25,6 @@ type WebMarketingNavProps = {
 
 const WELCOME_NAV_ITEMS = [
   { id: 'how-it-works', label: 'How it works', kind: 'section' as const },
-  { id: 'features', label: 'Features', kind: 'section' as const },
   { id: 'pricing', label: 'Pricing', kind: 'route' as const },
 ];
 

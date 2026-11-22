@@ -1,9 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 
-import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { ApplicationCardBadge } from '@/components/ui/ApplicationCardBadge';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { WebMarketingSection } from '@/components/web/marketing/WebMarketingSection.web';
 import {
@@ -13,57 +10,38 @@ import {
   WebMarketingSnapshotShell,
 } from '@/components/web/marketing/WebMarketingSnapshotShell.web';
 import { WelcomeSmsPreview } from '@/components/web/marketing/WelcomeSmsPreview.web';
-import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { useInViewPhaseLoop } from '@/lib/webMarketingBeatLoop.web';
-import { getWelcomeHeroPreview } from '@/lib/welcomeHeroPreview';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
-import { webMotion } from '@/theme/web';
 
 const BEATS = [
   {
     id: 'post',
     step: '01',
-    title: 'Post in minutes',
-    highlight: 'minutes',
+    title: 'Post a fill-in',
+    highlight: 'fill-in',
     accent: 'secondary' as const,
   },
   {
-    id: 'alert',
+    id: 'text',
     step: '02',
-    title: 'Professionals get alerted',
-    highlight: 'alerted',
+    title: 'Pros get a text',
+    highlight: 'text',
     accent: 'secondary' as const,
   },
   {
     id: 'confirm',
     step: '03',
-    title: 'Confirm and cover',
+    title: 'Confirm cover',
     highlight: 'cover',
     accent: 'tertiary' as const,
   },
 ] as const;
 
-const SNAPSHOT_MIN_HEIGHT = 200;
-const CROSSFADE = `opacity 480ms ${webMotion.easingOut}, transform 480ms ${webMotion.easingOut}`;
-
-function phaseStyle(visible: boolean, offsetY = 10, delayMs = 0) {
-  const delay = delayMs > 0 ? ` ${delayMs}ms` : '';
-  return webOnlyStyle({
-    opacity: visible ? 1 : 0,
-    transform: [{ translateY: visible ? 0 : offsetY }],
-    transition: `opacity 480ms ${webMotion.easingOut}${delay}, transform 480ms ${webMotion.easingOut}${delay}`,
-    pointerEvents: visible ? 'auto' : 'none',
-  } as object);
-}
+const SNAPSHOT_MIN_HEIGHT = 180;
 
 function PostBeat() {
-  // 0 = compose, 1 = posted flash
-  const schedule = useMemo(() => [0, 1600] as const, []);
-  const { ref, phase } = useInViewPhaseLoop(schedule, 4200);
-  const posted = phase >= 1;
-
+  const { colors } = useTheme();
   const styles = useThemedStyles(({ colors, spacing }) => ({
     card: {
       backgroundColor: colors.surface,
@@ -93,15 +71,27 @@ function PostBeat() {
       fontWeight: '700' as const,
       color: colors.secondary,
     },
-    ctaStage: {
-      position: 'relative' as const,
-      minHeight: 44,
+    posted: {
+      marginTop: spacing.xs,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+      alignSelf: 'flex-start' as const,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 8,
+      backgroundColor: colors.secondarySubtle,
+    },
+    postedText: {
+      fontSize: 13,
+      fontWeight: '600' as const,
+      color: colors.secondary,
     },
   }));
 
   return (
     <WebMarketingSnapshotShell style={{ flex: 1, minHeight: SNAPSHOT_MIN_HEIGHT }}>
-      <View ref={ref} style={styles.card}>
+      <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.label}>Role</Text>
           <Text style={styles.value}>Dental Hygienist</Text>
@@ -110,137 +100,34 @@ function PostBeat() {
           <Text style={styles.label}>When</Text>
           <Text style={styles.valueAccent}>Today · 9–5</Text>
         </View>
-        <View style={styles.ctaStage}>
-          <View
-            style={[
-              { position: 'absolute', left: 0, right: 0, top: 0 },
-              phaseStyle(!posted, 8),
-            ]}
-          >
-            <OnboardingButton label="Post fill-in" accent="secondary" onPress={() => {}} />
-          </View>
-          <View style={phaseStyle(posted, 8)}>
-            <OnboardingButton label="Posted" accent="secondary" onPress={() => {}} />
-          </View>
+        <View style={styles.posted}>
+          <Ionicons name="checkmark-circle" size={14} color={colors.secondary} />
+          <Text style={styles.postedText}>Posted — texts sent</Text>
         </View>
       </View>
     </WebMarketingSnapshotShell>
   );
 }
 
-function AlertBeat() {
-  const { colors } = useTheme();
-  // 0 = push only, 1 = push + SMS
-  const schedule = useMemo(() => [0, 900] as const, []);
-  const { ref, phase } = useInViewPhaseLoop(schedule, 4800);
-  const showSms = phase >= 1;
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    stack: {
-      gap: 10,
+function TextBeat() {
+  const styles = useThemedStyles(() => ({
+    shell: {
       flex: 1,
+      minHeight: SNAPSHOT_MIN_HEIGHT,
       justifyContent: 'center' as const,
-    },
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.sm + 2,
-    },
-    row: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: spacing.sm,
-    },
-    iconWrap: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      backgroundColor: colors.secondarySubtle,
-    },
-    title: {
-      fontSize: 13,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-    },
-    body: {
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.labelSecondary,
     },
   }));
 
   return (
-    <WebMarketingSnapshotShell style={{ flex: 1, minHeight: SNAPSHOT_MIN_HEIGHT }}>
-      <View ref={ref} style={styles.stack}>
-        <View
-          style={[
-            styles.card,
-            webOnlyStyle({
-              opacity: 1,
-              transform: [{ translateY: 0 }],
-              transition: CROSSFADE,
-            } as object),
-          ]}
-        >
-          <View style={styles.row}>
-            <View style={styles.iconWrap}>
-              <Ionicons name="notifications" size={14} color={colors.secondary} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.title}>New fill-in nearby</Text>
-              <Text style={styles.body} numberOfLines={2}>
-                Dental Hygienist · Today 9–5
-              </Text>
-            </View>
-          </View>
-        </View>
-        <View style={[styles.card, phaseStyle(showSms, 12)]}>
-          <WelcomeSmsPreview />
-        </View>
-      </View>
+    <WebMarketingSnapshotShell style={styles.shell}>
+      <WelcomeSmsPreview />
     </WebMarketingSnapshotShell>
   );
 }
 
 function ConfirmBeat() {
-  const preview = useMemo(() => getWelcomeHeroPreview(), []);
-  const applicant = preview.applicants[0];
-  // 0 = request, 1 = confirmed
-  const schedule = useMemo(() => [0, 1800] as const, []);
-  const { ref, phase } = useInViewPhaseLoop(schedule, 5200);
-  const confirmed = phase >= 1;
-
   const styles = useThemedStyles(({ colors, spacing }) => ({
-    stage: {
-      position: 'relative' as const,
-      flex: 1,
-      minHeight: SNAPSHOT_MIN_HEIGHT - 24,
-      justifyContent: 'center' as const,
-    },
-    layer: {
-      width: '100%' as const,
-    },
-    layerAbsolute: {
-      position: 'absolute' as const,
-      left: 0,
-      right: 0,
-      top: 0,
-      bottom: 0,
-      justifyContent: 'center' as const,
-    },
     card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-    confirmed: {
       backgroundColor: colors.surface,
       borderRadius: 12,
       borderWidth: 1,
@@ -253,23 +140,7 @@ function ConfirmBeat() {
       alignItems: 'center' as const,
       gap: spacing.sm,
     },
-    body: { flex: 1, minWidth: 0, gap: 2 },
-    name: {
-      fontSize: 15,
-      fontWeight: '700' as const,
-      color: colors.labelPrimary,
-    },
-    detail: {
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.labelSecondary,
-    },
-    actions: {
-      flexDirection: 'row' as const,
-      gap: spacing.sm,
-    },
-    action: { flex: 1, minWidth: 0 },
-    confirmIcon: {
+    icon: {
       width: 36,
       height: 36,
       borderRadius: 10,
@@ -277,60 +148,31 @@ function ConfirmBeat() {
       justifyContent: 'center' as const,
       backgroundColor: colors.tertiary,
     },
-    confirmTitle: {
+    body: { flex: 1, minWidth: 0, gap: 2 },
+    title: {
       fontSize: 15,
       fontWeight: '700' as const,
       color: colors.tertiary,
+    },
+    detail: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: colors.labelSecondary,
     },
   }));
 
   return (
     <WebMarketingSnapshotShell style={{ flex: 1, minHeight: SNAPSHOT_MIN_HEIGHT }}>
-      <View ref={ref} style={styles.stage}>
-        <View style={[styles.layerAbsolute, phaseStyle(!confirmed, 12)]}>
-          <View style={styles.card}>
-            <View style={styles.row}>
-              <WorkerProfileAvatar displayName={applicant.name} size={36} />
-              <View style={styles.body}>
-                <Text style={styles.name} numberOfLines={1}>
-                  {applicant.name}
-                </Text>
-                <Text style={styles.detail} numberOfLines={1}>
-                  Hygienist · Just now
-                </Text>
-              </View>
-              <ApplicationCardBadge label="New request" />
-            </View>
-            <View style={styles.actions}>
-              <OnboardingButton
-                style={styles.action}
-                label="Accept"
-                accent="tertiary"
-                onPress={() => {}}
-              />
-              <OnboardingButton
-                style={styles.action}
-                label="Decline"
-                variant="destructive"
-                onPress={() => {}}
-              />
-            </View>
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <View style={styles.icon}>
+            <Ionicons name="checkmark" size={18} color="#FFFFFF" />
           </View>
-        </View>
-
-        <View style={[styles.layerAbsolute, phaseStyle(confirmed, 12)]}>
-          <View style={styles.confirmed}>
-            <View style={styles.row}>
-              <View style={styles.confirmIcon}>
-                <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-              </View>
-              <View style={styles.body}>
-                <Text style={styles.confirmTitle}>Fill-in confirmed</Text>
-                <Text style={styles.detail} numberOfLines={1}>
-                  {applicant.name} covering Today · 9–5
-                </Text>
-              </View>
-            </View>
+          <View style={styles.body}>
+            <Text style={styles.title}>Cover confirmed</Text>
+            <Text style={styles.detail} numberOfLines={2}>
+              They replied YES — you picked the right match.
+            </Text>
           </View>
         </View>
       </View>
@@ -340,7 +182,7 @@ function ConfirmBeat() {
 
 function BeatVisual({ id }: { id: (typeof BEATS)[number]['id'] }) {
   if (id === 'post') return <PostBeat />;
-  if (id === 'alert') return <AlertBeat />;
+  if (id === 'text') return <TextBeat />;
   return <ConfirmBeat />;
 }
 
@@ -440,8 +282,8 @@ export function WebLandingStory() {
     >
       <WebMarketingSectionHeader
         eyebrow="How it works"
-        title="Coverage before the first patient"
-        subtitle="Last-minute coverage, without the scramble."
+        title="Text. Reply YES. Covered."
+        subtitle="Same-day fill-ins without the phone tree — clinics confirm every cover."
       />
 
       <View style={styles.stage}>

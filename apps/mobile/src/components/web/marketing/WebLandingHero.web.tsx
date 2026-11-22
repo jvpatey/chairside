@@ -1,10 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, Text, type TextStyle, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
-import { WelcomeHeroAppPanel } from '@/components/onboarding/WelcomeHeroAppPanel.web';
+import { WelcomeHeroFlowPhone } from '@/components/onboarding/WelcomeHeroFlowPhone.web';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { WebLandingHeroHeadline } from '@/components/web/marketing/WebLandingHeroHeadline.web';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
@@ -16,31 +15,29 @@ import {
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
-import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, useThemedStyles } from '@/theme';
 import { webSectionEyebrowStyle, webTypography } from '@/theme/web';
 
 /** Clear sticky marketing nav + breathing room above hero content. */
 const NAV_CLEARANCE = 72;
-const PREVIEW_VERTICAL_RESERVE = NAV_CLEARANCE + 96;
 
-const HERO_CHECKS = [
-  'Free to start',
-  'Roles and fill-ins',
-  'Built for Canadian dental teams',
-] as const;
+const TRUST_LINE = 'Text to request cover · Built for Canadian dental teams';
 
-const BLURB =
-  'Confirm coverage before the day starts — post a fill-in and nearby professionals get notified.';
-
-function LandingHeroSubtitle() {
+function LandingHeroSubtitle({ align = 'left' }: { align?: 'left' | 'center' }) {
   const styles = useThemedStyles(({ colors }) => ({
     text: {
       ...webTypography.subtitle,
       color: colors.labelSecondary,
       maxWidth: 480,
+      textAlign: align,
     },
     fillIn: {
       color: colors.secondary,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+    },
+    yes: {
+      color: colors.labelPrimary,
       fontFamily: fontSemibold,
       fontWeight: '600' as const,
     },
@@ -48,52 +45,17 @@ function LandingHeroSubtitle() {
 
   return (
     <Text style={styles.text}>
-      Confirm coverage before the day starts — post a{' '}
-      <Text style={styles.fillIn}>fill-in</Text> and nearby professionals get notified.
+      Post a <Text style={styles.fillIn}>fill-in</Text> and nearby professionals get a text —
+      they <Text style={styles.yes}>Reply YES</Text> to request cover, then you confirm.
     </Text>
   );
 }
 
-function LandingHeroCheckRow() {
-  const { colors } = useTheme();
-
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    row: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      flexWrap: 'wrap' as const,
-      gap: spacing.md,
-    },
-    item: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 6,
-    },
-    label: {
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: '500' as const,
-      color: colors.labelSecondary,
-    },
-  }));
-
-  return (
-    <View style={styles.row}>
-      {HERO_CHECKS.map((label) => (
-        <View key={label} style={styles.item}>
-          <Ionicons name="checkmark-circle" size={16} color={colors.tertiary} />
-          <Text style={styles.label}>{label}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-/** Phone web: centered wordmark → blurb → CTAs (Finora-style spacing). */
+/** Phone web: wordmark → headline → blurb → CTAs → looping phone demo. */
 function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
   const insets = useSafeAreaInsets();
   const topPad = insets.top + NAV_CLEARANCE;
-  const bottomPad = Math.max(topPad, insets.bottom + 24);
+  const bottomPad = Math.max(insets.bottom + 24, 32);
 
   const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     section: {
@@ -103,8 +65,7 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
       paddingHorizontal: spacing.lg,
       position: 'relative' as const,
       overflow: 'hidden' as const,
-      height: windowHeight,
-      minHeight: Math.max(520, windowHeight),
+      minHeight: Math.max(720, windowHeight),
     },
     atmosphere: {
       position: 'absolute' as const,
@@ -124,13 +85,14 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
       maxWidth: 420,
       width: '100%' as const,
       alignSelf: 'center' as const,
-      justifyContent: 'center' as const,
+      justifyContent: 'flex-start' as const,
       alignItems: 'center' as const,
-      gap: spacing.xl,
+      gap: spacing.lg,
+      paddingTop: spacing.md,
     },
     brandBlock: {
       alignItems: 'center' as const,
-      gap: spacing.md,
+      gap: spacing.sm,
       width: '100%' as const,
     },
     wordmarkGlow: {
@@ -149,7 +111,7 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
     wordmarkWrap: {
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      minHeight: 64,
+      minHeight: 56,
     },
     headlineWrap: {
       alignItems: 'center' as const,
@@ -160,17 +122,22 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
       color: colors.labelPrimary,
       textAlign: 'center' as const,
     },
-    blurb: {
-      ...webTypography.bodyLg,
-      color: colors.labelSecondary,
+    blurbWrap: {
+      width: '100%' as const,
+      alignItems: 'center' as const,
+    },
+    trust: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '500' as const,
+      color: colors.labelTertiary,
       textAlign: 'center' as const,
-      maxWidth: 340,
+      maxWidth: 320,
     },
     actions: {
       width: '100%' as const,
-      gap: spacing.md,
+      gap: spacing.sm,
       alignItems: 'stretch' as const,
-      marginTop: spacing.sm,
     },
     primaryButton: {
       alignSelf: 'stretch' as const,
@@ -198,6 +165,11 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
       color: colors.primary,
     },
     signInLinkHovered: webTextLinkHoverStyles(colors),
+    phoneWrap: {
+      width: '100%' as const,
+      alignItems: 'center' as const,
+      marginTop: spacing.xs,
+    },
   }));
 
   return (
@@ -212,7 +184,9 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
           <View style={styles.headlineWrap}>
             <WebLandingHeroHeadline style={styles.headline} align="center" />
           </View>
-          <Text style={styles.blurb}>{BLURB}</Text>
+          <View style={styles.blurbWrap}>
+            <LandingHeroSubtitle align="center" />
+          </View>
         </View>
 
         <View style={styles.actions}>
@@ -243,6 +217,11 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
             )}
           </Pressable>
         </View>
+
+        <View style={styles.phoneWrap}>
+          <WelcomeHeroFlowPhone size="default" />
+        </View>
+        <Text style={styles.trust}>{TRUST_LINE}</Text>
       </WebPageEnter>
     </View>
   );
@@ -259,7 +238,7 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
       paddingHorizontal: spacing.lg,
       position: 'relative' as const,
       overflow: 'visible' as const,
-      minHeight: Math.max(640, windowHeight),
+      minHeight: Math.max(680, windowHeight),
     },
     atmosphere: {
       position: 'absolute' as const,
@@ -292,6 +271,12 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
       ...webTypography.displaySm,
       color: colors.labelPrimary,
     },
+    trust: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '500' as const,
+      color: colors.labelTertiary,
+    },
     ctaRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -303,9 +288,10 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
       flexShrink: 0,
     },
     visual: {
-      flex: 1.1,
-      minWidth: 420,
-      overflow: 'visible' as const,
+      flex: 1.05,
+      minWidth: 300,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
   }));
 
@@ -314,12 +300,12 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
       <View style={styles.atmosphere} />
       <View style={styles.inner}>
         <WebPageEnter style={styles.copy}>
-          <Text style={styles.eyebrow}>Same-day dental coverage</Text>
+          <Text style={styles.eyebrow}>Same-day coverage by text</Text>
           <WebLandingHeroHeadline style={styles.headline} />
           <LandingHeroSubtitle />
           <View style={styles.ctaRow}>
             <OnboardingButton
-              label="Get started for free"
+              label="Get started"
               onPress={() => router.push('/(onboarding)/role')}
               variant="primary"
               style={styles.ctaButton}
@@ -331,15 +317,10 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
               style={styles.ctaButton}
             />
           </View>
-          <LandingHeroCheckRow />
+          <Text style={styles.trust}>{TRUST_LINE}</Text>
         </WebPageEnter>
         <WebPageEnter delayMs={180} style={styles.visual}>
-          <WelcomeHeroAppPanel
-            maxHeight={Math.max(
-              380,
-              windowHeight - insets.top - PREVIEW_VERTICAL_RESERVE,
-            )}
-          />
+          <WelcomeHeroFlowPhone size="hero" />
         </WebPageEnter>
       </View>
     </View>
