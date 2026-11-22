@@ -35,10 +35,12 @@ export function DashboardQuickActionsRow({
 }: DashboardQuickActionsRowProps) {
   const { isWide } = useResponsiveLayout();
   const compact = forcePhoneLayout ? false : IS_WEB && isWide;
+  // Uneven flex only on wide compact rows — equal tiles on phone keeps the pair balanced.
+  const emphasize = emphasizeFirst && compact;
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
-    primaryFlex: { flex: emphasizeFirst ? 1.45 : 1, minWidth: 0 },
-    secondaryFlex: { flex: 1, minWidth: 0, ...(emphasizeFirst ? { opacity: 0.92 } : null) },
+    primaryFlex: { flex: emphasize ? 1.35 : 1, minWidth: 0 },
+    secondaryFlex: { flex: 1, minWidth: 0 },
   }));
 
   return (

@@ -141,9 +141,11 @@ export function Screen({
   const containerBackground =
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory) || Boolean(onBack);
+  // Mobile web often reports 0 safe-area top; give hub titles a bit more breathing room.
+  const phoneTopExtra = Platform.OS === 'web' ? spacing.lg + spacing.xs : spacing.md;
   const topPadding = isTablet
     ? getTabletTopPadding(insets.top, { applyIosFloor: Platform.OS === 'ios' })
-    : insets.top + 16;
+    : insets.top + phoneTopExtra;
 
   const styles = useThemedStyles(({ spacing }) => ({
     container: {

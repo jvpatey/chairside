@@ -144,6 +144,10 @@ function getTabBarNameFromReturnTo(
     return role === 'worker' ? 'fillins' : 'postings';
   }
 
+  if (returnTo === 'profile') {
+    return 'profile';
+  }
+
   return null;
 }
 
@@ -256,10 +260,8 @@ export function getActiveTabBarName(
   const mainTab = getMainTabFromRelativePath(relative, role);
   if (mainTab) return mainTab;
 
-  // Profile is a hidden tab (`href: null`). Keep Home selected so the dock
-  // indicator and label/icon colors stay in sync.
   if (isProfilePath(relative)) {
-    return 'index';
+    return 'profile';
   }
 
   const returnTab = getTabBarNameFromReturnTo(returnTo, role);
@@ -279,6 +281,10 @@ export function isTabRootPath(pathname: string, tabName: string, role: TabAtmosp
 
   if (tabName === 'index') {
     return isHomePath(relative);
+  }
+
+  if (tabName === 'profile') {
+    return relative === '/profile';
   }
 
   const mainTab = getMainTabFromRelativePath(relative, role);

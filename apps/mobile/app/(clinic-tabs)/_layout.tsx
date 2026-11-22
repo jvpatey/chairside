@@ -56,7 +56,15 @@ function ClinicTabNavigator() {
         />
         <Tabs.Screen name="calendar" options={hiddenTabScreenOptions} />
         <Tabs.Screen name="messages" options={hiddenTabScreenOptions} />
-        <Tabs.Screen name="profile" options={hiddenTabScreenOptions} />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={color} />
+            ),
+          }}
+        />
         <Tabs.Screen name="admin" options={hiddenTabScreenOptions} />
         <Tabs.Screen name="application" options={hiddenTabScreenOptions} />
         <Tabs.Screen name="conversation/[id]" options={hiddenTabScreenOptions} />

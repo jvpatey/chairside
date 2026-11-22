@@ -226,7 +226,6 @@ export default function WorkerDashboardScreen() {
         isTablet ? null : (
           <FadeInSection delayMs={100}>
             <DashboardQuickActionsRow
-              emphasizeFirst
               actions={[
                 {
                   label: 'My fill-ins',
