@@ -48,21 +48,30 @@ export {
 export {
   ACCOUNT_ALREADY_EXISTS_MESSAGE,
   SIGNUP_CONFIRMATION_REQUIRED_MESSAGE,
+  authPhoneToStorageDigits,
   completeEmailSignUp,
   createSessionFromUrl,
   establishSessionAfterSignUp,
+  finishWorkerOtpAuth,
   getAuthErrorMessage,
   getSignupEmailRedirectUrl,
   hasRealAuthIdentities,
+  normalizeAuthPhone,
   resendSignupConfirmation,
   resetPasswordForEmail,
+  updateAuthEmail,
   updatePassword,
   signInWithApple,
   signInWithEmail,
+  signInWithEmailOtp,
   signInWithGoogle,
+  signInWithPhoneOtp,
   signOut,
   signUpWithEmail,
   deleteAccount,
+  verifyEmailOtp,
+  verifyPhoneOtp,
+  type OtpChannel,
   type SignUpSessionResult,
 } from './auth';
 export {
@@ -274,7 +283,12 @@ export {
   type WorkerSavedPostsResult,
 } from './savedPosts';
 export {
+  FILL_IN_SMS_DEFAULTS,
+  shouldEnableFillInSmsDefaults,
+} from './fillInSmsDefaults';
+export {
   completeWorkerSetup,
+  ensureWorkerProfileRow,
   getMissingWorkerProfileFields,
   getWorkerProfile,
   getWorkerProfileForClinic,
@@ -451,10 +465,12 @@ export {
 } from './appleNameCache';
 export {
   applePartsToPersonName,
+  collapseDuplicatedDisplayName,
   formatAppleFullName,
   getUserMetadataDisplayName,
   getUserMetadataNameParts,
   joinDisplayName,
+  normalizePersonNameParts,
   resolveAppleNamePartsToPersist,
   resolveAppleNameToPersist,
   resolveAuthDisplayName,

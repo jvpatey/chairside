@@ -16,6 +16,10 @@ import {
 import { consumePendingPublicListingHref } from '@/lib/pendingPublicListing';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { WORKER_HOME } from '@/lib/routing';
+import {
+  getNextWorkerPostAuthCaptureStep,
+  getWorkerPostAuthCaptureHref,
+} from '@/lib/workerPostAuthCapture';
 import type { UserRole } from '@/types';
 
 export async function handleAuthSuccess(
@@ -63,6 +67,14 @@ export async function handleAuthSuccess(
     profile: profile ?? refreshed,
     refreshProfile: () => refreshProfile(userId),
   });
+
+  if (role === 'worker') {
+    const captureStep = await getNextWorkerPostAuthCaptureStep(userId);
+    if (captureStep) {
+      router.replace(getWorkerPostAuthCaptureHref(captureStep));
+      return;
+    }
+  }
 
   if (role) {
     await completeOnboarding(role);

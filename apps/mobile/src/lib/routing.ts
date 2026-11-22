@@ -248,6 +248,8 @@ export const WORKER_PROFILE_PROFESSIONAL: Href = '/(tabs)/profile/professional' 
 export const WORKER_PROFILE_APPLICATION_KIT: Href = '/(tabs)/profile/application-kit' as Href;
 export const WORKER_PROFILE_NOTIFICATIONS: Href = '/(tabs)/profile/notifications' as Href;
 export const WORKER_PROFILE_ACCOUNT: Href = '/(tabs)/profile/account' as Href;
+/** Soft finish-profile destination (editable account form, not the setup wizard). */
+export const WORKER_FINISH_PROFILE: Href = WORKER_PROFILE_ACCOUNT;
 export const WORKER_PROFILE_SUPPORT: Href = '/(tabs)/profile/support' as Href;
 export const WORKER_PROFILE_PRIVACY: Href = '/(tabs)/profile/privacy' as Href;
 export const WORKER_PROFILE_TERMS: Href = '/(tabs)/profile/terms' as Href;

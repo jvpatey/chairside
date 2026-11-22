@@ -347,7 +347,12 @@ export default function BrowseScreen() {
     <View style={styles.controlsBlock}>
       <View style={styles.browseControlsRow}>
         <View style={styles.searchField}>
-          <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
+          <WorkerBrowseSearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by clinic, city, or role"
+            accessibilityLabel="Search permanent roles"
+          />
         </View>
         <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
         <WorkerRoleBrowseFilters
@@ -375,11 +380,11 @@ export default function BrowseScreen() {
       embedded
       accent="primary"
       icon="briefcase-outline"
-      title={hasActiveFilters ? 'No roles match your search' : 'No open roles yet'}
+      title={hasActiveFilters ? 'No roles match your filters' : 'No matching roles nearby yet'}
       message={
         hasActiveFilters
-          ? 'Try a different search or filter, or check Applied or Saved.'
-          : 'Check back soon for new opportunities in your province.'
+          ? 'Try another city, role, or distance — or check Applied and Saved.'
+          : 'Permanent openings that match your role and area will show up here.'
       }
     />
   ) : (
@@ -416,8 +421,8 @@ export default function BrowseScreen() {
       embedded
       accent="primary"
       icon="checkmark-circle-outline"
-      title="No active interest yet"
-      message="When you apply to a permanent opening, it stays here until the clinic responds."
+      title="No applications yet"
+      message="Apply to a permanent role and it stays here until the clinic responds."
     />
   ) : (
     <View style={styles.cardList}>
@@ -440,8 +445,8 @@ export default function BrowseScreen() {
       title="No saved roles"
       message={
         hasActiveFilters
-          ? 'Try a different search or filter, or save roles from the Open tab.'
-          : 'Save roles you are interested in to find them here.'
+          ? 'Try another search or filter, or save roles from Open.'
+          : 'Save openings you like so you can come back to them here.'
       }
     />
   ) : (
@@ -458,7 +463,8 @@ export default function BrowseScreen() {
   return (
     <Screen
       title="Roles"
-      subtitle="Browse permanent roles and track applications."
+      subtitle="Permanent openings matched to your role and area."
+      softHeaderDivider
       fillsContainer={fillMapViewport}
       scroll={!fillMapViewport}
       scrollEnabled={!fillMapViewport}

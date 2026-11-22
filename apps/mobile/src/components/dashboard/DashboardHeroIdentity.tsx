@@ -1,3 +1,4 @@
+import { collapseDuplicatedDisplayName } from '@chairside/api';
 import { Text } from 'react-native';
 
 import { dashboardHeaderStackGap } from '@/components/dashboard/dashboardLayout';
@@ -32,7 +33,7 @@ export function DashboardHeroName({
   namePlaceholder,
   size = 'hero',
 }: DashboardHeroNameProps) {
-  const name = displayName?.trim();
+  const name = collapseDuplicatedDisplayName(displayName) || null;
   const isPage = size === 'page';
 
   const styles = useThemedStyles(({ colors }) => ({

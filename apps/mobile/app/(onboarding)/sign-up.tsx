@@ -1,13 +1,20 @@
 import {
   completeEmailSignUp,
+  finishWorkerOtpAuth,
   getAuthErrorMessage,
   getProfile,
   getSupabaseClient,
   resendSignupConfirmation,
   setProfileRole,
   signInWithApple,
+  signInWithEmailOtp,
   signInWithGoogle,
+  signInWithPhoneOtp,
   SIGNUP_CONFIRMATION_REQUIRED_MESSAGE,
+  updateProfileName,
+  verifyEmailOtp,
+  verifyPhoneOtp,
+  type OtpChannel,
 } from '@chairside/api';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -20,6 +27,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { AUTH_STAGGER, enterFadeUp } from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
+import { WorkerOtpAuthForm } from '@/components/onboarding/WorkerOtpAuthForm';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { PasswordRequirements } from '@/components/onboarding/PasswordRequirements';
@@ -50,12 +58,23 @@ export default function SignUpScreen() {
   }>();
   const role = parseRole(roleParam);
   const pendingInviteToken = typeof inviteToken === 'string' ? inviteToken.trim() : '';
+  const isWorkerSignup = role === 'worker' && !pendingInviteToken;
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const reducedMotion = useReducedMotion();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [channel, setChannel] = useState<OtpChannel>('phone');
+  const [otpStep, setOtpStep] = useState<'contact' | 'code'>('contact');
+  const [otpCode, setOtpCode] = useState('');
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
+  const [needsOauthName, setNeedsOauthName] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
@@ -65,8 +84,13 @@ export default function SignUpScreen() {
   const passwordEvaluation = evaluatePassword(password, { email });
   const confirmHasInput = confirmPassword.length > 0;
   const passwordsDoMatch = passwordsMatch(password, confirmPassword);
-  const canSubmit =
+  const canSubmitClinic =
     Boolean(email.trim()) && passwordEvaluation.isValid && passwordsDoMatch && confirmHasInput;
+  const canSendWorkerOtp =
+    Boolean(firstName.trim()) &&
+    Boolean(lastName.trim()) &&
+    (channel === 'email' ? Boolean(email.trim()) : phone.replace(/\D/g, '').length === 10);
+  const canVerifyWorkerOtp = otpCode.trim().length >= 4;
 
   useEffect(() => {
     if (pendingInviteToken) {
@@ -126,6 +150,16 @@ export default function SignUpScreen() {
     },
   }));
 
+  const finishWorkerSession = async (userId: string, verifiedPhoneE164?: string | null) => {
+    await finishWorkerOtpAuth({
+      userId,
+      role: 'worker',
+      name: { firstName: firstName.trim(), lastName: lastName.trim() },
+      phoneE164: verifiedPhoneE164,
+    });
+    await handleAuthSuccess(refreshProfile, completeOnboarding, userId);
+  };
+
   const runSocialSignIn = async (action: () => Promise<unknown>) => {
     if (isSubmitting) return;
     if (!role) {
@@ -139,8 +173,6 @@ export default function SignUpScreen() {
     let redirecting = false;
     try {
       await savePendingSignupRole(role);
-      // Web OAuth resolves null after handing off to the provider; the page is
-      // unloading and /auth/callback applies the pending role on return.
       if ((await action()) === null) {
         redirecting = true;
         return;
@@ -158,6 +190,23 @@ export default function SignUpScreen() {
         await refreshProfile();
       }
 
+      if (role === 'worker') {
+        const hasName =
+          Boolean(profile?.first_name?.trim()) ||
+          Boolean(profile?.display_name?.trim()) ||
+          Boolean(firstName.trim());
+        if (!hasName) {
+          setNeedsOauthName(true);
+          return;
+        }
+        if (firstName.trim() || lastName.trim()) {
+          await updateProfileName(session.user.id, {
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+          });
+        }
+      }
+
       await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
     } catch (error) {
       const message = getAuthErrorMessage(error);
@@ -173,7 +222,99 @@ export default function SignUpScreen() {
     }
   };
 
-  const handleCreateAccount = async () => {
+  const handleOauthNameContinue = async () => {
+    if (isSubmitting) return;
+    if (!firstName.trim() || !lastName.trim()) {
+      setFormError('Add your first and last name to continue.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      const {
+        data: { session },
+      } = await getSupabaseClient().auth.getSession();
+      if (!session?.user) {
+        setFormError('Session expired. Sign up again.');
+        return;
+      }
+      await updateProfileName(session.user.id, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
+      if (role) {
+        const profile = await getProfile(session.user.id);
+        if (!profile?.role) {
+          await setProfileRole(session.user.id, role);
+        }
+      }
+      await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
+    } catch (error) {
+      setFormError(getAuthErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendWorkerOtp = async () => {
+    if (!role || isSubmitting || !canSendWorkerOtp) return;
+
+    setIsSubmitting(true);
+    setFormError(null);
+    setFormSuccess(null);
+    try {
+      await savePendingSignupRole(role);
+      if (channel === 'email') {
+        await signInWithEmailOtp(email, role);
+        setPhoneE164(null);
+        setFormSuccess(`We sent a code to ${email.trim()}.`);
+      } else {
+        const e164 = await signInWithPhoneOtp(phone, role);
+        setPhoneE164(e164);
+        setFormSuccess('We sent a text with your code.');
+      }
+      setOtpStep('code');
+      setOtpCode('');
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not send code', message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyWorkerOtp = async () => {
+    if (!role || isSubmitting || !canVerifyWorkerOtp) return;
+
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      const session =
+        channel === 'email'
+          ? await verifyEmailOtp(email, otpCode)
+          : await verifyPhoneOtp(phoneE164 ?? phone, otpCode);
+
+      if (!session.user) {
+        throw new Error('Could not verify that code. Try again.');
+      }
+
+      await finishWorkerSession(session.user.id, channel === 'phone' ? phoneE164 : null);
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Verification failed', message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateClinicAccount = async () => {
     if (!role) {
       router.replace('/(onboarding)/role');
       return;
@@ -193,18 +334,11 @@ export default function SignUpScreen() {
     if (password !== confirmPassword) {
       setFormError('Make sure both password fields match.');
       setFormSuccess(null);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Passwords do not match', 'Make sure both password fields match.');
-      }
       return;
     }
 
     if (passwordEvaluation.maxLengthError) {
       setFormError(passwordEvaluation.maxLengthError);
-      setFormSuccess(null);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Password too long', passwordEvaluation.maxLengthError);
-      }
       return;
     }
 
@@ -216,10 +350,6 @@ export default function SignUpScreen() {
             .join(', ')}.`
         : getPasswordTooShortMessage();
       setFormError(message);
-      setFormSuccess(null);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Password requirements not met', message);
-      }
       return;
     }
 
@@ -275,9 +405,6 @@ export default function SignUpScreen() {
       const message = getAuthErrorMessage(error);
       setFormError(message);
       setFormSuccess(null);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Could not resend email', message);
-      }
     } finally {
       setIsResending(false);
     }
@@ -287,13 +414,76 @@ export default function SignUpScreen() {
     return <Redirect href="/(onboarding)/role" />;
   }
 
+  if (needsOauthName) {
+    return (
+      <OnboardingShell
+        webLayout="centeredDecision"
+        footer={
+          <OnboardingButton
+            label={isSubmitting ? 'Saving…' : 'Continue'}
+            disabled={isSubmitting || !firstName.trim() || !lastName.trim()}
+            onPress={() => void handleOauthNameContinue()}
+          />
+        }>
+        <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
+          <AuthScreenHeader
+            title="What’s your name?"
+            subtitle="We need a name for your profile before you continue."
+            onBack={() => setNeedsOauthName(false)}
+          />
+        </Animated.View>
+        <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
+          <FormErrorBanner message={formError} />
+          <AuthField
+            label="First name"
+            placeholder="First name"
+            autoCapitalize="words"
+            autoComplete="given-name"
+            value={firstName}
+            onChangeText={setFirstName}
+            editable={!isSubmitting}
+          />
+          <AuthField
+            label="Last name"
+            placeholder="Last name"
+            autoCapitalize="words"
+            autoComplete="family-name"
+            value={lastName}
+            onChangeText={setLastName}
+            editable={!isSubmitting}
+          />
+        </Animated.View>
+      </OnboardingShell>
+    );
+  }
+
+  const workerPrimaryLabel =
+    otpStep === 'code'
+      ? isSubmitting
+        ? 'Verifying…'
+        : 'Verify and continue'
+      : isSubmitting
+        ? 'Sending code…'
+        : 'Send code';
+
   return (
     <OnboardingShell
       webLayout="centeredDecision"
       footer={
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
-            {confirmationRequired ? (
+            {isWorkerSignup ? (
+              <OnboardingButton
+                label={workerPrimaryLabel}
+                disabled={
+                  isSubmitting ||
+                  (otpStep === 'code' ? !canVerifyWorkerOtp : !canSendWorkerOtp)
+                }
+                onPress={() =>
+                  void (otpStep === 'code' ? handleVerifyWorkerOtp() : handleSendWorkerOtp())
+                }
+              />
+            ) : confirmationRequired ? (
               <OnboardingButton
                 label={isResending ? 'Sending…' : 'Resend confirmation email'}
                 disabled={isResending || isSubmitting || !email.trim()}
@@ -302,8 +492,8 @@ export default function SignUpScreen() {
             ) : (
               <OnboardingButton
                 label={isSubmitting ? 'Creating account…' : 'Create account'}
-                disabled={isSubmitting || !canSubmit}
-                onPress={handleCreateAccount}
+                disabled={isSubmitting || !canSubmitClinic}
+                onPress={handleCreateClinicAccount}
               />
             )}
           </Animated.View>
@@ -322,15 +512,13 @@ export default function SignUpScreen() {
                 styles.switchLinkPressable,
                 webHover(hovered, pressed, styles.switchLinkHovered),
                 pressed && { opacity: 0.75 },
-              ]}
-            >
+              ]}>
               <Text style={styles.switchLink}>Sign in</Text>
             </Pressable>
           </View>
         </View>
-      }
-    >
-      {confirmationRequired ? (
+      }>
+      {confirmationRequired && !isWorkerSignup ? (
         <>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
             <AuthScreenHeader
@@ -348,13 +536,31 @@ export default function SignUpScreen() {
         <>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
             <AuthScreenHeader
-              title={pendingInviteToken ? 'Create your clinic account' : 'Create your account'}
+              title={
+                pendingInviteToken
+                  ? 'Create your clinic account'
+                  : isWorkerSignup
+                    ? otpStep === 'code'
+                      ? 'Enter your code'
+                      : 'Create your account'
+                    : 'Create your account'
+              }
               subtitle={
                 pendingInviteToken
                   ? 'Use the email your invitation was sent to, then you’ll join the group.'
-                  : 'A few details to get you into Chairside.'
+                  : isWorkerSignup
+                    ? 'Name plus phone or email — that’s it to get started.'
+                    : 'A few details to get you into Chairside.'
               }
-              onBack={() => router.back()}
+              onBack={() => {
+                if (isWorkerSignup && otpStep === 'code') {
+                  setOtpStep('contact');
+                  setOtpCode('');
+                  setFormSuccess(null);
+                  return;
+                }
+                router.back();
+              }}
             />
           </Animated.View>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.social, reducedMotion)}>
@@ -367,46 +573,77 @@ export default function SignUpScreen() {
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
             <FormErrorBanner message={formError} />
             <FormSuccessBanner message={formSuccess} />
-            <AuthField
-              label="Email"
-              placeholder="you@example.com"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              editable={!isSubmitting && !isResending}
-            />
-            <AuthField
-              label="Password"
-              placeholder={getPasswordPlaceholder()}
-              secureTextEntry
-              enablePasswordVisibilityToggle
-              value={password}
-              onChangeText={setPassword}
-              editable={!isSubmitting && !isResending}
-              validated={passwordEvaluation.isValid}
-            />
-            <PasswordRequirements password={password} email={email} evaluation={passwordEvaluation} />
-            <AuthField
-              label="Confirm password"
-              placeholder="Confirm your password"
-              secureTextEntry
-              enablePasswordVisibilityToggle
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              editable={!isSubmitting && !isResending}
-              validated={canSubmit}
-              invalid={confirmHasInput && !passwordsDoMatch}
-            />
-            {confirmHasInput ? (
-              <Text
-                style={[
-                  styles.matchHint,
-                  passwordsDoMatch ? styles.matchHintSuccess : styles.matchHintError,
-                ]}
-              >
-                {passwordsDoMatch ? 'Passwords match' : 'Passwords do not match'}
-              </Text>
-            ) : null}
+            {isWorkerSignup ? (
+              <WorkerOtpAuthForm
+                mode="sign-up"
+                step={otpStep}
+                channel={channel}
+                onChannelChange={setChannel}
+                firstName={firstName}
+                lastName={lastName}
+                onFirstNameChange={setFirstName}
+                onLastNameChange={setLastName}
+                email={email}
+                onEmailChange={setEmail}
+                phone={phone}
+                onPhoneChange={setPhone}
+                code={otpCode}
+                onCodeChange={setOtpCode}
+                editable={!isSubmitting}
+                onChangeContact={() => {
+                  setOtpStep('contact');
+                  setOtpCode('');
+                  setFormSuccess(null);
+                }}
+                onResendCode={handleSendWorkerOtp}
+              />
+            ) : (
+              <>
+                <AuthField
+                  label="Email"
+                  placeholder="you@example.com"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!isSubmitting && !isResending}
+                />
+                <AuthField
+                  label="Password"
+                  placeholder={getPasswordPlaceholder()}
+                  secureTextEntry
+                  enablePasswordVisibilityToggle
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!isSubmitting && !isResending}
+                  validated={passwordEvaluation.isValid}
+                />
+                <PasswordRequirements
+                  password={password}
+                  email={email}
+                  evaluation={passwordEvaluation}
+                />
+                <AuthField
+                  label="Confirm password"
+                  placeholder="Confirm your password"
+                  secureTextEntry
+                  enablePasswordVisibilityToggle
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  editable={!isSubmitting && !isResending}
+                  validated={canSubmitClinic}
+                  invalid={confirmHasInput && !passwordsDoMatch}
+                />
+                {confirmHasInput ? (
+                  <Text
+                    style={[
+                      styles.matchHint,
+                      passwordsDoMatch ? styles.matchHintSuccess : styles.matchHintError,
+                    ]}>
+                    {passwordsDoMatch ? 'Passwords match' : 'Passwords do not match'}
+                  </Text>
+                ) : null}
+              </>
+            )}
           </Animated.View>
         </>
       )}

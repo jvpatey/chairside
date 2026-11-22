@@ -12,7 +12,7 @@
 set -euo pipefail
 
 API_BASE="${PINGRAM_API_URL:-https://api.ca.pingram.io}"
-SMS_TYPES=("fill_in_posted" "fill_in_outreach_sms")
+SMS_TYPES=("fill_in_posted" "fill_in_outreach_sms" "auth_otp")
 
 if [[ -z "${PINGRAM_API_KEY:-}" ]]; then
   echo "Error: export PINGRAM_API_KEY='pingram_sk_...'" >&2

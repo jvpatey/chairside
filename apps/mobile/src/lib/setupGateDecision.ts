@@ -5,7 +5,6 @@ import {
   CLINIC_SETUP_ACCOUNT_TYPE,
   CLINIC_SETUP_BASICS,
   getHomeRouteForRole,
-  WORKER_SETUP_BASICS,
 } from '@/lib/routing';
 
 export type SetupGateDecision =
@@ -34,8 +33,6 @@ type WorkerGateInput = {
   /** False while session exists but auth profile fetch has not settled. */
   isProfileReady: boolean;
   isWorkerProfileReady: boolean;
-  workerProfile: { setup_completed_at?: string | null } | null;
-  isWorkerSetupComplete: (profile: NonNullable<WorkerGateInput['workerProfile']>) => boolean;
 };
 
 function getSessionUserId(session: unknown): string | null {
@@ -107,9 +104,6 @@ export function getWorkerSetupGateDecision(input: WorkerGateInput): SetupGateDec
   }
   if (!input.isWorkerProfileReady) return { type: 'loading' };
 
-  if (input.workerProfile === null || !input.isWorkerSetupComplete(input.workerProfile)) {
-    return { type: 'redirect', href: WORKER_SETUP_BASICS };
-  }
-
+  // Profile completeness is soft-gated on apply/cover, not tab entry.
   return { type: 'children' };
 }

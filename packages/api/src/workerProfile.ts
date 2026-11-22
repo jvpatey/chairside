@@ -4,6 +4,10 @@ import { getProfile, setProfileRole } from './profile';
 import { getSupabaseClient } from './client';
 import type { Database } from './types';
 import {
+  FILL_IN_SMS_DEFAULTS,
+  shouldEnableFillInSmsDefaults,
+} from './fillInSmsDefaults';
+import {
   getMissingWorkerProfileFields,
   getWorkerRoleTypes,
   isWorkerProfileComplete,
@@ -94,12 +98,30 @@ export async function getWorkerProfile(userId: string): Promise<WorkerProfile | 
   return data;
 }
 
+/** Insert an empty worker_profiles row when missing (does not set profiles.role). */
+export async function ensureWorkerProfileRow(userId: string): Promise<WorkerProfile> {
+  const existing = await getWorkerProfile(userId);
+  if (existing) return existing;
+
+  const supabase = getSupabaseClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('worker_profiles')
+    .upsert({ id: userId, updated_at: now }, { onConflict: 'id' })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function upsertWorkerProfile(
   userId: string,
   partial: WorkerProfileUpdate,
 ): Promise<WorkerProfile> {
   await ensureWorkerRoleForProfile(userId);
 
+  const existing = await getWorkerProfile(userId);
   const supabase = getSupabaseClient();
   const now = new Date().toISOString();
 
@@ -158,13 +180,24 @@ export async function upsertWorkerProfile(
   }
   if (partial.phone !== undefined) {
     payload.phone = partial.phone;
-    // Auto-enable fill-in SMS when a valid phone is saved unless explicitly overridden.
     if (
-      partial.fill_in_sms_opt_in === undefined &&
-      typeof partial.phone === 'string' &&
-      partial.phone.trim().length > 0
+      shouldEnableFillInSmsDefaults({
+        nextPhone: partial.phone,
+        previousPhone: existing?.phone,
+        explicitSmsOptIn: partial.fill_in_sms_opt_in,
+        explicitShortNotice: partial.short_notice_available,
+        explicitNotificationMode: partial.fill_in_notification_mode,
+      })
     ) {
-      payload.fill_in_sms_opt_in = true;
+      if (partial.fill_in_sms_opt_in === undefined) {
+        payload.fill_in_sms_opt_in = FILL_IN_SMS_DEFAULTS.fill_in_sms_opt_in;
+      }
+      if (partial.short_notice_available === undefined) {
+        payload.short_notice_available = FILL_IN_SMS_DEFAULTS.short_notice_available;
+      }
+      if (partial.fill_in_notification_mode === undefined) {
+        payload.fill_in_notification_mode = FILL_IN_SMS_DEFAULTS.fill_in_notification_mode;
+      }
     }
   }
   if (partial.fill_in_sms_opt_in !== undefined) {

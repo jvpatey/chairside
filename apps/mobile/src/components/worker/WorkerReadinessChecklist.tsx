@@ -19,7 +19,7 @@ import {
   getWorkerFillInAvailabilityRoute,
   WORKER_BROWSE,
   WORKER_FILLINS,
-  WORKER_SETUP_BASICS,
+  WORKER_FINISH_PROFILE,
 } from '@/lib/routing';
 
 type WorkerReadinessChecklistProps = {
@@ -47,20 +47,28 @@ export function WorkerReadinessChecklist({
     shiftApplicationCount,
     workerProfile: workerProfile as WorkerFillInEngagementProfile | undefined,
   });
-  const textsOn = getFillInSmsStatus(workerProfile).smsActive;
+  const smsStatus = getFillInSmsStatus(workerProfile);
+  const textsOn = smsStatus.smsActive;
   const profileComplete = isWorkerProfileComplete(workerProfile);
+  const needsPhone = !workerProfile?.phone?.trim();
 
   const items = useMemo<GetStartedChecklistItem[]>(
     () => [
       {
         id: 'profile',
-        title: profileComplete ? 'Profile ready' : 'Add role, phone, and city',
+        title: profileComplete
+          ? 'Profile ready'
+          : needsPhone
+            ? 'Add a mobile number for text alerts'
+            : 'Add role, phone, and city',
         body: profileComplete
           ? 'Enough to match you to nearby fill-ins.'
-          : 'That’s all we need to text you about fill-ins.',
+          : needsPhone
+            ? 'Fill-in openings are sent by SMS — add your phone so you don’t miss them.'
+            : 'Role and city help show the right jobs; phone enables fill-in texts.',
         complete: profileComplete,
         primary: !profileComplete,
-        onPress: () => router.push(WORKER_SETUP_BASICS),
+        onPress: () => router.push(WORKER_FINISH_PROFILE),
       },
       {
         id: 'fill-in-alerts',
@@ -76,7 +84,9 @@ export function WorkerReadinessChecklist({
           router.push(
             fillInsComplete
               ? WORKER_FILLINS
-              : getWorkerFillInAvailabilityRoute('profile'),
+              : needsPhone
+                ? WORKER_FINISH_PROFILE
+                : getWorkerFillInAvailabilityRoute('profile'),
           ),
       },
       {
@@ -91,7 +101,14 @@ export function WorkerReadinessChecklist({
         onPress: () => router.push(WORKER_BROWSE),
       },
     ],
-    [fillInsComplete, jobApplicationCount, profileComplete, rolesComplete, textsOn],
+    [
+      fillInsComplete,
+      jobApplicationCount,
+      needsPhone,
+      profileComplete,
+      rolesComplete,
+      textsOn,
+    ],
   );
 
   if (
@@ -105,7 +122,13 @@ export function WorkerReadinessChecklist({
 
   return (
     <GetStartedChecklistCard
-      subtitle="A few steps to get fill-in texts."
+      subtitle={
+        profileComplete
+          ? 'A few steps to get fill-in texts.'
+          : needsPhone
+            ? 'Fill-ins are alerted by SMS — add your mobile number when you’re ready.'
+            : 'Finish your profile when you’re ready — role, phone, and city on one form.'
+      }
       items={items}
       onDismiss={() => void dismiss()}
     />

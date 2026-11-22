@@ -5,7 +5,14 @@ export type TabAtmosphereIntensity = 'none' | 'subtle' | 'prominent';
 export type TabAtmosphereAccent = 'primary' | 'secondary' | 'tertiary';
 
 const WORKER_MAIN_TABS = new Set(['browse', 'applications', 'calendar', 'fillins', 'messages']);
-const CLINIC_MAIN_TABS = new Set(['postings', 'discover', 'applications', 'calendar', 'fill-ins', 'messages']);
+const CLINIC_MAIN_TABS = new Set([
+  'postings',
+  'discover',
+  'applications',
+  'calendar',
+  'fill-ins',
+  'messages',
+]);
 
 const WORKER_STACK_FRAGMENTS = [
   '/job/',
@@ -105,10 +112,7 @@ function getTabBarNameFromReturnTo(
 ): string | null {
   if (!returnTo) return null;
 
-  if (
-    returnTo === 'applications-tab' ||
-    returnTo === 'dashboard-applications'
-  ) {
+  if (returnTo === 'applications-tab' || returnTo === 'dashboard-applications') {
     return returnTo === 'dashboard-applications' ? 'index' : 'applications';
   }
 
@@ -124,11 +128,7 @@ function getTabBarNameFromReturnTo(
     return 'browse';
   }
 
-  if (
-    returnTo === 'fill-ins-tab' ||
-    returnTo === 'open-fill-ins' ||
-    returnTo === 'past-fill-ins'
-  ) {
+  if (returnTo === 'fill-ins-tab' || returnTo === 'open-fill-ins' || returnTo === 'past-fill-ins') {
     return role === 'worker' ? 'fillins' : 'fill-ins';
   }
 
@@ -190,10 +190,7 @@ function getStackParentTabFromRelativePath(
  * visibility. Differs from getActiveTabBarName (sidebar highlight), which maps
  * hidden routes like fill-in-availability → fillins.
  */
-export function getFocusedTabSceneName(
-  pathname: string,
-  role: TabAtmosphereRole,
-): string | null {
+export function getFocusedTabSceneName(pathname: string, role: TabAtmosphereRole): string | null {
   const normalized = normalizePath(pathname);
   const relative = stripTabGroupPrefix(normalized, role);
   const segments = relative.split('/').filter(Boolean);
@@ -276,11 +273,7 @@ export function getActiveTabBarName(
 }
 
 /** True when the pathname is the top-level screen for a main tab (not a nested stack route). */
-export function isTabRootPath(
-  pathname: string,
-  tabName: string,
-  role: TabAtmosphereRole,
-): boolean {
+export function isTabRootPath(pathname: string, tabName: string, role: TabAtmosphereRole): boolean {
   const normalized = normalizePath(pathname);
   const relative = stripTabGroupPrefix(normalized, role);
 
@@ -302,10 +295,7 @@ export function isTabRootPath(
   return segments.length === 1;
 }
 
-function getMainTabFromRelativePath(
-  relativePath: string,
-  role: TabAtmosphereRole,
-): string | null {
+function getMainTabFromRelativePath(relativePath: string, role: TabAtmosphereRole): string | null {
   const segments = relativePath.split('/').filter(Boolean);
   if (segments.length === 0) {
     return 'index';

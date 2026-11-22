@@ -28,6 +28,16 @@ export {
   signUpWithEmail,
   type SignUpSessionResult,
 } from './authSignup';
+export {
+  authPhoneToStorageDigits,
+  finishWorkerOtpAuth,
+  normalizeAuthPhone,
+  signInWithEmailOtp,
+  signInWithPhoneOtp,
+  verifyEmailOtp,
+  verifyPhoneOtp,
+  type OtpChannel,
+} from './authOtp';
 import { getSignupEmailRedirectUrl } from './authSignup';
 
 export const PASSWORD_MIN_LENGTH = 8;
@@ -179,6 +189,17 @@ export async function updatePassword(newPassword: string) {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.auth.updateUser({ password: newPassword });
 
+  if (error) throw error;
+  return data.user;
+}
+
+/** Add or change the auth email (Supabase may require confirmation). */
+export async function updateAuthEmail(email: string) {
+  const supabase = getSupabaseClient();
+  const trimmed = email.trim();
+  if (!trimmed) throw new Error('Enter an email address.');
+
+  const { data, error } = await supabase.auth.updateUser({ email: trimmed });
   if (error) throw error;
   return data.user;
 }
@@ -370,6 +391,15 @@ export function getAuthErrorMessage(error: unknown): string {
 
   if (lower.includes('invalid login credentials')) {
     return 'Incorrect email or password.';
+  }
+
+  if (
+    lower.includes('otp') ||
+    lower.includes('token has expired') ||
+    lower.includes('token is invalid') ||
+    lower.includes('invalid token')
+  ) {
+    return 'That code is invalid or expired. Request a new one.';
   }
 
   if (lower.includes('user already registered')) {

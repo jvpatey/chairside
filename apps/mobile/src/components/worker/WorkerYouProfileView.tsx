@@ -1,21 +1,54 @@
-import type { WorkerProfile } from '@chairside/api';
-import { getWorkerRoleTypes } from '@chairside/api';
-import { formatRoleTypesLabel, getProvinceLabel } from '@chairside/config';
+import {
+  getAuthErrorMessage,
+  getWorkerRoleTypes,
+  isWorkerProfileComplete,
+  joinDisplayName,
+  resolveAuthNameParts,
+  updateAuthEmail,
+  updateProfileName,
+  type WorkerProfile,
+} from '@chairside/api';
+import { normalizePhoneForStorage, ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
 import type { User } from '@supabase/supabase-js';
-import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { AccountChangePasswordSection } from '@/components/account/AccountChangePasswordSection';
 import { AccountDeleteAccountCard } from '@/components/account/AccountDeleteAccountCard';
-import { AccountDisplayNameField } from '@/components/account/AccountDisplayNameField';
 import { AccountLegalLinks } from '@/components/account/AccountLegalLinks';
 import { AccountSignOutCard } from '@/components/account/AccountSignOutCard';
-import { getSetupEditRoute } from '@/hooks/useSetupEditMode';
+import { ChipSelector } from '@/components/clinic/ChipSelector';
+import { AuthField } from '@/components/onboarding/AuthField';
+import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
+import {
+  ProfileDetailStack,
+  SectionPanel,
+  profileSettingsHintStyle,
+} from '@/components/profile/ProfileDetailBlocks';
+import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
+import { ProfilePhotoUpload } from '@/components/worker/ProfilePhotoUpload';
+import { useAuth } from '@/contexts/AuthContext';
+import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { userHasEmailPasswordLogin } from '@/lib/authProviders';
-import { formatPhoneNumber } from '@/lib/phone';
+import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { WORKER_AUTH_LEGAL_PATHS } from '@/lib/routing';
-import { webHover, webPointer } from '@/lib/webPressableStyles';
-import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import {
+  getWorkerProfileFormMissing,
+  getWorkerProfileIncompleteBanner,
+} from '@/lib/workerProfileFormMissing';
+import { colorWithAlpha, useThemedStyles } from '@/theme';
+
+const PROVINCE_OPTIONS = [
+  { value: 'NS', label: 'Nova Scotia' },
+  { value: 'NB', label: 'New Brunswick' },
+  { value: 'PE', label: 'Prince Edward Island' },
+  { value: 'NL', label: 'Newfoundland and Labrador' },
+] as const;
+
+type ProvinceCode = (typeof PROVINCE_OPTIONS)[number]['value'];
 
 type WorkerYouProfileViewProps = {
   user: User;
@@ -31,78 +64,7 @@ type WorkerYouProfileViewProps = {
   deleteDescription: string;
 };
 
-function FactRow({
-  label,
-  value,
-  onEdit,
-  editLabel = 'Edit',
-}: {
-  label: string;
-  value: string;
-  onEdit?: () => void;
-  editLabel?: string;
-}) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(({ colors, spacing }) => ({
-    row: {
-      gap: 4,
-      paddingVertical: spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.separator,
-    },
-    top: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
-      gap: spacing.sm,
-    },
-    label: {
-      fontSize: 13,
-      lineHeight: 18,
-      fontFamily: fontSemibold,
-      fontWeight: '600' as const,
-      color: colors.labelTertiary,
-    },
-    value: {
-      fontSize: 16,
-      lineHeight: 22,
-      fontFamily: fontSemibold,
-      fontWeight: '600' as const,
-      color: colors.labelPrimary,
-    },
-    edit: {
-      fontSize: 14,
-      lineHeight: 20,
-      fontFamily: fontSemibold,
-      fontWeight: '600' as const,
-      color: colors.primary,
-      ...webPointer(),
-    },
-  }));
-
-  return (
-    <View style={styles.row}>
-      <View style={styles.top}>
-        <Text style={styles.label}>{label}</Text>
-        {onEdit ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${editLabel} ${label}`}
-            onPress={onEdit}
-            style={({ pressed, hovered }) => [
-              webHover(hovered, pressed, { opacity: 0.85 }),
-              pressed && { opacity: 0.75 },
-            ]}>
-            <Text style={styles.edit}>{editLabel}</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <Text style={styles.value}>{value || '—'}</Text>
-    </View>
-  );
-}
-
-/** Single-document profile: matching essentials + account controls, no card stack. */
+/** Editable profile essentials + account controls on one page. */
 export function WorkerYouProfileView({
   user,
   displayName,
@@ -116,40 +78,128 @@ export function WorkerYouProfileView({
   onDeleteAccount,
   deleteDescription,
 }: WorkerYouProfileViewProps) {
+  const { refreshProfile } = useAuth();
+  const { refreshWorkerProfile } = useWorkerProfile();
+  const { save } = useWorkerSetupSave();
+  const { isWide } = useResponsiveLayout();
   const busy = isSigningOut || isDeleting;
   const showPassword = userHasEmailPasswordLogin(user);
-  const roles = formatRoleTypesLabel(getWorkerRoleTypes(workerProfile)) || '';
-  const place = [
-    workerProfile?.city,
-    workerProfile?.province ? getProvinceLabel(workerProfile.province) : null,
-  ]
-    .filter(Boolean)
-    .join(', ');
-  const phone = workerProfile?.phone?.trim()
-    ? formatPhoneNumber(workerProfile.phone)
-    : '';
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const seededName = useMemo(
+    () =>
+      resolveAuthNameParts({
+        firstName,
+        lastName,
+        displayName,
+        userMetadata: user.user_metadata as Record<string, unknown> | undefined,
+      }),
+    [displayName, firstName, lastName, user.user_metadata],
+  );
+
+  const [formFirstName, setFormFirstName] = useState(seededName.firstName);
+  const [formLastName, setFormLastName] = useState(seededName.lastName);
+  const [email, setEmail] = useState(user.email?.trim() ?? '');
+  const [phone, setPhone] = useState(
+    workerProfile?.phone ? formatPhoneNumber(workerProfile.phone) : '',
+  );
+  const [roleTypes, setRoleTypes] = useState<RoleType[]>(() => getWorkerRoleTypes(workerProfile));
+  const [city, setCity] = useState(workerProfile?.city?.trim() ?? '');
+  const [province, setProvince] = useState<ProvinceCode>(
+    (workerProfile?.province as ProvinceCode | undefined) ?? 'NS',
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+
+  const profileComplete = isWorkerProfileComplete(workerProfile);
+
+  useEffect(() => {
+    setFormFirstName(seededName.firstName);
+    setFormLastName(seededName.lastName);
+  }, [seededName.firstName, seededName.lastName]);
+
+  useEffect(() => {
+    setEmail(user.email?.trim() ?? '');
+  }, [user.email]);
+
+  useEffect(() => {
+    if (!workerProfile) return;
+    setRoleTypes(getWorkerRoleTypes(workerProfile));
+    setPhone(workerProfile.phone ? formatPhoneNumber(workerProfile.phone) : '');
+    setCity(workerProfile.city?.trim() ?? '');
+    if (workerProfile.province) {
+      setProvince(workerProfile.province as ProvinceCode);
+    }
+  }, [workerProfile]);
+
+  const missing = useMemo(
+    () =>
+      getWorkerProfileFormMissing({
+        firstName: formFirstName,
+        lastName: formLastName,
+        phone,
+        roleTypes,
+        city,
+        province,
+      }),
+    [city, formFirstName, formLastName, phone, province, roleTypes],
+  );
+  const incompleteBanner = getWorkerProfileIncompleteBanner(missing);
+
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     root: {
       gap: spacing.xl,
       width: '100%' as const,
     },
-    doc: {
-      gap: 0,
-    },
-    sectionLabel: {
-      fontSize: 13,
-      lineHeight: 18,
-      fontFamily: fontSemibold,
+    hint: profileSettingsHintStyle({ typography, colors }),
+    hintNeeded: {
+      ...profileSettingsHintStyle({ typography, colors }),
+      color: colors.primary,
       fontWeight: '600' as const,
-      color: colors.labelTertiary,
-      marginBottom: spacing.sm,
+    },
+    nameRow: {
+      flexDirection: isWide ? ('row' as const) : ('column' as const),
+      gap: spacing.md,
+    },
+    nameField: isWide ? { flex: 1, minWidth: 0 } : {},
+    incompleteBanner: {
+      backgroundColor: `${colors.primary}14`,
+      borderRadius: 12,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      gap: 4,
+    },
+    incompleteTitle: {
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '600' as const,
+      color: colors.primary,
+    },
+    incompleteBody: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
+    neededWrap: {
+      borderRadius: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colorWithAlpha(colors.primary, isDark ? 0.45 : 0.35),
+      backgroundColor: colorWithAlpha(colors.primary, isDark ? 0.1 : 0.06),
+      padding: spacing.sm,
+      gap: spacing.sm,
     },
     quiet: {
       gap: spacing.md,
       paddingTop: spacing.sm,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.separator,
+    },
+    sectionLabel: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '600' as const,
+      color: colors.labelTertiary,
+      marginBottom: spacing.sm,
     },
     quietHint: {
       fontSize: 13,
@@ -158,41 +208,207 @@ export function WorkerYouProfileView({
     },
   }));
 
+  const normalizedPhone = normalizePhoneForStorage(phone);
+  const canSave =
+    Boolean(formFirstName.trim()) &&
+    Boolean(formLastName.trim()) &&
+    roleTypes.length > 0 &&
+    Boolean(normalizedPhone) &&
+    Boolean(city.trim()) &&
+    Boolean(province);
+
+  const handleSave = async () => {
+    if (!canSave) {
+      setFormError(
+        missing.phone
+          ? 'Add a mobile number — fill-ins are alerted by SMS.'
+          : 'Add your name, role, phone, and city to save.',
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+    setFormSuccess(null);
+    try {
+      await updateProfileName(user.id, {
+        firstName: formFirstName.trim(),
+        lastName: formLastName.trim(),
+      });
+
+      const nextEmail = email.trim();
+      const currentEmail = user.email?.trim() ?? '';
+      let emailNote: string | null = null;
+      if (nextEmail && nextEmail.toLowerCase() !== currentEmail.toLowerCase()) {
+        await updateAuthEmail(nextEmail);
+        emailNote =
+          'Check your inbox to confirm the new email if Supabase asks you to verify it.';
+      }
+
+      await save({
+        role_types: roleTypes,
+        phone: normalizedPhone,
+        city: city.trim(),
+        province,
+      });
+
+      await refreshProfile(user.id);
+      await refreshWorkerProfile();
+      await onProfileRefresh();
+
+      setFormSuccess(
+        emailNote
+          ? `Profile saved. ${emailNote}`
+          : 'Profile saved. Text alerts are on for nearby fill-ins.',
+      );
+      if (Platform.OS !== 'web') {
+        Alert.alert(
+          'Profile saved',
+          emailNote ?? 'Text alerts are on for nearby fill-ins.',
+        );
+      }
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not save', message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <View style={styles.root}>
-      <View style={styles.doc}>
-        <Text style={styles.sectionLabel}>Profile</Text>
-        <AccountDisplayNameField
-          userId={user.id}
-          savedFirstName={firstName}
-          savedLastName={lastName}
-          savedDisplayName={displayName}
-          audience="worker"
-          onSaved={onProfileRefresh}
-        />
-        <FactRow label="Email" value={user.email?.trim() || ''} />
-        <FactRow
-          label="Mobile"
-          value={phone}
-          onEdit={() =>
-            router.push(getSetupEditRoute('/(worker-setup)/basics', 'worker-account'))
-          }
-        />
-        <FactRow
-          label="Role"
-          value={roles}
-          onEdit={() =>
-            router.push(getSetupEditRoute('/(worker-setup)/basics', 'worker-account'))
-          }
-        />
-        <FactRow
-          label="City"
-          value={place}
-          onEdit={() =>
-            router.push(getSetupEditRoute('/(worker-setup)/location', 'worker-account'))
-          }
-        />
-      </View>
+      {incompleteBanner ? (
+        <View style={styles.incompleteBanner}>
+          <Text style={styles.incompleteTitle}>{incompleteBanner.title}</Text>
+          <Text style={styles.incompleteBody}>{incompleteBanner.body}</Text>
+        </View>
+      ) : null}
+
+      <FormErrorBanner message={formError} />
+      <FormSuccessBanner message={formSuccess} />
+
+      <ProfileDetailStack>
+        <SectionPanel icon="camera-outline" iconAccent="primary" title="Profile photo">
+          <Text style={styles.hint}>Optional — shown when you apply to clinics.</Text>
+          <ProfilePhotoUpload
+            embedded
+            displayName={joinDisplayName(formFirstName, formLastName)}
+            onUpdated={() => void refreshWorkerProfile()}
+          />
+        </SectionPanel>
+
+        <SectionPanel icon="person-outline" iconAccent="secondary" title="Your name">
+          <View style={styles.nameRow}>
+            <View style={styles.nameField}>
+              <AuthField
+                label="First name"
+                placeholder="First name"
+                value={formFirstName}
+                onChangeText={setFormFirstName}
+                autoCapitalize="words"
+                autoComplete="given-name"
+                required
+                invalid={missing.firstName}
+              />
+            </View>
+            <View style={styles.nameField}>
+              <AuthField
+                label="Last name"
+                placeholder="Last name"
+                value={formLastName}
+                onChangeText={setFormLastName}
+                autoCapitalize="words"
+                autoComplete="family-name"
+                required
+                invalid={missing.lastName}
+              />
+            </View>
+          </View>
+        </SectionPanel>
+
+        <SectionPanel icon="mail-outline" iconAccent="primary" title="Email">
+          <Text style={styles.hint}>
+            Optional — useful for account recovery. Fill-in alerts still go by text.
+          </Text>
+          <AuthField
+            label="Email"
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoComplete="email"
+            value={email}
+            onChangeText={setEmail}
+          />
+        </SectionPanel>
+
+        <SectionPanel icon="call-outline" iconAccent="secondary" title="Mobile phone">
+          <View style={missing.phone ? styles.neededWrap : undefined}>
+            <Text style={missing.phone ? styles.hintNeeded : styles.hint}>
+              {missing.phone
+                ? 'Fill-in openings are sent by text — add a mobile number so you don’t miss them.'
+                : 'Used for fill-in text alerts. Texts turn on by default when you save a number.'}
+            </Text>
+            <AuthField
+              label="Mobile phone"
+              placeholder={PHONE_NUMBER_PLACEHOLDER}
+              value={phone}
+              onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+              keyboardType="phone-pad"
+              required
+              invalid={missing.phone}
+              validated={Boolean(normalizedPhone)}
+              accent="secondary"
+            />
+          </View>
+        </SectionPanel>
+
+        <SectionPanel icon="ribbon-outline" iconAccent="primary" title="Roles">
+          <View style={missing.roles ? styles.neededWrap : undefined}>
+            <Text style={missing.roles ? styles.hintNeeded : styles.hint}>
+              Helps show the right jobs and fill-ins nearby.
+            </Text>
+            <ChipSelector
+              options={[...ROLE_TYPE_OPTIONS]}
+              selected={roleTypes}
+              multiple
+              onChange={(value) => setRoleTypes(value as RoleType[])}
+            />
+          </View>
+        </SectionPanel>
+
+        <SectionPanel icon="location-outline" iconAccent="secondary" title="Where you work">
+          <View style={missing.city || missing.province ? styles.neededWrap : undefined}>
+            <Text style={missing.city || missing.province ? styles.hintNeeded : styles.hint}>
+              City and province help show openings near you.
+            </Text>
+            <AuthField
+              label="City"
+              placeholder="City"
+              value={city}
+              onChangeText={setCity}
+              autoCapitalize="words"
+              required
+              invalid={missing.city}
+              accent="secondary"
+            />
+            <ChipSelector
+              options={[...PROVINCE_OPTIONS]}
+              selected={province}
+              multiple={false}
+              onChange={(value) => setProvince(value as ProvinceCode)}
+              accent="secondary"
+            />
+          </View>
+        </SectionPanel>
+      </ProfileDetailStack>
+
+      <OnboardingButton
+        label={isSubmitting ? 'Saving…' : profileComplete ? 'Save changes' : 'Save profile'}
+        disabled={isSubmitting || busy}
+        onPress={() => void handleSave()}
+      />
 
       {showPassword ? (
         <View style={styles.quiet}>
@@ -210,12 +426,12 @@ export function WorkerYouProfileView({
         <Text style={styles.quietHint}>Sign out on this device anytime.</Text>
         <AccountSignOutCard
           isSigningOut={isSigningOut}
-          disabled={busy}
+          disabled={busy || isSubmitting}
           onSignOut={onSignOut}
         />
         <AccountDeleteAccountCard
           isDeleting={isDeleting}
-          disabled={busy}
+          disabled={busy || isSubmitting}
           description={deleteDescription}
           onDeleteAccount={onDeleteAccount}
         />

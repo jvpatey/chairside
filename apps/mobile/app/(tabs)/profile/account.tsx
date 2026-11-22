@@ -20,7 +20,7 @@ export default function WorkerProfileAccountScreen() {
   return (
     <ProfileDetailScreen
       title="Profile"
-      subtitle="Name, role, and city for fill-in texts."
+      subtitle="Photo, contact, role, and city — edit everything here."
       onBack={() => navigateToWorkerProfileHub(router)}>
       <WorkerYouProfileView
         user={user}

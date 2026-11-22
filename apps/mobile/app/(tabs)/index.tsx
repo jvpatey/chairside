@@ -158,9 +158,8 @@ export default function WorkerDashboardScreen() {
     .filter(Boolean)
     .join(', ');
 
-  const heroSubtitle = isProfileComplete
-    ? [workerSubtitle, locationLine || null].filter(Boolean).join(' · ')
-    : 'Finish your profile setup';
+  const heroSubtitle =
+    [workerSubtitle, locationLine || null].filter(Boolean).join(' · ') || 'Dental professional';
 
   const smsStatus = getFillInSmsStatus(workerProfile);
   const pendingLabel =
@@ -175,10 +174,9 @@ export default function WorkerDashboardScreen() {
       : upcomingConfirmed.length > 0
         ? `${upcomingConfirmed.length} confirmed fill-ins`
         : null;
-  const homeStatusLine = isProfileComplete
-    ? [confirmedLabel, pendingLabel].filter(Boolean).join(' · ') ||
-      (smsStatus.fillInsOn ? null : 'We’ll text you when a fill-in opens nearby')
-    : null;
+  const homeStatusLine =
+    [confirmedLabel, pendingLabel].filter(Boolean).join(' · ') ||
+    (smsStatus.fillInsOn ? null : 'We’ll text you when a fill-in opens nearby');
 
   const statusHub = WORKER_STATUS_HUB;
   const hasActiveFillIns = myFillIns.length > 0;
@@ -191,12 +189,12 @@ export default function WorkerDashboardScreen() {
             flush
             profileHref={WORKER_PROFILE}
             avatarKind="worker"
-            displayName={isProfileComplete ? profile?.display_name : null}
-            photoUri={isProfileComplete ? photoUri : null}
-            namePlaceholder={isProfileComplete ? 'Your profile' : 'Welcome to Chairside'}
+            displayName={profile?.display_name}
+            photoUri={photoUri}
+            namePlaceholder="Your profile"
             subtitle={heroSubtitle}
-            greetingName={isProfileComplete ? getFirstName(profile?.display_name) : null}
-            statusBadge={isProfileComplete ? <TextAlertsStatusBadge /> : null}
+            greetingName={getFirstName(profile?.display_name)}
+            statusBadge={<TextAlertsStatusBadge />}
             statusLine={homeStatusLine}
             onStatusPress={
               confirmedLabel || pendingLabel
@@ -282,19 +280,17 @@ export default function WorkerDashboardScreen() {
               </CoverageFeedSection>
             ) : null}
 
-            {isProfileComplete ? (
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel="See nearby open fill-ins"
-                onPress={() => router.push(WORKER_OPEN_FILLINS)}
-                style={({ pressed, hovered }) => [
-                  feedStyles.nearbyLink,
-                  webHover(hovered, pressed, webListRowHoverStyles(colors)),
-                  pressed && { opacity: 0.85 },
-                ]}>
-                <Text style={feedStyles.nearbyLinkLabel}>Nearby open fill-ins</Text>
-              </Pressable>
-            ) : null}
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="See nearby open fill-ins"
+              onPress={() => router.push(WORKER_OPEN_FILLINS)}
+              style={({ pressed, hovered }) => [
+                feedStyles.nearbyLink,
+                webHover(hovered, pressed, webListRowHoverStyles(colors)),
+                pressed && { opacity: 0.85 },
+              ]}>
+              <Text style={feedStyles.nearbyLinkLabel}>Nearby open fill-ins</Text>
+            </Pressable>
           </View>
         </FadeInSection>
       }

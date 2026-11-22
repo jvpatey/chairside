@@ -16,6 +16,7 @@ import {
   DashboardHeroName,
   DashboardHeroSubtitle,
 } from '@/components/dashboard/DashboardHeroIdentity';
+import { SoftEdgeDivider } from '@/components/ui/SoftEdgeDivider';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import type { DashboardHeroPulse } from '@/lib/dashboardPulse';
 import { useEnterAnimation, usePrefersReducedMotion } from '@/lib/motion';
@@ -131,6 +132,9 @@ export function DashboardHero({
       paddingHorizontal: useFlush ? 0 : spacing.lg,
       paddingTop: useFlush ? spacing.xs : spacing.lg,
       paddingBottom: pulse && !useFlush ? spacing.md : useFlush ? spacing.sm : spacing.lg,
+    },
+    softDivider: {
+      marginTop: spacing.md,
     },
     row: {
       position: 'relative' as const,
@@ -395,6 +399,7 @@ export function DashboardHero({
         </View>
       </View>
       {pulseFooter}
+      {useFlush ? <SoftEdgeDivider style={styles.softDivider} /> : null}
     </View>
   );
 }

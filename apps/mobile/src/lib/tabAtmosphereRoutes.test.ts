@@ -13,9 +13,7 @@ describe('getFocusedTabSceneName', () => {
     expect(getFocusedTabSceneName('/(tabs)/fill-in-availability', 'worker')).toBe(
       'fill-in-availability',
     );
-    expect(getFocusedTabSceneName('/fill-in-availability', 'worker')).toBe(
-      'fill-in-availability',
-    );
+    expect(getFocusedTabSceneName('/fill-in-availability', 'worker')).toBe('fill-in-availability');
   });
 
   it('maps shift and job details to dynamic scene names', () => {
@@ -38,17 +36,13 @@ describe('isWebTabSceneFocused', () => {
     expect(isWebTabSceneFocused('shift/[id]', pathname, 'worker')).toBe(true);
     expect(isWebTabSceneFocused('fillins', pathname, 'worker')).toBe(false);
     expect(isWebTabSceneFocused('index', pathname, 'worker')).toBe(false);
-    expect(isWebTabSceneFocused('fill-in-availability', pathname, 'worker')).toBe(
-      false,
-    );
+    expect(isWebTabSceneFocused('fill-in-availability', pathname, 'worker')).toBe(false);
   });
 
   it('focuses fill-in-availability for its own route', () => {
     const pathname = '/fill-in-availability';
 
-    expect(isWebTabSceneFocused('fill-in-availability', pathname, 'worker')).toBe(
-      true,
-    );
+    expect(isWebTabSceneFocused('fill-in-availability', pathname, 'worker')).toBe(true);
     expect(isWebTabSceneFocused('fillins', pathname, 'worker')).toBe(false);
     expect(isWebTabSceneFocused('index', pathname, 'worker')).toBe(false);
   });
@@ -61,9 +55,9 @@ describe('isWebTabSceneFocused', () => {
 
 describe('getActiveTabBarName', () => {
   it('keeps applications selected on worker application detail', () => {
-    expect(
-      getActiveTabBarName('/(tabs)/application/app-1', 'worker', 'applications-tab'),
-    ).toBe('applications');
+    expect(getActiveTabBarName('/(tabs)/application/app-1', 'worker', 'applications-tab')).toBe(
+      'applications',
+    );
   });
 
   it('keeps applications selected on clinic application detail', () => {
@@ -106,23 +100,19 @@ describe('getActiveTabBarName', () => {
   });
 
   it('keeps calendar selected when opened from calendar tab', () => {
-    expect(
-      getActiveTabBarName('/(tabs)/application/app-1', 'worker', 'calendar-tab'),
-    ).toBe('calendar');
-    expect(
-      getActiveTabBarName('/(clinic-tabs)/application/app-1', 'clinic', 'calendar-tab'),
-    ).toBe('calendar');
+    expect(getActiveTabBarName('/(tabs)/application/app-1', 'worker', 'calendar-tab')).toBe(
+      'calendar',
+    );
+    expect(getActiveTabBarName('/(clinic-tabs)/application/app-1', 'clinic', 'calendar-tab')).toBe(
+      'calendar',
+    );
   });
 });
 
 describe('isTabRootPath', () => {
   it('keeps discover selected on nested discover detail routes', () => {
-    expect(
-      getActiveTabBarName('/(clinic-tabs)/discover/job/job-1', 'clinic'),
-    ).toBe('discover');
-    expect(
-      getActiveTabBarName('/(clinic-tabs)/discover/shift/shift-1', 'clinic'),
-    ).toBe('discover');
+    expect(getActiveTabBarName('/(clinic-tabs)/discover/job/job-1', 'clinic')).toBe('discover');
+    expect(getActiveTabBarName('/(clinic-tabs)/discover/shift/shift-1', 'clinic')).toBe('discover');
   });
 
   it('returns true on main tab list screens', () => {

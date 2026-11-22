@@ -28,7 +28,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { AnalyticsEvents, type ListingOpenSource } from '@/lib/analytics/events';
 import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { savePendingPublicListingHref } from '@/lib/pendingPublicListing';
-import { isWorkerSetupComplete } from '@/lib/setupCompletion';
+import { canAccessWorkerTabs } from '@/lib/setupCompletion';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -256,7 +256,7 @@ export function PublicListingPage({
   const { colors } = useTheme();
   const { isCompact } = useResponsiveLayout();
   const { session, profile, isAuthReady } = useAuth();
-  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+  const { isWorkerProfileReady } = useWorkerProfile();
   const [listing, setListing] = useState<PublicListing | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -415,9 +415,8 @@ export function PublicListingPage({
   const workerReady =
     isAuthReady &&
     Boolean(session) &&
-    profile?.role === 'worker' &&
-    isWorkerProfileReady &&
-    isWorkerSetupComplete(workerProfile);
+    canAccessWorkerTabs(profile) &&
+    isWorkerProfileReady;
 
   if (workerReady && id.trim()) {
     return <Redirect href={inAppHref} />;

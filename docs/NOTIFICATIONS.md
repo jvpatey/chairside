@@ -11,12 +11,15 @@ Chairside notification channels:
 
 Pingram is **not** used for in-app or mobile push.
 
+Auth OTP SMS (sign-up / sign-in codes) **is** Pingram, but via the Supabase **Send SMS** Auth hook (`send-auth-sms`), not the `notify` function. See [AUTH.md](./AUTH.md).
+
 ## Pingram dashboard setup (email + SMS only)
 
 1. Create a Pingram environment (Canada region recommended).
-2. Create notification types used for **SMS / email**:
+2. Create notification types used for **SMS / email** (or run `./scripts/setup-pingram-notification-types.sh`):
    - `fill_in_posted` (SMS template + opt-out text)
    - `fill_in_outreach_sms` (SMS-only outreach text alerts)
+   - `auth_otp` (phone sign-in / sign-up OTP — Auth Send SMS hook; see [AUTH.md](./AUTH.md))
    - `clinic_manager_invitation` (email)
    - `support_contact` (Support form email — see [SUPPORT_CONTACT.md](./SUPPORT_CONTACT.md))
 3. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.

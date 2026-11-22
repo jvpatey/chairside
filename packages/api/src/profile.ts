@@ -1,10 +1,22 @@
 import {
+  collapseDuplicatedDisplayName,
   joinDisplayName,
+  normalizePersonNameParts,
   splitDisplayName,
   type PersonNameParts,
 } from './authDisplayName';
 import type { UserRole } from './types';
 import { getSupabaseClient } from './client';
+
+function withCollapsedDisplayName<T extends { display_name?: string | null }>(
+  profile: T | null,
+): T | null {
+  if (!profile) return profile;
+  const collapsed = collapseDuplicatedDisplayName(profile.display_name);
+  const current = profile.display_name?.trim() ?? '';
+  if (!collapsed || collapsed === current) return profile;
+  return { ...profile, display_name: collapsed };
+}
 
 export async function getProfile(userId: string) {
   const supabase = getSupabaseClient();
@@ -15,7 +27,7 @@ export async function getProfile(userId: string) {
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return withCollapsedDisplayName(data);
 }
 
 /** Resolve role after sign-in, including recovery when setup exists but role was not saved. */
@@ -61,34 +73,44 @@ export async function setProfileRole(userId: string, role: UserRole) {
     updated_at: now,
   };
 
+  let data;
   if (existing) {
-    const { data, error } = await supabase
+    const result = await supabase
       .from('profiles')
       .update(payload)
       .eq('id', userId)
       .select('*')
       .single();
 
-    if (error) throw error;
-    return data;
+    if (result.error) throw result.error;
+    data = result.data;
+  } else {
+    const result = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        ...payload,
+      })
+      .select('*')
+      .single();
+
+    if (result.error) throw result.error;
+    data = result.data;
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .insert({
-      id: userId,
-      ...payload,
-    })
-    .select('*')
-    .single();
+  // Lazy-create worker row so tabs/contexts never depend on a null profile.
+  if (role === 'worker') {
+    const { error: workerError } = await supabase
+      .from('worker_profiles')
+      .upsert({ id: userId, updated_at: now }, { onConflict: 'id' });
+    if (workerError) throw workerError;
+  }
 
-  if (error) throw error;
   return data;
 }
 
 function normalizeNameParts(input: PersonNameParts): PersonNameParts & { displayName: string } {
-  const firstName = input.firstName.trim();
-  const lastName = input.lastName.trim();
+  const { firstName, lastName } = normalizePersonNameParts(input);
   return {
     firstName,
     lastName,

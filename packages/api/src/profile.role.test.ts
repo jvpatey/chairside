@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const maybeSingle = vi.fn();
 const updateSingle = vi.fn();
 const insertSingle = vi.fn();
+const upsertResult = vi.fn();
 const updateEq = vi.fn();
 const update = vi.fn();
 const insert = vi.fn();
+const upsert = vi.fn();
 const from = vi.fn();
 
 vi.mock('./client', () => ({
@@ -19,37 +21,49 @@ import { setProfileRole } from './profile';
 describe('setProfileRole', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    from.mockImplementation(() => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle,
-        }),
-      }),
-      update: (payload: unknown) => {
-        update(payload);
+    upsertResult.mockResolvedValue({ data: null, error: null });
+    from.mockImplementation((table: string) => {
+      if (table === 'worker_profiles') {
         return {
-          eq: (column: string, value: string) => {
-            updateEq(column, value);
-            return {
-              select: () => ({
-                single: updateSingle,
-              }),
-            };
+          upsert: (payload: unknown) => {
+            upsert(payload);
+            return upsertResult();
           },
         };
-      },
-      insert: (payload: unknown) => {
-        insert(payload);
-        return {
-          select: () => ({
-            single: insertSingle,
+      }
+
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle,
           }),
-        };
-      },
-    }));
+        }),
+        update: (payload: unknown) => {
+          update(payload);
+          return {
+            eq: (column: string, value: string) => {
+              updateEq(column, value);
+              return {
+                select: () => ({
+                  single: updateSingle,
+                }),
+              };
+            },
+          };
+        },
+        insert: (payload: unknown) => {
+          insert(payload);
+          return {
+            select: () => ({
+              single: insertSingle,
+            }),
+          };
+        },
+      };
+    });
   });
 
-  it('updates when the profile row already exists', async () => {
+  it('updates when the profile row already exists and ensures a worker row', async () => {
     maybeSingle.mockResolvedValue({
       data: { id: 'user-1', role: null },
       error: null,
@@ -69,6 +83,11 @@ describe('setProfileRole', () => {
       }),
     );
     expect(insert).not.toHaveBeenCalled();
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'user-1',
+      }),
+    );
   });
 
   it('inserts only when the profile row is missing', async () => {
@@ -89,5 +108,6 @@ describe('setProfileRole', () => {
       }),
     );
     expect(update).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
   });
 });

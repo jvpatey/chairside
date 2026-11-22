@@ -33,7 +33,7 @@ import {
   getApplyScreeningRoute,
   WORKER_APPLICATIONS,
   WORKER_PENDING_FILLINS,
-  WORKER_SETUP_BASICS,
+  WORKER_FINISH_PROFILE,
 } from '@/lib/routing';
 import { getApplyApplicationKitEditRoute } from '@/hooks/useSetupEditMode';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
@@ -188,7 +188,7 @@ export default function ApplyScreen() {
         title: 'Complete your profile',
         message: 'Finish setup before applying.',
         confirmLabel: 'Continue setup',
-        onConfirm: () => router.replace(WORKER_SETUP_BASICS),
+        onConfirm: () => router.replace(WORKER_FINISH_PROFILE),
       });
       return;
     }

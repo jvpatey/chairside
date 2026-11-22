@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { AnalyticsEvents } from '@/lib/analytics/events';
 import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { WORKER_SETUP_BASICS } from '@/lib/routing';
+import { WORKER_FINISH_PROFILE } from '@/lib/routing';
 
 export function guardApply(
   workerProfile: WorkerProfile | null,
@@ -33,7 +33,7 @@ export function guardApply(
         ? `Add the following to request cover: ${missing.join(', ')}`
         : 'Add your role, phone, and city to request cover.',
     confirmLabel: 'Continue',
-    onConfirm: () => router.push(WORKER_SETUP_BASICS),
+    onConfirm: () => router.push(WORKER_FINISH_PROFILE),
   });
 }
 
@@ -50,7 +50,7 @@ export function guardQuickApply(workerProfile: WorkerProfile | null, _kitRoute: 
         ? `Add the following to continue: ${missing.join(', ')}`
         : 'Add your role, phone, and city to continue.',
     confirmLabel: 'Continue',
-    onConfirm: () => router.push(WORKER_SETUP_BASICS),
+    onConfirm: () => router.push(WORKER_FINISH_PROFILE),
   });
   return false;
 }

@@ -2,7 +2,6 @@ import {
   getClinicProfile,
   getClinicProfileByOrganizationId,
   getClinicWorkspace,
-  getWorkerProfile,
   isClinicGroupsEnabled,
   resolveAuthProfile,
   type Profile,
@@ -14,11 +13,14 @@ import {
   CLINIC_SETUP_ACCOUNT_TYPE,
   CLINIC_SETUP_BASICS,
   getHomeRouteForRole,
-  WORKER_SETUP_BASICS,
 } from '@/lib/routing';
-import { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupCompletion';
+import { isClinicSetupComplete } from '@/lib/setupCompletion';
 
-export { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupCompletion';
+export {
+  canAccessWorkerTabs,
+  isClinicSetupComplete,
+  isWorkerSetupComplete,
+} from '@/lib/setupCompletion';
 
 type ResolveAuthenticatedRouteInput = {
   userId: string;
@@ -60,10 +62,7 @@ async function resolveHomeRouteForRole(userId: string, role: UserRole): Promise<
     return getHomeRouteForRole('clinic');
   }
 
-  const workerProfile = await getWorkerProfile(userId);
-  if (!isWorkerSetupComplete(workerProfile)) {
-    return WORKER_SETUP_BASICS;
-  }
+  // Incomplete workers land in tabs; apply/cover and SMS stay soft-gated.
   return getHomeRouteForRole('worker');
 }
 

@@ -34,7 +34,17 @@ type AuthFieldProps = {
   hint?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  autoComplete?: 'email' | 'password' | 'username' | 'current-password' | 'new-password' | 'name' | 'off';
+  autoComplete?:
+    | 'email'
+    | 'password'
+    | 'username'
+    | 'current-password'
+    | 'new-password'
+    | 'name'
+    | 'given-name'
+    | 'family-name'
+    | 'tel'
+    | 'off';
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'number-pad' | 'url';
   editable?: boolean;
   multiline?: boolean;

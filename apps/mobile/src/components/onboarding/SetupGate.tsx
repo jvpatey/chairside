@@ -5,16 +5,13 @@ import { PageLoadingSpinner } from '@/components/ui/PageLoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import {
-  isClinicSetupComplete,
-  isWorkerSetupComplete,
-} from '@/lib/setupCompletion';
+import { isClinicSetupComplete } from '@/lib/setupCompletion';
 import {
   getClinicSetupGateDecision,
   getWorkerSetupGateDecision,
   type SetupGateDecision,
 } from '@/lib/setupGateDecision';
-import { isClinicGroupsEnabled, type WorkerProfile } from '@chairside/api';
+import { isClinicGroupsEnabled } from '@chairside/api';
 
 function renderGateDecision(
   decision: SetupGateDecision,
@@ -81,7 +78,7 @@ export function ClinicSetupGate({ children }: { children: ReactNode }) {
 
 export function WorkerSetupGate({ children }: { children: ReactNode }) {
   const { session, isAuthReady, isProfileReady, profile } = useAuth();
-  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+  const { isWorkerProfileReady } = useWorkerProfile();
   const hasShownAppRef = useResetKeepMountedOnUserChange(session?.user?.id);
 
   const decision = getWorkerSetupGateDecision({
@@ -90,8 +87,6 @@ export function WorkerSetupGate({ children }: { children: ReactNode }) {
     profile,
     isProfileReady,
     isWorkerProfileReady,
-    workerProfile,
-    isWorkerSetupComplete: (profile) => isWorkerSetupComplete(profile as WorkerProfile),
   });
 
   if (decision.type === 'children') {

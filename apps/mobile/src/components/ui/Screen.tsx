@@ -20,6 +20,7 @@ import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInse
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { PageHeader, PageHeaderCompactBar, type PageHeaderVariant } from '@/components/ui/PageHeader';
 import { AppText } from '@/components/ui/AppText';
+import { SoftEdgeDivider } from '@/components/ui/SoftEdgeDivider';
 import { ThemedRefreshControl } from '@/components/ui/ThemedRefreshControl';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
@@ -40,6 +41,8 @@ export type ScreenProps = {
   headerAccessory?: ReactNode;
   headerVariant?: PageHeaderVariant;
   constrainWidth?: boolean;
+  /** Soft edge-faded divider under the page title (Fill-ins / Roles hubs). */
+  softHeaderDivider?: boolean;
   scroll?: boolean;
   scrollEnabled?: boolean;
   fillsContainer?: boolean;
@@ -82,6 +85,7 @@ export function Screen({
   headerAccessory,
   headerVariant,
   constrainWidth = true,
+  softHeaderDivider = false,
   scroll = true,
   scrollEnabled = true,
   fillsContainer = false,
@@ -99,6 +103,8 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
+  // Tablet scenes sit beside the sidebar; don't re-center a viewport maxWidth in that pane.
+  const applyWidthConstraint = constrainWidth && !isTablet;
   const variant = resolveHeaderVariant(headerVariant, isTablet, onBack, showHeader);
   const collapseLargeTitle =
     collapseHeader && showHeader && Boolean(title) && variant === 'hub';
@@ -148,7 +154,7 @@ export function Screen({
       flexGrow: fillsContainer ? 1 : undefined,
       paddingHorizontal: spacing.lg,
       width: '100%',
-      ...(constrainWidth && contentMaxWidth
+      ...(applyWidthConstraint && contentMaxWidth
         ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const }
         : {}),
     },
@@ -175,6 +181,10 @@ export function Screen({
     },
     tabletSubtitle: {
       marginBottom: spacing.md,
+    },
+    softDivider: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
     },
     compactHeader: {
       position: 'absolute' as const,
@@ -219,6 +229,10 @@ export function Screen({
         {subtitle}
       </AppText>
     ) : null;
+
+  const softDividerBlock = softHeaderDivider ? (
+    <SoftEdgeDivider style={styles.softDivider} />
+  ) : null;
 
   const headerBaseStyle = [
     styles.header,
@@ -266,6 +280,8 @@ export function Screen({
             ]}
           >
             {headerBlock}
+            {tabletSubtitleBlock}
+            {softDividerBlock}
             <View ref={scrollContentRef} style={styles.body}>
               {children}
             </View>
@@ -293,6 +309,7 @@ export function Screen({
       <WebPageEnter animate={animateEntry}>
         {headerBlock}
         {tabletSubtitleBlock}
+        {softDividerBlock}
         <View ref={scrollContentRef}>{children}</View>
       </WebPageEnter>
     ),

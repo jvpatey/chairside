@@ -18,12 +18,42 @@ export function formatAppleFullName(fullName: AppleNameParts | null | undefined)
     .trim();
 }
 
+/**
+ * Collapse autofill mistakes where first and last were both filled with the
+ * full name (e.g. "Jeff Patey" / "Jeff Patey" → Jeff + Patey).
+ */
+export function normalizePersonNameParts(input: PersonNameParts): PersonNameParts {
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+  if (firstName && lastName && firstName.toLowerCase() === lastName.toLowerCase()) {
+    return splitDisplayName(firstName);
+  }
+  return { firstName, lastName };
+}
+
 /** Join first + last into profiles.display_name. */
 export function joinDisplayName(firstName?: string | null, lastName?: string | null): string {
-  return [firstName, lastName]
-    .map((part) => part?.trim() ?? '')
-    .filter(Boolean)
-    .join(' ');
+  const parts = normalizePersonNameParts({
+    firstName: firstName ?? '',
+    lastName: lastName ?? '',
+  });
+  return [parts.firstName, parts.lastName].filter(Boolean).join(' ');
+}
+
+/**
+ * Fix already-saved display names like "Jeff Patey Jeff Patey".
+ * When the string is two identical halves, keep one.
+ */
+export function collapseDuplicatedDisplayName(displayName?: string | null): string {
+  const trimmed = displayName?.trim() ?? '';
+  if (!trimmed) return '';
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  if (tokens.length < 2 || tokens.length % 2 !== 0) return trimmed;
+  const mid = tokens.length / 2;
+  const left = tokens.slice(0, mid).join(' ');
+  const right = tokens.slice(mid).join(' ');
+  if (left.toLowerCase() === right.toLowerCase()) return left;
+  return trimmed;
 }
 
 /**
@@ -110,10 +140,13 @@ export function resolveAuthNameParts(input: {
   const fromProfileFirst = input.firstName?.trim() ?? '';
   const fromProfileLast = input.lastName?.trim() ?? '';
   if (fromProfileFirst || fromProfileLast) {
-    return { firstName: fromProfileFirst, lastName: fromProfileLast };
+    return normalizePersonNameParts({
+      firstName: fromProfileFirst,
+      lastName: fromProfileLast,
+    });
   }
 
-  const fromDisplay = splitDisplayName(input.displayName);
+  const fromDisplay = splitDisplayName(collapseDuplicatedDisplayName(input.displayName));
   if (fromDisplay.firstName || fromDisplay.lastName) {
     return fromDisplay;
   }

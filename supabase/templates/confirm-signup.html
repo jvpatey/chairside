@@ -16,10 +16,16 @@
                   <span style="color:#0E1B2C;">chair</span><span style="color:#1A6FD4;">side</span>
                 </p>
                 <p style="margin:0 0 8px;font-size:22px;line-height:28px;font-weight:700;color:#0E1B2C;">
-                  Confirm your email
+                  Your confirmation code
                 </p>
                 <p style="margin:0 0 24px;font-size:16px;line-height:24px;color:#3C485C;">
-                  Open this link to finish creating your Chairside account. If you didn’t request this, you can ignore this email.
+                  Enter this code in the app to finish creating your Chairside account. If you didn’t request this, you can ignore this email.
+                </p>
+                <p style="margin:0 0 8px;font-size:36px;line-height:44px;letter-spacing:6px;font-weight:700;color:#0E1B2C;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">
+                  {{ .Token }}
+                </p>
+                <p style="margin:28px 0 12px;font-size:14px;line-height:20px;color:#3C485C;">
+                  Prefer a link instead?
                 </p>
                 <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#1A6FD4;color:#FFFFFF;text-decoration:none;font-size:16px;font-weight:600;padding:14px 22px;border-radius:14px;">
                   Confirm email

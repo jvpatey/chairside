@@ -357,7 +357,12 @@ export default function FillInsScreen() {
     <View style={styles.controlsBlock}>
       <View style={styles.browseControlsRow}>
         <View style={styles.searchField}>
-          <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
+          <WorkerBrowseSearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by clinic, city, or date"
+            accessibilityLabel="Search open fill-ins"
+          />
         </View>
         <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
         <WorkerFillInBrowseFilters
@@ -387,11 +392,11 @@ export default function FillInsScreen() {
       embedded
       accent="primary"
       icon={FILL_IN_ICON.outline}
-      title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins yet'}
+      title={hasActiveFillInFilters ? 'No fill-ins match your filters' : 'No open fill-ins nearby yet'}
       message={
         hasActiveFillInFilters
-          ? 'Try a different search or filter.'
-          : 'We’ll text you when a shift opens near you.'
+          ? 'Try another city, role, or date — texts still arrive for matching cover.'
+          : 'We’ll text you when same-day cover opens near you.'
       }
     />
   ) : (
@@ -460,7 +465,8 @@ export default function FillInsScreen() {
     <>
       <Screen
         title="Fill-ins"
-        subtitle="Track requests and confirmed cover. Nearby open shifts are optional."
+        subtitle="Same-day cover by text — manage requests and confirmed shifts here."
+        softHeaderDivider
         fillsContainer={fillMapViewport}
         scroll={!fillMapViewport}
         scrollEnabled={!fillMapViewport}

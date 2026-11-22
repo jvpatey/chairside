@@ -42,7 +42,7 @@ import {
   navigateAfterWorkerShift,
   parseWorkerPostingReturnParams,
   WORKER_PENDING_FILLINS,
-  WORKER_SETUP_BASICS,
+  WORKER_FINISH_PROFILE,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
 import { formatShiftPostDateLabel } from '@/lib/shiftPostDisplay';
@@ -198,7 +198,7 @@ export default function WorkerShiftDetailScreen() {
             ? `Add the following to request cover: ${missing.join(', ')}`
             : 'Add your role, phone, and city to request cover.',
         confirmLabel: 'Continue',
-        onConfirm: () => router.push(WORKER_SETUP_BASICS),
+        onConfirm: () => router.push(WORKER_FINISH_PROFILE),
       });
       return;
     }

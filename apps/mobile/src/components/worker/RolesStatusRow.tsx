@@ -1,3 +1,4 @@
+import { getWorkerRoleTypes } from '@chairside/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -5,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { WORKER_PROFILE_ACCOUNT } from '@/lib/routing';
+import { isWorkerSetupComplete } from '@/lib/setupCompletion';
 import {
   webHover,
   webListRowHoverStyles,
@@ -12,11 +14,26 @@ import {
 } from '@/lib/webPressableStyles';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
+function getIncompleteProfileLabel(
+  workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
+): string {
+  const hasRoles = getWorkerRoleTypes(workerProfile).length > 0;
+  const hasPlace = Boolean(workerProfile?.city?.trim() && workerProfile?.province?.trim());
+  const hasPhone = Boolean(workerProfile?.phone?.trim());
+
+  if (!hasRoles && !hasPlace) return 'Add role and city for better matches';
+  if (!hasRoles) return 'Add your role for better matches';
+  if (!hasPlace) return 'Add your city for nearby openings';
+  if (!hasPhone) return 'Add a mobile number for text alerts';
+  return 'Finish your profile';
+}
+
 /** Compact hub chrome — only when setup is incomplete. */
 export function RolesStatusRow() {
   const { colors } = useTheme();
   const { workerProfile } = useWorkerProfile();
-  const profileComplete = Boolean(workerProfile?.setup_completed_at);
+  const profileComplete = isWorkerSetupComplete(workerProfile);
+  const label = getIncompleteProfileLabel(workerProfile);
 
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     row: {
@@ -58,7 +75,7 @@ export function RolesStatusRow() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Add role and city for fill-in texts. Open You"
+      accessibilityLabel={`${label}. Open You`}
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.push(WORKER_PROFILE_ACCOUNT);
@@ -72,7 +89,7 @@ export function RolesStatusRow() {
         <Ionicons name="person-outline" size={15} color={colors.labelSecondary} />
       </View>
       <Text style={styles.label} numberOfLines={1}>
-        Add role and city for fill-in texts
+        {label}
       </Text>
       <Ionicons name="chevron-forward" size={16} color={colors.labelTertiary} />
     </Pressable>
